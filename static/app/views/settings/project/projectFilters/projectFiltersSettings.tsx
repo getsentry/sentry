@@ -1,6 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import iconAndroid from 'sentry-logos/logo-android.svg';
 import iconChrome from 'sentry-logos/logo-chrome.svg';
 import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
@@ -35,6 +40,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -720,54 +726,65 @@ function StandardFilter({
 
 export function ProjectFiltersSettings({project, params, features: _features}: Props) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {projectId: projectSlug} = params;
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const filtersEndpoint = `${projectEndpoint}filters/`;
-  const [reactHydrationInitialValue, setReactHydrationInitialValue] = useState(
-    () => !!project.options?.['filters:react-hydration-errors']
-  );
-  const [chunkLoadErrorInitialValue, setChunkLoadErrorInitialValue] = useState(
-    () => !!project.options?.['filters:chunk-load-error']
-  );
+  const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
+  const {data: currentProject = project} = useQuery({
+    ...detailedProjectQueryOptions,
+    initialData: {headers: {}, json: project},
+  });
 
   const getProjectBooleanMutationOptions = <TName extends ProjectBooleanFilterId>({
     name,
-    initialValue,
-    setInitialValue,
   }: {
-    initialValue: boolean;
     name: TName;
-    setInitialValue: (value: boolean) => void;
-  }) => ({
-    mutationFn: (data: Record<TName, boolean>) => {
-      trackAnalytics('settings.inbound_filter_updated', {
-        organization,
-        project_id: parseInt(project.id, 10),
-        filter: name,
-        new_state: data[name] ? 'enabled' : 'disabled',
-      });
-      return fetchMutation<Project>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data: {options: data},
-      });
-    },
-    onMutate: (data: Record<TName, boolean>) => {
-      const previousValue = initialValue;
-      setInitialValue(data[name]);
-      return {previousValue};
-    },
-    onError: (
-      _error: Error,
-      _data: Record<TName, boolean>,
-      context: {previousValue: boolean} | undefined
-    ) => {
-      if (context) {
-        setInitialValue(context.previousValue);
-      }
-    },
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
-  });
+  }) =>
+    mutationOptions({
+      mutationFn: (data: Record<TName, boolean>) => {
+        trackAnalytics('settings.inbound_filter_updated', {
+          organization,
+          project_id: parseInt(project.id, 10),
+          filter: name,
+          new_state: data[name] ? 'enabled' : 'disabled',
+        });
+        return fetchMutation<DetailedProject>({
+          url: projectEndpoint,
+          method: 'PUT',
+          data: {options: data},
+        });
+      },
+      onMutate: data => {
+        const previousProject = currentProject;
+        const updatedProject = {
+          ...previousProject,
+          options: {...previousProject.options, ...data},
+        };
+        ProjectsStore.onUpdateSuccess(updatedProject);
+        queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+          prev ? {...prev, json: updatedProject} : {headers: {}, json: updatedProject}
+        );
+        return {previousProject};
+      },
+      onError: (_error, _data, context) => {
+        if (context) {
+          ProjectsStore.onUpdateSuccess(context.previousProject);
+          queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+            prev ? {...prev, json: context.previousProject} : prev
+          );
+        }
+      },
+      onSuccess: response => {
+        ProjectsStore.onUpdateSuccess(response);
+        queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+          prev ? {...prev, json: response} : {headers: {}, json: response}
+        );
+      },
+    });
 
   const {
     data: filterListData,
@@ -839,11 +856,11 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
               <AutoSaveForm
                 name="filters:react-hydration-errors"
                 schema={projectBooleanSchema}
-                initialValue={reactHydrationInitialValue}
+                initialValue={
+                  !!currentProject.options?.['filters:react-hydration-errors']
+                }
                 mutationOptions={getProjectBooleanMutationOptions({
                   name: 'filters:react-hydration-errors',
-                  initialValue: reactHydrationInitialValue,
-                  setInitialValue: setReactHydrationInitialValue,
                 })}
               >
                 {field => (
@@ -854,7 +871,7 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
                       {
                         replaySettings: (
                           <Link
-                            to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                            to={`/settings/${organization.slug}/projects/${currentProject.slug}/replays/#sentry-replay_hydration_error_issues_help`}
                           />
                         ),
                       }
@@ -872,11 +889,9 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
               <AutoSaveForm
                 name="filters:chunk-load-error"
                 schema={projectBooleanSchema}
-                initialValue={chunkLoadErrorInitialValue}
+                initialValue={!!currentProject.options?.['filters:chunk-load-error']}
                 mutationOptions={getProjectBooleanMutationOptions({
                   name: 'filters:chunk-load-error',
-                  initialValue: chunkLoadErrorInitialValue,
-                  setInitialValue: setChunkLoadErrorInitialValue,
                 })}
               >
                 {field => (

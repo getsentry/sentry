@@ -12,6 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', () => {
@@ -47,6 +48,7 @@ describe('ProjectFilters', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
       body: [],
@@ -120,6 +122,49 @@ describe('ProjectFilters', () => {
         })
       );
     }
+  });
+
+  it('keeps project option filters toggled after autosave resets', async () => {
+    renderComponent();
+
+    const mock = MockApiClient.addMockResponse({
+      url: PROJECT_URL,
+      method: 'PUT',
+      asyncDelay: 100,
+      body: {
+        ...project,
+        options: {
+          ...project.options,
+          'filters:chunk-load-error': true,
+        },
+      },
+    });
+
+    const control = await screen.findByRole('checkbox', {
+      name: 'Filter out ChunkLoadError(s)',
+    });
+    expect(control).not.toBeChecked();
+
+    await userEvent.click(control);
+    expect(control).toBeChecked();
+
+    expect(mock).toHaveBeenCalledWith(
+      PROJECT_URL,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          options: {
+            'filters:chunk-load-error': true,
+          },
+        },
+      })
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: 'Saving filters:chunk-load-error'})
+      ).not.toBeInTheDocument();
+    });
+    expect(control).toBeChecked();
   });
 
   it('has correct legacy browsers selected', async () => {
