@@ -4,11 +4,7 @@ import type {Project} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
 
-const excludedModuleNames = [
-  ModuleName.OTHER,
-  ModuleName.MOBILE_UI,
-  ModuleName.SESSIONS,
-] as const;
+const excludedModuleNames = [ModuleName.OTHER, ModuleName.SESSIONS] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
 
@@ -44,7 +40,6 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
   const {projects: allProjects} = useProjects();
   const pageFilters = usePageFilters();
 
-  // Unsupported modules. Remove MOBILE_UI from this list once released.
   if ((excludedModuleNames as readonly ModuleName[]).includes(module)) {
     return false;
   }

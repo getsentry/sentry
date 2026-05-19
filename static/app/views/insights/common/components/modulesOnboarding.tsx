@@ -39,7 +39,6 @@ export type ModulesWithOnboarding = Exclude<
   | ModuleName.MCP_TOOLS
   | ModuleName.MCP_RESOURCES
   | ModuleName.MCP_PROMPTS
-  | ModuleName.MOBILE_UI
   | ModuleName.OTHER
 >;
 
