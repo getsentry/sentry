@@ -7,6 +7,7 @@ from sentry import options, ratelimits
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,9 @@ class BaseDataForwarder(ABC):
                 data_forwarder_project_id=data_forwarder_project.id,
                 event_payload=event_payload,
                 task_payload=task_payload,
+            )
+            metrics.incr(
+                "data_forwarding.post_process.task_scheduled", tags={"provider": self.provider}
             )
         else:
             self.forward_event(event=event, payload=event_payload, config=config)

@@ -8,10 +8,17 @@ from taskbroker_client.retry import Retry
 
 from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiForbiddenError,
+    ApiHostError,
+    ApiInvalidRequestError,
+    ApiTimeoutError,
+    ApiUnauthorized,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +27,9 @@ _DATA_FORWARDING_RETRY_ON = (RequestException,)
 _DATA_FORWARDING_RETRY_IGNORE = (
     ClientError,
     ParamValidationError,
+    ApiUnauthorized,
+    ApiInvalidRequestError,
+    ApiForbiddenError,
 )
 _DATA_FORWARDING_SILENCED = (
     ChunkedEncodingError,
@@ -73,4 +83,5 @@ def forward_event(
         event_payload=event_payload,
         task_payload=task_payload,
     )
+    metrics.incr("data_forwarding.event_forwarded_via_task", tags={"provider": provider})
     logger.info("data_forwarding.event_forwarded_via_task", extra=logging_ctx)
