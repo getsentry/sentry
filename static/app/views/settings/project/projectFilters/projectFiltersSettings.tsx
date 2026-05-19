@@ -10,6 +10,7 @@ import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
   AutoSaveForm,
@@ -22,7 +23,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
@@ -281,8 +281,6 @@ function LegacyBrowserFilterRow({
   );
 }
 
-// --- Schemas ---
-
 const booleanFilterSchema = z.object({
   'browser-extensions': z.boolean(),
   localhost: z.boolean(),
@@ -297,13 +295,13 @@ const projectBooleanSchema = z.object({
 
 const legacyBrowserSchema = z.object({'legacy-browsers': z.array(z.string())});
 
-const ipFilterSchema = z.object({'filters:blacklisted_ips': z.string()});
-const releasesFilterSchema = z.object({'filters:releases': z.string()});
-const errorMessagesFilterSchema = z.object({'filters:error_messages': z.string()});
-const logMessagesFilterSchema = z.object({'filters:log_messages': z.string()});
-const traceMetricNamesFilterSchema = z.object({'filters:trace_metric_names': z.string()});
-
-// --- Legacy Browser Filter Wrapper ---
+const customFiltersSchema = z.object({
+  'filters:blacklisted_ips': z.string(),
+  'filters:releases': z.string(),
+  'filters:error_messages': z.string(),
+  'filters:log_messages': z.string(),
+  'filters:trace_metric_names': z.string(),
+});
 
 function LegacyBrowserFilter({
   filter,
@@ -385,8 +383,6 @@ function LegacyBrowserFilter({
   );
 }
 
-// --- Custom Filter Field (saveOnBlur: false, needs Save button) ---
-
 const newLineHelpText = t('Separate multiple entries with a newline.');
 const globHelpText = tct('Allows [link:glob pattern matching].', {
   link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
@@ -399,84 +395,17 @@ type CustomFilterName =
   | 'filters:log_messages'
   | 'filters:trace_metric_names';
 
-const customFilterSchemas = {
-  'filters:blacklisted_ips': ipFilterSchema,
-  'filters:releases': releasesFilterSchema,
-  'filters:error_messages': errorMessagesFilterSchema,
-  'filters:log_messages': logMessagesFilterSchema,
-  'filters:trace_metric_names': traceMetricNamesFilterSchema,
-};
+type CustomFiltersFormValues = z.infer<typeof customFiltersSchema>;
 
-function CustomFilterField({
-  name,
-  initialValue,
-  label,
-  help,
-  placeholder,
-  disabled,
-  projectEndpoint,
-}: {
+type CustomFilterFieldConfig = {
   disabled: boolean;
   help: React.ReactNode;
-  initialValue: string;
   label: string;
   name: CustomFilterName;
   placeholder: string;
-  projectEndpoint: string;
-}) {
-  const schema = customFilterSchemas[name];
-  const mutation = useMutation({
-    mutationFn: (data: Record<string, string>) =>
-      fetchMutation<Project>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data: {options: data},
-      }),
-    onSuccess: response => {
-      ProjectsStore.onUpdateSuccess(response);
-      addSuccessMessage(t('Changing this filter will apply to all new events.'));
-    },
-  });
+};
 
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {[name]: initialValue ?? ''},
-    validators: {onDynamic: schema as never},
-    onSubmit: ({value}) =>
-      mutation
-        .mutateAsync(value)
-        .then(() => form.reset())
-        .catch(() => {}),
-  });
-
-  return (
-    <form.AppForm form={form as never}>
-      <form.AppField name={name}>
-        {field => (
-          <field.Layout.Stack label={label} hintText={help}>
-            <field.TextArea
-              value={field.state.value}
-              onChange={field.handleChange}
-              disabled={disabled}
-              monospace
-              autosize
-              rows={1}
-              maxRows={10}
-              placeholder={placeholder}
-            />
-          </field.Layout.Stack>
-        )}
-      </form.AppField>
-      <Flex gap="sm" justify="end">
-        <form.SubmitButton>{t('Save')}</form.SubmitButton>
-      </Flex>
-    </form.AppForm>
-  );
-}
-
-// --- Custom Filters Section ---
-
-function CustomFilters({
+function CustomFiltersForm({
   project,
   disabled,
   projectEndpoint,
@@ -485,6 +414,39 @@ function CustomFilters({
   project: DetailedProject;
   projectEndpoint: string;
 }) {
+  const mutation = useMutation({
+    mutationFn: (data: CustomFiltersFormValues) =>
+      fetchMutation<Project>({
+        url: projectEndpoint,
+        method: 'PUT',
+        data: {options: data},
+      }),
+    onSuccess: response => {
+      ProjectsStore.onUpdateSuccess(response);
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      'filters:blacklisted_ips': String(
+        project.options?.['filters:blacklisted_ips'] ?? ''
+      ),
+      'filters:releases': String(project.options?.['filters:releases'] ?? ''),
+      'filters:error_messages': String(project.options?.['filters:error_messages'] ?? ''),
+      'filters:log_messages': String(project.options?.['filters:log_messages'] ?? ''),
+      'filters:trace_metric_names': String(
+        project.options?.['filters:trace_metric_names'] ?? ''
+      ),
+    },
+    validators: {onDynamic: customFiltersSchema},
+    onSubmit: ({value, formApi}) =>
+      mutation
+        .mutateAsync(value)
+        .then(() => formApi.reset(value))
+        .catch(() => {}),
+  });
+
   return (
     <Feature
       features="projects:custom-inbound-filters"
@@ -510,101 +472,144 @@ function CustomFilters({
       }}
     >
       {({hasFeature, organization, renderDisabled, ...featureProps}) => (
-        <Fragment>
-          {!hasFeature &&
-            typeof renderDisabled === 'function' &&
-            renderDisabled({
-              organization,
-              hasFeature,
-              children: null,
-              ...featureProps,
-            })}
+        <form.AppForm form={form}>
+          <FieldGroup title={t('Custom Filters')}>
+            {!hasFeature &&
+              typeof renderDisabled === 'function' &&
+              renderDisabled({
+                organization,
+                hasFeature,
+                children: null,
+                ...featureProps,
+              })}
 
-          <CustomFilterField
-            name="filters:releases"
-            initialValue={String(project.options?.['filters:releases'] ?? '')}
-            label={t('Releases')}
-            help={
-              <Fragment>
-                {t('Filter events from these releases. ')}
-                {newLineHelpText} {globHelpText}
-              </Fragment>
-            }
-            placeholder="e.g. 1.* or [!3].[0-9].*"
-            disabled={disabled || !hasFeature}
-            projectEndpoint={projectEndpoint}
-          />
-
-          <CustomFilterField
-            name="filters:error_messages"
-            initialValue={String(project.options?.['filters:error_messages'] ?? '')}
-            label={t('Error Message')}
-            help={
-              <Fragment>
-                {t('Filter events by error messages. ')}
-                {newLineHelpText} {globHelpText}{' '}
-                {t(
-                  'Exceptions are matched on "<type>: <message>", for example "TypeError: *".'
+            {(
+              [
+                {
+                  name: 'filters:blacklisted_ips',
+                  label: t('IP Addresses'),
+                  help: (
+                    <Fragment>
+                      {t('Filter events from these IP addresses. ')}
+                      {newLineHelpText}
+                    </Fragment>
+                  ),
+                  placeholder: 'e.g. 127.0.0.1 or 10.0.0.0/8',
+                  disabled,
+                },
+                {
+                  name: 'filters:releases',
+                  label: t('Releases'),
+                  help: (
+                    <Fragment>
+                      {t('Filter events from these releases. ')}
+                      {newLineHelpText} {globHelpText}
+                    </Fragment>
+                  ),
+                  placeholder: 'e.g. 1.* or [!3].[0-9].*',
+                  disabled: disabled || !hasFeature,
+                },
+                {
+                  name: 'filters:error_messages',
+                  label: t('Error Message'),
+                  help: (
+                    <Fragment>
+                      {t('Filter events by error messages. ')}
+                      {newLineHelpText} {globHelpText}{' '}
+                      {t(
+                        'Exceptions are matched on "<type>: <message>", for example "TypeError: *".'
+                      )}
+                    </Fragment>
+                  ),
+                  placeholder: 'e.g. TypeError* or *: integer division or modulo by zero',
+                  disabled: disabled || !hasFeature,
+                },
+                ...(organization.features.includes('ourlogs-ingestion')
+                  ? [
+                      {
+                        name: 'filters:log_messages',
+                        label: t('Log Message'),
+                        help: (
+                          <Fragment>
+                            {t('Filter logs by messages. ')}
+                            {newLineHelpText} {globHelpText}{' '}
+                            {t(
+                              'Logs are matched on "<message>", for example "Rate limit*".'
+                            )}
+                          </Fragment>
+                        ),
+                        placeholder: 'e.g. Rate limit* or *connection',
+                        disabled: disabled || !hasFeature,
+                      } satisfies CustomFilterFieldConfig,
+                    ]
+                  : []),
+                ...(organization.features.includes('tracemetrics-ingestion')
+                  ? [
+                      {
+                        name: 'filters:trace_metric_names',
+                        label: t('Application Metrics'),
+                        help: (
+                          <Fragment>
+                            {t('Filter application metrics by name. ')}
+                            {newLineHelpText} {globHelpText}{' '}
+                            {t(
+                              'Application metrics are matched on the metric name, for example "my_metric.*".'
+                            )}
+                          </Fragment>
+                        ),
+                        placeholder: 'e.g. my_metric.*',
+                        disabled: disabled || !hasFeature,
+                      } satisfies CustomFilterFieldConfig,
+                    ]
+                  : []),
+              ] satisfies CustomFilterFieldConfig[]
+            ).map(fieldConfig => (
+              <form.AppField key={fieldConfig.name} name={fieldConfig.name}>
+                {field => (
+                  <field.Layout.Row label={fieldConfig.label} hintText={fieldConfig.help}>
+                    <field.TextArea
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={fieldConfig.disabled}
+                      monospace
+                      autosize
+                      rows={1}
+                      maxRows={10}
+                      placeholder={fieldConfig.placeholder}
+                    />
+                  </field.Layout.Row>
                 )}
-              </Fragment>
-            }
-            placeholder="e.g. TypeError* or *: integer division or modulo by zero"
-            disabled={disabled || !hasFeature}
-            projectEndpoint={projectEndpoint}
-          />
+              </form.AppField>
+            ))}
 
-          {organization.features.includes('ourlogs-ingestion') && (
-            <CustomFilterField
-              name="filters:log_messages"
-              initialValue={String(project.options?.['filters:log_messages'] ?? '')}
-              label={t('Log Message')}
-              help={
-                <Fragment>
-                  {t('Filter logs by messages. ')}
-                  {newLineHelpText} {globHelpText}{' '}
-                  {t('Logs are matched on "<message>", for example "Rate limit*".')}
-                </Fragment>
-              }
-              placeholder="e.g. Rate limit* or *connection"
-              disabled={disabled || !hasFeature}
-              projectEndpoint={projectEndpoint}
-            />
-          )}
-
-          {organization.features.includes('tracemetrics-ingestion') && (
-            <CustomFilterField
-              name="filters:trace_metric_names"
-              initialValue={String(project.options?.['filters:trace_metric_names'] ?? '')}
-              label={t('Application Metrics')}
-              help={
-                <Fragment>
-                  {t('Filter application metrics by name. ')}
-                  {newLineHelpText} {globHelpText}{' '}
-                  {t(
-                    'Application metrics are matched on the metric name, for example "my_metric.*".'
-                  )}
-                </Fragment>
-              }
-              placeholder="e.g. my_metric.*"
-              disabled={disabled || !hasFeature}
-              projectEndpoint={projectEndpoint}
-            />
-          )}
-
-          {hasFeature && project.options?.['filters:error_messages'] && (
-            <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
-              {t(
-                "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
-              )}
-            </PanelAlert>
-          )}
-        </Fragment>
+            {hasFeature && project.options?.['filters:error_messages'] && (
+              <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
+                {t(
+                  "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
+                )}
+              </PanelAlert>
+            )}
+            <Flex gap="sm" align="center">
+              <form.Subscribe selector={state => state.isDirty}>
+                {isDirty =>
+                  isDirty ? (
+                    <Alert variant="info">
+                      {t('Changing this filter will apply to all new events.')}
+                    </Alert>
+                  ) : null
+                }
+              </form.Subscribe>
+              <Flex gap="sm" justify="end" flexGrow={1}>
+                <form.ResetButton>{t('Reset')}</form.ResetButton>
+                <form.SubmitButton>{t('Save')}</form.SubmitButton>
+              </Flex>
+            </Flex>
+          </FieldGroup>
+        </form.AppForm>
       )}
     </Feature>
   );
 }
-
-// --- Main Component ---
 
 type Props = {
   features: Set<string>;
@@ -856,28 +861,11 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
               />
             </FieldGroup>
 
-            <FieldGroup title={t('Custom Filters')}>
-              <CustomFilterField
-                name="filters:blacklisted_ips"
-                initialValue={String(project.options?.['filters:blacklisted_ips'] ?? '')}
-                label={t('IP Addresses')}
-                help={
-                  <Fragment>
-                    {t('Filter events from these IP addresses. ')}
-                    {newLineHelpText}
-                  </Fragment>
-                }
-                placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
-                disabled={!hasAccess}
-                projectEndpoint={projectEndpoint}
-              />
-
-              <CustomFilters
-                project={project}
-                disabled={!hasAccess}
-                projectEndpoint={projectEndpoint}
-              />
-            </FieldGroup>
+            <CustomFiltersForm
+              project={project}
+              disabled={!hasAccess}
+              projectEndpoint={projectEndpoint}
+            />
           </Fragment>
         )}
       </Access>

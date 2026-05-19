@@ -214,7 +214,14 @@ describe('ProjectFilters', () => {
     });
 
     const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    expect(
+      screen.queryByText('Changing this filter will apply to all new events.')
+    ).not.toBeInTheDocument();
     await userEvent.type(textbox, 'test\ntest2');
+    const customFilterWarning = screen.getByText(
+      'Changing this filter will apply to all new events.'
+    );
+    expect(customFilterWarning.closest('.ref-info')).toBeInTheDocument();
     const form = textbox.closest('form')!;
     await userEvent.click(within(form).getByRole('button', {name: 'Save'}));
 
@@ -222,6 +229,20 @@ describe('ProjectFilters', () => {
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
       'test\ntest2'
     );
+  });
+
+  it('can cancel custom filter changes', async () => {
+    renderComponent();
+
+    const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    await userEvent.type(textbox, 'test\ntest2');
+    expect(textbox).toHaveValue('test\ntest2');
+
+    await userEvent.click(
+      within(textbox.closest('form')!).getByRole('button', {name: 'Cancel'})
+    );
+
+    expect(textbox).toHaveValue('');
   });
 
   it('filter by release/error message are not enabled', async () => {
@@ -253,21 +274,21 @@ describe('ProjectFilters', () => {
 
     const releasesField = screen.getByRole('textbox', {name: 'Releases'});
     await userEvent.type(releasesField, 'release\nrelease2');
-    const releasesForm = releasesField.closest('form')!;
-    await userEvent.click(within(releasesForm).getByRole('button', {name: 'Save'}));
-
-    expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
-    expect(mock.mock.calls[0][1].data.options['filters:releases']).toBe(
-      'release\nrelease2'
-    );
 
     const errorField = screen.getByRole('textbox', {name: 'Error Message'});
     await userEvent.type(errorField, 'error\nerror2');
-    const errorForm = errorField.closest('form')!;
-    await userEvent.click(within(errorForm).getByRole('button', {name: 'Save'}));
+    const customFiltersForm = releasesField.closest('form')!;
+    expect(errorField.closest('form')).toBe(customFiltersForm);
+    expect(within(customFiltersForm).getByRole('button', {name: 'Cancel'})).toBeEnabled();
+    await userEvent.click(within(customFiltersForm).getByRole('button', {name: 'Save'}));
 
-    expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
-      'error\nerror2'
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
+    expect(mock.mock.calls[0][1].data.options).toEqual(
+      expect.objectContaining({
+        'filters:releases': 'release\nrelease2',
+        'filters:error_messages': 'error\nerror2',
+      })
     );
   });
 
