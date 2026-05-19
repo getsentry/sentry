@@ -56,9 +56,10 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 ("project", str(project.id)),
             ],
             authToken=session.mint_token(expiry_seconds=60 * 60),  # 1H
-            expirationPolicy=format_expiration(
-                TimeToIdle(timedelta(days=30))
-            ),  # Hardcoded for now, check with Objectstore before increasing
+            # TimeToIdle resets the 30-day countdown each time an object is
+            # fetched (e.g. loading images in the UI). This is intentional —
+            # actively viewed snapshots should not silently expire.
+            expirationPolicy=format_expiration(TimeToIdle(timedelta(days=30))),
         )
 
         return Response({"objectstore": options})
