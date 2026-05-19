@@ -74,7 +74,6 @@ declare global {
     // TODO: improve typing
     SentryApp?: {
       ConfigStore: any;
-      HookStore: any;
       Modal: any;
       getModalPortal: () => HTMLElement;
       modalFocusTrap?: {

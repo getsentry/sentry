@@ -1,6 +1,6 @@
-import {memo, useEffect, useState, type ComponentType} from 'react';
+import {memo, type ComponentType} from 'react';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getHook} from 'sentry/hookRegistry';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 
 // Only allow hooks that return a React component
@@ -10,7 +10,7 @@ type ComponentHookName = {
 
 type Props<H extends ComponentHookName> = {
   /**
-   * The name of the hook as listed in hookstore.add(hookName, callback)
+   * The name of the hook as listed in hookRegistry.registerHook(hookName, callback)
    */
   name: H;
   /**
@@ -21,10 +21,10 @@ type Props<H extends ComponentHookName> = {
 } & Omit<Parameters<Hooks[H]>[0], 'name'>;
 
 /**
- * Instead of accessing the HookStore directly, use this.
+ * Instead of accessing the hook registry directly, use this.
  *
  * If the hook slot needs to perform anything w/ the hook, you can pass a
- * function as a child and you will receive an object with a `hook` key.
+ * function as a child and you will receive an object with a `rendered` key.
  *
  * Example:
  *
@@ -33,25 +33,7 @@ type Props<H extends ComponentHookName> = {
  *   </Hook>
  */
 function Hook<H extends ComponentHookName>({name, children, ...props}: Props<H>) {
-  // Wrap in a thunk: useState(fn) calls fn() as a lazy initializer, so storing
-  // a function as state requires the () => fn pattern throughout.
-  const [hookCallback, setHookCallback] = useState<Hooks[H] | undefined>(() =>
-    HookStore.get(name)
-  );
-
-  useEffect(() => {
-    setHookCallback(() => HookStore.get(name));
-
-    const unsubscribe = HookStore.listen(
-      (hookName: HookName, hook: Hooks[H] | undefined) => {
-        if (hookName === name) {
-          setHookCallback(() => hook);
-        }
-      },
-      undefined
-    );
-    return () => unsubscribe();
-  }, [name]);
+  const hookCallback = getHook(name);
 
   if (!hookCallback) {
     return null;

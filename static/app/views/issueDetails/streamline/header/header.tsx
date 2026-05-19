@@ -18,8 +18,8 @@ import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadg
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
+import {getHook} from 'sentry/hookRegistry';
 import {t, tct} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
@@ -64,7 +64,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
   const useGetMaxRetentionDays =
-    HookStore.get('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
+    getHook('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays();
   const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
   const {title: primaryTitle, subtitle} = getTitle(group);

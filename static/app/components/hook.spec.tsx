@@ -1,9 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getHook, registerHook} from 'sentry/hookRegistry';
 
 function HookWrapper(props: any) {
   return (
@@ -15,12 +15,8 @@ function HookWrapper(props: any) {
 }
 
 describe('Hook', () => {
-  afterEach(() => {
-    HookStore.init();
-  });
-
   it('renders component from a hook', () => {
-    HookStore.set('sidebar:help-menu', ({organization}) => (
+    registerHook('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         {organization.slug}
       </HookWrapper>
@@ -32,13 +28,13 @@ describe('Hook', () => {
       </div>
     );
 
-    expect(HookStore.get('sidebar:help-menu')).toBeDefined();
+    expect(getHook('sidebar:help-menu')).toBeDefined();
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
     expect(screen.getByTestId('hook-wrapper')).toHaveTextContent('org-slug');
   });
 
-  it('re-renders when hook is replaced after initial render', () => {
-    HookStore.set('sidebar:help-menu', ({organization}) => (
+  it('picks up a new hook when the registry is updated before re-render', () => {
+    registerHook('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         Old Hook
       </HookWrapper>
@@ -48,31 +44,28 @@ describe('Hook', () => {
       <Hook name="sidebar:help-menu" organization={OrganizationFixture()} />
     );
 
-    expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
+    expect(screen.getByText(/Old Hook/)).toBeInTheDocument();
 
-    act(() =>
-      HookStore.set('sidebar:help-menu', () => (
-        <HookWrapper key="new" organization={null}>
-          New Hook
-        </HookWrapper>
-      ))
-    );
+    registerHook('sidebar:help-menu', () => (
+      <HookWrapper key="new" organization={null}>
+        New Hook
+      </HookWrapper>
+    ));
 
     rerender(<Hook name="sidebar:help-menu" organization={OrganizationFixture()} />);
 
-    expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(1);
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
     expect(screen.queryByText(/Old Hook/)).not.toBeInTheDocument();
   });
 
   it('re-fetches hooks when name prop changes', () => {
-    HookStore.set('sidebar:help-menu', ({organization}) => (
+    registerHook('sidebar:help-menu', ({organization}) => (
       <HookWrapper key="help" organization={organization}>
         Help Hook
       </HookWrapper>
     ));
 
-    HookStore.set('sidebar:organization-dropdown-menu', () => (
+    registerHook('sidebar:organization-dropdown-menu', () => (
       <HookWrapper key="bottom">Bottom Hook</HookWrapper>
     ));
 
@@ -95,33 +88,21 @@ describe('Hook', () => {
   });
 
   it('can use children as a render prop', () => {
+    registerHook('sidebar:help-menu', () => (
+      <HookWrapper key="inner" organization={null}>
+        Hook Content
+      </HookWrapper>
+    ));
+
     render(
       <Hook name="sidebar:help-menu" organization={OrganizationFixture()}>
         {({rendered}) => <HookWrapper>{rendered} hook: 1</HookWrapper>}
       </Hook>
     );
 
-    act(() =>
-      HookStore.set('sidebar:help-menu', () => (
-        <HookWrapper key="new" organization={null}>
-          First Hook
-        </HookWrapper>
-      ))
-    );
-
-    act(() =>
-      HookStore.set('sidebar:help-menu', () => (
-        <HookWrapper key="new" organization={null}>
-          Second Hook
-        </HookWrapper>
-      ))
-    );
-
     expect(screen.getByText(/hook: 1/)).toBeInTheDocument();
-    expect(screen.getByText(/Second Hook/)).toBeInTheDocument();
-    expect(screen.queryByText(/First Hook/)).not.toBeInTheDocument();
-
-    // 2 HookWrappers: the render prop's outer wrapper + the registered hook's inner wrapper
+    expect(screen.getByText(/Hook Content/)).toBeInTheDocument();
+    // 2 HookWrappers: the render prop's outer wrapper + the hook's inner wrapper
     expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
   });
 });

@@ -430,7 +430,7 @@ type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 type AnalyticsInitUser = (user: User) => void;
 
 /**
- * Trigger analytics tracking in the hook store.
+ * Trigger analytics tracking in the hook registry.
  */
 type AnalyticsRawTrackEvent = (
   data: {
@@ -473,7 +473,7 @@ type AnalyticsRawTrackEvent = (
 ) => void;
 
 /**
- * Trigger recording a metric in the hook store.
+ * Trigger recording a metric in the hook registry.
  */
 type MetricsEvent = (
   /**
