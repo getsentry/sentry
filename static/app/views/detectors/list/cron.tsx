@@ -44,6 +44,7 @@ import {
   type SupportedPlatform,
 } from 'sentry/views/insights/crons/components/upsertPlatformGuides';
 import {
+  checkInStatusStackedBarOrder,
   checkInStatusPrecedent,
   statusToText,
   tickStyle,
@@ -82,6 +83,8 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
                 statusLabel={statusToText}
                 statusStyle={tickStyle}
                 statusPrecedent={checkInStatusPrecedent}
+                displayMode="stacked"
+                stackedStatusOrder={checkInStatusStackedBarOrder}
                 timeWindowConfig={timeWindowConfig}
                 bucketedData={selectCheckInData(
                   monitorStats?.[cronId] ?? [],

@@ -65,6 +65,15 @@ export const checkInStatusPrecedent: CheckInStatus[] = [
   CheckInStatus.IN_PROGRESS,
 ];
 
+export const checkInStatusStackedBarOrder: CheckInStatus[] = [
+  CheckInStatus.OK,
+  CheckInStatus.MISSED,
+  CheckInStatus.TIMEOUT,
+  CheckInStatus.ERROR,
+  CheckInStatus.UNKNOWN,
+  CheckInStatus.IN_PROGRESS,
+];
+
 export const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.OK]: t('Okay'),
   [CheckInStatus.ERROR]: t('Failed'),

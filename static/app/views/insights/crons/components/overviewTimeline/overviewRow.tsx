@@ -26,6 +26,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {
+  checkInStatusStackedBarOrder,
   checkInStatusPrecedent,
   statusToText,
   tickStyle,
@@ -226,6 +227,8 @@ export function OverviewRow({
                   statusLabel={statusToText}
                   statusStyle={tickStyle}
                   statusPrecedent={checkInStatusPrecedent}
+                  displayMode="stacked"
+                  stackedStatusOrder={checkInStatusStackedBarOrder}
                   timeWindowConfig={timeWindowConfig}
                   bucketedData={selectCheckInData(
                     monitorStats?.[monitor.id] ?? [],
