@@ -12,6 +12,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
+import {
+  DebugMetaSearchProvider,
+  useDebugMetaSearch,
+} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {ImageStatus} from 'sentry/types/debugImage';
 
 jest.mock('@tanstack/react-virtual', () => {
@@ -33,6 +37,16 @@ jest.mock('@tanstack/react-virtual', () => {
     }),
   };
 });
+
+function DebugMetaSearchButton({searchTerm}: {searchTerm: string}) {
+  const {setSearchTerm} = useDebugMetaSearch();
+
+  return (
+    <button type="button" onClick={() => setSearchTerm(searchTerm)}>
+      Search debug image
+    </button>
+  );
+}
 
 describe('DebugMeta', () => {
   const {organization, project} = initializeOrg();
@@ -197,6 +211,48 @@ describe('DebugMeta', () => {
     await userEvent.click(screen.getByRole('option', {name: 'Missing'}));
     expect(screen.getByText(firstImage?.debug_file!)).toBeInTheDocument();
     expect(screen.queryByText(secondImage?.debug_file)).not.toBeInTheDocument();
+  });
+
+  it('updates search from shared debug meta context', async () => {
+    const firstImage = ImageFixture({
+      code_file: '/app/first',
+      debug_file: 'first',
+      image_addr: '0x1000',
+    });
+    const secondImage = ImageFixture({
+      code_file: '/app/second',
+      debug_file: 'second',
+      image_addr: '0x2000',
+    });
+    const eventEntryDebugMeta = {
+      ...EntryDebugMetaFixture(),
+      data: {
+        images: [firstImage, secondImage],
+      },
+    };
+
+    const event = EventFixture({entries: [eventEntryDebugMeta]});
+
+    render(
+      <DebugMetaSearchProvider>
+        <DebugMeta
+          projectSlug={project.slug}
+          event={event}
+          data={eventEntryDebugMeta.data}
+          groupId={groupId}
+        />
+        <DebugMetaSearchButton searchTerm={secondImage.code_file!} />
+      </DebugMetaSearchProvider>,
+      {organization}
+    );
+
+    expect(screen.getByText(firstImage.debug_file!)).toBeInTheDocument();
+    expect(screen.getByText(secondImage.debug_file!)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Search debug image'}));
+
+    expect(screen.queryByText(firstImage.debug_file!)).not.toBeInTheDocument();
+    expect(screen.getByText(secondImage.debug_file!)).toBeInTheDocument();
   });
 
   it('skips section when only sdk__info is present', () => {
