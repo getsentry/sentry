@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -283,6 +284,12 @@ export function getProjectStoppingPointMutationOptions({
       );
       queryClient.invalidateQueries({
         queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeDetailedProjectQueryKey({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+        }),
       });
     },
   });
