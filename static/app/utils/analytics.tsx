@@ -1,7 +1,7 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getHook} from 'sentry/hookRegistry';
 import type {Hooks} from 'sentry/types/hooks';
 import {
   alertsEventMap,
@@ -199,7 +199,7 @@ const allEventMap: Record<string, string | null> = {
 /**
  * Analytics and metric tracking functionality.
  *
- * These are primarily driven through hooks provided through the hookstore. For
+ * These are primarily driven through hooks provided through the hook registry. For
  * sentry.io these are currently mapped to our in-house analytics backend
  * 'Reload' and the Amplitude service.
  *
@@ -289,7 +289,7 @@ const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
  * Record metrics.
  */
 export const metric: RecordMetric = (name, value, tags) =>
-  HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
+  getHook('metrics:event')?.(name, value, tags);
 
 // JSDOM implements window.performance but not window.performance.mark
 export const CAN_MARK =

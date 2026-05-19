@@ -14,9 +14,9 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
+import {getHook} from 'sentry/hookRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
@@ -142,7 +142,7 @@ export function App() {
 
     // Set the user for analytics
     if (user) {
-      HookStore.get('analytics:init-user').map(cb => cb(user));
+      getHook('analytics:init-user')?.(user);
     }
 
     initApiClientErrorHandling();

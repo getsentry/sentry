@@ -1,6 +1,7 @@
 import type {ComponentType} from 'react';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getHook} from 'sentry/hookRegistry';
 import {
   IconGraph,
   IconProfiling,
@@ -11,7 +12,6 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
 
 export type FeatureMeta = {
   description: string;
@@ -102,7 +102,6 @@ function useFallbackScmFeatureMeta(): UseScmFeatureMetaResult {
  * returned with isLoading=false.
  */
 export function useScmFeatureMeta(): UseScmFeatureMetaResult {
-  const hook =
-    HookStore.get('react-hook:use-scm-feature-meta')[0] ?? useFallbackScmFeatureMeta;
+  const hook = getHook('react-hook:use-scm-feature-meta') ?? useFallbackScmFeatureMeta;
   return hook();
 }

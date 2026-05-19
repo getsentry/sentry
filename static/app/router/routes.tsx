@@ -3,10 +3,10 @@ import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
+import {getHook} from 'sentry/hookRegistry';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
@@ -46,7 +46,7 @@ import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper'
 import {type SentryRouteObject} from './types';
 
 const routeHook = (name: HookName): SentryRouteObject => {
-  return HookStore.get(name)?.[0]?.() ?? {};
+  return getHook(name)?.() ?? {};
 };
 
 function buildRoutes(): RouteObject[] {
@@ -76,7 +76,7 @@ function buildRoutes(): RouteObject[] {
   //
   // There are a number of `hook()` routes placed within the routing tree to
   // allow for additional routes to be augmented into the application via the
-  // hookStore mechanism.
+  // hook registry.
   //
   //
   // ## The structure
