@@ -351,7 +351,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       )}
 
       <OrganizationRoleSelect
-        enforceAllowed={false}
+        enforceAllowed
         enforceRetired={hasTeamRoles}
         disabled={!canEdit || isPartnershipUser}
         roleList={organization.orgRoleList}
