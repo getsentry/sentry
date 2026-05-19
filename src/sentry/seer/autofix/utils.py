@@ -868,17 +868,17 @@ class ProjectRepoCreateData(TypedDict, total=False):
 
 
 def replace_all_branch_overrides(
-    project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
+    seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
 ) -> None:
     """Replace all branch overrides for the given Seer project repo."""
     SeerProjectRepositoryBranchOverride.objects.filter(
-        seer_project_repository=project_repo
+        seer_project_repository=seer_project_repo
     ).delete()
     if branch_overrides:
         SeerProjectRepositoryBranchOverride.objects.bulk_create(
             [
                 SeerProjectRepositoryBranchOverride(
-                    seer_project_repository=project_repo,
+                    seer_project_repository=seer_project_repo,
                     tag_name=override["tag_name"],
                     tag_value=override["tag_value"],
                     branch_name=override["branch_name"],
@@ -889,7 +889,7 @@ def replace_all_branch_overrides(
 
 
 def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
-    """Upsert repos for the given project. Creates new connections or updates existing ones."""
+    """Upsert Seer project repos."""
     result_ids = []
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         for data in repos_data:
@@ -914,7 +914,7 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
 def replace_all_seer_project_repos(
     project: Project, repos_data: list[ProjectRepoCreateData]
 ) -> None:
-    """Replace all repos for the given project."""
+    """Replace all Seer repos for the given project."""
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         list(Project.objects.select_for_update().filter(id=project.id))
         SeerProjectRepository.objects.filter(project_repository__project=project).delete()
@@ -941,7 +941,7 @@ class ProjectRepoUpdateData(TypedDict, total=False):
 def update_seer_project_repo(
     project: Project, repo_id: int, data: ProjectRepoUpdateData
 ) -> SeerProjectRepository | None:
-    """Update a project repo under a row lock. Returns None if not found."""
+    """Update a Seer project repo. Returns None if not found."""
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         project_repo = (
             SeerProjectRepository.objects.select_for_update()
