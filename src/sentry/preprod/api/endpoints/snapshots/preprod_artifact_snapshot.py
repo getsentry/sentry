@@ -497,6 +497,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             state=artifact.state,
             vcs_info=vcs_info,
             app_id=artifact.app_id,
+            is_selective=snapshot_metrics.is_selective,
             images=image_list,
             image_count=snapshot_metrics.image_count,
             changed=categorized.changed,
