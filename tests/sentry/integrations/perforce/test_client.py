@@ -823,6 +823,16 @@ class _P4AttributeRecorder:
     assignment. This stub gives us a deterministic set of assignments instead.
     """
 
+    # Declared at class scope so mypy can see them — runtime assignment happens
+    # via object.__setattr__ inside __init__ to bypass our custom __setattr__.
+    attrs_set: set[str]
+    attrs_set_before_connect: set[str]
+    _connect_called: bool
+    # Set dynamically by `_connect()` when the integration is configured for a
+    # Unicode server. Declared so tests can read `p4_stub.charset` without
+    # tripping mypy's attr-defined check.
+    charset: str
+
     def __init__(self) -> None:
         object.__setattr__(self, "attrs_set", set())
         object.__setattr__(self, "attrs_set_before_connect", set())
