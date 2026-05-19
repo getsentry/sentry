@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from collections.abc import Iterable, Sequence
 from enum import Enum
@@ -9,6 +10,7 @@ from typing import Any as TAny
 
 from django.conf import settings
 
+from sentry.silo.base import SiloMode
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, Type, type_from_value
@@ -294,9 +296,13 @@ class OptionsManager:
         # values change. This case is unlikely, but good to cover our bases.
         from sentry.utils import metrics
 
+        sentry_env = os.environ.get("CUSTOMER_ID", settings.SENTRY_LOCAL_CELL) or "unknown"
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            sentry_env = SiloMode.CONTROL.name
+
         with metrics.timer(
             "options.store.get",
-            tags={"key": key, "region": settings.SENTRY_OPTIONS.get("system.region", "unknown")},
+            tags={"key": key, "region": sentry_env},
             sample_rate=0.01,
         ) as tags:
             opt = self.lookup_key(key)
