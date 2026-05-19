@@ -143,7 +143,8 @@ export function CommandPalette({
   const debouncedQuery = useDebouncedValue(state.query, 300);
   const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
   const isLoading =
-    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
+    state.list === 'active' &&
+    ((state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0);
   const isEmptyPromptQuery =
     state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
@@ -153,7 +154,7 @@ export function CommandPalette({
     return nodes;
   }, [store, state.action]);
 
-  const [actions, prefixMap, isSeerFallback] = useMemo<
+  const [computedActions, computedPrefixMap, computedIsSeerFallback] = useMemo<
     [CMDKFlatItem[], Map<string, string[]>, boolean]
   >(() => {
     const [scored, scoredPrefixMap] = state.query
@@ -224,6 +225,22 @@ export function CommandPalette({
     openSeerExplorer,
     openForm,
   ]);
+
+  const frozenRef = useRef({
+    actions: computedActions,
+    prefixMap: computedPrefixMap,
+    isSeerFallback: computedIsSeerFallback,
+  });
+  if (state.list === 'active') {
+    frozenRef.current = {
+      actions: computedActions,
+      prefixMap: computedPrefixMap,
+      isSeerFallback: computedIsSeerFallback,
+    };
+  }
+  const actions = frozenRef.current.actions;
+  const prefixMap = frozenRef.current.prefixMap;
+  const isSeerFallback = frozenRef.current.isSeerFallback;
 
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
   const mouseLeftResultsRef = useRef(false);
@@ -365,6 +382,10 @@ export function CommandPalette({
       }
     },
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        dispatch({type: 'freeze list'});
+      }
+
       if (
         treeState.selectionManager.focusedKey === null &&
         (e.key === 'ArrowDown' || e.key === 'ArrowUp')
