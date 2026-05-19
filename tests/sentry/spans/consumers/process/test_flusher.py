@@ -9,7 +9,8 @@ from arroyo.processing.strategies.noop import Noop
 from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.buffer import Span, SpansBuffer
+from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer_types import Span
 from sentry.spans.consumers.process.flusher import MultiProducer, SpanFlusher
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS

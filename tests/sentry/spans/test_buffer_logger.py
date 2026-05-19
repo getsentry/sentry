@@ -11,7 +11,7 @@ from sentry.spans.buffer_logger import (
     SubsegmentDebugLog,
     emit_observability_metrics,
 )
-from sentry.spans.buffer_types import EvalshaResult
+from sentry.spans.buffer_types import EvalshaResult, Span
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -21,7 +21,14 @@ def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
 
 
 def test_subsegment_debug_log_emits_debug_log() -> None:
-    span = mock.Mock()
+    span = Span(
+        trace_id="a" * 32,
+        span_id="c" * 16,
+        parent_span_id="b" * 16,
+        segment_id=None,
+        project_id=1,
+        payload=b"{}",
+    )
     debug_trace_logger = mock.Mock()
 
     SubsegmentDebugLog(

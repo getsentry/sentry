@@ -8,7 +8,7 @@ from typing import Any, NamedTuple, TypeVar
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
-from sentry.spans.buffer_types import EvalshaData, EvalshaResult
+from sentry.spans.buffer_types import EvalshaData, EvalshaResult, Span
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import SegmentKey
 from sentry.utils import metrics
@@ -134,7 +134,7 @@ type QueueKey = bytes
 class SubsegmentDebugLog(NamedTuple):
     project_and_trace: str
     parent_span_id: str
-    subsegment: Sequence[Any]
+    subsegment: Sequence[Span]
 
     def emit(self, get_debug_trace_logger: Callable[[], DebugTraceLogger]) -> None:
         try:
