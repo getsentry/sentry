@@ -1,11 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {
-  mutationOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import iconAndroid from 'sentry-logos/logo-android.svg';
 import iconChrome from 'sentry-logos/logo-chrome.svg';
 import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
@@ -35,12 +30,12 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -314,39 +309,14 @@ const globHelpText = tct('Allows [link:glob pattern matching].', {
   link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
 });
 
-type CustomFiltersFormValues = z.infer<typeof customFiltersSchema>;
-
 function CustomFiltersForm({
   project,
   disabled,
-  projectEndpoint,
-  projectSlug,
 }: {
   disabled: boolean;
   project: DetailedProject;
-  projectEndpoint: string;
-  projectSlug: string;
 }) {
-  const queryClient = useQueryClient();
-  const org = useOrganization();
-  const mutation = useMutation({
-    mutationFn: (data: CustomFiltersFormValues) =>
-      fetchMutation<DetailedProject>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data: {options: data},
-      }),
-    onSuccess: response => {
-      const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
-        orgSlug: org.slug,
-        projectSlug,
-      });
-      ProjectsStore.onUpdateSuccess(response);
-      queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
-        prev ? {...prev, json: response} : {headers: {}, json: response}
-      );
-    },
-  });
+  const updateProject = useUpdateProject(project);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -363,8 +333,8 @@ function CustomFiltersForm({
     },
     validators: {onDynamic: customFiltersSchema},
     onSubmit: ({value, formApi}) =>
-      mutation
-        .mutateAsync(value)
+      updateProject
+        .mutateAsync({options: value})
         .then(() => formApi.reset(value))
         .catch(() => {}),
   });
@@ -658,8 +628,7 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projectId: projectSlug} = params;
-  const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
-  const filtersEndpoint = `${projectEndpoint}filters/`;
+  const filtersEndpoint = `/projects/${organization.slug}/${projectSlug}/filters/`;
   const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
     orgSlug: organization.slug,
     projectSlug,
@@ -669,52 +638,23 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
     initialData: {headers: {}, json: project},
   });
 
+  const updateProject = useUpdateProject(project);
+
   const getProjectBooleanMutationOptions = <TName extends ProjectBooleanFilterId>({
     name,
   }: {
     name: TName;
-  }) =>
-    mutationOptions({
-      mutationFn: (data: Record<TName, boolean>) => {
-        trackAnalytics('settings.inbound_filter_updated', {
-          organization,
-          project_id: parseInt(project.id, 10),
-          filter: name,
-          new_state: data[name] ? 'enabled' : 'disabled',
-        });
-        return fetchMutation<DetailedProject>({
-          url: projectEndpoint,
-          method: 'PUT',
-          data: {options: data},
-        });
-      },
-      onMutate: data => {
-        const previousProject = currentProject;
-        const updatedProject = {
-          ...previousProject,
-          options: {...previousProject.options, ...data},
-        };
-        ProjectsStore.onUpdateSuccess(updatedProject);
-        queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
-          prev ? {...prev, json: updatedProject} : {headers: {}, json: updatedProject}
-        );
-        return {previousProject};
-      },
-      onError: (_error, _data, context) => {
-        if (context) {
-          ProjectsStore.onUpdateSuccess(context.previousProject);
-          queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
-            prev ? {...prev, json: context.previousProject} : prev
-          );
-        }
-      },
-      onSuccess: response => {
-        ProjectsStore.onUpdateSuccess(response);
-        queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
-          prev ? {...prev, json: response} : {headers: {}, json: response}
-        );
-      },
-    });
+  }) => ({
+    mutationFn: (data: Record<TName, boolean>) => {
+      trackAnalytics('settings.inbound_filter_updated', {
+        organization,
+        project_id: parseInt(project.id, 10),
+        filter: name,
+        new_state: data[name] ? 'enabled' : 'disabled',
+      });
+      return updateProject.mutateAsync({options: data});
+    },
+  });
 
   const filterQueryOptions = apiOptions.as<Filter[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/',
@@ -908,12 +848,7 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
               </AutoSaveForm>
             </FieldGroup>
 
-            <CustomFiltersForm
-              project={project}
-              disabled={!hasAccess}
-              projectEndpoint={projectEndpoint}
-              projectSlug={projectSlug}
-            />
+            <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
           </Fragment>
         )}
       </Access>

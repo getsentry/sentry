@@ -55,6 +55,11 @@ describe('ProjectFilters', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: PROJECT_URL,
+      body: DetailedProjectFixture({slug: project.slug}),
+    });
+
+    MockApiClient.addMockResponse({
       url: `${PROJECT_URL}filters/`,
       body: ProjectFiltersFixture(),
     });
@@ -127,16 +132,23 @@ describe('ProjectFilters', () => {
   it('keeps project option filters toggled after autosave resets', async () => {
     renderComponent();
 
+    const updatedProject = DetailedProjectFixture({
+      slug: project.slug,
+      options: {
+        'filters:chunk-load-error': true,
+      },
+    });
+
     const mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
       method: 'PUT',
       asyncDelay: 100,
-      body: DetailedProjectFixture({
-        slug: project.slug,
-        options: {
-          'filters:chunk-load-error': true,
-        },
-      }),
+      body: updatedProject,
+    });
+
+    MockApiClient.addMockResponse({
+      url: PROJECT_URL,
+      body: updatedProject,
     });
 
     const control = await screen.findByRole('checkbox', {
