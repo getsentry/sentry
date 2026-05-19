@@ -207,6 +207,8 @@ def produce_preprod_build_distribution_to_eap(
         attributes["has_missing_dsym_binaries"] = artifact.extras.get("has_missing_dsym_binaries")
         # Android-specific fields
         attributes["has_proguard_mapping"] = artifact.extras.get("has_proguard_mapping")
+        # Distribution install groups (stored as JSON array, written as EAP array)
+        attributes["install_groups"] = artifact.extras.get("install_groups")
 
     attributes["has_installable_file"] = artifact.installable_app_file_id is not None
 
