@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0014_add_new_unique_constraints
 
-sentry: 1097_add_new_unique_constraints
+sentry: 1098_add_issue_action_log_entry
 
 social_auth: 0003_social_auth_json_field
 

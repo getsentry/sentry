@@ -516,6 +516,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/models/featureadoption.py                  @getsentry/data
 /src/sentry/models/group.py                            @getsentry/data @getsentry/issue-detection-backend
 /src/sentry/models/grouphash.py                        @getsentry/data @getsentry/issue-detection-backend
+/src/sentry/models/issueactionlogentry.py              @getsentry/issue-workflow
 /src/sentry/models/grouprelease.py                     @getsentry/data
 /src/sentry/models/groupresolution.py                  @getsentry/data
 /src/sentry/models/organization.py                     @getsentry/data
