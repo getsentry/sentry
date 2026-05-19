@@ -9,9 +9,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {usePollReplayRecord} from 'sentry/utils/replays/hooks/usePollReplayRecord';
+import {
+  replayAttachmentsApiOptions,
+  replayRecordApiOptions,
+} from 'sentry/utils/replays/hooks/useReplayData';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
@@ -141,33 +143,16 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const doRefresh = useCallback(async () => {
     trackAnalytics('replay.details-refresh-clicked', {organization});
 
-    const replayUrl = getApiUrl(
-      '/organizations/$organizationIdOrSlug/replays/$replayId/',
-      {
-        path: {organizationIdOrSlug: orgSlug, replayId},
-      }
+    await queryClient.invalidateQueries(
+      replayRecordApiOptions({organizationIdOrSlug: orgSlug, replayId})
     );
-    await queryClient.invalidateQueries({
-      predicate: query => {
-        const key = safeParseQueryKey(query.queryKey);
-        return key?.url === replayUrl && !key?.options?.query?.isPolling;
-      },
-    });
-
-    const segmentsUrl = getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
-      {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug,
-          replayId,
-        },
-      }
+    await queryClient.invalidateQueries(
+      replayAttachmentsApiOptions({
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+        replayId,
+      })
     );
-    await queryClient.invalidateQueries({
-      predicate: query => safeParseQueryKey(query.queryKey)?.url === segmentsUrl,
-      type: 'all',
-    });
     startSummaryRequestRef.current();
   }, [queryClient, orgSlug, projectSlug, replayId, organization]);
 
