@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -97,12 +98,14 @@ function TimestampTooltipBody({
         <HorizontalRule />
         <dt>{t('Received')}</dt>
         <dd>
-          {observedTime && (
+          {observedTime ? (
             <TimestampValues>
               <AutoSelectText>
                 <DateTime date={observedTime} seconds timeZone />
               </AutoSelectText>
             </TimestampValues>
+          ) : (
+            <LoadingIndicator size={16} style={{margin: 0}} />
           )}
         </dd>
       </Fragment>
