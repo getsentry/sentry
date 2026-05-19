@@ -28,15 +28,14 @@ connectModules:
     - icon:
         width: 24
         height: 24
-        url: >-
-          https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints-hashed/logo-sentry-QTEJGwEA3CwTRmciYcDeXRro9qpAkv9Rj2BG8UkIm0c.svg
+        url: https://sentry.io/_static/dist/sentry/entrypoints/logo-sentry.svg
       content:
         type: label
         label:
           value: Linked Issues
       target:
         type: web_panel
-        url: /extensions/jira/issue/{issue.key}/
+        url: /extensions/jira/issue-details/{issue.key}/
       name:
         value: 'Sentry '
       key: sentry-issues-glance
