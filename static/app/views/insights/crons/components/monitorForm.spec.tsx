@@ -181,7 +181,7 @@ describe('MonitorForm', () => {
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
 
-  it.isKnownFlake('prefills with an existing monitor', async () => {
+  it('prefills with an existing monitor', async () => {
     const monitor = MonitorFixture({project});
 
     const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;
@@ -215,7 +215,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
     const crontabOption = screen.getByRole('menuitemradio', {name: 'Crontab'});
     expect(crontabOption).toBeChecked();
-    await userEvent.click(crontabOption);
+    await userEvent.keyboard('{Escape}');
 
     // Schedule value
     expect(screen.getByRole('textbox', {name: 'Crontab Schedule'})).toHaveValue(
@@ -226,7 +226,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
     const losAngelesOption = screen.getByRole('menuitemradio', {name: 'Los Angeles'});
     expect(losAngelesOption).toBeChecked();
-    await userEvent.click(losAngelesOption);
+    await userEvent.keyboard('{Escape}');
 
     // Margins
     expect(screen.getByRole('spinbutton', {name: 'Grace Period'})).toHaveValue(5);
