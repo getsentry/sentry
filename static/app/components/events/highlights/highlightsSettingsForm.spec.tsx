@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';
 import * as analytics from 'sentry/utils/analytics';
@@ -53,12 +53,14 @@ describe('HighlightsSettingForm', () => {
 
     await userEvent.type(tagInput, `\n${newTag}`);
     await userEvent.click(screen.getByText('Highlights'));
-    expect(updateProjectMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        data: {highlightTags: [...highlightTags, newTag]},
-      })
-    );
+    await waitFor(() => {
+      expect(updateProjectMock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {highlightTags: [...highlightTags, newTag]},
+        })
+      );
+    });
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.project_settings.updated_manually',
       expect.anything()
@@ -84,11 +86,13 @@ describe('HighlightsSettingForm', () => {
     await userEvent.paste(JSON.stringify(newContext));
     await userEvent.click(screen.getByText('Highlights'));
 
-    expect(updateProjectMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        data: {highlightContext: newContext},
-      })
-    );
+    await waitFor(() => {
+      expect(updateProjectMock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {highlightContext: newContext},
+        })
+      );
+    });
   });
 });
