@@ -109,8 +109,6 @@ export enum IssueCategory {
 
   PREPROD = 'preprod',
 
-  INSTRUMENTATION = 'instrumentation',
-
   CONFIGURATION = 'configuration',
 }
 
@@ -148,9 +146,6 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
-  [IssueCategory.INSTRUMENTATION]: t(
-    'Improvements to your instrumentation and SDK usage.'
-  ),
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
   ),
@@ -631,7 +626,6 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_SOLUTION_COMPLETED,
   GroupActivityType.SEER_CODING_STARTED,
   GroupActivityType.SEER_CODING_COMPLETED,
-  GroupActivityType.SEER_PR_CREATED,
 ]);
 
 interface GroupActivityBase {
@@ -920,8 +914,8 @@ interface GroupActivitySeerRcaStarted extends GroupActivityBase {
 
 interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
   data: {
-    root_cause?: Record<string, any>;
     run_id?: number;
+    summary?: string;
   };
   type: GroupActivityType.SEER_RCA_COMPLETED;
 }
@@ -936,7 +930,7 @@ interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
 interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
   data: {
     run_id?: number;
-    solution?: Record<string, any>;
+    summary?: string;
   };
   type: GroupActivityType.SEER_SOLUTION_COMPLETED;
 }
@@ -950,7 +944,6 @@ interface GroupActivitySeerCodingStarted extends GroupActivityBase {
 
 interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
   data: {
-    changes?: Array<Record<string, any>>;
     run_id?: number;
   };
   type: GroupActivityType.SEER_CODING_COMPLETED;

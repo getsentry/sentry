@@ -527,8 +527,6 @@ class TestHasProjectConnectedRepos(TestCase):
         )
         pr = ProjectRepository.objects.create(project=self.project, repository=repo)
         SeerProjectRepository.objects.create(
-            project=self.project,
-            repository=repo,
             project_repository=pr,
         )
 
@@ -766,7 +764,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
         assert (
             SeerProjectRepositoryBranchOverride.objects.filter(
-                seer_project_repository__project=self.project
+                seer_project_repository__project_repository__project=self.project
             ).count()
             == 1
         )
@@ -798,7 +796,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert repos[0].project_repository.repository_id == repo2.id
         assert (
             SeerProjectRepositoryBranchOverride.objects.filter(
-                seer_project_repository__project=self.project
+                seer_project_repository__project_repository__project=self.project
             ).count()
             == 0
         )
@@ -881,7 +879,7 @@ class TestWritePreferencesToSentryDb(TestCase):
 
         project_repos = SeerProjectRepository.objects.filter(
             project_repository__project=self.project
-        ).order_by("repository_id")
+        ).order_by("project_repository__repository_id")
         assert len(project_repos) == 2
         project_repos_by_repo_id = {r.project_repository.repository_id: r for r in project_repos}
         assert project_repos_by_repo_id[disabled_repo.id].branch_name == "branch-1"
@@ -1162,8 +1160,6 @@ class TestReadPreferenceFromSentryDb(TestCase):
     def test_reads_via_project_repository_fk(self):
         pr = ProjectRepository.objects.create(project=self.project, repository=self.repo)
         SeerProjectRepository.objects.create(
-            project=self.project,
-            repository=self.repo,
             project_repository=pr,
             branch_name="main",
         )

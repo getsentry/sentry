@@ -14,16 +14,6 @@ MAX_ENTRIES = 50
 LOGGING_INTERVAL = 60  # 1 minute in seconds
 
 
-class FlusherLogEntry(NamedTuple):
-    """
-    Represents a single flush operation for a given project and trace.
-    """
-
-    project_and_trace: str
-    span_count: int
-    bytes_flushed: int
-
-
 class BufferAggregate(NamedTuple):
     """
     Tracks the number of operations and cumulative latency for a given project and trace.
@@ -31,16 +21,6 @@ class BufferAggregate(NamedTuple):
 
     operation_count: int
     cumulative_latency_ms: int
-
-
-class FlusherAggregate(NamedTuple):
-    """
-    Tracks the number of segments, spans, and bytes flushed for a given project and trace.
-    """
-
-    segment_count: int
-    span_count: int
-    bytes_flushed: int
 
 
 TAggregate = TypeVar("TAggregate", bound=tuple[Any, ...])
@@ -141,79 +121,6 @@ class BufferLogger:
             format_entry=lambda key,
             val: f"{key}:{val.operation_count}:{val.cumulative_latency_ms}",
         )
-
-
-class FlusherLogger:
-    """
-    Tracks per-trace flush operations and logs the dominant traces by
-    cumulative bytes flushed.
-
-    This logger keeps a bounded map (max 50 entries) of project_and_trace keys
-    to their segment counts, span counts, and cumulative bytes.
-    Every minute the top 50 traces by cumulative bytes are logged at INFO level,
-    along with the cumulative per-phase latencies over the logging interval.
-    """
-
-    def __init__(self) -> None:
-        self._metrics_per_trace: dict[str, FlusherAggregate] = {}
-        self._cumulative_load_ids_latency_ms: int = 0
-        self._cumulative_load_data_latency_ms: int = 0
-        self._cumulative_decompress_latency_ms: int = 0
-        self._last_log_time: float | None = None
-
-    def log(
-        self,
-        entries: list[FlusherLogEntry],
-        load_ids_latency_ms: int,
-        load_data_latency_ms: int,
-        decompress_latency_ms: int,
-    ) -> None:
-        """
-        Record a batch of flush operations and periodically log the top traces sorted by
-        cumulative bytes flushed.
-        """
-
-        if not options.get("spans.buffer.flusher-cumulative-logger-enabled"):
-            return
-
-        self._cumulative_load_ids_latency_ms += load_ids_latency_ms
-        self._cumulative_load_data_latency_ms += load_data_latency_ms
-        self._cumulative_decompress_latency_ms += decompress_latency_ms
-
-        for entry in entries:
-            if entry.project_and_trace in self._metrics_per_trace:
-                aggregate = self._metrics_per_trace[entry.project_and_trace]
-                self._metrics_per_trace[entry.project_and_trace] = FlusherAggregate(
-                    aggregate.segment_count + 1,
-                    aggregate.span_count + entry.span_count,
-                    aggregate.bytes_flushed + entry.bytes_flushed,
-                )
-            else:
-                self._metrics_per_trace[entry.project_and_trace] = FlusherAggregate(
-                    1,
-                    entry.span_count,
-                    entry.bytes_flushed,
-                )
-
-        self._last_log_time = _prune_and_maybe_log(
-            self._metrics_per_trace,
-            self._last_log_time,
-            sort_index=2,
-            log_message="spans.buffer.top_flush_operations_by_bytes",
-            entries_key="top_flush_operations",
-            format_entry=lambda key, val: (
-                f"{key}:{val.segment_count}:{val.span_count}:{val.bytes_flushed}"
-            ),
-            extra={
-                "cumulative_load_ids_latency_ms": self._cumulative_load_ids_latency_ms,
-                "cumulative_load_data_latency_ms": self._cumulative_load_data_latency_ms,
-                "cumulative_decompress_latency_ms": self._cumulative_decompress_latency_ms,
-            },
-        )
-        if self._last_log_time is None:
-            self._cumulative_load_ids_latency_ms = 0
-            self._cumulative_load_data_latency_ms = 0
-            self._cumulative_decompress_latency_ms = 0
 
 
 type DataPoint = tuple[bytes, float]

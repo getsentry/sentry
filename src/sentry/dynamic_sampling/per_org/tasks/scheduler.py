@@ -13,7 +13,7 @@ from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
-    TelemetryStatus,
+    DynamicSamplingStatus,
     emit_status,
     track_dynamic_sampling,
 )
@@ -76,13 +76,13 @@ def schedule_per_org_calculations() -> None:
 
     emit_status(
         SCHEDULER_BUCKET_ORG_STATUS_METRIC,
-        TelemetryStatus.DISPATCHED,
+        DynamicSamplingStatus.DISPATCHED,
         amount=dispatched,
         extra_tags=bucket_tag,
     )
     emit_status(
         SCHEDULER_BUCKET_ORG_STATUS_METRIC,
-        TelemetryStatus.ROLLOUT_EXCLUDED,
+        DynamicSamplingStatus.ROLLOUT_EXCLUDED,
         amount=skipped,
         extra_tags=bucket_tag,
     )
@@ -96,13 +96,13 @@ def schedule_per_org_calculations() -> None:
     silo_mode=SiloMode.CELL,
 )
 @track_dynamic_sampling
-def run_calculations_per_org_task(org_id: OrganizationId) -> TelemetryStatus | None:
+def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStatus | None:
     config = get_configuration(org_id)
     if not config.is_enabled:
-        return TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
+        return DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
 
     org_volume = get_eap_organization_volume(config)
     if org_volume is None:
-        return TelemetryStatus.NO_VOLUME
+        return DynamicSamplingStatus.NO_VOLUME
 
     return None

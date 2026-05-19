@@ -43,7 +43,6 @@ from sentry.shared_integrations.exceptions import IntegrationError, IntegrationP
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
-from sentry.workflow_engine.service.action import action_service
 
 __all__ = ["IntegrationPipeline", "IntegrationPipelineError", "initialize_integration_pipeline"]
 
@@ -228,7 +227,6 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             self.provider.create_audit_log_entry(
                 self.integration, self.organization, self.request, "install", extra=extra
             )
-            self._enable_actions()
             self.provider.post_install(self.integration, self.organization, extra=extra)
             self.clear_session()
 
@@ -373,19 +371,6 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
         )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
 
-    def _enable_actions(self) -> None:
-        """
-        Enables all disabled actions for the integration.
-        """
-        if not features.has("organizations:update-action-status", self.organization):
-            return
-
-        action_service.update_action_status_for_organization_integration(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            status=ObjectStatus.ACTIVE,
-        )
-
     def api_finish_pipeline(self) -> PipelineStepResult:
         with IntegrationPipelineViewEvent(
             interaction_type=IntegrationPipelineViewType.FINISH_PIPELINE,
@@ -423,7 +408,6 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             self.provider.create_audit_log_entry(
                 self.integration, self.organization, self.request, "install", extra=extra
             )
-            self._enable_actions()
             self.provider.post_install(self.integration, self.organization, extra=extra)
             self.clear_session()
 
