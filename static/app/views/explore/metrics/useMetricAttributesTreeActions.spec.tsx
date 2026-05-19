@@ -72,8 +72,18 @@ describe('useMetricAttributesTreeActions', () => {
       'Add to filter',
       'Exclude this value',
     ]);
-    expect(actions).not.toContainEqual(
-      expect.objectContaining({label: 'Add this as table column'})
-    );
+  });
+
+  it('returns no actions when originalAttribute is missing', () => {
+    const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
+      additionalWrapper: Wrapper,
+    });
+
+    const content: AttributesTreeContent = {
+      subtree: {},
+      value: '',
+    };
+
+    expect(result.current(content)).toEqual([]);
   });
 });
