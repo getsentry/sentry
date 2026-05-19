@@ -1,10 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -55,7 +54,6 @@ export function SpendAllocationsRoot({subscription}: Props) {
   const organization = useOrganization();
   const {openModal} = useModal();
 
-  const theme = useTheme();
   const [errors, setErrors] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [orgEnabledFlag, setOrgEnabledFlag] = useState(true);
@@ -362,36 +360,30 @@ export function SpendAllocationsRoot({subscription}: Props) {
   return (
     <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
-      <SettingsPageHeader
-        title={t('Spend Allocations')}
-        action={
-          !isLoading &&
-          orgEnabledFlag && (
-            <div>
-              {subscription.canSelfServe && hasBillingPerms && (
-                <LinkButton
-                  aria-label={t('Manage Subscription')}
-                  size="sm"
-                  style={{marginRight: theme.space.md}}
-                  to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
-                >
-                  {t('Manage Subscription')}
-                </LinkButton>
-              )}
-              <Button
-                aria-label={t('New Allocation')}
-                variant="primary"
-                size="sm"
-                data-test-id="new-allocation"
-                icon={<IconAdd size="xs" />}
-                onClick={openForm()}
-              >
-                {t('New Allocation')}
-              </Button>
-            </div>
-          )
-        }
-      />
+      <SettingsPageHeader title={t('Spend Allocations')} />
+      {!isLoading && orgEnabledFlag && (
+        <Flex justify="end" gap="md" marginBottom="xl">
+          {subscription.canSelfServe && hasBillingPerms && (
+            <LinkButton
+              aria-label={t('Manage Subscription')}
+              size="sm"
+              to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
+            >
+              {t('Manage Subscription')}
+            </LinkButton>
+          )}
+          <Button
+            aria-label={t('New Allocation')}
+            variant="primary"
+            size="sm"
+            data-test-id="new-allocation"
+            icon={<IconAdd size="xs" />}
+            onClick={openForm()}
+          >
+            {t('New Allocation')}
+          </Button>
+        </Flex>
+      )}
       <div>
         {tct(
           "Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]",
