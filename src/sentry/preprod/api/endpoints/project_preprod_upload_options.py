@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.urls import reverse
-from objectstore_client import TimeToLive
+from objectstore_client import TimeToIdle
 from objectstore_client.metadata import format_expiration
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -57,7 +57,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
             ],
             authToken=session.mint_token(expiry_seconds=60 * 60),  # 1H
             expirationPolicy=format_expiration(
-                TimeToLive(timedelta(days=30))
+                TimeToIdle(timedelta(days=30))
             ),  # Hardcoded for now, check with Objectstore before increasing
         )
 
