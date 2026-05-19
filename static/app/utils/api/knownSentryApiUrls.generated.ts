@@ -581,7 +581,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/spans-samples/'
   | '/organizations/$organizationIdOrSlug/spans/fields/'
   | '/organizations/$organizationIdOrSlug/spans/fields/$key/values/'
-  | '/organizations/$organizationIdOrSlug/spans/fields/stats/'
   | '/organizations/$organizationIdOrSlug/stats-summary/'
   | '/organizations/$organizationIdOrSlug/stats/'
   | '/organizations/$organizationIdOrSlug/stats_v2/'
