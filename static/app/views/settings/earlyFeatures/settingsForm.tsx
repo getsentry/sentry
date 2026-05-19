@@ -1,17 +1,13 @@
-import {Fragment} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Form} from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import type {JsonFormObject} from 'sentry/components/forms/types';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Scope} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
   access: Set<Scope>;
@@ -19,66 +15,52 @@ interface Props {
 
 type FeatureFlags = Record<string, {description: string; value: boolean}>;
 
+function getFeatureFlagSchema(flag: string) {
+  return z.object({[flag]: z.boolean()});
+}
+
 export function EarlyFeaturesSettingsForm({access}: Props) {
-  const location = useLocation();
-  const organization = useOrganization();
+  const {data: featureFlags, isPending} = useApiQuery<FeatureFlags>(
+    ['/internal/feature-flags/'],
+    {staleTime: 0}
+  );
 
-  const {data: authProvider, isPending: authProviderIsLoading} =
-    useApiQuery<OrganizationAuthProvider>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ],
-      {staleTime: 0}
-    );
-
-  const {data: featureFlags, isPending: featureFlagsIsLoading} =
-    useApiQuery<FeatureFlags>([getApiUrl('/internal/feature-flags/')], {staleTime: 0});
-
-  if (authProviderIsLoading || featureFlagsIsLoading) {
+  if (isPending || !featureFlags) {
     return <LoadingIndicator />;
   }
 
-  const initialData: Record<string, boolean> = {};
-  for (const flag in featureFlags) {
-    if (Object.hasOwn(featureFlags, flag)) {
-      const obj = featureFlags[flag]!;
-      initialData[flag] = obj.value;
-    }
-  }
-
-  const jsonFormSettings = {
-    additionalFieldProps: {hasSsoEnabled: !!authProvider},
-    features: new Set(organization.features),
-    access,
-    location,
-    disabled: !access.has('org:write'),
-  };
-
-  const featuresForm: JsonFormObject = {
-    title: t('Early Adopter Features'),
-    fields: Object.entries(featureFlags || {}).map(([flag, obj]) => ({
-      label: obj.description,
-      name: flag,
-      type: 'boolean',
-    })),
-  };
+  const disabled = !access.has('org:write');
+  const featureFlagMutationOptions = mutationOptions({
+    mutationFn: (data: Record<string, boolean>) =>
+      fetchMutation<FeatureFlags>({
+        method: 'PUT',
+        url: '/internal/feature-flags/',
+        data,
+      }),
+    onError: () => addErrorMessage(t('Unable to save change')),
+  });
 
   return (
-    <Fragment>
-      <Form
-        data-test-id="organization-settings"
-        apiMethod="PUT"
-        apiEndpoint="/internal/feature-flags/"
-        saveOnBlur
-        allowUndo
-        initialData={initialData}
-        onSubmitError={() => addErrorMessage('Unable to save change')}
-        onSubmitSuccess={() => {}}
-      >
-        <JsonForm {...jsonFormSettings} forms={[featuresForm]} />
-      </Form>
-    </Fragment>
+    <FieldGroup title={t('Early Adopter Features')}>
+      {Object.entries(featureFlags).map(([flag, {description, value}]) => (
+        <AutoSaveForm
+          key={flag}
+          name={flag}
+          schema={getFeatureFlagSchema(flag)}
+          initialValue={value}
+          mutationOptions={featureFlagMutationOptions}
+        >
+          {field => (
+            <field.Layout.Row label={description}>
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+      ))}
+    </FieldGroup>
   );
 }
