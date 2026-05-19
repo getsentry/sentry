@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
-from sentry.models.group import Group
+from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.project import Project
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger("sentry.legacy_webhook")
 
@@ -31,9 +31,20 @@ def split_urls(value: str) -> list[str]:
     return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
-def build_legacy_webhook_payload(
-    group: Group, event: GroupEvent | Event, triggering_rules: list[str]
-) -> LegacyWebhookPayload:
+def _get_triggering_rule_name(invocation: ActionInvocation) -> str:
+    try:
+        workflow = Workflow.objects.get(id=invocation.workflow_id)
+        return workflow.name
+    except Workflow.DoesNotExist:
+        return invocation.detector.name
+
+
+def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookPayload:
+    group = invocation.event_data.group
+    event = invocation.event_data.event
+    if not isinstance(event, GroupEvent):
+        raise TypeError(f"Legacy webhook payload requires a GroupEvent, got {type(event).__name__}")
+    triggering_rules = [_get_triggering_rule_name(invocation)]
     event_data = dict(event.data or {})
     data: LegacyWebhookPayload = {
         "id": str(group.id),
@@ -45,7 +56,7 @@ def build_legacy_webhook_payload(
         "culprit": group.culprit,
         "message": event.message,
         "url": group.get_absolute_url(params={"referrer": "webhooks_plugin"}),
-        "triggering_rules": list(triggering_rules),
+        "triggering_rules": triggering_rules,
         "event": {
             **event_data,
             "tags": event.tags,
@@ -56,20 +67,16 @@ def build_legacy_webhook_payload(
     return data
 
 
-def send_legacy_webhooks_for_project(
-    project: Project,
-    group: Group,
-    event: GroupEvent | Event,
-    triggering_rules: list[str],
-) -> None:
+def send_legacy_webhooks_for_invocation(invocation: ActionInvocation) -> None:
     # Delayed import to avoid circular dependency (tasks imports LegacyWebhookPayload from here)
     from sentry.sentry_apps.services.legacy_webhook.tasks import send_legacy_webhook_task
 
+    project = invocation.detector.project
     urls_raw = ProjectOption.objects.get_value(project, "webhooks:urls", default="")
     urls = split_urls(urls_raw)
     if not urls:
         return
 
-    payload = build_legacy_webhook_payload(group, event, triggering_rules)
+    payload = build_legacy_webhook_payload(invocation)
     for url in urls:
         send_legacy_webhook_task.delay(url=url, payload=payload)
