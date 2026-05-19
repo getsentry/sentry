@@ -16,7 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 export function useDefaultMaxPickableDays(): number {
   const useDefaultMaxPickableDaysHook =
-    HookStore.get('react-hook:use-default-max-pickable-days')[0] ??
+    HookStore.get('react-hook:use-default-max-pickable-days') ??
     useDefaultMaxPickableDaysImpl;
   return useDefaultMaxPickableDaysHook();
 }
@@ -46,7 +46,7 @@ export function useMaxPickableDays({
   dataCategories,
 }: UseMaxPickableDaysProps): MaxPickableDaysOptions {
   const useMaxPickableDaysHook =
-    HookStore.get('react-hook:use-max-pickable-days')[0] ?? useMaxPickableDaysImpl;
+    HookStore.get('react-hook:use-max-pickable-days') ?? useMaxPickableDaysImpl;
   return useMaxPickableDaysHook({dataCategories});
 }
 

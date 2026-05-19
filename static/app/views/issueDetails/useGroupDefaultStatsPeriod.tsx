@@ -38,8 +38,7 @@ export function useGroupDefaultStatsPeriod(
   project: Project
 ): UseGroupDefaultStatsPeriodResult {
   const useGetMaxRetentionDays =
-    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
-    (() => MAX_PICKABLE_DAYS);
+    HookStore.get('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays();
   let isMaxRetention = false;
 

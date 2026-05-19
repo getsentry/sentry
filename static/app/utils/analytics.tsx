@@ -289,7 +289,7 @@ const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
  * Record metrics.
  */
 export const metric: RecordMetric = (name, value, tags) =>
-  HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
+  HookStore.get('metrics:event')?.(name, value, tags);
 
 // JSDOM implements window.performance but not window.performance.mark
 export const CAN_MARK =

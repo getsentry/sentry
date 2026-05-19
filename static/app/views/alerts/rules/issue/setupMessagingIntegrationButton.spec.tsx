@@ -116,7 +116,7 @@ describe('SetupAlertIntegrationButton', () => {
       })
     );
 
-    HookStore.add('integrations:feature-gates', () => {
+    HookStore.set('integrations:feature-gates', () => {
       return {
         IntegrationFeatures: p =>
           p.children({

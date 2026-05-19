@@ -401,4 +401,4 @@ const entries = Object.entries as <T>(
 ) => Array<[Extract<keyof T, string>, T[keyof T]]>;
 
 export const registerHooks = () =>
-  entries(GETSENTRY_HOOKS).forEach(entry => HookStore.add(...entry));
+  entries(GETSENTRY_HOOKS).forEach(entry => HookStore.set(...entry));

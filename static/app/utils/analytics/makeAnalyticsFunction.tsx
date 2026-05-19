@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
  * rawTrackAnalyticsEvent.
  */
 const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
-  HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
+  HookStore.get('analytics:raw-track-event')?.(data, options);
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 

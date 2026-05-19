@@ -174,10 +174,10 @@ function Feature({
   // Override the renderDisabled function with a hook store function if there
   // is one registered for the feature.
   if (hookName) {
-    const hooks = HookStore.get(hookName);
+    const hook = HookStore.get(hookName);
 
-    if (hooks.length > 0) {
-      customDisabledRender = hooks[0]!;
+    if (hook) {
+      customDisabledRender = hook;
     }
   }
   const renderProps = {
