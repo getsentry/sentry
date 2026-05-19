@@ -37,7 +37,7 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import type {DetailedProject, Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
@@ -320,20 +320,31 @@ function CustomFiltersForm({
   project,
   disabled,
   projectEndpoint,
+  projectSlug,
 }: {
   disabled: boolean;
   project: DetailedProject;
   projectEndpoint: string;
+  projectSlug: string;
 }) {
+  const queryClient = useQueryClient();
+  const org = useOrganization();
   const mutation = useMutation({
     mutationFn: (data: CustomFiltersFormValues) =>
-      fetchMutation<Project>({
+      fetchMutation<DetailedProject>({
         url: projectEndpoint,
         method: 'PUT',
         data: {options: data},
       }),
     onSuccess: response => {
+      const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
+        orgSlug: org.slug,
+        projectSlug,
+      });
       ProjectsStore.onUpdateSuccess(response);
+      queryClient.setQueryData(detailedProjectQueryOptions.queryKey, prev =>
+        prev ? {...prev, json: response} : {headers: {}, json: response}
+      );
     },
   });
 
@@ -901,6 +912,7 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
               project={project}
               disabled={!hasAccess}
               projectEndpoint={projectEndpoint}
+              projectSlug={projectSlug}
             />
           </Fragment>
         )}
