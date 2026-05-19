@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemetrics"`:
 - Aggregates use a multi-argument form: `func(attribute, metric_name, metric_type)`.
-  - `attribute` is almost always `value` (the numeric value of the metric).
+  - `attribute` must be `value` (the numeric value of the metric); no other attributes are supported at this time.
   - `metric_name` is the metric's name as ingested (e.g. `my.app.latency`).
   - `metric_type` is exactly one of `counter`, `gauge`, or `distribution`.
 - Examples: `count(value, my.app.requests, counter)`, `avg(value, my.app.cpu, gauge)`, `p95(value, my.app.latency, distribution)`.
