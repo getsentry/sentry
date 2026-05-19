@@ -6,8 +6,8 @@ import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {MembershipSettingsProps} from 'sentry/types/overrides';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   membershipSchema,

@@ -5,7 +5,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import MemberListHeader from 'getsentry/hooks/memberListHeader';
+import MemberListHeader from 'getsentry/overrides/memberListHeader';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 

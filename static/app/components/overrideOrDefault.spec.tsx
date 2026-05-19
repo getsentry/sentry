@@ -2,14 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {registerHook} from 'sentry/hookRegistry';
+import {registerOverride} from 'sentry/overrideRegistry';
 
-import {HookOrDefault} from './hookOrDefault';
+import {OverrideOrDefault} from './overrideOrDefault';
 
-describe('HookOrDefault', () => {
+describe('OverrideOrDefault', () => {
   it('should render default', () => {
-    const Component = HookOrDefault({
-      hookName: 'component:replay-onboarding-cta',
+    const Component = OverrideOrDefault({
+      overrideName: 'component:replay-onboarding-cta',
       defaultComponent: () => (
         <div data-test-id="default-component">Default Component</div>
       ),
@@ -20,17 +20,17 @@ describe('HookOrDefault', () => {
     expect(screen.getByText('Default Component')).toBeInTheDocument();
   });
 
-  it('should render from HookStore', () => {
-    registerHook(
+  it('should render from override registry', () => {
+    registerOverride(
       'component:replay-onboarding-cta',
       () =>
         function ({organization}) {
-          return <div data-test-id="hook-component">{organization.slug}</div>;
+          return <div data-test-id="override-component">{organization.slug}</div>;
         }
     );
 
-    const Component = HookOrDefault({
-      hookName: 'component:replay-onboarding-cta',
+    const Component = OverrideOrDefault({
+      overrideName: 'component:replay-onboarding-cta',
       defaultComponent: () => (
         <div data-test-id="default-component">Default Component</div>
       ),
@@ -38,7 +38,7 @@ describe('HookOrDefault', () => {
 
     render(<Component organization={OrganizationFixture()}>Test</Component>);
 
-    expect(screen.getByTestId('hook-component')).toBeInTheDocument();
+    expect(screen.getByTestId('override-component')).toBeInTheDocument();
     expect(screen.queryByTestId('default-component')).not.toBeInTheDocument();
     expect(screen.getByText('org-slug')).toBeInTheDocument();
   });

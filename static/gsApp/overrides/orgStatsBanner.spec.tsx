@@ -4,7 +4,7 @@ import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
+import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('OrgStatsBanner', () => {

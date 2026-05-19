@@ -4,7 +4,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ScmGithubMultiOrgInstall} from 'getsentry/hooks/scmGithubMultiOrgInstall';
+import {ScmGithubMultiOrgInstall} from 'getsentry/overrides/scmGithubMultiOrgInstall';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 

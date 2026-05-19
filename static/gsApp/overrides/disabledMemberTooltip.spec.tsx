@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
+import DisabledMemberTooltip from 'getsentry/overrides/disabledMemberTooltip';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('MemberListHeader', () => {

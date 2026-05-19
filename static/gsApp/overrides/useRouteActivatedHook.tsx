@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {Overrides} from 'sentry/types/overrides';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -15,7 +15,7 @@ import {trackMetric} from 'getsentry/utils/trackMetric';
 
 export const DELAY_TIME_MS = 7000;
 
-type Props = Parameters<Hooks['react-hook:route-activated']>[0];
+type Props = Parameters<Overrides['react-hook:route-activated']>[0];
 
 export function useRouteActivatedHook({location, matches}: Props) {
   const [analyticsParams, _setRouteAnalyticsParams] = useState({});

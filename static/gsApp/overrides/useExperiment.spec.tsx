@@ -5,7 +5,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
-import {_resetExposureTracking, useExperiment} from 'getsentry/hooks/useExperiment';
+import {_resetExposureTracking, useExperiment} from 'getsentry/overrides/useExperiment';
 
 function TestComponent({
   feature,

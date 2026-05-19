@@ -9,11 +9,11 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {getHook} from 'sentry/hookRegistry';
 import {t, tct} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
@@ -32,8 +32,8 @@ function removeDataStorageLocationFromFormData(
   return shallowFormDataClone;
 }
 
-const DataConsentCheck = HookOrDefault({
-  hookName: 'component:data-consent-org-creation-checkbox',
+const DataConsentCheck = OverrideOrDefault({
+  overrideName: 'component:data-consent-org-creation-checkbox',
   defaultComponent: null,
 });
 
@@ -46,7 +46,7 @@ function OrganizationCreate() {
   const client = useApi();
 
   const hasDataConsent =
-    getHook('component:data-consent-org-creation-checkbox') !== undefined;
+    getOverride('component:data-consent-org-creation-checkbox') !== undefined;
 
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host

@@ -14,9 +14,9 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -68,8 +68,8 @@ function getAlertListApiOptions(orgSlug: string, query: Location['query']) {
   );
 }
 
-const DataConsentBanner = HookOrDefault({
-  hookName: 'component:data-consent-banner',
+const DataConsentBanner = OverrideOrDefault({
+  overrideName: 'component:data-consent-banner',
   defaultComponent: null,
 });
 

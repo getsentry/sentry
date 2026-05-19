@@ -12,7 +12,7 @@ import {
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 
-import {OrganizationMembershipSettingsForm} from 'getsentry/hooks/organizationMembershipSettingsForm';
+import {OrganizationMembershipSettingsForm} from 'getsentry/overrides/organizationMembershipSettingsForm';
 
 describe('OrganizationMembershipSettings', () => {
   const onSave = jest.fn();

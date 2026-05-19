@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {getHook} from 'sentry/hookRegistry';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -29,7 +29,7 @@ export function useTopOffset(): TopOffset {
     hasPageFrame &&
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !getHook('component:superuser-warning-excluded')?.(organization);
+    !getOverride('component:superuser-warning-excluded')?.(organization);
 
   if (!hasPageFrame) {
     return {

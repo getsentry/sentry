@@ -7,7 +7,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
-import {analyticsInitUser} from 'getsentry/hooks/analyticsInitUser';
+import {analyticsInitUser} from 'getsentry/overrides/analyticsInitUser';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 
 jest.mock('getsentry/utils/trackMarketingEvent');

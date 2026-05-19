@@ -1,9 +1,9 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {registerHook} from 'sentry/hookRegistry';
 import {IconBusiness} from 'sentry/icons';
-import type {Hooks} from 'sentry/types/hooks';
+import {registerOverride} from 'sentry/overrideRegistry';
+import type {Overrides} from 'sentry/types/overrides';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
@@ -46,36 +46,36 @@ import {
   SuperuserWarning,
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
-import {analyticsInitUser} from 'getsentry/hooks/analyticsInitUser';
-import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
-import {DisabledCustomSymbolSources} from 'getsentry/hooks/disabledCustomSymbolSources';
-import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
-import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
-import {FirstPartyIntegrationAdditionalCTA} from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
-import {FirstPartyIntegrationAlertHook} from 'getsentry/hooks/firstPartyIntegrationAlertHook';
-import {handleGuideUpdate} from 'getsentry/hooks/handleGuideUpdate';
-import {handleMonitorCreated} from 'getsentry/hooks/handleMonitorCreated';
-import {hookIntegrationFeatures} from 'getsentry/hooks/integrationFeatures';
-import {legacyOrganizationRedirectRoutes} from 'getsentry/hooks/legacyOrganizationRedirectRoutes';
-import MemberListHeader from 'getsentry/hooks/memberListHeader';
-import {OrganizationMembershipSettingsForm} from 'getsentry/hooks/organizationMembershipSettingsForm';
-import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
-import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
-import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
-import {rootRoutes} from 'getsentry/hooks/rootRoutes';
-import {ScmGithubMultiOrgInstall} from 'getsentry/hooks/scmGithubMultiOrgInstall';
-import {seerSettingsRoutes} from 'getsentry/hooks/seerSettingsRoutes';
-import {SpikeProtectionProjectSettings} from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
-import {subscriptionSettingsRoutes} from 'getsentry/hooks/subscriptionSettingsRoutes';
-import {SuperuserAccessCategory} from 'getsentry/hooks/superuserAccessCategory';
-import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
-import {useBillingNavigationConfig} from 'getsentry/hooks/useBillingNavigationConfig';
-import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
-import {useExperiment} from 'getsentry/hooks/useExperiment';
-import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
-import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
-import {useReplayForCriticalFlow} from 'getsentry/hooks/useReplayForCriticalFlow';
-import {useScmFeatureMeta} from 'getsentry/hooks/useScmFeatureMeta';
+import {analyticsInitUser} from 'getsentry/overrides/analyticsInitUser';
+import {DashboardsLimitProvider} from 'getsentry/overrides/dashboardsLimit';
+import {DisabledCustomSymbolSources} from 'getsentry/overrides/disabledCustomSymbolSources';
+import DisabledMemberTooltip from 'getsentry/overrides/disabledMemberTooltip';
+import DisabledMemberView from 'getsentry/overrides/disabledMemberView';
+import {FirstPartyIntegrationAdditionalCTA} from 'getsentry/overrides/firstPartyIntegrationAdditionalCTA';
+import {FirstPartyIntegrationAlertHook} from 'getsentry/overrides/firstPartyIntegrationAlertHook';
+import {handleGuideUpdate} from 'getsentry/overrides/handleGuideUpdate';
+import {handleMonitorCreated} from 'getsentry/overrides/handleMonitorCreated';
+import {hookIntegrationFeatures} from 'getsentry/overrides/integrationFeatures';
+import {legacyOrganizationRedirectRoutes} from 'getsentry/overrides/legacyOrganizationRedirectRoutes';
+import MemberListHeader from 'getsentry/overrides/memberListHeader';
+import {OrganizationMembershipSettingsForm} from 'getsentry/overrides/organizationMembershipSettingsForm';
+import {getOrgRoles} from 'getsentry/overrides/organizationRoles';
+import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
+import {OrgStatsProfilingBanner} from 'getsentry/overrides/orgStatsProfilingBanner';
+import {rootRoutes} from 'getsentry/overrides/rootRoutes';
+import {ScmGithubMultiOrgInstall} from 'getsentry/overrides/scmGithubMultiOrgInstall';
+import {seerSettingsRoutes} from 'getsentry/overrides/seerSettingsRoutes';
+import {SpikeProtectionProjectSettings} from 'getsentry/overrides/spendVisibility/spikeProtectionProjectSettings';
+import {subscriptionSettingsRoutes} from 'getsentry/overrides/subscriptionSettingsRoutes';
+import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
+import TargetedOnboardingHeader from 'getsentry/overrides/targetedOnboardingHeader';
+import {useBillingNavigationConfig} from 'getsentry/overrides/useBillingNavigationConfig';
+import {useDashboardDatasetRetentionLimit} from 'getsentry/overrides/useDashboardDatasetRetentionLimit';
+import {useExperiment} from 'getsentry/overrides/useExperiment';
+import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit';
+import {useProductBillingAccess} from 'getsentry/overrides/useProductBillingAccess';
+import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCriticalFlow';
+import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
 
@@ -89,10 +89,13 @@ import {
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import {ReplaySettingsAlert} from './components/replaySettingsAlert';
-import {useButtonTracking} from './hooks/useButtonTracking';
-import {useGetMaxRetentionDays} from './hooks/useGetMaxRetentionDays';
-import {useDefaultMaxPickableDays, useMaxPickableDays} from './hooks/useMaxPickableDays';
-import {useRouteActivatedHook} from './hooks/useRouteActivatedHook';
+import {useButtonTracking} from './overrides/useButtonTracking';
+import {useGetMaxRetentionDays} from './overrides/useGetMaxRetentionDays';
+import {
+  useDefaultMaxPickableDays,
+  useMaxPickableDays,
+} from './overrides/useMaxPickableDays';
+import {useRouteActivatedHook} from './overrides/useRouteActivatedHook';
 
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
 const DisabledDiscover2Page = lazy(
@@ -110,7 +113,7 @@ const DisabledDashboardPage = lazy(
 );
 
 const EnhancedOrganizationStats = lazy(() =>
-  import('getsentry/hooks/spendVisibility/enhancedIndex').then(module => ({
+  import('getsentry/overrides/spendVisibility/enhancedIndex').then(module => ({
     default: module.EnhancedOrganizationStats,
   }))
 );
@@ -119,7 +122,7 @@ function LazyEnhancedOrganizationStats(props: OrganizationStatsProps) {
   return <LazyLoad LazyComponent={EnhancedOrganizationStats} {...props} />;
 }
 
-const GETSENTRY_HOOKS: Partial<Hooks> = {
+const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   /**
    * Additional routes to be inserted into sentrys route tree
    */
@@ -398,5 +401,5 @@ const entries = Object.entries as <T>(
   o: T
 ) => Array<[Extract<keyof T, string>, T[keyof T]]>;
 
-export const registerHooks = () =>
-  entries(GETSENTRY_HOOKS).forEach(entry => registerHook(...entry));
+export const registerGsAppOverrides = () =>
+  entries(GETSENTRY_OVERRIDES).forEach(entry => registerOverride(...entry));
