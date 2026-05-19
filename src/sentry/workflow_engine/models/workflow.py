@@ -125,7 +125,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         }
 
     def evaluate_trigger_conditions(
-        self, event_data: WorkflowEventData, when_data_conditions: list[DataCondition] | None = None
+        self,
+        event_data: WorkflowEventData,
+        when_data_conditions: list[DataCondition] | None = None,
+        group: DataConditionGroup | None = None,
     ) -> tuple[TriggerResult, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
@@ -140,9 +143,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             return TriggerResult.TRUE, []
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
-        try:
-            group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
-        except DataConditionGroup.DoesNotExist:
+
+        if group is None:
             # This isn't expected under normal conditions, but weird things can happen in the
             # midst of deletions and migrations.
             logger.exception(
