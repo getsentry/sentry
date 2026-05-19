@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import iconAndroid from 'sentry-logos/logo-android.svg';
@@ -22,7 +21,6 @@ import {
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
-import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
@@ -204,9 +202,13 @@ function getInitialSubfilters(active: boolean | string[]): string[] {
 function LegacyBrowserFilterRow({
   subfilters,
   disabled,
+  hintText,
   indicator,
+  label,
   onToggle,
 }: {
+  hintText: React.ReactNode;
+  label: React.ReactNode;
   onToggle: (newSubfilters: string[]) => void;
   subfilters: string[];
   disabled?: boolean;
@@ -214,14 +216,10 @@ function LegacyBrowserFilterRow({
 }) {
   const subfilterSet = new Set(subfilters);
 
-  const handleToggle = (subfilter: boolean | string) => {
-    let newSet = new Set(subfilterSet);
+  const toggleSubfilter = (subfilter: string) => {
+    const newSet = new Set(subfilterSet);
 
-    if (subfilter === true) {
-      newSet = new Set(getActiveSubfilters());
-    } else if (subfilter === false) {
-      newSet = new Set();
-    } else if (newSet.has(subfilter)) {
+    if (newSet.has(subfilter)) {
       newSet.delete(subfilter);
     } else {
       newSet.add(subfilter);
@@ -234,27 +232,23 @@ function LegacyBrowserFilterRow({
     <Flex direction="column" flexGrow={1} width="100%">
       <Flex align="center" gap="xs" justify="between">
         <Flex align="center" gap="xs">
-          <Text bold>{t('Filter out legacy browsers')}:</Text>
+          {label}
           <Grid flow="column" align="center" gap="md">
-            <Button variant="link" onClick={() => handleToggle(true)} disabled={disabled}>
-              {t('All')}
-            </Button>
             <Button
               variant="link"
-              onClick={() => handleToggle(false)}
+              onClick={() => onToggle(getActiveSubfilters())}
               disabled={disabled}
             >
+              {t('All')}
+            </Button>
+            <Button variant="link" onClick={() => onToggle([])} disabled={disabled}>
               {t('None')}
             </Button>
           </Grid>
         </Flex>
         {indicator}
       </Flex>
-      <Text size="sm" variant="muted">
-        {t(
-          'The browser versions filtered out will be periodically evaluated and updated.'
-        )}
-      </Text>
+      {hintText}
       <FilterGrid>
         {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
           .filter(key => {
@@ -276,11 +270,7 @@ function LegacyBrowserFilterRow({
                   aria-label={`${subfilter.title} ${subfilter.helpText}`}
                   checked={subfilterSet.has(key)}
                   disabled={disabled}
-                  css={css`
-                    flex-shrink: 0;
-                    margin-left: 6;
-                  `}
-                  onChange={() => handleToggle(key)}
+                  onChange={() => toggleSubfilter(key)}
                   size="lg"
                 />
               </FilterGridItem>
@@ -367,17 +357,25 @@ function LegacyBrowserFilter({
       {field => (
         <field.Base disabled={!hasAccess}>
           {(baseProps, {indicator}) => {
-            const handleToggle = (newSubfilters: string[]) => {
-              field.handleChange(newSubfilters);
-              baseProps.onBlur();
-            };
-
             return (
               <LegacyBrowserFilterRow
                 subfilters={field.state.value}
                 disabled={baseProps.disabled}
+                hintText={
+                  <field.Meta.HintText>
+                    {t(
+                      'The browser versions filtered out will be periodically evaluated and updated.'
+                    )}
+                  </field.Meta.HintText>
+                }
                 indicator={indicator}
-                onToggle={handleToggle}
+                label={
+                  <field.Meta.Label>{t('Filter out legacy browsers')}</field.Meta.Label>
+                }
+                onToggle={newSubfilters => {
+                  field.handleChange(newSubfilters);
+                  baseProps.onBlur();
+                }}
               />
             );
           }}
