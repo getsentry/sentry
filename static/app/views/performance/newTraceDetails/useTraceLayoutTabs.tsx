@@ -4,7 +4,11 @@ import * as qs from 'query-string';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {
+  getTraceMetaLogsCount,
+  getTraceMetaMetricsCount,
+  type TraceMetaQueryResults,
+} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
@@ -81,6 +85,7 @@ export function getInitialTab({
   isLoading,
   logsEnabled = true,
   metricsEnabled = true,
+  meta,
   sections,
   tabOptions,
   tabSlugFromUrl,
@@ -90,12 +95,22 @@ export function getInitialTab({
   tabOptions: Tab[];
   tabSlugFromUrl: unknown;
   logsEnabled?: boolean;
+  meta?: TraceMetaQueryResults['data'];
   metricsEnabled?: boolean;
 }): Tab {
+  const hasAuthoritativeNoLogs =
+    logsEnabled && getTraceMetaLogsCount(meta) === 0 && !sections.hasLogs;
+  const hasAuthoritativeNoMetrics =
+    metricsEnabled && getTraceMetaMetricsCount(meta) === 0 && !sections.hasMetrics;
+
   if (
     isLoading &&
-    ((logsEnabled && tabSlugFromUrl === TraceLayoutTabKeys.LOGS) ||
-      (metricsEnabled && tabSlugFromUrl === TraceLayoutTabKeys.METRICS) ||
+    ((logsEnabled &&
+      !hasAuthoritativeNoLogs &&
+      tabSlugFromUrl === TraceLayoutTabKeys.LOGS) ||
+      (metricsEnabled &&
+        !hasAuthoritativeNoMetrics &&
+        tabSlugFromUrl === TraceLayoutTabKeys.METRICS) ||
       tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS)
   ) {
     return TAB_DEFINITIONS[tabSlugFromUrl];
@@ -145,6 +160,7 @@ export function useTraceLayoutTabs({
     isLoading,
     logsEnabled,
     metricsEnabled,
+    meta,
     sections,
     tabOptions,
     tabSlugFromUrl,

@@ -1,3 +1,4 @@
+import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {
   getInitialTab,
   TraceLayoutTabKeys,
@@ -11,6 +12,20 @@ const sections = {
   hasTraceEvents: true,
   hasVitals: false,
 };
+
+function makeEapMeta(overrides: Partial<EAPTraceMeta> = {}): EAPTraceMeta {
+  return {
+    errorsCount: 0,
+    logsCount: 0,
+    metricsCount: 0,
+    performanceIssuesCount: 0,
+    spansCount: 0,
+    spansCountMap: {},
+    transactionChildCountMap: {},
+    uptimeCount: 0,
+    ...overrides,
+  };
+}
 
 describe('getInitialTab', () => {
   it.each([
@@ -55,6 +70,24 @@ describe('getInitialTab', () => {
           tabOptions: [],
           tabSlugFromUrl,
           ...featureOptions,
+        }).slug
+      ).toBe(TraceLayoutTabKeys.WATERFALL);
+    }
+  );
+
+  it.each([
+    [TraceLayoutTabKeys.LOGS, makeEapMeta({logsCount: 0, metricsCount: 1})],
+    [TraceLayoutTabKeys.METRICS, makeEapMeta({logsCount: 1, metricsCount: 0})],
+  ])(
+    'does not preserve %s while loading when trace meta reports no tab data',
+    (tabSlugFromUrl, meta) => {
+      expect(
+        getInitialTab({
+          isLoading: true,
+          meta,
+          sections,
+          tabOptions: [],
+          tabSlugFromUrl,
         }).slug
       ).toBe(TraceLayoutTabKeys.WATERFALL);
     }
