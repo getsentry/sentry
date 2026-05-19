@@ -73,6 +73,8 @@ export function ExplorerDrawerHeader({
     (isOpen: boolean) => {
       if (isOpen) {
         refetch();
+      } else {
+        setSearch('');
       }
     },
     [refetch]
