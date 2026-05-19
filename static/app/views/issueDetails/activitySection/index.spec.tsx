@@ -18,9 +18,9 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
-describe('StreamlinedActivitySection', () => {
+describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
@@ -69,7 +69,7 @@ describe('StreamlinedActivitySection', () => {
       },
     });
 
-    render(<StreamlinedActivitySection group={group} />);
+    render(<ActivitySection group={group} />);
 
     const commentInput = screen.getByPlaceholderText('Add a comment…');
     expect(commentInput).toBeInTheDocument();
@@ -105,7 +105,7 @@ describe('StreamlinedActivitySection', () => {
       },
     });
 
-    render(<StreamlinedActivitySection group={group} />);
+    render(<ActivitySection group={group} />);
 
     const commentInput = screen.getByPlaceholderText('Add a comment…');
     await userEvent.type(commentInput, comment);
@@ -131,7 +131,7 @@ describe('StreamlinedActivitySection', () => {
       },
     });
 
-    render(<StreamlinedActivitySection group={group} variant="standalone" size="md" />);
+    render(<ActivitySection group={group} variant="standalone" size="md" />);
 
     await userEvent.type(screen.getByPlaceholderText('Add a comment…'), '@jane');
     await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
@@ -155,7 +155,7 @@ describe('StreamlinedActivitySection', () => {
       method: 'DELETE',
     });
 
-    render(<StreamlinedActivitySection group={group} />);
+    render(<ActivitySection group={group} />);
     renderGlobalModal();
     expect(await screen.findByText('Test Note')).toBeInTheDocument();
 
@@ -199,7 +199,7 @@ describe('StreamlinedActivitySection', () => {
       },
     });
 
-    render(<StreamlinedActivitySection group={editGroup} />);
+    render(<ActivitySection group={editGroup} />);
     expect(await screen.findByText('Group Test')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
@@ -249,7 +249,7 @@ describe('StreamlinedActivitySection', () => {
       ],
     });
 
-    render(<StreamlinedActivitySection group={newGroup} />);
+    render(<ActivitySection group={newGroup} />);
     expect(
       await screen.findByText('This note came from my sentry app')
     ).toBeInTheDocument();
@@ -274,7 +274,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={updatedActivityGroup} />);
+    render(<ActivitySection group={updatedActivityGroup} />);
     expect(await screen.findByText('Test Note')).toBeInTheDocument();
 
     expect(
@@ -298,7 +298,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={updatedActivityGroup} />);
+    render(<ActivitySection group={updatedActivityGroup} />);
     expect(await screen.findByText('Test Note 1')).toBeInTheDocument();
     expect(await screen.findByText('Test Note 3')).toBeInTheDocument();
     expect(screen.queryByText('Test Note 7')).not.toBeInTheDocument();
@@ -322,11 +322,7 @@ describe('StreamlinedActivitySection', () => {
     });
 
     render(
-      <StreamlinedActivitySection
-        group={updatedActivityGroup}
-        variant="standalone"
-        size="md"
-      />
+      <ActivitySection group={updatedActivityGroup} variant="standalone" size="md" />
     );
 
     for (const activity of activities) {
@@ -363,7 +359,7 @@ describe('StreamlinedActivitySection', () => {
     });
 
     render(
-      <StreamlinedActivitySection
+      <ActivitySection
         group={updatedActivityGroup}
         variant="standalone"
         size="md"
@@ -402,7 +398,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={resolvedGroup} />);
+    render(<ActivitySection group={resolvedGroup} />);
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Jira Server'})).toBeInTheDocument();
@@ -425,7 +421,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={resolvedGroup} />);
+    render(<ActivitySection group={resolvedGroup} />);
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
   });
@@ -449,7 +445,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={referencedGroup} />);
+    render(<ActivitySection group={referencedGroup} />);
     expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
   });
@@ -471,7 +467,7 @@ describe('StreamlinedActivitySection', () => {
 
     const org = OrganizationFixture({features: ['seer-activity-timeline']});
 
-    render(<StreamlinedActivitySection group={seerGroup} />, {organization: org});
+    render(<ActivitySection group={seerGroup} />, {organization: org});
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
     expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
   });
@@ -491,7 +487,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={seerGroup} />);
+    render(<ActivitySection group={seerGroup} />);
     expect(screen.queryByText('Root Cause Analysis')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Seer completed root cause analysis')
@@ -527,7 +523,7 @@ describe('StreamlinedActivitySection', () => {
 
     const org = OrganizationFixture({features: ['seer-activity-timeline']});
 
-    render(<StreamlinedActivitySection group={seerPrGroup} />, {organization: org});
+    render(<ActivitySection group={seerPrGroup} />, {organization: org});
     expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
       'href',

@@ -2,7 +2,7 @@ import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -37,7 +37,7 @@ type Props = {
   text?: string;
 };
 
-function StreamlinedNoteInput({
+export function CompactNoteInput({
   text,
   onCreate,
   onChange,
@@ -192,18 +192,16 @@ function StreamlinedNoteInput({
   );
 }
 
-export {StreamlinedNoteInput};
-
 const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   if (!p.error) {
     return '';
   }
 
-  return `
-  color: ${p.theme.tokens.content.danger};
-  margin: -1px;
-  border: 1px solid ${p.theme.tokens.content.danger};
-  border-radius: ${p.theme.radius.md};
+  return css`
+    color: ${p.theme.tokens.content.danger};
+    margin: -1px;
+    border: 1px solid ${p.theme.tokens.border.danger};
+    border-radius: ${p.theme.radius.md};
 
     &:before {
       display: block;
@@ -241,5 +239,5 @@ const NoteInputForm = styled('form')<{error?: string}>`
   width: 100%;
   transition: padding 0.2s ease-in-out;
 
-  ${p => getNoteInputErrorStyles(p)};
+  ${getNoteInputErrorStyles};
 `;

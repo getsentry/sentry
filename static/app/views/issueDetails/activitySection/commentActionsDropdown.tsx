@@ -11,7 +11,7 @@ type Props = {
   user?: User | null;
 };
 
-function NoteDropdown({
+export function CommentActionsDropdown({
   user,
   onDelete,
   onEdit,
@@ -65,5 +65,3 @@ function NoteDropdown({
     />
   );
 }
-
-export {NoteDropdown};

@@ -27,11 +27,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
+import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
+import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
-import {getGroupActivityItem} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
-import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -91,7 +91,7 @@ function TimelineItem({
             {title}
           </TitleTooltip>
           {item.type === GroupActivityType.NOTE && !editing && (
-            <TitleDropdown
+            <CommentActionsDropdown
               onDelete={() => handleDelete(item)}
               onEdit={() => setEditing(true)}
               user={item.user}
@@ -143,7 +143,7 @@ function ActivityNoteInput(props: React.ComponentProps<typeof NoteInputWithStora
   );
 }
 
-interface StreamlinedActivitySectionProps {
+interface ActivitySectionProps {
   group: Group;
   /**
    * Whether to filter the activity to only show comments.
@@ -163,7 +163,7 @@ interface StreamlinedActivitySectionProps {
   variant?: 'sidebar' | 'standalone';
 }
 
-export function StreamlinedActivitySection({
+export function ActivitySection({
   group,
   filterComments,
   onCreate: onCreateProp,
@@ -173,7 +173,7 @@ export function StreamlinedActivitySection({
   size = 'sm',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
-}: StreamlinedActivitySectionProps) {
+}: ActivitySectionProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {teams} = useTeamsById();
@@ -390,10 +390,6 @@ const TitleTooltip = styled(Tooltip)`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const TitleDropdown = styled(NoteDropdown)`
-  font-weight: normal;
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`

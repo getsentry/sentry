@@ -14,7 +14,7 @@ import {
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
 type Props = {
   feedbackItem: Group;
@@ -107,7 +107,7 @@ export function FeedbackActivitySection(props: Props) {
   );
 
   return (
-    <StreamlinedActivitySection
+    <ActivitySection
       group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
       onDelete={handleDelete}
       onCreate={handleCreate}

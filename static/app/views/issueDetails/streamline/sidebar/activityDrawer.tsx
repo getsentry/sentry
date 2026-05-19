@@ -18,7 +18,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
 interface ActivityDrawerProps {
   group: Group;
@@ -78,7 +78,7 @@ export function ActivityDrawer({group, project}: ActivityDrawerProps) {
         </SegmentedControl>
       </EventNavigator>
       <EventDrawerBody>
-        <StreamlinedActivitySection
+        <ActivitySection
           group={group}
           variant="standalone"
           size="md"

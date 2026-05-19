@@ -2,11 +2,11 @@ import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import type {NoteType} from 'sentry/types/alerts';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
@@ -135,7 +135,7 @@ function NoteInputWithStorage({
 
   if (variant === 'compact') {
     return (
-      <StreamlinedNoteInput
+      <CompactNoteInput
         text={value}
         onCreate={handleCreate}
         onChange={handleChange}

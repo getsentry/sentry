@@ -16,12 +16,12 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {AutofixSection} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
@@ -108,7 +108,7 @@ export function StreamlinedSidebar({group, event, project}: Props) {
               <ExternalIssueSidebarList group={group} event={event} project={project} />
             </ErrorBoundary>
           )}
-          <StreamlinedActivitySection group={group} />
+          <ActivitySection group={group} />
           {showPeopleSection && (
             <PeopleSection
               userParticipants={userParticipants}
