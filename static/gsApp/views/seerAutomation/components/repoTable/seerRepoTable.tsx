@@ -131,7 +131,7 @@ export function SeerRepoTable() {
     isPending,
     isFetchingNextPage,
   } = result;
-  const isFetchingAllPages = hasNextPage || isFetchingNextPage;
+  const isFetchingAllPages = !isError && (hasNextPage || isFetchingNextPage);
 
   const {mutate: mutateRepositorySettings, mutateAsync: mutateRepositorySettingsAsync} =
     useBulkUpdateRepositorySettings({
