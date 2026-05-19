@@ -805,7 +805,7 @@ def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpda
 
     with transaction.atomic(using=router.db_for_write(ProjectOption)):
         # Lock project rows to serialize concurrent writes.
-        list(Project.objects.select_for_update().filter(id=project.id))
+        list(Project.objects.select_for_update().filter(id=project.id).first())
 
         for key in options_to_delete:
             project.delete_option(key)
@@ -821,11 +821,14 @@ def bulk_update_seer_project_settings(
         return
 
     options_to_set, options_to_delete = _get_seer_project_options_to_update(data)
+    if not options_to_set and not options_to_delete:
+        return
+
     project_ids = [p.id for p in projects]
 
     with transaction.atomic(using=router.db_for_write(ProjectOption)):
         # Lock project rows to serialize concurrent writes.
-        list(Project.objects.select_for_update().filter(id__in=project_ids))
+        list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
 
         if options_to_delete:
             # Use _raw_delete to skip ProjectOptionManager post_delete signals (each row triggers reload_cache).
