@@ -149,6 +149,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                           return {
                             ...props.arbitraryOptions,
                             // Always display arbitrary issue open period
+                            ...props.defaultOptions,
                             ...(defaultStatsPeriod?.statsPeriod &&
                             shouldShowSinceFirstSeenOption
                               ? {
@@ -160,7 +161,6 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                                   ),
                                 }
                               : {}),
-                            ...props.defaultOptions,
                           };
                         }}
                         onChange={({relative, start, end, utc}) => {

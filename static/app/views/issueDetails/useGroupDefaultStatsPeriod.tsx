@@ -73,7 +73,7 @@ export function useGroupDefaultStatsPeriod(
 }
 
 /**
- * Returns a short-form duration string (e.g. "2mo", "19d", "3h") without converting to larger units like weeks, matching the sidebar's TimeSince display.
+ * Returns a short-form duration string (e.g. "2mo", "19d", "3h", "45m") without converting to larger units like weeks, matching the sidebar's TimeSince display.
  */
 export function getFirstSeenDuration(firstSeen: string): string {
   const duration = moment.duration(moment().diff(firstSeen));
@@ -90,5 +90,12 @@ export function getFirstSeenDuration(firstSeen: string): string {
     return `${Math.round(days)}d`;
   }
 
-  return `${Math.max(1, Math.round(duration.asHours()))}h`;
+  const hours = duration.asHours();
+
+  if (hours >= 1) {
+    return `${Math.round(hours)}h`;
+  }
+
+  const minutes = duration.asMinutes();
+  return `${Math.max(1, Math.round(minutes))}m`;
 }
