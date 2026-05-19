@@ -609,6 +609,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(repos) == 1
         assert repos[0].owner == "owner"
         assert repos[0].name == "repo"
+        assert call_kwargs["issue_short_id"] == self.group.qualified_short_id
 
     @patch("sentry.seer.autofix.autofix_agent.analytics.record")
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
