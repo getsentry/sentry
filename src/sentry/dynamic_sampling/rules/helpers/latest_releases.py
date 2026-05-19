@@ -134,10 +134,10 @@ class ProjectBoostedReleases:
     # Limit of boosted releases per project.
     BOOSTED_RELEASES_HASH_EXPIRATION = 60 * 60 * 1000
 
-    def __init__(self, project_id: int):
+    def __init__(self, project: Project):
         self.redis_client = get_redis_client_for_ds()
-        self.project_id = project_id
-        self.project_platform = _get_project_platform(self.project_id)
+        self.project_id = project.id
+        self.project_platform = project.platform
 
     @property
     def has_boosted_releases(self) -> bool:
@@ -296,9 +296,7 @@ class LatestReleaseBias:
     def __init__(self, latest_release_params: LatestReleaseParams):
         self.redis_client = get_redis_client_for_ds()
         self.latest_release_params = latest_release_params
-        self.project_boosted_releases = ProjectBoostedReleases(
-            self.latest_release_params.project.id
-        )
+        self.project_boosted_releases = ProjectBoostedReleases(self.latest_release_params.project)
 
     @sentry_sdk.tracing.trace
     def observe_release(self, on_boosted_release_added: Callable[[], None]) -> None:
