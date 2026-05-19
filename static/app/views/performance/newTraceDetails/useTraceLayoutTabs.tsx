@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
@@ -76,32 +77,78 @@ function getTabOptions({
   return tabOptions;
 }
 
+export function getInitialTab({
+  isLoading,
+  logsEnabled = true,
+  metricsEnabled = true,
+  sections,
+  tabOptions,
+  tabSlugFromUrl,
+}: {
+  isLoading: boolean;
+  sections: ReturnType<typeof useTraceContextSections>;
+  tabOptions: Tab[];
+  tabSlugFromUrl: unknown;
+  logsEnabled?: boolean;
+  metricsEnabled?: boolean;
+}): Tab {
+  if (
+    isLoading &&
+    ((logsEnabled && tabSlugFromUrl === TraceLayoutTabKeys.LOGS) ||
+      (metricsEnabled && tabSlugFromUrl === TraceLayoutTabKeys.METRICS) ||
+      tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS)
+  ) {
+    return TAB_DEFINITIONS[tabSlugFromUrl];
+  }
+
+  return (
+    tabOptions.find(tab => tab.slug === tabSlugFromUrl) ??
+    (sections.hasTraceEvents
+      ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
+      : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS])
+  );
+}
+
 interface UseTraceLayoutTabsProps {
+  isLoading: boolean;
   logs: OurLogsResponseItem[] | undefined;
+  logsEnabled: boolean;
   metrics: {count: number} | undefined;
+  metricsEnabled: boolean;
   tree: TraceTree;
+  meta?: TraceMetaQueryResults['data'];
 }
 
 export function useTraceLayoutTabs({
+  isLoading,
   tree,
   logs,
+  meta,
   metrics,
+  logsEnabled,
+  metricsEnabled,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const sections = useTraceContextSections({
     tree,
     logs,
+    meta,
     metrics,
+    logsEnabled,
+    metricsEnabled,
   });
   const tabOptions = getTabOptions({sections: {...sections}});
 
   const queryParams = qs.parse(window.location.search);
   const tabSlugFromUrl = queryParams.tab;
-  const initialTab =
-    tabOptions.find(tab => tab.slug === tabSlugFromUrl) ??
-    (sections.hasTraceEvents
-      ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
-      : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
+  const initialTab = getInitialTab({
+    isLoading,
+    logsEnabled,
+    metricsEnabled,
+    sections,
+    tabOptions,
+    tabSlugFromUrl,
+  });
 
   const [currentTab, setCurrentTab] = useState(initialTab.slug);
 
