@@ -18,7 +18,7 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
-import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
+import {GroupActivityType, GroupStatus, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,6 +36,94 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+export const ISSUE_ACTIVITY_TIMELINE_STATUS = {
+  NEW: 'new',
+} as const;
+
+export type IssueActivityTimelineStatus =
+  | GroupStatus.IGNORED
+  | GroupStatus.RESOLVED
+  | GroupStatus.UNRESOLVED
+  | (typeof ISSUE_ACTIVITY_TIMELINE_STATUS)[keyof typeof ISSUE_ACTIVITY_TIMELINE_STATUS];
+
+const RESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SET_RESOLVED,
+  GroupActivityType.SET_RESOLVED_BY_AGE,
+  GroupActivityType.SET_RESOLVED_IN_RELEASE,
+  GroupActivityType.SET_RESOLVED_IN_COMMIT,
+]);
+
+const UNRESOLVED_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SET_UNRESOLVED,
+  GroupActivityType.SET_REGRESSION,
+  GroupActivityType.SET_ESCALATING,
+  GroupActivityType.AUTO_SET_ONGOING,
+]);
+
+function getInitialTimelineStatus(status: GroupStatus): IssueActivityTimelineStatus {
+  if (status === GroupStatus.RESOLVED || status === GroupStatus.IGNORED) {
+    return status;
+  }
+  return GroupStatus.UNRESOLVED;
+}
+
+function getStatusBeforeOldestActivity(
+  activity: GroupActivity,
+  currentGroupStatus: GroupStatus
+): IssueActivityTimelineStatus {
+  if (
+    activity.type === GroupActivityType.FIRST_SEEN ||
+    RESOLVED_ACTIVITY_TYPES.has(activity.type) ||
+    activity.type === GroupActivityType.SET_IGNORED
+  ) {
+    return GroupStatus.UNRESOLVED;
+  }
+  if (
+    activity.type === GroupActivityType.SET_UNRESOLVED ||
+    activity.type === GroupActivityType.SET_REGRESSION
+  ) {
+    return GroupStatus.RESOLVED;
+  }
+  return getInitialTimelineStatus(currentGroupStatus);
+}
+
+function getStatusAfterActivity(
+  activity: GroupActivity,
+  currentStatus: IssueActivityTimelineStatus
+): IssueActivityTimelineStatus {
+  if (activity.type === GroupActivityType.FIRST_SEEN) {
+    return ISSUE_ACTIVITY_TIMELINE_STATUS.NEW;
+  }
+  if (RESOLVED_ACTIVITY_TYPES.has(activity.type)) {
+    return GroupStatus.RESOLVED;
+  }
+  if (activity.type === GroupActivityType.SET_IGNORED) {
+    return GroupStatus.IGNORED;
+  }
+  if (UNRESOLVED_ACTIVITY_TYPES.has(activity.type)) {
+    return GroupStatus.UNRESOLVED;
+  }
+  return currentStatus;
+}
+
+export function getIssueActivityTimelineStatuses(
+  currentGroupStatus: GroupStatus,
+  activity: GroupActivity[]
+) {
+  const statuses = new Map<string, IssueActivityTimelineStatus>();
+  const oldestActivity = activity.at(-1);
+  let currentStatus = oldestActivity
+    ? getStatusBeforeOldestActivity(oldestActivity, currentGroupStatus)
+    : getInitialTimelineStatus(currentGroupStatus);
+
+  for (const item of activity.toReversed()) {
+    currentStatus = getStatusAfterActivity(item, currentStatus);
+    statuses.set(item.id, currentStatus);
+  }
+
+  return statuses;
+}
+
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
     return item.sentry_app.name;
@@ -52,6 +140,8 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
+  timelineConnectorColor,
+  timelineIconBorderColor,
   isDrawer,
 }: {
   group: Group;
@@ -60,6 +150,8 @@ function TimelineItem({
   item: GroupActivity;
   teams: Team[];
   isDrawer?: boolean;
+  timelineConnectorColor?: string;
+  timelineIconBorderColor?: string;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -83,6 +175,7 @@ function TimelineItem({
 
   return (
     <ActivityTimelineItem
+      data-test-id="activity-timeline-row"
       title={
         <Flex gap="xs" align="center" justify="start">
           <TitleTooltip title={title} showOnlyOnOverflow>
@@ -98,6 +191,7 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
+      connectorColor={timelineConnectorColor}
       icon={
         Icon && (
           <Icon
@@ -107,6 +201,7 @@ function TimelineItem({
           />
         )
       }
+      iconBorderColor={timelineIconBorderColor}
     >
       {item.type === GroupActivityType.NOTE && editing ? (
         <NoteInputWithStorage
@@ -156,6 +251,9 @@ export function StreamlinedActivitySection({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
+  const timelineStatuses = isDrawer
+    ? getIssueActivityTimelineStatuses(group.status, group.activity)
+    : undefined;
 
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -250,6 +348,44 @@ export function StreamlinedActivitySection({
     },
   };
 
+  const getStatusColor = (status: IssueActivityTimelineStatus | undefined) => {
+    switch (status) {
+      case ISSUE_ACTIVITY_TIMELINE_STATUS.NEW:
+        return theme.tokens.border.warning.vibrant;
+      case GroupStatus.RESOLVED:
+        return theme.tokens.border.success.vibrant;
+      case GroupStatus.UNRESOLVED:
+        return theme.tokens.border.danger.vibrant;
+      case GroupStatus.IGNORED:
+      default:
+        return;
+    }
+  };
+
+  const getTimelineIconBorderColor = (item: GroupActivity) => {
+    if (!timelineStatuses) {
+      return;
+    }
+    const status =
+      item.type === GroupActivityType.FIRST_SEEN
+        ? undefined
+        : timelineStatuses.get(item.id);
+    return getStatusColor(status) ?? theme.tokens.border.secondary;
+  };
+
+  const getTimelineConnectorColor = (
+    item: GroupActivity,
+    nextItem: GroupActivity | undefined
+  ) => {
+    if (!timelineStatuses) {
+      return;
+    }
+    const status = nextItem
+      ? timelineStatuses.get(nextItem.id)
+      : timelineStatuses.get(item.id);
+    return getStatusColor(status);
+  };
+
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
   const visibleActivities = showSeerActivities
     ? group.activity
@@ -270,7 +406,7 @@ export function StreamlinedActivitySection({
       />
       {visibleActivities
         .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
-        .map(item => {
+        .map((item, index, displayedActivity) => {
           return (
             <TimelineItem
               item={item}
@@ -279,6 +415,11 @@ export function StreamlinedActivitySection({
               group={group}
               teams={teams}
               key={item.id}
+              timelineConnectorColor={getTimelineConnectorColor(
+                item,
+                displayedActivity[index + 1]
+              )}
+              timelineIconBorderColor={getTimelineIconBorderColor(item)}
               isDrawer={isDrawer}
             />
           );

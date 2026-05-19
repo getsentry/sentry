@@ -17,8 +17,29 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
-import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {GroupActivityType, GroupStatus} from 'sentry/types/group';
+import {
+  getIssueActivityTimelineStatuses,
+  ISSUE_ACTIVITY_TIMELINE_STATUS,
+  StreamlinedActivitySection,
+} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+
+function getStatusEntries(currentStatus: GroupStatus, activity: GroupActivity[]) {
+  return Object.fromEntries(getIssueActivityTimelineStatuses(currentStatus, activity));
+}
+
+function getConnectorStatusEntries(
+  currentStatus: GroupStatus,
+  activity: GroupActivity[]
+) {
+  const statuses = getIssueActivityTimelineStatuses(currentStatus, activity);
+  return Object.fromEntries(
+    activity.map((item, index) => {
+      const nextItem = activity[index + 1];
+      return [item.id, nextItem ? statuses.get(nextItem.id) : statuses.get(item.id)];
+    })
+  );
+}
 
 describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
@@ -53,6 +74,359 @@ describe('StreamlinedActivitySection', () => {
       body: [],
     });
     localStorage.clear();
+  });
+
+  it('infers resolved activity status until an unresolved state change', () => {
+    const activities = [
+      {
+        type: GroupActivityType.NOTE,
+        id: 'latest-note',
+        data: {text: 'Resolved comment'},
+        dateCreated: '2020-01-04T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_RESOLVED,
+        id: 'resolved',
+        data: {},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.NOTE,
+        id: 'resolved-period-note',
+        data: {text: 'Still resolved'},
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed',
+        data: {},
+        dateCreated: '2020-01-01T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.RESOLVED, activities)).toEqual({
+      'latest-note': GroupStatus.RESOLVED,
+      resolved: GroupStatus.RESOLVED,
+      'resolved-period-note': GroupStatus.UNRESOLVED,
+      regressed: GroupStatus.UNRESOLVED,
+    });
+  });
+
+  it('infers unresolved activity status until a resolved state change', () => {
+    const activities = [
+      {
+        type: GroupActivityType.NOTE,
+        id: 'latest-note',
+        data: {text: 'Open comment'},
+        dateCreated: '2020-01-04T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_UNRESOLVED,
+        id: 'unresolved',
+        data: {},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.ASSIGNED,
+        id: 'assigned',
+        data: {
+          assignee: '1',
+          assigneeType: 'user',
+          user,
+        },
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
+        id: 'resolved-in-commit',
+        data: {},
+        dateCreated: '2020-01-01T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      'latest-note': GroupStatus.UNRESOLVED,
+      unresolved: GroupStatus.UNRESOLVED,
+      assigned: GroupStatus.RESOLVED,
+      'resolved-in-commit': GroupStatus.RESOLVED,
+    });
+  });
+
+  it('keeps ignored activity status neutral and inherits it for non-state actions', () => {
+    const activities = [
+      {
+        type: GroupActivityType.SET_IGNORED,
+        id: 'ignored',
+        data: {},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.NOTE,
+        id: 'ignored-note',
+        data: {text: 'Archived comment'},
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.FIRST_SEEN,
+        id: 'first-seen',
+        data: {},
+        dateCreated: '2020-01-01T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.IGNORED, activities)).toEqual({
+      ignored: GroupStatus.IGNORED,
+      'ignored-note': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
+      'first-seen': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
+    });
+  });
+
+  it('keeps first seen neutral and marks the initial period as new until regression', () => {
+    const activities = [
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed',
+        data: {},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.NOTE,
+        id: 'initial-note',
+        data: {text: 'Still new'},
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.FIRST_SEEN,
+        id: 'first-seen',
+        data: {},
+        dateCreated: '2020-01-01T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      regressed: GroupStatus.UNRESOLVED,
+      'initial-note': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
+      'first-seen': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
+    });
+    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      regressed: ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
+      'initial-note': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
+      'first-seen': ISSUE_ACTIVITY_TIMELINE_STATUS.NEW,
+    });
+  });
+
+  it('colors the connector from archived to unresolved as unresolved', () => {
+    const activities = [
+      {
+        type: GroupActivityType.SET_IGNORED,
+        id: 'ignored',
+        data: {},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.AUTO_SET_ONGOING,
+        id: 'ongoing',
+        data: {after_days: 7},
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.IGNORED, activities)).toEqual({
+      ignored: GroupStatus.IGNORED,
+      ongoing: GroupStatus.UNRESOLVED,
+    });
+    expect(getConnectorStatusEntries(GroupStatus.IGNORED, activities)).toEqual({
+      ignored: GroupStatus.UNRESOLVED,
+      ongoing: GroupStatus.UNRESOLVED,
+    });
+  });
+
+  it('keeps the connector from unresolved to archived neutral', () => {
+    const activities = [
+      {
+        type: GroupActivityType.AUTO_SET_ONGOING,
+        id: 'ongoing',
+        data: {after_days: 7},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_IGNORED,
+        id: 'ignored',
+        data: {},
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      ongoing: GroupStatus.UNRESOLVED,
+      ignored: GroupStatus.IGNORED,
+    });
+    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      ongoing: GroupStatus.IGNORED,
+      ignored: GroupStatus.IGNORED,
+    });
+  });
+
+  it('marks auto-assignment before an auto-ongoing action as unresolved', () => {
+    const activities = [
+      {
+        type: GroupActivityType.AUTO_SET_ONGOING,
+        id: 'ongoing-latest',
+        data: {after_days: 7},
+        dateCreated: '2026-01-29T04:15:38.602909Z',
+        user: null,
+      },
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed-latest',
+        data: {
+          event_id: 'c0c33473114446f09a3ec1b9e4263450',
+          version: 'backend@fe6617548efb4bfb775413964cedbba11340ad6f',
+        },
+        dateCreated: '2026-01-22T04:07:42.973057Z',
+        user: null,
+      },
+      {
+        type: GroupActivityType.SET_RESOLVED_BY_AGE,
+        id: 'resolved-by-age',
+        data: {age: 168},
+        dateCreated: '2025-12-09T22:00:22.672404Z',
+        user: null,
+      },
+      {
+        type: GroupActivityType.ASSIGNED,
+        id: 'auto-assigned',
+        data: {
+          assignee: '4509562243055616',
+          assigneeEmail: null,
+          assigneeName: 'issue-workflow',
+          assigneeType: 'team',
+          integration: 'codeowners',
+          rule: 'codeowners:/sentry/api/endpoints/ #issue-workflow',
+        },
+        dateCreated: '2025-09-15T14:58:04.047879Z',
+        user: null,
+      },
+      {
+        type: GroupActivityType.AUTO_SET_ONGOING,
+        id: 'ongoing-older',
+        data: {after_days: 7},
+        dateCreated: '2025-08-13T17:30:46.558476Z',
+        user: null,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      'ongoing-latest': GroupStatus.UNRESOLVED,
+      'regressed-latest': GroupStatus.UNRESOLVED,
+      'resolved-by-age': GroupStatus.RESOLVED,
+      'auto-assigned': GroupStatus.UNRESOLVED,
+      'ongoing-older': GroupStatus.UNRESOLVED,
+    });
+  });
+
+  it('uses unresolved connectors between consecutive regression actions', () => {
+    const activities = [
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed-3',
+        data: {
+          event_id: 'adf10121c17245d98d84d7d93935353a',
+          version: 'backend@03a4083d745168a555a83e76f58130eb0c650a09',
+        },
+        dateCreated: '2026-05-12T13:15:04.308524Z',
+        user: null,
+      },
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed-2',
+        data: {
+          event_id: '4005102101874a19a7c421c70cde39bd',
+          version: 'backend@03a4083d745168a555a83e76f58130eb0c650a09',
+        },
+        dateCreated: '2026-05-12T13:14:59.980800Z',
+        user: null,
+      },
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed-1',
+        data: {
+          event_id: 'ed43aae8cf534f95b94112148d7bc260',
+          version: 'backend@03a4083d745168a555a83e76f58130eb0c650a09',
+        },
+        dateCreated: '2026-05-12T13:14:53.414692Z',
+        user: null,
+      },
+      {
+        type: GroupActivityType.SET_RESOLVED_BY_AGE,
+        id: 'resolved-by-age',
+        data: {age: 168},
+        dateCreated: '2026-05-05T19:50:09.586524Z',
+        user: null,
+      },
+    ] as GroupActivity[];
+
+    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      'regressed-3': GroupStatus.UNRESOLVED,
+      'regressed-2': GroupStatus.UNRESOLVED,
+      'regressed-1': GroupStatus.RESOLVED,
+      'resolved-by-age': GroupStatus.RESOLVED,
+    });
+  });
+
+  it('colors connectors by the status during the interval between state changes', () => {
+    const activities = [
+      {
+        type: GroupActivityType.AUTO_SET_ONGOING,
+        id: 'ongoing',
+        data: {after_days: 7},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_RESOLVED,
+        id: 'resolved',
+        data: {},
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed',
+        data: {},
+        dateCreated: '2020-01-01T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+
+    expect(getStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      ongoing: GroupStatus.UNRESOLVED,
+      resolved: GroupStatus.RESOLVED,
+      regressed: GroupStatus.UNRESOLVED,
+    });
+    expect(getConnectorStatusEntries(GroupStatus.UNRESOLVED, activities)).toEqual({
+      ongoing: GroupStatus.RESOLVED,
+      resolved: GroupStatus.UNRESOLVED,
+      regressed: GroupStatus.UNRESOLVED,
+    });
   });
 
   it('renders the input with a comment button', async () => {
@@ -369,6 +743,77 @@ describe('StreamlinedActivitySection', () => {
         ).toBeInTheDocument();
       }
     }
+  });
+
+  it('only applies status timeline colors in the drawer', () => {
+    const activities = [
+      {
+        type: GroupActivityType.SET_RESOLVED,
+        id: 'resolved-1',
+        data: {},
+        dateCreated: '2020-01-03T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_REGRESSION,
+        id: 'regressed-1',
+        data: {},
+        dateCreated: '2020-01-02T00:00:00',
+        user,
+      },
+      {
+        type: GroupActivityType.SET_IGNORED,
+        id: 'ignored-1',
+        data: {},
+        dateCreated: '2020-01-01T00:00:00',
+        user,
+      },
+    ] as GroupActivity[];
+    const tintedGroup = GroupFixture({
+      id: '1342',
+      activity: activities,
+      project,
+      status: GroupStatus.RESOLVED,
+    });
+
+    const {unmount} = render(<StreamlinedActivitySection group={tintedGroup} isDrawer />);
+
+    const resolvedRow = screen
+      .getByText('Resolved')
+      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
+    const regressedRow = screen
+      .getByText('Regressed')
+      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
+    const ignoredRow = screen
+      .getByText('Archived')
+      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
+
+    expect(resolvedRow.style.getPropertyValue('--timeline-connector-color')).not.toBe('');
+    expect(regressedRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
+    expect(ignoredRow.style.getPropertyValue('--timeline-connector-color')).toBe('');
+    expect(
+      resolvedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
+    ).not.toBe('transparent');
+    expect(
+      regressedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
+    ).not.toBe('transparent');
+    expect(
+      ignoredRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style.borderColor
+    ).not.toBe('transparent');
+
+    unmount();
+    render(<StreamlinedActivitySection group={tintedGroup} />);
+
+    const nonDrawerResolvedRow = screen
+      .getByText('Resolved')
+      .closest<HTMLElement>('[data-test-id="activity-timeline-row"]')!;
+    expect(
+      nonDrawerResolvedRow.style.getPropertyValue('--timeline-connector-color')
+    ).toBe('');
+    expect(
+      nonDrawerResolvedRow.querySelector<HTMLElement>('.timeline-icon-wrapper')?.style
+        .borderColor
+    ).toBe('transparent');
   });
 
   it('renders resolved in release with integration', async () => {
