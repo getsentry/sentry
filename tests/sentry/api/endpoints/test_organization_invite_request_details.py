@@ -173,6 +173,20 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
         resp = self.get_response(self.org.slug, self.request_to_join.id, role="manager")
         assert resp.status_code == 403
 
+    def test_manager_cannot_escalate_invite_role_to_owner(self) -> None:
+        self.login_as(user=self.manager)
+        resp = self.get_response(self.org.slug, self.request_to_join.id, role="owner")
+
+        assert resp.status_code == 400
+        assert OrganizationMember.objects.filter(id=self.request_to_join.id, role="member").exists()
+
+    def test_manager_cannot_escalate_invite_orgrole_to_owner(self) -> None:
+        self.login_as(user=self.manager)
+        resp = self.get_response(self.org.slug, self.request_to_join.id, orgRole="owner")
+
+        assert resp.status_code == 400
+        assert OrganizationMember.objects.filter(id=self.request_to_join.id, role="member").exists()
+
 
 class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"

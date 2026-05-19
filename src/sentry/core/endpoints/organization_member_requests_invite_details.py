@@ -6,7 +6,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
@@ -109,7 +108,10 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
-            context={"organization": organization, "allowed_roles": roles.get_all()},
+            context={
+                "organization": organization,
+                "allowed_roles": get_allowed_org_roles(request, organization),
+            },
             partial=True,
         )
 
