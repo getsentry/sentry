@@ -11,6 +11,7 @@ import {
   userEvent,
   waitFor,
   within,
+  type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -194,8 +195,8 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
-  const renderWithProviders = (children: React.ReactNode) => {
-    return render(
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
       <OrganizationContext.Provider value={organization}>
         <LogsQueryParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -205,6 +206,10 @@ describe('LogsInfiniteTable', () => {
         </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
+  }
+
+  const renderWithProviders = (children: React.ReactElement, options?: RenderOptions) => {
+    return render(children, {additionalWrapper: Wrapper, ...options});
   };
 
   it('should render the table component', async () => {
@@ -485,19 +490,8 @@ describe('LogsInfiniteTable', () => {
       })
     );
 
-    const {router} = render(
-      <OrganizationContext.Provider value={organization}>
-        <LogsQueryParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          source="location"
-        >
-          <LogsPageDataProvider>
-            <LogsInfiniteTable
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            />
-          </LogsPageDataProvider>
-        </LogsQueryParamsProvider>
-      </OrganizationContext.Provider>,
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
       {
         initialRouterConfig: {
           location: {
