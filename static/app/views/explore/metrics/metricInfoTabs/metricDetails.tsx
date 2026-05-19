@@ -22,7 +22,6 @@ import {
   LogAttributeTreeWrapper,
   LogDetailTableBodyCell,
 } from 'sentry/views/explore/logs/styles';
-import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 import {HiddenTraceMetricDetailFields} from 'sentry/views/explore/metrics/constants';
 import {useMetricTraceDetail} from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
@@ -34,6 +33,7 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
+import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
 import type {
   EAPTraceMeta,
   TraceMeta,
@@ -66,7 +66,7 @@ export function MetricDetails({
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const getActions = useLogAttributesTreeActions({embedded: false});
+  const getActions = useMetricAttributesTreeActions();
   const project = useProjectFromId({
     project_id: String(dataRow[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
   });

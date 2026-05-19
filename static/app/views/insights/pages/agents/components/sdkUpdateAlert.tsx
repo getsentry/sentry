@@ -1,6 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
@@ -59,10 +59,6 @@ export function SdkUpdateAlert({
     return null;
   }
 
-  const suggestedVersion = validSdkUpdate.suggestions?.find(
-    suggestion => suggestion.type === 'updateSdk'
-  )?.newSdkVersion;
-
   return (
     <Alert variant="warning">
       {tct(
@@ -71,11 +67,9 @@ export function SdkUpdateAlert({
           packageName: <code>{packageName}</code>,
         }
       )}{' '}
-      {suggestedVersion
-        ? tct('Update to [latestVersion] or later.', {
-            latestVersion: <code>{suggestedVersion}</code>,
-          })
-        : t('Update to the latest version.')}
+      {tct('Update to [minVersionCode] or later.', {
+        minVersionCode: <code>{minVersion}</code>,
+      })}
     </Alert>
   );
 }

@@ -14,11 +14,9 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
-import {AlertStore} from 'sentry/stores/alertStore';
+import {getHook} from 'sentry/hookRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
@@ -31,10 +29,65 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {AppProviders} from 'sentry/views/app/appProviders';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
+
+/**
+ * Runs the App's startup alert effects (deploy preview / SPA banners, server
+ * health checks, forwarded Django messages). Lives inside AppProviders so it
+ * can consume the GlobalAlertProvider context.
+ */
+function AppAlerts() {
+  const {addAlert} = useGlobalAlerts();
+  const api = useApi();
+  const config = useLegacyStore(ConfigStore);
+  const preloadData = shouldPreloadData(config);
+
+  useEffect(() => {
+    displayDeployPreviewAlert(addAlert);
+    displayExperimentalSpaAlert(addAlert);
+  }, [addAlert]);
+
+  useEffect(() => {
+    if (!preloadData || !config.isSelfHosted) {
+      return;
+    }
+    api
+      .requestPromise('/internal/health/')
+      .then(data => {
+        data?.problems?.forEach?.((problem: any) => {
+          const {id, message, url} = problem;
+          const variant = problem.severity === 'critical' ? 'danger' : 'warning';
+          addAlert({id, message, variant, url, opaque: true});
+        });
+      })
+      .catch(() => {
+        // TODO: do something?
+      });
+  }, [api, config.isSelfHosted, preloadData, addAlert]);
+
+  useEffect(() => {
+    if (!preloadData) {
+      return;
+    }
+    // Show system-level alerts that were forwarded by the initial client config request
+    config.messages.forEach(msg =>
+      addAlert({
+        message: msg.message,
+        variant:
+          // These are django message level tags that need to be mapped to our alert variant types.
+          // See client config in ./src/sentry/web/client_config.py
+          msg.level === 'error' ? 'danger' : msg.level === 'debug' ? 'muted' : msg.level,
+        neverExpire: true,
+      })
+    );
+  }, [config.messages, preloadData, addAlert]);
+
+  return null;
+}
 
 /**
  * App is the root level container for all uathenticated routes.
@@ -58,30 +111,6 @@ export function App() {
       // TODO: do something?
     }
   }, [api]);
-
-  /**
-   * Creates Alerts for any internal health problems
-   */
-  const checkInternalHealth = useCallback(async () => {
-    // For saas deployments we have more robust ways of checking application health.
-    if (!config.isSelfHosted) {
-      return;
-    }
-    let data: any = null;
-
-    try {
-      data = await api.requestPromise('/internal/health/');
-    } catch {
-      // TODO: do something?
-    }
-
-    data?.problems?.forEach?.((problem: any) => {
-      const {id, message, url} = problem;
-      const variant = problem.severity === 'critical' ? 'danger' : 'warning';
-
-      AlertStore.addAlert({id, message, variant, url, opaque: true});
-    });
-  }, [api, config.isSelfHosted]);
 
   const {sentryUrl} = ConfigStore.get('links');
   const {orgId} = useParams<{orgId?: string}>();
@@ -110,33 +139,10 @@ export function App() {
     }
 
     loadOrganizations();
-    checkInternalHealth();
-
-    // Show system-level alerts that were forwarded by the initial client config request
-    config.messages.forEach(msg =>
-      AlertStore.addAlert({
-        message: msg.message,
-        variant:
-          // These are django message level tags that need to be mapped to our alert variant types.
-          // See client config in ./src/sentry/web/client_config.py
-          msg.level === 'error' ? 'danger' : msg.level === 'debug' ? 'muted' : msg.level,
-        neverExpire: true,
-      })
-    );
-
-    // The app is running in deploy preview mode
-    if (DEPLOY_PREVIEW_CONFIG) {
-      displayDeployPreviewAlert();
-    }
-
-    // The app is running in local SPA mode
-    if (!DEPLOY_PREVIEW_CONFIG && EXPERIMENTAL_SPA) {
-      displayExperimentalSpaAlert();
-    }
 
     // Set the user for analytics
     if (user) {
-      HookStore.get('analytics:init-user').map(cb => cb(user));
+      getHook('analytics:init-user')?.(user);
     }
 
     initApiClientErrorHandling();
@@ -144,7 +150,7 @@ export function App() {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [loadOrganizations, checkInternalHealth, config.messages, user, preloadData]);
+  }, [loadOrganizations, user, preloadData]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -216,6 +222,7 @@ export function App() {
     <Profiler id="App" onRender={onRenderCallback}>
       <AppProviders preloadData={preloadData}>
         <MainContainer tabIndex={-1}>
+          <AppAlerts />
           <GlobalModal />
           <Indicators className="indicators-container" />
           <Hook name="component:replay-init" />

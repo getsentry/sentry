@@ -247,12 +247,7 @@ def recover_confirm(
                     organization_id=membership.organization_id
                 )
 
-                # These service calls need to be outside of the transaction block. Claiming an
-                # account constitutes an email verifying action. We'll verify the primary email
-                # associated with this account in particular, since that is the only one the user
-                # claiming email could have been sent to.
                 rpc_user = user_service.get_user(user_id=user.id)
-                user_service.verify_user_email(email=user.email, user_id=user.id)
                 orgs = organization_service.get_organizations_by_user_and_scope(
                     cell_name=mapping.cell_name, user=rpc_user
                 )
@@ -263,6 +258,10 @@ def recover_confirm(
                         ip_address=request.META["REMOTE_ADDR"],
                         sender=recover_confirm,
                     )
+
+            # Completing a password reset proves the user controls the email
+            # the reset link was sent to, so verify it.
+            user_service.verify_user_email(email=user.email, user_id=user.id)
 
             with transaction.atomic(router.db_for_write(User)):
                 if mode == "relocate":

@@ -26,3 +26,18 @@ class SlackSeerAgentResponded(analytics.Event):
 
 
 analytics.register(SlackSeerAgentResponded)
+
+
+@analytics.eventclass("ai.agent.slack.feedback")
+class SlackSeerAgentFeedback(analytics.Event):
+    organization_id: int
+    org_slug: str
+    thread_ts: str
+    user_id: int
+    username: str
+    feedback_type: str
+    run_id: int
+    integration_id: int
+
+
+analytics.register(SlackSeerAgentFeedback)

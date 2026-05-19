@@ -1,12 +1,12 @@
 import type {ComponentProps} from 'react';
-import {lazy, Suspense, useEffect, useState} from 'react';
+import {lazy, Suspense} from 'react';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getHook} from 'sentry/hookRegistry';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 
 interface Params<H extends HookName> {
   /**
-   * The name of the hook as listed in hookstore.add(hookName, callback)
+   * The name of the hook as listed in hookRegistry.registerHook(hookName, callback)
    */
   hookName: H;
   /**
@@ -22,12 +22,10 @@ interface Params<H extends HookName> {
 }
 
 /**
- * Use this instead of the usual ternery operator when using getsentry hooks.
+ * Use this instead of the usual ternary operator when using getsentry hooks.
  * So in lieu of:
  *
- *  HookStore.get('component:org-auth-view').length
- *   ? HookStore.get('component:org-auth-view')[0]()
- *   : OrganizationAuth
+ *  getHook('component:org-auth-view')?.() ?? OrganizationAuth
  *
  * do this instead:
  *
@@ -36,12 +34,8 @@ interface Params<H extends HookName> {
  *     defaultComponent: OrganizationAuth,
  *   })
  *
- * Note, you will need to add the hookstore function in getsentry [0] first and
- * then register the types [2] and validHookName [1] in sentry.
- *
- * [0] /getsentry/static/getsentry/gsApp/registerHooks.jsx
- * [1] /sentry/app/stores/hookStore.tsx
- * [2] /sentry/app/types/hooks.ts
+ * Note, you will need to register the hook in gsApp/registerHooks.tsx and
+ * add the type to sentry/types/hooks.tsx.
  */
 export function HookOrDefault<H extends HookName>({
   hookName,
@@ -52,7 +46,6 @@ export function HookOrDefault<H extends HookName>({
 
   // Defining the props here is unnecessary and slow for typescript
   function getDefaultComponent(): React.ComponentType<any> | undefined {
-    // If `defaultComponentPromise` is passed, then return a Suspended component
     if (defaultComponentPromise) {
       // Lazy adds a complicated type that is not important
       const DefaultComponent: React.ComponentType<any> = lazy(defaultComponentPromise);
@@ -70,25 +63,9 @@ export function HookOrDefault<H extends HookName>({
   }
 
   function HookOrDefaultComponent(props: Props) {
-    const [hooks, setHooks] = useState(HookStore.get(hookName));
-
-    useEffect(() => {
-      const unsubscribe = HookStore.listen((name: string, newHooks: Array<Hooks[H]>) => {
-        if (name === hookName) {
-          setHooks(newHooks);
-        }
-      }, undefined);
-
-      return () => {
-        unsubscribe();
-      };
-    }, []);
-
-    const hookExists = hooks?.length;
-    const componentFromHook = hooks[0]?.();
     // Defining the props here is unnecessary and slow for typescript
     const HookComponent: React.ComponentType<any> =
-      hookExists && componentFromHook ? componentFromHook : getDefaultComponent();
+      getHook(hookName)?.() ?? getDefaultComponent();
 
     if (!HookComponent) {
       return null;

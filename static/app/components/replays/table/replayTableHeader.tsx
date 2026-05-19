@@ -12,7 +12,6 @@ import {
 } from 'sentry/components/replays/table/replayTableColumns';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
@@ -38,14 +37,12 @@ export function ReplayTableHeader({
     deselectAll,
     isAllSelected,
     isAnySelected,
-    queryKeyRef,
+    endpointOptionsRef,
     selectAll,
     selectedIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current
-    ? parseQueryKey(queryKeyRef.current).options
-    : undefined;
-  const rawQuery = queryOptions?.query?.query;
+  const endpointOptions = endpointOptionsRef.current;
+  const rawQuery = endpointOptions?.query?.query;
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
@@ -90,13 +87,13 @@ export function ReplayTableHeader({
             {selectedIds !== 'all' && (
               <ReplayBulkViewedActions
                 deselectAll={deselectAll}
-                queryKeyRef={queryKeyRef}
+                endpointOptionsRef={endpointOptionsRef}
                 replays={replays}
                 selectedIds={selectedIds}
               />
             )}
             <DeleteReplays
-              queryOptions={queryOptions}
+              queryOptions={endpointOptionsRef.current}
               replays={replays}
               selectedIds={selectedIds}
             />

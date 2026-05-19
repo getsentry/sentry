@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
@@ -17,8 +17,9 @@ import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListStat
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 
 function NoFeedback() {
   return (
@@ -43,15 +44,14 @@ export function FeedbackList({onItemSelect}: Props) {
     () => uniqBy(queryResult.data?.pages.flatMap(page => page.json) ?? [], 'id'),
     [queryResult.data?.pages]
   );
-  const checkboxState = useListItemCheckboxContext({
-    hits: Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length),
-    knownIds: issues.map(issue => issue.id),
-    queryKey: listApiOptions.queryKey,
-  });
 
   return (
-    <Fragment>
-      <FeedbackListHeader {...checkboxState} />
+    <ListItemCheckboxProvider
+      hits={Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length)}
+      knownIds={issues.map(issue => issue.id)}
+      endpointOptions={safeParseQueryKey(listApiOptions.queryKey)?.options}
+    >
+      <FeedbackListHeader />
       <Stack flexGrow={1} paddingBottom="xs">
         <InfiniteListState
           queryResult={queryResult}
@@ -73,10 +73,6 @@ export function FeedbackList({onItemSelect}: Props) {
                 <ErrorBoundary mini>
                   <FeedbackListItem
                     feedbackItem={item}
-                    isSelected={checkboxState.isSelected(item.id)}
-                    onSelect={() => {
-                      checkboxState.toggleSelected(item.id);
-                    }}
                     onItemSelect={() => onItemSelect(itemIndex)}
                   />
                 </ErrorBoundary>
@@ -94,7 +90,7 @@ export function FeedbackList({onItemSelect}: Props) {
           />
         </InfiniteListState>
       </Stack>
-    </Fragment>
+    </ListItemCheckboxProvider>
   );
 }
 

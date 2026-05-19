@@ -1,77 +1,93 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ReleaseIssues from 'sentry/views/explore/releases/detail/overview/releaseIssues';
+import {ReleaseIssues} from 'sentry/views/explore/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'sentry/views/explore/releases/utils';
 
 describe('ReleaseIssues', () => {
   let issuesEndpoint: jest.Mock;
   let resolvedIssuesEndpoint: jest.Mock;
 
-  const props = {
-    orgId: 'org',
-    organization: OrganizationFixture(),
-    version: '1.0.0',
-    location: LocationFixture({query: {}}),
-    releaseBounds: getReleaseBounds(ReleaseFixture({version: '1.0.0'})),
-  };
+  const organization = OrganizationFixture();
+  const version = '1.0.0';
+  const releaseBounds = getReleaseBounds(ReleaseFixture({version: '1.0.0'}));
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/users/`,
+      url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?end=2020-03-24T02%3A04%3A59Z&query=first-release%3A%221.0.0%22%20is%3Aunresolved&query=release%3A%221.0.0%22%20is%3Aunresolved&query=error.handled%3A0%20release%3A%221.0.0%22%20is%3Aunresolved&query=regressed_in_release%3A%221.0.0%22&start=2020-03-23T01%3A02%3A00Z`,
+      url: `/organizations/${organization.slug}/issues-count/`,
+      body: {},
+      match: [
+        MockApiClient.matchQuery({
+          start: '2020-03-23T01:02:00Z',
+          end: '2020-03-24T02:04:59Z',
+          query: [
+            'first-release:"1.0.0" is:unresolved',
+            'release:"1.0.0" is:unresolved',
+            'error.handled:0 release:"1.0.0" is:unresolved',
+            'regressed_in_release:"1.0.0"',
+          ],
+        }),
+      ],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22%20is%3Aunresolved&query=release%3A%221.0.0%22%20is%3Aunresolved&query=error.handled%3A0%20release%3A%221.0.0%22%20is%3Aunresolved&query=regressed_in_release%3A%221.0.0%22&statsPeriod=24h`,
+      url: `/organizations/${organization.slug}/issues-count/`,
+      body: {},
+      match: [
+        MockApiClient.matchQuery({
+          statsPeriod: '24h',
+          query: [
+            'first-release:"1.0.0" is:unresolved',
+            'release:"1.0.0" is:unresolved',
+            'error.handled:0 release:"1.0.0" is:unresolved',
+            'regressed_in_release:"1.0.0"',
+          ],
+        }),
+      ],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
-    });
-
     issuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/`,
+      url: `/organizations/${organization.slug}/issues/`,
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
+      url: `/organizations/${organization.slug}/releases/1.0.0/resolved/`,
       body: [],
     });
   });
 
   it('shows an empty state', async () => {
-    const {rerender} = render(<ReleaseIssues {...props} />);
+    render(<ReleaseIssues version={version} releaseBounds={releaseBounds} />, {
+      organization,
+    });
 
     expect(await screen.findByText('No new issues in this release.')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
-    // Simulate query change
-    rerender(
-      <ReleaseIssues
-        {...props}
-        location={LocationFixture({query: {issuesType: 'resolved'}})}
-      />
-    );
     expect(
       await screen.findByText('No resolved issues in this release.')
     ).toBeInTheDocument();
   });
 
   it('shows an empty sttate with stats period', async () => {
-    const query = {pageStatsPeriod: '24h'};
-    const {rerender} = render(
-      <ReleaseIssues {...props} location={LocationFixture({query})} />
-    );
+    render(<ReleaseIssues version={version} releaseBounds={releaseBounds} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {pageStatsPeriod: '24h'},
+        },
+      },
+    });
 
     expect(
       await screen.findByText(
@@ -80,13 +96,6 @@ describe('ReleaseIssues', () => {
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
-    // Simulate query change
-    rerender(
-      <ReleaseIssues
-        {...props}
-        location={LocationFixture({query: {...query, issuesType: 'unhandled'}})}
-      />
-    );
     expect(
       await screen.findByText(
         textWithMarkupMatcher('No unhandled issues for the last 24 hours.')
@@ -95,7 +104,9 @@ describe('ReleaseIssues', () => {
   });
 
   it('can switch issue filters', async () => {
-    const {rerender} = render(<ReleaseIssues {...props} />);
+    render(<ReleaseIssues version={version} releaseBounds={releaseBounds} />, {
+      organization,
+    });
 
     // New
     expect(await screen.findByRole('radio', {name: 'New Issues 0'})).toBeChecked();
@@ -121,13 +132,6 @@ describe('ReleaseIssues', () => {
 
     // Resolved
     await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
-    // Simulate query change
-    rerender(
-      <ReleaseIssues
-        {...props}
-        location={LocationFixture({query: {issuesType: 'resolved'}})}
-      />
-    );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
@@ -150,12 +154,6 @@ describe('ReleaseIssues', () => {
 
     // Unhandled
     await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
-    rerender(
-      <ReleaseIssues
-        {...props}
-        location={LocationFixture({query: {issuesType: 'unhandled'}})}
-      />
-    );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
@@ -178,12 +176,6 @@ describe('ReleaseIssues', () => {
 
     // All
     await userEvent.click(screen.getByRole('radio', {name: 'All Issues 0'}));
-    rerender(
-      <ReleaseIssues
-        {...props}
-        location={LocationFixture({query: {issuesType: 'all'}})}
-      />
-    );
     expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
@@ -207,11 +199,13 @@ describe('ReleaseIssues', () => {
 
   it('includes release context when linking to issue', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/`,
+      url: `/organizations/${organization.slug}/issues/`,
       body: [GroupFixture({id: '123'})],
     });
 
-    render(<ReleaseIssues {...props} />);
+    render(<ReleaseIssues version={version} releaseBounds={releaseBounds} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('radio', {name: /New Issues/}));
 

@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {FilePatch} from 'sentry/components/events/autofix/types';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
 interface PendingFilePatch {
   patch: FilePatch;

@@ -5,8 +5,10 @@ from typing import Any
 
 import jsonschema
 import orjson
+import pydantic
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -32,11 +34,13 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
-    SnapshotApprovalInfo,
     SnapshotApprover,
-    SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
+)
+from sentry.preprod.api.models.snapshots.snapshot_status import (
+    SnapshotStatusInput,
+    derive_snapshot_status,
 )
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
@@ -45,10 +49,12 @@ from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
 )
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
     SnapshotManifest,
+    image_metadata_extras,
 )
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -77,7 +83,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "app_id": {"type": "string", "maxLength": 255},
         "images": {
             "type": "object",
-            "additionalProperties": ImageMetadata.schema(),
+            "additionalProperties": True,
             "maxProperties": 50000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
@@ -116,6 +122,7 @@ def build_snapshot_image_response(
     global_diff_threshold: float | None,
 ) -> SnapshotImageResponse:
     return SnapshotImageResponse(
+        **image_metadata_extras(metadata, exclude={"key", "image_file_name"}),
         key=metadata.content_hash,
         display_name=metadata.display_name,
         image_file_name=image_file_name,
@@ -138,13 +145,42 @@ def validate_preprod_snapshot_post_schema(
         jsonschema.validate(data, SNAPSHOT_POST_REQUEST_SCHEMA)
         return data, None
     except jsonschema.ValidationError as e:
-        error_message = e.message
-        if e.path:
-            if field := e.path[0]:
-                error_message = SNAPSHOT_POST_REQUEST_ERROR_MESSAGES.get(str(field), error_message)
-        return {}, error_message
+        return {}, _format_validation_error(e)
     except (orjson.JSONDecodeError, TypeError):
         return {}, "Invalid json body"
+
+
+def _format_validation_error(e: jsonschema.ValidationError) -> str:
+    path = list(e.absolute_path)
+
+    if len(path) >= 2 and path[0] == "images":
+        image_key = path[1]
+        if rest := path[2:]:
+            field_path = ".".join(str(p) for p in rest)
+            return f'Validation error in image "{image_key}", field "{field_path}": {e.message}'
+        return f'Validation error in image "{image_key}": {e.message}'
+
+    if path:
+        field = str(path[0])
+        if friendly := SNAPSHOT_POST_REQUEST_ERROR_MESSAGES.get(field):
+            return friendly
+
+    return e.message
+
+
+def _format_pydantic_error(e: pydantic.ValidationError) -> str:
+    err = e.errors()[0]
+    loc = err.get("loc", ())
+    msg = err["msg"]
+
+    if len(loc) >= 2 and loc[0] == "images":
+        image_key = loc[1]
+        if rest := loc[2:]:
+            field_path = ".".join(str(p) for p in rest)
+            return f'Validation error in image "{image_key}", field "{field_path}": {msg}'
+        return f'Validation error in image "{image_key}": {msg}'
+
+    return f"Invalid image metadata: {msg}"
 
 
 @cell_silo_endpoint
@@ -273,16 +309,15 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         comparison_manifest: ComparisonManifest | None = None
         base_manifest: SnapshotManifest | None = None
-        comparison = (
-            PreprodSnapshotComparison.objects.select_related(
-                "base_snapshot_metrics",
-            )
-            .filter(
-                head_snapshot_metrics=snapshot_metrics,
-                state=PreprodSnapshotComparison.State.SUCCESS,
-            )
+        all_comparisons = list(
+            PreprodSnapshotComparison.objects.select_related("base_snapshot_metrics")
+            .filter(head_snapshot_metrics=snapshot_metrics)
             .order_by("-id")
-            .first()
+        )
+        latest_comparison = all_comparisons[0] if all_comparisons else None
+        comparison = next(
+            (c for c in all_comparisons if c.state == PreprodSnapshotComparison.State.SUCCESS),
+            None,
         )
         if comparison:
             comparison_key = (comparison.extras or {}).get("comparison_key")
@@ -324,6 +359,26 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
+        has_base_sha = bool(commit_comparison and commit_comparison.base_sha)
+        artifact_age_seconds = (timezone.now() - artifact.date_added).total_seconds()
+        base_artifact_exists: bool | None = None
+        if latest_comparison is None and has_base_sha and commit_comparison is not None:
+            if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
+                assert commit_comparison.base_sha is not None
+                base_artifact_exists = (
+                    find_base_snapshot_artifact(
+                        organization_id=commit_comparison.organization_id,
+                        base_sha=commit_comparison.base_sha,
+                        base_repo_name=commit_comparison.base_repo_name
+                        or commit_comparison.head_repo_name,
+                        project_id=artifact.project_id,
+                        app_id=artifact.app_id,
+                        artifact_type=artifact.artifact_type,
+                        build_configuration=artifact.build_configuration,
+                    )
+                    is not None
+                )
+
         image_list = [
             build_snapshot_image_response(key, metadata, manifest.diff_threshold)
             for key, metadata in sorted(manifest.images.items())
@@ -334,7 +389,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         }
 
         base_artifact_id: str | None = None
-        comparison_state: str | None = None
 
         if comparison_manifest is not None:
             base_artifact_id = str(comparison_manifest.base_artifact_id)
@@ -345,22 +399,19 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             if comparison is not None:
                 base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
             categorized = CategorizedComparison()
-            pending_or_failed_state = (
-                PreprodSnapshotComparison.objects.filter(
-                    head_snapshot_metrics=snapshot_metrics,
-                    state__in=[
+            pending_or_failed_state = next(
+                (
+                    c.state
+                    for c in all_comparisons
+                    if c.state
+                    in (
                         PreprodSnapshotComparison.State.PENDING,
                         PreprodSnapshotComparison.State.PROCESSING,
                         PreprodSnapshotComparison.State.FAILED,
-                    ],
-                )
-                .values_list("state", flat=True)
-                .order_by("-id")
-                .first()
+                    )
+                ),
+                None,
             )
-            if pending_or_failed_state is not None:
-                comparison_state = PreprodSnapshotComparison.State(pending_or_failed_state).name
-
         if comparison_manifest is not None:
             comparison_type = "diff"
         elif commit_comparison and commit_comparison.base_sha and pending_or_failed_state is None:
@@ -368,18 +419,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         else:
             comparison_type = "solo"
 
-        run_info: SnapshotComparisonRunInfo | None = None
-        if comparison_state is not None:
-            run_info = SnapshotComparisonRunInfo(state=comparison_state)
-        elif comparison is not None:
-            duration = comparison.date_updated - comparison.date_added
-            run_info = SnapshotComparisonRunInfo(
-                state=PreprodSnapshotComparison.State(comparison.state).name,
-                completed_at=comparison.date_updated.isoformat(),
-                duration_ms=int(duration.total_seconds() * 1000),
-            )
-
-        approval_info: SnapshotApprovalInfo | None = None
         all_approvals = list(
             PreprodComparisonApproval.objects.filter(
                 preprod_artifact=artifact,
@@ -439,18 +478,16 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                             source="github",
                         )
                     )
-            is_auto_approved = any((a.extras or {}).get("auto_approval") is True for a in approved)
-            approval_info = SnapshotApprovalInfo(
-                status="approved",
-                approvers=approver_list,
-                is_auto_approved=is_auto_approved,
+        sorted_approvals = sorted(all_approvals, key=lambda a: a.id, reverse=True)
+        derived_status = derive_snapshot_status(
+            SnapshotStatusInput(
+                latest_comparison=latest_comparison,
+                latest_approval=sorted_approvals[0] if sorted_approvals else None,
+                has_base_sha=has_base_sha,
+                artifact_age_seconds=artifact_age_seconds,
+                base_artifact_exists=base_artifact_exists,
             )
-        elif all_approvals:
-            # If records exist but none are APPROVED, they must be NEEDS_APPROVAL
-            approval_info = SnapshotApprovalInfo(
-                status="requires_approval",
-                approvers=[],
-            )
+        )
 
         response_data = SnapshotDetailsApiResponse(
             head_artifact_id=str(artifact.id),
@@ -476,9 +513,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             errored_count=len(categorized.errored),
             skipped=categorized.skipped,
             skipped_count=len(categorized.skipped),
-            comparison_run_info=run_info,
-            approval_info=approval_info,
             diff_threshold=manifest.diff_threshold,
+            comparison_state=derived_status.comparison_state,
+            approval_status=derived_status.approval_status,
+            comparison_error_message=derived_status.comparison_error_message,
+            approvers=approver_list if approved else [],
         ).dict()
 
         if compact:
@@ -561,6 +600,21 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     status=400,
                 )
 
+        # Validate before entering the transaction so invalid data never creates
+        # orphaned DB records.
+        try:
+            manifest = SnapshotManifest(
+                images=images,
+                diff_threshold=diff_threshold,
+                selective=selective,
+                all_image_file_names=all_image_file_names,
+            )
+        except pydantic.ValidationError as e:
+            return Response(
+                {"detail": _format_pydantic_error(e)},
+                status=400,
+            )
+
         # has_vcs tag differentiates transactions that include a CommitComparison
         # lookup from those that skip it, so we can isolate their latency on dashboards.
         with (
@@ -609,12 +663,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest = SnapshotManifest(
-                images=images,
-                diff_threshold=diff_threshold,
-                selective=selective,
-                all_image_file_names=all_image_file_names,
-            )
             manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 

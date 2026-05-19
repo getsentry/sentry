@@ -143,7 +143,7 @@ class ToolResult(BaseModel):
 
     tool_call_id: str
     tool_call_function: str
-    content: str
+    content: str | None = None
 
     class Config:
         extra = "ignore"

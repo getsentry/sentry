@@ -14,6 +14,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -246,15 +247,19 @@ class ProjectTest(APITestCase, TestCase):
             integration_id=integration.id,
         )
 
-        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
-            repository=repository,
+        project_repo, _ = ProjectRepository.objects.get_or_create(
             project=project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
             organization_integration_id=org_integration.id,
             organization_id=from_org.id,
             integration_id=integration.id,
             stack_root="/app",
             source_root="/src",
             default_branch="main",
+            project_repository=project_repo,
         )
 
         ProjectCodeOwners.objects.create(
@@ -268,7 +273,12 @@ class ProjectTest(APITestCase, TestCase):
         assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
         assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
 
-        assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 0
+        assert (
+            RepositoryProjectPathConfig.objects.filter(
+                project_repository__project_id=project.id
+            ).count()
+            == 0
+        )
 
         assert ProjectCodeOwners.objects.filter(project_id=project.id).count() == 0
 
