@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {
   mutationOptions,
@@ -315,22 +315,20 @@ function LegacyBrowserFilter({
   hasAccess,
   organization,
   project,
+  onUpdate,
 }: {
   filter: Filter;
   filtersEndpoint: string;
   hasAccess: boolean;
+  onUpdate: (filterId: string, active: boolean | string[]) => boolean | string[];
   organization: Organization;
   project: DetailedProject;
 }) {
-  const [initialSubfilters, setInitialSubfilters] = useState(() =>
-    getInitialSubfilters(filter.active)
-  );
-
   return (
     <AutoSaveForm
       name="legacy-browsers"
       schema={legacyBrowserSchema}
-      initialValue={initialSubfilters}
+      initialValue={getInitialSubfilters(filter.active)}
       mutationOptions={{
         mutationFn: (data: {'legacy-browsers': string[]}) => {
           const newSubfilters = data['legacy-browsers'];
@@ -346,14 +344,12 @@ function LegacyBrowserFilter({
             data: {subfilters: newSubfilters},
           });
         },
-        onMutate: data => {
-          const previousSubfilters = initialSubfilters;
-          setInitialSubfilters(data['legacy-browsers']);
-          return {previousSubfilters};
-        },
+        onMutate: data => ({
+          previousActive: onUpdate(filter.id, data['legacy-browsers']),
+        }),
         onError: (_error, _data, context) => {
           if (context) {
-            setInitialSubfilters(context.previousSubfilters);
+            onUpdate(filter.id, context.previousActive);
           }
         },
       }}
@@ -669,22 +665,23 @@ function StandardFilter({
   hasAccess,
   organization,
   project,
+  onUpdate,
 }: {
   description: (typeof filterDescriptions)[keyof typeof filterDescriptions];
   filter: Filter;
   filtersEndpoint: string;
   hasAccess: boolean;
+  onUpdate: (filterId: string, active: boolean | string[]) => boolean | string[];
   organization: Organization;
   project: DetailedProject;
 }) {
   const name = filter.id as StandardFilterId;
-  const [initialValue, setInitialValue] = useState(() => !!filter.active);
 
   return (
     <AutoSaveForm
       name={name}
       schema={booleanFilterSchema}
-      initialValue={initialValue}
+      initialValue={!!filter.active}
       mutationOptions={{
         mutationFn: (data: Record<StandardFilterId, boolean>) => {
           trackAnalytics('settings.inbound_filter_updated', {
@@ -699,14 +696,12 @@ function StandardFilter({
             data: {active: data[name]},
           });
         },
-        onMutate: data => {
-          const previousValue = initialValue;
-          setInitialValue(data[name]);
-          return {previousValue};
-        },
+        onMutate: data => ({
+          previousActive: onUpdate(filter.id, data[name]),
+        }),
         onError: (_error, _data, context) => {
           if (context) {
-            setInitialValue(context.previousValue);
+            onUpdate(filter.id, context.previousActive);
           }
         },
       }}
@@ -786,25 +781,38 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
       },
     });
 
+  const filterQueryOptions = apiOptions.as<Filter[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectSlug,
+      },
+      staleTime: 0,
+    }
+  );
+
   const {
     data: filterListData,
     isPending,
     isError,
     refetch,
-  } = useQuery(
-    apiOptions.as<Filter[]>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectSlug,
-        },
-        staleTime: 0,
-      }
-    )
-  );
+  } = useQuery(filterQueryOptions);
 
   const filterList = filterListData ?? [];
+
+  const updateFilterCache = (filterId: string, active: boolean | string[]) => {
+    const previous = filterList.find(f => f.id === filterId)?.active ?? false;
+    queryClient.setQueryData(filterQueryOptions.queryKey, prev =>
+      prev
+        ? {
+            ...prev,
+            json: prev.json.map(f => (f.id === filterId ? {...f, active} : f)),
+          }
+        : prev
+    );
+    return previous;
+  };
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -830,6 +838,7 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
                       hasAccess={hasAccess}
                       organization={organization}
                       project={project}
+                      onUpdate={updateFilterCache}
                     />
                   );
                 }
@@ -849,6 +858,7 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
                     hasAccess={hasAccess}
                     organization={organization}
                     project={project}
+                    onUpdate={updateFilterCache}
                   />
                 );
               })}
