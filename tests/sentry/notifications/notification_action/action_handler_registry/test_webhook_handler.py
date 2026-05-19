@@ -3,11 +3,13 @@ from unittest import mock
 
 import responses
 
+from sentry.models.activity import Activity
 from sentry.models.options.project_option import ProjectOption
 from sentry.notifications.notification_action.action_handler_registry.webhook_handler import (
     WebhookActionHandler,
 )
 from sentry.plugins.base import plugins
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
@@ -104,3 +106,34 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             WebhookActionHandler.execute(self.invocation)
 
         assert len(responses.calls) == 0
+
+    @responses.activate
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.execute_via_group_type_registry"
+    )
+    def test_non_group_event_skips_both_paths(
+        self, mock_old_path: mock.MagicMock, mock_new_path: mock.MagicMock
+    ) -> None:
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+        invocation = ActionInvocation(
+            event_data=WorkflowEventData(
+                event=activity, workflow_env=self.environment, group=self.group
+            ),
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
+        with self.feature("organizations:legacy-webhook-new-path"):
+            WebhookActionHandler.execute(invocation)
+
+        mock_new_path.assert_not_called()
+        mock_old_path.assert_not_called()
