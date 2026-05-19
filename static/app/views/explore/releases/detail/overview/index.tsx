@@ -59,7 +59,7 @@ import {ReleaseStats} from './sidebar/releaseStats';
 import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
 import {ReleaseArchivedNotice} from './releaseArchivedNotice';
 import {ReleaseComparisonChart} from './releaseComparisonChart';
-import ReleaseIssues from './releaseIssues';
+import {ReleaseIssues} from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
 
@@ -385,9 +385,7 @@ function ReleaseOverview() {
             </DemoTourElement>
           )}
           <ReleaseIssues
-            organization={organization}
             version={version}
-            location={location}
             releaseBounds={releaseBounds}
             queryFilterDescription={t('In this release')}
             withChart

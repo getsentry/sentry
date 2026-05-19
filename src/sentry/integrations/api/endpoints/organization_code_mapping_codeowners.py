@@ -4,7 +4,6 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -16,7 +15,7 @@ from sentry.integrations.source_code_management.repository import RepositoryInte
 from sentry.shared_integrations.exceptions import ApiError
 
 
-def get_codeowner_contents(config, use_project_repository_fk: bool = False):
+def get_codeowner_contents(config):
     if not config.organization_integration_id:
         raise NotFound(detail="No associated integration")
 
@@ -25,12 +24,8 @@ def get_codeowner_contents(config, use_project_repository_fk: bool = False):
     )
     if not integration:
         return None
-    if use_project_repository_fk:
-        org_id = config.project_repository.project.organization_id
-        repository = config.project_repository.repository
-    else:
-        org_id = config.project.organization_id
-        repository = config.repository
+    org_id = config.project_repository.project.organization_id
+    repository = config.project_repository.repository
     install = integration.get_installation(organization_id=org_id)
     if isinstance(install, RepositoryIntegration):
         return install.get_codeowner_file(repository, ref=config.default_branch)
@@ -52,8 +47,6 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
 
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.select_related(
-                "project",
-                "repository",
                 "project_repository__project",
                 "project_repository__repository",
             ).get(
@@ -67,8 +60,7 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, config_id, organization, config) -> Response:
         try:
-            use_fk = features.has("organizations:project-repository-fk-reads", organization)
-            codeowner_contents = get_codeowner_contents(config, use_project_repository_fk=use_fk)
+            codeowner_contents = get_codeowner_contents(config)
         except ApiError as e:
             return self.respond({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

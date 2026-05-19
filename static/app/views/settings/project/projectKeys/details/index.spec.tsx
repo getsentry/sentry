@@ -7,6 +7,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
@@ -34,20 +35,20 @@ describe('ProjectKeyDetails', () => {
     });
   }
 
-  beforeEach(() => {
-    org = OrganizationFixture();
-    project = ProjectFixture();
-    projectKeys = ProjectKeysFixture();
-
+  function mockProjectKeyDetailsResponses(
+    projectKey: ProjectKey = projectKeys[0]!,
+    putBody: ProjectKey = projectKey
+  ) {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'GET',
-      body: projectKeys[0],
+      body: projectKey,
     });
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'PUT',
+      body: putBody,
     });
     statsMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/stats/`,
@@ -90,6 +91,14 @@ describe('ProjectKeyDetails', () => {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'DELETE',
     });
+  }
+
+  beforeEach(() => {
+    org = OrganizationFixture();
+    project = ProjectFixture();
+    projectKeys = ProjectKeysFixture();
+
+    mockProjectKeyDetailsResponses();
   });
 
   it('has stats box', async () => {
@@ -141,5 +150,47 @@ describe('ProjectKeyDetails', () => {
     renderGlobalModal();
     await userEvent.click(await screen.findByTestId('confirm-button'));
     expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('does not resubmit a rate limit after the API canonicalizes it to null', async () => {
+    project = ProjectFixture({features: ['rate-limits']});
+    projectKeys = [
+      {
+        ...ProjectKeysFixture()[0]!,
+        rateLimit: {count: 5, window: 60},
+      },
+    ];
+
+    mockProjectKeyDetailsResponses(projectKeys[0], {
+      ...projectKeys[0]!,
+      rateLimit: null,
+    });
+
+    renderProjectKeyDetails();
+
+    const countInput = await screen.findByPlaceholderText('Count');
+
+    await userEvent.clear(countInput);
+    await userEvent.tab();
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(putMock).toHaveBeenLastCalledWith(
+      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
+      expect.objectContaining({
+        data: {rateLimit: null},
+      })
+    );
+
+    await waitFor(() => {
+      expect((countInput as HTMLInputElement).value).toBe('');
+    });
+
+    await userEvent.click(countInput);
+    await userEvent.tab();
+
+    expect(putMock).toHaveBeenCalledTimes(1);
   });
 });

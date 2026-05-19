@@ -12,6 +12,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.models.project import Project
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_STR_TO_INT,
@@ -20,7 +21,6 @@ from sentry.models.release_threshold.constants import (
 )
 from sentry.models.release_threshold.constants import TriggerType as ReleaseThresholdTriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class ReleaseThresholdPUTData(TypedDict):

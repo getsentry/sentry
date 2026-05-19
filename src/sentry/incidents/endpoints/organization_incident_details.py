@@ -13,6 +13,7 @@ from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
@@ -22,7 +23,6 @@ from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 

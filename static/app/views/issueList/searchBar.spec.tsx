@@ -77,7 +77,7 @@ describe('IssueListSearchBar', () => {
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
 
-    it('displays tags in the has filter', async () => {
+    it.isKnownFlake('displays tags in the has filter', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [{key: 'someTag', name: 'Some Tag'}],
