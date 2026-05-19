@@ -71,7 +71,6 @@ export function ActivitySection(props: Props) {
           return (
             <ErrorBoundary mini key={`note-${item.id}`}>
               <Note
-                editBodyPadding
                 showTime={false}
                 text={item.data.text}
                 noteId={item.id}

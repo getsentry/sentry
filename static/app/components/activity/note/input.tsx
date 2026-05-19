@@ -29,7 +29,9 @@ type Props = {
   busy?: boolean;
   errorJSON?: CreateError | null;
   /**
-   * Minimum height of the edit area
+   * Minimum height for the editor textarea and preview, in pixels.
+   *
+   * Defaults to 140.
    */
   minHeight?: number;
   /**
