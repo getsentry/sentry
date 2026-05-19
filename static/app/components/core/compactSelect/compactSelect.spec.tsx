@@ -953,18 +953,10 @@ describe('CompactSelect', () => {
         'aria-selected',
         'true'
       );
-      expect(mock).toHaveBeenCalledWith(
-        {
-          key: 'section-1',
-          label: 'Section 1',
-          showToggleAllButton: true,
-          options: [
-            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
-            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
-          ],
-        },
-        'select'
-      );
+      expect(mock).toHaveBeenLastCalledWith([
+        {label: 'Option One', value: 'opt_one'},
+        {label: 'Option Two', value: 'opt_two'},
+      ]);
 
       // press Section 1's toggle button again to unselect all
       await userEvent.keyboard('{Enter}');
@@ -976,18 +968,7 @@ describe('CompactSelect', () => {
         'aria-selected',
         'false'
       );
-      expect(mock).toHaveBeenCalledWith(
-        {
-          key: 'section-1',
-          label: 'Section 1',
-          showToggleAllButton: true,
-          options: [
-            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
-            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
-          ],
-        },
-        'unselect'
-      );
+      expect(mock).toHaveBeenLastCalledWith([]);
 
       // move to Section 2's toggle button and select all
       await userEvent.keyboard('{Tab}');
@@ -1001,18 +982,10 @@ describe('CompactSelect', () => {
         'aria-selected',
         'true'
       );
-      expect(mock).toHaveBeenCalledWith(
-        {
-          key: 'section-2',
-          label: 'Section 2',
-          showToggleAllButton: true,
-          options: [
-            {key: 'opt_three', value: 'opt_three', label: 'Option Three'},
-            {key: 'opt_four', value: 'opt_four', label: 'Option Four'},
-          ],
-        },
-        'select'
-      );
+      expect(mock).toHaveBeenLastCalledWith([
+        {label: 'Option Three', value: 'opt_three'},
+        {label: 'Option Four', value: 'opt_four'},
+      ]);
     });
 
     it('triggers onClose when the menu is closed if provided', async () => {
@@ -1386,18 +1359,10 @@ describe('CompactSelect', () => {
         'aria-selected',
         'true'
       );
-      expect(mock).toHaveBeenCalledWith(
-        {
-          key: 'section-1',
-          label: 'Section 1',
-          showToggleAllButton: true,
-          options: [
-            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
-            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
-          ],
-        },
-        'select'
-      );
+      expect(mock).toHaveBeenLastCalledWith([
+        {label: 'Option One', value: 'opt_one'},
+        {label: 'Option Two', value: 'opt_two'},
+      ]);
 
       // press Section 1's toggle button again to unselect all
       await userEvent.keyboard('{Enter}');
@@ -1409,18 +1374,7 @@ describe('CompactSelect', () => {
         'aria-selected',
         'false'
       );
-      expect(mock).toHaveBeenCalledWith(
-        {
-          key: 'section-1',
-          label: 'Section 1',
-          showToggleAllButton: true,
-          options: [
-            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
-            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
-          ],
-        },
-        'unselect'
-      );
+      expect(mock).toHaveBeenLastCalledWith([]);
 
       // move to Section 2's toggle button and select all
       await userEvent.keyboard('{Tab}');
@@ -1434,18 +1388,10 @@ describe('CompactSelect', () => {
         'aria-selected',
         'true'
       );
-      expect(mock).toHaveBeenCalledWith(
-        {
-          key: 'section-2',
-          label: 'Section 2',
-          showToggleAllButton: true,
-          options: [
-            {key: 'opt_three', value: 'opt_three', label: 'Option Three'},
-            {key: 'opt_four', value: 'opt_four', label: 'Option Four'},
-          ],
-        },
-        'select'
-      );
+      expect(mock).toHaveBeenLastCalledWith([
+        {label: 'Option Three', value: 'opt_three'},
+        {label: 'Option Four', value: 'opt_four'},
+      ]);
     });
 
     it('triggers onClose when the menu is closed if provided', async () => {
