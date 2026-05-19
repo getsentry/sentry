@@ -6,7 +6,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
@@ -21,6 +20,7 @@ from sentry.core.endpoints.organization_member_utils import (
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.roles import organization_roles
 from sentry.users.models.user import User
 from sentry.utils.audit import get_api_key_for_audit_log
 
@@ -107,9 +107,21 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         :auth: required
         """
 
+        allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
+
+        # Integration tokens are not associated with an OrganizationMember, so
+        # get_allowed_org_roles cannot resolve their invitable roles. Mirror the
+        # POST handler in OrganizationMemberIndexEndpoint and restrict them to
+        # the member role.
+        if not allowed_roles and request.access.is_integration_token:
+            allowed_roles = [organization_roles.get("member")]
+
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
-            context={"organization": organization, "allowed_roles": roles.get_all()},
+            context={
+                "organization": organization,
+                "allowed_roles": allowed_roles,
+            },
             partial=True,
         )
 
