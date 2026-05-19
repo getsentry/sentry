@@ -35,18 +35,16 @@ describe('RouteSource', () => {
 
   it('can load links via hooks', async () => {
     const mock = jest.fn().mockReturnValue(null);
-    HookStore.set('settings:organization-navigation-config', () => {
-      return {
-        id: 'settings-usage-billing',
-        name: 'Usage & Billing',
-        items: [
-          {
-            path: '/settings/spike-protection',
-            title: 'Spike Protection',
-          },
-        ],
-      };
-    });
+    HookStore.set('react-hook:use-billing-navigation-config', () => ({
+      id: 'settings-usage-billing',
+      name: 'Usage & Billing',
+      items: [
+        {
+          path: '/settings/spike-protection',
+          title: 'Spike Protection',
+        },
+      ],
+    }));
 
     render(<RouteSource query="Spike">{mock}</RouteSource>);
 
