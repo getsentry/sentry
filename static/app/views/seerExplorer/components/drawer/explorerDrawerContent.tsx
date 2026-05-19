@@ -12,7 +12,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
@@ -103,14 +103,6 @@ export function ExplorerDrawerContent({
     lastAutoSubmittedQueryRef.current = query;
     sendMessage(query, blocks.length);
   }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
-
-  const latestTodoBlockIndex = useMemo(() => {
-    for (let i = blocks.length - 1; i >= 0; i--) {
-      const block = blocks[i];
-      if (block && Array.isArray(block.todos) && block.todos.length > 0) return i;
-    }
-    return -1;
-  }, [blocks]);
 
   // - Pending user input (file approval + questions) -------------------------
   const {
@@ -391,11 +383,10 @@ export function ExplorerDrawerContent({
                   }}
                   block={block}
                   blockIndex={index}
+                  blocks={blocks}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
-                  isAwaitingFileApproval={isFileApprovalPending}
-                  isAwaitingQuestion={isQuestionPending}
-                  isLatestTodoBlock={index === latestTodoBlockIndex}
+                  interactionPending={isFileApprovalPending || isQuestionPending}
                   readOnly={readOnly}
                   showThinking={showThinking}
                 />
