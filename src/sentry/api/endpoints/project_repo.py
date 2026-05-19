@@ -14,30 +14,26 @@ from sentry.models.projectrepository import ProjectRepository, ProjectRepository
 from sentry.models.repository import Repository
 
 
-class ProjectRepoLinkSerializer(serializers.Serializer[ProjectRepository]):
+class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
     repositoryId = serializers.IntegerField(required=True)
 
     def __init__(self, *args: Any, project: Project, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.project = project
-        self.repository: Repository | None = None
 
     def validate_repositoryId(self, value: int) -> int:
-        try:
-            self.repository = Repository.objects.get(
-                id=value,
-                organization_id=self.project.organization_id,
-                status=ObjectStatus.ACTIVE,
-            )
-        except Repository.DoesNotExist:
+        if not Repository.objects.filter(
+            id=value,
+            organization_id=self.project.organization_id,
+            status=ObjectStatus.ACTIVE,
+        ).exists():
             raise serializers.ValidationError("Repository not found.")
         return value
 
     def create(self, validated_data: dict[str, Any]) -> ProjectRepository:
-        assert self.repository is not None
         project_repo, created = ProjectRepository.objects.get_or_create(
             project=self.project,
-            repository=self.repository,
+            repository_id=validated_data["repositoryId"],
             defaults={"source": ProjectRepositorySource.SCM_ONBOARDING},
         )
         self._created = created
@@ -45,7 +41,7 @@ class ProjectRepoLinkSerializer(serializers.Serializer[ProjectRepository]):
 
 
 @cell_silo_endpoint
-class ProjectRepoLinkEndpoint(ProjectEndpoint):
+class ProjectRepoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -53,7 +49,7 @@ class ProjectRepoLinkEndpoint(ProjectEndpoint):
     permission_classes = (ProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
-        serializer = ProjectRepoLinkSerializer(data=request.data, project=project)
+        serializer = ProjectRepoSerializer(data=request.data, project=project)
         if not serializer.is_valid():
             errors = serializer.errors
             repo_errors = errors.get("repositoryId", [])
