@@ -24,11 +24,7 @@ export function OrganizationAccessRequests({
   requestList,
   onRemoveAccessRequest,
 }: Props) {
-  const {
-    mutate: handleAction,
-    isPending,
-    variables,
-  } = useMutation({
+  const {mutate, isPending, variables} = useMutation({
     mutationFn: ({id, isApproved}: {id: string; isApproved: boolean}) => {
       return fetchMutation({
         method: 'PUT',
@@ -85,7 +81,7 @@ export function OrganizationAccessRequests({
                   size="sm"
                   onClick={e => {
                     e.stopPropagation();
-                    handleAction({id, isApproved: true});
+                    mutate({id, isApproved: true});
                   }}
                   busy={isBusy}
                 >
@@ -95,7 +91,7 @@ export function OrganizationAccessRequests({
                   busy={isBusy}
                   onClick={e => {
                     e.stopPropagation();
-                    handleAction({id, isApproved: false});
+                    mutate({id, isApproved: false});
                   }}
                   size="sm"
                 >
