@@ -1,6 +1,6 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
-import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
@@ -30,7 +30,7 @@ type CreateSampleEventButtonProps = ButtonProps & {
 const EVENT_POLL_RETRIES = 30;
 const EVENT_POLL_INTERVAL = 1000;
 
-function CreateSampleEventButton({
+export function CreateSampleEventButton({
   source,
   hasScmOnboarding,
   onClick,
@@ -38,11 +38,9 @@ function CreateSampleEventButton({
   project,
   ...buttonProps
 }: CreateSampleEventButtonProps) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const [groupID, setGroupID] = useState<string | null>(null);
-  const pollStartTime = useRef(0);
-  const retryCount = useRef(0);
 
   useEffect(() => {
     if (project) {
@@ -52,143 +50,127 @@ function CreateSampleEventButton({
         source,
       });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [organization, project, source]);
 
-  const {mutateAsync: createSample} = useMutation({
-    mutationFn: () => {
+  const {mutate: createSampleGroup, isPending} = useMutation({
+    mutationFn: async () => {
       const url = `/projects/${organization.slug}/${project!.slug}/create-sample/`;
-      return fetchMutation<{groupID: string}>({method: 'POST', url});
-    },
-  });
-
-  const {isSuccess, isError} = useQuery({
-    ...apiOptions.as<unknown>()(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-      {
-        path: groupID
-          ? {
-              organizationIdOrSlug: organization.slug,
-              issueId: groupID,
-              eventId: 'latest',
-            }
-          : skipToken,
-        staleTime: 0,
-      }
-    ),
-    retry(failureCount) {
-      retryCount.current = failureCount + 1;
-      return failureCount < EVENT_POLL_RETRIES;
-    },
-    retryDelay: EVENT_POLL_INTERVAL,
-  });
-
-  useEffect(() => {
-    if (!groupID || !project) {
-      return;
-    }
-
-    if (isSuccess) {
-      clearIndicators();
-
-      const duration = Math.ceil(performance.now() - pollStartTime.current);
-      trackAnalytics('sample_event.created', {
-        organization,
-        project_id: project.id,
-        platform: project.platform || '',
-        interval: EVENT_POLL_INTERVAL,
-        retries: retryCount.current,
-        duration,
-        source,
+      const {groupID: newGroupID} = await fetchMutation<{groupID: string}>({
+        method: 'POST',
+        url,
       });
 
-      onClick?.();
+      const t0 = performance.now();
+      let retries = 0;
+      try {
+        await queryClient.fetchQuery({
+          ...apiOptions.as<unknown>()(
+            '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                issueId: newGroupID,
+                eventId: 'latest',
+              },
+              staleTime: 0,
+            }
+          ),
+          retry(failureCount) {
+            retries = failureCount + 1;
+            return failureCount < EVENT_POLL_RETRIES;
+          },
+          retryDelay: EVENT_POLL_INTERVAL,
+        });
+        return {
+          eventCreated: true,
+          retries,
+          duration: Math.ceil(performance.now() - t0),
+          groupID: newGroupID,
+        };
+      } catch {
+        return {
+          eventCreated: false,
+          retries,
+          duration: Math.ceil(performance.now() - t0),
+          groupID: newGroupID,
+        };
+      }
+    },
+    onMutate() {
+      if (!project) {
+        return;
+      }
 
-      navigate(
-        normalizeUrl(
-          `/organizations/${organization.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
-        )
-      );
+      if (onCreateSampleGroup) {
+        onCreateSampleGroup();
+      } else if (hasScmOnboarding) {
+        trackAnalytics('onboarding.scm_view_sample_event_clicked', {
+          platform: project.platform,
+          organization,
+        });
+      } else {
+        trackAnalytics('growth.onboarding_view_sample_event', {
+          platform: project.platform,
+          organization,
+        });
+      }
 
-      setGroupID(null);
-    } else if (isError) {
+      addLoadingMessage(t('Processing sample event...'), {
+        duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
+      });
+    },
+    onSuccess({eventCreated, retries, duration, groupID}) {
       clearIndicators();
 
-      const retries = retryCount.current;
-      const duration = Math.ceil(performance.now() - pollStartTime.current);
-      trackAnalytics('sample_event.failed', {
+      trackAnalytics(`sample_event.${eventCreated ? 'created' : 'failed'}` as const, {
         organization,
-        project_id: project.id,
-        platform: project.platform || '',
+        project_id: project!.id,
+        platform: project!.platform || '',
         interval: EVENT_POLL_INTERVAL,
         retries,
         duration,
         source,
       });
 
-      addErrorMessage(t('Failed to load sample event'));
+      if (!eventCreated) {
+        addErrorMessage(t('Failed to load sample event'));
 
-      Sentry.withScope(scope => {
-        scope.setTag('groupID', groupID);
-        scope.setTag('platform', project.platform || '');
-        scope.setTag('interval', EVENT_POLL_INTERVAL.toString());
-        scope.setTag('retries', retries.toString());
-        scope.setTag('duration', duration.toString());
+        Sentry.withScope(scope => {
+          scope.setTag('groupID', groupID);
+          scope.setTag('platform', project!.platform || '');
+          scope.setTag('interval', EVENT_POLL_INTERVAL.toString());
+          scope.setTag('retries', retries.toString());
+          scope.setTag('duration', duration.toString());
 
-        scope.setLevel('warning');
-        Sentry.captureMessage('Failed to load sample event');
-      });
+          scope.setLevel('warning');
+          Sentry.captureMessage('Failed to load sample event');
+        });
+        return;
+      }
 
-      setGroupID(null);
-    }
-  }, [groupID, onClick, isSuccess, isError, navigate, organization, project, source]);
+      onClick?.();
 
-  const creating = groupID !== null;
-
-  async function createSampleGroup() {
-    if (!project) {
-      return;
-    }
-
-    if (onCreateSampleGroup) {
-      onCreateSampleGroup();
-    } else if (hasScmOnboarding) {
-      trackAnalytics('onboarding.scm_view_sample_event_clicked', {
-        platform: project.platform,
-        organization,
-      });
-    } else {
-      trackAnalytics('growth.onboarding_view_sample_event', {
-        platform: project.platform,
-        organization,
-      });
-    }
-
-    addLoadingMessage(t('Processing sample event...'), {
-      duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
-    });
-
-    try {
-      const eventData = await createSample();
-      pollStartTime.current = performance.now();
-      retryCount.current = 0;
-      setGroupID(eventData.groupID);
-    } catch (error) {
+      navigate(
+        normalizeUrl(
+          `/organizations/${organization.slug}/issues/${groupID}/?project=${project!.id}&referrer=sample-error`
+        )
+      );
+    },
+    onError(error) {
       Sentry.withScope(scope => {
         scope.setExtra('error', error);
         Sentry.captureException(new Error('Failed to create sample event'));
       });
       clearIndicators();
       addErrorMessage(t('Failed to create a new sample event'));
-    }
-  }
+    },
+  });
 
   return (
     <Button
       {...buttonProps}
-      disabled={buttonProps.disabled || creating}
-      onClick={createSampleGroup}
+      disabled={buttonProps.disabled || !project || isPending}
+      onClick={() => createSampleGroup()}
     />
   );
 }
-
-export {CreateSampleEventButton};

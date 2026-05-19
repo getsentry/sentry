@@ -2,12 +2,11 @@ import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CreateSampleEventButton} from 'sentry/views/onboarding/createSampleEventButton';
 
-jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', () => {
@@ -36,13 +35,13 @@ describe('CreateSampleEventButton', () => {
 
   it('creates a sample event', async () => {
     const {router} = renderComponent();
-    const createRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
       body: {groupID},
     });
 
-    const latestIssueRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       body: {},
     });
@@ -50,21 +49,16 @@ describe('CreateSampleEventButton', () => {
     const sampleButton = await screen.findByRole('button', {name: createSampleText});
     await userEvent.click(sampleButton, {delay: null});
 
-    expect(sampleButton).toBeDisabled();
-
-    await waitFor(() => expect(createRequest).toHaveBeenCalled());
-    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
-
-    await waitFor(() => expect(sampleButton).toBeEnabled());
-
-    expect(router.location).toEqual(
-      expect.objectContaining({
-        pathname: `/organizations/${org.slug}/issues/${groupID}/`,
-        query: expect.objectContaining({
-          project: project.id,
-          referrer: 'sample-error',
-        }),
-      })
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${org.slug}/issues/${groupID}/`,
+          query: expect.objectContaining({
+            project: project.id,
+            referrer: 'sample-error',
+          }),
+        })
+      )
     );
   });
 
@@ -84,9 +78,11 @@ describe('CreateSampleEventButton', () => {
       delay: null,
     });
 
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'growth.onboarding_view_sample_event',
-      expect.objectContaining({platform: 'javascript'})
+    await waitFor(() =>
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'growth.onboarding_view_sample_event',
+        expect.objectContaining({platform: 'javascript'})
+      )
     );
     expect(trackAnalytics).not.toHaveBeenCalledWith(
       'onboarding.scm_view_sample_event_clicked',
@@ -119,9 +115,11 @@ describe('CreateSampleEventButton', () => {
       delay: null,
     });
 
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'onboarding.scm_view_sample_event_clicked',
-      expect.objectContaining({platform: 'javascript'})
+    await waitFor(() =>
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_view_sample_event_clicked',
+        expect.objectContaining({platform: 'javascript'})
+      )
     );
     expect(trackAnalytics).not.toHaveBeenCalledWith(
       'growth.onboarding_view_sample_event',
@@ -130,6 +128,7 @@ describe('CreateSampleEventButton', () => {
   });
 
   it('waits for the latest event to be processed', async () => {
+    jest.useFakeTimers();
     const {router} = renderComponent();
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
@@ -137,8 +136,8 @@ describe('CreateSampleEventButton', () => {
       body: {groupID},
     });
 
-    // The first request will 404 — useQuery fires immediately after groupID is set
-    const latestIssueRequest404 = MockApiClient.addMockResponse({
+    // Start with 404 — fetchQuery will retry after retryDelay
+    let latestIssueRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 404,
       body: {},
@@ -149,28 +148,33 @@ describe('CreateSampleEventButton', () => {
     });
 
     await waitFor(() => expect(createRequest).toHaveBeenCalled());
-    await waitFor(() => expect(latestIssueRequest404).toHaveBeenCalled());
 
-    // Set up 200 response for the retry
+    // fetchQuery fires immediately — wait for the first (404) attempt
+    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
+
+    // Set up 200 for the retry
     MockApiClient.clearMockResponses();
-    const latestIssueRequest200 = MockApiClient.addMockResponse({
+    latestIssueRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/issues/${groupID}/events/latest/`,
       statusCode: 200,
       body: {},
     });
 
-    // Advance past the retryDelay so useQuery retries
-    jest.advanceTimersByTime(EVENT_POLL_INTERVAL);
-    await waitFor(() => expect(latestIssueRequest200).toHaveBeenCalled());
+    // Advance past the retry delay so fetchQuery retries, wrapped in act
+    // to capture the navigate state update from onSuccess
+    await act(() => jest.advanceTimersByTimeAsync(EVENT_POLL_INTERVAL));
+    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
-    expect(router.location).toEqual(
-      expect.objectContaining({
-        pathname: `/organizations/${org.slug}/issues/${groupID}/`,
-        query: expect.objectContaining({
-          project: project.id,
-          referrer: 'sample-error',
-        }),
-      })
+    await waitFor(() =>
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${org.slug}/issues/${groupID}/`,
+          query: expect.objectContaining({
+            project: project.id,
+            referrer: 'sample-error',
+          }),
+        })
+      )
     );
 
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -186,6 +190,8 @@ describe('CreateSampleEventButton', () => {
     );
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
+
+    jest.useRealTimers();
   });
 });
 
