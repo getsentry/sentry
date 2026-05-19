@@ -34,9 +34,6 @@ def _extract_choice_label(value: object, label: object) -> tuple[object, bool]:
     }
     ```
     """
-    if isinstance(label, (str, int, float)) or label is None:
-        return label, False
-
     if isinstance(label, dict) and "props" in label:
         props = label.get("props")
         children = props.get("children") if isinstance(props, dict) else None
@@ -44,9 +41,8 @@ def _extract_choice_label(value: object, label: object) -> tuple[object, bool]:
             text = "".join(c for c in children if isinstance(c, str)).strip()
             if text:
                 return text, True
-        return str(value) if value is not None else "", True
 
-    return str(value) if value is not None else "", True
+    return value, False
 
 
 def sanitize_dynamic_form_field_choices(
@@ -59,15 +55,6 @@ def sanitize_dynamic_form_field_choices(
 
     for action in RangeQuerySetWrapper(Action.objects.filter(type__in=TICKET_ACTION_TYPES)):
         count += 1
-        if count % 1000 == 0:
-            logger.info(
-                "sanitize_dynamic_form_field_choices.progress",
-                extra={
-                    "count": count,
-                    "updated": updated,
-                    "current_action_id": action.id,
-                },
-            )
 
         dynamic_form_fields = (action.data or {}).get("dynamic_form_fields")
         if not dynamic_form_fields or not isinstance(dynamic_form_fields, list):
@@ -95,6 +82,16 @@ def sanitize_dynamic_form_field_choices(
         if row_changed:
             action.save(update_fields=["data"])
             updated += 1
+
+        if count % 1000 == 0:
+            logger.info(
+                "sanitize_dynamic_form_field_choices.progress",
+                extra={
+                    "count": count,
+                    "updated": updated,
+                    "current_action_id": action.id,
+                },
+            )
 
     logger.info(
         "sanitize_dynamic_form_field_choices.complete",
