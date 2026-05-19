@@ -504,16 +504,14 @@ export function useWidgetBuilderState(): {
                     ? [
                         {
                           kind: 'desc',
-                          field: generateFieldAsString(
-                            validReleaseSortOptions[0] as QueryFieldValue
-                          ),
+                          field: generateFieldAsString(validReleaseSortOptions[0]!),
                         },
                       ]
                     : []
                   : [
                       {
                         kind: 'desc',
-                        field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                        field: generateFieldAsString(newFields[0]!),
                       },
                     ],
                 options
