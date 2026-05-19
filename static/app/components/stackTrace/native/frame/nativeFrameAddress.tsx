@@ -131,9 +131,14 @@ export function NativeFrameAddress() {
 }
 
 const AddressText = styled('span')<{isClickable: boolean}>`
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.xs};
   font-style: inherit;
+  white-space: nowrap;
   color: ${p =>
     p.isClickable ? p.theme.tokens.interactive.link.accent.rest : 'inherit'};
 `;

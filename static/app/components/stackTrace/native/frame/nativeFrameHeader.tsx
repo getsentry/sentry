@@ -58,95 +58,101 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
       : (actions ?? <NativeDefaultActions />);
 
   return (
-    <HeaderGrid
-      data-test-id="native-stack-trace-frame-title"
-      isExpandable={isExpandable}
-      isInAppFrame={frame.inApp}
-      hasStatusColumn={hasAnyStatusIcons}
-      aria-expanded={isExpandable ? isExpanded : undefined}
-      aria-controls={isExpandable ? frameContextId : undefined}
-      onClick={() => {
-        const selectedText = window.getSelection()?.toString();
-        if (isExpandable && !selectedText) {
-          toggleExpansion();
-        }
-      }}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
-      {hasAnyStatusIcons ? (
-        <StatusCell data-test-id="native-stack-trace-status-cell">
-          <SymbolicatorStatusIcon />
-        </StatusCell>
-      ) : null}
-
-      <PackageCell>
-        {leadsToApp ? (
-          <LeadHint>
-            <Text as="span" size="xs" variant="muted">
-              {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-            </Text>
-          </LeadHint>
-        ) : null}
-        <Tooltip
-          title={
-            frame.package ??
-            (isDartAsync ? t('Dart async operation') : t('Go to images loaded'))
+    <HeaderContainer>
+      <HeaderGrid
+        data-test-id="native-stack-trace-frame-title"
+        isExpandable={isExpandable}
+        isInAppFrame={frame.inApp}
+        hasStatusColumn={hasAnyStatusIcons}
+        aria-expanded={isExpandable ? isExpanded : undefined}
+        aria-controls={isExpandable ? frameContextId : undefined}
+        onClick={() => {
+          const selectedText = window.getSelection()?.toString();
+          if (isExpandable && !selectedText) {
+            toggleExpansion();
           }
-          maxWidth={400}
-          delay={1000}
-          skipWrapper
-        >
-          <PackageLabel>
-            {packageLabel ??
-              (isDartAsync ? (
-                t('Dart async')
-              ) : (
-                <Text as="span" variant="muted">
-                  {t('<unknown>')}
-                </Text>
-              ))}
-          </PackageLabel>
-        </Tooltip>
-      </PackageCell>
-
-      <AddressCell>
-        <NativeFrameAddress />
-      </AddressCell>
-
-      <FunctionCell>
-        {functionLabel ? (
-          <Tooltip
-            title={frame.rawFunction ?? frame.symbol}
-            disabled={!frame.rawFunction}
-          >
-            <FunctionName>{functionLabel}</FunctionName>
-          </Tooltip>
-        ) : isDartAsync ? (
-          t('Dart')
-        ) : (
-          <Text variant="muted">{`<${t('unknown')}>`}</Text>
-        )}
-        {frame.filename ? (
-          <Tooltip
-            title={frame.absPath}
-            disabled={!frame.absPath || frame.absPath === frame.filename}
-            isHoverable
-          >
-            <FileName>
-              {'('}
-              {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
-              {frame.lineNo ? `:${frame.lineNo}` : ''}
-              {')'}
-            </FileName>
-          </Tooltip>
+        }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        {hasAnyStatusIcons ? (
+          <StatusCell data-test-id="native-stack-trace-status-cell">
+            <SymbolicatorStatusIcon />
+          </StatusCell>
         ) : null}
-      </FunctionCell>
 
-      <ActionsCell>{resolvedActions}</ActionsCell>
-    </HeaderGrid>
+        <PackageCell>
+          {leadsToApp ? (
+            <LeadHint>
+              <Text as="span" size="xs" variant="muted">
+                {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+              </Text>
+            </LeadHint>
+          ) : null}
+          <Tooltip
+            title={
+              frame.package ??
+              (isDartAsync ? t('Dart async operation') : t('Go to images loaded'))
+            }
+            maxWidth={400}
+            delay={1000}
+            skipWrapper
+          >
+            <PackageLabel>
+              {packageLabel ??
+                (isDartAsync ? (
+                  t('Dart async')
+                ) : (
+                  <Text as="span" variant="muted">
+                    {t('<unknown>')}
+                  </Text>
+                ))}
+            </PackageLabel>
+          </Tooltip>
+        </PackageCell>
+
+        <AddressCell>
+          <NativeFrameAddress />
+        </AddressCell>
+
+        <FunctionCell>
+          {functionLabel ? (
+            <Tooltip
+              title={frame.rawFunction ?? frame.symbol}
+              disabled={!frame.rawFunction}
+            >
+              <FunctionName>{functionLabel}</FunctionName>
+            </Tooltip>
+          ) : isDartAsync ? (
+            t('Dart')
+          ) : (
+            <Text variant="muted">{`<${t('unknown')}>`}</Text>
+          )}
+          {frame.filename ? (
+            <Tooltip
+              title={frame.absPath}
+              disabled={!frame.absPath || frame.absPath === frame.filename}
+              isHoverable
+            >
+              <FileName>
+                {'('}
+                {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
+                {frame.lineNo ? `:${frame.lineNo}` : ''}
+                {')'}
+              </FileName>
+            </Tooltip>
+          ) : null}
+        </FunctionCell>
+
+        <ActionsCell>{resolvedActions}</ActionsCell>
+      </HeaderGrid>
+    </HeaderContainer>
   );
 }
+
+const HeaderContainer = styled('div')`
+  container: native-frame-header / inline-size;
+`;
 
 const HeaderGrid = styled('div')<{
   hasStatusColumn: boolean;
@@ -180,14 +186,16 @@ const HeaderGrid = styled('div')<{
     background: ${p => p.theme.tokens.background.tertiary};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: ${p =>
-      p.hasStatusColumn ? '16px minmax(0, 1fr) auto' : 'minmax(0, 1fr) auto'};
+      p.hasStatusColumn
+        ? '16px minmax(0, 72px) minmax(0, 1fr) auto'
+        : 'minmax(0, 72px) minmax(0, 1fr) auto'};
     /* stylelint-disable-next-line named-grid-areas-no-invalid */
     grid-template-areas: ${p =>
       p.hasStatusColumn
-        ? "'status package actions' 'status address actions' 'status function function'"
-        : "'package actions' 'address actions' 'function function'"};
+        ? "'status address package actions' 'status function function function'"
+        : "'address package actions' 'function function function'"};
     row-gap: ${p => p.theme.space['2xs']};
   }
 `;
@@ -197,7 +205,7 @@ const StatusCell = styled('div')`
   align-items: center;
   justify-content: center;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: status;
   }
 `;
@@ -211,8 +219,11 @@ const PackageCell = styled('div')`
   overflow: hidden;
   line-height: 1.4;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: package;
+    flex-direction: row;
+    align-items: baseline;
+    gap: ${p => p.theme.space.xs};
   }
 `;
 
@@ -223,6 +234,12 @@ const LeadHint = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: inline;
+    flex: 0 0 auto;
+    max-width: none;
+  }
 `;
 
 const PackageLabel = styled('span')`
@@ -233,6 +250,11 @@ const PackageLabel = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: inline-block;
+    flex: 1 1 auto;
+  }
 `;
 
 const AddressCell = styled('div')`
@@ -241,8 +263,11 @@ const AddressCell = styled('div')`
   min-width: 0;
   line-height: 1.4;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: address;
+    justify-self: start;
+    max-width: 72px;
+    overflow: hidden;
   }
 `;
 
@@ -255,7 +280,7 @@ const FunctionCell = styled('div')`
   min-width: 0;
   word-break: break-all;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: function;
   }
 `;
@@ -279,7 +304,7 @@ const ActionsCell = styled('div')`
   min-width: 168px;
   margin-left: auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-area: actions;
     min-width: 0;
   }
