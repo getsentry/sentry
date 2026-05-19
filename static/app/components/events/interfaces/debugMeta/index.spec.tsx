@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {EntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
 import {ImageFixture} from 'sentry-fixture/image';
@@ -48,6 +49,14 @@ function DebugMetaSearchButton({searchTerm}: {searchTerm: string}) {
   );
 }
 
+function DebugMetaWithProvider(props: ComponentProps<typeof DebugMeta>) {
+  return (
+    <DebugMetaSearchProvider>
+      <DebugMeta {...props} />
+    </DebugMetaSearchProvider>
+  );
+}
+
 describe('DebugMeta', () => {
   const {organization, project} = initializeOrg();
   const groupId = undefined;
@@ -70,7 +79,7 @@ describe('DebugMeta', () => {
     });
 
     render(
-      <DebugMeta
+      <DebugMetaWithProvider
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
@@ -121,7 +130,7 @@ describe('DebugMeta', () => {
     const event = EventFixture({entries: [eventEntryDebugMeta]});
 
     render(
-      <DebugMeta
+      <DebugMetaWithProvider
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
@@ -147,7 +156,7 @@ describe('DebugMeta', () => {
     const image = eventEntryDebugMeta.data.images![0];
 
     render(
-      <DebugMeta
+      <DebugMetaWithProvider
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
@@ -192,7 +201,7 @@ describe('DebugMeta', () => {
     const event = EventFixture({entries: [eventEntryDebugMeta]});
 
     render(
-      <DebugMeta
+      <DebugMetaWithProvider
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
@@ -267,7 +276,7 @@ describe('DebugMeta', () => {
     const event = EventFixture({entries: [eventEntryDebugMeta]});
 
     const {container} = render(
-      <DebugMeta
+      <DebugMetaWithProvider
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}

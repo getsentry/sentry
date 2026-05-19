@@ -21,11 +21,7 @@ import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
-import {
-  DebugMetaSearchProvider,
-  useDebugMetaSearch,
-  useOptionalDebugMetaSearch,
-} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
+import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
@@ -112,16 +108,6 @@ interface DebugMetaProps {
 type FilterSelections = Array<SelectOption<string>>;
 
 export function DebugMeta(props: DebugMetaProps) {
-  const debugMetaSearch = useOptionalDebugMetaSearch();
-
-  if (!debugMetaSearch) {
-    return (
-      <DebugMetaSearchProvider>
-        <DebugMetaContent {...props} />
-      </DebugMetaSearchProvider>
-    );
-  }
-
   return <DebugMetaContent {...props} />;
 }
 
