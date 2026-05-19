@@ -475,6 +475,186 @@ describe('getWidgetMetricsUrl', () => {
     expect(metricQuery.query).toBe('');
   });
 
+  describe('equations', () => {
+    it('parses equation into sub-component metric queries and equation row', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Equation Widget',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: [
+              'equation|avg(value,duration,distribution,none) + count(value,requests,counter,none)',
+            ],
+            columns: [],
+            conditions: 'transaction:"/api/users"',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      expect(params.metric).toBeDefined();
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      // 2 sub-component queries + 1 equation row
+      expect(metrics).toHaveLength(3);
+
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
+
+      expect(parsedMetrics[0].metric).toEqual({
+        name: 'duration',
+        type: 'distribution',
+        unit: 'none',
+      });
+      expect(parsedMetrics[0].aggregateFields[0].yAxes[0]).toBe(
+        'avg(value,duration,distribution,none)'
+      );
+
+      expect(parsedMetrics[1].metric).toEqual({
+        name: 'requests',
+        type: 'counter',
+        unit: 'none',
+      });
+      expect(parsedMetrics[1].aggregateFields[0].yAxes[0]).toBe(
+        'count(value,requests,counter,none)'
+      );
+
+      expect(parsedMetrics[2].aggregateFields[0].yAxes[0]).toBe(
+        'equation|avg(value,duration,distribution,none) + count(value,requests,counter,none)'
+      );
+      expect(parsedMetrics[2].query).toContain('transaction:"/api/users"');
+    });
+
+    it('applies dashboard filters to equation query', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Filtered Equation',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: [
+              'equation|avg(value,duration,distribution,none) + count(value,duration,distribution,none)',
+            ],
+            columns: [],
+            conditions: '',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const dashboardFilters: DashboardFilters = {
+        release: ['v1.0.0'],
+      };
+
+      const url = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
+
+      // The equation row should have dashboard filters applied
+      const equationRow = parsedMetrics[parsedMetrics.length - 1];
+      expect(equationRow.query).toContain('release');
+      expect(equationRow.query).toContain('v1.0.0');
+    });
+
+    it('handles equation with duplicate function calls', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Duplicate Funcs',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: [
+              'equation|avg(value,duration,distribution,none) + avg(value,duration,distribution,none)',
+            ],
+            columns: [],
+            conditions: '',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      // 1 unique sub-component + 1 equation row (duplicates are collapsed)
+      expect(metrics).toHaveLength(2);
+    });
+
+    it('handles equations with conditional subcomponents', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Conditional Equation',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: [
+              'equation|avg_if(`environment:prod`,value,duration,distribution,none) + count(value,duration,distribution,none)',
+            ],
+            columns: [],
+            conditions: '',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
+
+      expect(parsedMetrics).toHaveLength(3);
+
+      // First subcomponent is normalized from avg_if to avg with a filter query
+      expect(parsedMetrics[0].metric).toEqual({
+        name: 'duration',
+        type: 'distribution',
+        unit: 'none',
+      });
+      expect(parsedMetrics[0].query).toContain('environment:prod');
+      expect(parsedMetrics[0].aggregateFields[0].yAxes[0]).toBe(
+        'avg(value,duration,distribution,none)'
+      );
+      expect(parsedMetrics[1].metric).toEqual({
+        name: 'duration',
+        type: 'distribution',
+        unit: 'none',
+      });
+      expect(parsedMetrics[1].query).toBe('');
+      expect(parsedMetrics[1].aggregateFields[0].yAxes[0]).toBe(
+        'count(value,duration,distribution,none)'
+      );
+      expect(parsedMetrics[2].aggregateFields[0].yAxes[0]).toBe(
+        'equation|avg_if(`environment:prod`,value,duration,distribution,none) + count(value,duration,distribution,none)'
+      );
+    });
+  });
+
   describe('datetime selection', () => {
     it('includes absolute datetime when start and end are provided', () => {
       const absoluteSelection: PageFilters = {

@@ -1,13 +1,15 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {explodeFieldString} from 'sentry/utils/discover/fields';
+import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -33,7 +35,26 @@ export function getWidgetMetricsUrl(
 
   const metricQueries = widget.queries[0].aggregates
     .flatMap(aggregate => {
-      // For each aggregate, create a metric query for each widget query
+      if (isEquation(aggregate)) {
+        // Use flatMap because of the queries type, but for an equation we will only have one
+        // true query. The other metric queries filters are parsed out from the equation string.
+        return widget.queries.flatMap(query => {
+          const queryString =
+            applyDashboardFilters(
+              query.conditions,
+              dashboardFilters,
+              widget.widgetType
+            ) ?? '';
+
+          const parsed = parseAggregateExpression(aggregate, queryString);
+          const results: BaseMetricQuery[] = [...parsed.metricQueries];
+          if (parsed.equationRow) {
+            results.push(parsed.equationRow);
+          }
+          return results;
+        });
+      }
+
       return widget.queries.map(query => {
         const queryString =
           applyDashboardFilters(query.conditions, dashboardFilters, widget.widgetType) ??
