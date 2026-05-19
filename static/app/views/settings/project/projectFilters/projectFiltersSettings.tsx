@@ -718,75 +718,56 @@ function StandardFilter({
   );
 }
 
-function ProjectBooleanFilter({
-  help,
-  label,
-  name,
-  hasAccess,
-  organization,
-  project,
-  projectEndpoint,
-}: {
-  hasAccess: boolean;
-  help: React.ReactNode;
-  label: string;
-  name: ProjectBooleanFilterId;
-  organization: Organization;
-  project: DetailedProject;
-  projectEndpoint: string;
-}) {
-  const [initialValue, setInitialValue] = useState(() => !!project.options?.[name]);
-
-  return (
-    <AutoSaveForm
-      name={name}
-      schema={projectBooleanSchema}
-      initialValue={initialValue}
-      mutationOptions={{
-        mutationFn: (data: Record<ProjectBooleanFilterId, boolean>) => {
-          trackAnalytics('settings.inbound_filter_updated', {
-            organization,
-            project_id: parseInt(project.id, 10),
-            filter: name,
-            new_state: data[name] ? 'enabled' : 'disabled',
-          });
-          return fetchMutation<Project>({
-            url: projectEndpoint,
-            method: 'PUT',
-            data: {options: data},
-          });
-        },
-        onMutate: data => {
-          const previousValue = initialValue;
-          setInitialValue(data[name]);
-          return {previousValue};
-        },
-        onError: (_error, _data, context) => {
-          if (context) {
-            setInitialValue(context.previousValue);
-          }
-        },
-        onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
-      }}
-    >
-      {field => (
-        <field.Layout.Row label={label} hintText={help}>
-          <field.Switch
-            checked={field.state.value}
-            onChange={field.handleChange}
-            disabled={!hasAccess}
-          />
-        </field.Layout.Row>
-      )}
-    </AutoSaveForm>
-  );
-}
-
 export function ProjectFiltersSettings({project, params, features: _features}: Props) {
   const organization = useOrganization();
   const {projectId: projectSlug} = params;
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const filtersEndpoint = `${projectEndpoint}filters/`;
+  const [reactHydrationInitialValue, setReactHydrationInitialValue] = useState(
+    () => !!project.options?.['filters:react-hydration-errors']
+  );
+  const [chunkLoadErrorInitialValue, setChunkLoadErrorInitialValue] = useState(
+    () => !!project.options?.['filters:chunk-load-error']
+  );
+
+  const getProjectBooleanMutationOptions = <TName extends ProjectBooleanFilterId>({
+    name,
+    initialValue,
+    setInitialValue,
+  }: {
+    initialValue: boolean;
+    name: TName;
+    setInitialValue: (value: boolean) => void;
+  }) => ({
+    mutationFn: (data: Record<TName, boolean>) => {
+      trackAnalytics('settings.inbound_filter_updated', {
+        organization,
+        project_id: parseInt(project.id, 10),
+        filter: name,
+        new_state: data[name] ? 'enabled' : 'disabled',
+      });
+      return fetchMutation<Project>({
+        url: projectEndpoint,
+        method: 'PUT',
+        data: {options: data},
+      });
+    },
+    onMutate: (data: Record<TName, boolean>) => {
+      const previousValue = initialValue;
+      setInitialValue(data[name]);
+      return {previousValue};
+    },
+    onError: (
+      _error: Error,
+      _data: Record<TName, boolean>,
+      context: {previousValue: boolean} | undefined
+    ) => {
+      if (context) {
+        setInitialValue(context.previousValue);
+      }
+    },
+    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
+  });
 
   const {
     data: filterListData,
@@ -855,36 +836,64 @@ export function ProjectFiltersSettings({project, params, features: _features}: P
                 );
               })}
 
-              <ProjectBooleanFilter
+              <AutoSaveForm
                 name="filters:react-hydration-errors"
-                label={t('Filter out hydration errors')}
-                help={tct(
-                  'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
-                  {
-                    replaySettings: (
-                      <Link
-                        to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
-                      />
-                    ),
-                  }
+                schema={projectBooleanSchema}
+                initialValue={reactHydrationInitialValue}
+                mutationOptions={getProjectBooleanMutationOptions({
+                  name: 'filters:react-hydration-errors',
+                  initialValue: reactHydrationInitialValue,
+                  setInitialValue: setReactHydrationInitialValue,
+                })}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Filter out hydration errors')}
+                    hintText={tct(
+                      'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
+                      {
+                        replaySettings: (
+                          <Link
+                            to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                          />
+                        ),
+                      }
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                    />
+                  </field.Layout.Row>
                 )}
-                hasAccess={hasAccess}
-                organization={organization}
-                project={project}
-                projectEndpoint={projectEndpoint}
-              />
+              </AutoSaveForm>
 
-              <ProjectBooleanFilter
+              <AutoSaveForm
                 name="filters:chunk-load-error"
-                label={t('Filter out ChunkLoadError(s)')}
-                help={t(
-                  "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                schema={projectBooleanSchema}
+                initialValue={chunkLoadErrorInitialValue}
+                mutationOptions={getProjectBooleanMutationOptions({
+                  name: 'filters:chunk-load-error',
+                  initialValue: chunkLoadErrorInitialValue,
+                  setInitialValue: setChunkLoadErrorInitialValue,
+                })}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Filter out ChunkLoadError(s)')}
+                    hintText={t(
+                      "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                    />
+                  </field.Layout.Row>
                 )}
-                hasAccess={hasAccess}
-                organization={organization}
-                project={project}
-                projectEndpoint={projectEndpoint}
-              />
+              </AutoSaveForm>
             </FieldGroup>
 
             <CustomFiltersForm
