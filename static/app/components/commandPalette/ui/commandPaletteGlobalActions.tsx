@@ -912,7 +912,7 @@ export function GlobalCommandPaletteActions() {
                 },
                 keywords: [project.name, project.slug],
                 to: makeProjectsPathname({
-                  path: `/projects/${project.slug}/`,
+                  path: `/${project.slug}/`,
                   organization,
                 }),
               })),
