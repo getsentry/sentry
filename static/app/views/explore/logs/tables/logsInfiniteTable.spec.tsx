@@ -11,6 +11,7 @@ import {
   userEvent,
   waitFor,
   within,
+  type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -194,8 +195,8 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
-  const renderWithProviders = (children: React.ReactNode) => {
-    return render(
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
       <OrganizationContext.Provider value={organization}>
         <LogsQueryParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -205,10 +206,16 @@ describe('LogsInfiniteTable', () => {
         </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
+  }
+
+  const renderWithProviders = (children: React.ReactElement, options?: RenderOptions) => {
+    return render(children, {additionalWrapper: Wrapper, ...options});
   };
 
   it('should render the table component', async () => {
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -216,7 +223,9 @@ describe('LogsInfiniteTable', () => {
   });
 
   it('should render with loading state initially', async () => {
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     const loadingIndicator = await screen.findByTestId('loading-indicator');
     expect(loadingIndicator).toBeInTheDocument();
@@ -240,7 +249,9 @@ describe('LogsInfiniteTable', () => {
         })
       );
     }
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -258,11 +269,7 @@ describe('LogsInfiniteTable', () => {
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',
         });
-        if (field === 'timestamp') {
-          expect(actionsButton).toBeNull();
-        } else {
-          expect(actionsButton).toBeInTheDocument();
-        }
+        expect(actionsButton).toBeInTheDocument();
       }
     }
     for (const mock of traceItemMocks) {
@@ -272,7 +279,12 @@ describe('LogsInfiniteTable', () => {
   });
 
   it('should not be interactable on embedded views', async () => {
-    renderWithProviders(<LogsInfiniteTable embedded />);
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        embedded
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -305,7 +317,9 @@ describe('LogsInfiniteTable', () => {
       },
     });
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(emptyApiMock).toHaveBeenCalled();
@@ -320,7 +334,9 @@ describe('LogsInfiniteTable', () => {
       statusCode: 500,
     });
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalled();
@@ -411,7 +427,9 @@ describe('LogsInfiniteTable', () => {
       })
     );
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     expect(eventsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
@@ -451,7 +469,6 @@ describe('LogsInfiniteTable', () => {
             query: 'replay_id:[abc123def456,abc123eef457]',
             start: '2025-04-10T08:00:00.000Z',
             end: '2025-04-10T10:00:00.000Z',
-            statsPeriod: undefined,
           }),
         })
       );
@@ -459,5 +476,41 @@ describe('LogsInfiniteTable', () => {
 
     await screen.findByText('abc123de');
     await screen.findByText('abc123ee');
+  });
+
+  it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
+    // Start with severity sorted ascending (second click has already happened)
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: 'severity',
+        },
+      })
+    );
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: 'severity',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    // Wait for table headers to be rendered (empty while pending)
+    const severityHeader = await screen.findByText('Severity');
+
+    // Third click (asc → reset): should navigate to default timestamp desc sort
+    await userEvent.click(severityHeader);
+    expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('-timestamp');
   });
 });

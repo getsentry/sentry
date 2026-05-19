@@ -78,6 +78,34 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
+    def test_get_prebuilt_visible_without_project_access(self) -> None:
+        # Prebuilt queries are product-level content; any org member must be able to open them
+        # even when Open Membership is disabled and they have no project access.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        prebuilt = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=None,
+            name="Prebuilt query",
+            query={"query": [{"fields": ["span.op"], "mode": "samples"}]},
+            prebuilt_id=1,
+            prebuilt_version=1,
+        )
+
+        outsider = self.create_user()
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[])
+        self.login_as(outsider)
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, prebuilt.id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(prebuilt.id)
+
     def test_get_starred(self) -> None:
         ExploreSavedQueryStarred.objects.create(
             organization=self.org,
@@ -116,6 +144,82 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["crossEvents"] == [
             {"query": "span.op:db", "type": "spans"},
             {"query": "severity:error", "type": "logs"},
+        ]
+
+    def test_get_with_cross_events_metrics(self) -> None:
+        self.model.query = {
+            "query": [{"fields": ["span.op"], "mode": "samples"}],
+            "crossEvents": [
+                {
+                    "query": "",
+                    "type": "metrics",
+                    "metric": {
+                        "name": "http.response_time",
+                        "type": "distribution",
+                        "unit": "millisecond",
+                    },
+                },
+            ],
+        }
+        self.model.save()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["crossEvents"] == [
+            {
+                "query": "",
+                "type": "metrics",
+                "metric": {
+                    "name": "http.response_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                },
+            },
+        ]
+
+    def test_put_adds_cross_events_metrics(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "With metrics cross events",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                    "crossEvents": [
+                        {
+                            "query": "",
+                            "type": "metrics",
+                            "metric": {
+                                "name": "http.response_time",
+                                "type": "distribution",
+                                "unit": "millisecond",
+                            },
+                        },
+                    ],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["crossEvents"] == [
+            {
+                "query": "",
+                "type": "metrics",
+                "metric": {
+                    "name": "http.response_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                },
+            },
         ]
 
     def test_get_changed_reason(self) -> None:
@@ -491,3 +595,35 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         query = ExploreSavedQuery.objects.get(id=self.query.id)
         assert query.visits == 1
         assert query.last_visited == last_visited
+
+    def test_visit_query_without_project_access(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        member_user = self.create_user()
+        self.create_member(organization=self.org, user=member_user, role="member", teams=[])
+
+        restricted_team = self.create_team(organization=self.org, members=[])
+        restricted_project = self.create_project(organization=self.org, teams=[restricted_team])
+
+        restricted_query = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Restricted query",
+            query={"fields": ["span.op"], "mode": "samples"},
+        )
+        restricted_query.set_projects([restricted_project.id])
+
+        last_visited = restricted_query.last_visited
+        initial_visits = restricted_query.visits
+
+        self.login_as(user=member_user)
+
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url(restricted_query.id))
+
+        assert response.status_code == 403, response.content
+
+        refreshed = ExploreSavedQuery.objects.get(id=restricted_query.id)
+        assert refreshed.visits == initial_visits
+        assert refreshed.last_visited == last_visited

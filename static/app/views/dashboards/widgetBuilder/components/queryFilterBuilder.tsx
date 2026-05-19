@@ -114,7 +114,7 @@ export function WidgetBuilderQueryFilterBuilder({
         const nextQueryConditionValidity = cloneDeep(queryConditionValidity);
         nextQueryConditionValidity[queryIndex] = validSearch;
         setQueryConditionValidity(nextQueryConditionValidity);
-        onQueryConditionChange(nextQueryConditionValidity.every(validity => validity));
+        onQueryConditionChange(nextQueryConditionValidity.every(Boolean));
         dispatch({
           type: BuilderStateAction.SET_QUERY,
           payload: state.query?.map((q, i) => (i === queryIndex ? field : q)) ?? [],
@@ -128,7 +128,7 @@ export function WidgetBuilderQueryFilterBuilder({
     (queryIndex: number) => () => {
       queryConditionValidity.splice(queryIndex, 1);
       setQueryConditionValidity(queryConditionValidity);
-      onQueryConditionChange(queryConditionValidity.every(validity => validity));
+      onQueryConditionChange(queryConditionValidity.every(Boolean));
       dispatch({
         type: BuilderStateAction.SET_QUERY,
         payload: state.query?.filter((_, i) => i !== queryIndex) ?? [],
@@ -279,7 +279,7 @@ export function WidgetBuilderQueryFilterBuilder({
       {canAddSearchConditions && (
         <Button
           size="sm"
-          priority="link"
+          variant="link"
           onClick={onAddSearchConditions}
           aria-label={t('Add Filter')}
           disabled={disableTransactionWidget}
@@ -296,7 +296,7 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
     <Button
       size="zero"
       style={{height: 'fit-content'}}
-      priority="transparent"
+      variant="transparent"
       onClick={onDelete}
       icon={<IconDelete />}
       tooltipProps={{title: t('Remove this filter')}}

@@ -225,6 +225,7 @@ export function List<Value extends SelectKey>({
       disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const selectedOption = getSelectedOptions(items, selection)[0]!;
         onChange?.(selectedOption);
 
@@ -379,17 +380,16 @@ export function List<Value extends SelectKey>({
         />
       )}
       {multiple &&
-        sections.map(
-          section =>
-            section.value.showToggleAllButton && (
-              <HiddenSectionToggle
-                key={section.key}
-                item={section}
-                listState={listState}
-                listId={listId}
-                onToggle={props.onSectionToggle}
-              />
-            )
+        sections.map(section =>
+          section.value.showToggleAllButton ? (
+            <HiddenSectionToggle
+              key={section.key}
+              item={section}
+              listState={listState}
+              listId={listId}
+              onToggle={props.onSectionToggle}
+            />
+          ) : null
         )}
     </Fragment>
   );

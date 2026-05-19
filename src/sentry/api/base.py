@@ -57,6 +57,7 @@ from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
     update_token_access_record,
 )
 from .paginator import BadPaginationError, MissingPaginationError, Paginator
@@ -92,6 +93,7 @@ DEFAULT_AUTHENTICATION = (
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     ApiKeyAuthentication,
+    ViewerContextAuthentication,
     SessionAuthentication,
 )
 

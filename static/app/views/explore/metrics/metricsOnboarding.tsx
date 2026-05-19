@@ -76,10 +76,10 @@ function OnboardingPanel({
             <div>
               <HeaderWrapper>
                 <HeaderText>
-                  <Title>{t('Measure what matters with Metrics')}</Title>
+                  <Title>{t('Measure what matters with Application Metrics')}</Title>
                   <SubTitle>
                     {t(
-                      'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
+                      'Track application metrics with powerful aggregation and visualization capabilities. Application metrics will be connected to your errors, logs and spans enabling easier debugging'
                     )}
                   </SubTitle>
                   {isUnsupportedPlatform && <div>{children}</div>}
@@ -90,7 +90,7 @@ function OnboardingPanel({
               <Body isUnsupportedPlatform={isUnsupportedPlatform}>
                 {!isUnsupportedPlatform && <Setup>{children}</Setup>}
                 <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
-                  <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
+                  <BodyTitle>{t('Preview a Sentry Application Metric')}</BodyTitle>
                   <Arcade
                     src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
                     loading="lazy"
@@ -109,7 +109,7 @@ function OnboardingPanel({
 const STEP_TITLES: Record<StepType, string> = {
   [StepType.INSTALL]: t('Install Sentry'),
   [StepType.CONFIGURE]: t('Configure Sentry'),
-  [StepType.VERIFY]: t('Send Metrics and Verify'),
+  [StepType.VERIFY]: t('Send Application Metrics and Verify'),
 };
 
 function Onboarding({organization, project}: OnboardingProps) {
@@ -171,7 +171,7 @@ function Onboarding({organization, project}: OnboardingProps) {
       <OnboardingPanel project={project}>
         <div>
           {tct(
-            "Fiddlesticks. Metrics isn't available for your [platform] project yet, but we're definitely still working on it. Stay tuned.",
+            "Fiddlesticks. Application Metrics aren't available for your [platform] project yet, but we're definitely still working on it. Stay tuned.",
             {platform: currentPlatform?.name || project.slug}
           )}
         </div>

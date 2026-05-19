@@ -7,17 +7,17 @@ import type {Location} from 'history';
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
@@ -68,8 +68,8 @@ function getAlertListApiOptions(orgSlug: string, query: Location['query']) {
   );
 }
 
-const DataConsentBanner = HookOrDefault({
-  hookName: 'component:data-consent-banner',
+const DataConsentBanner = OverrideOrDefault({
+  overrideName: 'component:data-consent-banner',
   defaultComponent: null,
 });
 

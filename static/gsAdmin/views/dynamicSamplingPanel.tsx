@@ -50,11 +50,10 @@ type RuleV2 = {
   };
   id: number;
   samplingValue: {
-    type: 'factor' | 'sampleRate' | 'reservoir';
+    type: 'factor' | 'sampleRate' | 'minimumSampleRate';
     value: number;
-    limit?: number;
   };
-  type: 'trace' | 'transaction';
+  type: 'trace' | 'transaction' | 'project';
   timeRange?: {
     end: string;
     start: string;
@@ -180,7 +179,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
   const regionHost = organization?.links.regionUrl;
 
   const [projectConfig, setProjectConfig] = useState<ProjectConfig>();
-  const [selectedConfigId, setSelectedConfigId] = useState<string>('');
+  const [selectedConfigId, setSelectedConfigId] = useState('');
 
   async function invalidateProjectConfig() {
     try {
@@ -215,7 +214,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
               return id;
             }
 
-            return undefined;
+            return;
           }
         );
 
@@ -281,7 +280,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
 }
 
 function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null}) {
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const rules = dsnConfig?.config?.sampling?.rules ?? [];
 
@@ -335,9 +334,6 @@ function DynamicSamplingRulesTable({
     ) {
       return `${round(samplingValue.value * 100)}%`;
     }
-    if (samplingValue.type === 'reservoir') {
-      return '100%';
-    }
     return `* ${round(samplingValue.value)}`;
   };
 
@@ -345,11 +341,11 @@ function DynamicSamplingRulesTable({
     if (getRuleType(rule) === RuleType.BOOST_LOW_VOLUME_PROJECTS) {
       return 0;
     }
-    if (rule.samplingValue.type === 'sampleRate') {
+    if (
+      rule.samplingValue.type === 'sampleRate' ||
+      rule.samplingValue.type === 'minimumSampleRate'
+    ) {
       return round(rule.samplingValue.value - baseSampleRate);
-    }
-    if (rule.samplingValue.type === 'reservoir') {
-      return 1;
     }
     return round(rule.samplingValue.value - 1);
   };
@@ -380,12 +376,6 @@ function DynamicSamplingRulesTable({
           <Fragment key={row.id}>
             <Stack gap="xs">
               {row.type}
-              {defined(row.samplingValue.limit) && (
-                <NameColumnDetail data-test-id="limit">
-                  <strong>Limit:</strong>
-                  <span>{row.samplingValue.limit}</span>
-                </NameColumnDetail>
-              )}
               {defined(row.timeRange) && (
                 <div data-test-id="timerange">
                   <NameColumnDetail>

@@ -11,7 +11,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -24,8 +24,8 @@ import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboarding
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const AiSetupConfiguration = HookOrDefault({
-  hookName: 'component:ai-setup-configuration',
+export const AiSetupConfiguration = OverrideOrDefault({
+  overrideName: 'component:ai-setup-configuration',
   defaultComponent: ({
     event,
     group,
@@ -136,7 +136,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
             <Stack align="start">
               {orgNeedsToConfigureSeer ? (
                 <LinkButton
-                  priority="primary"
+                  variant="primary"
                   to={`/settings/${organization.slug}/seer/onboarding/`}
                   icon={<IconSeer />}
                 >
@@ -144,7 +144,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
                 </LinkButton>
               ) : (
                 <LinkButton
-                  priority="primary"
+                  variant="primary"
                   to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   icon={<IconSeer />}
                 >

@@ -11,7 +11,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
@@ -22,7 +21,6 @@ type Props = {
   hasWriteAccess: boolean;
   onRemove: (data: ProjectKey) => void;
   onToggle: (isActive: boolean, data: ProjectKey) => void;
-  organization: Organization;
   project: Project;
   projectId: string;
 } & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
@@ -36,7 +34,6 @@ export function KeyRow({
   location,
   params,
   project,
-  organization,
 }: Props) {
   const handleEnable = () => onToggle(true, data);
   const handleDisable = () => onToggle(false, data);
@@ -45,8 +42,6 @@ export function KeyRow({
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
-  const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
-  const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (
     <Panel>
@@ -99,8 +94,8 @@ export function KeyRow({
           <ProjectKeyCredentials
             projectId={`${data.projectId}`}
             data={data}
-            showOtlpTraces={showOtlpTraces}
-            showOtlpLogs={showOtlpLogs}
+            showOtlpTraces
+            showOtlpLogs
             showMinidump={!isJsPlatform}
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}

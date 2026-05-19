@@ -2,7 +2,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -11,11 +12,12 @@ import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {useConfigureSdk} from './useConfigureSdk';
 
+jest.mock('@sentry/scraps/modal');
 jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/components/onboarding/useCreateProject');
 
 const mockCreateProject = jest.fn();
-const mockOpenModal = openModal as jest.Mock;
+const mockOpenModal = jest.fn();
 
 function mockCreateProjectHook() {
   let isPending = false;
@@ -69,6 +71,12 @@ describe('useConfigureSdk', () => {
 
     createProjectInstance = mockCreateProjectHook();
     mockUseCreateProject.mockReturnValue(createProjectInstance);
+    jest.mocked(useModal).mockReturnValue({
+      openModal: mockOpenModal,
+      closeModal: jest.fn(),
+      isOpen: false,
+      visible: false,
+    });
   });
 
   afterEach(() => {

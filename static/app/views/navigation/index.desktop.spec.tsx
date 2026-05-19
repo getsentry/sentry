@@ -2,10 +2,10 @@ import * as Sentry from '@sentry/react';
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -26,6 +26,7 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'dashboards-basic',
   'dashboards-edit',
+  'dashboards-prebuilt-insights-dashboards',
   'session-replay-ui',
   'ourlogs-enabled',
   'performance-view',
@@ -104,9 +105,19 @@ function setupMocks() {
   ConfigStore.set('user', UserFixture());
   ConfigStore.set('customerDomain', null);
 
+  const project = ProjectFixture({hasAccess: false});
+
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/broadcasts/',
     body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [project],
+  });
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/',
+    body: project,
   });
   MockApiClient.addMockResponse({
     url: '/assistant/',
@@ -366,20 +377,20 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
           [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
           // Dashboards
-          [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
+          [`${ORG}/dashboards/`, 'Dashboards', 'Custom Dashboards'],
           // Insights
           [`${ORG}/insights/frontend/`, 'Insights', 'Frontend'],
           [`${ORG}/insights/backend/`, 'Insights', 'Backend'],
           [`${ORG}/insights/mobile/`, 'Insights', 'Mobile'],
           [`${ORG}/insights/ai-agents/`, 'Insights', 'Agents'],
           [`${ORG}/insights/mcp/`, 'Insights', 'MCP'],
-          [`${ORG}/monitors/crons/?insightsRedirect=true`, 'Monitors', 'Crons'],
+          [`${ORG}/monitors/crons/?insightsRedirect=true`, 'Monitors', 'Cron'],
           // Monitors
           [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           [`${ORG}/monitors/my-monitors/`, 'Monitors', 'My Monitors'],
-          [`${ORG}/monitors/errors/`, 'Monitors', 'Errors'],
-          [`${ORG}/monitors/metrics/`, 'Monitors', 'Metrics'],
-          [`${ORG}/monitors/crons/`, 'Monitors', 'Crons'],
+          [`${ORG}/monitors/errors/`, 'Monitors', 'Error'],
+          [`${ORG}/monitors/metrics/`, 'Monitors', 'Metric'],
+          [`${ORG}/monitors/crons/`, 'Monitors', 'Cron'],
           [`${ORG}/monitors/alerts/`, 'Monitors', 'Alerts'],
           // Settings
           ['/settings/org-slug/', 'Settings', 'General Settings'],
@@ -467,7 +478,7 @@ describe('desktop navigation', () => {
           ['/explore/logs/', 'Explore', 'Logs'],
           ['/explore/replays/', 'Explore', 'Replays'],
           // Dashboards
-          ['/dashboards/', 'Dashboards', 'All Dashboards'],
+          ['/dashboards/', 'Dashboards', 'Custom Dashboards'],
           // Insights
           ['/insights/frontend/', 'Insights', 'Frontend'],
           ['/insights/backend/', 'Insights', 'Backend'],
@@ -637,7 +648,7 @@ describe('desktop navigation', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('can collapse the sidebar via Ctrl+B keyboard shortcut', () => {
+      it('can collapse the sidebar via Ctrl+B keyboard shortcut', async () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -645,12 +656,12 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
 
         expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
       });
 
-      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', () => {
+      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', async () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -658,10 +669,10 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
         expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
 
-        fireEvent.keyDown(document, {keyCode: 66 /* b */, ctrlKey: true});
+        await userEvent.keyboard('{Control>}b{/Control}');
         expect(
           screen.queryByTestId('collapsed-secondary-sidebar')
         ).not.toBeInTheDocument();

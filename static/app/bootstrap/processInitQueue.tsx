@@ -21,8 +21,6 @@ const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.INDICATORS]: () =>
     import(/* webpackChunkName: "Indicators" */ 'sentry/components/indicators'),
-  [SentryInitRenderReactComponent.SYSTEM_ALERTS]: () =>
-    import(/* webpackChunkName: "SystemAlerts" */ 'sentry/views/app/systemAlerts'),
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
   [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>
@@ -94,7 +92,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
    * without exposing the component globally.
    */
   if (initConfig.name === 'renderReact') {
-    if (!COMPONENT_MAP.hasOwnProperty(initConfig.component)) {
+    if (!Object.hasOwn(COMPONENT_MAP, initConfig.component)) {
       return;
     }
     const {default: Component} = await COMPONENT_MAP[initConfig.component]();
@@ -152,10 +150,7 @@ export async function processInitQueue() {
   // custom plugins that rely on `window.SentryApp` so they can start migrating
   // their plugins ASAP, as `SentryApp` will be loaded async and will require
   // callbacks to access it, instead of via `window` global.
-  if (
-    typeof window.__onSentryInit !== 'undefined' &&
-    !Array.isArray(window.__onSentryInit)
-  ) {
+  if (window.__onSentryInit !== undefined && !Array.isArray(window.__onSentryInit)) {
     return;
   }
 

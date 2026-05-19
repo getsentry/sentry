@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -112,6 +112,10 @@ interface ListBoxProps<T extends ObjectLike>
    * If true, virtualization will be enabled for the list
    */
   virtualized?: boolean;
+  /**
+   * Vertical padding (in px) added to the virtualizer height. Defaults to 4 (theme.space.xs).
+   */
+  virtualizedListPadding?: number;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -138,12 +142,14 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
+  hasSearch,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
   onAction,
   virtualized,
+  virtualizedListPadding = listPaddingVertical,
   scrollContainerRef,
   className,
   ...props
@@ -191,7 +197,25 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
+  const virtualizer = useVirtualizedItems({
+    listItems,
+    virtualized,
+    size,
+    listPadding: virtualizedListPadding,
+  });
+
+  useEffect(() => {
+    if (!virtualized || listState.selectionManager.focusedKey === null) {
+      return;
+    }
+
+    const focusedIndex = listItems.findIndex(
+      item => item.key === listState.selectionManager.focusedKey
+    );
+    if (focusedIndex !== -1) {
+      virtualizer.scrollToIndex(focusedIndex);
+    }
+  }, [virtualized, listItems, listState.selectionManager.focusedKey, virtualizer]);
 
   const refs = useMemo(() => {
     const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
@@ -228,7 +252,8 @@ export function ListBox<T extends ObjectLike>({
           >
             {overlayIsOpen &&
               virtualizer.items.map(row => {
-                const item = listItems[row.index]!;
+                const item = listItems[row.index];
+                if (!item) return null;
                 if (item.type === 'section') {
                   return (
                     <ListBoxSection
@@ -257,7 +282,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!searchable && hiddenOptions.size > 0 && (
+            {!searchable && !hasSearch && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>
@@ -286,8 +311,10 @@ function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   virtualized = false,
   size,
+  listPadding,
 }: {
   listItems: Array<Node<T>>;
+  listPadding: number;
   size: FormSize;
   virtualized: boolean | undefined;
 }) {
@@ -299,7 +326,7 @@ function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
-      if (item?.value && 'details' in item.value) {
+      if (item?.props?.details) {
         return heightEstimation.large;
       }
       return heightEstimation.regular;
@@ -311,6 +338,9 @@ function useVirtualizedItems<T extends ObjectLike>({
     const virtualizedItems = virtualizer.getVirtualItems();
     return {
       items: virtualizedItems,
+      scrollToIndex: (index: number) => {
+        virtualizer.scrollToIndex(index, {align: 'auto'});
+      },
       scrollElementRef,
       itemProps: (index: number) => ({
         ref: virtualizer.measureElement,
@@ -319,7 +349,7 @@ function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
+          height: virtualizer.getTotalSize() + listPadding * 2,
           width: '100%',
           position: 'relative',
         },
@@ -336,8 +366,9 @@ function useVirtualizedItems<T extends ObjectLike>({
 
   return {
     items: listItems.map((_, index) => ({index, start: 0})),
+    scrollToIndex: () => {},
     scrollElementRef: undefined,
-    itemProps: () => undefined,
+    itemProps: () => {},
     wrapperProps: {
       'data-is-virtualized': false,
     },

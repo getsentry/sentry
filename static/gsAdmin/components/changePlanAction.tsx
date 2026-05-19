@@ -1,7 +1,7 @@
 import React, {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {
@@ -43,9 +43,9 @@ function ChangePlanAction({
   onSuccess,
   closeModal,
 }: Props) {
-  const [billingInterval, setBillingInterval] = useState<string>(MONTHLY);
-  const [contractInterval, setContractInterval] = useState<string>(MONTHLY);
-  const [activeTier, setActiveTier] = useState<PlanTier>(PlanTier.AM3);
+  const [billingInterval, setBillingInterval] = useState(MONTHLY);
+  const [contractInterval, setContractInterval] = useState(MONTHLY);
+  const [activeTier, setActiveTier] = useState(PlanTier.AM3);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
   const orgId = organization.slug;
@@ -241,7 +241,7 @@ function ChangePlanAction({
 
   const header = partnerPlanId ? null : (
     <React.Fragment>
-      <TabsContainer>
+      <Container marginBottom="xl">
         <Tabs
           value={activeTier}
           onChange={tab => {
@@ -259,7 +259,7 @@ function ChangePlanAction({
             ))}
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
       <ul className="nav nav-pills">
         <li
           className={classNames({
@@ -328,7 +328,3 @@ type Options = {
 
 export const triggerChangePlanAction = (opts: Options) =>
   openModal(deps => <ChangePlanAction {...deps} {...opts} />);
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

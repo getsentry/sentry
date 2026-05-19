@@ -217,7 +217,6 @@ describe('LogsPage', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'ourlogs',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -231,7 +230,7 @@ describe('LogsPage', () => {
             sampling: 'NORMAL',
             sort: '-count_message',
             statsPeriod: '24h',
-            topEvents: 5,
+            topEvents: 9,
             yAxis: ['count(message)'],
           }),
         })

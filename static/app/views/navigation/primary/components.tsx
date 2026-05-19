@@ -26,12 +26,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import Hook from 'sentry/components/hook';
 import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
+import {Override} from 'sentry/components/override';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -83,7 +83,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+    !getOverride('component:superuser-warning-excluded')?.(organization);
 
   const hasPageFrame = useHasPageFrameFeature();
 
@@ -125,7 +125,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
               background: theme.tokens.background.danger.vibrant,
             }}
           >
-            <Hook name="component:superuser-warning" organization={organization} />
+            <Override name="component:superuser-warning" organization={organization} />
           </Container>
         )}
       </Flex>
@@ -325,10 +325,7 @@ function PrimaryNavigationUnreadIndicator({
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
-  const indicatorPosition: Pick<
-    ContainerProps<'div'>,
-    'top' | 'right' | 'left'
-  > = hasPageFrame
+  const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = hasPageFrame
     ? layout === 'mobile'
       ? {top: '0', right: '0'}
       : {top: '0', right: '0'}
@@ -455,9 +452,9 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
           {...props}
           {...(layout === 'mobile'
             ? hasPageFrame
-              ? {priority: 'default'}
-              : {size: 'zero' as const, priority: 'transparent'}
-            : {priority: props.priority})}
+              ? {variant: 'secondary'}
+              : {size: 'zero' as const, variant: 'transparent'}
+            : {variant: props.variant})}
         />
       )}
     </Flex>

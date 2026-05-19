@@ -5,7 +5,10 @@ import pytest
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
+    format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
+    format_solo_snapshot_pr_comment,
+    format_waiting_for_base_snapshot_pr_comment,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -203,7 +206,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         # Zero counts are plain text, non-zero unchanged is linked
         assert "| 0 | 0 | 0 | 0 |" in result
         assert "| 0 | ✅ Unchanged |" in result
-        assert "?section=unchanged" in result
+        assert "?selectedTypes=unchanged" in result
 
     def test_changes_show_needs_approval(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -229,10 +232,10 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         )
 
         assert "Needs approval" in result
-        assert "?section=added" in result
-        assert "?section=removed" in result
-        assert "?section=changed" in result
-        assert "?section=renamed" in result
+        assert "?selectedTypes=added" in result
+        assert "?selectedTypes=removed" in result
+        assert "?selectedTypes=changed" in result
+        assert "?selectedTypes=renamed" in result
 
     def test_approved_shows_approved_status(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -312,7 +315,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         )
 
         assert f"/preprod/snapshots/{head_artifact.id}" in result
-        assert "?section=changed" in result
+        assert "?selectedTypes=changed" in result
 
     def test_zero_counts_are_not_linked(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -336,7 +339,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             project=self.project,
         )
 
-        assert "?section=" not in result
+        assert "?selectedTypes=" not in result
 
     def test_table_header_present(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -354,7 +357,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         )
 
         assert (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
             in result
         )
 
@@ -392,7 +395,7 @@ class FormatSnapshotPrCommentNoBaseTest(SnapshotPrCommentTestBase):
         )
 
         assert (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
             in result
         )
 
@@ -424,3 +427,79 @@ class FormatSnapshotPrCommentNoBaseTest(SnapshotPrCommentTestBase):
         )
 
         assert "`com.example.myapp`" in result
+
+
+@cell_silo_test
+class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
+    def test_solo_shows_uploaded_count_and_first_upload_message(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(app_name="My App", image_count=7)
+
+        result = format_solo_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project
+        )
+
+        assert "## Sentry Snapshot Testing" in result
+        assert "7 uploaded" in result
+        assert "My App" in result
+        assert "Snapshot diffs will appear when we have a base upload to compare against" in result
+        assert "main branch" in result
+        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+        assert "tab=snapshots" in result
+        assert f"{self.project.name} Snapshot Settings" in result
+
+    def test_solo_empty_artifacts_raises(self) -> None:
+        with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
+            format_solo_snapshot_pr_comment([], {}, project=self.project)
+
+    def test_solo_multiple_artifacts(self) -> None:
+        artifact1, metrics1 = self._create_artifact_with_metrics(
+            app_id="com.example.app1", build_number=1, image_count=3
+        )
+        artifact2, metrics2 = self._create_artifact_with_metrics(
+            app_id="com.example.app2", build_number=2, image_count=5
+        )
+
+        result = format_solo_snapshot_pr_comment(
+            [artifact1, artifact2],
+            {artifact1.id: metrics1, artifact2.id: metrics2},
+            project=self.project,
+        )
+
+        assert "com.example.app1" in result
+        assert "com.example.app2" in result
+        assert "3 uploaded" in result
+        assert "5 uploaded" in result
+
+    def test_waiting_for_base_shows_waiting_message(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(image_count=4)
+
+        result = format_waiting_for_base_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project
+        )
+
+        assert "## Sentry Snapshot Testing" in result
+        assert "4 uploaded" in result
+        assert "Waiting for base snapshots to finish uploading" in result
+        assert "~10 minutes" in result
+        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+
+    def test_waiting_for_base_empty_artifacts_raises(self) -> None:
+        with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
+            format_waiting_for_base_snapshot_pr_comment([], {}, project=self.project)
+
+    def test_missing_base_shows_failure_message(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(image_count=2)
+
+        result = format_missing_base_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project
+        )
+
+        assert "## Sentry Snapshot Testing" in result
+        assert "2 uploaded" in result
+        assert "No base snapshots found to compare against" in result
+        assert "main branch" in result
+        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+
+    def test_missing_base_empty_artifacts_raises(self) -> None:
+        with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
+            format_missing_base_snapshot_pr_comment([], {}, project=self.project)

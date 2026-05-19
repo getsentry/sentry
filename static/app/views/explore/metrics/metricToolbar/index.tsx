@@ -6,6 +6,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
@@ -19,13 +20,14 @@ import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggr
 import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
 import {GroupBySelector} from 'sentry/views/explore/metrics/metricToolbar/groupBySelector';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface MetricToolbarProps {
   queryLabel: string;
@@ -57,6 +59,10 @@ export function MetricToolbar({
     setVisualize(visualize.replace({visible: !visualize.visible}));
   }, [setVisualize, visualize]);
   const setTraceMetric = useSetTraceMetric();
+  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+  const disabledReason = isHeatmap
+    ? t('Not configurable for Heat Map visualizations')
+    : undefined;
 
   // We need at least one metric visualized, but equations should always
   // be removable.
@@ -120,10 +126,16 @@ export function MetricToolbar({
             </Flex>
             <Flex gap="md" minWidth={0}>
               <Flex flex="2 1 0" minWidth={0}>
-                <AggregateDropdown traceMetric={traceMetric} />
+                <AggregateDropdown
+                  traceMetric={traceMetric}
+                  disabledReason={disabledReason}
+                />
               </Flex>
               <Flex flex="3 1 0" minWidth={0}>
-                <GroupBySelector traceMetric={traceMetric} />
+                <GroupBySelector
+                  traceMetric={traceMetric}
+                  disabledReason={disabledReason}
+                />
               </Flex>
             </Flex>
             {!isNarrow && (
@@ -154,7 +166,13 @@ export function MetricToolbar({
             )}
           </Flex>
         ) : null}
-        {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
+        {canRemoveMetric && (
+          <DeleteMetricButton
+            disabledReason={
+              isReferencedByEquation ? t('This metric is used in an equation') : undefined
+            }
+          />
+        )}
       </Grid>
       {isNarrow && (
         <Filter

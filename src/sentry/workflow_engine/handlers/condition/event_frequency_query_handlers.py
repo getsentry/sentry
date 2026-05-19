@@ -1,4 +1,5 @@
 import contextlib
+import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
@@ -28,6 +29,11 @@ from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
+
+logger = logging.getLogger(__name__)
+
+_HANDLED_TRUE_VALUES = (True, 1, "true", "1", "yes")
+_HANDLED_FALSE_VALUES = (False, 0, "false", "0", "no")
 
 QueryFilter = dict[str, Any]
 QueryResult = dict[int, int | float]
@@ -227,9 +233,28 @@ class BaseEventFrequencyQueryHandler(ABC):
             if condition["match"] not in (MatchType.IS_SET, MatchType.NOT_SET)
             else None
         )
-        if attribute == "error.unhandled":
-            # flip values, since the queried column is "error.handled"
-            rhs = not condition["value"]
+        if attribute in ("error.handled", "error.unhandled") and condition["match"] in (
+            MatchType.EQUAL,
+            MatchType.NOT_EQUAL,
+        ):
+            # The stored value may be a string ("true"/"false"), bool, or int.
+            # Normalize to 1/0 for the Snuba condition (UInt8 column).
+            # We can get stricter here once we clean existing data and validate within the API.
+            comparable = rhs.lower() if isinstance(rhs, str) else rhs
+            if comparable in _HANDLED_TRUE_VALUES:
+                int_value = 1
+            elif comparable in _HANDLED_FALSE_VALUES:
+                int_value = 0
+            else:
+                logger.error(
+                    "workflow_engine.unrecognized_handled_filter_value",
+                    extra={"attribute": attribute, "value": rhs},
+                )
+                return None
+            if attribute == "error.unhandled":
+                # flip, since the queried column is "error.handled"
+                int_value = 1 - int_value
+            rhs = int_value
 
         match condition["match"]:
             case MatchType.EQUAL:

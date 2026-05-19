@@ -524,7 +524,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert group_info is not None
         perf_group = group_info.group
         self.login_as(user=self.user)
-        response = self.get_success_response(query="issue.category:performance")
+        response = self.get_success_response(
+            query=f"issue.type:{PerformanceNPlusOneGroupType.slug}"
+        )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(perf_group.id)
 
@@ -2515,6 +2517,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == []
         )
 
+    # TODO - Delete this test once the UI has been updated
     def test_query_detector_filter(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -2552,6 +2555,46 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == group.id
 
         response_empty = self.get_response(sort_by="date", query="detector:99999")
+        assert response_empty.status_code == 200
+        assert len(response_empty.data) == 0
+
+    def test_query_monitor_filter(self) -> None:
+        event = self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group = event.group
+
+        event2 = self.store_event(
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        assert event2.group.id != group.id
+
+        detector_id = 12345  # intentionally multi-digit
+        detector = self.create_detector(
+            id=detector_id,
+            name=f"Test Detector {detector_id}",
+            project=self.project,
+            type="error",
+        )
+
+        self.create_detector_group(
+            detector=detector,
+            group=group,
+        )
+
+        self.login_as(user=self.user)
+
+        # Query for the specific detector ID
+        response = self.get_response(sort_by="date", query=f"monitor:{detector_id}")
+        assert response.status_code == 200
+
+        # Should return only the group associated with the detector
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group.id
+
+        response_empty = self.get_response(sort_by="date", query="monitor:99999")
         assert response_empty.status_code == 200
         assert len(response_empty.data) == 0
 
@@ -4442,6 +4485,11 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert response.status_code == 204
 
         self.assert_deleted_groups([group1, group2])
+
+    def test_delete_with_invalid_group_ids(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_response(qs_params={"id": ["not_an_int", "123"]})
+        assert response.status_code == 400
 
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2

@@ -17,7 +17,6 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface Props {
   projectSlug: string | null;
@@ -32,7 +31,6 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
   const organization = useOrganization();
   const isEmployee = useIsSentryEmployee();
   const isSuperUser = isActiveSuperuser();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const replayId = replayRecord?.id;
   const isMobile = replay?.isVideoReplay();
@@ -141,7 +139,7 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
         showChevron: false,
         icon: <IconEllipsis variant="muted" />,
       }}
-      size={hasPageFrameFeature ? 'sm' : 'xs'}
+      size="sm"
       items={dropdownItems}
       isDisabled={dropdownItems.length === 0}
     />

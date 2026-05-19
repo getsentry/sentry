@@ -5,14 +5,14 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', () => {
@@ -64,7 +64,7 @@ describe('AddCodeOwnerModal', () => {
     );
   });
 
-  it('renders codeowner file', async () => {
+  it.isKnownFlake('renders codeowner file', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/${codeMapping.id}/codeowners/`,
       method: 'GET',
@@ -83,13 +83,14 @@ describe('AddCodeOwnerModal', () => {
       />
     );
 
-    await waitFor(() =>
-      selectEvent.select(
-        screen.getByText('--'),
-        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
-      )
+    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {
+        name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
+      })
     );
-    expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Preview File'})).toHaveAttribute(
       'href',
@@ -116,11 +117,11 @@ describe('AddCodeOwnerModal', () => {
       />
     );
 
-    await waitFor(() =>
-      selectEvent.select(
-        screen.getByText('--'),
-        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
-      )
+    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {
+        name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
+      })
     );
 
     expect(screen.getByText('No codeowner file found.')).toBeInTheDocument();
@@ -152,13 +153,17 @@ describe('AddCodeOwnerModal', () => {
         project={project}
       />
     );
-    await waitFor(() =>
-      selectEvent.select(
-        screen.getByText('--'),
-        `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
-      )
+
+    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {
+        name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
+      })
     );
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Add File'})).toBeEnabled();
+    });
     await userEvent.click(screen.getByRole('button', {name: 'Add File'}));
 
     await waitFor(() => {

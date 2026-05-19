@@ -6,7 +6,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
@@ -45,7 +45,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
         organization={data.organization}
       >
         <MEPSettingProvider forceTransactions>
-          <PerformanceDisplayProvider
+          <PerformanceDisplayContext
             value={{performanceType: ProjectPerformanceType.ANY}}
           >
             <WidgetContainer
@@ -57,7 +57,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
               {...data}
               {...rest}
             />
-          </PerformanceDisplayProvider>
+          </PerformanceDisplayContext>
         </MEPSettingProvider>
       </MetricsCardinalityProvider>
     </OrganizationContext>

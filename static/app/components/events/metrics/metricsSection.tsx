@@ -4,8 +4,10 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -19,7 +21,7 @@ import {METRICS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/metrics/constants
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
 
 import {NUMBER_ABBREVIATED_METRICS} from './useMetricsIssueSection';
@@ -34,10 +36,10 @@ export function MetricsSection({
   project: Project;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
 
   if (!traceId) {
-    // If there isn't a traceId, we shouldn't show metrics since they are trace specific
     return null;
   }
 
@@ -46,14 +48,23 @@ export function MetricsSection({
   }
 
   return (
-    <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-      <MetricsSectionContent
-        event={event}
-        group={group}
-        project={project}
-        traceId={traceId}
-      />
-    </TraceViewMetricsProviderWrapper>
+    <LazyRender
+      disabled={
+        location.query[METRICS_DRAWER_QUERY_PARAM] === 'true' ||
+        location.hash === `#${SectionKey.METRICS}`
+      }
+      observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
+      withoutContainer
+    >
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <MetricsSectionContent
+          event={event}
+          group={group}
+          project={project}
+          traceId={traceId}
+        />
+      </TraceViewMetricsProviderWrapper>
+    </LazyRender>
   );
 }
 
@@ -134,12 +145,7 @@ function MetricsSectionContent({
   }
 
   return (
-    <InterimSection
-      key="metrics"
-      type={SectionKey.METRICS}
-      title={t('Metrics')}
-      data-test-id="metrics-data-section"
-    >
+    <FoldSection sectionKey={SectionKey.METRICS} title={t('Application Metrics')}>
       <Flex direction="column" gap="xl">
         <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
@@ -156,6 +162,6 @@ function MetricsSectionContent({
           </div>
         ) : null}
       </Flex>
-    </InterimSection>
+    </FoldSection>
   );
 }

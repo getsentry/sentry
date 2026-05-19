@@ -1,10 +1,12 @@
-import {useCallback, useMemo} from 'react';
-import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
+import {useCallback, useEffect, useMemo} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ExploreBodyContent} from 'sentry/views/explore/components/styles';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {ConversationViewContent} from 'sentry/views/explore/conversations/components/conversationView';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
@@ -14,39 +16,40 @@ function useConversationDetailQueryState() {
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
-      start: parseAsInteger,
-      end: parseAsInteger,
     },
     {history: 'replace'}
   );
 }
 
 function ConversationDetailPage() {
+  const organization = useOrganization();
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
-  const conversation = useMemo(
-    () => ({
-      conversationId,
-      startTimestamp: queryState.start ?? undefined,
-      endTimestamp: queryState.end ?? undefined,
-    }),
-    [conversationId, queryState.start, queryState.end]
-  );
+  const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
   const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
 
+  useEffect(() => {
+    trackAnalytics('conversations.detail.page-view', {
+      organization,
+    });
+  }, [organization, conversationId]);
+
   const handleSelectSpan = useCallback(
     (spanId: string) => {
+      trackAnalytics('conversations.detail.select-span', {
+        organization,
+      });
       setQueryState({spanId, focusedTool: null});
     },
-    [setQueryState]
+    [organization, setQueryState]
   );
 
   return (
-    <ExploreBodyContent>
-      <Stack flex={1} padding="md 2xl" gap="md">
-        <Flex direction="column" gap="md" padding="0 0 xl 0">
+    <ViewportConstrainedPage background="secondary">
+      <Stack flex={1} minHeight="0" overflow="hidden" padding="md 2xl" gap="md">
+        <Flex direction="column" gap="md" flexShrink={0}>
           <ConversationSummary
             nodes={nodes}
             nodeTraceMap={nodeTraceMap}
@@ -63,7 +66,7 @@ function ConversationDetailPage() {
           />
         </ConversationViewContainer>
       </Stack>
-    </ExploreBodyContent>
+    </ViewportConstrainedPage>
   );
 }
 
@@ -75,6 +78,7 @@ function ConversationViewContainer({children}: {children: React.ReactNode}) {
       overflow="hidden"
       border="primary"
       radius="md"
+      background="primary"
       display="flex"
     >
       <Flex flex={1} minHeight="0" height="100%">

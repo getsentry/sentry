@@ -10,6 +10,10 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/pageFilters/persistence';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  AiQueryProvider,
+  useAiQueryContext,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -19,6 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
@@ -32,12 +37,14 @@ function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
 }
 
 function Homepage() {
+  const {addAlert} = useGlobalAlerts();
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const {getRunIdForAnalytics} = useAiQueryContext();
   const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
     makeDiscoverHomepageQueryKey(organization),
     {
@@ -116,6 +123,8 @@ function Homepage() {
 
   return (
     <Results
+      addAlert={addAlert}
+      getAiQueryRunId={getRunIdForAnalytics}
       api={api}
       loading={isLoading}
       location={location}
@@ -132,7 +141,9 @@ function Homepage() {
 export default function HomepageContainer() {
   return (
     <PageFiltersContainer skipInitializeUrlParams>
-      <Homepage />
+      <AiQueryProvider>
+        <Homepage />
+      </AiQueryProvider>
     </PageFiltersContainer>
   );
 }

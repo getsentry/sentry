@@ -8,6 +8,7 @@ from typing import Any, Optional
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry.identity.slack.provider import SlackIdentityProvider
 from sentry.integrations.base import (
@@ -162,10 +163,11 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         renderable: SlackRenderable,
         thread_ts: str,
-    ) -> None:
+    ) -> SlackResponse | None:
+        """Post a message in a thread. Returns the posted message's ts, or None on failure."""
         client = self.get_client()
         try:
-            client.chat_postMessage(
+            return client.chat_postMessage(
                 channel=channel_id,
                 blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
                 text=renderable["text"],
@@ -174,6 +176,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
+            return None
 
     def send_threaded_ephemeral_message(
         self,
@@ -275,12 +278,20 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         *,
         channel_id: str,
         thread_ts: str,
+        latest: str | None = None,
+        oldest: str | None = None,
+        inclusive: bool | None = None,
+        limit: int | None = None,
     ) -> list[dict[str, Any]]:
         return workspace.get_thread_history(
             integration_id=self.model.id,
             channel_id=channel_id,
             thread_ts=thread_ts,
             scopes=self.model.metadata.get("scopes"),
+            latest=latest,
+            oldest=oldest,
+            inclusive=inclusive,
+            limit=limit,
         )
 
     def set_thread_status(
@@ -348,10 +359,15 @@ class SlackIntegrationProvider(IntegrationProvider):
     integration_cls = SlackIntegration
 
     # some info here: https://api.slack.com/authentication/quickstart
+    # If you're adding a new scope to perform an action,
+    # you must check whether the user's app installation has the appropriate scope.
+    # This is because they may have an outdated installation of the Slack App without the new scope.
     identity_oauth_scopes = frozenset(
         [
             "channels:read",
+            SlackScope.CHANNELS_HISTORY,
             "groups:read",
+            SlackScope.GROUPS_HISTORY,
             "users:read",
             "chat:write",
             "links:read",
@@ -362,18 +378,14 @@ class SlackIntegrationProvider(IntegrationProvider):
             "chat:write.public",
             "chat:write.customize",
             "commands",
-        ]
-    )
-    # Extended scopes that require Slack marketplace approval
-    # Used by SlackStagingIntegrationProvider
-    extended_oauth_scopes = frozenset(
-        [
-            SlackScope.CHANNELS_HISTORY,
-            SlackScope.GROUPS_HISTORY,
             SlackScope.APP_MENTIONS_READ,
             SlackScope.ASSISTANT_WRITE,
         ]
     )
+    # Stage new scopes here to test them via SlackStagingIntegrationProvider
+    # (which unions these into its install scopes) before promoting to
+    # identity_oauth_scopes. Empty in steady state.
+    staging_oauth_scopes: frozenset[str] = frozenset()
     user_scopes = frozenset(
         [
             "links:read",

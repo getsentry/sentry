@@ -206,7 +206,7 @@ export function SentryAppDetailsModal(props: Props) {
                     hasAccess && (
                       <Button
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                         disabled={isInstalled || disabled}
                         onClick={() => installMutation.mutate()}
                         style={{marginLeft: theme.space.md}}

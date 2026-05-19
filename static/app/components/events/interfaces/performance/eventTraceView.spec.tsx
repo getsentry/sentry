@@ -13,6 +13,10 @@ import {
 
 import {EventTraceView} from './eventTraceView';
 
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
+
 describe('EventTraceView', () => {
   const traceId = 'this-is-a-good-trace-id';
   const {organization} = initializeData({

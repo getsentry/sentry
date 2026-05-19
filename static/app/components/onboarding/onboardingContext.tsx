@@ -12,7 +12,7 @@ import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptio
  * Cleared by the platform features step when the platform changes, so
  * stale inputs don't carry across platform selections.
  */
-export interface ProjectDetailsFormState {
+interface ProjectDetailsFormState {
   alertRuleConfig?: AlertRuleOptions;
   projectName?: string;
   teamSlug?: string;
@@ -72,9 +72,10 @@ type ProviderProps = {
 };
 
 export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
-  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
-    OnboardingSessionState | undefined
-  >('onboarding', initialValue);
+  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage(
+    'onboarding',
+    initialValue
+  );
 
   const contextValue = useMemo(
     () => ({

@@ -342,6 +342,60 @@ class RouteSlackSeerEventTest(TestCase):
             SeerSlackHaltReason.IDENTITY_NOT_LINKED
         )
 
+    @patch("sentry.middleware.integrations.tasks.send_halt_message")
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
+    def test_caches_payload_on_identity_not_linked(
+        self, mock_resolve: MagicMock, mock_send_halt: MagicMock
+    ) -> None:
+        from sentry.integrations.messaging.metrics import SeerSlackHaltReason
+        from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+        from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
+        from sentry.seer.entrypoints.types import SeerEntrypointKey
+
+        mock_resolve.return_value = SeerResolutionResult(
+            organization_id=None, halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
+        )
+
+        self._run_task()
+
+        cached = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
+            entrypoint_key=str(SeerEntrypointKey.SLACK),
+            integration_id=self.integration.id,
+            user_ext_id="U_SLACK",
+        )
+        assert cached is not None
+        assert cached["integration_id"] == self.integration.id
+        assert cached["slack_user_id"] == "U_SLACK"
+        assert cached["channel_id"] == "C1"
+        assert cached["thread_ts"] == "100.000"
+        assert cached["message_ts"] == "123.456"
+        assert cached["event_type"] == "app_mention"
+        assert cached["message_text"] == "hello"
+        assert cached["payload"] == self.payload
+
+    @patch("sentry.middleware.integrations.tasks.send_halt_message")
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
+    def test_does_not_cache_on_other_halt_reasons(
+        self, mock_resolve: MagicMock, mock_send_halt: MagicMock
+    ) -> None:
+        from sentry.integrations.messaging.metrics import SeerSlackHaltReason
+        from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+        from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
+        from sentry.seer.entrypoints.types import SeerEntrypointKey
+
+        mock_resolve.return_value = SeerResolutionResult(
+            organization_id=None, halt_reason=SeerSlackHaltReason.NO_VALID_ORGANIZATION
+        )
+
+        self._run_task()
+
+        cached = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
+            entrypoint_key=str(SeerEntrypointKey.SLACK),
+            integration_id=self.integration.id,
+            user_ext_id="U_SLACK",
+        )
+        assert cached is None
+
     @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
     def test_missing_integration_is_noop(self, mock_resolve: MagicMock) -> None:
         self._run_task(integration_id=99999)

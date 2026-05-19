@@ -12,7 +12,7 @@ from sentry.integrations.tasks import should_comment_sync
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.types.activity import ActivityType
 
@@ -20,10 +20,10 @@ from sentry.types.activity import ActivityType
 @instrumented_task(
     name="sentry.integrations.tasks.create_comment",
     namespace=integrations_tasks,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=5, delay=60 * 5, on=(Exception,), ignore=(Integration.DoesNotExist,)),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(Integration.DoesNotExist,),
 )
-@retry(exclude=(Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:
     try:
         external_issue = ExternalIssue.objects.get(id=external_issue_id)

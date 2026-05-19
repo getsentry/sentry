@@ -177,6 +177,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     return false;
   };
 
+  const topResultsCount = topEvents ? Math.min(result.data?.length ?? 0, topEvents) : 0;
+
   const isPending = result.isPending && !isMetricOptionsEmpty;
 
   return (
@@ -193,7 +195,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
             null;
           const func = parseFunction(field);
           if (field === TraceMetricKnownFieldKey.METRIC_NAME) {
-            label = t('Metric');
+            label = t('Application Metric');
           } else if (func) {
             label = `${func.name}(…)`;
           } else if (tag) {
@@ -246,7 +248,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
             return (
               <SimpleTable.Row key={i} style={{minHeight: '33px'}}>
                 {topEvents && i < topEvents && (
-                  <StyledTopResultsIndicator count={topEvents} index={i} />
+                  <StyledTopResultsIndicator count={topResultsCount} index={i} />
                 )}
                 {displayFields.map((field, j) => (
                   <AggregatesStyledRowCell

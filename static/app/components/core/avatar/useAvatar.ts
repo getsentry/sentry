@@ -88,7 +88,7 @@ function useImageSrc(definition?: ImageDefinition): {
   const {data: avatarHash} = useQuery({
     queryKey: ['gravatar', trimmedGravatarId],
     queryFn: () => {
-      if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
+      if (!trimmedGravatarId || window.crypto?.subtle?.digest === undefined) {
         return null;
       }
       return hashGravatarId(trimmedGravatarId).catch(err => {
@@ -174,9 +174,10 @@ function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
 
   // Use Array.from as slicing and substring() work on ucs2 segments which
   // results in only getting half of any 4+ byte character.
-  let initials = Array.from(words[0]!)[0]!;
+
+  let initials = Array.from(words[0] ?? '')[0] ?? '';
   if (words.length > 1) {
-    initials += Array.from(words[words.length - 1]!)[0]!;
+    initials += Array.from(words[words.length - 1] ?? '')[0] ?? '';
   }
   return initials.toUpperCase() as Tagged<string, '__avatar'>;
 }

@@ -31,15 +31,15 @@ export function canUseTransactionMetricsData(
 
 export function getTransactionMEPParamsIfApplicable(
   mepSetting: MetricsEnhancedSettingContext,
-  mepCardinality: MetricsCardinalityContext,
+  mepCardinality: MetricsCardinalityContext | undefined,
   organization: Organization
 ) {
   if (!canUseMetricsData(organization)) {
-    return undefined;
+    return;
   }
 
-  if (mepCardinality.outcome?.forceTransactionsOnly) {
-    return undefined;
+  if (mepCardinality?.outcome?.forceTransactionsOnly) {
+    return;
   }
 
   return getMEPQueryParams(mepSetting, true);

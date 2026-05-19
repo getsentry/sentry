@@ -15,7 +15,7 @@ import {
   type EventTransaction,
 } from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type EventEntryContentProps = {
   entry: Entry;
@@ -108,9 +108,9 @@ export function Entries({
           <ErrorBoundary
             key={entryIdx}
             customComponent={() => (
-              <InterimSection type={entry.type} title={entry.type}>
+              <FoldSection sectionKey={entry.type} title={entry.type}>
                 <p>{t('There was an error rendering this data.')}</p>
-              </InterimSection>
+              </FoldSection>
             )}
           >
             <EventEntryContent

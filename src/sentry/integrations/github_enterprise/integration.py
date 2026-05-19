@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
@@ -38,6 +38,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -48,7 +49,12 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiPaginationTruncated,
+    IntegrationError,
+)
 from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -57,10 +63,16 @@ from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 
+def _api_base_url(url: str) -> str:
+    if url == "github.com" or url.endswith(".ghe.com"):
+        return f"https://api.{url}"
+    return f"https://{url}/api/v3"
+
+
 def get_user_info(url, access_token):
     with http.build_session() as session:
         resp = session.get(
-            f"https://{url}/api/v3/user",
+            f"{_api_base_url(url)}/user",
             headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
             verify=False,
         )
@@ -207,6 +219,25 @@ class GitHubEnterpriseIntegration(
 
     # IntegrationInstallation methods
 
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
+        if (
+            exc.json
+            and isinstance(exc.json, dict)
+            and RATE_LIMITED_MESSAGE in exc.json.get("message", "")
+        ):
+            metrics.incr("github_enterprise.link_all_repos.rate_limited_error")
+            return True
+        return False
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiForbiddenError):
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if "suspended" in str(exc):
+                return "installation_suspended"
+            return "unauthorized"
+        return super().is_broken_integration_error(exc)
+
     def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
             if exc.code is None:
@@ -227,9 +258,9 @@ class GitHubEnterpriseIntegration(
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
-        if not query:
-            all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
+        def _process(raw_repos: Iterable[Mapping[str, Any]]) -> list[RepositoryInfo]:
             return [
                 {
                     "name": i["name"],
@@ -237,9 +268,21 @@ class GitHubEnterpriseIntegration(
                     "external_id": self.get_repo_external_id(i),
                     "default_branch": i.get("default_branch"),
                 }
-                for i in all_repos
+                for i in raw_repos
                 if not i.get("archived")
             ]
+
+        if not query:
+            try:
+                all_repos = self.get_client().get_repos(
+                    page_number_limit=page_number_limit,
+                    raise_on_page_limit=raise_on_page_limit,
+                )
+            except ApiPaginationTruncated as e:
+                # Transform partial data into RepositoryInfo before re-raising
+                # so callers see the same shape regardless of truncation.
+                raise ApiPaginationTruncated(_process(e.partial_data)) from e
+            return _process(all_repos)
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
@@ -515,7 +558,9 @@ class InstallationForm(forms.Form):
     url = forms.CharField(
         label="Installation Url",
         help_text=_(
-            'The "base URL" for your GitHub enterprise instance, includes the host and protocol.'
+            'The "base URL" for your GitHub instance — e.g. https://github.com (for a '
+            "custom GitHub App on github.com), https://acme-corp.ghe.com (GitHub Enterprise "
+            "Cloud), or https://github.example.com (GitHub Enterprise Server)."
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
     )
@@ -592,7 +637,29 @@ class InstallationConfigView:
             form = InstallationForm(request.POST)
             if form.is_valid():
                 form_data = form.cleaned_data
-                form_data["url"] = urlparse(form_data["url"]).netloc
+                parsed = urlparse(form_data["url"])
+                # Tolerate input without a scheme — `urlparse("github.com").netloc` is empty
+                # and the host lands in `path`. Without this, OAuth URLs become malformed
+                # (`https:///login/...`) and the github.com flag gate below is bypassed.
+                form_data["url"] = (parsed.netloc or parsed.path).strip("/").lower()
+
+                if form_data["url"] == "github.com" and not features.has(
+                    "organizations:github-enterprise-github-com-source",
+                    pipeline.organization,
+                ):
+                    form.add_error(
+                        "url",
+                        _(
+                            "Installing on github.com is not enabled for your organization. "
+                            "Contact Sentry support to request access."
+                        ),
+                    )
+                    return render_to_response(
+                        template="sentry/integrations/github-enterprise-config.html",
+                        context={"form": form},
+                        request=request,
+                    )
+
                 if not form_data["public_link"]:
                     form_data["public_link"] = None
 
@@ -696,9 +763,10 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 )
             )
         )
+        base = _api_base_url(installation_data["url"])
         with http.build_session() as session:
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/app/installations/{installation_id}",
+                f"{base}/app/installations/{installation_id}",
                 headers=headers,
                 verify=installation_data["verify_ssl"],
             )
@@ -706,7 +774,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             installation_resp = resp.json()
 
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/user/installations",
+                f"{base}/user/installations",
                 headers={
                     "Accept": GITHUB_API_ACCEPT_HEADER,
                     "Authorization": f"token {access_token}",
@@ -776,6 +844,9 @@ class GitHubEnterpriseInstallationRedirect:
 
         url = installation_data.get("url")
         name = installation_data.get("name")
+        # github.com uses /apps/{name}; GHES uses /github-apps/{name}.
+        if url == "github.com":
+            return f"https://{url}/apps/{name}"
         return f"https://{url}/github-apps/{name}"
 
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:

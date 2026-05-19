@@ -15,11 +15,9 @@ import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -30,6 +28,7 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,
@@ -42,8 +41,8 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
-  LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
@@ -57,7 +56,10 @@ import {
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
+import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
+import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -83,6 +85,7 @@ import {
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
+  analyticsPageSource: LogsAnalyticsPageSource;
   additionalData?: {
     event?: Event;
     scrollToDisabled?: boolean;
@@ -105,6 +108,8 @@ type LogsTableProps = {
     filteredItems: OurLogsResponseItem[];
   };
   numberAttributes?: TagCollection;
+  showCellActions?: boolean;
+  showExploreSimilarSpansLink?: boolean;
   stringAttributes?: TagCollection;
 };
 
@@ -117,12 +122,15 @@ export function LogsInfiniteTable({
   expanded,
   localOnlyItemFilters,
   emptyRenderer,
+  analyticsPageSource,
   numberAttributes,
   stringAttributes,
   booleanAttributes,
   embeddedStyling,
   embeddedOptions,
   additionalData,
+  showCellActions,
+  showExploreSimilarSpansLink,
 }: LogsTableProps) {
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
@@ -222,7 +230,7 @@ export function LogsInfiniteTable({
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
-  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
+  const [expandedLogRows, setExpandedLogRows] = useState(
     new Set(embeddedOptions?.openWithExpandedIds)
   );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
@@ -233,17 +241,6 @@ export function LogsInfiniteTable({
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.slice(),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths: {
-        [OurLogKnownFieldKey.MESSAGE]: 'minmax(90px,1fr)',
-      },
-    }
-  );
 
   const estimateSize = useCallback(
     (index: number) => {
@@ -355,6 +352,25 @@ export function LogsInfiniteTable({
 
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 
+  const [staticColumnWidths, clearColumnWidths] = useLogsTableColumnWidths({
+    fields,
+    tableRef,
+    isPending,
+    isScrolling,
+    dataLength: data?.length ?? 0,
+  });
+
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths,
+      onResizeEnd: clearColumnWidths,
+    }
+  );
+
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
       setTimeout(() => {
@@ -455,7 +471,12 @@ export function LogsInfiniteTable({
         <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
-          {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
+          {isEmpty &&
+            (emptyRenderer ? (
+              emptyRenderer()
+            ) : (
+              <LogsEmptyResults analyticsPageSource={analyticsPageSource} />
+            ))}
         </Flex>
       </Fragment>
     );
@@ -478,6 +499,7 @@ export function LogsInfiniteTable({
         height="100%"
         hideBorder={embedded}
         data-test-id="logs-table"
+        minWidth={calculateLogsTableMinWidth(fields.length)}
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (
@@ -510,7 +532,8 @@ export function LogsInfiniteTable({
             (emptyRenderer ? (
               emptyRenderer()
             ) : (
-              <EmptyRenderer
+              <LogsEmptyResults
+                analyticsPageSource={analyticsPageSource}
                 bytesScanned={bytesScanned}
                 canResumeAutoFetch={canResumeAutoFetch}
                 resumeAutoFetch={resumeAutoFetch}
@@ -544,6 +567,8 @@ export function LogsInfiniteTable({
                   logEnd={logEnd}
                   isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
                   onExpandHeight={handleExpandHeight}
+                  showCellActions={showCellActions}
+                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                 />
               </Fragment>
             );
@@ -634,8 +659,16 @@ function LogsTableHeader({
                   isFrozen
                     ? undefined
                     : () => {
-                        const kind = direction === 'desc' ? 'asc' : 'desc';
-                        setSortBys([{field, kind}]);
+                        switch (direction) {
+                          case 'asc':
+                            setSortBys([logsTimestampDescendingSortBy]);
+                            break;
+                          case 'desc':
+                            setSortBys([{field, kind: 'asc'}]);
+                            break;
+                          default:
+                            setSortBys([{field, kind: 'desc'}]);
+                        }
                       }
                 }
                 isFrozen={isFrozen}
@@ -667,64 +700,6 @@ function LogsTableHeader({
         })}
       </LogTableRow>
     </TableHead>
-  );
-}
-
-function EmptyRenderer({
-  bytesScanned,
-  canResumeAutoFetch,
-  resumeAutoFetch,
-}: {
-  bytesScanned?: number;
-  canResumeAutoFetch?: boolean;
-  resumeAutoFetch?: () => void;
-}) {
-  if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
-    return (
-      <TableStatus>
-        <EmptyStateWarning withIcon variant="accent">
-          <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
-          <EmptyStateText size="md">
-            {tct(
-              'We scanned [bytesScanned] so far but have not found anything matching your filters',
-              {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
-            )}
-          </EmptyStateText>
-          <EmptyStateText size="md">
-            {t('We can keep digging or you can narrow down your search.')}
-          </EmptyStateText>
-          <Container paddingTop="md">
-            <Button
-              priority="default"
-              onClick={resumeAutoFetch}
-              aria-label={t('continue scanning')}
-            >
-              {t('Continue Scanning')}
-            </Button>
-          </Container>
-        </EmptyStateWarning>
-      </TableStatus>
-    );
-  }
-
-  return (
-    <TableStatus>
-      <EmptyStateWarning withIcon variant="accent">
-        <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
-        <EmptyStateText size="md">
-          {tct(
-            'Try adjusting your filters or get started with sending logs by checking these [instructions].',
-            {
-              instructions: (
-                <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
-                  {t('instructions')}
-                </ExternalLink>
-              ),
-            }
-          )}
-        </EmptyStateText>
-      </EmptyStateWarning>
-    </TableStatus>
   );
 }
 

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import type {
@@ -5,6 +6,66 @@ import type {
   NoneOfTheseItem,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+
+function extractErrorReason(err: Error): string {
+  if (err instanceof RequestError) {
+    const detail = err.responseJSON?.detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    if (detail?.message) {
+      return detail.message;
+    }
+  }
+  return err.message;
+}
+
+export function trackAiQueryOutcome({
+  dataset,
+  mode,
+  orgSlug,
+  referrer,
+  resultCount,
+  runId,
+  error = false,
+}: {
+  dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
+  mode: Mode | 'samples' | 'aggregate';
+  orgSlug: string;
+  referrer: string;
+  resultCount: number;
+  runId: number;
+  error?: string | boolean | Error;
+}) {
+  const outcome = error
+    ? 'error_on_load'
+    : resultCount > 0
+      ? 'has_results'
+      : 'empty_results';
+  const errorReason =
+    typeof error === 'string'
+      ? error
+      : error instanceof Error
+        ? extractErrorReason(error)
+        : undefined;
+  const attributes = {
+    dataset,
+    mode: mode.toString(),
+    org_slug: orgSlug,
+    referrer,
+    run_id: runId,
+    outcome,
+    error_reason: errorReason,
+  };
+
+  Sentry.logger.info('assisted_query.outcome', {
+    ...attributes,
+    result_count: resultCount,
+  });
+  Sentry.metrics.distribution('assisted_query.outcome', resultCount, {attributes});
+}
 
 export function isNoneOfTheseItem(
   item: AskSeerSearchItems<any>

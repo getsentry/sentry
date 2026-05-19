@@ -62,19 +62,9 @@ export function IssuesSecondaryNavigation() {
                 {t('User Feedback')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {organization.features.includes('seer-autopilot') && (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/instrumentation/`}
-                  analyticsItemName="issues_instrumentation"
-                >
-                  {t('Instrumentation')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {organization.features.includes('seer-issue-view') && (
+        {organization.features.includes('autofix-on-explorer') && (
           <Fragment>
             <SecondaryNavigation.Separator />
             <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>

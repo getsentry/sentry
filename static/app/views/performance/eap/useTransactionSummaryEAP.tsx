@@ -1,10 +1,10 @@
-import {useOrganization} from 'sentry/utils/useOrganization';
-
 /**
  * Determines whether we should render the new EAP-based Transaction Summary Page.
+ *
+ * The flag this used to gate (`performance-transaction-summary-eap`) was at
+ * 100% rollout and has been removed. The hook is kept for now so callers can
+ * be cleaned up incrementally — it always returns true.
  */
 export const useTransactionSummaryEAP = (): boolean => {
-  const organization = useOrganization();
-
-  return organization.features.includes('performance-transaction-summary-eap');
+  return true;
 };

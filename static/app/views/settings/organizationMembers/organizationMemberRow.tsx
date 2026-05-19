@@ -7,8 +7,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {Confirm} from 'sentry/components/confirm';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -35,8 +35,8 @@ type State = {
   busy: boolean;
 };
 
-const DisabledMemberTooltip = HookOrDefault({
-  hookName: 'component:disabled-member-tooltip',
+const DisabledMemberTooltip = OverrideOrDefault({
+  overrideName: 'component:disabled-member-tooltip',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
@@ -159,7 +159,7 @@ export class OrganizationMemberRow extends PureComponent<Props, State> {
               {!isInviting && !isInviteSuccessful && (
                 <Button
                   disabled={!canAddMembers && !canEditInvite}
-                  priority="primary"
+                  variant="primary"
                   size="sm"
                   onClick={this.handleSendInvite}
                 >
@@ -229,7 +229,7 @@ export class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="sm" icon={<IconClose />}>
+                <Button variant="danger" size="sm" icon={<IconClose />}>
                   {t('Leave')}
                 </Button>
               </Confirm>

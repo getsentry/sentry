@@ -1,4 +1,6 @@
+import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
@@ -46,6 +48,10 @@ describe('StreamlinedActivitySection', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     localStorage.clear();
   });
 
@@ -105,6 +111,42 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
+  });
+
+  it('uses loaded members for mentions in the drawer comment input', async () => {
+    const mentionedUser = UserFixture({id: '42', name: 'Jane Doe'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: mentionedUser}],
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-4',
+        user: UserFixture({id: '2'}),
+        type: 'note',
+        data: {text: '@Jane Doe'},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(<StreamlinedActivitySection group={group} isDrawer />);
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@jane');
+    await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Submit comment'}));
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          text: '**@Jane Doe** ',
+          mentions: ['user:42'],
+        },
+      })
+    );
   });
 
   it('renders note and allows for delete', async () => {
@@ -263,7 +305,7 @@ describe('StreamlinedActivitySection', () => {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', () => {
+  it('does not collapse activity when rendered in the drawer', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -283,14 +325,14 @@ describe('StreamlinedActivitySection', () => {
 
     for (const activity of activities) {
       expect(
-        screen.getByText((activity.data as {text: string}).text)
+        await screen.findByText((activity.data as {text: string}).text)
       ).toBeInTheDocument();
     }
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('filters comments correctly', () => {
+  it('filters comments correctly', async () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -323,7 +365,7 @@ describe('StreamlinedActivitySection', () => {
         expect(screen.queryByText('Resolved')).not.toBeInTheDocument();
       } else {
         expect(
-          screen.getByText((activity.data as {text: string}).text)
+          await screen.findByText((activity.data as {text: string}).text)
         ).toBeInTheDocument();
       }
     }
@@ -375,5 +417,111 @@ describe('StreamlinedActivitySection', () => {
     render(<StreamlinedActivitySection group={resolvedGroup} />);
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
+  });
+
+  it('renders referenced in commit activity', async () => {
+    const referencedGroup = GroupFixture({
+      id: '1341',
+      activity: [
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={referencedGroup} />);
+    expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
+    expect(screen.getByText('f7f395d')).toBeInTheDocument();
+  });
+
+  it('renders Seer activity when feature flag is enabled', async () => {
+    const seerGroup = GroupFixture({
+      id: '1342',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerGroup} />, {organization: org});
+    expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
+  });
+
+  it('hides Seer activity when feature flag is disabled', () => {
+    const seerGroup = GroupFixture({
+      id: '1343',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={seerGroup} />);
+    expect(screen.queryByText('Root Cause Analysis')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer completed root cause analysis')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders Seer PR created activity with link', async () => {
+    const seerPrGroup = GroupFixture({
+      id: '1344',
+      activity: [
+        {
+          type: GroupActivityType.SEER_PR_CREATED,
+          id: 'seer-pr-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            run_id: 456,
+            pull_requests: [
+              {
+                provider: 'github',
+                pull_request: {
+                  pr_number: 42,
+                  pr_url: 'https://github.com/org/repo/pull/42',
+                },
+                repo_name: 'org/repo',
+              },
+            ],
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerPrGroup} />, {organization: org});
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repo/pull/42'
+    );
+    expect(screen.getByText(/org\/repo/)).toBeInTheDocument();
   });
 });

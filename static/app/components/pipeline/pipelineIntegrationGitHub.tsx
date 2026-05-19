@@ -6,10 +6,10 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t, tn} from 'sentry/locale';
-import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/hooks';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/overrides';
 
 import type {OAuthCallbackData} from './shared/oauthLoginStep';
 import {OAuthLoginStep} from './shared/oauthLoginStep';
@@ -127,8 +127,8 @@ function DefaultGitHubMultiOrgInstall({
   );
 }
 
-const GitHubMultiOrgInstall = HookOrDefault({
-  hookName: 'component:scm-github-multi-org-install',
+const GitHubMultiOrgInstall = OverrideOrDefault({
+  overrideName: 'component:scm-github-multi-org-install',
   defaultComponent: DefaultGitHubMultiOrgInstall,
 });
 
@@ -243,7 +243,7 @@ function FreshInstallSteps({
         {t('Install the Sentry GitHub App on a GitHub organization to get started.')}
       </Text>
       {popupBlockedNotice}
-      <Button size="sm" priority="primary" onClick={onInstall} disabled={installDisabled}>
+      <Button size="sm" variant="primary" onClick={onInstall} disabled={installDisabled}>
         {t('Install GitHub App')}
       </Button>
     </Stack>

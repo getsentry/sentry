@@ -33,6 +33,7 @@ class SeerSlackRendererTest(TestCase):
         steps: list[str] | None = None,
         changes: list[SeerAutofixCodeChange] | None = None,
         pull_requests: list[SeerAutofixPullRequest] | None = None,
+        handoff_target: str | None = None,
     ) -> SeerAutofixUpdate:
         return SeerAutofixUpdate(
             run_id=MOCK_RUN_ID,
@@ -45,6 +46,7 @@ class SeerSlackRendererTest(TestCase):
             steps=steps or [],
             changes=changes or [],
             pull_requests=pull_requests or [],
+            handoff_target=handoff_target,
         )
 
     def test_render_footer_blocks_with_has_complete_stage(self) -> None:
@@ -73,6 +75,29 @@ class SeerSlackRendererTest(TestCase):
         assert isinstance(section_block, SectionBlock)
         assert section_block.text is not None
         assert working_text in section_block.text.text
+
+    def test_render_footer_blocks_with_handoff_target_uses_handoff_text(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            handoff_target="cursor_background_agent",
+        )
+        config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
+
+        working = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=False)
+        assert len(working) == 1
+        working_section = working[0]
+        assert isinstance(working_section, SectionBlock)
+        assert working_section.text is not None
+        assert "Cursor" in working_section.text.text
+        # Generic stopping-point text is suppressed when a handoff target is set.
+        assert config["working_text"] not in working_section.text.text
+
+        completed = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
+        completed_section = completed[0]
+        assert isinstance(completed_section, SectionBlock)
+        assert completed_section.text is not None
+        assert "Cursor" in completed_section.text.text
+        assert config["completed_text"] not in completed_section.text.text
 
     def test_render_footer_blocks_with_extra_text(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
@@ -167,6 +192,26 @@ class SeerSlackRendererTest(TestCase):
             if isinstance(e, LinkButtonElement) and e.text is not None and "PR" in e.text.text
         ]
         assert len(pr_buttons) == 2
+
+    def test_render_autofix_update_root_cause_with_handoff_target(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            summary="Test summary",
+            handoff_target="cursor_background_agent",
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data)
+
+        actions_block = next((b for b in renderable["blocks"] if isinstance(b, ActionsBlock)), None)
+        assert actions_block is not None
+        # Link button + handoff button (next-stage trigger is suppressed).
+        assert len(actions_block.elements) == 2
+        assert isinstance(actions_block.elements[0], LinkButtonElement)
+        handoff_button = actions_block.elements[1]
+        assert isinstance(handoff_button, ButtonElement)
+        assert handoff_button.text is not None
+        assert handoff_button.text.text == "Hand off to Cursor"
+        assert handoff_button.action_id is not None
+        assert handoff_button.action_id.startswith("seer_autofix_handoff::")
 
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",

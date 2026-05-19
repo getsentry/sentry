@@ -47,7 +47,7 @@ export function CopyMarkdownButton({
       position="auto"
     >
       <Button
-        priority={borderless ? 'transparent' : undefined}
+        variant={borderless ? 'transparent' : undefined}
         icon={<IconCopy />}
         analyticsEventKey="setup_guide.copy_as_markdown"
         analyticsEventName="Setup Guide: Copy as Markdown"

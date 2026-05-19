@@ -4,6 +4,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -12,10 +13,9 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -43,13 +43,13 @@ import {MembersFilter} from './components/membersFilter';
 import {InviteRequestRow} from './inviteRequestRow';
 import {OrganizationMemberRow} from './organizationMemberRow';
 
-const MemberListHeader = HookOrDefault({
-  hookName: 'component:member-list-header',
+const MemberListHeader = OverrideOrDefault({
+  overrideName: 'component:member-list-header',
   defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
 });
 
-const InviteMembersButtonHook = HookOrDefault({
-  hookName: 'member-invite-button:customization',
+const InviteMembersButtonHook = OverrideOrDefault({
+  overrideName: 'member-invite-button:customization',
   defaultComponent: ({children, organization, onTriggerModal}) => {
     const isSsoRequired = organization.requiresSso;
     const disabled = isSsoRequired || !organization.features.includes('invite-members');
@@ -308,8 +308,8 @@ function OrganizationMembersList() {
   const membersToShow = useMemo(
     () =>
       isDemoModeActive()
-        ? members.filter(m => m).filter(({email}) => email === currentUser.email)
-        : members.filter(m => m),
+        ? members.filter(Boolean).filter(({email}) => email === currentUser.email)
+        : members.filter(Boolean),
     [members, currentUser.email]
   );
 
@@ -461,7 +461,7 @@ function InviteMembersButton({
 }) {
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"

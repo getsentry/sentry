@@ -38,7 +38,7 @@ const proxyLegacyBrowserHistory: ProxyHandler<History> = {
 
       return () => {};
     }
-    return undefined;
+    return;
   },
 };
 
@@ -55,6 +55,8 @@ const proxyLegacyBrowserHistory: ProxyHandler<History> = {
  *
  * browserHistory.push({...location, query: {someKey: 1}})
  * navigate({...location, query: {someKey: 1}})
+ *
+ * See https://github.com/getsentry/frontend-tsc/issues/78
  */
 export let browserHistory = new Proxy({} as History, proxyLegacyBrowserHistory);
 

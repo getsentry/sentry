@@ -41,7 +41,7 @@ def build_webhook_payload(
     except PreprodArtifact.DoesNotExist:
         logger.warning(
             "preprod.size_analysis.webhook.artifact_not_found",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return None
 
@@ -55,7 +55,7 @@ def build_webhook_payload(
     except SizeAnalysisSummaryBuildError:
         logger.exception(
             "preprod.size_analysis.webhook.build_error",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return None
 
@@ -75,7 +75,7 @@ def send_size_analysis_webhook(
         if payload is None:
             logger.info(
                 "preprod.size_analysis.webhook.no_payload",
-                extra={"artifact_id": artifact.id},
+                extra={"preprod_artifact_id": artifact.id},
             )
             return
 
@@ -89,7 +89,7 @@ def send_size_analysis_webhook(
         logger.exception(
             "preprod.size_analysis.webhook.failed",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "organization_id": organization_id,
             },
         )

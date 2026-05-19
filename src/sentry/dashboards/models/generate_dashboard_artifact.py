@@ -15,7 +15,6 @@ DISPLAY_TYPE_BLOCKLIST: set[str] = {
     "rage_and_dead_clicks",
     "wheel",
     "agents_traces_table",
-    "stacked_area",
 }
 
 # Most of these are deprecated, not selectable in the UI, or don't make sense for generated dashboards.
@@ -50,7 +49,26 @@ class GeneratedWidgetQuery(BaseModel):
     )
     aggregates: list[str] = Field(
         default=[],
-        description="Aggregate function expressions to compute. For chart widgets these are the Y-axis values; for table widgets they become data columns alongside columns[]. Valid aggregate function values vary by dataset type. Do not make up functions or use unsupported functions.",
+        description=(
+            "Aggregate function expressions to compute. For chart widgets these are the Y-axis "
+            "values; for table widgets they become data columns alongside columns[]. Valid "
+            "aggregate function values vary by dataset type. Do not make up functions or use "
+            "unsupported functions.\n\n"
+            "For the 'tracemetrics' widget_type, aggregates have a SPECIAL multi-argument form: "
+            "`func(attribute, metric_name, metric_type)` where attribute must be `value` "
+            "(the numeric value of the metric; no other attributes are supported at this time), "
+            "metric_name is the metric's name as ingested, and "
+            "metric_type is one of 'counter', 'gauge', or 'distribution'. Examples: "
+            "`count(value, my.app.requests, counter)`, "
+            "`avg(value, my.app.cpu, gauge)`, "
+            "`p95(value, my.app.latency, distribution)`. "
+            "Allowed functions for tracemetrics: count, count_unique, sum, avg, max, min, "
+            "p50, p75, p90, p95, p99. The single-argument form like `p50(my.metric)` is INVALID "
+            "for tracemetrics — the metric_name and metric_type MUST be passed as separate "
+            "positional arguments. You MUST NOT guess the metric_name or metric_type; look them "
+            "up first using the available tools (e.g. by querying the tracemetrics dataset for "
+            "distinct `metric.name` and `metric.type` values, or fetching trace-item attributes)."
+        ),
     )
     columns: list[str] = Field(
         default=[],

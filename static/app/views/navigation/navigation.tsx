@@ -8,14 +8,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {
   useCommandPaletteState,
   useCommandPaletteDispatch,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {IconSearch} from 'sentry/icons';
 import {
   IconCompass,
@@ -56,6 +55,8 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
@@ -197,7 +198,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
       <Feature
         features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
-        hookName="feature-disabled:dashboards-sidebar-item"
+        overrideName="feature-disabled:dashboards-sidebar-item"
         requireAll={false}
       >
         <NavigationTourElement
@@ -310,30 +311,30 @@ export function PrimaryNavigationFooterItems() {
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   return (
     <Fragment>
       {hasPageFrame ? (
         <PrimaryNavigation.Button
           label={
-            organization.features.includes('cmd-k-supercharged') ? (
-              <Flex gap="xs" align="center">
-                {t('Open command palette')}
-                <Hotkey value="command+k" variant="debossed" />
-              </Flex>
-            ) : (
-              t('Search support, docs and more')
-            )
+            <Flex gap="xs" align="center">
+              {t('Open command palette')}
+              <Hotkey value="mod+k" variant="debossed" />
+            </Flex>
           }
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,
             onClick: () => {
-              if (organization.features.includes('cmd-k-supercharged')) {
-                toggleCommandPalette({}, organization, state, dispatch, 'button');
-              } else {
-                openHelpSearchModal({organization});
-              }
+              toggleCommandPalette(
+                {},
+                organization,
+                state,
+                dispatch,
+                'button',
+                isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+              );
             },
           }}
         />
@@ -342,13 +343,13 @@ export function PrimaryNavigationFooterItems() {
         <PrimaryNavigationOnboarding />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:try-business" organization={organization} />
+        <Override name="sidebar:try-business" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        <Override name="sidebar:seer-config-reminder" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:billing-status" organization={organization} />
+        <Override name="sidebar:billing-status" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationServiceIncidents />

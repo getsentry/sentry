@@ -41,7 +41,7 @@ export function CustomerProjects({orgId}: Props) {
             <PlatformIcon size={16} platform={row.platform ?? 'other'} />
             <LinkButton
               external
-              priority="link"
+              variant="link"
               href={`/${orgId}/${row.slug}/`}
               icon={<IconProject size="xs" />}
               tooltipProps={{title: 'View in Sentry'}}

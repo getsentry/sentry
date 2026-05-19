@@ -1,5 +1,9 @@
 import type {Organization} from 'sentry/types/organization';
-import {generateFieldAsString, parseFunction} from 'sentry/utils/discover/fields';
+import {
+  generateFieldAsString,
+  isEquation,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -31,6 +35,10 @@ function getLocationAggregate(
   const raw = decodeScalar(query.aggregate);
   if (!raw) {
     return undefined;
+  }
+
+  if (datasetConfig.supportsEquations && isEquation(raw)) {
+    return raw;
   }
 
   const parsedAggregate = parseFunction(raw);

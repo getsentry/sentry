@@ -23,9 +23,6 @@ from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
 from sentry.web.frontend import csrf_failure, generic
-from sentry.web.frontend.accept_organization_invite_redirect import (
-    AcceptOrganizationInviteRedirectView,
-)
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -526,6 +523,11 @@ urlpatterns += [
         name="sentry-api-docs-redirect",
     ),
     re_path(
+        r"^scraps/?$",
+        RedirectView.as_view(pattern_name="stories", permanent=False),
+        name="sentry-scraps-redirect",
+    ),
+    re_path(
         r"^api/$",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
         name="sentry-api-redirect",
@@ -554,11 +556,6 @@ urlpatterns += [
         r"^accept-transfer/$",
         react_page_view,
         name="sentry-accept-project-transfer",
-    ),
-    re_path(
-        r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        AcceptOrganizationInviteRedirectView.as_view(),
-        name="sentry-accept-invite",
     ),
     re_path(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
@@ -1106,6 +1103,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/events/(?P<client_event_id>[^/]+)/$",
                     ProjectEventRedirect.as_view(),
                     name="sentry-organization-project-event-redirect",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
+                    GroupTagExportView.as_view(),
+                    name="sentry-organization-group-tag-export",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",

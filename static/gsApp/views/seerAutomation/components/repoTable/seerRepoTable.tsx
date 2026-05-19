@@ -24,6 +24,7 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {
   ListItemCheckboxProvider,
@@ -189,7 +190,7 @@ export function SeerRepoTable() {
         {isFetchingNextPage ? <LoadingIndicator mini /> : null}
 
         <LinkButton
-          priority="primary"
+          variant="primary"
           size="sm"
           to={`/settings/${organization.slug}/repos/`}
           icon={<IconOpen />}
@@ -200,7 +201,7 @@ export function SeerRepoTable() {
       <ListItemCheckboxProvider
         hits={repositories?.length ?? 0}
         knownIds={knownIds}
-        queryKey={queryOptions.queryKey}
+        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
         <TablePanel>
           <SeerRepoTableHeader

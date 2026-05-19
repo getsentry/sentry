@@ -41,7 +41,11 @@ export function InviteRequestRow({
   const {access} = organization;
   const canApprove = access.includes('member:admin');
 
-  const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
+  const overrideRenderer: InviteModalRenderFunc = ({
+    sendInvites,
+    canSend,
+    headerInfo,
+  }) => (
     <StyledPanelItem>
       <div>
         <h5 style={{marginBottom: theme.space.xs}}>
@@ -127,7 +131,7 @@ export function InviteRequestRow({
           }
         >
           <Button
-            priority="primary"
+            variant="primary"
             size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
             tooltipProps={{
@@ -155,7 +159,7 @@ export function InviteRequestRow({
       organization={organization}
       onSendInvites={() => onApprove(inviteRequest)}
     >
-      {hookRenderer}
+      {overrideRenderer}
     </InviteModalHook>
   );
 }

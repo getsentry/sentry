@@ -9,7 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
@@ -35,13 +35,13 @@ type Breakpoints = {
   xl: string;
 };
 
-const OnboardingCTAHook = HookOrDefault({
-  hookName: 'component:replay-onboarding-cta',
+const OnboardingCTAHook = OverrideOrDefault({
+  overrideName: 'component:replay-onboarding-cta',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-const OnboardingAlertHook = HookOrDefault({
-  hookName: 'component:replay-onboarding-alert',
+const OnboardingAlertHook = OverrideOrDefault({
+  overrideName: 'component:replay-onboarding-alert',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
@@ -117,10 +117,7 @@ interface SetupReplaysCTAProps {
   disabled?: boolean;
 }
 
-export function SetupReplaysCTA({
-  disabled,
-  primaryAction = 'setup',
-}: SetupReplaysCTAProps) {
+export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
   const {allMobileProj} = useAllMobileProj({});
@@ -238,7 +235,7 @@ export function SetupReplaysCTA({
             data-test-id="setup-replays-btn"
             type="button"
             onClick={() => activateSidebar()}
-            priority="primary"
+            variant="primary"
             disabled={disabled}
           >
             {t('Set Up Replays')}
@@ -262,7 +259,7 @@ export function SetupReplaysCTA({
             path: '/new/',
             organization,
           })}
-          priority="primary"
+          variant="primary"
           disabled={disabled}
         >
           {t('Create Project')}
@@ -300,7 +297,7 @@ export function SetupReplaysCTA({
             isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23699186513947-Session-Replay-FAQ" />
+                <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />
               ),
             })}
           />

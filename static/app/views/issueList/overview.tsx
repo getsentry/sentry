@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -10,13 +11,14 @@ import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
+import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {CursorHandler} from 'sentry/components/pagination';
 import {QueryCount} from 'sentry/components/queryCount';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -30,6 +32,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
@@ -47,12 +51,17 @@ import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
+import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
+import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
@@ -122,7 +131,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   return pageInt;
 };
 
-function IssueListOverview({
+function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
   title = t('Issues'),
@@ -137,7 +146,7 @@ function IssueListOverview({
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    typeof realtimeActiveCookie === 'undefined' || urlParams.viewId
+    realtimeActiveCookie === undefined || urlParams.viewId
       ? false
       : realtimeActiveCookie === 'true'
   );
@@ -149,12 +158,18 @@ function IssueListOverview({
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
-    {}
+  const organizationUsersProjectIds = useMemo(
+    () => selection.projects.map(String),
+    [selection.projects]
   );
+  const {data: memberList = {}} = useQuery({
+    ...useProjectMembersQueryOptions(organizationUsersProjectIds),
+    select: resp => indexMembersByProject(resp.json),
+  });
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -169,6 +184,8 @@ function IssueListOverview({
 
   const {data: supergroupLookup, isLoading: supergroupsLoading} =
     useSuperGroups(groupIds);
+
+  useSupergroupDrawer({lookup: supergroupLookup, memberList});
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -433,11 +450,10 @@ function IssueListOverview({
         }
 
         const hits = resp.getResponseHeader('X-Hits');
-        const newQueryCount =
-          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
         const maxHits = resp.getResponseHeader('X-Max-Hits');
         const newQueryMaxCount =
-          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+          maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const newPageLinks = resp.getResponseHeader('Link');
 
         setError(null);
@@ -446,6 +462,19 @@ function IssueListOverview({
         setQueryCount(newQueryCount);
         setQueryMaxCount(newQueryMaxCount);
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
+
+        // AI query analytics
+        const aiQueryRunId = getRunIdForAnalytics();
+        if (aiQueryRunId !== null) {
+          trackAiQueryOutcome({
+            dataset: 'issues',
+            mode: 'samples',
+            referrer: 'issues',
+            resultCount: data.length, // Can also use newQueryCount for total hits
+            orgSlug: organization.slug,
+            runId: aiQueryRunId,
+          });
+        }
 
         // Need to wait for stats request to finish before saving to cache
         await fetchStats(data.map((group: BaseGroup) => group.id));
@@ -489,6 +518,7 @@ function IssueListOverview({
     location.query,
     query,
     resumePolling,
+    getRunIdForAnalytics,
   ]);
 
   useDisableRouteAnalytics(issuesLoading);
@@ -499,6 +529,11 @@ function IssueListOverview({
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
+    total_issue_group_count: new Set(
+      Object.values(supergroupLookup)
+        .filter(sg => sg !== null)
+        .map(sg => sg.id)
+    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -552,30 +587,6 @@ function IssueListOverview({
     previousRequestParams,
     requestParams,
   ]);
-
-  // Fetch members on mount
-  useEffect(() => {
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // If the project selection has changed reload the member list and tag keys
-  // allowing autocomplete and tag sidebar to be more accurate.
-  useEffect(() => {
-    if (isEqual(previousSelection?.projects, selection.projects)) {
-      return;
-    }
-
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug, selection.projects, previousSelection?.projects]);
 
   // Cleanup
   useEffect(() => {
@@ -833,7 +844,7 @@ function IssueListOverview({
       }
     }
 
-    if ('inbox' in data && data.inbox === false) {
+    if ('inbox' in data && !data.inbox) {
       onIssueAction({
         itemIds,
         actionType: 'Reviewed',
@@ -877,78 +888,125 @@ function IssueListOverview({
 
   const hasPageFrame = useHasPageFrameFeature();
 
+  // Derive from query (URL state) not initialQuery (prop) so the hint
+  // stays accurate if the user edits the search bar.
+  const isTaxonomyView = query.includes('issue.category:');
+
+  const {data: groupSearchView} = useSelectedGroupSearchView();
+
+  useLLMContext({
+    contextHint:
+      (isTaxonomyView
+        ? 'Sentry issue feed — filtered taxonomy view. The query below contains the active category filter. '
+        : 'Sentry issue list page. ') +
+      'Shows a filterable, sortable list of grouped issues. ' +
+      'viewName is the name of the saved issue view being displayed (if any). ' +
+      'query is the current search filter (Sentry search syntax). ' +
+      'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
+      'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      'You can get issue details for aggregate stats, get event details for a specific error event, ' +
+      'and search live telemetry for related spans/errors/logs/metrics.',
+    viewName: groupSearchView?.name,
+    query,
+    sort,
+    issueCount: queryCount,
+    projectSlugs: [...new Set(groups.map(g => g.project.slug))],
+    environments: selection.environments,
+    dateRange: selection.datetime,
+    displayedIssues: [
+      'shortId|title|issueType|level|priority|events|users|firstSeen',
+      ...groups
+        .slice(0, MAX_ITEMS)
+        .map(
+          g =>
+            `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
+        ),
+    ].join('\n'),
+  });
+
   return (
-    <Stack flex={1}>
-      <IssueListCommandPaletteActions
-        query={query}
-        sort={sort}
-        onSortChange={onSortChange}
-      />
-      <IssueViewsHeader
-        selectedProjectIds={selection.projects}
-        title={title}
-        description={titleDescription}
-        realtimeActive={realtimeActive}
-        onRealtimeChange={onRealtimeChange}
-        headerActions={headerActions}
-      />
-      <StyledBody>
-        <Grid
-          area="content"
-          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}}
-        >
-          <IssuesDataConsentBanner source="issues" />
-          <IssueListFilters
-            query={query}
-            sort={sort}
-            onSortChange={onSortChange}
-            onSearch={onSearch}
-          />
-          <IssueListTable
-            selection={selection}
-            query={query}
-            queryCount={modifiedQueryCount}
-            onSelectStatsPeriod={onSelectStatsPeriod}
-            onActionTaken={onActionTaken}
-            onDelete={onDelete}
-            statsPeriod={getGroupStatsPeriod()}
-            groupIds={groupIds}
-            allResultsVisible={allResultsVisible()}
-            displayReprocessingActions={displayReprocessingActions}
-            memberList={memberList}
-            selectedProjectIds={selection.projects}
-            issuesLoading={issuesLoading || supergroupsLoading}
-            statsLoading={statsLoading}
-            supergroupLookup={supergroupLookup}
-            error={error}
-            refetchGroups={fetchData}
-            paginationCaption={
-              !issuesLoading && modifiedQueryCount > 0
-                ? tct('[start]-[end] of [total]', {
-                    start: numPreviousIssues + 1,
-                    end: numPreviousIssues + numIssuesOnPage,
-                    total: (
-                      <QueryCount
-                        hideParens
-                        hideIfEmpty={false}
-                        count={modifiedQueryCount}
-                        max={queryMaxCount || 100}
-                      />
-                    ),
-                  })
-                : null
+    <IssueSelectionProvider visibleGroupIds={groupIds}>
+      <Stack flex={1}>
+        <IssueListCommandPaletteActions
+          groupIds={groupIds}
+          query={query}
+          queryCount={modifiedQueryCount}
+          selection={selection}
+          sort={sort}
+          onSortChange={onSortChange}
+          onQueryChange={onSearch}
+          onActionTaken={onActionTaken}
+        />
+        <IssueViewsHeader
+          selectedProjectIds={selection.projects}
+          title={title}
+          description={titleDescription}
+          realtimeActive={realtimeActive}
+          onRealtimeChange={onRealtimeChange}
+          headerActions={headerActions}
+        />
+        <StyledBody>
+          <Grid
+            area="content"
+            padding={
+              hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}
             }
-            pageLinks={pageLinks}
-            onCursor={onCursorChange}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
-            issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-            pageSize={MAX_ITEMS}
-          />
-        </Grid>
-      </StyledBody>
-    </Stack>
+          >
+            <IssuesDataConsentBanner source="issues" />
+            <IssueListFilters
+              query={query}
+              sort={sort}
+              onSortChange={onSortChange}
+              onSearch={onSearch}
+            />
+            <IssueListTable
+              selection={selection}
+              query={query}
+              queryCount={modifiedQueryCount}
+              onSelectStatsPeriod={onSelectStatsPeriod}
+              onActionTaken={onActionTaken}
+              onDelete={onDelete}
+              statsPeriod={getGroupStatsPeriod()}
+              groupIds={groupIds}
+              allResultsVisible={allResultsVisible()}
+              displayReprocessingActions={displayReprocessingActions}
+              memberList={memberList}
+              selectedProjectIds={selection.projects}
+              issuesLoading={issuesLoading || supergroupsLoading}
+              statsLoading={statsLoading}
+              supergroupLookup={supergroupLookup}
+              error={error}
+              refetchGroups={fetchData}
+              paginationCaption={
+                !issuesLoading && modifiedQueryCount > 0
+                  ? tct('[start]-[end] of [total]', {
+                      start: numPreviousIssues + 1,
+                      end: numPreviousIssues + numIssuesOnPage,
+                      total: (
+                        <QueryCount
+                          hideParens
+                          hideIfEmpty={false}
+                          count={modifiedQueryCount}
+                          max={queryMaxCount || 100}
+                        />
+                      ),
+                    })
+                  : null
+              }
+              pageLinks={pageLinks}
+              onCursor={onCursorChange}
+              paginationAnalyticsEvent={paginationAnalyticsEvent}
+              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+              pageSize={MAX_ITEMS}
+            />
+          </Grid>
+        </StyledBody>
+      </Stack>
+    </IssueSelectionProvider>
   );
 }
+
+const IssueListOverview = registerLLMContext('issue-list', IssueListOverviewInner);
 
 export default Sentry.withProfiler(IssueListOverview);
 

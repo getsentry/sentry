@@ -61,6 +61,7 @@ export enum ChartType {
   BAR = 0,
   LINE = 1,
   AREA = 2,
+  HEATMAP = 3,
 }
 
 export function isChartType(value: any): value is ChartType {
@@ -189,7 +190,7 @@ export function Chart({
     }
   }
 
-  let transformedThroughput: LineSeriesOption[] | undefined = undefined;
+  let transformedThroughput: LineSeriesOption[] | undefined;
   const additionalAxis: YAXisOption[] = [];
 
   if (throughput && throughput.length > 1) {
@@ -586,12 +587,12 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-export function computeAxisMax(data: Series[], stacked?: boolean) {
+function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
     for (const serie of data) {
-      maxValue += max(serie.data.map(point => point.value)) as number;
+      maxValue += max(serie.data.map(point => point.value))!;
     }
   } else {
     maxValue = computeMax(data);
@@ -610,9 +611,9 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   } else if (magnitude <= 5) {
     scale = 0.5;
   } else if (magnitude <= 7.5) {
-    scale = 1.0;
+    scale = 1;
   } else {
-    scale = 2.0;
+    scale = 2;
   }
 
   const step = 10 ** Math.floor(power) * scale;

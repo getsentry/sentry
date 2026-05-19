@@ -7,11 +7,13 @@ from typing import Literal
 from uuid import uuid4
 
 import sentry_sdk
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.base import audit_logger
+from sentry.api.utils import to_valid_int_id_list
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.models.group import Group, GroupStatus
@@ -148,7 +150,10 @@ def schedule_tasks_to_delete_groups(
     `search_fn` refers to the `search.query` method with the appropriate
     project, org, environment, and search params already bound
     """
-    group_ids = request.GET.getlist("id")
+    try:
+        group_ids = to_valid_int_id_list("id", request.GET.getlist("id"))
+    except DRFValidationError as exc:
+        return Response({"detail": exc.detail}, status=400)
     group_list: list[Group] = []
     if group_ids:
         group_list = list(

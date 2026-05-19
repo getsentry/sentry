@@ -12,12 +12,12 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
@@ -29,9 +29,14 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
-import {canUseMetricsAlertsUI, canUseMetricsSavedQueriesUI} from './metricsFlags';
+import {
+  canUseMetricsAlertsUI,
+  canUseMetricsEquationsInAlerts,
+  canUseMetricsSavedQueriesUI,
+} from './metricsFlags';
 
 interface UseSaveAsMetricItemsOptions {
   interval: string;
@@ -43,7 +48,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
-  const id = getIdFromLocation(location);
+  const id = decodeScalar(location.query.id);
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const metricQueries = useMultiMetricsQueryParams();
@@ -113,13 +118,23 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
     }
 
     const alertsUrls = metricQueries
-      .filter(mq => isVisualizeFunction(mq.queryParams.visualizes[0]!))
+      .filter(
+        metricQuery =>
+          canUseMetricsEquationsInAlerts(organization) ||
+          isVisualizeFunction(metricQuery.queryParams.visualizes[0]!)
+      )
       .map((metricQuery, index) => {
         const visualize = metricQuery.queryParams.visualizes[0]!;
-        const yAxis = isVisualizeFunction(visualize) ? visualize.yAxis : '';
-        const func = parseFunction(yAxis);
-        const label = func ? prettifyParsedFunction(func) : yAxis;
+        const yAxis = visualize.yAxis;
+
         const query = metricQuery.queryParams.query ?? '';
+        let label = yAxis;
+        if (isVisualizeFunction(visualize)) {
+          const func = parseFunction(yAxis);
+          label = func ? prettifyParsedFunction(func) : yAxis;
+        } else if (isVisualizeEquation(visualize)) {
+          label = metricQuery.label ?? '';
+        }
 
         return {
           key: `create-alert-${index}`,
@@ -172,13 +187,15 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
             ? [
                 {
                   key: 'add-to-dashboard-all',
-                  label: t('All Metrics'),
-                  textValue: t('All Metrics'),
+                  label: t('All Application Metrics'),
+                  textValue: t('All Application Metrics'),
                   onAction: () => {
                     addToDashboard(
                       metricQueries.filter(
                         metricQuery =>
-                          !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
+                          !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) &&
+                          metricQuery.queryParams.visualizes[0]!.chartType !==
+                            ChartType.HEATMAP
                       )
                     );
                   },
@@ -187,25 +204,32 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
             : []),
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
+            const isUnsupported =
+              isVisualizeEquation(visualize) || visualize.chartType === ChartType.HEATMAP;
+            const label = isVisualizeFunction(visualize)
+              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
+                  formatTraceMetricsFunction(
+                    metricQuery.queryParams.aggregateFields
+                      .filter(isVisualize)
+                      .map(v => v.yAxis)
+                  ) as string
+                }`
+              : (metricQuery.label ?? '');
             return {
               key: `add-to-dashboard-${index}`,
-              label: `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
-                formatTraceMetricsFunction(
-                  metricQuery.queryParams.aggregateFields
-                    .filter(isVisualize)
-                    .map(v => v.yAxis)
-                ) as string
-              }`,
+              label,
               onAction: () => {
-                if (isVisualizeEquation(visualize)) {
+                if (isUnsupported) {
                   return;
                 }
                 addToDashboard(metricQuery);
               },
-              disabled: isVisualizeEquation(visualize),
+              disabled: isUnsupported,
               tooltip: isVisualizeEquation(visualize)
                 ? t('Equations cannot currently be added to a dashboard')
-                : undefined,
+                : visualize.chartType === ChartType.HEATMAP
+                  ? t('Heat maps cannot currently be added to a dashboard')
+                  : undefined,
             };
           }),
         ],

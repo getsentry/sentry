@@ -36,7 +36,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -58,6 +57,33 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
+from sentry.seer.agent.custom_tool_utils import call_custom_tool
+from sentry.seer.agent.index_data import (
+    rpc_get_issues_for_transaction,
+    rpc_get_profiles_for_trace,
+    rpc_get_trace_for_transaction,
+    rpc_get_transactions_for_project,
+)
+from sentry.seer.agent.on_completion_hook import call_on_completion_hook
+from sentry.seer.agent.tools import (
+    execute_replays_query,
+    execute_table_query,
+    execute_timeseries_query,
+    execute_trace_table_query,
+    get_baseline_tag_distribution,
+    get_comparative_attribute_distributions,
+    get_dsn,
+    get_event_details,
+    get_issue_and_event_details_v2,
+    get_issue_details,
+    get_log_attributes_for_trace,
+    get_metric_attributes_for_trace,
+    get_replay_metadata,
+    get_repository_definition,
+    get_trace_item_attributes,
+    rpc_get_profile_flamegraph,
+    rpc_get_trace_waterfall,
+)
 from sentry.seer.assisted_query.discover_tools import (
     get_event_filter_key_values,
     get_event_filter_keys,
@@ -84,43 +110,15 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
     bulk_read_preferences_from_sentry_db,
-    get_project_seer_preferences,
+    clear_preference_automation_handoff,
     read_preference_from_sentry_db,
-    resolve_repository_ids,
-    write_preference_to_sentry_db,
 )
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.custom_tool_utils import call_custom_tool
-from sentry.seer.explorer.index_data import (
-    rpc_get_issues_for_transaction,
-    rpc_get_profiles_for_trace,
-    rpc_get_trace_for_transaction,
-    rpc_get_transactions_for_project,
-)
-from sentry.seer.explorer.on_completion_hook import call_on_completion_hook
-from sentry.seer.explorer.tools import (
-    execute_table_query,
-    execute_timeseries_query,
-    execute_trace_table_query,
-    get_baseline_tag_distribution,
-    get_comparative_attribute_distributions,
-    get_dsn,
-    get_event_details,
-    get_issue_and_event_details_v2,
-    get_issue_details,
-    get_log_attributes_for_trace,
-    get_metric_attributes_for_trace,
-    get_replay_metadata,
-    get_repository_definition,
-    get_trace_item_attributes,
-    rpc_get_profile_flamegraph,
-    rpc_get_trace_waterfall,
-)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
-from sentry.seer.models.seer_api_models import SeerProjectPreference
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -129,6 +127,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +248,18 @@ class SeerRpcServiceEndpoint(Endpoint):
         seer_referrer = request.headers.get("X-Seer-Referrer")
         if seer_referrer is not None:
             sentry_sdk.set_tag("rpc.referrer", seer_referrer)
+
+        # Observe whether the caller (seer) propagated X-Viewer-Context for this
+        # method. ViewerContextMiddleware has already decoded the header into the
+        # contextvar; we pass ctx=None explicitly when the header was absent so
+        # the missing-VC signal fires (the middleware always falls back to an
+        # empty-USER ctx, which would mask "header not sent").
+        has_vc_header = bool(request.META.get("HTTP_X_VIEWER_CONTEXT"))
+        observe_viewer_context_propagation(
+            "seer_rpc_in",
+            ctx=get_viewer_context() if has_vc_header else None,
+            extra_attributes={"method": method_name},
+        )
 
         if not self._is_authorized(request):
             raise PermissionDenied
@@ -607,7 +618,6 @@ def trigger_coding_agent_launch(
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=AutofixTriggerSource(trigger_source),
-            initiator="automation.legacy",
             referrer="seer_rpc.trigger_coding_agent_launch",
         )
         return {"success": True}
@@ -621,25 +631,10 @@ def trigger_coding_agent_launch(
             },
         )
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
-            if features.has("organizations:seer-project-settings-dual-write", organization):
-                project = Project.objects.get_from_cache(id=project_id)
-
-                preference: SeerProjectPreference | None = None
-                if features.has(
-                    "organizations:seer-project-settings-read-from-sentry", organization
-                ):
-                    preference = read_preference_from_sentry_db(project)
-                else:
-                    preference = get_project_seer_preferences(project.id).preference
-
-                if preference and preference.automation_handoff is not None:
-                    updated_preference = preference.copy(update={"automation_handoff": None})
-                    resolved_preference = resolve_repository_ids(
-                        organization.id, [SeerProjectPreference.validate(updated_preference)]
-                    )[0]
-                    write_preference_to_sentry_db(project, resolved_preference)
-                    # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
+            project = Project.objects.get_from_cache(id=project_id)
+            if project.organization_id != organization_id:
+                raise Project.DoesNotExist
+            clear_preference_automation_handoff(project)
         except Exception:
             logger.exception(
                 "coding_agent.clear_handoff_preference_failed",
@@ -723,7 +718,12 @@ def validate_repo(
     if not repo:
         return {"valid": False, "reason": "repository_not_found"}
 
-    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return {"valid": False, "reason": "organization_not_found"}
+    if repo.provider not in get_supported_scm_providers(organization):
+        logger.warning("seer.scm.unsupported_provider", extra={"provider": repo.provider})
         return {"valid": False, "reason": "unsupported_provider"}
 
     return {"valid": True, "integration_id": repo.integration_id}
@@ -756,7 +756,12 @@ def get_repo_installation_id(
     if not repo:
         return {"error": "repository_not_found"}
 
-    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return {"error": "organization_not_found"}
+    if repo.provider not in get_supported_scm_providers(organization):
+        logger.warning("seer.scm.unsupported_provider", extra={"provider": repo.provider})
         return {"error": "unsupported_provider"}
 
     if repo.integration_id is None:
@@ -773,6 +778,7 @@ def get_repo_installation_id(
     elif integration.provider == IntegrationProviderSlug.GITHUB.value:
         installation_id = integration.external_id
     else:
+        logger.warning("seer.scm.unsupported_provider", extra={"provider": integration.provider})
         return {"error": "unsupported_provider"}
 
     if not installation_id:
@@ -835,15 +841,25 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
             external_id=item["external_id"],
         )
 
+    org_ids = {item["organization_id"] for item in repository_integrations}
+    orgs_by_id = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
+    supported_by_org: dict[int, set[str]] = {
+        org_id: set(get_supported_scm_providers(org)) for org_id, org in orgs_by_id.items()
+    }
+    all_supported_providers: set[str] = set()
+    for providers in supported_by_org.values():
+        all_supported_providers.update(providers)
+
     existing_repos = Repository.objects.filter(
-        q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
+        q_objects, status=ObjectStatus.ACTIVE, provider__in=all_supported_providers
     ).values_list("organization_id", "provider", "integration_id", "external_id")
 
     existing_map: dict[tuple, int | None] = {}
 
     for org_id, provider, integration_id, external_id in existing_repos:
+        if provider not in supported_by_org.get(org_id, set()):
+            continue
         key = (org_id, provider, external_id)
-        # If multiple repos match (shouldn't happen), keep the first one
         if key not in existing_map:
             existing_map[key] = integration_id
 
@@ -934,7 +950,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_event_filter_keys": get_event_filter_keys,
     "get_event_filter_key_values": get_event_filter_key_values,
     #
-    # Explorer
+    # Agent
     "get_transactions_for_project": rpc_get_transactions_for_project,
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
@@ -947,6 +963,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,
     "execute_trace_table_query": execute_trace_table_query,
+    "execute_replays_query": execute_replays_query,
     "execute_issues_query": execute_issues_query,
     "get_trace_item_attributes": get_trace_item_attributes,
     "get_repository_definition": get_repository_definition,

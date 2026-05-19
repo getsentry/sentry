@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import logging
+import time
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -10,7 +12,7 @@ from typing import Any, TypedDict
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -38,10 +40,12 @@ from sentry.integrations.source_code_management.status_check import StatusCheckC
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiError,
+    ApiPaginationTruncated,
     ApiRateLimitedError,
     UnknownHostError,
 )
@@ -207,6 +211,15 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
+    def request(self, *args: Any, **kwargs: Any):
+        credentials_set = kwargs.pop("credentials_set", None)
+        if credentials_set == "application":
+            if "headers" not in kwargs:
+                kwargs["headers"] = {}
+            kwargs["headers"]["X-Sentry-Credentials-Set"] = "application"
+
+        return super().request(*args, **kwargs)
+
     class AccessTokenData(TypedDict):
         access_token: str
         permissions: dict[str, str] | None
@@ -313,8 +326,12 @@ class GithubProxyClient(IntegrationProxyClient):
             "integration_id": getattr(self.integration, "id", "unknown"),
         }
 
+        credentials_set = prepared_request.headers.pop("X-Sentry-Credentials-Set", None)
         # Only certain routes are authenticated with JWTs....
-        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
+        if (
+            any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES)
+            or credentials_set == "application"
+        ):
             jwt = self._get_jwt()
             logger.info("token.jwt", extra=logger_extra)
             return jwt
@@ -407,7 +424,7 @@ class GitHubBaseClient(
     base_url = "https://api.github.com"
     integration_name = IntegrationProviderSlug.GITHUB.value
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
-    page_number_limit = 50  # With a default of 100 per page -> 5,000 items
+    page_number_limit = 200  # With a default of 100 per page -> 20,000 items
 
     def get_last_commits(self, repo: str, end_sha: str, per_page: int = 20) -> Sequence[Any]:
         """
@@ -642,26 +659,42 @@ class GitHubBaseClient(
 
         return should_count_error
 
-    def get_repos(self, page_number_limit: int | None = None) -> list[dict[str, Any]]:
+    def get_repos(
+        self,
+        page_number_limit: int | None = None,
+        raise_on_page_limit: bool = False,
+    ) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
+
+        When ``raise_on_page_limit`` is True, raises ``ApiPaginationTruncated`` if the
+        pagination loop exits because it hit the cap while there were still
+        more pages available.
         """
         with SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
             provider_key=self.integration_name,
             integration_id=self.integration.id,
             organization_id=self.organization_id,
-        ).capture():
-            return self._get_with_pagination(
-                "/installation/repositories",
-                response_key="repositories",
-                page_number_limit=page_number_limit,
-                api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
-            )
+        ).capture() as lifecycle:
+            try:
+                return self._get_with_pagination(
+                    "/installation/repositories",
+                    response_key="repositories",
+                    page_number_limit=page_number_limit,
+                    api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
+                    raise_on_page_limit=raise_on_page_limit,
+                )
+            except ApiPaginationTruncated as e:
+                # Hitting the pagination cap is an expected signal.
+                # Record as halt so the lifecycle doesn't create a
+                # Sentry every time this is called.
+                lifecycle.record_halt(e, create_issue=False)
+                raise
 
     def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
         """
@@ -718,6 +751,7 @@ class GitHubBaseClient(
         response_key: str | None = None,
         page_number_limit: int | None = None,
         api_request_type: GitHubApiRequestType | None = None,
+        raise_on_page_limit: bool = False,
     ) -> list[Any]:
         """
         Github uses the Link header to provide pagination links. Github
@@ -726,7 +760,11 @@ class GitHubBaseClient(
         https://docs.github.com/en/rest/guides/traversing-with-pagination
 
         Use response_key when the API stores the results within a key.
-        For instance, the repositories API returns the list of repos under the "repositories" key
+        For instance, the repositories API returns the list of repos under the "repositories" key.
+
+        When ``raise_on_page_limit`` is True and the loop exits because it hit
+        ``page_number_limit`` while Github was still advertising a next page,
+        raises ``ApiPaginationTruncated`` with the partial result attached.
         """
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
@@ -754,6 +792,12 @@ class GitHubBaseClient(
 
                 next_link = get_next_link(resp)
                 page_number += 1
+
+            if next_link and raise_on_page_limit:
+                raise ApiPaginationTruncated(
+                    output,
+                    f"pagination stopped at page_number_limit={page_number_limit}",
+                )
             return output
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
@@ -1082,7 +1126,32 @@ class _IntegrationIdParams(TypedDict, total=False):
     integration_id: int
 
 
+# TODO: Emerge Team - Update to be -> {"emerge": 0.05}.
+REFERRER_ALLOCATION: dict[str, float] = {}
+assert "shared" not in REFERRER_ALLOCATION
+
+GITHUB_RATE_LIMIT_WINDOW = 3600
+GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
+GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
+GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+
+
 class GitHubApiClient(GitHubBaseClient):
+    """
+    GitHub REST API client.
+
+    Certain referrers need reserved quota to ensure their requests are always completed. This
+    class enables that with the `referrer` context manager. This does not enforce GitHub's
+    secondary rate-limits which are not publicly known.
+
+    To use the reserved quota system you must:
+
+    1. Register your referrer in the referrer allocation dictionary.
+    2. Use the `with client.referrer(name):` expression to scope your requests to your referrer.
+        - Lower priority requests can be made outside the with block which falls back to the
+          shared quota pool.
+    """
+
     def __init__(
         self,
         integration: Integration | RpcIntegration,
@@ -1101,3 +1170,56 @@ class GitHubApiClient(GitHubBaseClient):
             logging_context=logging_context,
             **kwargs,
         )
+
+        self.__referrer = "shared"
+        self.__rate_limiter = DynamicRateLimiter(
+            get_time_in_seconds=lambda: int(time.time()),
+            integration_id=self.integration.id,
+            provider="github",
+            rate_limit_provider=RedisRateLimitProvider(),
+            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
+            referrer_allocation=REFERRER_ALLOCATION,
+        )
+
+    @contextlib.contextmanager
+    def referrer(self, referrer: str):
+        prev = self.__referrer
+        self.__referrer = referrer
+        try:
+            yield
+        finally:
+            self.__referrer = prev
+
+    def _do_send(self, *args, **kwargs) -> Response:
+        is_rate_limited = False
+        try:
+            if self.__rate_limiter.is_rate_limited(self.__referrer):
+                # For now do nothing. We'll eventually use this once we understand its behavior better.
+                # raise RateLimitExceed
+                is_rate_limited = True
+                metrics.incr("sentry.scm.github.rate_limit_exceeded")
+        except Exception as e:
+            # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
+            sentry_sdk.capture_exception(e)
+
+        response = super()._do_send(*args, **kwargs)
+
+        try:
+            capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
+            self.__rate_limiter.set_total_capacity(capacity=capacity)
+        except KeyError:
+            # GitHub didn't return rate-limit headers for some unknown reason.
+            metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
+        except Exception as e:
+            # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
+            sentry_sdk.capture_exception(e)
+
+        # QA metrics.
+        if is_rate_limited and response.status_code != 429:
+            # We thought we exceeded our rate-limit but actually we didn't.
+            metrics.incr("sentry.scm.github.rate_limit.false_positive")
+        elif response.status_code == 429 and not is_rate_limited:
+            # We thought we had capacity but actually we didn't.
+            metrics.incr("sentry.scm.github.rate_limit.false_negative")
+
+        return response

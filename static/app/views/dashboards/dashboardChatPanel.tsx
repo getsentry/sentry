@@ -12,7 +12,7 @@ import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 const MAX_CHAT_HISTORY_HEIGHT = 500;
@@ -111,7 +111,7 @@ export function DashboardChatPanel({
         <ChatHistoryToggle
           onClick={() => setIsHistoryExpanded(prev => !prev)}
           aria-expanded={isHistoryExpanded}
-          priority="transparent"
+          variant="transparent"
           disabled={!hasHistory}
         >
           <Flex align="center" gap="sm">

@@ -34,7 +34,7 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationRenderedTemplate,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -50,6 +50,12 @@ class AutofixStageConfig(TypedDict):
 MAX_STEPS = 10
 MAX_CHANGES = 5
 MAX_PRS = 3
+
+HANDOFF_TARGET_LABELS: dict[CodingAgentProviderType, str] = {
+    CodingAgentProviderType.CURSOR_BACKGROUND_AGENT: "Cursor",
+    CodingAgentProviderType.CLAUDE_CODE_AGENT: "Claude",
+    CodingAgentProviderType.GITHUB_COPILOT_AGENT: "Copilot",
+}
 
 AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
@@ -124,6 +130,27 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
+    def _render_handoff_button(
+        cls,
+        *,
+        target: CodingAgentProviderType,
+        organization_id: int,
+        project_id: int,
+    ) -> ButtonElement:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+
+        return ButtonElement(
+            text=f"Hand off to {HANDOFF_TARGET_LABELS[target]}",
+            style="primary",
+            action_id=encode_action_id(
+                action=SlackAction.SEER_AUTOFIX_HANDOFF.value,
+                organization_id=organization_id,
+                project_id=project_id,
+            ),
+        )
+
+    @classmethod
     def _render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
         return SlackRenderable(
             blocks=[
@@ -145,7 +172,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             group_link=data.group_link,
         )
         action_elements: list[InteractiveElement] = [link_button]
-        if data.has_next_trigger:
+        if data.handoff_target and data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
+            action_elements.append(
+                cls._render_handoff_button(
+                    target=data.handoff_target,
+                    organization_id=data.organization_id,
+                    project_id=data.project_id,
+                )
+            )
+        elif data.has_next_trigger:
             action_elements.append(
                 cls._render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )
@@ -251,8 +286,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         extra_text: str | None = None,
         has_complete_stage: bool = True,
     ) -> list[Block]:
-        config = AUTOFIX_CONFIG[data.current_point]
-        raw_text = config["completed_text"] if has_complete_stage else config["working_text"]
+        if data.handoff_target is not None:
+            label = HANDOFF_TARGET_LABELS[data.handoff_target]
+            raw_text = f"{label}'s got this" if has_complete_stage else f"Handing off to {label}..."
+        else:
+            config = AUTOFIX_CONFIG[data.current_point]
+            raw_text = config["completed_text"] if has_complete_stage else config["working_text"]
         markdown_text = f"_{raw_text}_"
 
         if extra_text:

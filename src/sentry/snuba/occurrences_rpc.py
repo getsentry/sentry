@@ -22,7 +22,7 @@ from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, Reso
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.rpc_utils import and_trace_item_filters
+from sentry.search.eap.rpc_utils import and_trace_item_filters, anyvalue_to_python
 from sentry.search.eap.types import (
     AdditionalQueries,
     EAPResponse,
@@ -224,7 +224,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
 
         # Group timeseries by their groupby attributes, then merge aggregates
         # This handles multiple y_axes correctly by merging them into the same rows
-        results_by_key: dict[tuple, dict[int, dict[str, Any]]] = {}
+        results_by_key: dict[tuple[tuple[str, Any], ...], dict[int, dict[str, Any]]] = {}
 
         for timeseries in rpc_response.result_timeseries:
             # Extract groupby values using public aliases
@@ -373,7 +373,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     ) -> None:
         if attribute == "issue":
             group_ids: list[int | None] = [
-                getattr(result, str(result.WhichOneof("value"))) if not result.is_null else None
+                anyvalue_to_python(result) if not result.is_null else None
                 for result in column_value.results
             ]
             group_id_to_issue_map = cls._fetch_issue_labels(

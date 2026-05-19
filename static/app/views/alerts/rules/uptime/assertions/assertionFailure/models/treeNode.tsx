@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import type {UptimeOp} from 'sentry/views/alerts/rules/uptime/types';
 
-export type ConnectorType = 'vertical' | 'horizontal';
+type ConnectorType = 'vertical' | 'horizontal';
 
 export type Connector = {
   depth: number;

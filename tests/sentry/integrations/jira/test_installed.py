@@ -14,12 +14,12 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
-    AtlassianConnectFailureReason,
     AtlassianConnectValidationError,
     get_query_hash,
 )
 from sentry.testutils.asserts import (
     assert_count_of_metric,
+    assert_failure_metric,
     assert_halt_metric,
 )
 from sentry.testutils.cases import APITestCase
@@ -57,13 +57,13 @@ class JiraInstalledTest(APITestCase):
     def jwt_token_cdn(self):
         return self._jwt_token("RS256", RS256_KEY, headers={"kid": self.kid})
 
-    def body(self) -> Mapping[str, Any]:
+    def body(self, client_key: str | None = None) -> Mapping[str, Any]:
         return {
             "jira": {
                 "metadata": {},
                 "external_id": self.external_id,
             },
-            "clientKey": "limepie",
+            "clientKey": client_key if client_key is not None else self.external_id,
             "oauthClientId": "EFG",
             "publicKey": "yourCar",
             "sharedSecret": self.shared_secret,
@@ -88,23 +88,19 @@ class JiraInstalledTest(APITestCase):
             ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
         )
 
-    @responses.activate
     def test_missing_token(self) -> None:
-        self.get_error_response(**self.body(), status_code=status.HTTP_400_BAD_REQUEST)
+        self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
 
-    @responses.activate
     def test_invalid_token(self) -> None:
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
     @patch(
-        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
-        side_effect=AtlassianConnectValidationError(
-            AtlassianConnectFailureReason.FAILED_TO_FETCH_KEY_ID
-        ),
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        side_effect=AtlassianConnectValidationError(),
     )
     @responses.activate
     def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
@@ -113,11 +109,11 @@ class JiraInstalledTest(APITestCase):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
     @patch(
-        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
         side_effect=ExpiredSignatureError(),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -135,15 +131,15 @@ class JiraInstalledTest(APITestCase):
         # SLO metric asserts
         # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (failure) -> GET_CONTROL_RESPONSE (success)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(
+        assert_failure_metric(
             mock_record_event,
-            AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN,
+            ExpiredSignatureError(),
         )
 
     @patch(
-        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
         side_effect=InvalidSignatureError(),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -165,11 +161,11 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN,
+            "JWT contained invalid signature",
         )
 
     @patch(
-        "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
         side_effect=DecodeError(),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -191,7 +187,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT,
+            "Could not decode JWT token",
         )
 
     @patch("sentry_sdk.set_tag")
@@ -209,6 +205,76 @@ class JiraInstalledTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jwt_iss_does_not_match_client_key(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) but the body
+        # carries a different tenant in clientKey. With no `jira` sub-dict
+        # build_integration falls back to clientKey for external_id, so
+        # rejecting on iss != clientKey prevents persisting a row keyed by
+        # an unsigned tenant.
+        body = dict(self.body(client_key="some-other-tenant"))
+        body.pop("jira", None)
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="some-other-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jira_external_id_does_not_match_jwt_iss(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) and clientKey
+        # matches it, but `jira.external_id` is different. Since
+        # build_integration prefers `state["jira"]["external_id"]` over
+        # clientKey, the persisted Integration.external_id must also match the
+        # signing tenant.
+        body = dict(self.body())
+        body["jira"] = {"metadata": {}, "external_id": "some-other-tenant"}
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="some-other-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jira_external_id_is_empty(self, mock_record_event: MagicMock) -> None:
+        self.add_response()
+
+        # state["jira"] is truthy but its external_id is empty. build_integration
+        # branches on state["jira"]'s truthiness, so it would persist
+        # external_id="" — the binding must reject this rather than silently
+        # fall back to clientKey for the comparison.
+        body = dict(self.body())
+        body["jira"] = {"metadata": {}, "external_id": ""}
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(provider="jira", external_id="").exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_without_key_id(self, mock_record_event: MagicMock) -> None:
         self.get_error_response(
             **self.body(),
@@ -224,7 +290,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            AtlassianConnectFailureReason.MISSING_KEY_ID,
+            "Missing key_id (kid)",
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -253,5 +319,5 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            AtlassianConnectFailureReason.INVALID_KEY_ID,
+            "JWT contained invalid key_id (kid)",
         )

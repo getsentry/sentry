@@ -36,7 +36,7 @@ function RecoveryOptionsModal({
       staleTime: 5000, // expire after 5 seconds
     }
   );
-  const [skipSms, setSkipSms] = useState<boolean>(false);
+  const [skipSms, setSkipSms] = useState(false);
 
   const {recovery, sms} = authenticators.reduce<Record<string, Authenticator>>(
     (obj, item) => {
@@ -106,7 +106,7 @@ function RecoveryOptionsModal({
             {t('Skip this step')}
           </Button>
           <LinkButton
-            priority="primary"
+            variant="primary"
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
             css={css`
@@ -121,7 +121,7 @@ function RecoveryOptionsModal({
         // get recovery codes
         <Footer>
           <LinkButton
-            priority="primary"
+            variant="primary"
             onClick={closeModal}
             to={
               recoveryEnrolled

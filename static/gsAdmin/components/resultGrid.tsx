@@ -6,13 +6,13 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Client} from 'sentry/api';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
@@ -487,7 +487,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
     return (
-      <ResultGridContainer data-test-id="result-grid">
+      <Container data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
           {needsRegion && (
             <CompactSelect
@@ -536,7 +536,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
               <Button
                 type="submit"
                 icon={<IconSearch />}
-                priority="primary"
+                variant="primary"
                 size="sm"
                 aria-label="Search"
               />
@@ -564,12 +564,10 @@ class ResultGrid extends Component<ResultGridProps, State> {
             onCursor={useQueryString ? undefined : this.onCursor}
           />
         )}
-      </ResultGridContainer>
+      </Container>
     );
   }
 }
-
-const ResultGridContainer = styled('div')``;
 
 const SortSearchForm = styled('form')`
   display: flex;
@@ -581,7 +579,7 @@ const SortSearchForm = styled('form')`
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 
@@ -595,7 +593,7 @@ const FilterList = styled('div')`
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 

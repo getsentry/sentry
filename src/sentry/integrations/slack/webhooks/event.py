@@ -7,6 +7,7 @@ from typing import Any
 
 import orjson
 import sentry_sdk
+from django.http.request import QueryDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -35,7 +36,10 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.entrypoints.slack.analytics import SlackSeerAgentConversation
-from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
+from sentry.seer.entrypoints.slack.tasks import (
+    process_mention_for_slack,
+    process_reaction_for_slack,
+)
 
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
@@ -70,11 +74,12 @@ _SEER_LOADING_MESSAGES = [
     "Hold on, I've seen this one before...",
     "It worked on my machine...",
 ]
+SEER_FEEDBACK_REACTION_PREFIXES = ("+1", "-1")
 
 
 @all_silo_endpoint  # Only challenge verification is handled at control
 class SlackEventEndpoint(SlackDMEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -128,7 +133,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {
             "channel": slack_request.channel_id,
             "user": slack_request.user_id,
-            "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
+            "text": "Link with Slack to preview charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 
@@ -225,6 +230,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 feature_flag = {
                     LinkType.DISCOVER: "organizations:discover-basic",
                     LinkType.EXPLORE: "organizations:data-browsing-widget-unfurl",
+                    LinkType.DASHBOARDS: "organizations:dashboards-widget-unfurl",
                 }.get(link_type)
 
                 if (
@@ -244,11 +250,21 @@ class SlackEventEndpoint(SlackDMEndpoint):
                         sentry_sdk.capture_exception(e)
 
                     self.prompt_link(slack_request)
-                    lifecycle.record_halt("Discover link requires identity", extra={"url": url})
+                    lifecycle.record_halt(
+                        f"{link_type.value} link requires identity", extra={"url": url}
+                    )
                     return {}
 
-                # Don't unfurl the same thing multiple times
-                seen_marker = hash(orjson.dumps((link_type, list(args))).decode())
+                # `list(args)` only captures keys, so links sharing the same
+                # arg shape (explore URLs, dashboard widgets on the same
+                # dashboard, etc.) all collided to one marker and only the
+                # first survived. Fold each value into the marker — QueryDicts
+                # via .urlencode(), everything else as-is — so unique values
+                # produce unique markers.
+                marker_args = sorted(
+                    (k, v.urlencode() if isinstance(v, QueryDict) else v) for k, v in args.items()
+                )
+                seen_marker = hash(orjson.dumps((link_type, marker_args)).decode())
                 if seen_marker in links_seen:
                     continue
 
@@ -362,7 +378,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         slack_request: SlackEventRequest,
         conversation_type: SlackSeerAgentConversation,
     ) -> Response:
-        """Shared handler for app mentions and DMs that trigger the Seer Explorer agent."""
+        """Shared handler for app mentions and DMs that trigger the Seer Agent."""
         if conversation_type == SlackSeerAgentConversation.DIRECT_MESSAGE:
             interaction_type = MessagingInteractionType.DIRECT_MESSAGE
         else:
@@ -411,7 +427,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 installation.set_thread_status(
                     channel_id=channel_id,
                     thread_ts=thread_ts or ts,
-                    status="Thinking...",
+                    status="is thinking...",
                     loading_messages=_SEER_LOADING_MESSAGES,
                 )
             except Exception:
@@ -437,6 +453,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     "text": text,
                     "slack_user_id": slack_request.user_id,
                     "bot_user_id": bot_user_id,
+                    "attachments": data.get("attachments"),
                     "conversation_type": conversation_type,
                 }
             )
@@ -511,6 +528,69 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
             return self.respond()
 
+    def on_reaction_added(self, slack_request: SlackEventRequest) -> Response:
+        """Handle reaction_added events for Seer agent message feedback."""
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.REACTION_ADDED,
+            spec=SlackMessagingSpec(),
+        ).capture() as lifecycle:
+            data = slack_request.data.get("event", {})
+            item = data.get("item", {})
+            reaction = data.get("reaction", "")
+            item_user = data.get("item_user", "")
+            channel_id = item.get("channel", "")
+            message_ts = item.get("ts", "")
+
+            if item.get("type") != "message":
+                return self.respond()
+
+            if not reaction.startswith(SEER_FEEDBACK_REACTION_PREFIXES):
+                return self.respond()
+
+            authorizations = slack_request.data.get("authorizations", [])
+            if not authorizations:
+                return self.respond()
+
+            bot_user_id = authorizations[0].get("user_id", "")
+            if not bot_user_id:
+                return self.respond()
+
+            if item_user != bot_user_id:
+                return self.respond()
+
+            lifecycle.add_extras(
+                {
+                    "integration_id": slack_request.integration.id,
+                    "reaction": reaction,
+                    "channel_id": channel_id,
+                    "message_ts": message_ts,
+                }
+            )
+            if not channel_id or not message_ts or not slack_request.user_id:
+                lifecycle.record_halt(SeerSlackHaltReason.MISSING_EVENT_DATA)
+                return self.respond()
+
+            organization_id, halt_reason = slack_request.resolve_seer_organization()
+            if halt_reason:
+                lifecycle.record_halt(halt_reason)
+                # We should consider telling the user to link their account for feedback to be it.
+                return self.respond()
+
+            if not organization_id:
+                return self.respond()
+
+            process_reaction_for_slack.apply_async(
+                kwargs={
+                    "integration_id": slack_request.integration.id,
+                    "organization_id": organization_id,
+                    "channel_id": channel_id,
+                    "message_ts": message_ts,
+                    "reaction": reaction,
+                    "reactor_slack_user_id": slack_request.user_id,
+                }
+            )
+            return self.respond()
+
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:
         try:
@@ -523,6 +603,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             return self.on_url_verification(request, slack_request.data)
 
         sentry_sdk.set_tag("slack.event_type", slack_request.type)
+
+        if slack_request.type == "reaction_added":
+            return self.on_reaction_added(slack_request)
 
         if slack_request.type == "link_shared":
             if self.on_link_shared(request, slack_request):

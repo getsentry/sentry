@@ -1,108 +1,29 @@
-import {Fragment} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {Stack} from '@sentry/scraps/layout';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
-
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
-  const hasLogsFeature = isLogsEnabled(organization);
-  const navigate = useNavigate();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
-  const items = [
-    {
-      key: 'create-query-spans',
-      label: <span>{t('Trace Query')}</span>,
-      textValue: t('Create Traces Query'),
-      onAction: () => {
-        navigate(getExploreUrl({organization, visualize: []}));
-      },
-    },
-    {
-      key: 'create-query-logs',
-      label: <span>{t('Logs Query')}</span>,
-      textValue: t('Create Logs Query'),
-      onAction: () => {
-        navigate(getLogsUrl({organization}));
-      },
-    },
-  ];
-
-  const createQueryButton = hasLogsFeature ? (
-    <DropdownMenu
-      items={items}
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          priority="primary"
-          icon={<IconAdd />}
-          size="sm"
-          aria-label={t('Save as')}
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-
-            triggerProps.onClick?.(e);
-          }}
-        >
-          {t('Create Query')}
-        </Button>
-      )}
-    />
-  ) : (
-    <LinkButton
-      priority="primary"
-      icon={<IconAdd />}
-      size="sm"
-      to={getExploreUrl({organization, visualize: []})}
-    >
-      {t('Create Query')}
-    </LinkButton>
-  );
 
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
       <Stack flex={1}>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">{t('All Queries')}</TopBar.Slot>
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          </Fragment>
-        ) : (
-          <Layout.Header unified>
-            <Layout.HeaderContent>
-              <Layout.Title>{t('All Queries')}</Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Grid flow="column" align="center" gap="md">
-                <FeedbackButton />
-                {createQueryButton}
-              </Grid>
-            </Layout.HeaderActions>
-          </Layout.Header>
-        )}
+        <TopBar.Slot name="title">{t('All Queries')}</TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+
         <Layout.Body>
           <Layout.Main width="full">
             <SavedQueriesLandingContent />

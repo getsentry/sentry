@@ -48,7 +48,7 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | _StrPromi
 
 @cell_silo_endpoint
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

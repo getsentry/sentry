@@ -7,17 +7,17 @@ import {ExternalLink} from '@sentry/scraps/link';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {CreateAlertButton} from 'sentry/components/createAlertButton';
-import Hook from 'sentry/components/hook';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
+import {Override} from 'sentry/components/override';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -48,7 +48,7 @@ export default function AlertWizard() {
   const {project} = useAlertBuilderOutlet();
 
   const useMetricDetectorLimit =
-    HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
+    getOverride('react-hook:use-metric-detector-limit') ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricAlert = !quota?.hasReachedLimit;
 
@@ -111,7 +111,7 @@ export default function AlertWizard() {
         }
         requireAll
         organization={organization}
-        hookName="feature-disabled:alert-wizard-performance"
+        overrideName="feature-disabled:alert-wizard-performance"
         renderDisabled={renderNoAccess}
       >
         {({hasFeature}) => (
@@ -127,7 +127,7 @@ export default function AlertWizard() {
               organization={organization}
               projectSlug={projectSlug}
               disabled={!hasFeature || (isMetricAlert && !canCreateMetricAlert)}
-              priority="primary"
+              variant="primary"
               to={{
                 pathname: makeAlertsPathname({
                   organization,
@@ -189,7 +189,7 @@ export default function AlertWizard() {
                           name: AlertWizardAlertNames[alertType],
                           badge: AlertWizardExtraContent[alertType],
                           trailingContent: optionIsMetricAlert ? (
-                            <Hook name="component:metric-alert-quota-icon" />
+                            <Override name="component:metric-alert-quota-icon" />
                           ) : null,
                         };
                       })}
@@ -226,7 +226,7 @@ export default function AlertWizard() {
                 <WizardFooter>{renderCreateAlertButton()}</WizardFooter>
                 {isMetricAlert && (
                   <DisabledAlertMessageContainer>
-                    <Hook name="component:metric-alert-quota-message" />
+                    <Override name="component:metric-alert-quota-message" />
                   </DisabledAlertMessageContainer>
                 )}
               </WizardPanelBody>

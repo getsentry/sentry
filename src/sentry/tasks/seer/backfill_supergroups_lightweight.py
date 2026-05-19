@@ -6,6 +6,7 @@ from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, 
 
 from sentry import features, options
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.event_manager import SECURITY_REPORT_INTERFACES
 from sentry.eventstore import backend as eventstore
 from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.organization import Organization
@@ -14,6 +15,10 @@ from sentry.seer.signed_seer_api import (
     LightweightRCAClusterRequest,
     SeerViewerContext,
     make_lightweight_rca_cluster_request,
+)
+from sentry.seer.similarity.utils import (
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
+    event_content_has_stacktrace,
 )
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
@@ -28,6 +33,7 @@ from sentry.utils.snuba import SnubaError, bulk_snuba_queries
 logger = logging.getLogger(__name__)
 
 SNUBA_QUERY_MAX_ATTEMPTS = 3
+MAX_GROUP_AGE_DAYS = 90
 
 
 @instrumented_task(
@@ -120,6 +126,7 @@ def _backfill_org(
             id__gt=last_group_id,
             status=GroupStatus.UNRESOLVED,
             substatus__in=UNRESOLVED_SUBSTATUS_CHOICES,
+            last_seen__gte=datetime.now(UTC) - timedelta(days=MAX_GROUP_AGE_DAYS),
         )
         .select_related("project", "project__organization")
         .order_by("id")[:batch_size]
@@ -313,13 +320,39 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
     # Batch fetch all event data from nodestore in one multi-get
     eventstore.bind_nodes(events)
 
-    # Filter out events with empty data
+    # Drop events that Seer can't meaningfully analyze: empty data, security
+    # reports (CSP/HPKP/Expect-CT/Expect-Staple/NEL), events without
+    # stacktraces, and unsupported platforms.  Aligned with the similar-issues
+    # eligibility checks in grouping/ingest/seer.py.
     valid_groups: list[Group] = []
     valid_events: list[Event] = []
     for group, event in zip(matched_groups, events):
-        if event.data:
-            valid_groups.append(group)
-            valid_events.append(event)
+        if not event.data:
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "no_data"},
+            )
+            continue
+        if event.get_event_type() in SECURITY_REPORT_INTERFACES:
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "security_report"},
+            )
+            continue
+        if not event_content_has_stacktrace(event):
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "no_stacktrace"},
+            )
+            continue
+        if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "unsupported_platform"},
+            )
+            continue
+        valid_groups.append(group)
+        valid_events.append(event)
 
     if not valid_events:
         return []

@@ -15,10 +15,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
+jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
@@ -118,12 +118,16 @@ describe('Visualize', () => {
     );
 
     expect(await screen.findByText('+ Add Series')).toBeInTheDocument();
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const p90FieldRow = (await screen.findByText('p90')).closest(
       '[data-testid="field-bar"]'
     ) as HTMLElement;
     expect(p90FieldRow).toBeInTheDocument();
     expect(within(p90FieldRow).getByText('transaction.duration')).toBeInTheDocument();
 
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const maxFieldRow = (await screen.findByText('max')).closest(
       '[data-testid="field-bar"]'
     ) as HTMLElement;

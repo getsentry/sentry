@@ -234,7 +234,14 @@ class FeatureManager(RegisteredFeatureManager):
         """
         self._entity_handler = handler
 
-    def has(self, name: str, *args: Any, skip_entity: bool | None = False, **kwargs: Any) -> bool:
+    def has(
+        self,
+        name: str,
+        *args: Any,
+        skip_entity: bool | None = False,
+        skip_experiment_exposure: bool = False,
+        **kwargs: Any,
+    ) -> bool:
         """
         Determine if a feature is enabled. If a handler returns None, then the next
         mechanism is used for feature checking.
@@ -262,6 +269,9 @@ class FeatureManager(RegisteredFeatureManager):
         Depending on the Feature class, additional arguments may need to be
         provided to assign organization or project context to the feature.
 
+        Pass ``skip_experiment_exposure=True`` to suppress automatic experiment
+        exposure logging when evaluating the flag.
+
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
 
         """
@@ -283,7 +293,9 @@ class FeatureManager(RegisteredFeatureManager):
                     return rv
 
                 if self._entity_handler and not skip_entity:
-                    rv = self._entity_handler.has(feature, actor)
+                    rv = self._entity_handler.has(
+                        feature, actor, skip_experiment_exposure=skip_experiment_exposure
+                    )
                     if rv is not None:
                         metrics.incr(
                             "feature.has.result",
@@ -323,6 +335,7 @@ class FeatureManager(RegisteredFeatureManager):
         actor: User | RpcUser | AnonymousUser | None = None,
         projects: Sequence[Project] | None = None,
         organization: RpcOrganization | Organization | None = None,
+        skip_experiment_exposure: bool = False,
     ) -> dict[str, dict[str, bool | None]] | None:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
@@ -330,12 +343,20 @@ class FeatureManager(RegisteredFeatureManager):
 
         Will only accept one type of feature, either all ProjectFeatures or all
         OrganizationFeatures.
+
+        Pass ``skip_experiment_exposure=True`` to suppress automatic experiment
+        exposure logging when evaluating the flags (e.g. when populating an API
+        response — the user has not actually encountered the experiment yet).
         """
         try:
             if self._entity_handler:
                 with metrics.timer("features.entity_batch_has", sample_rate=0.01):
                     return self._entity_handler.batch_has(
-                        feature_names, actor, projects=projects, organization=organization
+                        feature_names,
+                        actor,
+                        projects=projects,
+                        organization=organization,
+                        skip_experiment_exposure=skip_experiment_exposure,
                     )
             else:
                 # Fall back to default handler if no entity handler available.
@@ -346,7 +367,10 @@ class FeatureManager(RegisteredFeatureManager):
                         proj_results = results[f"project:{project.id}"] = {}
                         for feature_name in project_features:
                             proj_results[feature_name] = self.has(
-                                feature_name, project, actor=actor
+                                feature_name,
+                                project,
+                                actor=actor,
+                                skip_experiment_exposure=skip_experiment_exposure,
                             )
                     return results
 
@@ -355,7 +379,10 @@ class FeatureManager(RegisteredFeatureManager):
                     org_results: dict[str, bool | None] = {}
                     for feature_name in org_features:
                         org_results[feature_name] = self.has(
-                            feature_name, organization, actor=actor
+                            feature_name,
+                            organization,
+                            actor=actor,
+                            skip_experiment_exposure=skip_experiment_exposure,
                         )
                     return {f"organization:{organization.id}": org_results}
 
@@ -367,7 +394,11 @@ class FeatureManager(RegisteredFeatureManager):
                 if unscoped_features:
                     unscoped_results: dict[str, bool | None] = {}
                     for feature_name in unscoped_features:
-                        unscoped_results[feature_name] = self.has(feature_name, actor=actor)
+                        unscoped_results[feature_name] = self.has(
+                            feature_name,
+                            actor=actor,
+                            skip_experiment_exposure=skip_experiment_exposure,
+                        )
                     return {"unscoped": unscoped_results}
                 return None
         except Exception as e:

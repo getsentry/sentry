@@ -1,311 +1,433 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {parseAsStringEnum, useQueryState} from 'nuqs';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  IconAdd,
-  IconCheckmark,
-  IconChevron,
-  IconCopy,
-  IconEdit,
-  IconSearch,
-  IconSubtract,
-} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DiffStatus, type SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
+import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
-interface SectionConfig {
-  defaultExpanded: boolean;
-  icon: React.ReactNode;
-  label: string;
-  type: DiffStatus;
+interface SidebarGroup {
+  count: number;
+  displayName: string;
+  key: string;
 }
 
-export const SECTION_ORDER: SectionConfig[] = [
-  {
-    type: DiffStatus.CHANGED,
-    label: t('Modified'),
-    icon: <IconEdit size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.ADDED,
-    label: t('Added'),
-    icon: <IconAdd size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.REMOVED,
-    label: t('Removed'),
-    icon: <IconSubtract size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.RENAMED,
-    label: t('Renamed'),
-    icon: <IconCopy size="xs" />,
-    defaultExpanded: true,
-  },
-  {
-    type: DiffStatus.UNCHANGED,
-    label: t('Unchanged'),
-    icon: <IconCheckmark size="xs" />,
-    defaultExpanded: true,
-  },
+export interface SidebarSection {
+  groups: SidebarGroup[];
+  type?: DiffStatus;
+}
+
+export const DIFF_TYPE_ORDER: Record<string, number> = {
+  [DiffStatus.CHANGED]: 0,
+  [DiffStatus.REMOVED]: 1,
+  [DiffStatus.ADDED]: 2,
+  [DiffStatus.RENAMED]: 3,
+  [DiffStatus.UNCHANGED]: 4,
+};
+
+type StatusCounts = Record<DiffStatus, number>;
+
+type PillColor = 'accent' | 'success' | 'danger' | 'warning' | 'muted';
+
+const STATUS_PILLS: ReadonlyArray<{
+  color: PillColor;
+  label: string;
+  status: DiffStatus;
+}> = [
+  {status: DiffStatus.CHANGED, color: 'accent', label: t('changed')},
+  {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
+  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
+  {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
+  {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
 ];
 
+const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
+  [DiffStatus.CHANGED]: {color: 'accent', label: t('Changed')},
+  [DiffStatus.ADDED]: {color: 'success', label: t('Added')},
+  [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
+  [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
+  [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+};
+
+type VirtualRow =
+  | {meta: {color: PillColor; label: string}; sectionType: DiffStatus; type: 'header'}
+  | {group: SidebarGroup; indented: boolean; type: 'item'};
+
+const ITEM_HEIGHT = 36;
+const SECTION_HEADER_HEIGHT = 28;
+
 interface SnapshotSidebarContentProps {
-  currentItemKey: string | null;
-  items: SidebarItem[];
+  activeStatuses: Set<DiffStatus>;
   onSearchChange: (query: string) => void;
-  onSelectItem: (key: string) => void;
+  onSelectItem: (itemKey: string) => void;
+  onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
-  totalItemCount: number;
+  sections: SidebarSection[];
+  activeItemKey?: string | null;
+  statusCounts?: StatusCounts | null;
 }
 
-export function SnapshotSidebarContent({
-  items,
-  totalItemCount,
-  currentItemKey,
+export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
+  sections,
+  activeItemKey,
   searchQuery,
   onSearchChange,
   onSelectItem,
+  statusCounts,
+  activeStatuses,
+  onToggleStatus,
 }: SnapshotSidebarContentProps) {
-  const isDiffMode = items.length > 0 && items[0]!.type !== 'solo';
+  const hasActiveFilter = activeStatuses.size > 0;
+  const isStatusActive = (status: DiffStatus) =>
+    !hasActiveFilter || activeStatuses.has(status);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const [sectionParam, setSectionParam] = useQueryState(
-    'section',
-    parseAsStringEnum(Object.values(DiffStatus))
-  );
-
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
-    () => {
-      const initial: Record<string, boolean> = {};
-      for (const s of SECTION_ORDER) {
-        initial[s.type] = sectionParam ? s.type === sectionParam : s.defaultExpanded;
-      }
-      return initial;
-    }
-  );
-
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (sectionParam) {
-      setExpandedSections(prev => ({...prev, [sectionParam]: true}));
-    }
-  }, [sectionParam]);
-
-  useEffect(() => {
-    if (sectionParam && sectionRef.current) {
-      sectionRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
-      setSectionParam(null);
-    }
-  }, [sectionParam, setSectionParam]);
-
-  const groupedItems = useMemo(() => {
-    if (!isDiffMode) {
-      return null;
-    }
-    const groups = new Map<string, SidebarItem[]>();
-    for (const item of items) {
-      const existing = groups.get(item.type);
-      if (existing) {
-        existing.push(item);
+  const [collapsed, setCollapsed] = useState<Set<DiffStatus>>(() => new Set());
+  const toggleSection = useCallback((type: DiffStatus) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
       } else {
-        groups.set(item.type, [item]);
+        next.add(type);
+      }
+      return next;
+    });
+  }, []);
+
+  const showSectionHeaders = useMemo(
+    () => sections.filter(s => s.groups.length > 0).length > 1,
+    [sections]
+  );
+
+  const virtualRows = useMemo(() => {
+    const rows: VirtualRow[] = [];
+    for (const section of sections) {
+      if (section.groups.length === 0) {
+        continue;
+      }
+      const sectionType = section.type;
+      const meta = sectionType ? STATUS_META[sectionType] : null;
+      const showHeader = !!sectionType && !!meta && showSectionHeaders;
+      if (showHeader) {
+        rows.push({type: 'header', sectionType, meta});
+        if (!collapsed.has(sectionType)) {
+          for (const group of section.groups) {
+            rows.push({type: 'item', group, indented: true});
+          }
+        }
+      } else {
+        for (const group of section.groups) {
+          rows.push({type: 'item', group, indented: false});
+        }
       }
     }
-    return groups;
-  }, [items, isDiffMode]);
+    return rows;
+  }, [sections, collapsed, showSectionHeaders]);
 
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: i =>
+      virtualRows[i]!.type === 'header' ? SECTION_HEADER_HEIGHT : ITEM_HEIGHT,
+    overscan: 25,
+    initialRect: {width: 0, height: 500},
+  });
+
+  const prevActiveItemKeyRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    if (!currentItemKey || !groupedItems) {
+    if (!activeItemKey || activeItemKey === prevActiveItemKeyRef.current) {
+      prevActiveItemKeyRef.current = activeItemKey;
       return;
     }
-    for (const [sectionType, sectionItems] of groupedItems.entries()) {
-      if (sectionItems.some(item => item.key === currentItemKey)) {
-        setExpandedSections(prev =>
-          prev[sectionType] ? prev : {...prev, [sectionType]: true}
-        );
-        break;
-      }
-    }
-  }, [currentItemKey, groupedItems]);
-
-  useEffect(() => {
-    if (!listRef.current || !currentItemKey) {
-      return;
-    }
-    const el = listRef.current.querySelector(
-      `[data-item-name="${CSS.escape(currentItemKey)}"]`
+    prevActiveItemKeyRef.current = activeItemKey;
+    const idx = virtualRows.findIndex(
+      r => r.type === 'item' && r.group.key === activeItemKey
     );
-    el?.scrollIntoView({block: 'nearest'});
-  }, [currentItemKey]);
+    if (idx !== -1) {
+      virtualizer.scrollToIndex(idx, {align: 'auto'});
+    }
+  }, [activeItemKey, virtualRows, virtualizer]);
 
-  const isSearching = searchQuery.length > 0;
-
-  const handleExpandedChange = (type: string, expanded: boolean) => {
-    if (isSearching) return;
-    setExpandedSections(prev => ({...prev, [type]: expanded}));
-  };
-
-  const isGroupedDiff = isDiffMode && groupedItems !== null;
-
-  const renderItem = (item: SidebarItem) => {
-    const isSelected = item.key === currentItemKey;
-    return (
-      <SidebarItemRow
-        key={item.key}
-        data-item-name={item.key}
-        isSelected={isSelected}
-        onClick={() => onSelectItem(item.key)}
-      >
-        <Flex align="center" gap="sm" flex="1" minWidth="0">
-          <Text
-            size="md"
-            variant={isSelected ? 'accent' : 'muted'}
-            bold={isSelected}
-            ellipsis
-          >
-            {item.name}
-          </Text>
-        </Flex>
-        {item.badge && (
-          <Text variant="muted" size="xs">
-            {item.badge}
-          </Text>
-        )}
-      </SidebarItemRow>
-    );
-  };
+  const hasGroups = sections.some(s => s.groups.length > 0);
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <Stack height="100%" width="100%">
-      <Stack gap="xl" padding="xl" borderBottom="primary">
+      <Stack
+        gap="xl"
+        padding="xl"
+        borderBottom="primary"
+        onClick={e => e.stopPropagation()}
+      >
         <InputGroup style={{flex: 1}}>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch size="sm" />
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={t('Search %s images...', totalItemCount)}
+            placeholder={t('Search components...')}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
         </InputGroup>
+        {statusCounts && (
+          <Flex gap="lg" wrap="wrap">
+            {STATUS_PILLS.map(({status, color, label}) => {
+              const count = statusCounts[status];
+              if (count <= 0) {
+                return null;
+              }
+              return (
+                <StatusPill
+                  key={status}
+                  color={color}
+                  count={count}
+                  label={label}
+                  active={isStatusActive(status)}
+                  onClick={() => onToggleStatus(status)}
+                />
+              );
+            })}
+          </Flex>
+        )}
       </Stack>
-      <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        {isGroupedDiff &&
-          SECTION_ORDER.map(section => {
-            const sectionItems = groupedItems.get(section.type);
-            if (!sectionItems || sectionItems.length === 0) {
-              return null;
-            }
-            const isExpanded = isSearching || expandedSections[section.type];
-            return (
-              <Disclosure
-                key={section.type}
-                size="md"
-                expanded={isExpanded}
-                ref={section.type === sectionParam ? sectionRef : undefined}
-              >
-                <SidebarSectionTitle
-                  priority="transparent"
-                  size="md"
-                  onClick={() => handleExpandedChange(section.type, !isExpanded)}
+      <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
+        {hasGroups ? (
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              position: 'relative',
+              width: '100%',
+            }}
+          >
+            {virtualItems.map(vi => {
+              const row = virtualRows[vi.index]!;
+              return (
+                <VirtualRowPositioner
+                  key={vi.key}
+                  ref={virtualizer.measureElement}
+                  data-index={vi.index}
+                  style={{transform: `translateY(${vi.start}px)`}}
                 >
-                  <Flex align="center" justify="between" width="100%">
-                    <Flex align="center" gap="xs">
-                      <IconChevron direction={isExpanded ? 'down' : 'right'} size="sm" />
-                      <Text size="sm" bold uppercase>
-                        {section.label}
-                      </Text>
-                    </Flex>
-                    <Flex align="center" gap="xs">
-                      <Text size="sm">
-                        {/* changed/renamed store images as pairs; added/removed/unchanged use images */}
-                        {sectionItems.reduce(
-                          (sum, item) =>
-                            sum +
-                            (item.type === 'changed' || item.type === 'renamed'
-                              ? item.pairs.length
-                              : item.images.length),
-                          0
-                        )}
-                      </Text>
-                      {section.icon}
-                    </Flex>
-                  </Flex>
-                </SidebarSectionTitle>
-                {isExpanded && (
-                  <SidebarSectionContent>
-                    {sectionItems.map(renderItem)}
-                  </SidebarSectionContent>
-                )}
-              </Disclosure>
-            );
-          })}
-        {!isGroupedDiff && items.map(renderItem)}
-        {items.length === 0 && (
+                  {row.type === 'header' ? (
+                    <SectionHeaderRow
+                      row={row}
+                      expanded={!collapsed.has(row.sectionType)}
+                      onToggle={toggleSection}
+                    />
+                  ) : (
+                    <SidebarItem
+                      group={row.group}
+                      indented={row.indented}
+                      isActive={row.group.key === activeItemKey}
+                      onSelect={onSelectItem}
+                    />
+                  )}
+                </VirtualRowPositioner>
+              );
+            })}
+          </div>
+        ) : (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
-              {t('No images found.')}
+              {t('No components found.')}
             </Text>
           </Flex>
         )}
       </Stack>
     </Stack>
   );
+});
+
+const SectionHeaderRow = memo(function SectionHeaderRow({
+  row,
+  expanded,
+  onToggle,
+}: {
+  expanded: boolean;
+  onToggle: (type: DiffStatus) => void;
+  row: Extract<VirtualRow, {type: 'header'}>;
+}) {
+  return (
+    <SectionDisclosure
+      size="xs"
+      expanded={expanded}
+      onExpandedChange={() => onToggle(row.sectionType)}
+    >
+      <Disclosure.Title>
+        <Flex align="center" gap="sm">
+          <Dot pillColor={row.meta.color} active />
+          <Text size="sm" bold>
+            {row.meta.label}
+          </Text>
+        </Flex>
+      </Disclosure.Title>
+    </SectionDisclosure>
+  );
+});
+
+const SidebarItem = memo(function SidebarItem({
+  group,
+  indented,
+  isActive,
+  onSelect,
+}: {
+  group: SidebarGroup;
+  indented: boolean;
+  isActive: boolean;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <SidebarItemRow
+      data-item-key={group.key}
+      isSelected={isActive}
+      indented={indented}
+      onClick={e => {
+        e.stopPropagation();
+        onSelect(group.key);
+      }}
+    >
+      <Flex align="center" gap="sm" flex="1" minWidth="0">
+        <Text
+          size="md"
+          variant={isActive ? 'accent' : 'muted'}
+          bold={isActive}
+          ellipsis
+          onPointerEnter={setTitleOnOverflow}
+        >
+          {group.displayName}
+        </Text>
+      </Flex>
+      <CountBadge>
+        <Text variant="muted" size="xs">
+          {group.count}
+        </Text>
+      </CountBadge>
+    </SidebarItemRow>
+  );
+});
+
+function StatusPill({
+  color,
+  count,
+  label,
+  active,
+  onClick,
+}: {
+  active: boolean;
+  color: PillColor;
+  count: number;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <PillButton type="button" active={active} onClick={onClick}>
+      <Dot pillColor={color} active={active} />
+      <Text size="xs" variant="muted">
+        {count} {label}
+      </Text>
+    </PillButton>
+  );
 }
 
-const SidebarSectionTitle = styled(Button)`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  display: block;
-  width: 100%;
-  border-radius: 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+function setTitleOnOverflow(e: React.PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  el.title = el.scrollWidth > el.clientWidth ? (el.textContent ?? '') : '';
+}
+
+const PillButton = styled('button')<{active: boolean}>`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: ${p => (p.active ? 1 : 0.4)};
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+    opacity: ${p => (p.active ? 0.8 : 0.6)};
   }
 `;
 
-const SidebarSectionContent = styled('div')`
-  width: 100%;
-
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
+const Dot = styled('span')<{active: boolean; pillColor: PillColor; dotSize?: number}>`
+  display: inline-block;
+  width: ${p => p.dotSize ?? 6}px;
+  height: ${p => p.dotSize ?? 6}px;
+  border-radius: 50%;
+  background: ${p => {
+    if (!p.active) {
+      return p.theme.tokens.content.secondary;
+    }
+    switch (p.pillColor) {
+      case 'accent':
+        return p.theme.tokens.graphics.accent.vibrant;
+      case 'success':
+        return p.theme.tokens.graphics.success.vibrant;
+      case 'danger':
+        return p.theme.tokens.graphics.danger.vibrant;
+      case 'warning':
+        return p.theme.tokens.graphics.warning.vibrant;
+      case 'muted':
+      default:
+        return p.theme.tokens.content.secondary;
+    }
+  }};
 `;
 
-const SidebarItemRow = styled('div')<{isSelected: boolean}>`
+const CountBadge = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 0 ${p => p.theme.space.xs};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
+
+const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  padding-left: ${p =>
+    p.indented
+      ? `calc(${p.theme.space.xl} + 8px + ${p.theme.space.sm})`
+      : p.theme.space.xl};
   gap: ${p => p.theme.space.sm};
   cursor: pointer;
   border-right: 3px solid
     ${p => (p.isSelected ? p.theme.tokens.border.accent.vibrant : 'transparent')};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   background: ${p =>
     p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
 
-  &:last-child {
-    border-bottom: none;
+const SectionDisclosure = styled(Disclosure)`
+  width: 100%;
+  align-items: stretch;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
   }
+`;
+
+const VirtualRowPositioner = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
 `;

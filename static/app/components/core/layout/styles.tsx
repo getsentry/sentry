@@ -41,7 +41,7 @@ export function rc<T>(
 
     // A resolver can return undefined to indicate that the value should be omitted.
     if (resolvedValue === undefined) {
-      return undefined;
+      return;
     }
 
     if (first) {
@@ -103,25 +103,17 @@ function isResponsive(prop: unknown): prop is Partial<Record<BreakpointSize, any
  */
 function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
   if (sizeComponent === undefined) {
-    return undefined;
+    return;
   }
 
   return theme.radius[sizeComponent];
 }
 
 function resolveSpacing(sizeComponent: SpaceSize, theme: Theme) {
-  if (sizeComponent === undefined) {
-    return undefined;
-  }
-
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
 function resolveMargin(sizeComponent: Margin, theme: Theme) {
-  if (sizeComponent === undefined) {
-    return undefined;
-  }
-
   if (sizeComponent === 'auto') {
     return 'auto';
   }
@@ -204,12 +196,12 @@ export function getMargin(
   theme: Theme
 ) {
   if (margin === undefined) {
-    return undefined;
+    return;
   }
 
   if (margin.length < 3) {
     // This can only be a single margin value, so we can resolve it directly.
-    return resolveMargin(margin as Margin, theme) as string;
+    return resolveMargin(margin as Margin, theme);
   }
 
   return margin
@@ -226,12 +218,12 @@ export function getMargin(
 type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
 export function useResponsivePropValue<T extends Responsive<any>>(
   prop: T
-): ResponsiveValue<T> {
+): T | ResponsiveValue<T> {
   const activeBreakpoint = useActiveBreakpoint();
 
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
-    return prop as unknown as ResponsiveValue<T>;
+    return prop;
   }
 
   if (Object.keys(prop).length === 0) {
@@ -240,7 +232,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
 
   // If the active breakpoint exists in the prop, return it
   if (prop[activeBreakpoint] !== undefined) {
-    return prop[activeBreakpoint];
+    return prop[activeBreakpoint] as T;
   }
 
   let value: ResponsiveValue<T> | undefined;
@@ -249,8 +241,8 @@ export function useResponsivePropValue<T extends Responsive<any>>(
 
   // If we don't have an exact match, find the next smallest breakpoint
   for (let i = activeIndex - 1; i >= 0; i--) {
-    const smallerBreakpoint = BREAKPOINT_ORDER[i]!;
-    if (prop[smallerBreakpoint] !== undefined) {
+    const smallerBreakpoint = BREAKPOINT_ORDER[i];
+    if (smallerBreakpoint && prop[smallerBreakpoint] !== undefined) {
       value = prop[smallerBreakpoint];
       break;
     }
@@ -259,15 +251,16 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   // If no smaller breakpoint found, then window < smallest breakpoint, so we need to find the first larger breakpoint
   if (value === undefined) {
     for (let i = activeIndex + 1; i < BREAKPOINT_ORDER.length; i++) {
-      const largerBreakpoint = BREAKPOINT_ORDER[i]!;
-      if (prop[largerBreakpoint] !== undefined) {
+      const largerBreakpoint = BREAKPOINT_ORDER[i];
+      if (largerBreakpoint && prop[largerBreakpoint] !== undefined) {
         value = prop[largerBreakpoint];
         break;
       }
     }
   }
 
-  return value as ResponsiveValue<T>;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return value!;
 }
 
 export function useActiveBreakpoint(): BreakpointSize {

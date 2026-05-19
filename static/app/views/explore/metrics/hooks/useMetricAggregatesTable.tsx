@@ -124,7 +124,7 @@ function useMetricAggregatesTableImp({
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
-      name: 'Explore - Metric Aggregates',
+      name: 'Explore - Application Metric Aggregates',
       fields: [...fields, ...(isEquation ? [] : [makeCountAggregate(traceMetric)])],
       orderby: sortBys.map(formatSort),
       query,

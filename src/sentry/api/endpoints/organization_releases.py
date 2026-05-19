@@ -135,7 +135,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             elif value_o == "latest":
                 latest_releases = get_latest_release(
                     projects=filter_params["project_id"],
-                    environments=filter_params.get("environment"),
+                    environments=filter_params.get("environment_objects"),
                     organization_id=organization.id,
                 )
                 query_q = Q(version__in=latest_releases)
@@ -335,10 +335,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         parameters=[CursorQueryParam],
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        if (
-            features.has("organizations:releases-serializer-v2", organization, actor=request.user)
-            or request.headers.get("X-Performance-Optimizations") == "enabled"
-        ):
+        if request.headers.get("X-Performance-Optimizations") == "enabled":
             return self.__get_new(request, organization)
         else:
             return self.__get_old(request, organization)

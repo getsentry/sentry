@@ -94,7 +94,7 @@ export function MonitorProcessingErrors({
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
                   aria-expanded={isExpanded}
                   size="zero"
-                  priority="transparent"
+                  variant="transparent"
                   onClick={() => setExpanded(isExpanded ? '' : `${projectId}:${index}`)}
                 />
                 {onDismiss && (
@@ -103,7 +103,7 @@ export function MonitorProcessingErrors({
                     aria-label={t('Dismiss Errors')}
                     size="zero"
                     tooltipProps={{title: t('Dismiss Errors')}}
-                    priority="transparent"
+                    variant="transparent"
                     onClick={() =>
                       openConfirmModal({
                         header: t('Dismiss'),

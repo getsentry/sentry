@@ -9,11 +9,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
-import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 
 type OrganizationProps = {
   organization: Organization;
@@ -70,6 +70,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
 
 function DeletionPending({organization}: OrganizationProps) {
   const api = useApi();
+  const {addAlert} = useGlobalAlerts();
   const [isRestoring, setIsRestoring] = useState(false);
 
   const onRestore = async () => {
@@ -83,7 +84,7 @@ function DeletionPending({organization}: OrganizationProps) {
       testableWindowLocation.reload();
     } catch {
       setIsRestoring(false);
-      AlertStore.addAlert({
+      addAlert({
         message:
           'We were unable to restore this organization. Please try again or contact support.',
         variant: 'danger',
@@ -129,7 +130,7 @@ function DeletionPending({organization}: OrganizationProps) {
 
           {organization.access.includes('org:admin') && (
             <Flex direction="column" gap="sm" paddingTop="xl">
-              <Button priority="primary" onClick={onRestore} disabled={isRestoring}>
+              <Button variant="primary" onClick={onRestore} disabled={isRestoring}>
                 {t('Restore Organization')}
               </Button>
             </Flex>
