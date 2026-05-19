@@ -817,6 +817,7 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
+from .endpoints.project_legacy_webhooks import ProjectLegacyWebhooksEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -3229,6 +3230,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/web-vitals-detector/$",
         ProjectWebVitalsDetectionEndpoint.as_view(),
         name="sentry-api-0-project-web-vitals-detection",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/legacy-webhooks/$",
+        ProjectLegacyWebhooksEndpoint.as_view(),
+        name="sentry-api-0-project-legacy-webhooks",
     ),
     # Load plugin project urls
     re_path(
