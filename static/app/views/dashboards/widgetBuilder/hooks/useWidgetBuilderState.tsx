@@ -466,11 +466,22 @@ export function useWidgetBuilderState(): {
             setLimit(undefined, options);
             setYAxis([], options);
             setLegendAlias([], options);
-            const newFields = [
-              ...columnsWithoutAlias,
-              ...aggregatesWithoutAlias,
-              ...(yAxisWithoutAlias ?? []),
-            ];
+            // When coming from DETAILS, its hardcoded display columns are not
+            // user-chosen, so reset to the dataset's default table fields
+            // instead of carrying them over.
+            let newFields: Column[];
+            if (displayType === DisplayType.DETAILS) {
+              newFields =
+                currentDatasetConfig.defaultWidgetQuery.fields?.map(field =>
+                  explodeField({field})
+                ) ?? [];
+            } else {
+              newFields = [
+                ...columnsWithoutAlias,
+                ...aggregatesWithoutAlias,
+                ...(yAxisWithoutAlias ?? []),
+              ];
+            }
             setFields(newFields, options);
 
             // Keep the sort if it's already contained in the new fields
