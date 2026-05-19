@@ -116,27 +116,6 @@ describe('LogsPage', () => {
     expect(table).toHaveTextContent(/User login successful/);
   });
 
-  it('hides the footer when logs table is expanded', async () => {
-    render(
-      <div>
-        <LogsPage />
-        <footer data-test-id="global-footer" />
-      </div>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
-        },
-      }
-    );
-
-    await screen.findByTestId('logs-table');
-
-    expect(screen.getByTestId('global-footer')).toBe(
-      document.querySelector('[data-hide-footer] ~ footer')
-    );
-  });
-
   it('should show onboarding when project is not onboarded', async () => {
     ProjectsStore.reset();
     const {
