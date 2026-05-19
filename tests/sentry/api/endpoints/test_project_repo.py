@@ -4,8 +4,8 @@ from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
 
-class ProjectRepoLinkTest(APITestCase):
-    endpoint = "sentry-api-0-project-repo-link"
+class ProjectRepoTest(APITestCase):
+    endpoint = "sentry-api-0-project-repo"
     method = "post"
 
     def setUp(self) -> None:
