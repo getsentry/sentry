@@ -372,6 +372,7 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
+APIGW_WARN_REQS = os.environ.get("SENTRY_APIGW_WARN_REQS", "").lower() in ("1", "true", "y", "yes")
 APIGW_MIDDLEWARE = (
     "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
     if APIGW_ASYNC
