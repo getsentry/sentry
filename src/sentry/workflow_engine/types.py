@@ -11,7 +11,6 @@ from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
 
 from sentry import features, options
-from sentry.models.groupassignee import GroupAssignee
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from sentry.models.activity import Activity
     from sentry.models.environment import Environment
     from sentry.models.group import Group
+    from sentry.models.groupassignee import GroupAssignee
     from sentry.models.organization import Organization
     from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.dataset import Dataset

@@ -49,11 +49,10 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         group = event_data.group
         target_type = AssigneeTargetType(comparison.get("target_type"))
 
-        mem_cache_key = "group_assignees"
-        assignees = event_data._cache.get(mem_cache_key)
+        assignees = event_data._cache.get("group_assignees")
         if assignees is None:
             assignees = AssignedToConditionHandler.get_assignees(group)
-            event_data._cache[mem_cache_key] = assignees
+            event_data._cache["group_assignees"] = assignees
 
         if target_type == AssigneeTargetType.UNASSIGNED:
             return len(assignees) == 0
