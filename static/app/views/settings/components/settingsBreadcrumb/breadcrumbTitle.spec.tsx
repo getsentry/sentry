@@ -78,7 +78,6 @@ describe('BreadcrumbTitle', () => {
     const {rerender, router} = render(
       <BreadcrumbProvider>
         <SettingsBreadcrumb params={{}} />
-        <BreadcrumbTitle title="Second Title" />
         <BreadcrumbTitle title="Last Title" />
       </BreadcrumbProvider>,
       {
@@ -101,7 +100,6 @@ describe('BreadcrumbTitle', () => {
     rerender(
       <BreadcrumbProvider>
         <SettingsBreadcrumb params={{}} />
-        <BreadcrumbTitle title="Second Title" />
       </BreadcrumbProvider>
     );
 
