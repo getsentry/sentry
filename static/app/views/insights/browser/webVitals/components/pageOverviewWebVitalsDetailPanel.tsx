@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
@@ -370,7 +371,12 @@ const NoOverflow = styled('span')`
 const AlignRight = styled('span')<{color?: string}>`
   text-align: right;
   width: 100%;
-  ${p => (p.color ? `color: ${p.color};` : '')}
+  ${p =>
+    p.color
+      ? css`
+          color: ${p.color};
+        `
+      : ''}
 `;
 
 const AlignCenter = styled('span')`

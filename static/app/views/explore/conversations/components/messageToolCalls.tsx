@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -92,8 +93,10 @@ const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
   padding: 0 ${p => p.theme.space.xs};
   ${p =>
     p.isSelected &&
-    `
-    outline: 2px solid ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
-    outline-offset: -2px;
-  `}
+    css`
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      outline: 2px solid
+        ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
+      outline-offset: -2px;
+    `}
 `;

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -97,7 +98,11 @@ const TitleWrapper = styled('div')`
 
 const Title = styled('div')<{styled?: boolean}>`
   ${p =>
-    !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
+    !p.styled &&
+    css`
+      font-size: 20px;
+      font-weight: ${p.theme.font.weight.sans.medium};
+    `};
   margin: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl}
     ${p => p.theme.space['2xl']} 0;
 `;

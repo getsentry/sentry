@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
@@ -35,5 +36,8 @@ const SpectrumItem = styled('span')<ItemProps>`
   border-radius: 2px;
   margin: 5px;
   width: 14px;
-  ${p => `background-color: ${SIMILARITY_SCORE_COLORS[p.colorIndex]};`};
+  ${p =>
+    css`
+      background-color: ${SIMILARITY_SCORE_COLORS[p.colorIndex]};
+    `};
 `;

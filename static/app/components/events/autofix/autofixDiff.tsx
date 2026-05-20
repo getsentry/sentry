@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {diffWords, type Change} from 'diff';
@@ -754,10 +755,16 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.added};
+      color: ${p.theme.tokens.content.primary};
+    `};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.removed};
+      color: ${p.theme.tokens.content.primary};
+    `};
 
   & + & {
     padding-left: 0;
@@ -775,10 +782,16 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.addedRow};
+      color: ${p.theme.tokens.content.primary};
+    `};
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.removedRow};
+      color: ${p.theme.tokens.content.primary};
+    `};
 
   &::before {
     content: ${p =>
@@ -795,8 +808,16 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
 const CodeDiff = styled('span')<{added?: boolean; removed?: boolean}>`
   vertical-align: middle;
-  ${p => p.added && `background-color: ${DIFF_COLORS.added};`};
-  ${p => p.removed && `background-color: ${DIFF_COLORS.removed};`};
+  ${p =>
+    p.added &&
+    css`
+      background-color: ${DIFF_COLORS.added};
+    `};
+  ${p =>
+    p.removed &&
+    css`
+      background-color: ${DIFF_COLORS.removed};
+    `};
 `;
 
 const ButtonGroup = styled('div')`
