@@ -44,7 +44,7 @@ type GroupMergedAction =
   | {fingerprintIds: string[]; type: 'unmergeSuccess'}
   | {fingerprintIds: string[]; type: 'unmergeError'};
 
-export interface UnmergeMessages {
+interface UnmergeMessages {
   errorMessage?: string;
   loadingMessage?: string;
   successMessage?: string;
