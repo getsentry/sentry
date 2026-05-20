@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -121,13 +120,15 @@ function InvoiceDetails() {
 
   return (
     <SubscriptionPageContainer background="secondary">
-      <SettingsPageHeader title={t('Receipt Details')} />
-      <Flex justify="end" marginBottom="xl">
-        <InvoicePagination
-          pageLinks={pageLinks}
-          onCursor={cursor => cursor && navigate(receiptUrl(cursor))}
-        />
-      </Flex>
+      <SettingsPageHeader
+        title={t('Receipt Details')}
+        action={
+          <InvoicePagination
+            pageLinks={pageLinks}
+            onCursor={cursor => cursor && navigate(receiptUrl(cursor))}
+          />
+        }
+      />
       <Panel>
         {isInvoiceLoading || isBillingDetailsLoading ? (
           <PanelBody withPadding>

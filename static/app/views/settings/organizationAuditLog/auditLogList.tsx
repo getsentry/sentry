@@ -352,10 +352,7 @@ export function AuditLogList({
 
   return (
     <div>
-      <SettingsPageHeader title={t('Audit Log')} />
-      <Flex justify="end" marginBottom="xl">
-        {headerActions}
-      </Flex>
+      <SettingsPageHeader title={t('Audit Log')} action={headerActions} />
       <PanelTable
         headers={[t('Member'), t('Action'), t('IP'), t('Time')]}
         isEmpty={!hasEntries && entries?.length === 0}

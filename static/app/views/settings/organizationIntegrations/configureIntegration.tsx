@@ -5,7 +5,6 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -519,12 +518,10 @@ function ConfigureIntegration() {
       <SentryDocumentTitle
         title={integration ? integration.provider.name : 'Configure Integration'}
       />
-      <SettingsPageHeader title={<IntegrationItem integration={integration} compact />} />
-      {getAction() && (
-        <Flex justify="end" marginBottom="xl">
-          {getAction()}
-        </Flex>
-      )}
+      <SettingsPageHeader
+        title={<IntegrationItem integration={integration} compact />}
+        action={getAction()}
+      />
       {renderMainContent()}
       <BreadcrumbTitle title={t('Configure %s', integration.provider.name)} />
     </Fragment>

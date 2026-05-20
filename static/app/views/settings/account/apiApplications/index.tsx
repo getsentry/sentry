@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
@@ -110,11 +110,7 @@ export default function ApiApplications() {
 
   return (
     <SentryDocumentTitle title={t('API Applications')}>
-      <SettingsPageHeader title="API Applications" />
-
-      <Flex justify="end" marginBottom="xl">
-        {action}
-      </Flex>
+      <SettingsPageHeader title="API Applications" action={action} />
 
       <ApplicationsTable>
         <SimpleTable.Header>

@@ -23,7 +23,7 @@ export function SettingsPageHeader({title, subtitle, action, body, tabs}: Props)
         title && <Layout.Title>{title}</Layout.Title>
       )}
       {(subtitle || action) && (
-        <Flex marginBottom="xl" width="100%" justify="between" align="center" gap="md">
+        <Flex marginBottom="xl" width="100%" justify="between" align="start" gap="md">
           <Subtitle>{subtitle}</Subtitle>
           {action}
         </Flex>
@@ -39,7 +39,6 @@ const Subtitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};
-  padding: 0;
 `;
 
 const BodyWrapper = styled('div')`

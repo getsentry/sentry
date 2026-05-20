@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -171,20 +170,22 @@ export default function ProjectServiceHooks() {
 
   return (
     <Fragment>
-      <SettingsPageHeader title={t('Service Hooks')} />
-      {organization.access.includes('project:write') && (
-        <Flex justify="end" marginBottom="xl">
-          <LinkButton
-            data-test-id="new-service-hook"
-            to={`/settings/${organization.slug}/projects/${projectId}/hooks/new/`}
-            size="sm"
-            variant="primary"
-            icon={<IconAdd />}
-          >
-            {t('Create New Hook')}
-          </LinkButton>
-        </Flex>
-      )}
+      <SettingsPageHeader
+        title={t('Service Hooks')}
+        action={
+          organization.access.includes('project:write') ? (
+            <LinkButton
+              data-test-id="new-service-hook"
+              to={`/settings/${organization.slug}/projects/${projectId}/hooks/new/`}
+              size="sm"
+              variant="primary"
+              icon={<IconAdd />}
+            >
+              {t('Create New Hook')}
+            </LinkButton>
+          ) : null
+        }
+      />
       <Panel>{body}</Panel>
     </Fragment>
   );

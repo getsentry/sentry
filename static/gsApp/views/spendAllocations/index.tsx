@@ -360,30 +360,35 @@ export function SpendAllocationsRoot({subscription}: Props) {
   return (
     <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Spend Allocations')} />
-      {!isLoading && orgEnabledFlag && (
-        <Flex justify="end" gap="md" marginBottom="xl">
-          {subscription.canSelfServe && hasBillingPerms && (
-            <LinkButton
-              aria-label={t('Manage Subscription')}
-              size="sm"
-              to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
-            >
-              {t('Manage Subscription')}
-            </LinkButton>
-          )}
-          <Button
-            aria-label={t('New Allocation')}
-            variant="primary"
-            size="sm"
-            data-test-id="new-allocation"
-            icon={<IconAdd size="xs" />}
-            onClick={openForm()}
-          >
-            {t('New Allocation')}
-          </Button>
-        </Flex>
-      )}
+      <SettingsPageHeader
+        title={t('Spend Allocations')}
+        action={
+          !isLoading &&
+          orgEnabledFlag && (
+            <Flex gap="md">
+              {subscription.canSelfServe && hasBillingPerms && (
+                <LinkButton
+                  aria-label={t('Manage Subscription')}
+                  size="sm"
+                  to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
+                >
+                  {t('Manage Subscription')}
+                </LinkButton>
+              )}
+              <Button
+                aria-label={t('New Allocation')}
+                variant="primary"
+                size="sm"
+                data-test-id="new-allocation"
+                icon={<IconAdd size="xs" />}
+                onClick={openForm()}
+              >
+                {t('New Allocation')}
+              </Button>
+            </Flex>
+          )
+        }
+      />
       <div>
         {tct(
           "Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]",

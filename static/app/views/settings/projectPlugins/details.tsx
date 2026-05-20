@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
@@ -150,12 +150,12 @@ export default function ProjectPluginDetails() {
     const toggleEnable = enabled ? disable : enable;
 
     return (
-      <Fragment>
+      <Flex gap="md">
         {pluginDetails.canDisable && toggleEnable}
         <Button size="sm" onClick={() => resetMutation.mutate()}>
           {t('Reset Configuration')}
         </Button>
-      </Fragment>
+      </Flex>
     );
   };
 
@@ -181,10 +181,7 @@ export default function ProjectPluginDetails() {
   return (
     <div>
       <SentryDocumentTitle title={pluginDetails.name} projectSlug={project.slug} />
-      <SettingsPageHeader title={pluginDetails.name} />
-      <Flex justify="end" gap="md" marginBottom="xl">
-        {renderActions()}
-      </Flex>
+      <SettingsPageHeader title={pluginDetails.name} action={renderActions()} />
       <div className="row">
         <div className="col-md-7">
           <PluginConfig

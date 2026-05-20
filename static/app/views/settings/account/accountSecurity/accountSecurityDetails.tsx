@@ -156,30 +156,34 @@ export default function AccountSecurityDetails() {
             isActive={authenticator.isEnrolled}
           />
         }
+        action={
+          <Flex gap="md">
+            {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
+              <LinkButton
+                to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
+              >
+                {t('Rotate Secret Key')}
+              </LinkButton>
+            )}
+            {authenticator.isEnrolled && authenticator.removeButton && (
+              <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
+                <Button
+                  tooltipProps={{
+                    title: deleteDisabled
+                      ? t(
+                          "Two-factor authentication is required for at least one organization you're a member of."
+                        )
+                      : undefined,
+                  }}
+                  variant="danger"
+                >
+                  {authenticator.removeButton}
+                </Button>
+              </RemoveConfirm>
+            )}
+          </Flex>
+        }
       />
-      <Flex justify="end" gap="md" marginBottom="xl">
-        {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
-          <LinkButton to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}>
-            {t('Rotate Secret Key')}
-          </LinkButton>
-        )}
-        {authenticator.isEnrolled && authenticator.removeButton && (
-          <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
-            <Button
-              tooltipProps={{
-                title: deleteDisabled
-                  ? t(
-                      "Two-factor authentication is required for at least one organization you're a member of."
-                    )
-                  : undefined,
-              }}
-              variant="danger"
-            >
-              {authenticator.removeButton}
-            </Button>
-          </RemoveConfirm>
-        )}
-      </Flex>
 
       <TextBlock>{authenticator.description}</TextBlock>
 

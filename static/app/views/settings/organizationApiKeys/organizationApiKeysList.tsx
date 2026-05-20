@@ -46,19 +46,21 @@ export function OrganizationApiKeysList({
 
   return (
     <div>
-      <SettingsPageHeader title={t('API Keys')} />
-      <Flex justify="end" marginBottom="xl">
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<IconAdd />}
-          busy={busy}
-          disabled={busy}
-          onClick={onAddApiKey}
-        >
-          {t('New API Key')}
-        </Button>
-      </Flex>
+      <SettingsPageHeader
+        title={t('API Keys')}
+        action={
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<IconAdd />}
+            busy={busy}
+            disabled={busy}
+            onClick={onAddApiKey}
+          >
+            {t('New API Key')}
+          </Button>
+        }
+      />
 
       <TextBlock>
         {tct(
