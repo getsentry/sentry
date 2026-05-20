@@ -542,15 +542,15 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
+from sentry.seer.endpoints.organization_seer_project_repos import (
+    OrganizationSeerProjectRepoDetailsEndpoint,
+    OrganizationSeerProjectReposEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
-from sentry.seer.endpoints.project_seer_repos import (
-    OrganizationSeerProjectRepoDetailsEndpoint,
-    OrganizationSeerProjectReposEndpoint,
-)
 from sentry.seer.endpoints.project_seer_settings import (
     OrganizationSeerProjectSettingsEndpoint,
     ProjectSeerSettingsEndpoint,
