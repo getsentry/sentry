@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -18,7 +17,6 @@ interface Props {
 
 export function SettingsLayout({children}: Props) {
   const params = useParams();
-  const routes = useRoutes();
 
   const hasPageFrame = useHasPageFrameFeature();
 
@@ -27,7 +25,7 @@ export function SettingsLayout({children}: Props) {
       {hasPageFrame ? (
         <Fragment>
           <TopBar.Slot name="title">
-            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <StyledSettingsBreadcrumb params={params} />
           </TopBar.Slot>
           <TopBar.Slot name="actions">
             <SettingsSearch />
@@ -36,7 +34,7 @@ export function SettingsLayout({children}: Props) {
       ) : (
         <SettingsHeader>
           <Flex align="center" justify="between">
-            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <StyledSettingsBreadcrumb params={params} />
             <SettingsSearch />
           </Flex>
         </SettingsHeader>

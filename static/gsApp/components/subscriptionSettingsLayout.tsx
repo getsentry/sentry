@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -8,24 +9,26 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb';
-import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import {SettingsHeader} from 'sentry/views/settings/components/settingsHeader';
 import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
 
 export default function SubscriptionSettingsLayout() {
   const location = useLocation();
   const params = useParams();
-  const routes = useRoutes();
+  const matches = useMatches();
   const hasPageFrameFeature = useHasPageFrameFeature();
   let feedbackSource = location.pathname;
-  for (let i = routes.length - 1; i >= 0; i--) {
-    const route = routes[i] as RouteWithName;
-    if (route?.name) {
-      feedbackSource = route.name;
+  for (const match of matches) {
+    if (
+      match.handle &&
+      typeof match.handle === 'object' &&
+      'name' in match.handle &&
+      typeof match.handle.name === 'string'
+    ) {
+      feedbackSource = match.handle.name;
       break;
     }
   }
@@ -44,7 +47,7 @@ export default function SubscriptionSettingsLayout() {
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="title">
-            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <StyledSettingsBreadcrumb params={params} />
           </TopBar.Slot>
           <TopBar.Slot name="actions">
             <SettingsSearch />
@@ -53,7 +56,7 @@ export default function SubscriptionSettingsLayout() {
       ) : (
         <StyledSettingsHeader>
           <Flex align="center" justify="between" gap="xl">
-            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <StyledSettingsBreadcrumb params={params} />
             <Flex align="center" gap="xl">
               <FeedbackButton feedbackOptions={feedbackOptions} />
               <SettingsSearch />

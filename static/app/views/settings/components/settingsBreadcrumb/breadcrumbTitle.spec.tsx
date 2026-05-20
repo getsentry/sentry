@@ -6,6 +6,27 @@ import {SettingsBreadcrumb} from '.';
 
 jest.unmock('sentry/utils/recreateRoute');
 
+const routeChildren = [
+  {
+    path: 'one',
+    handle: {name: 'One', path: '/one/'},
+    children: [
+      {
+        path: 'two',
+        handle: {name: 'Two', path: '/two/'},
+        element: <div />,
+        children: [
+          {
+            path: 'three',
+            handle: {name: 'Three', path: '/three/'},
+            element: <div />,
+          },
+        ],
+      },
+    ],
+  },
+];
+
 describe('BreadcrumbTitle', () => {
   const testRoutes = [
     {name: 'One', path: '/one/'},
@@ -16,9 +37,16 @@ describe('BreadcrumbTitle', () => {
   it('renders settings breadcrumbs and replaces title', () => {
     render(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={testRoutes} params={{}} />
+        <SettingsBreadcrumb params={{}} />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
-      </BreadcrumbProvider>
+      </BreadcrumbProvider>,
+      {
+        initialRouterConfig: {
+          route: '/',
+          location: {pathname: '/one/two/three/'},
+          children: routeChildren,
+        },
+      }
     );
 
     const crumbs = screen.getAllByRole('link');
@@ -30,12 +58,19 @@ describe('BreadcrumbTitle', () => {
   it('cleans up routes', () => {
     let upOneRoutes = testRoutes.slice(0, -1);
 
-    const {rerender} = render(
+    const {rerender, router} = render(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={testRoutes} params={{}} />
+        <SettingsBreadcrumb params={{}} />
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
-      </BreadcrumbProvider>
+      </BreadcrumbProvider>,
+      {
+        initialRouterConfig: {
+          route: '/',
+          location: {pathname: '/one/two/three/'},
+          children: routeChildren,
+        },
+      }
     );
 
     const crumbs = screen.getAllByRole('link');
@@ -48,9 +83,11 @@ describe('BreadcrumbTitle', () => {
     upOneRoutes = testRoutes.slice(0, -1);
 
     // Simulate navigating up a level, trimming the last title
+    router.navigate('/one/two/');
+
     rerender(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={upOneRoutes} params={{}} />
+        <SettingsBreadcrumb params={{}} />
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
       </BreadcrumbProvider>
     );

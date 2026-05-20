@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {useBreadcrumbsPathmap} from './context';
@@ -23,11 +24,11 @@ const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
 
 type Props = {
   params: Record<string, string | undefined>;
-  routes: RouteWithName[];
   className?: string;
 };
 
-export function SettingsBreadcrumb({className, routes, params}: Props) {
+export function SettingsBreadcrumb({className, params}: Props) {
+  const routes = useRoutes() as RouteWithName[];
   const pathMap = useBreadcrumbsPathmap();
   const hasPageFrame = useHasPageFrameFeature();
 
