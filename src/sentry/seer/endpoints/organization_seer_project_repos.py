@@ -103,6 +103,11 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
     def validate_branch_overrides(self, value):
         return _validate_branch_overrides(value)
 
+    def validate(self, data):
+        if not data:
+            raise serializers.ValidationError("At least one field must be provided.")
+        return data
+
 
 @cell_silo_endpoint
 class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):

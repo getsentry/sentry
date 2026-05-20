@@ -221,6 +221,11 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         response = self.client.put(url, data={"branchName": "develop"}, format="json")
         assert response.status_code == 404
 
+    def test_empty_body_returns_400(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+
+        self.get_error_response(status_code=400)
+
 
 class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-project-repo-details"
