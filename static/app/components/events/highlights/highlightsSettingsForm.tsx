@@ -23,21 +23,16 @@ const highlightTagsSchema = z.object({
   highlightTags: z.string(),
 });
 
-function parseHighlightContextValue(
-  value: string
-): NonNullable<DetailedProject['highlightContext']> {
-  if (value === '') {
-    return {};
-  }
-  return z.record(z.string(), z.array(z.string())).parse(JSON.parse(value));
-}
-
 const highlightContextSchema = z.object({
-  highlightContext: z.string().superRefine((value, ctx) => {
+  highlightContext: z.string().transform((value, ctx) => {
+    if (value === '') {
+      return {};
+    }
     try {
-      parseHighlightContextValue(value);
+      return z.record(z.string(), z.array(z.string())).parse(JSON.parse(value));
     } catch {
       ctx.addIssue({code: 'custom', message: t('Invalid JSON')});
+      return z.NEVER;
     }
   }),
 });
@@ -77,10 +72,7 @@ function LoadedHighlightsSettingsForm({project}: LoadedHighlightsSettingsFormPro
   });
 
   const highlightContextMutationOptions = mutationOptions({
-    mutationFn: (data: {highlightContext: string}) =>
-      updateProject({
-        highlightContext: parseHighlightContextValue(data.highlightContext),
-      }),
+    mutationFn: (data: z.output<typeof highlightContextSchema>) => updateProject(data),
     onSuccess: handleSubmitSuccess,
   });
 
