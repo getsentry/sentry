@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
@@ -96,6 +97,86 @@ describe('useDeleteReplays', () => {
         environments: [],
         query: 'id:[1,2]',
       });
+    });
+  });
+
+  describe('hasAccess', () => {
+    const project = ProjectFixture({access: []});
+    const projectSlug = project.slug;
+
+    beforeEach(() => {
+      const configstate = ConfigStore.getState();
+      ConfigStore.loadInitialData({
+        ...configstate,
+        user: {
+          ...configstate.user,
+          options: {
+            ...configstate.user?.options,
+            timezone: 'America/New_York',
+          },
+        },
+      });
+
+      ProjectsStore.loadInitialData([project]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [project],
+      });
+    });
+
+    it('should grant access to users with project:write', () => {
+      const organization = OrganizationFixture({access: ['project:write']});
+
+      const {result} = renderHookWithProviders(useDeleteReplays, {
+        initialProps: {projectSlug},
+        organization,
+      });
+
+      expect(result.current.hasAccess).toBe(true);
+    });
+
+    it('should grant access to users with project:admin', () => {
+      const organization = OrganizationFixture({access: ['project:admin']});
+
+      const {result} = renderHookWithProviders(useDeleteReplays, {
+        initialProps: {projectSlug},
+        organization,
+      });
+
+      expect(result.current.hasAccess).toBe(true);
+    });
+
+    it('should grant access to org owners with org:admin', () => {
+      const organization = OrganizationFixture({access: ['org:admin']});
+
+      const {result} = renderHookWithProviders(useDeleteReplays, {
+        initialProps: {projectSlug},
+        organization,
+      });
+
+      expect(result.current.hasAccess).toBe(true);
+    });
+
+    it('should deny access to users without proper permissions', () => {
+      const organization = OrganizationFixture({access: ['org:read']});
+
+      const {result} = renderHookWithProviders(useDeleteReplays, {
+        initialProps: {projectSlug},
+        organization,
+      });
+
+      expect(result.current.hasAccess).toBe(false);
+    });
+
+    it('should deny access when projectSlug is empty', () => {
+      const organization = OrganizationFixture({access: ['org:admin']});
+
+      const {result} = renderHookWithProviders(useDeleteReplays, {
+        initialProps: {projectSlug: ''},
+        organization,
+      });
+
+      expect(result.current.hasAccess).toBe(false);
     });
   });
 });
