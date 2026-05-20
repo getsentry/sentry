@@ -34,10 +34,13 @@ function updateFeatureFlags(
   updatedFlags: Record<string, boolean>
 ): FeatureFlags {
   return Object.fromEntries(
-    Object.entries(featureFlags).map(([flag, featureFlag]) => [
-      flag,
-      flag in updatedFlags ? {...featureFlag, value: updatedFlags[flag]!} : featureFlag,
-    ])
+    Object.entries(featureFlags).map(([flag, featureFlag]) => {
+      const newValue = updatedFlags[flag];
+      return [
+        flag,
+        newValue === undefined ? featureFlag : {...featureFlag, value: newValue},
+      ];
+    })
   );
 }
 
