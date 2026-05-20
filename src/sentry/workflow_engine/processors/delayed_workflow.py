@@ -304,7 +304,11 @@ class UniqueConditionQuery:
 
 def fetch_project(project_id: int) -> Project | None:
     try:
-        return Project.objects.get_from_cache(id=project_id)
+        project = Project.objects.get_from_cache(id=project_id)
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
+        )
+        return project
     except Project.DoesNotExist:
         logger.info(
             "delayed_processing.project_does_not_exist",
