@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
+import {setApiNavigate} from 'sentry/api';
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
@@ -12,6 +13,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
+import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import {routes} from 'admin/routes';
 
@@ -30,6 +32,7 @@ const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter)
 const router = sentryCreateBrowserRouter(routes);
 
 DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
+setApiNavigate(createReactRouter3Navigate(router));
 
 export function renderApp() {
   const rootEl = document.getElementById('blk_router')!;
