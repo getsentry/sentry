@@ -2,13 +2,13 @@ import type {Theme} from '@emotion/react';
 import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {clamp} from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
@@ -128,6 +128,7 @@ export class VirtualizedViewManager {
 
   // Column configuration
   columns: Record<'list' | 'span_list', ViewColumn>;
+  navigate: ReactRouter3Navigate | null = null;
   scheduler: TraceScheduler;
   view: TraceView;
 
@@ -733,13 +734,16 @@ export class VirtualizedViewManager {
     }
 
     this.timers.onFovChange = requestAnimationTimeout(() => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...qs.parse(location.search),
-          fov: `${view.trace_view.x},${view.trace_view.width}`,
+      this.navigate?.(
+        {
+          pathname: location.pathname,
+          query: {
+            ...qs.parse(location.search),
+            fov: `${view.trace_view.x},${view.trace_view.width}`,
+          },
         },
-      });
+        {replace: true}
+      );
       this.timers.onFovChange = null;
     }, 500);
   }
