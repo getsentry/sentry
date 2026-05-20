@@ -251,6 +251,7 @@ export function BlockComponent({
   const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     copy(block.message.content ?? '');
+    trackAnalytics('seer.explorer.block_copied', {organization});
   };
 
   const showActions =
