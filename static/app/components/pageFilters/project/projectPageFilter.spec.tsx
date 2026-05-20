@@ -432,11 +432,16 @@ describe('ProjectPageFilter', () => {
   it('does not show All Projects or My Projects options when only one project exists', async () => {
     const singleProject = [ProjectFixture({id: '3', slug: 'project-3', isMember: false})];
     ProjectsStore.loadInitialData(singleProject);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [3],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
 
     render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '3'}},
       },
     });
 
