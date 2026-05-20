@@ -301,7 +301,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
           description={
             project
               ? tct(
-                  'Issues created by this monitor will also trigger alerts connected to [project].',
+                  'Issues created by this monitor may also trigger alerts connected to [project].',
                   {
                     project: (
                       <InlineProjectName display="inline-flex" align="center" gap="xs">
