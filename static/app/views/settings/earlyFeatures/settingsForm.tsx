@@ -1,48 +1,86 @@
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface Props {
   access: Set<Scope>;
 }
 
-type FeatureFlags = Record<string, {description: string; value: boolean}>;
+type FeatureFlag = {description: string; value: boolean};
+type FeatureFlags = Record<string, FeatureFlag>;
+
+const featureFlagsQueryOptions = apiOptions.as<FeatureFlags>()(
+  '/internal/feature-flags/',
+  {
+    staleTime: 0,
+  }
+);
 
 function getFeatureFlagSchema(flag: string) {
   return z.object({[flag]: z.boolean()});
 }
 
-export function EarlyFeaturesSettingsForm({access}: Props) {
-  const {data: featureFlags, isPending} = useApiQuery<FeatureFlags>(
-    ['/internal/feature-flags/'],
-    {staleTime: 0}
+function updateFeatureFlags(
+  featureFlags: FeatureFlags,
+  updatedFlags: Record<string, boolean>
+): FeatureFlags {
+  return Object.fromEntries(
+    Object.entries(featureFlags).map(([flag, featureFlag]) => [
+      flag,
+      Object.hasOwn(updatedFlags, flag)
+        ? {...featureFlag, value: updatedFlags[flag]!}
+        : featureFlag,
+    ])
   );
+}
 
-  if (isPending || !featureFlags) {
+export function EarlyFeaturesSettingsForm({access}: Props) {
+  const queryClient = useQueryClient();
+  const {data: featureFlags, isPending, isError} = useQuery(featureFlagsQueryOptions);
+
+  if (isPending) {
     return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError />;
   }
 
   const disabled = !access.has('org:write');
   const featureFlagMutationOptions = mutationOptions({
     mutationFn: (data: Record<string, boolean>) =>
-      fetchMutation<FeatureFlags>({
+      fetchMutation<void>({
         method: 'PUT',
         url: '/internal/feature-flags/',
         data,
       }),
+    onSuccess: (_response, updatedFlags) => {
+      queryClient.setQueryData(featureFlagsQueryOptions.queryKey, previous => {
+        if (!previous) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          json: updateFeatureFlags(previous.json, updatedFlags),
+        };
+      });
+    },
     onError: () => addErrorMessage(t('Unable to save change')),
   });
 
   return (
     <FieldGroup title={t('Early Adopter Features')}>
-      {Object.entries(featureFlags).map(([flag, {description, value}]) => (
+      {Object.entries(featureFlags ?? {}).map(([flag, {description, value}]) => (
         <AutoSaveForm
           key={flag}
           name={flag}

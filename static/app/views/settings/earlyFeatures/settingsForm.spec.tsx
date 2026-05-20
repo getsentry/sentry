@@ -29,17 +29,10 @@ describe('EarlyFeaturesSettingsForm', () => {
     expect(toggle).not.toBeChecked();
   });
 
-  it('updates a flag when toggled', async () => {
+  it('updates a flag when toggled and can toggle it back after a successful save', async () => {
     const putMock = MockApiClient.addMockResponse({
       url: '/internal/feature-flags/',
       method: 'PUT',
-      body: {
-        ...featureFlags,
-        'organizations:my-flag': {
-          ...featureFlags['organizations:my-flag'],
-          value: true,
-        },
-      },
     });
 
     render(<EarlyFeaturesSettingsForm access={new Set(organization.access)} />, {
@@ -50,11 +43,25 @@ describe('EarlyFeaturesSettingsForm', () => {
     await userEvent.click(toggle);
 
     await waitFor(() => {
-      expect(putMock).toHaveBeenCalledWith(
+      expect(putMock).toHaveBeenNthCalledWith(
+        1,
         '/internal/feature-flags/',
         expect.objectContaining({
           method: 'PUT',
           data: {'organizations:my-flag': true},
+        })
+      );
+    });
+
+    await userEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenNthCalledWith(
+        2,
+        '/internal/feature-flags/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {'organizations:my-flag': false},
         })
       );
     });
