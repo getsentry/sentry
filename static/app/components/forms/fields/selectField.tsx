@@ -23,7 +23,7 @@ const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends
-    InputFieldProps,
+    Omit<InputFieldProps, 'value'>,
     Omit<
       ControlProps<OptionType>,
       | 'onChange'
