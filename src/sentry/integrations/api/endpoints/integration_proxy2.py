@@ -51,7 +51,7 @@ class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
             stream=True,
         )
 
-        def iter_response(response):
+        def iter_response(response: Response):  # type: ignore[no-untyped-def]
             with response as r:
                 yield from r.iter_content(16 * 1024)
 
