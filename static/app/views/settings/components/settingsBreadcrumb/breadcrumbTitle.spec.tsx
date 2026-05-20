@@ -28,29 +28,6 @@ const routeChildren = [
 ];
 
 describe('BreadcrumbTitle', () => {
-  const testRoutes = [
-    {name: 'One', path: '/one/'},
-    {name: 'Two', path: '/two/'},
-    {name: 'Three', path: '/three/'},
-  ];
-
-  const routerConfig = {
-    location: {pathname: '/one/two/three'},
-    route: '/one',
-    children: [
-      {
-        path: 'two',
-        handle: {path: '/two/', name: 'Two'},
-        children: [
-          {
-            path: 'three',
-            handle: {path: '/three/', name: 'Three'},
-          },
-        ],
-      },
-    ],
-  };
-
   it('renders settings breadcrumbs and replaces title', () => {
     render(
       <BreadcrumbProvider>
@@ -73,8 +50,6 @@ describe('BreadcrumbTitle', () => {
   });
 
   it('cleans up routes', () => {
-    const upOneRoutes = testRoutes.slice(0, -1);
-
     const {rerender, router} = render(
       <BreadcrumbProvider>
         <SettingsBreadcrumb params={{}} />
