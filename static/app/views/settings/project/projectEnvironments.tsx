@@ -52,7 +52,7 @@ function EnvironmentRow({children, eventCount, name}: EnvironmentRowProps) {
         {name}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" minHeight="45px" padding="md xl">
-        {eventCount === undefined ? null : formatAbbreviatedNumber(eventCount)}
+        {eventCount ? formatAbbreviatedNumber(eventCount) : null}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" minHeight="45px" padding="md xl">
         {children}
