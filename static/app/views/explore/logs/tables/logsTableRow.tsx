@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import React, {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -27,6 +27,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -217,6 +218,7 @@ export const LogRowContent = memo(function LogRowContent({
   showExploreSimilarSpansLink,
 }: LogsRowProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const fields = useQueryParamsFields();
@@ -331,6 +333,7 @@ export const LogRowContent = memo(function LogRowContent({
     logColors,
     useFullSeverityText: false,
     location,
+    navigate,
     organization,
     attributes: dataRow as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
@@ -427,12 +430,12 @@ export const LogRowContent = memo(function LogRowContent({
                 </TraceIconStyleWrapper>
               </Flex>
             ) : (
-              <React.Fragment>
+              <Fragment>
                 <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
                 {project ? (
                   <ProjectBadge project={project} avatarSize={12} hideName />
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
@@ -590,6 +593,7 @@ function LogRowDetails({
   ref: React.RefObject<HTMLTableRowElement | null>;
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
@@ -666,6 +670,7 @@ function LogRowDetails({
                       logColors,
                       wrapBody: true,
                       location,
+                      navigate,
                       organization,
                       caseSensitiveHighlighting: !caseInsensitivity,
                       projectSlug,
@@ -693,6 +698,7 @@ function LogRowDetails({
                     highlightTerms,
                     logColors,
                     location,
+                    navigate,
                     organization,
                     projectSlug,
                     attributes,

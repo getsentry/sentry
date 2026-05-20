@@ -12,14 +12,25 @@ import {
 } from 'sentry/constants/apiErrorCodes';
 import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import {ConfigStore} from './stores/configStore';
+
+/**
+ * `api.tsx` is consumed outside React, so it can't use the `useNavigate` hook.
+ * The app's bootstrap calls `setApiNavigate` once to install a navigate
+ * function the auth-error handler can use.
+ */
+let apiNavigate: ReactRouter3Navigate | null = null;
+
+export function setApiNavigate(navigate: ReactRouter3Navigate) {
+  apiNavigate = navigate;
+}
 
 export class Request {
   /**
@@ -167,7 +178,7 @@ export const initApiClientErrorHandling = () =>
     }
 
     if (code === 'member-disabled-over-limit') {
-      browserHistory.replace(extra.next);
+      apiNavigate?.(extra.next, {replace: true});
       return true;
     }
 
@@ -177,7 +188,7 @@ export const initApiClientErrorHandling = () =>
     }
 
     if (EXPERIMENTAL_SPA) {
-      browserHistory.replace('/auth/login/');
+      apiNavigate?.('/auth/login/', {replace: true});
     } else {
       window.location.reload();
     }

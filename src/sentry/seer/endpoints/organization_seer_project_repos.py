@@ -46,6 +46,7 @@ parse_search_query = partial(base_parse_search_query, config=search_config)
 
 
 class BranchOverrideResponse(TypedDict):
+    id: str
     tagName: str
     tagValue: str
     branchName: str
@@ -54,6 +55,7 @@ class BranchOverrideResponse(TypedDict):
 class ProjectRepoResponse(TypedDict):
     id: str
     repositoryId: str
+    organizationId: str
     provider: str
     owner: str
     name: str
@@ -73,6 +75,7 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
     return ProjectRepoResponse(
         id=str(project_repo.id),
         repositoryId=str(repo.id),
+        organizationId=str(repo.organization_id),
         provider=repo.provider or "",
         owner=owner,
         name=name,
@@ -81,6 +84,7 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
         branchName=project_repo.branch_name,
         branchOverrides=[
             BranchOverrideResponse(
+                id=str(bo.id),
                 tagName=bo.tag_name,
                 tagValue=bo.tag_value,
                 branchName=bo.branch_name,
@@ -180,6 +184,11 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
     def validate_branch_overrides(self, value):
         return _validate_branch_overrides(value)
 
+    def validate(self, data):
+        if not data:
+            raise serializers.ValidationError("At least one field must be provided.")
+        return data
+
 
 class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
     repository_id = serializers.IntegerField(required=True)
@@ -252,7 +261,8 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
                 project_repo.branch_name = data["branch_name"]
             if "instructions" in data:
                 project_repo.instructions = data["instructions"]
-            project_repo.save()
+            if "branch_name" in data or "instructions" in data:
+                project_repo.save()
 
             if "branch_overrides" in data:
                 replace_all_branch_overrides(project_repo, data["branch_overrides"])
