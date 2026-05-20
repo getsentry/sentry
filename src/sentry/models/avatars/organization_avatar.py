@@ -35,8 +35,6 @@ class OrganizationAvatar(AvatarBase, ReplicatedCellModel):
     organization = FlexibleForeignKey("sentry.Organization", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
 
-    url_path = "organization-avatar"
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationavatar"
