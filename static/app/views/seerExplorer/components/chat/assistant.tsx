@@ -68,6 +68,7 @@ function useBlockFeedback(block: Block, blockIndex: number, runId: number | unde
 }
 
 function BlockActionBar() {
+  const organization = useOrganization();
   const {block, blockIndex, runId, interactionPending, readOnly} = useBlockContext();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
   const showCopy = !!block.message.content?.trim();
@@ -105,6 +106,9 @@ function BlockActionBar() {
           aria-label={t('Copy block content')}
           text={block.message.content ?? ''}
           tooltipProps={{title: t('Copy to clipboard')}}
+          onCopy={() => {
+            trackAnalytics('seer.explorer.block_copied', {organization});
+          }}
           onClick={e => {
             e.stopPropagation();
           }}

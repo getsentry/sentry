@@ -3,7 +3,6 @@ import {createContext, Fragment, useContext} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {InlineCode} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
@@ -107,14 +106,10 @@ function LinkifyIssueShortIds(props: {
   );
 }
 
-function NeutralInlineCode({children}: {children: string}) {
-  return <InlineCode variant="neutral">{children}</InlineCode>;
-}
-
 const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
   Text: ({children}) => <LinkifyIssueShortIds>{children}</LinkifyIssueShortIds>,
-  InlineCode: ({children}) => (
-    <LinkifyIssueShortIds wrapper={NeutralInlineCode}>{children}</LinkifyIssueShortIds>
+  InlineCode: ({children, Default}) => (
+    <LinkifyIssueShortIds wrapper={Default}>{children}</LinkifyIssueShortIds>
   ),
   Heading: ({children, level}) => (
     <Heading as={`h${level}`} size="lg">
