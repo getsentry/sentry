@@ -860,11 +860,11 @@ class BranchOverrideData(TypedDict):
     branch_name: str
 
 
-class ProjectRepoCreateData(TypedDict, total=False):
+class ProjectRepoCreateData(TypedDict):
     repository_id: int
-    branch_name: str | None
-    instructions: str | None
-    branch_overrides: list[BranchOverrideData]
+    branch_name: NotRequired[str | None]
+    instructions: NotRequired[str | None]
+    branch_overrides: NotRequired[list[BranchOverrideData]]
 
 
 def _replace_all_branch_overrides(
