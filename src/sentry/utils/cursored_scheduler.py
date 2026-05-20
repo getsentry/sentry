@@ -193,8 +193,10 @@ class CursoredScheduler[M: Model]:
 
         if cursor == 0:
             batch_size = self._initialize_cycle()
+        elif self._has_tick_interval_changed():
+            batch_size = self._recalculate_batch_size(cursor)
         else:
-            batch_size = self._maybe_recalculate_batch_size(cursor) or self._get_batch_size()
+            batch_size = self._get_batch_size()
 
         items = self._get_cached_pks_page(cursor, batch_size)
 
@@ -280,29 +282,28 @@ class CursoredScheduler[M: Model]:
         batch_size = math.ceil(total_rows / ticks_per_cycle)
         return max(batch_size, MIN_BATCH_SIZE)
 
-    def _maybe_recalculate_batch_size(self, cursor: int) -> int | None:
+    def _has_tick_interval_changed(self) -> bool:
         cached_interval = cache.get(self.tick_interval_cache_key)
         if cached_interval is None:
-            return None
+            return False
+        return float(cached_interval) != self.tick_interval.total_seconds()
 
+    def _recalculate_batch_size(self, cursor: int) -> int:
+        cached_interval = cache.get(self.tick_interval_cache_key)
         current_interval = self.tick_interval
-        if float(cached_interval) == current_interval.total_seconds():
-            return None
 
         total_pks = self._get_redis_client().llen(self.pk_list_cache_key)
         remaining = total_pks - cursor
-        if remaining <= 0:
-            return None
-
         old_batch_size = self._get_batch_size()
-        if old_batch_size <= 0:
-            return None
+
+        if remaining <= 0 or old_batch_size <= 0 or cached_interval is None:
+            return self._get_batch_size()
 
         remaining_ticks_at_old_rate = math.ceil(remaining / old_batch_size)
         remaining_time = remaining_ticks_at_old_rate * timedelta(seconds=float(cached_interval))
         remaining_ticks_at_new_rate = remaining_time / current_interval
         if remaining_ticks_at_new_rate <= 0:
-            return None
+            return self._get_batch_size()
 
         new_batch_size = max(math.ceil(remaining / remaining_ticks_at_new_rate), MIN_BATCH_SIZE)
 
