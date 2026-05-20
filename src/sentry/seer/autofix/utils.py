@@ -854,6 +854,151 @@ def bulk_update_seer_project_settings(
         ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
 
 
+class BranchOverrideData(TypedDict):
+    tag_name: str
+    tag_value: str
+    branch_name: str
+
+
+class ProjectRepoCreateData(TypedDict, total=False):
+    repository_id: int
+    branch_name: str | None
+    instructions: str | None
+    branch_overrides: list[BranchOverrideData]
+
+
+def _validate_repo_ids(
+    organization: Organization,
+    repo_ids: list[int],
+) -> None:
+    """Raise ValueError if any repo IDs are invalid, inactive, or unsupported."""
+    valid_ids = set(
+        Repository.objects.filter(
+            id__in=repo_ids,
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=get_supported_scm_providers(organization),
+        ).values_list("id", flat=True)
+    )
+    invalid_ids = set(repo_ids) - valid_ids
+    if invalid_ids:
+        raise ValueError(sorted(invalid_ids))
+
+
+def replace_all_branch_overrides(
+    seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
+) -> None:
+    """Replace all branch overrides for the given Seer project repo."""
+    SeerProjectRepositoryBranchOverride.objects.filter(
+        seer_project_repository=seer_project_repo
+    ).delete()
+    if branch_overrides:
+        SeerProjectRepositoryBranchOverride.objects.bulk_create(
+            [
+                SeerProjectRepositoryBranchOverride(
+                    seer_project_repository=seer_project_repo,
+                    tag_name=override["tag_name"],
+                    tag_value=override["tag_value"],
+                    branch_name=override["branch_name"],
+                )
+                for override in branch_overrides
+            ]
+        )
+
+
+def add_seer_project_repos(
+    project: Project, organization: Organization, repos_data: list[ProjectRepoCreateData]
+) -> list[int]:
+    """Upsert Seer project repos. Raises ValueError if any repo IDs are invalid."""
+    _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
+
+    result_ids = []
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        for data in repos_data:
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository_id=data["repository_id"],
+                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+            )
+            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
+                project_repository=project_repo,
+                defaults={
+                    "branch_name": data.get("branch_name"),
+                    "instructions": data.get("instructions"),
+                },
+            )
+            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+            result_ids.append(seer_project_repo.id)
+
+    return result_ids
+
+
+def replace_all_seer_project_repos(
+    project: Project, organization: Organization, repos_data: list[ProjectRepoCreateData]
+) -> None:
+    """Replace all active Seer repos for the given project.
+    Raises ValueError if any repo IDs are invalid."""
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        list(Project.objects.select_for_update().filter(id=project.id))
+
+        if repos_data:
+            _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
+
+        SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).delete()
+
+        for data in repos_data:
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository_id=data["repository_id"],
+                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+            )
+            seer_project_repo = SeerProjectRepository.objects.create(
+                project_repository=project_repo,
+                branch_name=data.get("branch_name"),
+                instructions=data.get("instructions"),
+            )
+            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+
+
+class ProjectRepoUpdateData(TypedDict, total=False):
+    branch_name: str | None
+    instructions: str | None
+    branch_overrides: list[BranchOverrideData]
+
+
+def update_seer_project_repo(
+    project: Project, repo_id: int, data: ProjectRepoUpdateData
+) -> SeerProjectRepository | None:
+    """Update a Seer project repo. Returns None if not found."""
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        project_repo = (
+            SeerProjectRepository.objects.select_for_update()
+            .select_related("project_repository", "project_repository__repository")
+            .filter(
+                project_repository__project=project,
+                project_repository__repository_id=repo_id,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            )
+            .first()
+        )
+        if project_repo is None:
+            return None
+
+        if "branch_name" in data:
+            project_repo.branch_name = data["branch_name"]
+        if "instructions" in data:
+            project_repo.instructions = data["instructions"]
+        project_repo.save()
+
+        if "branch_overrides" in data:
+            replace_all_branch_overrides(project_repo, data["branch_overrides"])
+
+    return project_repo
+
+
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
     return SeerProjectRepository.objects.filter(
