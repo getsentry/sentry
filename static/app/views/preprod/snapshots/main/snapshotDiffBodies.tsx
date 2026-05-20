@@ -325,8 +325,6 @@ function LazyImage({
         ref={refCallback}
         src={src}
         alt={alt}
-        loading="lazy"
-        decoding="async"
         width={width || undefined}
         height={height || undefined}
         onLoad={onLoad}
