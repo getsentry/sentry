@@ -36,7 +36,7 @@ import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
 import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
 import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
 import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';

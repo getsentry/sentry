@@ -5,7 +5,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {getOnboardingTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {IconCheckmark, IconClock, IconNot} from 'sentry/icons';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
