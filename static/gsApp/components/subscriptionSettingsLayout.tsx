@@ -24,8 +24,7 @@ export default function SubscriptionSettingsLayout() {
   for (let i = matches.length - 1; i >= 0; i--) {
     const match = matches[i];
     if (
-      match &&
-      match.handle &&
+      match?.handle &&
       typeof match.handle === 'object' &&
       'name' in match.handle &&
       typeof match.handle.name === 'string'
