@@ -42,7 +42,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -463,7 +462,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
-    const {api, organization, location, queryClient} = this.props;
+    const {api, navigate, organization, location, queryClient} = this.props;
     if (!dashboard?.id) {
       return;
     }
@@ -475,10 +474,13 @@ class DashboardDetail extends Component<Props, State> {
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
           trackAnalytics('dashboards2.delete', {organization});
-          browserHistory.replace({
-            pathname: `/organizations/${organization.slug}/dashboards/`,
-            query: location.query,
-          });
+          navigate(
+            {
+              pathname: `/organizations/${organization.slug}/dashboards/`,
+              query: location.query,
+            },
+            {replace: true}
+          );
         })
         .catch(() => {
           this.setState({
@@ -489,7 +491,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCancel = () => {
-    const {organization, dashboard, location, params} = this.props;
+    const {navigate, organization, dashboard, location, params} = this.props;
     const {modifiedDashboard} = this.state;
 
     let hasDashboardChanged = !isEqual(modifiedDashboard, dashboard);
@@ -524,16 +526,17 @@ class DashboardDetail extends Component<Props, State> {
       return;
     }
     trackAnalytics('dashboards2.create.cancel', {organization});
-    browserHistory.replace(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/`,
         query: location.query,
-      })
+      }),
+      {replace: true}
     );
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
-    const {dashboard, location} = this.props;
+    const {dashboard, location, navigate} = this.props;
 
     const filterParams: Record<string, string[]> = {};
     filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
@@ -558,7 +561,7 @@ class DashboardDetail extends Component<Props, State> {
         return;
       })
     ) {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -849,8 +852,15 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate, queryClient} =
-      this.props;
+    const {
+      api,
+      navigate,
+      organization,
+      location,
+      dashboard,
+      onDashboardUpdate,
+      queryClient,
+    } = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
@@ -884,11 +894,12 @@ class DashboardDetail extends Component<Props, State> {
                 },
                 () => {
                   // redirect to new dashboard
-                  browserHistory.replace(
+                  navigate(
                     normalizeUrl({
                       pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                       query: omit(location.query, Object.values(DashboardFilterKeys)),
-                    })
+                    }),
+                    {replace: true}
                   );
                 }
               );
@@ -963,13 +974,14 @@ class DashboardDetail extends Component<Props, State> {
                 },
                 () => {
                   if (dashboard && newDashboard.id !== dashboard.id) {
-                    browserHistory.replace(
+                    navigate(
                       normalizeUrl({
                         pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                         query: {
                           ...location.query,
                         },
-                      })
+                      }),
+                      {replace: true}
                     );
                   }
                 }
@@ -1357,14 +1369,15 @@ class DashboardDetail extends Component<Props, State> {
                                     });
 
                                     const navigateToDashboard = () => {
-                                      browserHistory.replace(
+                                      this.props.navigate(
                                         normalizeUrl({
                                           pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                                           query: omit(
                                             location.query,
                                             Object.values(DashboardFilterKeys)
                                           ),
-                                        })
+                                        }),
+                                        {replace: true}
                                       );
                                     };
 
