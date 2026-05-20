@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from typing import Any, TypedDict
 from unittest.mock import MagicMock, patch
 
@@ -830,3 +831,80 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 200
         assert b"".join(proxy_response.streaming_content) == content  # type: ignore[attr-defined]
         assert proxy_response["Content-Type"] == "application/xml"
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_proxy_stream_interrupted(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        from requests.exceptions import ChunkedEncodingError
+
+        proxy2_path = f"{PROXY_BASE_PATH}2/"
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path,
+            integration_id=self.org_integration.id,
+        )
+
+        first_chunk = b"partial-"
+
+        def iter_then_raise(chunk_size):
+            yield first_chunk
+            raise ChunkedEncodingError("connection reset")
+
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.status_code = 200
+        mock_response.reason = "OK"
+        mock_response.headers = {"Content-Type": "application/octet-stream"}
+        mock_response.iter_content = iter_then_raise
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(return_value=mock_response)
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(
+            proxy2_path, **headers, HTTP_ACCEPT="application/octet-stream"
+        )
+
+        assert proxy_response.status_code == 200
+        assert b"".join(proxy_response.streaming_content) == first_chunk  # type: ignore[attr-defined]
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_proxy_stream_connection_reset(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        proxy2_path = f"{PROXY_BASE_PATH}2/"
+        signature_path = f"/{self.proxy_path}"
+        headers = self.create_request_headers(
+            signature_path=signature_path,
+            integration_id=self.org_integration.id,
+        )
+
+        def iter_then_reset(chunk_size: int) -> Generator[bytes]:
+            if True:
+                raise ConnectionResetError("peer closed connection")
+            yield b""  # type: ignore[unreachable]
+
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.status_code = 200
+        mock_response.reason = "OK"
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.iter_content = iter_then_reset
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(return_value=mock_response)
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(proxy2_path, **headers)
+
+        assert proxy_response.status_code == 200
+        assert b"".join(proxy_response.streaming_content) == b""  # type: ignore[attr-defined]

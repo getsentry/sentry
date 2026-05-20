@@ -1,9 +1,11 @@
 import logging
+from collections.abc import Generator
 from typing import MutableMapping
 
 import sentry_sdk
 from django.http import HttpRequest, StreamingHttpResponse
 from requests import Request, Response
+from requests.exceptions import RequestException
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.renderers import JSONRenderer
 
@@ -51,9 +53,16 @@ class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
             stream=True,
         )
 
-        def iter_response(response: Response):  # type: ignore[no-untyped-def]
+        def iter_response(response: Response) -> Generator[bytes]:
             with response as r:
-                yield from r.iter_content(16 * 1024)
+                try:
+                    yield from r.iter_content(16 * 1024)
+                except (RequestException, ConnectionError, OSError) as e:
+                    logger.warning(
+                        "integrations.proxy2.stream_interrupted",
+                        extra={"error": str(e), "url": full_url},
+                    )
+                    return
 
         return StreamingHttpResponse(
             iter_response(resp),
