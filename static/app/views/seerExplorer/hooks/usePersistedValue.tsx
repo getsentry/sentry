@@ -2,11 +2,17 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
-function readValue(key: string): string {
+function readValue(key: string | null): string {
+  if (key === null) {
+    return '';
+  }
   return sessionStorageWrapper.getItem(key) ?? '';
 }
 
-function writeValue(key: string, value: string): void {
+function writeValue(key: string | null, value: string): void {
+  if (key === null) {
+    return;
+  }
   try {
     sessionStorageWrapper.setItem(key, value);
   } catch {
@@ -21,12 +27,15 @@ function writeValue(key: string, value: string): void {
  *   - scope change (flush old key, load new key)
  *   - unmount (flush current key)
  *   - explicit `clear()` (drop the persisted value and reset state to '')
+ *
+ * When `scopeId` is null the value lives in React state only — no
+ * sessionStorage reads or writes happen for that scope.
  */
 export function usePersistedValue(
   scope: string,
   scopeId: string | number | null | undefined
 ) {
-  const key = `${scope}:${scopeId ?? 'null'}`;
+  const key = scopeId === null ? null : `${scope}:${scopeId}`;
   const [value, setValue] = useState(() => readValue(key));
 
   const valueRef = useRef(value);
@@ -51,7 +60,9 @@ export function usePersistedValue(
 
   const clear = useCallback(() => {
     setValue('');
-    sessionStorageWrapper.removeItem(keyRef.current);
+    if (keyRef.current !== null) {
+      sessionStorageWrapper.removeItem(keyRef.current);
+    }
   }, []);
 
   return {value, setValue, clear};

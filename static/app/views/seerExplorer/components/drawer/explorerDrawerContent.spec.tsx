@@ -474,6 +474,11 @@ describe('ExplorerDrawerContent', () => {
 
   describe('Input Persistence', () => {
     it('restores the persisted draft when the drawer remounts', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 7,
+      });
+
       const {unmount} = render(
         <SeerExplorerSessionsProvider>
           <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
@@ -537,6 +542,29 @@ describe('ExplorerDrawerContent', () => {
       await waitFor(() =>
         expect(screen.getByTestId('seer-explorer-input')).toHaveValue('draft for run 1')
       );
+    });
+
+    it('never writes to sessionStorage when runId is null (no session)', async () => {
+      const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
+
+      const {unmount} = render(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>,
+        {organization}
+      );
+
+      await userEvent.type(
+        await screen.findByTestId('seer-explorer-input'),
+        'unsaved draft'
+      );
+      unmount();
+
+      const draftWrites = setItemSpy.mock.calls.filter(([k]) =>
+        String(k).startsWith('seer-explorer-draft:')
+      );
+      expect(draftWrites).toHaveLength(0);
+      expect(sessionStorage.getItem('seer-explorer-draft:null')).toBeNull();
     });
 
     it('clears the persisted draft when a message is sent', async () => {
