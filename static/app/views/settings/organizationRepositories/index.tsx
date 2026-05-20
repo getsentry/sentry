@@ -259,15 +259,20 @@ export default function OrganizationRepositories() {
   return (
     <AnalyticsArea name="repositories-v2">
       <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Repositories')} subtitle={pageDescription} />
-      {scmIntegrations.length > 0 && (
-        <Flex justify="end" marginBottom="xl">
-          <ConnectProviderDropdown
-            providers={scmProviders.filter(p => p.canAdd)}
-            onAddIntegration={handleAddIntegration}
-          />
-        </Flex>
-      )}
+      <SettingsPageHeader
+        title={t('Repositories')}
+        subtitle={
+          <Flex justify="between" align="center" gap="md">
+            <div>{pageDescription}</div>
+            {scmIntegrations.length > 0 && (
+              <ConnectProviderDropdown
+                providers={scmProviders.filter(p => p.canAdd)}
+                onAddIntegration={handleAddIntegration}
+              />
+            )}
+          </Flex>
+        }
+      />
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
