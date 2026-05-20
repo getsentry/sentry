@@ -77,6 +77,7 @@ const config: KnipConfig = {
     'process', // rspack.ProvidePlugin, needs better knip plugin
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
     '@swc-contrib/mut-cjs-exports', // used in jest config
+    'selfsigned', // used by rspack to self sign certificates for dev server
   ],
   rules: {
     binaries: 'off',
