@@ -268,11 +268,36 @@ class SpansBuffer:
             else:
                 self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
 
-        trees, subsegment_batches = self._push_payloads(spans)
+        redis_ttl = options.get("spans.buffer.redis-ttl")
+        max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
+        pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        flush_lock_ttl = options.get("spans.buffer.flusher.flush-lock-ttl")
+        timeout = options.get("spans.buffer.timeout")
+        root_timeout = options.get("spans.buffer.root-timeout")
 
-        inserted_subsegments = self._insert_spans(subsegment_batches)
+        trees, subsegment_batches = self._push_payloads(
+            spans,
+            redis_ttl=redis_ttl,
+            max_spans_per_evalsha=max_spans_per_evalsha,
+            pipeline_batch_size=pipeline_batch_size,
+        )
 
-        observability = self._update_queue(trees, inserted_subsegments, now=now)
+        inserted_subsegments = self._insert_spans(
+            subsegment_batches,
+            redis_ttl=redis_ttl,
+            max_segment_bytes=max_segment_bytes,
+            flush_lock_ttl=flush_lock_ttl,
+        )
+
+        observability = self._update_queue(
+            trees,
+            inserted_subsegments,
+            now=now,
+            redis_ttl=redis_ttl,
+            timeout=timeout,
+            root_timeout=root_timeout,
+        )
 
         observability.emit_metrics()
 
@@ -320,15 +345,15 @@ class SpansBuffer:
     def _push_payloads(
         self,
         spans: Sequence[Span],
+        *,
+        redis_ttl: int,
+        max_spans_per_evalsha: int,
+        pipeline_batch_size: int,
     ) -> tuple[
         dict[tuple[str, str], list[Span]],
         Sequence[Sequence[Subsegment]],
     ]:
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
-            redis_ttl = options.get("spans.buffer.redis-ttl")
-            max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
-            pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
-
             trees = self._group_by_parent(spans)
             subsegments = self._build_subsegments(trees, max_spans_per_evalsha)
             subsegment_batches = self._batch_subsegments(subsegments, pipeline_batch_size)
@@ -356,11 +381,12 @@ class SpansBuffer:
     def _insert_spans(
         self,
         batches: Sequence[Sequence[Subsegment]],
+        *,
+        redis_ttl: int,
+        max_segment_bytes: int,
+        flush_lock_ttl: int,
     ) -> list[InsertedSubsegment]:
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
-            redis_ttl = options.get("spans.buffer.redis-ttl")
-            max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
-            flush_lock_ttl = options.get("spans.buffer.flusher.flush-lock-ttl")
             check_flush_lock = "true" if flush_lock_ttl > 0 else "false"
 
             # Workaround to make `evalsha` work in pipelines. We ensure the script
@@ -422,11 +448,11 @@ class SpansBuffer:
         inserted_subsegments: Sequence[InsertedSubsegment],
         *,
         now: int,
+        redis_ttl: int,
+        timeout: int,
+        root_timeout: int,
     ) -> ProcessSpansObservability:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
-            redis_ttl = options.get("spans.buffer.redis-ttl")
-            timeout = options.get("spans.buffer.timeout")
-            root_timeout = options.get("spans.buffer.root-timeout")
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
             observability = ProcessSpansObservability()

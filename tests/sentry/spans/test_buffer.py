@@ -270,17 +270,15 @@ def test_push_payloads_writes_payloads_and_emits_process_counts() -> None:
     ]
 
     with (
-        override_options(
-            {
-                "spans.buffer.redis-ttl": 3600,
-                "spans.buffer.max-spans-per-evalsha": 0,
-                "spans.buffer.pipeline-batch-size": 0,
-            }
-        ),
         mock.patch("sentry.spans.buffer.metrics.timing") as timing,
         mock.patch("sentry.spans.buffer.metrics.incr") as incr,
     ):
-        trees, subsegment_batches = buffer._push_payloads(spans)
+        trees, subsegment_batches = buffer._push_payloads(
+            spans,
+            redis_ttl=3600,
+            max_spans_per_evalsha=0,
+            pipeline_batch_size=0,
+        )
 
     subsegment = subsegment_batches[0][0]
     payload_key = buffer._get_payload_key(project_and_trace, subsegment.salt)
@@ -342,17 +340,15 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
     pipeline.execute.return_value = [root_result, child_result]
 
     with (
-        override_options(
-            {
-                "spans.buffer.redis-ttl": 3600,
-                "spans.buffer.max-segment-bytes": 1024,
-                "spans.buffer.flusher.flush-lock-ttl": 30,
-            }
-        ),
         mock.patch.object(buffer, "_ensure_script", return_value="add-buffer-sha"),
         mock.patch("sentry.spans.buffer.metrics.timing") as timing,
     ):
-        inserted_subsegments = buffer._insert_spans([[root_subsegment, child_subsegment]])
+        inserted_subsegments = buffer._insert_spans(
+            [[root_subsegment, child_subsegment]],
+            redis_ttl=3600,
+            max_segment_bytes=1024,
+            flush_lock_ttl=30,
+        )
 
     assert inserted_subsegments == [
         InsertedSubsegment(root_subsegment, EvalshaResult.from_redis_result(root_result)),
@@ -432,18 +428,14 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
         gauge_metrics=[],
     )
 
-    with override_options(
-        {
-            "spans.buffer.redis-ttl": 3600,
-            "spans.buffer.timeout": 60,
-            "spans.buffer.root-timeout": 10,
-        }
-    ):
-        observability = buffer._update_queue(
-            {subsegment.key: [first_span, second_span]},
-            [InsertedSubsegment(subsegment, result)],
-            now=100,
-        )
+    observability = buffer._update_queue(
+        {subsegment.key: [first_span, second_span]},
+        [InsertedSubsegment(subsegment, result)],
+        now=100,
+        redis_ttl=3600,
+        timeout=60,
+        root_timeout=10,
+    )
 
     queue_key = buffer._get_queue_key(3)
     pipeline.zadd.assert_called_once_with(queue_key, {result.segment_key: 110})
