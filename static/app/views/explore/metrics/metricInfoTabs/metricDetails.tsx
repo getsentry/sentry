@@ -6,6 +6,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -35,6 +36,7 @@ export function MetricDetails({
 }) {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const getActions = useMetricAttributesTreeActions();
   const project = useProjectFromId({
@@ -95,6 +97,7 @@ export function MetricDetails({
                     highlightTerms: [],
                     logColors: getLogColors(SeverityLevel.INFO, theme),
                     location,
+                    navigate,
                     organization,
                     projectSlug,
                     project,

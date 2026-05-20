@@ -16,7 +16,6 @@ import type {
   SelectOption,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
-  SelectSection,
 } from './types';
 import {
   getDisabledOptions,
@@ -75,12 +74,6 @@ interface BaseListProps<Value extends SelectKey>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  /**
-   * To be called when the user toggle-selects a whole section (applicable when sections
-   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
-   * and before `onChange`.
-   */
-  onSectionToggle?: (section: SelectSection<SelectKey>) => void;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -387,7 +380,6 @@ export function List<Value extends SelectKey>({
               item={section}
               listState={listState}
               listId={listId}
-              onToggle={props.onSectionToggle}
             />
           ) : null
         )}

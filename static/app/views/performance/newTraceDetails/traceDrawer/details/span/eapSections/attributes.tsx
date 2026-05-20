@@ -23,6 +23,7 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -78,6 +79,7 @@ export function Attributes({
   const [searchQuery, setSearchQuery] = useState('');
   const {selection} = usePageFilters();
   const currentLocation = useLocation();
+  const navigate = useNavigate();
   const traceState = useTraceState();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
@@ -228,6 +230,7 @@ export function Attributes({
               rendererExtra={{
                 theme,
                 location,
+                navigate,
                 organization,
               }}
               getCustomActions={getTraceAttributesTreeActions({

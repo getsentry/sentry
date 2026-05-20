@@ -56,8 +56,8 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
             raise ResourceDoesNotExist
 
         method_flag = self.workflow_engine_method_flags.get(request.method or "")
-        use_workflow_engine = method_flag is not None and features.has(
-            method_flag, project.organization
+        use_workflow_engine = request.method == "GET" or (
+            method_flag is not None and features.has(method_flag, project.organization)
         )
         if use_workflow_engine:
             try:
