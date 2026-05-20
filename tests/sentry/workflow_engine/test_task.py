@@ -62,7 +62,10 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
-            mock_incr.assert_called_with("workflow_engine.tasks.error.no_detector_id")
+            mock_incr.assert_called_with(
+                "workflow_engine.tasks.error.no_detector_id",
+                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+            )
 
     def test_single_processing(self) -> None:
         detector = self.create_detector(project=self.project)
@@ -120,6 +123,65 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
                 activity_id=activity.id,
                 group_id=group.id,
                 detector_id=detector.id,
+            )
+
+    def _build_seer_activity_and_message(
+        self, activity_type: int
+    ) -> tuple[Activity, StatusChangeMessageData]:
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        activity = Activity(
+            project=self.project,
+            group=group,
+            type=activity_type,
+            data={"fingerprint": ["test_fingerprint"]},
+        )
+        message = StatusChangeMessageData(
+            id="test_message_id",
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            fingerprint=["test_fingerprint"],
+            detector_id=detector.id,
+            activity_data={"test": "test"},
+        )
+        return group, activity, message
+
+    def test_seer_activity_blocked_without_feature(self) -> None:
+        group, activity, message = self._build_seer_activity_and_message(
+            ActivityType.SEER_RCA_STARTED.value
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
+        ) as mock_delay:
+            workflow_status_update_handler(group, message, activity)
+            mock_delay.assert_not_called()
+
+    def test_seer_activity_processed_with_feature(self) -> None:
+        group, activity, message = self._build_seer_activity_and_message(
+            ActivityType.SEER_RCA_STARTED.value
+        )
+
+        with (
+            self.feature("organization:workflow-engine-evaluate-seer-activities"),
+            mock.patch(
+                "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
+            ) as mock_delay,
+        ):
+            workflow_status_update_handler(group, message, activity)
+            mock_delay.assert_called_once()
+
+    def test_seer_activity_increments_metric(self) -> None:
+        group, activity, message = self._build_seer_activity_and_message(
+            ActivityType.SEER_RCA_STARTED.value
+        )
+
+        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
+            workflow_status_update_handler(group, message, activity)
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update",
+                tags={"activity_type": ActivityType.SEER_RCA_STARTED.value},
             )
 
 
