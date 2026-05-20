@@ -5,12 +5,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeAlias, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Sequence, TypeAlias, TypedDict, TypeVar
 
 from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
 
 from sentry import features, options
+from sentry.models.groupassignee import GroupAssignee
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -94,6 +95,10 @@ class DetectorEvaluationResult:
     event_data: dict[str, Any] | None = None
 
 
+class _WorkflowCache(TypedDict, total=False):
+    group_assignees: Sequence[GroupAssignee]
+
+
 @dataclass(frozen=True)
 class WorkflowEventData:
     event: GroupEvent | Activity
@@ -102,7 +107,7 @@ class WorkflowEventData:
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
-    _cache: dict[str, Any] = field(default_factory=dict, repr=False, compare=False, hash=False)
+    _cache: _WorkflowCache = field(default_factory=dict, repr=False, compare=False, hash=False)
 
 
 @dataclass(frozen=True)
