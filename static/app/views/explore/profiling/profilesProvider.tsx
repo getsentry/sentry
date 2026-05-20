@@ -237,7 +237,7 @@ export function ContinuousProfileProvider({
   if (!profileMeta) {
     return (
       <UnresolvedArea>
-        <LoadingError message="This page is missing URL parameters." />
+        <LoadingError message={t('This page is missing URL parameters.')} />
       </UnresolvedArea>
     );
   }
