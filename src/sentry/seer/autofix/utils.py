@@ -867,7 +867,7 @@ class ProjectRepoCreateData(TypedDict, total=False):
     branch_overrides: list[BranchOverrideData]
 
 
-def replace_all_branch_overrides(
+def _replace_all_branch_overrides(
     seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
 ) -> None:
     """Replace all branch overrides for the given Seer project repo."""
@@ -905,7 +905,7 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
                     "instructions": data.get("instructions"),
                 },
             )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+            _replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
             result_ids.append(seer_project_repo.id)
 
     return result_ids
@@ -930,12 +930,14 @@ def replace_all_seer_project_repos(
                 repository_id=data["repository_id"],
                 defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
             )
-            seer_project_repo, _ = SeerProjectRepository.objects.get_or_create(
+            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
                 project_repository=project_repo,
-                branch_name=data.get("branch_name"),
-                instructions=data.get("instructions"),
+                defaults={
+                    "branch_name": data.get("branch_name"),
+                    "instructions": data.get("instructions"),
+                },
             )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+            _replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
 
 
 class ProjectRepoUpdateData(TypedDict, total=False):
@@ -969,7 +971,7 @@ def update_seer_project_repo(
         project_repo.save()
 
         if "branch_overrides" in data:
-            replace_all_branch_overrides(project_repo, data["branch_overrides"])
+            _replace_all_branch_overrides(project_repo, data["branch_overrides"])
 
     return project_repo
 
