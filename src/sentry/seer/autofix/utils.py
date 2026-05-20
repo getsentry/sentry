@@ -877,7 +877,7 @@ def _validate_repo_ids(
             id__in=repo_ids,
             organization_id=organization.id,
             status=ObjectStatus.ACTIVE,
-            provider__in=get_supported_scm_providers(),
+            provider__in=get_supported_scm_providers(organization),
         ).values_list("id", flat=True)
     )
     invalid_ids = set(repo_ids) - valid_ids
