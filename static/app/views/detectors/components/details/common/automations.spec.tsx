@@ -127,6 +127,22 @@ describe('DetectorDetailsAutomations', () => {
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
       body: [automation1],
+      match: [
+        (_url, options) =>
+          Array.isArray(options.query?.detector) &&
+          options.query.detector.includes(detector.id),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [],
+      match: [
+        (_url, options) =>
+          Array.isArray(options.query?.detector) &&
+          options.query.detector.includes(issueStreamDetector.id),
+      ],
     });
 
     render(<DetectorDetailsAutomations detector={detector} />, {organization});
@@ -138,59 +154,45 @@ describe('DetectorDetailsAutomations', () => {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          // Should query for both the issue stream detector of the project and the detector itself
-          detector: [detector.id, issueStreamDetector.id],
-          // Sorted desc by default: prioritize workflows connected to the monitor detector
-          priorityDetector: detector.id,
+          detector: [detector.id],
         }),
       })
     );
   });
 
-  it('can sort triggered by issues column', async () => {
-    const automation2 = AutomationFixture({id: '2', name: 'Alert 2'});
+  it('renders project alerts section', async () => {
+    const projectAutomation = AutomationFixture({id: '3', name: 'Project Alert'});
     const detector = UptimeDetectorFixture({
-      workflowIds: [automation1.id, automation2.id],
+      workflowIds: [automation1.id],
     });
 
-    const descRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
-      body: [automation1, automation2],
+      body: [automation1],
       match: [
         (_url, options) =>
-          options.query?.priorityDetector === detector.id &&
-          Array.isArray(options.query?.detector),
+          Array.isArray(options.query?.detector) &&
+          options.query.detector.includes(detector.id),
       ],
     });
 
-    const ascRequest = MockApiClient.addMockResponse({
+    const projectAlertsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
-      body: [automation2, automation1],
+      body: [projectAutomation],
       match: [
         (_url, options) =>
-          options.query?.priorityDetector === issueStreamDetector.id &&
-          Array.isArray(options.query?.detector),
+          Array.isArray(options.query?.detector) &&
+          options.query.detector.includes(issueStreamDetector.id),
       ],
     });
 
     render(<DetectorDetailsAutomations detector={detector} />, {organization});
 
-    expect(await screen.findByRole('link', {name: automation1.name})).toBeInTheDocument();
-    await waitFor(() => expect(descRequest).toHaveBeenCalled());
-
-    const initialLinks = screen.getAllByRole('link', {name: /Alert/});
-    expect(initialLinks[0]).toHaveTextContent(automation1.name);
-
-    await userEvent.click(
-      screen.getByRole('columnheader', {name: 'Triggered By Issues'})
-    );
-
-    await waitFor(() => expect(ascRequest).toHaveBeenCalled());
-
-    const sortedLinks = await screen.findAllByRole('link', {name: /Alert/});
-    expect(sortedLinks[0]).toHaveTextContent(automation2.name);
+    expect(await screen.findByText('Project Alerts')).toBeInTheDocument();
+    expect(await screen.findByText(projectAutomation.name)).toBeInTheDocument();
+    expect(projectAlertsMock).toHaveBeenCalled();
   });
 
   it('renders empty state when no alerts are connected', async () => {
@@ -225,7 +227,20 @@ describe('DetectorDetailsAutomations', () => {
       body: [automation1, automation2],
       match: [
         (_url, options) =>
-          options.query?.detector !== undefined && options.query?.query === undefined,
+          Array.isArray(options.query?.detector) &&
+          options.query.detector.includes(detector.id) &&
+          options.query?.query === undefined,
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      method: 'GET',
+      body: [],
+      match: [
+        (_url, options) =>
+          Array.isArray(options.query?.detector) &&
+          options.query.detector.includes(issueStreamDetector.id),
       ],
     });
 
@@ -235,7 +250,8 @@ describe('DetectorDetailsAutomations', () => {
       body: [automation2],
       match: [
         (_url, options) =>
-          options.query?.detector !== undefined &&
+          Array.isArray(options.query?.detector) &&
+          options.query.detector.includes(detector.id) &&
           typeof options.query?.query === 'string' &&
           options.query.query.includes('Alert 2'),
       ],
