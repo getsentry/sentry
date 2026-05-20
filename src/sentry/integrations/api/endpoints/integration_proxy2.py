@@ -1,6 +1,7 @@
 import logging
+from typing import MutableMapping
 
-from django.http import StreamingHttpResponse
+from django.http import HttpRequest, StreamingHttpResponse
 from requests import Request, Response
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.renderers import JSONRenderer
@@ -25,14 +26,16 @@ class _PassthroughContentNegotiation(BaseContentNegotiation):
     select_renderer to succeed for the request to proceed past initial().
     """
 
-    def select_renderer(self, request, renderers, format_suffix=None):
+    def select_renderer(self, request, renderers, format_suffix=None):  # type: ignore[no-untyped-def]
         return (JSONRenderer(), JSONRenderer.media_type)
 
 
 class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
     content_negotiation_class = _PassthroughContentNegotiation
 
-    def _call_third_party_api(self, request, full_url: str, headers) -> StreamingHttpResponse:
+    def _call_third_party_api(  # type: ignore[override]
+        self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
+    ) -> StreamingHttpResponse:
         prepared_request = Request(
             method=request.method, url=full_url, headers=headers, data=request.body
         ).prepare()
