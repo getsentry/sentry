@@ -1,6 +1,8 @@
 import {createContext, Fragment, useContext, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
+
 type LayerVariant = 'content' | 'nav' | 'overlay';
 
 interface LayerContextValue {
@@ -37,20 +39,24 @@ export const Layer = styled(
     if (typeof children === 'function') {
       return (
         <LayerContext value={contextValue}>
-          <Fragment>
-            {children({className})}
-            <PortalOutlet ref={setPortalOutlet} />
-          </Fragment>
+          <HoverOverlayGroupProvider>
+            <Fragment>
+              {children({className})}
+              <PortalOutlet ref={setPortalOutlet} />
+            </Fragment>
+          </HoverOverlayGroupProvider>
         </LayerContext>
       );
     }
 
     return (
       <LayerContext value={contextValue}>
-        <div className={className}>
-          {children}
-          <PortalOutlet ref={setPortalOutlet} />
-        </div>
+        <HoverOverlayGroupProvider>
+          <div className={className}>
+            {children}
+            <PortalOutlet ref={setPortalOutlet} />
+          </div>
+        </HoverOverlayGroupProvider>
       </LayerContext>
     );
   }
