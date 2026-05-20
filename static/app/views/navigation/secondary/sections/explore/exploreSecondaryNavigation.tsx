@@ -128,7 +128,7 @@ export function ExploreSecondaryNavigation() {
                   // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
                   to={{
                     pathname: `${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`,
-                    query: {statsPeriod: '24h'},
+                    search: '?statsPeriod=24h',
                   }}
                   analyticsItemName="explore_conversations"
                   trailingItems={<FeatureBadge type="beta" />}
