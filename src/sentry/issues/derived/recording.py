@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
 
-from sentry.issues.derived.types import ActionActor, GroupAction
-from sentry.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.derived.types import GroupAction, GroupActionActor
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 
 
 class DuplicateActionError(Exception):
@@ -15,7 +15,7 @@ def record_group_action(
     group_id: int,
     project_id: int,
     action: GroupAction,
-    actor: ActionActor,
+    actor: GroupActionActor,
     idempotency_key: str | None = None,
 ) -> GroupActionLogEntry:
     """Append an entry to the group action log."""

@@ -18,23 +18,23 @@ class ActorType(IntEnum):
 
 
 @dataclasses.dataclass(frozen=True)
-class ActionActor:
+class GroupActionActor:
     """
-    Use ActionActor.user(id) for user-initiated actions,
-    or ActionActor.SYSTEM for system-initiated actions.
+    Use GroupActionActor.user(id) for user-initiated actions,
+    or GroupActionActor.SYSTEM for system-initiated actions.
     """
 
     actor_type: ActorType
     actor_id: int
 
-    SYSTEM: ClassVar[ActionActor]
+    SYSTEM: ClassVar[GroupActionActor]
 
     @classmethod
-    def user(cls, user_id: int) -> ActionActor:
+    def user(cls, user_id: int) -> GroupActionActor:
         return cls(actor_type=ActorType.USER, actor_id=user_id)
 
 
-ActionActor.SYSTEM = ActionActor(actor_type=ActorType.SYSTEM, actor_id=0)
+GroupActionActor.SYSTEM = GroupActionActor(actor_type=ActorType.SYSTEM, actor_id=0)
 
 
 class GroupActionType(IntEnum):

@@ -1,8 +1,8 @@
 import pytest
 
 from sentry.issues.derived.recording import DuplicateActionError, record_group_action
-from sentry.issues.derived.types import ActionActor, ActorType, GroupActionType, ViewAction
-from sentry.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.derived.types import ActorType, GroupActionActor, GroupActionType, ViewAction
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.testutils.cases import TestCase
 
 
@@ -14,7 +14,7 @@ class RecordTest(TestCase):
             group_id=group.id,
             project_id=group.project_id,
             action=ViewAction(),
-            actor=ActionActor.user(self.user.id),
+            actor=GroupActionActor.user(self.user.id),
         )
 
         assert entry.group_id == group.id
@@ -32,7 +32,7 @@ class RecordTest(TestCase):
             group_id=group.id,
             project_id=group.project_id,
             action=ViewAction(),
-            actor=ActionActor.SYSTEM,
+            actor=GroupActionActor.SYSTEM,
         )
 
         assert entry.actor_type == ActorType.SYSTEM
@@ -46,7 +46,7 @@ class RecordTest(TestCase):
                 group_id=group.id,
                 project_id=group.project_id,
                 action=ViewAction(),
-                actor=ActionActor.user(self.user.id),
+                actor=GroupActionActor.user(self.user.id),
             )
 
         entries = list(
@@ -61,7 +61,7 @@ class RecordTest(TestCase):
             group_id=group.id,
             project_id=group.project_id,
             action=ViewAction(),
-            actor=ActionActor.user(self.user.id),
+            actor=GroupActionActor.user(self.user.id),
             idempotency_key="view-123",
         )
 

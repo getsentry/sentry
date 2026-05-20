@@ -22,9 +22,9 @@ from typing import Any
 
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.notifications.models.notificationmessage import NotificationMessage

@@ -27,9 +27,9 @@ class GroupActionLogEntry(Model):
 
     # The id of the Group currently associated with this action.
     group_id = BoundedBigIntegerField()
-    # The project the group belonged to when this entry was logged.
+    # The project the group belongs to.
     project_id = BoundedBigIntegerField()
-    # The group_id before a merge, if this entry was migrated.
+    # The group_id before any merges, if this entry was migrated.
     original_group_id = BoundedBigIntegerField(null=True)
 
     # A GroupActionType value.
@@ -48,7 +48,11 @@ class GroupActionLogEntry(Model):
     # DB-defaulted; backfill code may pass an explicit value.
     date_added = models.DateTimeField(db_default=Now())
 
-    # Partial unique index with group_id prevents duplicate external events.
+    # Primarly intended for debugging; not intended to be relied upon
+    # for invalidation.
+    date_updated = models.DateTimeField(auto_now=True)
+
+    # Partial unique index with group_id prevents duplicate events.
     idempotency_key = models.CharField(max_length=64, null=True)
 
     class Meta:
