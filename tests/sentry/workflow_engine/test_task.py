@@ -7,7 +7,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.status_change_consumer import process_status_change_message, update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -127,7 +127,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
     def _build_seer_activity_and_message(
         self, activity_type: int
-    ) -> tuple[Activity, StatusChangeMessageData]:
+    ) -> tuple[Group, Activity, StatusChangeMessageData]:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
         activity = Activity(
