@@ -1,6 +1,7 @@
 import logging
 from typing import MutableMapping
 
+import sentry_sdk
 from django.http import HttpRequest, StreamingHttpResponse
 from requests import Request, Response
 from rest_framework.negotiation import BaseContentNegotiation
@@ -33,6 +34,7 @@ class _PassthroughContentNegotiation(BaseContentNegotiation):
 class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
     content_negotiation_class = _PassthroughContentNegotiation
 
+    @sentry_sdk.trace
     def _call_third_party_api(  # type: ignore[override]
         self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
     ) -> StreamingHttpResponse:
