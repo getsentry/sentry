@@ -41,7 +41,6 @@ from sentry.tasks.on_demand_metrics import (
     check_field_cardinality,
     set_or_create_on_demand_state,
 )
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.strings import oxfordize_list
 
@@ -823,8 +822,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_permissions(self.instance, validated_data)
 
-        schedule_update_project_configs(self.instance)
-
         return self.instance
 
     def update(self, instance, validated_data):
@@ -847,8 +844,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.update_dashboard_filters(instance, validated_data)
 
         self.update_permissions(instance, validated_data)
-
-        schedule_update_project_configs(instance)
 
         return instance
 
@@ -1255,22 +1250,3 @@ class DashboardStarredOrderSerializer(serializers.Serializer):
         if len(dashboard_ids) != len(set(dashboard_ids)):
             raise serializers.ValidationError("Single dashboard cannot take up multiple positions")
         return dashboard_ids
-
-
-def schedule_update_project_configs(dashboard: Dashboard):
-    """
-    Schedule a task to update project configs for all projects of an organization when a dashboard is updated.
-    """
-    org = dashboard.organization
-
-    on_demand_metrics = features.has("organizations:on-demand-metrics-extraction", org)
-    dashboard_on_demand_metrics = features.has(
-        "organizations:on-demand-metrics-extraction-experimental", org
-    )
-
-    if not on_demand_metrics or not dashboard_on_demand_metrics:
-        return
-
-    schedule_invalidate_project_config(
-        trigger="dashboards:create-on-demand-metric", organization_id=org.id
-    )

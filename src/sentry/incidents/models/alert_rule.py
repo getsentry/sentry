@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import logging
 from collections.abc import Callable, Collection, Iterable
 from enum import Enum, IntEnum, StrEnum
@@ -37,7 +36,6 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
-from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.incidents.action_handlers import ActionHandler
@@ -328,12 +326,8 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
-class ActionHandlerFactory(abc.ABC):
-    """A factory for action handlers tied to a specific incident service.
-
-    The factory's builder method is augmented with metadata about which service it is
-    for and which target types that service supports.
-    """
+class ActionHandlerFactory:
+    """Metadata for an incident action service: slug, supported target types, and integration provider."""
 
     def __init__(
         self,
@@ -346,32 +340,6 @@ class ActionHandlerFactory(abc.ABC):
         self.service_type = service_type
         self.supported_target_types = frozenset(supported_target_types)
         self.integration_provider = integration_provider
-
-    @abc.abstractmethod
-    def build_handler(self) -> ActionHandler:
-        raise NotImplementedError
-
-
-class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
-    """A factory derived from a concrete ActionHandler class.
-
-    The factory builds a handler simply by instantiating the provided class. The
-    `AlertRuleTriggerAction.register_type` decorator provides the rest of the metadata.
-    """
-
-    def __init__(
-        self,
-        slug: str,
-        service_type: ActionService,
-        supported_target_types: Iterable[ActionTarget],
-        integration_provider: str | None,
-        trigger_action_class: type[ActionHandler],
-    ) -> None:
-        super().__init__(slug, service_type, supported_target_types, integration_provider)
-        self.trigger_action_class = trigger_action_class
-
-    def build_handler(self) -> ActionHandler:
-        return self.trigger_action_class()
 
 
 class _FactoryRegistry:
@@ -403,8 +371,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     Type = ActionService
     TargetType = ActionTarget
 
-    # As a test utility, TemporaryAlertRuleTriggerActionRegistry has privileged
-    # access to this otherwise private class variable
     _factory_registrations = _FactoryRegistry()
 
     INTEGRATION_TYPES = frozenset(
@@ -467,15 +433,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             return self.target_identifier
         return None
 
-    @staticmethod
-    def build_handler(type: ActionService) -> ActionHandler | None:
-        factory = AlertRuleTriggerAction._factory_registrations.by_action_service.get(type)
-        if factory is not None:
-            return factory.build_handler()
-        else:
-            metrics.incr(f"alert_rule_trigger.unhandled_type.{type}")
-            return None
-
     def get_single_sentry_app_config(self) -> dict[str, Any] | None:
         value = self.sentry_app_config
         if isinstance(value, list):
@@ -495,7 +452,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         integration_provider: str | None = None,
     ) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
         """
-        Register a factory for the decorated ActionHandler class, for a given service type.
+        Register a metadata factory for the decorated ActionHandler class, for a given service type.
 
         :param slug: A string representing the name of this type registration
         :param service_type: The action service type the decorated handler supports.
@@ -505,12 +462,8 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         """
 
         def inner(handler: type[ActionHandler]) -> type[ActionHandler]:
-            """
-            :param handler: A subclass of `ActionHandler` that accepts the
-                            `AlertRuleActionHandler` and `Incident`.
-            """
-            factory = _AlertRuleActionHandlerClassFactory(
-                slug, service_type, supported_target_types, integration_provider, handler
+            factory = ActionHandlerFactory(
+                slug, service_type, supported_target_types, integration_provider
             )
             cls.register_factory(factory)
             return handler

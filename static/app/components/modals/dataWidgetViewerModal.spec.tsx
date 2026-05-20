@@ -226,7 +226,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           queries: [mockQuery, additionalMockQuery],
           widgetType: WidgetType.DISCOVER,
         };
-        (ReactEchartsCore as jest.Mock).mockClear();
+        jest.mocked(ReactEchartsCore).mockClear();
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           body: {
@@ -322,7 +322,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         const {router} = await renderModal({initialData, widget: mockWidget});
         act(() => {
           // Simulate dataZoom event on chart
-          (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
+          jest.mocked(ReactEchartsCore).mock.calls[0]![0].onEvents!.datazoom!(undefined, {
             getModel: () => {
               return {
                 _payload: {

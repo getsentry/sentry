@@ -20,35 +20,18 @@ describe('hono onboarding docs', () => {
         screen.getByRole('heading', {name: /Upload Source Maps/i})
       ).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    });
 
-    it('shows @sentry/cloudflare as peer dependency', () => {
-      renderWithOnboardingLayout(docs);
-
-      const matches = screen.getAllByText(textWithMarkupMatcher(/@sentry\/cloudflare/));
-      expect(matches.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('shows wrangler.jsonc with nodejs_compat flag', () => {
-      renderWithOnboardingLayout(docs);
-
-      const matches = screen.getAllByText(textWithMarkupMatcher(/nodejs_compat/));
-      expect(matches.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('shows sentry middleware import from @sentry/hono/cloudflare', () => {
-      renderWithOnboardingLayout(docs);
-
+      expect(
+        screen.getAllByText(textWithMarkupMatcher(/@sentry\/cloudflare/)).length
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByText(textWithMarkupMatcher(/nodejs_compat/)).length
+      ).toBeGreaterThanOrEqual(1);
       expect(
         screen.getByText(
           textWithMarkupMatcher(/import { sentry } from "@sentry\/hono\/cloudflare"/)
         )
       ).toBeInTheDocument();
-    });
-
-    it('passes options directly to middleware', () => {
-      renderWithOnboardingLayout(docs);
-
       expect(
         screen.getByText(textWithMarkupMatcher(/sentry\(app, \{/))
       ).toBeInTheDocument();
@@ -136,39 +119,20 @@ describe('hono onboarding docs', () => {
         screen.getByRole('heading', {name: /Upload Source Maps/i})
       ).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    });
-
-    it('shows @sentry/hono/node import in instrument file', () => {
-      renderWithOnboardingLayout(nodeDocs);
 
       expect(
         screen.getByText(
           textWithMarkupMatcher(/import \* as Sentry from "@sentry\/hono\/node"/)
         )
       ).toBeInTheDocument();
-    });
-
-    it('shows sentry middleware import from @sentry/hono/node', () => {
-      renderWithOnboardingLayout(nodeDocs);
-
       expect(
         screen.getByText(
           textWithMarkupMatcher(/import { sentry } from "@sentry\/hono\/node"/)
         )
       ).toBeInTheDocument();
-    });
-
-    it('includes sentry middleware', () => {
-      renderWithOnboardingLayout(nodeDocs);
-
       expect(
         screen.getByText(textWithMarkupMatcher(/app\.use\(sentry\(app\)\)/))
       ).toBeInTheDocument();
-    });
-
-    it('shows node --import command', () => {
-      renderWithOnboardingLayout(nodeDocs);
-
       expect(
         screen.getByText(textWithMarkupMatcher(/node --import .\/instrument.mjs app.js/))
       ).toBeInTheDocument();
@@ -287,28 +251,15 @@ describe('hono onboarding docs', () => {
         screen.getByRole('heading', {name: /Upload Source Maps/i})
       ).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    });
 
-    it('shows @sentry/bun as peer dependency', () => {
-      renderWithOnboardingLayout(bunDocs);
-
-      const matches = screen.getAllByText(textWithMarkupMatcher(/@sentry\/bun/));
-      expect(matches.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('shows sentry middleware import from @sentry/hono/bun', () => {
-      renderWithOnboardingLayout(bunDocs);
-
+      expect(
+        screen.getAllByText(textWithMarkupMatcher(/@sentry\/bun/)).length
+      ).toBeGreaterThanOrEqual(1);
       expect(
         screen.getByText(
           textWithMarkupMatcher(/import { sentry } from "@sentry\/hono\/bun"/)
         )
       ).toBeInTheDocument();
-    });
-
-    it('passes options directly to middleware', () => {
-      renderWithOnboardingLayout(bunDocs);
-
       expect(
         screen.getByText(textWithMarkupMatcher(/sentry\(app, \{/))
       ).toBeInTheDocument();
