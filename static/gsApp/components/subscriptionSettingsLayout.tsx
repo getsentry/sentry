@@ -1,78 +1,37 @@
-import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
-import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb';
-import {SettingsHeader} from 'sentry/views/settings/components/settingsHeader';
 import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
 
 export default function SubscriptionSettingsLayout() {
-  const location = useLocation();
   const params = useParams();
-  const matches = useMatches();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  let feedbackSource = location.pathname;
-  for (let i = matches.length - 1; i >= 0; i--) {
-    const match = matches[i];
-    if (
-      match?.handle &&
-      typeof match.handle === 'object' &&
-      'name' in match.handle &&
-      typeof match.handle.name === 'string'
-    ) {
-      feedbackSource = match.handle.name;
-      break;
-    }
-  }
-
-  const feedbackOptions = {
-    formTitle: t('Give feedback'),
-    messagePlaceholder: t('How can we make the %s page better for you?', feedbackSource),
-    tags: {
-      ['feedback.source']: feedbackSource,
-      ['feedback.owner']: 'billing',
-    },
-  };
 
   return (
-    <SettingsColumn direction="column" flex={1} minWidth="0">
-      {hasPageFrameFeature ? (
-        <Fragment>
-          <TopBar.Slot name="title">
-            <StyledSettingsBreadcrumb params={params} />
-          </TopBar.Slot>
-          <TopBar.Slot name="actions">
-            <SettingsSearch />
-          </TopBar.Slot>
-        </Fragment>
-      ) : (
-        <StyledSettingsHeader>
-          <Flex align="center" justify="between" gap="xl">
-            <StyledSettingsBreadcrumb params={params} />
-            <Flex align="center" gap="xl">
-              <FeedbackButton feedbackOptions={feedbackOptions} />
-              <SettingsSearch />
-            </Flex>
-          </Flex>
-        </StyledSettingsHeader>
-      )}
-      <Flex minWidth={0} flex="1" direction="column">
+    <SettingsColumn>
+      <TopBar.Slot name="title">
+        <StyledSettingsBreadcrumb params={params} />
+      </TopBar.Slot>
+      <TopBar.Slot name="search">
+        <SettingsSearch />
+      </TopBar.Slot>
+
+      <Flex flex="1" minWidth="0">
         <Outlet />
       </Flex>
     </SettingsColumn>
   );
 }
 
-const SettingsColumn = styled(Flex)`
+const SettingsColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
   footer {
     margin-top: 0;
   }
@@ -80,8 +39,4 @@ const SettingsColumn = styled(Flex)`
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
   flex: 1;
-`;
-
-const StyledSettingsHeader = styled(SettingsHeader)`
-  border: none;
 `;
