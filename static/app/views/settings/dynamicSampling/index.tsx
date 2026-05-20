@@ -67,15 +67,22 @@ export default function DynamicSamplingSettings() {
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Dynamic Sampling')}
-        subtitle={t(
-          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
-        )}
+        subtitle={
+          <Flex justify="between" align="center" gap="md">
+            <div>
+              {t(
+                'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
+              )}
+            </div>
+            <LinkButton
+              external
+              href="https://docs.sentry.io/organization/dynamic-sampling/"
+            >
+              {t('Read the docs')}
+            </LinkButton>
+          </Flex>
+        }
       />
-      <Flex justify="end" marginBottom="xl">
-        <LinkButton external href="https://docs.sentry.io/organization/dynamic-sampling/">
-          {t('Read the docs')}
-        </LinkButton>
-      </Flex>
       <OrganizationPermissionAlert />
       {hasReadAccess ? (
         organization.samplingMode === 'organization' ? (

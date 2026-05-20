@@ -60,17 +60,21 @@ export default function ConsoleSDKInvitesSettings() {
       <SentryDocumentTitle title={t('Console SDK Invites')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Console SDK Invites')}
-        subtitle={t(
-          'Manage invitations to our private gaming console SDK GitHub repositories.'
-        )}
+        subtitle={
+          <Flex justify="between" align="center" gap="md">
+            <div>
+              {t(
+                'Manage invitations to our private gaming console SDK GitHub repositories.'
+              )}
+            </div>
+            {action}
+          </Flex>
+        }
       />
       {!userHasConsoleAccess && <NoAccessAlert />}
       {!isPending && !isError && userHasConsoleAccess && !userHasQuotaRemaining && (
         <NoQuotaRemaining organization={organization} />
       )}
-      <Flex justify="end" marginTop="xl">
-        {action}
-      </Flex>
       <InvitesTable>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
