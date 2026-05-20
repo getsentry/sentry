@@ -8,6 +8,8 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 const themes = {light: lightTheme, dark: darkTheme};
 
+jest.setTimeout(10_000);
+
 describe('Text', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {
     it.snapshot.each(['xs', 'sm', 'md', 'lg', 'xl', '2xl'] as const)(

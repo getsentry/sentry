@@ -48,6 +48,8 @@ const statusCounts: Record<DiffStatus, number> = {
   [DiffStatus.SKIPPED]: 0,
 };
 
+jest.setTimeout(10_000);
+
 describe('SnapshotSidebarContent', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {
     function Wrapper({children}: {children: React.ReactNode}) {

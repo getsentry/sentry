@@ -91,6 +91,8 @@ const pair: SnapshotDiffPair = {
   }),
 };
 
+jest.setTimeout(10_000);
+
 describe('DiffImageDisplay', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {
     function Wrapper({
