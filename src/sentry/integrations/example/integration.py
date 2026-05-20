@@ -173,9 +173,6 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     ) -> list[RepositoryInfo]:
         return [{"name": "repo", "identifier": "user/repo", "external_id": "1"}]
 
-    def get_unmigratable_repositories(self):
-        return []
-
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,

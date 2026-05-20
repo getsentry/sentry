@@ -339,16 +339,6 @@ class GitHubIntegration(
         response = client.search_repositories(full_query)
         return to_repo_info(response.get("items", []))
 
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        accessible_repos = self.get_repositories()
-        accessible_repo_names = [r["identifier"] for r in accessible_repos]
-
-        existing_repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=[IntegrationProviderSlug.GITHUB.value]
-        )
-
-        return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
-
     def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:

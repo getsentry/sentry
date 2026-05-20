@@ -334,18 +334,6 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
 
         return True
 
-    def get_unmigratable_repositories(self):
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id,
-            providers=[
-                IntegrationProviderSlug.BITBUCKET_SERVER.value,
-            ],
-        )
-
-        accessible_repos = [r["identifier"] for r in self.get_repositories()]
-
-        return list(filter(lambda repo: repo.name not in accessible_repos, repos))
-
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(self.model.metadata["base_url"])
 
