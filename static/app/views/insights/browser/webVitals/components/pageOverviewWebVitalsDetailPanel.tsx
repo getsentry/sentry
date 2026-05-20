@@ -37,6 +37,7 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
@@ -204,8 +205,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return null;
     }
     if (col.key === 'webVital') {
-      // @ts-expect-error TS(2551): Property 'measurements.cls' does not exist on type... Remove this comment to see the full error message
-      const value = row[`measurements.${webVital}`];
+      const value = webVital ? row[WEB_VITAL_TO_FIELD[webVital]] : undefined;
       if (value === undefined) {
         return (
           <AlignRight>
@@ -310,7 +310,7 @@ export function PageOverviewWebVitalsDetailPanel({
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = webVital
-    ? projectData?.[0]?.[`p75(measurements.${webVital})`]
+    ? projectData?.[0]?.[`p75(${WEB_VITAL_TO_FIELD[webVital]})`]
     : undefined;
 
   return (
