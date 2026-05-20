@@ -310,8 +310,9 @@ export function GlobalCommandPaletteActions() {
           />
           {Object.values(ISSUE_TAXONOMY_CONFIG)
             .filter(
-              ({featureFlag}) =>
-                !featureFlag || organization.features.includes(featureFlag)
+              ({featureFlags}) =>
+                !featureFlags ||
+                featureFlags.some(feature => organization.features.includes(feature))
             )
             .map(config => (
               <CMDKAction

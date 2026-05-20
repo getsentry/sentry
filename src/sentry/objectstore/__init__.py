@@ -8,7 +8,6 @@ from objectstore_client import (
     Client,
     MetricsBackend,
     Session,
-    TimeToIdle,
     TimeToLive,
     TokenGenerator,
     Usecase,
@@ -63,7 +62,7 @@ class SentryMetricsBackend(MetricsBackend):
 
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
-_PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
+_PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToLive(timedelta(days=30)))
 
 
 def create_client() -> Client:

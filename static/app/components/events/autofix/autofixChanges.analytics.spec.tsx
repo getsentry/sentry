@@ -32,7 +32,7 @@ jest.mock('@sentry/scraps/button', () => ({
 
 jest.mock('sentry/components/events/autofix/useAutofix');
 
-const mockButton = Button as jest.MockedFunction<typeof Button>;
+const mockButton = jest.mocked(Button);
 
 describe('AutofixChanges', () => {
   const defaultProps = {

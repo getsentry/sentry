@@ -1951,7 +1951,6 @@ class TestAddSeerProjectRepos(TestCase):
     def test_creates_project_repos(self):
         add_seer_project_repos(
             self.project,
-            self.organization,
             [
                 {"repository_id": self.repo1.id, "branch_name": "main", "instructions": "hello"},
                 {"repository_id": self.repo2.id},
@@ -1970,7 +1969,6 @@ class TestAddSeerProjectRepos(TestCase):
     def test_creates_branch_overrides(self):
         add_seer_project_repos(
             self.project,
-            self.organization,
             [
                 {
                     "repository_id": self.repo1.id,
@@ -1994,7 +1992,6 @@ class TestAddSeerProjectRepos(TestCase):
 
         add_seer_project_repos(
             self.project,
-            self.organization,
             [{"repository_id": self.repo1.id, "branch_name": "new"}],
         )
 
@@ -2008,9 +2005,7 @@ class TestAddSeerProjectRepos(TestCase):
         assert pr.branch_name == "new"
 
     def test_returns_created_ids(self):
-        created_ids = add_seer_project_repos(
-            self.project, self.organization, [{"repository_id": self.repo1.id}]
-        )
+        created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
         assert created_ids == list(
             SeerProjectRepository.objects.filter(
                 project_repository__project=self.project
@@ -2040,32 +2035,40 @@ class TestReplaceAllSeerProjectRepos(TestCase):
 
         replace_all_seer_project_repos(
             self.project,
-            self.organization,
             [{"repository_id": self.repo2.id, "branch_name": "develop"}],
         )
 
-        assert not SeerProjectRepository.objects.filter(
-            project_repository__project=self.project, project_repository__repository=self.repo1
-        ).exists()
+        assert (
+            not SeerProjectRepository.objects.filter(project_repository__project=self.project)
+            .exclude(project_repository__repository=self.repo2)
+            .exists()
+        )
         pr2 = SeerProjectRepository.objects.get(
             project_repository__project=self.project, project_repository__repository=self.repo2
         )
         assert pr2.branch_name == "develop"
 
     def test_clears_all_when_empty(self):
-        self.create_seer_project_repository(self.project, repository=self.repo1)
-
-        replace_all_seer_project_repos(self.project, self.organization, [])
-
-        assert (
-            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
-            == 0
+        project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="release",
         )
+
+        replace_all_seer_project_repos(self.project, [])
+
+        assert not SeerProjectRepository.objects.filter(
+            project_repository__project=self.project
+        ).exists()
+        assert not SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository=project_repo
+        ).exists()
 
     def test_creates_branch_overrides(self):
         replace_all_seer_project_repos(
             self.project,
-            self.organization,
             [
                 {
                     "repository_id": self.repo1.id,
@@ -2089,14 +2092,33 @@ class TestReplaceAllSeerProjectRepos(TestCase):
             branch_name="old",
         )
 
-        replace_all_seer_project_repos(
-            self.project, self.organization, [{"repository_id": self.repo1.id}]
-        )
+        replace_all_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
 
         project_repo = SeerProjectRepository.objects.get(
             project_repository__project=self.project, project_repository__repository=self.repo1
         )
         assert project_repo.branch_overrides.count() == 0
+
+    def test_preserves_inactive_repos(self):
+        inactive_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/inactive",
+            provider="integrations:github",
+            external_id="999",
+        )
+        inactive_repo.status = ObjectStatus.PENDING_DELETION
+        inactive_repo.save()
+        inactive_seer_repo = self.create_seer_project_repository(
+            self.project, repository=inactive_repo
+        )
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+
+        replace_all_seer_project_repos(self.project, [{"repository_id": self.repo2.id}])
+
+        assert SeerProjectRepository.objects.filter(id=inactive_seer_repo.id).exists()
+        assert not SeerProjectRepository.objects.filter(
+            project_repository__project=self.project, project_repository__repository=self.repo1
+        ).exists()
 
 
 class TestUpdateSeerProjectRepo(TestCase):
@@ -2138,6 +2160,26 @@ class TestUpdateSeerProjectRepo(TestCase):
         assert result is not None
         assert result.branch_name == "develop"
         assert result.instructions == "original"
+
+    def test_partial_update_preserves_branch_overrides(self):
+        project_repo = self.create_seer_project_repository(
+            self.project, repository=self.repo, branch_name="main"
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="release",
+        )
+
+        result = update_seer_project_repo(self.project, self.repo.id, {"branch_name": "develop"})
+
+        assert result is not None
+        assert result.branch_name == "develop"
+        overrides = list(result.branch_overrides.all())
+        assert len(overrides) == 1
+        assert overrides[0].tag_name == "env"
+        assert overrides[0].branch_name == "release"
 
     def test_replaces_branch_overrides(self):
         project_repo = self.create_seer_project_repository(
@@ -2187,6 +2229,15 @@ class TestUpdateSeerProjectRepo(TestCase):
         )
 
     def test_returns_none_if_not_found(self):
+        result = update_seer_project_repo(self.project, self.repo.id, {"branch_name": "develop"})
+
+        assert result is None
+
+    def test_returns_none_for_inactive_repo(self):
+        self.create_seer_project_repository(self.project, repository=self.repo)
+        self.repo.status = ObjectStatus.PENDING_DELETION
+        self.repo.save()
+
         result = update_seer_project_repo(self.project, self.repo.id, {"branch_name": "develop"})
 
         assert result is None

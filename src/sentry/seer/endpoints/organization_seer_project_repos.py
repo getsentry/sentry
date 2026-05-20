@@ -23,12 +23,14 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.seer.autofix.utils import (
     add_seer_project_repos,
     replace_all_seer_project_repos,
     update_seer_project_repo,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.seer_setup import get_supported_scm_providers
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
     "name": "project_repository__repository__name",
@@ -124,6 +126,21 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
                 queryset = queryset.exclude(provider_normalized__in=[normalize(v) for v in value])
 
     return queryset
+
+
+def _validate_repo_ids_for_seer(organization: Organization, repo_ids: list[int]) -> None:
+    """Raise ValueError if any repo IDs are invalid, inactive, or unsupported."""
+    valid_ids = set(
+        Repository.objects.filter(
+            id__in=repo_ids,
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=get_supported_scm_providers(organization),
+        ).values_list("id", flat=True)
+    )
+    invalid_ids = set(repo_ids) - valid_ids
+    if invalid_ids:
+        raise ValueError(sorted(invalid_ids))
 
 
 def _get_project_repos_queryset(project: Project):
@@ -293,9 +310,11 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
             return Response({"detail": "repos must not be empty."}, status=400)
 
         try:
-            add_seer_project_repos(project, organization, repos_data)
+            _validate_repo_ids_for_seer(organization, [d["repository_id"] for d in repos_data])
         except ValueError as e:
             return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
+
+        add_seer_project_repos(project, repos_data)
 
         return Response(status=204)
 
@@ -308,9 +327,12 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
 
         repos_data = serializer.validated_data["repos"]
 
-        try:
-            replace_all_seer_project_repos(project, organization, repos_data)
-        except ValueError as e:
-            return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
+        if repos_data:
+            try:
+                _validate_repo_ids_for_seer(organization, [d["repository_id"] for d in repos_data])
+            except ValueError as e:
+                return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
+
+        replace_all_seer_project_repos(project, repos_data)
 
         return Response(status=204)
