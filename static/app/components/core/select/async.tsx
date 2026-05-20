@@ -78,7 +78,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
         query: typeof onQuery === 'function' ? onQuery(query) : {query},
       })
       .then(
-        data => cb(null, data),
+        (data: TData) => cb(null, data),
         (err: Error) => cb(err)
       );
   }, 250);

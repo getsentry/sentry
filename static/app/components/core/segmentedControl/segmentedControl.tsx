@@ -104,7 +104,10 @@ export function SegmentedControl<Value extends string>({
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const collection = useCollection(props as any, collectionFactory);
+  const collection = useCollection(
+    props as Parameters<typeof useCollection>[0],
+    collectionFactory
+  );
   const ariaProps = {
     ...props,
     value,

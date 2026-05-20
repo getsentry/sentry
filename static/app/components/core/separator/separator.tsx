@@ -21,7 +21,7 @@ export const Separator = styled(
   },
   {
     shouldForwardProp: prop => {
-      if (omitSeparatorProps.has(prop as any)) {
+      if (omitSeparatorProps.has(prop as keyof SeparatorProps)) {
         return false;
       }
       return isPropValid(prop);

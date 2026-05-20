@@ -486,7 +486,7 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
        * Because this type is embedded in the OptionType generic we
        * can't have a good type here.
        */
-      value?: any;
+      value?: unknown;
     };
 
 // TODO(ts) The exported component uses forwardRef.
@@ -581,8 +581,12 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
 
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => compare(option.value, val)))
-        : flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
+        ? value.map((val: OptionType['value'] | null | undefined) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            flatOptions.find(option => compare(option.value, val))
+          )
+        : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
   }
 
   // Override the default style with in-field labels if they are provided
