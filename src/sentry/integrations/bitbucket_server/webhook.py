@@ -16,6 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import BadRequest
+from sentry.api.utils import to_valid_int_id
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
@@ -168,7 +169,11 @@ class BitbucketServerWebhookEndpoint(Endpoint):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: HttpRequest, organization_id, integration_id) -> HttpResponseBase:
+    def post(
+        self, request: HttpRequest, organization_id: str, integration_id: str
+    ) -> HttpResponseBase:
+        organization_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
+        integration_id_int = to_valid_int_id("integration_id", integration_id, raise_404=True)
         try:
             organization: Organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
@@ -212,6 +217,6 @@ class BitbucketServerWebhookEndpoint(Endpoint):
         event_handler = handler()
 
         with webhook_viewer_context(organization.id):
-            event_handler(event, organization=organization, integration_id=integration_id)
+            event_handler(event, organization=organization, integration_id=integration_id_int)
 
         return HttpResponse(status=204)
