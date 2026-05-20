@@ -916,9 +916,6 @@ def replace_all_seer_project_repos(
 ) -> None:
     """Replace all active Seer repos for the given project."""
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-        # Lock project rows to serialize concurrent replaces.
-        list(Project.objects.select_for_update().filter(id=project.id))
-
         SeerProjectRepository.objects.filter(
             project_repository__project=project,
             project_repository__repository__status=ObjectStatus.ACTIVE,
