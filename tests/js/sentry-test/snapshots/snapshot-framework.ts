@@ -101,7 +101,6 @@ function snapshotTest(
 
   const suffix = resolved ? ' @' + resolved.label : '';
 
-  // eslint-disable-next-line jest/valid-title -- title is always a non-empty string built from user-provided name
   test('snapshot: ' + name + suffix, async () => {
     const {testPath, currentTestName} = expect.getState();
     if (!testPath) {
