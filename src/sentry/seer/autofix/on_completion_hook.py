@@ -353,7 +353,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 analytics.record(
                     AiAutofixIntrospectionEvent(
                         organization_id=organization.id,
-                        project_id=group.project.id,
+                        project_id=group.project_id,
                         group_id=group.id,
                         referrer=referrer.value,
                         step=current_step.value,
