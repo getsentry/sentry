@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 function getFrameDisplayPath(frame: Frame, platform: PlatformKey, event: Event) {
   const framePlatform = getPlatform(frame.platform, platform);
@@ -197,7 +197,8 @@ function FrameLocationTooltip({
   frame: Frame;
   frameDisplayPath: string;
 }) {
-  const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
+  const externalUrl =
+    frame.absPath && isValidUrl(frame.absPath) ? frame.absPath : undefined;
   const absPath =
     frame.absPath && frame.absPath !== frameDisplayPath && !externalUrl
       ? frame.absPath

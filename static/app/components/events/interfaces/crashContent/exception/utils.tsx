@@ -6,7 +6,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {IconOpen} from 'sentry/icons';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 interface RenderLinksInTextProps {
   exceptionText: string;
@@ -38,10 +38,10 @@ export const renderLinksInText = ({
 
   const elements = parts.flatMap((part, index) => {
     const url = urls[index]!;
-    const isUrlValid = isUrl(url);
+    const linkIsValid = isValidUrl(url);
 
     let link: ReactElement | undefined;
-    if (isUrlValid) {
+    if (linkIsValid) {
       link = (
         <ExternalLink
           key={`link-${index}`}

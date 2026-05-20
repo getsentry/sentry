@@ -15,7 +15,7 @@ import {
 } from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 const DEFAULT_STRUCTURED_DATA_PROPS = {
@@ -133,13 +133,13 @@ function HTTPCrumbContent({
     status_code: statusCode,
     ...otherData
   } = cleanBreadcrumbData(breadcrumb?.data) ?? {};
-  const isValidUrl = !meta && defined(url) && isUrl(url);
+  const showUrlAsLink = !meta && defined(url) && isValidUrl(url);
   return (
     <Fragment>
       {children}
       <BreadcrumbText>
         {defined(method) && `${method}: `}
-        {isValidUrl ? (
+        {showUrlAsLink ? (
           <Link
             role="link"
             onClick={() => openNavigateToExternalLinkModal({linkText: url})}

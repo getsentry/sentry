@@ -22,7 +22,7 @@ import type {Frame} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 /**
  * File paths can get very long, so increase it for the tooltips within this component.
@@ -60,7 +60,7 @@ export function DefaultTitle({
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
-    if (isPotentiallyThirdParty && frame.absPath && isUrl(frame.absPath)) {
+    if (isPotentiallyThirdParty && frame.absPath && isValidUrl(frame.absPath)) {
       event.preventDefault();
       openNavigateToExternalLinkModal({linkText: frame.absPath});
     }
@@ -164,7 +164,7 @@ export function DefaultTitle({
       );
     }
 
-    if (frame.absPath && isUrl(frame.absPath)) {
+    if (frame.absPath && isValidUrl(frame.absPath)) {
       title.push(
         <StyledExternalLink href={frame.absPath} key="share" onClick={handleExternalLink}>
           <IconOpen size="xs" />
