@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -14,7 +15,6 @@ import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconList} from 'sentry/icons/iconList';
@@ -74,7 +74,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
             />
           )}
           <ArtifactDetails>
-            <StyledMarkedText text={artifact.data.one_line_summary} />
+            <Markdown raw={artifact.data.one_line_summary} />
           </ArtifactDetails>
           {artifact.data.steps ? (
             <ArtifactDetails>
@@ -83,7 +83,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
                     <Flex direction="column">
-                      <StyledMarkedText text={step.title} />
+                      <Markdown raw={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>

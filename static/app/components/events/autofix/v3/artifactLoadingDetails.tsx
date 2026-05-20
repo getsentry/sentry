@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 
@@ -40,11 +40,11 @@ export function ArtifactLoadingDetails({
           }
 
           if (block.message.content && block.message.content !== 'Thinking...') {
-            return <StyledMarkedText key={index} text={block.message.content} />;
+            return <Markdown key={index} raw={block.message.content} />;
           }
 
           if (block.message.thinking_content) {
-            return <StyledMarkedText key={index} text={block.message.thinking_content} />;
+            return <Markdown key={index} raw={block.message.thinking_content} />;
           }
 
           return null;
