@@ -607,13 +607,13 @@ class DashboardDetail extends Component<Props, State> {
 
         if (dashboard && newDashboard.id !== dashboard.id) {
           navigate(
-            {
+            normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
                 ...this.props.location.query,
                 unselectedSeries: legendQuery,
               },
-            },
+            }),
             {replace: true}
           );
         }
