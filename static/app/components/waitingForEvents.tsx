@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {CreateSampleEventButton} from 'sentry/views/onboarding/createSampleEventButton';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
