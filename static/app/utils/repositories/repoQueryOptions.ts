@@ -35,7 +35,7 @@ export function organizationRepositoriesInfiniteOptions({
     per_page?: number;
     query?: string;
     sort?: Sort;
-    status?: 'active' | 'deleted' | 'unmigratable';
+    status?: 'active' | 'deleted';
   };
   staleTime?: number;
 }) {
@@ -62,7 +62,7 @@ export function organizationRepositoriesWithSettingsInfiniteOptions({
     per_page?: number;
     query?: string;
     sort?: Sort;
-    status?: 'active' | 'deleted' | 'unmigratable';
+    status?: 'active' | 'deleted';
   };
   staleTime?: number;
 }) {
