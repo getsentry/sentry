@@ -109,13 +109,18 @@ function snapshotTest(
 
     const details = parseSnapshotDetails(currentTestName ?? '', name);
 
-    const finalFileSlug = resolved
-      ? `${details.fileSlug}-${resolved.label}`
+    const viewportSuffix = resolved ? `@${resolved.label}` : '';
+    const displayName = viewportSuffix
+      ? details.displayName.replace(new RegExp(`\\s*${viewportSuffix}$`), '')
+      : details.displayName;
+    const fileSlug = viewportSuffix
+      ? details.fileSlug.replace(new RegExp(`${viewportSuffix}$`, 'i'), '')
       : details.fileSlug;
+    const finalFileSlug = resolved ? `${fileSlug}-${resolved.label}` : fileSlug;
 
     await takeSnapshot({
       fileSlug: finalFileSlug,
-      displayName: details.displayName,
+      displayName,
       renderFn,
       testFilePath: testPath,
       group: details.group,
