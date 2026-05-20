@@ -29,6 +29,7 @@ export function Breadcrumbs() {
   const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
   const [showSnippetSet, setShowSnippetSet] = useState(new Set());
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
   const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
   const frames = replay?.getChapterFrames();
@@ -92,6 +93,7 @@ export function Breadcrumbs() {
   // Callback for jump buttons to scroll directly
   const handleScrollToRow = useCallback(
     (row: number) => {
+      setAutoScrollEnabled(true);
       virtualizer.scrollToIndex(row, {align: 'center'});
     },
     [virtualizer]
@@ -110,6 +112,8 @@ export function Breadcrumbs() {
   });
 
   useScrollToCurrentItem({
+    autoScrollEnabled,
+    currentTime,
     frames: items,
     virtualizer: scrollContainerRef.current ? virtualizer : null,
   });
@@ -132,7 +136,11 @@ export function Breadcrumbs() {
       <BreadcrumbFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
-          <ScrollContainer ref={scrollContainerRef}>
+          <ScrollContainer
+            ref={scrollContainerRef}
+            onPointerDown={() => setAutoScrollEnabled(false)}
+            onWheel={() => setAutoScrollEnabled(false)}
+          >
             {items.length === 0 ? (
               <NoRowRenderer unfilteredItems={frames} clearSearchTerm={clearSearchTerm}>
                 {t('No breadcrumbs recorded')}
