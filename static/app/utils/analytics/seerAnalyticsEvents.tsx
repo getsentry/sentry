@@ -119,6 +119,7 @@ export type SeerAnalyticsEventsParameters = {
     has_legacy_seer: boolean;
     has_seat_based_seer: boolean;
   };
+  'seer.explorer.block_copied': Record<string, unknown>;
   'seer.explorer.feedback_submitted': {
     block_index: number;
     block_message: string;
@@ -173,6 +174,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
   'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
+  'seer.explorer.block_copied': 'Seer Explorer: Block Content Copied',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
