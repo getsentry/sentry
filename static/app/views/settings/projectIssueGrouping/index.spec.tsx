@@ -18,7 +18,9 @@ describe('projectIssueGrouping', () => {
       outletContext: {project},
     });
 
-    expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Derived Grouping Enhancements/)
+    ).toBeInTheDocument();
   });
 
   it('shows derived grouping enhancements only for superusers', async () => {
@@ -29,7 +31,9 @@ describe('projectIssueGrouping', () => {
     });
 
     // Verify the section is visible for non-superuser
-    expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Derived Grouping Enhancements/)
+    ).toBeInTheDocument();
     expect(screen.getByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', {name: /Derived Grouping Enhancements/})
