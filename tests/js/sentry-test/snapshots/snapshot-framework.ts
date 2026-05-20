@@ -110,9 +110,7 @@ function snapshotTest(
     const details = parseSnapshotDetails(currentTestName ?? '', name);
 
     const viewportSuffix = resolved ? `@${resolved.label}` : '';
-    const displayName = viewportSuffix
-      ? details.displayName.replace(new RegExp(`\\s*${viewportSuffix}$`), '')
-      : details.displayName;
+    const displayName = details.displayName;
     const fileSlug = viewportSuffix
       ? details.fileSlug.replace(new RegExp(`${viewportSuffix}$`, 'i'), '')
       : details.fileSlug;
