@@ -130,7 +130,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+        suggested_api="sentry-api-0-organization-workflow-details",
     )
     def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
@@ -197,7 +197,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+        suggested_api="sentry-api-0-organization-workflow-details",
     )
     def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
@@ -378,7 +378,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+        suggested_api="sentry-api-0-organization-workflow-details",
     )
     def delete(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
