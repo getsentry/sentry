@@ -24,7 +24,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     def _on_post(project, trigger):
         from sentry.dynamic_sampling import ProjectBoostedReleases
 
-        project_boosted_releases = ProjectBoostedReleases(project.id)
+        project_boosted_releases = ProjectBoostedReleases(project)
         # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
         # in the project.
         if (

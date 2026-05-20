@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sentry.features.base import (
     FeatureHandlerStrategy,
     OrganizationFeature,
@@ -5,6 +7,13 @@ from sentry.features.base import (
     SystemFeature,
 )
 from sentry.features.manager import FeatureManager
+
+
+@dataclass(frozen=True)
+class FlagpoleFeature:
+    default: bool = False
+    api_expose: bool = False
+
 
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
 
@@ -134,9 +143,11 @@ def register_permanent_features(manager: FeatureManager) -> None:
     }
 
     # Permanent organization features that are controlled via flagpole
-    permanent_flagpole_organization_features = {
+    permanent_flagpole_organization_features: dict[str, FlagpoleFeature] = {
+        # Enable the rendering of @sentry/toolbar inside the sentry app. See `useInitSentryToolbar()`
+        "organizations:init-sentry-toolbar": FlagpoleFeature(default=False, api_expose=True),
         # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
-        "organizations:workflow-engine-log-evaluations": False,
+        "organizations:workflow-engine-log-evaluations": FlagpoleFeature(default=False),
     }
 
     # Flagpole cannot control system-scoped flags — keep these as INTERNAL.
@@ -165,13 +176,13 @@ def register_permanent_features(manager: FeatureManager) -> None:
             api_expose=True,
         )
 
-    for org_feature, default in permanent_flagpole_organization_features.items():
+    for org_feature, config in permanent_flagpole_organization_features.items():
         manager.add(
             org_feature,
             OrganizationFeature,
             FeatureHandlerStrategy.FLAGPOLE,
-            default=default,
-            api_expose=False,
+            default=config.default,
+            api_expose=config.api_expose,
         )
 
     for system_feature, default in permanent_system_features.items():

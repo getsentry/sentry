@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -25,7 +25,7 @@ export function EventMissingBanner() {
   const eventId = eventIdParam ?? defaultEventId;
 
   const useGetMaxRetentionDays =
-    HookStore.get('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
+    getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays();
   const statsPeriod = maxRetentionDays ? `${maxRetentionDays}d` : '30d';
 

@@ -26,13 +26,13 @@ import {
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -113,7 +113,7 @@ export const UNSAVED_FILTERS_MESSAGE = t(
   'You have unsaved dashboard filters. You can save or discard them.'
 );
 
-const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
+const OverrideHeader = OverrideOrDefault({overrideName: 'component:dashboards-header'});
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
@@ -1094,7 +1094,7 @@ class DashboardDetail extends Component<Props, State> {
                     widgetLimitReached={widgetLimitReached}
                   />
                 </StyledPageHeader>
-                <HookHeader organization={organization} />
+                <OverrideHeader organization={organization} />
                 <Stack gap="xl">
                   {pageAlerts}
                   <FiltersBar

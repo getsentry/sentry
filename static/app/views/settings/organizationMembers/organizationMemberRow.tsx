@@ -7,8 +7,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {Confirm} from 'sentry/components/confirm';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -35,8 +35,8 @@ type State = {
   busy: boolean;
 };
 
-const DisabledMemberTooltip = HookOrDefault({
-  hookName: 'component:disabled-member-tooltip',
+const DisabledMemberTooltip = OverrideOrDefault({
+  overrideName: 'component:disabled-member-tooltip',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 

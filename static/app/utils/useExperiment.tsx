@@ -1,4 +1,4 @@
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface UseExperimentResult {
@@ -87,7 +87,6 @@ function useNoopExperiment(options: UseExperimentOptions): UseExperimentResult {
  * ```
  */
 export function useExperiment(options: UseExperimentOptions): UseExperimentResult {
-  const useExperimentHook =
-    HookStore.get('react-hook:use-experiment') ?? useNoopExperiment;
+  const useExperimentHook = getOverride('react-hook:use-experiment') ?? useNoopExperiment;
   return useExperimentHook(options);
 }

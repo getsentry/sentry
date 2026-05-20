@@ -18,7 +18,7 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -540,7 +540,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     selection: {datetime},
   } = usePageFilters();
   const useRetentionLimit =
-    HookStore.get('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
+    getOverride('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });

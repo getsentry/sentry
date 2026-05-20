@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -60,7 +60,7 @@ export function RouteSource({searchOptions, query, children}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: params.projectId});
   const useBillingNavConfig =
-    HookStore.get('react-hook:use-billing-navigation-config') ?? (() => null);
+    getOverride('react-hook:use-billing-navigation-config') ?? (() => null);
   const billingNavConfig = useBillingNavConfig();
 
   const resolvedTs = useMemo(() => makeResolvedTs(), []);
