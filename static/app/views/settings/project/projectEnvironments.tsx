@@ -12,9 +12,13 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import type {TagValue} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {DetailedProject} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDisplayName} from 'sentry/utils/environment';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,6 +30,7 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 interface EnvironmentRowProps {
   name: React.ReactNode;
   children?: React.ReactNode;
+  eventCount?: number;
 }
 
 interface ProjectEnvironment {
@@ -39,11 +44,14 @@ interface ToggleEnvironmentVariables {
   shouldHide: boolean;
 }
 
-function EnvironmentRow({children, name}: EnvironmentRowProps) {
+function EnvironmentRow({children, eventCount, name}: EnvironmentRowProps) {
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell minHeight="45px" padding="md xl">
         {name}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" minHeight="45px" padding="md xl">
+        {eventCount === undefined ? null : formatAbbreviatedNumber(eventCount)}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" minHeight="45px" padding="md xl">
         {children}
@@ -62,12 +70,39 @@ function EnvironmentTableSkeleton({isHidden}: {isHidden: boolean}) {
             <Placeholder height="16px" width={width} />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="end" minHeight="40px" padding="md xl">
+            <Placeholder height="16px" width="52px" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" minHeight="40px" padding="md xl">
             <Placeholder height="24px" width="44px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
       ))}
     </Fragment>
   );
+}
+
+function useEventCounts(organization: Organization, project: DetailedProject) {
+  const {data: tagValues = []} = useQuery(
+    apiOptions.as<TagValue[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/values/',
+      {
+        path: {
+          organizationIdOrSlug: organization.id,
+          projectIdOrSlug: project.slug,
+          key: 'environment',
+        },
+        staleTime: 60_000,
+      }
+    )
+  );
+
+  const eventCountsByEnvironment = Object.fromEntries(
+    tagValues.map(tag => [tag.value, tag.count])
+  );
+
+  const eventCountAll = tagValues.reduce((sum, tag) => sum + (tag.count ?? 0), 0);
+
+  return {eventCountsByEnvironment, eventCountAll};
 }
 
 export default function ProjectEnvironments() {
@@ -155,6 +190,8 @@ export default function ProjectEnvironments() {
     },
   });
 
+  const {eventCountsByEnvironment, eventCountAll} = useEventCounts(organization, project);
+
   return (
     <div>
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
@@ -188,7 +225,8 @@ export default function ProjectEnvironments() {
           <SimpleTable.HeaderCell>
             {isHidden ? t('Hidden') : t('Active Environments')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell />
+          <SimpleTable.HeaderCell>{t('Recent Events')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
         {isPending ? (
           <EnvironmentTableSkeleton isHidden={isHidden} />
@@ -198,9 +236,15 @@ export default function ProjectEnvironments() {
           </SimpleTable.Empty>
         ) : environments?.length ? (
           <Fragment>
-            {!isHidden && <EnvironmentRow name={t('All Environments')} />}
+            {!isHidden && (
+              <EnvironmentRow name={t('All Environments')} eventCount={eventCountAll} />
+            )}
             {environments.map(env => (
-              <EnvironmentRow key={env.id} name={env.name}>
+              <EnvironmentRow
+                key={env.id}
+                name={env.name}
+                eventCount={eventCountsByEnvironment[env.name]}
+              >
                 <Access access={['project:write']} project={project}>
                   {({hasAccess}) => (
                     <Button
@@ -237,5 +281,5 @@ const TabsContainer = styled('div')`
 `;
 
 const EnvironmentTable = styled(SimpleTable)`
-  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
 `;

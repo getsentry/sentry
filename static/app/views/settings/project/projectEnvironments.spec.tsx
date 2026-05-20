@@ -45,6 +45,13 @@ async function clickEnvironmentAction(name: string, action: string) {
 }
 
 describe('ProjectEnvironments', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/tags/environment/values/',
+      body: [],
+    });
+  });
+
   it.each([
     ['active', false, "You don't have any environments yet."],
     ['hidden', true, "You don't have any hidden environments."],
@@ -70,6 +77,27 @@ describe('ProjectEnvironments', () => {
     expect(await screen.findByText('production')).toBeInTheDocument();
     expect(screen.getByText('All Environments')).toBeInTheDocument();
     expect(screen.getAllByRole('button', {name: 'Hide'})).toHaveLength(3);
+  });
+
+  it('shows event counts per environment', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: EnvironmentsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/tags/environment/values/',
+      body: [
+        {value: 'production', name: 'production', count: 12345},
+        {value: 'staging', name: 'staging', count: 678},
+        {value: 'STAGING', name: 'STAGING', count: 99},
+      ],
+    });
+
+    renderComponent(false);
+
+    expect(await screen.findByText('12K')).toBeInTheDocument();
+    expect(screen.getByText('678')).toBeInTheDocument();
+    expect(screen.getByText('13K')).toBeInTheDocument();
   });
 
   it.each([
