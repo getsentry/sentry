@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Layer} from '@sentry/scraps/layer';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -11,7 +12,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
@@ -103,7 +103,7 @@ export function IssueListTable({
                 onActionTaken={onActionTaken}
               />
               {(groupIds.length > 0 || issuesLoading) && (
-                <HoverOverlayGroupProvider>
+                <Layer variant="nav">
                   <IssueListActions
                     selection={selection}
                     query={query}
@@ -116,33 +116,31 @@ export function IssueListTable({
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
                   />
-                </HoverOverlayGroupProvider>
+                </Layer>
               )}
-              <HoverOverlayGroupProvider>
-                <PanelBody>
-                  <VisuallyCompleteWithData
-                    hasData={groupIds.length > 0}
-                    id="IssueList-Body"
-                    isLoading={issuesLoading}
-                  >
-                    <GroupListBody
-                      memberList={memberList}
-                      groupStatsPeriod={statsPeriod}
-                      groupIds={groupIds}
-                      displayReprocessingLayout={displayReprocessingActions}
-                      query={query}
-                      selectedProjectIds={selection.projects}
-                      // we need the stats loading and group id check because group ids do not update immediately
-                      loading={issuesLoading || (statsLoading && !groupIds.length)}
-                      error={error}
-                      pageSize={pageSize}
-                      refetchGroups={refetchGroups}
-                      onActionTaken={onActionTaken}
-                      supergroupLookup={supergroupLookup}
-                    />
-                  </VisuallyCompleteWithData>
-                </PanelBody>
-              </HoverOverlayGroupProvider>
+              <PanelBody>
+                <VisuallyCompleteWithData
+                  hasData={groupIds.length > 0}
+                  id="IssueList-Body"
+                  isLoading={issuesLoading}
+                >
+                  <GroupListBody
+                    memberList={memberList}
+                    groupStatsPeriod={statsPeriod}
+                    groupIds={groupIds}
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
+                    selectedProjectIds={selection.projects}
+                    // we need the stats loading and group id check because group ids do not update immediately
+                    loading={issuesLoading || (statsLoading && !groupIds.length)}
+                    error={error}
+                    pageSize={pageSize}
+                    refetchGroups={refetchGroups}
+                    onActionTaken={onActionTaken}
+                    supergroupLookup={supergroupLookup}
+                  />
+                </VisuallyCompleteWithData>
+              </PanelBody>
             </ContainerPanel>
           </div>
         )}
