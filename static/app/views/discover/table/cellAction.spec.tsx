@@ -192,11 +192,42 @@ describe('Discover -> CellAction', () => {
 
       render(
         <CellAction
-          dataRow={{url: 'http://*/v1/api/auth/register'}}
+          dataRow={{id: '1', url: 'http://*/v1/api/auth/register'}}
           column={urlView.getColumns()[0]!}
           handleCellAction={handleCellAction}
         >
           <strong>http://*/v1/api/auth/register</strong>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not offer open link for invalid external anchors', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+      const wildcardUrl = 'http://*/v1/api/auth/register';
+
+      render(
+        <CellAction
+          dataRow={{id: '1'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <a href={wildcardUrl}>{wildcardUrl}</a>
         </CellAction>
       );
 

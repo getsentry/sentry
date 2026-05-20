@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container as ScrapsContainer} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -17,11 +17,14 @@ import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRenderers';
+import {
+  getFieldRenderer,
+  nullableValue,
+  renderUrlCellValue,
+} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -362,13 +365,7 @@ function spanDescriptionRenderFunc(field: string, projects: Record<string, Proje
                 disableLink
               />
             )}
-            <WrappingText>
-              {isValidUrl(value) ? (
-                <ExternalLink href={value}>{value}</ExternalLink>
-              ) : (
-                nullableValue(value)
-              )}
-            </WrappingText>
+            <WrappingText>{renderUrlCellValue(value)}</WrappingText>
           </Description>
         </Tooltip>
       </span>

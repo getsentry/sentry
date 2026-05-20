@@ -303,32 +303,38 @@ describe('FieldRenderer tests', () => {
     expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
 
-  it('renders wildcard URL span names as plain text without link actions', async () => {
-    const wildcardUrl = 'http://*/v1/api/auth/register';
-    render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[6]}
-          data={{
-            ...mockedEventData,
-            'span.name': wildcardUrl,
-          }}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
-    );
+  it.each([
+    ['span.name', 6],
+    ['span.description', 5],
+  ])(
+    'renders wildcard URL %s as plain text without anchor or link actions',
+    async (field, columnIndex) => {
+      const wildcardUrl = 'http://*/v1/api/auth/register';
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[columnIndex]}
+            data={{
+              ...mockedEventData,
+              [field]: wildcardUrl,
+            }}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
 
-    expect(screen.getByText(wildcardUrl)).toBeInTheDocument();
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+      expect(screen.getByText(wildcardUrl)).toBeInTheDocument();
+      expect(document.querySelector('a')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
 
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Open external link'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Open link'})
-    ).not.toBeInTheDocument();
-  });
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    }
+  );
 });

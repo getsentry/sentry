@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Count} from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -193,6 +194,28 @@ export function nullableValue(value: string | null): string | React.ReactElement
   }
 }
 
+/**
+ * Renders navigable URLs as external links that open the external-link modal.
+ * Invalid/template URLs render as plain text without an anchor tag.
+ */
+export function renderUrlCellValue(value: unknown): React.ReactNode {
+  if (typeof value !== 'string' || !isValidUrl(value)) {
+    return nullableValue(typeof value === 'string' ? value : null);
+  }
+
+  return (
+    <ExternalLink
+      href={value}
+      onClick={e => {
+        e.preventDefault();
+        openNavigateToExternalLinkModal({linkText: value});
+      }}
+    >
+      {value}
+    </ExternalLink>
+  );
+}
+
 // TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
 export const SIZE_UNITS = {
   bit: 1 / 8,
@@ -360,13 +383,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      if (isValidUrl(value)) {
+      if (typeof value === 'string' && isValidUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
             <Container>
-              <ExternalLink href={value} data-test-id="group-tag-url">
-                {value}
-              </ExternalLink>
+              <span data-test-id="group-tag-url">{renderUrlCellValue(value)}</span>
             </Container>
           </Tooltip>
         );
@@ -585,13 +606,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           showOnlyOnOverflow
           maxWidth={400}
         >
-          <Container>
-            {isValidUrl(value) ? (
-              <ExternalLink href={value}>{value}</ExternalLink>
-            ) : (
-              nullableValue(value)
-            )}
-          </Container>
+          <Container>{renderUrlCellValue(value)}</Container>
         </Tooltip>
       );
     },
