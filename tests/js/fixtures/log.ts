@@ -117,6 +117,7 @@ export function initializeLogsTest({
   };
   setupEventsMock: (logFixtures: OurLogsResponseItem[]) => jest.Mock;
   setupPageFilters: () => void;
+  setupTotalPayloadMock: () => jest.Mock;
   setupTraceItemsMock: (logFixtures: OurLogsResponseItem[]) => jest.Mock[];
 } {
   const baseFeatures = ourlogs ? ['ourlogs-enabled'] : [];
@@ -176,15 +177,41 @@ export function initializeLogsTest({
     PageFiltersStore.onInitializeUrlState(initialPageFilters);
   };
 
+  const setupTotalPayloadMock = () => {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [MockApiClient.matchQuery({field: ['sum(payload_size)']})],
+      body: {
+        data: [{'sum(payload_size)': 0}],
+        meta: {
+          fields: {'sum(payload_size)': 'size'},
+          units: {'sum(payload_size)': 'byte'},
+        },
+      },
+    });
+  };
+
   const setupEventsMock = (logFixtures: OurLogsResponseItem[]) => {
     const eventsData: EventsLogsResult = {
       data: logFixtures,
       meta: LogFixtureMeta(logFixtures),
     };
 
+    // Register the total payload size mock alongside the main events mock so
+    // call-count assertions on the returned mock aren't inflated by that query.
+    setupTotalPayloadMock();
+
     return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
+      // Exclude the total payload size query so it goes to its own dedicated mock.
+      match: [
+        (_url, options) => {
+          const fields: string[] = [options.query?.field ?? []].flat();
+          return !fields.includes('sum(payload_size)');
+        },
+      ],
       body: eventsData,
     });
   };
@@ -223,6 +250,7 @@ export function initializeLogsTest({
     generateRouterConfig,
     setupPageFilters,
     setupEventsMock,
+    setupTotalPayloadMock,
     setupTraceItemsMock,
   };
 }

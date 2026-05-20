@@ -53,7 +53,6 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -1007,6 +1006,7 @@ function DiscoverContextMenu({
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const homepageQueryKey = useMemo(
@@ -1099,7 +1099,7 @@ function DiscoverContextMenu({
               DEFAULT_EVENT_VIEW,
               location
             );
-            browserHistory.push({
+            navigate({
               pathname: location.pathname,
               query: nextEventView.generateQueryStringObject(),
             });
@@ -1137,7 +1137,7 @@ function DiscoverContextMenu({
       label: t('Delete Saved Query'),
       onAction: () => {
         handleDeleteSavedQuery(api, organization, eventView).then(() => {
-          browserHistory.push(
+          navigate(
             normalizeUrl({pathname: getDiscoverQueriesUrl(organization), query: {}})
           );
         });
@@ -1189,6 +1189,7 @@ function SaveQueryButton({
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
+  const navigate = useNavigate();
   const [queryName, setQueryName] = useState('');
 
   const {isNewQuery, isEditingQuery} = useMemo(() => {
@@ -1238,11 +1239,11 @@ function SaveQueryButton({
           const view = EventView.fromSavedQuery(sq);
           Banner.dismiss('discover');
           setQueryName('');
-          browserHistory.push(normalizeUrl(view.getResultsViewUrlTarget(organization)));
+          navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
         }
       );
     },
-    [api, organization, eventView, yAxis, queryName]
+    [api, navigate, organization, eventView, yAxis, queryName]
   );
 
   const handleUpdate = (event: React.MouseEvent) => {
@@ -1252,7 +1253,7 @@ function SaveQueryButton({
       const view = EventView.fromSavedQuery(sq);
       setSavedQuery(sq);
       setQueryName('');
-      browserHistory.push(view.getResultsViewShortUrlTarget(organization));
+      navigate(view.getResultsViewShortUrlTarget(organization));
     });
   };
 
