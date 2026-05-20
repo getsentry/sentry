@@ -9,25 +9,23 @@ import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 describe('Issues -> Merged View', () => {
   const events = DetailedEventsFixture();
   const group = GroupFixture();
-  const mockData = {
-    merged: [
-      {
-        latestEvent: events[0],
-        id: '2c4887696f708c476a81ce4e834c4b02',
-        mergedBySeer: true,
-      },
-      {
-        latestEvent: events[1],
-        id: 'e05da55328a860b21f62e371f0a7507d',
-      },
-    ],
-  };
+  const mergedFingerprints = [
+    {
+      latestEvent: events[0],
+      id: '2c4887696f708c476a81ce4e834c4b02',
+      mergedBySeer: true,
+    },
+    {
+      latestEvent: events[1],
+      id: 'e05da55328a860b21f62e371f0a7507d',
+    },
+  ];
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/hashes/`,
-      body: mockData.merged,
+      body: mergedFingerprints,
     });
   });
 
@@ -46,7 +44,7 @@ describe('Issues -> Merged View', () => {
     );
 
     const links = await screen.findAllByRole('button', {name: 'View latest event'});
-    expect(links).toHaveLength(mockData.merged.length);
+    expect(links).toHaveLength(mergedFingerprints.length);
 
     const title = await screen.findByText('Fingerprints included in this issue');
     expect(title.parentElement).toHaveTextContent(

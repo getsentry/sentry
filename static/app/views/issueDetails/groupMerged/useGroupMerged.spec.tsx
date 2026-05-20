@@ -5,6 +5,7 @@ import {
 } from './useGroupMerged';
 
 describe('groupMerged state', () => {
+  const initialState = createInitialGroupMergedState();
   const fingerprints = [
     {
       latestEvent: {id: 'event-1'} as any,
@@ -21,19 +22,8 @@ describe('groupMerged state', () => {
     },
   ];
 
-  function getHydratedState() {
-    return createInitialGroupMergedState();
-  }
-
-  it('keeps seer merge metadata from the endpoint response', () => {
-    expect(fingerprints).toHaveLength(3);
-    expect(fingerprints.find(fingerprint => fingerprint.id === '2')?.mergedBySeer).toBe(
-      true
-    );
-  });
-
   it('does not select busy fingerprints', () => {
-    const pending = groupMergedReducer(getHydratedState(), {
+    const pending = groupMergedReducer(initialState, {
       type: 'unmergePending',
       fingerprintIds: ['1'],
     });
@@ -51,7 +41,7 @@ describe('groupMerged state', () => {
   });
 
   it('selects and unselects fingerprints', () => {
-    const selected = groupMergedReducer(getHydratedState(), {
+    const selected = groupMergedReducer(initialState, {
       type: 'toggleSelected',
       fingerprintId: '2',
       eventId: 'event-2',
@@ -71,7 +61,7 @@ describe('groupMerged state', () => {
   });
 
   it('knows when all available fingerprints are selected', () => {
-    const busy = groupMergedReducer(getHydratedState(), {
+    const busy = groupMergedReducer(initialState, {
       type: 'unmergePending',
       fingerprintIds: ['1'],
     });
@@ -91,7 +81,7 @@ describe('groupMerged state', () => {
   });
 
   it('keeps successful unmerged rows busy and clears their selection', () => {
-    const selected = groupMergedReducer(getHydratedState(), {
+    const selected = groupMergedReducer(initialState, {
       type: 'toggleSelected',
       fingerprintId: '2',
       eventId: 'event-2',
@@ -113,7 +103,7 @@ describe('groupMerged state', () => {
   });
 
   it('restores selection when unmerge fails', () => {
-    const selected = groupMergedReducer(getHydratedState(), {
+    const selected = groupMergedReducer(initialState, {
       type: 'toggleSelected',
       fingerprintId: '2',
       eventId: 'event-2',

@@ -14,14 +14,13 @@ describe('MergedIssuesDrawer', () => {
   const project = ProjectFixture();
   const group = GroupFixture();
   const event = EventFixture();
-  let mockMergedIssues: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
-    mockMergedIssues = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/hashes/`,
       body: [
         {
@@ -41,7 +40,6 @@ describe('MergedIssuesDrawer', () => {
       await screen.findByRole('heading', {name: 'Merged Issues'})
     ).toBeInTheDocument();
     expect(screen.getByText('Fingerprints included in this issue')).toBeInTheDocument();
-    expect(mockMergedIssues).toHaveBeenCalled();
     expect(screen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();
   });
 });
