@@ -21,6 +21,7 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 
 
 class BranchOverrideResponse(TypedDict):
+    id: str
     tagName: str
     tagValue: str
     branchName: str
@@ -56,6 +57,7 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
         branchName=project_repo.branch_name,
         branchOverrides=[
             BranchOverrideResponse(
+                id=str(bo.id),
                 tagName=bo.tag_name,
                 tagValue=bo.tag_value,
                 branchName=bo.branch_name,
