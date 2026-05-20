@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import analytics
-from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
+from sentry import analytics, features
+from sentry.analytics.events.autofix_events import (
+    AiAutofixIntrospectionEvent,
+    AiAutofixPrCreatedCompletedEvent,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -23,6 +26,12 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.introspection import (
+    IntrospectionDecision,
+    introspect_code_changes,
+    introspect_root_cause,
+    introspect_solution,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
@@ -312,14 +321,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             state: The current run state
         """
         current_step, referrer = cls._get_current_step(state)
-
-        # Get pipeline metadata from state
-        metadata = state.metadata
-        if not metadata or "stopping_point" not in metadata:
-            # No stopping point means manual mode - don't auto-continue
-            return
-
-        stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
+        referrer = referrer or AutofixReferrer.ON_COMPLETION_HOOK
 
         if current_step is None:
             logger.warning(
@@ -328,9 +330,39 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        # Check if we've reached the stopping point
-        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
-        if stopping_step and current_step == stopping_step:
+        # Get pipeline metadata from state
+        metadata = state.metadata
+        if not metadata or "stopping_point" not in metadata:
+            stopping_point = None
+            reached_stopping_point = True
+        else:
+            # Check if we've reached the stopping point
+            stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
+            stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
+            reached_stopping_point = current_step == stopping_step
+
+        if features.has("organizations:seer-autofix-introspection", organization=organization):
+            decision = cls.run_introspection(
+                organization,
+                run_id,
+                state,
+                current_step,
+                group,
+            )
+            if decision is not None:
+                analytics.record(
+                    AiAutofixIntrospectionEvent(
+                        organization_id=organization.id,
+                        project_id=group.project.id,
+                        group_id=group.id,
+                        referrer=referrer.value,
+                        step=current_step.value,
+                        action=decision.action.value,
+                        reached_stopping_point=reached_stopping_point,
+                    )
+                )
+
+        if stopping_point is None or reached_stopping_point:
             # We've reached the stopping point
             return
 
@@ -342,7 +374,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 run_id,
                 group,
                 handoff_config,
-                referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+                referrer,
             )
             return
 
@@ -386,9 +418,27 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         trigger_autofix_agent(
             group=group,
             step=next_step,
-            referrer=referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+            referrer=referrer,
             run_id=run_id,
         )
+
+    @classmethod
+    def run_introspection(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        step: AutofixStep,
+        group: Group,
+    ) -> IntrospectionDecision | None:
+        # For now, this method just triggers the introspection
+        # but does not do anything with it just yet.
+        if step == AutofixStep.ROOT_CAUSE:
+            return introspect_root_cause(organization, run_id, state, group)
+        elif step == AutofixStep.SOLUTION:
+            return introspect_solution(organization, run_id, state, group)
+        elif step == AutofixStep.CODE_CHANGES:
+            return introspect_code_changes(organization, run_id, state, group)
 
     @classmethod
     def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:

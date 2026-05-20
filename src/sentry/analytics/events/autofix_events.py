@@ -54,6 +54,13 @@ class AiAutofixAgentHandoffEvent(AiAutofixPhaseEvent):
     coding_agent: str | None
 
 
+@analytics.eventclass("ai.autofix.introspection")
+class AiAutofixIntrospectionEvent(AiAutofixPhaseEvent):
+    step: str
+    action: str
+    reached_stopping_point: bool
+
+
 analytics.register(AiAutofixRootCauseStartedEvent)
 analytics.register(AiAutofixSolutionStartedEvent)
 analytics.register(AiAutofixCodeChangesStartedEvent)
@@ -63,3 +70,4 @@ analytics.register(AiAutofixCodeChangesCompletedEvent)
 analytics.register(AiAutofixPrCreatedStartedEvent)
 analytics.register(AiAutofixPrCreatedCompletedEvent)
 analytics.register(AiAutofixAgentHandoffEvent)
+analytics.register(AiAutofixIntrospectionEvent)
