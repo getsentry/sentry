@@ -63,5 +63,4 @@ const BackgroundColorWrapper = styled('div')`
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
-  z-index: ${p => p.theme.zIndex.tooltip};
 `;

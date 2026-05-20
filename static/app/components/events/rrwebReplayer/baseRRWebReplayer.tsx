@@ -148,11 +148,6 @@ export const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     box-shadow: inset 0 -1px 3px rgba(0, 0, 0, 0.08);
   }
 
-  .replayer-mouse,
-  .replayer-mouse:after {
-    z-index: ${p => p.theme.zIndex.tooltip};
-  }
-
   .rr-controller {
     width: 100%;
     display: block;

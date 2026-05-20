@@ -312,7 +312,6 @@ export function TagsHeatMap(
     !chartElement || !overlayState.isOpen ? null : (
       <PositionWrapper
         ref={setOverlayElement}
-        zIndex={theme.zIndex.dropdown}
         style={popperStyles.popper}
         {...overlayProps}
       >

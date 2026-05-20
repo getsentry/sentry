@@ -1,5 +1,4 @@
 import {useCallback, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -82,7 +81,6 @@ function BoundTooltip({
   canvasView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
-  const theme = useTheme();
   const flamegraphTheme = useFlamegraphTheme();
 
   const physicalSpaceCursor = vec2.transformMat3(
@@ -139,7 +137,6 @@ function BoundTooltip({
         willChange: 'transform',
         fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
         fontFamily: flamegraphTheme.FONTS.FONT,
-        zIndex: theme.zIndex.tooltip,
         maxWidth: containerBoundsRef.current.width - 2 * WIDTH_OFFSET,
       }}
     >

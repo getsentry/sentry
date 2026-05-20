@@ -2,7 +2,7 @@ import {memo, useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -364,7 +364,6 @@ function DetailsOverlay({
   itemRef: React.RefObject<HTMLLIElement | null>;
   size: Props['size'];
 }) {
-  const theme = useTheme();
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
 
   const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
@@ -373,7 +372,6 @@ function DetailsOverlay({
     <StyledPositionWrapper
       {...popper.attributes.popper}
       ref={setOverlayElement}
-      zIndex={theme.zIndex.tooltip}
       style={popper.styles.popper}
     >
       <StyledOverlay id={id} role="tooltip" placement="right-start" size={size}>

@@ -410,7 +410,6 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   top: 100%;
   left: -1px;
   right: -1px;
-  z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.tokens.background.primary};
   box-shadow: ${p => p.theme.shadow.high};
   border: 1px solid ${p => p.theme.tokens.border.primary};

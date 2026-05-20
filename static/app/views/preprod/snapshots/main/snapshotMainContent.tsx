@@ -799,7 +799,6 @@ const ColorPickerDropdown = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.shadow.high};
-  z-index: ${p => p.theme.zIndex.dropdown};
 `;
 
 const ColorTrigger = styled('button')<{color: string}>`
