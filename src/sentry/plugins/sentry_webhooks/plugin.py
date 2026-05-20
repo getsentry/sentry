@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from requests.exceptions import ConnectionError, ReadTimeout
 
 import sentry
+from sentry import metrics
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.net.socket import is_valid_url
@@ -130,5 +131,14 @@ class WebHooksPlugin(notify.NotificationPlugin):
         for url in self.get_webhook_urls(group.project):
             try:
                 client.request(url)
+                metrics.incr(
+                    "legacy_webhook.plugin.send",
+                    tags={"outcome": "sent"},
+                    sample_rate=1.0,
+                )
             except (ReadTimeout, ConnectionError):
-                pass
+                metrics.incr(
+                    "legacy_webhook.plugin.send",
+                    tags={"outcome": "error"},
+                    sample_rate=1.0,
+                )
