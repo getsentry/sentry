@@ -563,7 +563,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/onboarding-check/'
   | '/organizations/$organizationIdOrSlug/seer/projects/'
-  | '/organizations/$organizationIdOrSlug/seer/projects/$projectId/repos/'
   | '/organizations/$organizationIdOrSlug/seer/projects/$projectId/repos/$repoId/'
   | '/organizations/$organizationIdOrSlug/seer/setup-check/'
   | '/organizations/$organizationIdOrSlug/seer/supergroups/$supergroupId/'
