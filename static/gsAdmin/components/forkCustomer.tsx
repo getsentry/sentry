@@ -3,12 +3,13 @@ import {Component, Fragment} from 'react';
 import {Client} from 'sentry/api';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {
   getRegionChoices,
   getRegionDataFromOrganization,
   getRegions,
 } from 'sentry/utils/regions';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {
   AdminConfirmParams,
@@ -16,6 +17,7 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 
 type Props = AdminConfirmRenderProps & {
+  navigate: ReactRouter3Navigate;
   organization: Organization;
 };
 
@@ -26,7 +28,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-export class ForkCustomerAction extends Component<Props> {
+class ForkCustomerActionImpl extends Component<Props> {
   state: State = {
     regionUrl: '',
   };
@@ -51,7 +53,7 @@ export class ForkCustomerAction extends Component<Props> {
         }
       );
 
-      browserHistory.push(`/_admin/relocations/${region?.name}/${response.uuid}/`);
+      this.props.navigate(`/_admin/relocations/${region?.name}/${response.uuid}/`);
       this.props.onConfirm?.({regionUrl, ...params});
     } catch (error: any) {
       if (error.responseJSON) {
@@ -80,4 +82,9 @@ export class ForkCustomerAction extends Component<Props> {
       </Fragment>
     );
   }
+}
+
+export function ForkCustomerAction(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <ForkCustomerActionImpl {...props} navigate={navigate} />;
 }
