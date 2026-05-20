@@ -12,7 +12,7 @@ from typing import ClassVar
 from pydantic import BaseModel
 
 
-class ActorType(IntEnum):
+class GroupActorType(IntEnum):
     SYSTEM = 0
     USER = 1
 
@@ -24,17 +24,17 @@ class GroupActionActor:
     or GroupActionActor.SYSTEM for system-initiated actions.
     """
 
-    actor_type: ActorType
+    actor_type: GroupActorType
     actor_id: int
 
     SYSTEM: ClassVar[GroupActionActor]
 
     @classmethod
     def user(cls, user_id: int) -> GroupActionActor:
-        return cls(actor_type=ActorType.USER, actor_id=user_id)
+        return cls(actor_type=GroupActorType.USER, actor_id=user_id)
 
 
-GroupActionActor.SYSTEM = GroupActionActor(actor_type=ActorType.SYSTEM, actor_id=0)
+GroupActionActor.SYSTEM = GroupActionActor(actor_type=GroupActorType.SYSTEM, actor_id=0)
 
 
 class GroupActionType(IntEnum):

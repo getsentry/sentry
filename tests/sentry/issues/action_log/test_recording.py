@@ -1,7 +1,12 @@
 import pytest
 
 from sentry.issues.action_log.recording import DuplicateActionError, record_group_action
-from sentry.issues.action_log.types import ActorType, GroupActionActor, GroupActionType, ViewAction
+from sentry.issues.action_log.types import (
+    GroupActionActor,
+    GroupActionType,
+    GroupActorType,
+    ViewAction,
+)
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.testutils.cases import TestCase
 
@@ -21,7 +26,7 @@ class RecordTest(TestCase):
         assert entry.project_id == group.project_id
         assert entry.type == GroupActionType.VIEW
         assert entry.actor_id == self.user.id
-        assert entry.actor_type == ActorType.USER
+        assert entry.actor_type == GroupActorType.USER
         assert entry.data == {}
         assert entry.date_added is not None
 
@@ -35,7 +40,7 @@ class RecordTest(TestCase):
             actor=GroupActionActor.SYSTEM,
         )
 
-        assert entry.actor_type == ActorType.SYSTEM
+        assert entry.actor_type == GroupActorType.SYSTEM
         assert entry.actor_id == 0
 
     def test_multiple_entries_ordered(self) -> None:

@@ -11,7 +11,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
-from sentry.issues.action_log.types import ActorType, GroupActionType
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 
 
 @cell_silo_model
@@ -41,7 +41,7 @@ class GroupActionLogEntry(Model):
     )
 
     actor_type = BoundedPositiveIntegerField(
-        choices=[(t.value, t.name) for t in ActorType],
+        choices=[(t.value, t.name) for t in GroupActorType],
     )
     actor_id = BoundedBigIntegerField()
 

@@ -80,6 +80,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupSubscription,
     models.GroupReaction,
     models.Activity,
+    GroupActionLogEntry,
 )
 
 # Additional group-related models that require special handling during reprocessing.
@@ -94,7 +95,6 @@ DIRECT_GROUP_RELATED_MODELS = (
 ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
-    GroupActionLogEntry,
     NotificationMessage,
     SeerNightShiftRunResult,
 )
