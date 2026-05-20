@@ -193,7 +193,7 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
     css`
       position: sticky;
       top: 0;
-      z-index: ${p.theme.zIndex.initial};
+      z-index: 1;
     `}
 `;
 

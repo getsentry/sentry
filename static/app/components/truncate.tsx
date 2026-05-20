@@ -109,7 +109,7 @@ const FullValue = styled('span')<{
   ${p =>
     p.expanded &&
     css`
-      z-index: ${p.theme.zIndex.truncationFullValue};
+      z-index: 1;
       display: block;
     `}
 `;

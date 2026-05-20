@@ -67,7 +67,7 @@ export const ExploreBodySearch = styled(Layout.Body)`
 
   position: sticky;
   top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: 1;
   background-color: ${p => p.theme.tokens.background.primary};
 
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};

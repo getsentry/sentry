@@ -245,7 +245,7 @@ class MiniGraph extends Component<Props> {
               splitLine: {
                 show: false,
               },
-              zlevel: theme.zIndex.header,
+              zlevel: 1,
             },
             tooltip: {
               show: false,

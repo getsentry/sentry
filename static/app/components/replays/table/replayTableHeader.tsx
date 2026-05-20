@@ -137,7 +137,7 @@ export function ReplayTableHeader({
 
 const TableHeader = styled(SimpleTable.Header)`
   grid-row: 1;
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: 1;
   height: min-content;
 `;
 

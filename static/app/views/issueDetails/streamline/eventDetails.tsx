@@ -69,7 +69,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
 
 const FloatingEventNavigation = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: 1;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 
   &[data-stuck] {

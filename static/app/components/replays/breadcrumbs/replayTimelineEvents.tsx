@@ -61,7 +61,7 @@ const EventColumn = styled(Timeline.Col)`
   position: relative;
 
   &:hover {
-    z-index: ${p => p.theme.zIndex.initial};
+    z-index: 1;
   }
 `;
 

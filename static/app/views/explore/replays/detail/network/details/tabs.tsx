@@ -50,7 +50,7 @@ export const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
     margin-right: 0;
     padding-right: ${p => p.theme.space['2xl']};
     background: ${p => p.theme.tokens.background.primary};
-    z-index: ${p => p.theme.zIndex.initial};
+    z-index: 1;
   }
   & > li:first-child {
     padding-left: ${p => p.theme.space.xl};

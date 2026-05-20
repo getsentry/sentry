@@ -365,7 +365,7 @@ function shouldConfirm(
 }
 
 const StickyActions = styled(Sticky)`
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: 1;
 
   /* Remove border radius from the action bar when stuck. Without this there is
    * a small gap where color can peek through. */

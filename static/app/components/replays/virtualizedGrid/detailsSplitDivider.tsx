@@ -57,7 +57,7 @@ const CloseButtonWrapper = styled('div')`
   right: 0;
   height: 100%;
   padding: ${p => p.theme.space.md};
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: 1;
   display: flex;
   align-items: center;
 `;
@@ -65,6 +65,6 @@ const CloseButtonWrapper = styled('div')`
 const StyledSplitDivider = styled(SplitDivider)`
   :hover,
   &[data-is-held='true'] {
-    z-index: ${p => p.theme.zIndex.initial};
+    z-index: 1;
   }
 `;
