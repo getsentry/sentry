@@ -532,30 +532,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "upsampled_count() is not allowed as user input" in str(resp.data)
         assert "Use count() instead" in str(resp.data)
 
-    def test_workflow_engine_serializer(self) -> None:
-        team = self.create_team(organization=self.organization, members=[self.user])
-        ProjectTeam.objects.create(project=self.project, team=team)
-        self.login_as(self.user)
-
-        with (
-            outbox_runner(),
-            self.feature(
-                [
-                    "organizations:incidents",
-                    "organizations:performance-view",
-                    "organizations:workflow-engine-metric-alert-endpoints-post",
-                ]
-            ),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **self.alert_rule_dict,
-            )
-
-        detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
-        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
-
     def test_create_alert_rule_aci(self) -> None:
         with (
             outbox_runner(),

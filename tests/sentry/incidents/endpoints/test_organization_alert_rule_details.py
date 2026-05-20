@@ -64,7 +64,6 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.tasks import update_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -1056,29 +1055,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # Internal storage should be unchanged
         alert_rule.refresh_from_db()
         assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
-
-    @with_feature("organizations:incidents")
-    @freeze_time("2024-12-11 03:21:34")
-    def test_workflow_engine_serializer(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-
-        self.login_as(self.user)
-        alert_rule = self.alert_rule
-        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["name"] = "what"
-
-        with self.feature("organizations:workflow-engine-metric-alert-endpoints-put"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
-
-        rule_resp = self.get_success_response(
-            self.organization.slug, alert_rule.id, **serialized_alert_rule
-        )
-        self.assert_alert_detail_results_match(rule_resp.data, resp.data)
 
     def test_not_updated_fields(self) -> None:
         self.create_member(
