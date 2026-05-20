@@ -614,6 +614,7 @@ export function ProjectPageFilter({
         <ProjectPageFilterTrigger
           {...triggerProps}
           value={committedSelectionIntent.ids}
+          selectionIntentKind={committedSelectionIntent.kind}
           memberProjects={memberProjects(projects)}
           nonMemberProjects={nonMemberProjects(projects)}
           ready={projectsLoaded && pageFilterIsReady}

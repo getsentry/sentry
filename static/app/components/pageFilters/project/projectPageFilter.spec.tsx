@@ -88,6 +88,28 @@ describe('ProjectPageFilter', () => {
     expect(router.location.query).toEqual({project: '3'});
   });
 
+  it('shows "My Projects" (not "All Projects") when user is member of all projects and URL is empty', async () => {
+    // User is a member of all projects in the org
+    const allMemberProjects = [
+      ProjectFixture({id: '1', slug: 'project-1', isMember: true}),
+      ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
+      ProjectFixture({id: '3', slug: 'project-3', isMember: true}),
+    ];
+    ProjectsStore.loadInitialData(allMemberProjects);
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    // Should show "My Projects" not "All Projects", even though user is member of all projects
+    expect(
+      await screen.findByRole('button', {name: 'My Projects'})
+    ).toBeInTheDocument();
+  });
+
   it('renders keyboard-accessible trailing items', async () => {
     const mockApi = MockApiClient.addMockResponse({
       method: 'PUT',
