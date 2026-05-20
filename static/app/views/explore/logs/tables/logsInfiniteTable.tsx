@@ -12,7 +12,7 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -264,15 +264,7 @@ export function LogsInfiniteTable({
 
   const isContainedVirtualizer = expanded !== undefined;
 
-  const windowVirtualizer = useWindowVirtualizer({
-    count: isContainedVirtualizer ? 0 : (data?.length ?? 0),
-    estimateSize,
-    overscan: 50,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
-    scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
-  });
-
-  const containerVirtualizer = useVirtualizer<HTMLElement, Element>({
+  const virtualizer = useVirtualizer<HTMLElement, Element>({
     count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
     estimateSize,
     overscan: expanded ? 50 : 25,
@@ -280,11 +272,9 @@ export function LogsInfiniteTable({
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
 
-  const virtualizer = isContainedVirtualizer ? containerVirtualizer : windowVirtualizer;
-
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [expanded, virtualizer]);
+  }, [virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
 
