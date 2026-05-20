@@ -383,25 +383,18 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      if (typeof value === 'string' && isValidUrl(value)) {
-        return (
-          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>
-              <span data-test-id="group-tag-url">{renderUrlCellValue(value)}</span>
-            </Container>
-          </Tooltip>
-        );
-      }
-
-      if (value && typeof value === 'string') {
-        return (
-          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>{nullableValue(value)}</Container>
-          </Tooltip>
-        );
-      }
-
-      return <Container>{nullableValue(value)}</Container>;
+      return (
+        <Tooltip
+          title={value}
+          showOnlyOnOverflow
+          containerDisplayMode="block"
+          disabled={typeof value !== 'string'}
+        >
+          <Container>
+            <span data-test-id="group-tag-url">{renderUrlCellValue(value)}</span>
+          </Container>
+        </Tooltip>
+      );
     },
   },
   array: {
