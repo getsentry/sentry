@@ -297,8 +297,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     [commit, stagedValue, disableCommit]
   );
 
-  const sectionToggleWasPressed = useRef(false);
-
   const handleChange = useCallback(
     (selectedOptions: Array<SelectOption<Value>>) => {
       const newValue = selectedOptions.map(op => op.value);
@@ -315,8 +313,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       const diff =
         newValueSet.size > 0 ? Array.from(newValueSet) : Array.from(oldValueSet);
 
-      if (diff.length > 1 || sectionToggleWasPressed.current) {
-        sectionToggleWasPressed.current = false;
+      if (diff.length > 1) {
         commit(newValue);
         return;
       }
