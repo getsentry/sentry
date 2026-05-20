@@ -144,6 +144,10 @@ def register_permanent_features(manager: FeatureManager) -> None:
 
     # Permanent organization features that are controlled via flagpole
     permanent_flagpole_organization_features: dict[str, FlagpoleFeature] = {
+        # Enable ingestion through trusted relays only
+        "organizations:ingest-through-trusted-relays-only": FlagpoleFeature(
+            default=False, api_expose=True
+        ),
         # Enable the rendering of @sentry/toolbar inside the sentry app. See `useInitSentryToolbar()`
         "organizations:init-sentry-toolbar": FlagpoleFeature(default=False, api_expose=True),
         # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
