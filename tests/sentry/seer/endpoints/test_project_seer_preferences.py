@@ -535,6 +535,45 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert seer_repos[0].project_repository.repository_id == gitlab_repo.id
 
     @with_feature("organizations:seer-gitlab-support")
+    def test_post_accepts_gitlab_repo_with_whitespace_in_name(self) -> None:
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="seer-sandbox / seer-test-sandbox",
+            provider="integrations:gitlab",
+            external_id="gitlab.com:82098515",
+            integration_id=418966,
+        )
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "418966",
+                    "provider": "gitlab",
+                    "owner": "seer-sandbox ",
+                    "name": " seer-test-sandbox",
+                    "external_id": "gitlab.com:82098515",
+                    "branch_name": "",
+                    "instructions": "",
+                    "branch_overrides": [],
+                }
+            ],
+            "automated_run_stopping_point": "root_cause",
+            "automation_handoff": None,
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(
+                project_repository__project=self.project
+            ).select_related("project_repository__repository")
+        )
+        assert len(seer_repos) == 1
+        assert seer_repos[0].project_repository.repository_id == gitlab_repo.id
+
+    @with_feature("organizations:seer-gitlab-support")
     def test_post_accepts_gitlab_bare_provider_with_feature_flag(self) -> None:
         gitlab_repo = self.create_repo(
             project=self.project,

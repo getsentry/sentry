@@ -52,8 +52,8 @@ class BranchOverrideSerializer(CamelSnakeSerializer):
 
 class RepositorySerializer(CamelSnakeSerializer):
     provider = serializers.CharField(required=True)
-    owner = serializers.CharField(required=True)
-    name = serializers.CharField(required=True)
+    owner = serializers.CharField(required=True, trim_whitespace=False)
+    name = serializers.CharField(required=True, trim_whitespace=False)
     external_id = serializers.CharField(required=True)
     organization_id = serializers.IntegerField(required=False, allow_null=True)
     integration_id = serializers.CharField(required=False, allow_null=True)
