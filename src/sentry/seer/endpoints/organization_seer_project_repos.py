@@ -30,6 +30,7 @@ class BranchOverrideResponse(TypedDict):
 class ProjectRepoResponse(TypedDict):
     id: str
     repositoryId: str
+    organizationId: str
     provider: str
     owner: str
     name: str
@@ -49,6 +50,7 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
     return ProjectRepoResponse(
         id=str(project_repo.id),
         repositoryId=str(repo.id),
+        organizationId=str(repo.organization_id),
         provider=repo.provider or "",
         owner=owner,
         name=name,
