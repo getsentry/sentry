@@ -36,7 +36,7 @@ function updateFeatureFlags(
   return Object.fromEntries(
     Object.entries(featureFlags).map(([flag, featureFlag]) => [
       flag,
-      updatedFlags[flag] ? {...featureFlag, value: updatedFlags[flag]} : featureFlag,
+      flag in updatedFlags ? {...featureFlag, value: updatedFlags[flag]!} : featureFlag,
     ])
   );
 }
