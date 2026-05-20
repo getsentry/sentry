@@ -28,7 +28,10 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
-from sentry.billing.platform.services.category_mapping import proto_to_sentry_category
+from sentry.billing.platform.services.category_mapping import (
+    proto_to_sentry_category,
+    sentry_to_proto_category,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
@@ -180,17 +183,14 @@ def _build_response(rows: list[dict], last_usage_ts: datetime | None) -> GetUsag
     # Each row already contains all 7 sumIf-aggregated fields from ClickHouse.
     #
     # NOTE: CategoryUsage.category carries Relay/Sentry int values (not proto
-    # DataCategory ints).  The proto field is typed as DataCategory but every
-    # existing consumer (getsentry postgres backend, shadow comparison,
-    # UsagePricerService, customer_usage, projection, etc.) interprets it as a
-    # Relay int.  Converting to proto ints here would break all consumers and
-    # the shadow comparison.  See the TODO in getsentry's
+    # DataCategory ints). We need to convert this to proto enum values because
+    # downstream consumers indiscriminately convert the values from proto to relay values. See the TODO in getsentry's
     # usage_pricer/service.py for the planned migration.
     days_map: defaultdict[str, dict[int, dict[str, int]]] = defaultdict(dict)
 
     for row in rows:
         day = row["time"]
-        category = int(row["category"])
+        category = sentry_to_proto_category(int(row["category"]))
         days_map[day][category] = {
             "total": int(row["total"]),
             "accepted": int(row["accepted"]),
