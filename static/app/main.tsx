@@ -17,13 +17,11 @@ import {SENTRY_RELEASE_VERSION, USE_TANSTACK_DEVTOOL} from 'sentry/constants';
 import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
-import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 function buildRouter() {
   const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
   const router = sentryCreateBrowserRouter(routes());
-  DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
   setApiNavigate(createReactRouter3Navigate(router));
 
   return router;
