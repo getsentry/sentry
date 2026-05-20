@@ -60,6 +60,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
             }
           }}
           variant="info"
+          style={{maxWidth: '100%', minWidth: 0}}
         >
           {toolName}
         </Tag>
