@@ -39,7 +39,7 @@ import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrence
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {
-  getFirstSeenDuration,
+  shortenRelativeDate,
   useGroupDefaultStatsPeriod,
 } from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 import {
@@ -190,7 +190,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             !defaultStatsPeriod.isMaxRetention &&
                             shouldShowSinceFirstSeenOption
                               ? tct('Since First Seen ([period])', {
-                                  period: getFirstSeenDuration(group.firstSeen),
+                                  period: shortenRelativeDate(
+                                    getRelativeDate(group.firstSeen)
+                                  ),
                                 })
                               : triggerProps.children}
                           </TimeRangeSelectTrigger>

@@ -73,29 +73,38 @@ export function useGroupDefaultStatsPeriod(
 }
 
 /**
- * Returns a short-form duration string (e.g. "2mo", "19d", "3h", "45m") without converting to larger units like weeks, matching the sidebar's TimeSince display.
+ * Converts a getRelativeDate/moment.fromNow(true) string into short form.
+ * e.g. "19 days" → "19d", "a month" → "1mo", "3 hours" → "3h"
  */
-export function getFirstSeenDuration(firstSeen: string): string {
-  const duration = moment.duration(moment().diff(firstSeen));
+export function shortenRelativeDate(relativeDate: string): string {
+  const match = relativeDate.match(/^(\d+|an?)\s+(\w+)$/);
+  if (!match) {
+    return '1m';
+  }
+  const num = match[1] === 'a' || match[1] === 'an' ? '1' : match[1];
+  const unit = match[2];
 
-  const months = duration.asMonths();
-
-  if (months >= 1) {
-    return `${Math.round(months)}mo`;
+  if (!unit) {
+    return '1m';
   }
 
-  const days = duration.asDays();
-
-  if (days >= 1) {
-    return `${Math.round(days)}d`;
+  if (unit.startsWith('month')) {
+    return `${num}mo`;
   }
-
-  const hours = duration.asHours();
-
-  if (hours >= 1) {
-    return `${Math.round(hours)}h`;
+  if (unit.startsWith('year')) {
+    return `${num}yr`;
   }
-
-  const minutes = duration.asMinutes();
-  return `${Math.max(1, Math.round(minutes))}m`;
+  if (unit.startsWith('day')) {
+    return `${num}d`;
+  }
+  if (unit.startsWith('hour')) {
+    return `${num}h`;
+  }
+  if (unit.startsWith('minute')) {
+    return `${num}m`;
+  }
+  if (unit.startsWith('second')) {
+    return `${num}s`;
+  }
+  return '1m';
 }
