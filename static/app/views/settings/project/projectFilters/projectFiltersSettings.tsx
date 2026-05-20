@@ -560,7 +560,6 @@ type Props = {
 type Filter = {
   active: boolean | string[];
   description: string;
-  hello: string;
   id: string;
   name: string;
 };
