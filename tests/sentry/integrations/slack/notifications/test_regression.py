@@ -67,6 +67,79 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
+    def test_regression_uses_regression_event_metadata(self) -> None:
+        """
+        Test that when an issue regresses with a new event, the Slack notification
+        shows the regression event's error message, not the group's original metadata.
+        """
+        # Store the original event that created the group
+        original_event = self.store_event(
+            data={
+                "message": "original error",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "original error message",
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = original_event.group
+
+        # Store a different event that will trigger the regression
+        regression_event = self.store_event(
+            data={
+                "message": "regression error",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "regression error message",
+                        }
+                    ]
+                },
+                "event_id": "b" * 32,
+            },
+            project_id=self.project.id,
+        )
+
+        # Send regression notification with the regression event_id
+        with self.tasks():
+            self.create_notification(
+                group, {"event_id": regression_event.event_id}
+            ).send()
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+
+        # The notification body text should contain the regression event's
+        # error value, not the original group metadata
+        block_texts = " ".join(
+            b.get("text", {}).get("text", "")
+            for b in blocks
+            if isinstance(b.get("text"), dict)
+        )
+        assert "regression error message" in block_texts
+
+    def test_regression_without_event_id_falls_back_to_group(self) -> None:
+        """
+        Test that when no event_id is in the activity data, the notification
+        falls back to the group metadata (existing behavior).
+        """
+        with self.tasks():
+            self.create_notification(self.group).send()
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        # Title should still use the group's title
+        assert blocks[1]["text"]["text"] == (
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        )
+
     @mock.patch(
         "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,

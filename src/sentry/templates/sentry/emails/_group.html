@@ -1,5 +1,10 @@
 {% load sentry_helpers %}
-{% with type=group.get_event_type metadata=group.get_event_metadata culprit=group.culprit extra_params=link_params_for_rule %}
+{% comment %}
+  When an event is provided (e.g. the regression-triggering event), prefer its
+  metadata over the group-level metadata so notifications show the actual error
+  that caused the state change.
+{% endcomment %}
+{% with type=event.get_event_type|default:group.get_event_type metadata=event.get_event_metadata|default:group.get_event_metadata culprit=event.culprit|default:group.culprit extra_params=link_params_for_rule %}
 <div class="issue {% if group.is_resolved %}resolved{% endif %}">
   {% if type == "error" %}
     <div class="event-type error">
