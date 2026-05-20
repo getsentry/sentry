@@ -40,9 +40,18 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 SafeRunSQL(
+                    sql='ALTER TABLE "sentry_notificationmessage" ADD CONSTRAINT "sentry_notificationmessage_group_id_notnull" CHECK ("group_id" IS NOT NULL) NOT VALID;',
+                    reverse_sql='ALTER TABLE "sentry_notificationmessage" DROP CONSTRAINT IF EXISTS "sentry_notificationmessage_group_id_notnull";',
+                    hints={"tables": ["sentry_notificationmessage"]},
+                ),
+                SafeRunSQL(
+                    sql='ALTER TABLE "sentry_notificationmessage" VALIDATE CONSTRAINT "sentry_notificationmessage_group_id_notnull";',
+                    reverse_sql=migrations.RunSQL.noop,
+                    hints={"tables": ["sentry_notificationmessage"]},
+                    use_statement_timeout=False,
+                ),
+                SafeRunSQL(
                     sql="""
-                    ALTER TABLE "sentry_notificationmessage" ADD CONSTRAINT "sentry_notificationmessage_group_id_notnull" CHECK ("group_id" IS NOT NULL) NOT VALID;
-                    ALTER TABLE "sentry_notificationmessage" VALIDATE CONSTRAINT "sentry_notificationmessage_group_id_notnull";
                     ALTER TABLE "sentry_notificationmessage" ALTER COLUMN "group_id" SET NOT NULL;
                     ALTER TABLE "sentry_notificationmessage" DROP CONSTRAINT "sentry_notificationmessage_group_id_notnull";
                     """,
