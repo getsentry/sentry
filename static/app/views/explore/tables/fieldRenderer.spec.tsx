@@ -302,4 +302,33 @@ describe('FieldRenderer tests', () => {
     );
     expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
+
+  it('renders wildcard URL span names as plain text without link actions', async () => {
+    const wildcardUrl = 'http://*/v1/api/auth/register';
+    render(
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[6]}
+          data={{
+            ...mockedEventData,
+            'span.name': wildcardUrl,
+          }}
+          meta={{}}
+        />
+      </Wrapper>,
+      {organization}
+    );
+
+    expect(screen.getByText(wildcardUrl)).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Open external link'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Open link'})
+    ).not.toBeInTheDocument();
+  });
 });
