@@ -103,7 +103,6 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 @cell_silo_endpoint
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
         "DELETE": "organizations:workflow-engine-issue-alert-endpoints-delete",
     }
     publish_status = {
@@ -132,7 +131,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
     )
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
         ## Deprecated
         🚧 Use [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
@@ -145,23 +144,12 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        if isinstance(rule, Workflow):
-            workflow = rule
-            workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
-                expand=request.GET.getlist("expand", []),
-                prepare_component_fields=True,
-                project_slug=project.slug,
-            )
-            serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
-        else:
-            report_used_legacy_models()
-            # Serialize Rule object
-            rule_serializer = RuleSerializer(
-                expand=request.GET.getlist("expand", []),
-                prepare_component_fields=True,
-                project_slug=project.slug,
-            )
-            serialized_rule = serialize(rule, request.user, rule_serializer)
+        workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
+            expand=request.GET.getlist("expand", []),
+            prepare_component_fields=True,
+            project_slug=project.slug,
+        )
+        serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
 
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):

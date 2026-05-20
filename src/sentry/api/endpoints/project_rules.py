@@ -32,7 +32,6 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
@@ -867,24 +866,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         """
         expand = request.GET.getlist("expand", ["lastTriggered"])
 
-        queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
-        serializer: WorkflowEngineRuleSerializer | RuleSerializer
-        if features.has(
-            "organizations:workflow-engine-issue-alert-endpoints-get", project.organization
-        ) or features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            queryset = Workflow.objects.filter(
-                detectorworkflow__detector__project=project,
-                status=ObjectStatus.ACTIVE,
-            ).distinct()
-            serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
-        else:
-            queryset = Rule.objects.filter(
-                project=project,
-                status=ObjectStatus.ACTIVE,
-            ).select_related("project")
-            # Mark that we're using legacy Rule models
-            report_used_legacy_models()
-            serializer = RuleSerializer(expand=expand, project_slug=project.slug)
+        queryset = Workflow.objects.filter(
+            detectorworkflow__detector__project=project,
+            status=ObjectStatus.ACTIVE,
+        ).distinct()
+        serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
 
         return self.paginate(
             request=request,
