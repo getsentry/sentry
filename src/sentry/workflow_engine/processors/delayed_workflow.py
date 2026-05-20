@@ -1001,8 +1001,10 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         project,
     )
 
-    if groups_to_dcgs and group_to_groupevent:
-        fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
+    if evaluation.groups_to_fire and group_to_groupevent:
+        fire_actions_for_groups(
+            project.organization, evaluation.groups_to_fire, group_to_groupevent
+        )
 
     for workflow_log in evaluation.iter_per_workflow_log_dicts():
         logger.debug(
