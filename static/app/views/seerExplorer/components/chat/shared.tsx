@@ -22,17 +22,15 @@ interface BlockContextValue {
   showThinking?: boolean;
 }
 
-const BlockContext = createContext<BlockContextValue | null>(null);
+export const BlockContext = createContext<BlockContextValue | null>(null);
 
-function useBlockContext(): BlockContextValue {
+export function useBlockContext(): BlockContextValue {
   const ctx = useContext(BlockContext);
   if (!ctx) {
     throw new Error('useBlockContext must be used within a BlockComponent');
   }
   return ctx;
 }
-
-export {BlockContext, useBlockContext};
 
 export type BlockStatus =
   | 'loading'
@@ -162,8 +160,4 @@ export const Spinner = styled('div')`
   flex-shrink: 0;
 `;
 
-export const BlockWrapper = styled('div')`
-  width: 100%;
-  position: relative;
-  flex-shrink: 0;
-`;
+export const BLOCK_WRAPPER_SELECTOR = '[data-block-wrapper]';

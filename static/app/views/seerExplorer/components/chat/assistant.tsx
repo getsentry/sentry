@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
-import {IconCopy, IconThumb} from 'sentry/icons';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
@@ -15,7 +14,7 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
 
 import {
-  BlockWrapper,
+  BLOCK_WRAPPER_SELECTOR,
   SeerMarkdown,
   MessagePlaceholder,
   hasValidContent,
@@ -71,7 +70,6 @@ function useBlockFeedback(block: Block, blockIndex: number, runId: number | unde
 function BlockActionBar() {
   const {block, blockIndex, runId, interactionPending, readOnly} = useBlockContext();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
-  const {copy} = useCopyToClipboard();
   const showCopy = !!block.message.content?.trim();
 
   if (readOnly || interactionPending) {
@@ -79,7 +77,19 @@ function BlockActionBar() {
   }
 
   return (
-    <ActionBarWrapper size="xs">
+    <ButtonBar
+      size="xs"
+      position="absolute"
+      bottom="2xs"
+      right="md"
+      visibility="hidden"
+      css={`
+        ${BLOCK_WRAPPER_SELECTOR}:hover &,
+        ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
+          visibility: visible;
+        }
+      `}
+    >
       <FeedbackButton
         type="positive"
         disabled={feedbackSubmitted}
@@ -91,19 +101,16 @@ function BlockActionBar() {
         onClick={trackFeedback}
       />
       {showCopy && (
-        <Button
+        <CopyToClipboardButton
           aria-label={t('Copy block content')}
-          icon={<IconCopy />}
+          text={block.message.content ?? ''}
           tooltipProps={{title: t('Copy to clipboard')}}
           onClick={e => {
             e.stopPropagation();
-            copy(block.message.content ?? '');
           }}
-        >
-          {undefined}
-        </Button>
+        />
       )}
-    </ActionBarWrapper>
+    </ButtonBar>
   );
 }
 
@@ -139,15 +146,3 @@ function FeedbackButton({
     </Button>
   );
 }
-
-const ActionBarWrapper = styled(ButtonBar)`
-  position: absolute;
-  bottom: ${p => p.theme.space['2xs']};
-  right: ${p => p.theme.space.md};
-  visibility: hidden;
-
-  ${BlockWrapper}:hover &,
-  ${BlockWrapper}:focus-within & {
-    visibility: visible;
-  }
-`;

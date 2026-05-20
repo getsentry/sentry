@@ -1,11 +1,13 @@
 import {useMemo} from 'react';
 import {motion} from 'framer-motion';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {unreachable} from 'sentry/utils/unreachable';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {AssistantBlock} from './assistant';
-import {BlockContext, BlockWrapper, useBlockContext} from './shared';
+import {BlockContext, useBlockContext} from './shared';
 import {ToolUseBlock} from './toolUse';
 import {UserBlock} from './user';
 
@@ -59,11 +61,18 @@ export function BlockComponent({
 
   return (
     <BlockContext.Provider value={contextValue}>
-      <BlockWrapper ref={ref} onClick={onClick}>
+      <Container
+        width="100%"
+        position="relative"
+        flexShrink={0}
+        data-block-wrapper=""
+        ref={ref}
+        onClick={onClick}
+      >
         <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
           <BlockVariant />
         </motion.div>
-      </BlockWrapper>
+      </Container>
     </BlockContext.Provider>
   );
 }
