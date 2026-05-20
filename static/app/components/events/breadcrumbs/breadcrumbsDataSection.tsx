@@ -188,7 +188,6 @@ export function BreadcrumbsDataSection({
               // Since we've disabled the button as an 'outside click' for the drawer we can change
               // the operation based on the drawer state.
               onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
-              aria-label={t('View All Breadcrumbs')}
               ref={viewAllButtonRef}
             >
               {numHiddenCrumbs > 0 ? t('View %s more', numHiddenCrumbs) : t('View All')}
