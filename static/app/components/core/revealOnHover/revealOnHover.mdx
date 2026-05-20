@@ -182,6 +182,33 @@ Use the `alwaysVisible` prop on `<RevealOnHover.Action>` to override the reveal 
 </RevealOnHover>
 ```
 
+## Callback Children (Custom Elements)
+
+When you need to apply reveal behavior to a non-Flex element (e.g., a grid row or table cell), pass a callback child. The callback receives `{className}` which you apply to your own element.
+
+```jsx
+<RevealOnHover>
+  {({className}) => (
+    <tr className={className}>
+      <td>Tag name</td>
+      <td>
+        Tag value
+        <RevealOnHover.Action>
+          <Button
+            size="zero"
+            variant="transparent"
+            aria-label="Copy"
+            icon={<IconCopy size="xs" />}
+          />
+        </RevealOnHover.Action>
+      </td>
+    </tr>
+  )}
+</RevealOnHover>
+```
+
+This is useful for grid layouts, table rows, or any case where wrapping in a `Flex` would break the parent layout.
+
 ## How It Works
 
 - Actions use `opacity: 0` + `visibility: hidden` at rest, ensuring space is reserved (no layout shift) while preventing ghost clicks.
