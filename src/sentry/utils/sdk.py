@@ -92,6 +92,13 @@ SAMPLED_ROUTES = {
     "/api/0/auth/validate/": 0.0,
 }
 
+# Sample rates keyed by Django URL name (from urls.py `name=` kwarg).
+# Uses resolve() so there's no need to duplicate URL regexes.
+SAMPLED_VIEWS: dict[str, float] = {
+    "sentry-api-0-organization-ai-conversations": 1.0,
+    "sentry-api-0-organization-ai-conversation-details": 1.0,
+}
+
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
 
@@ -182,8 +189,18 @@ def get_project_key():
 
 def traces_sampler(sampling_context):
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
-        return SAMPLED_ROUTES[wsgi_path]
+    if wsgi_path:
+        if wsgi_path in SAMPLED_ROUTES:
+            return SAMPLED_ROUTES[wsgi_path]
+        if SAMPLED_VIEWS:
+            try:
+                from django.urls import resolve
+
+                match = resolve(wsgi_path)
+                if match.url_name in SAMPLED_VIEWS:
+                    return SAMPLED_VIEWS[match.url_name]
+            except Exception:
+                pass
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
