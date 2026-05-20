@@ -155,8 +155,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                                   [defaultStatsPeriod.statsPeriod]: t(
                                     'Last %s (since first seen)',
                                     getRelativeDate(group.firstSeen)
-                                      .replace(/^a /, '1 ')
-                                      .replace(/^an /, '1 ')
+                                      .replace(/^a (?=\w+$)/, '1 ')
+                                      .replace(/^an (?=\w+$)/, '1 ')
                                   ),
                                 }
                               : {}),
