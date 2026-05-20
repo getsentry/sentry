@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -64,8 +65,10 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
       return values.map((value, index) => (
         <Fragment key={`${name}-${index}-${value}`}>
           {index > 0 && ', '}
-          <StyledVersionContainer>
-            <ReleaseDropdownFilter version={String(value)} />
+          <RevealOnHover justify="end" gap="sm">
+            <RevealOnHover.Action>
+              <ReleaseDropdownFilter version={String(value)} />
+            </RevealOnHover.Action>
             <QuickContextHoverWrapper
               dataRow={{release: String(value)}}
               contextType={ContextType.RELEASE}
@@ -78,7 +81,7 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
                 anchor={false}
               />
             </QuickContextHoverWrapper>
-          </StyledVersionContainer>
+          </RevealOnHover>
         </Fragment>
       ));
     }
@@ -152,20 +155,4 @@ const StyledTooltip = styled(Tooltip)`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const StyledVersionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.sm};
-
-  .invisible-button {
-    visibility: hidden;
-  }
-
-  &:hover {
-    .invisible-button {
-      visibility: visible;
-    }
-  }
 `;
