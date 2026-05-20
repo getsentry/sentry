@@ -201,7 +201,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         prepared_request = mock_client.request.call_args.kwargs["prepared_request"]
         assert prepared_request.url == "https://example.com/api/chat.postMessage"
 
-        assert b"".join(proxy_response.streaming_content) == content
+        assert b"".join(proxy_response.streaming_content) == content  # type: ignore[attr-defined]
         assert proxy_response.status_code == mock_response.status_code
         assert proxy_response.reason_phrase == mock_response.reason
         assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
@@ -258,7 +258,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         prepared_request = mock_client.request.call_args.kwargs["prepared_request"]
         assert prepared_request.url == "https://foobar.example.com/api/chat.postMessage"
 
-        assert b"".join(proxy_response.streaming_content) == content
+        assert b"".join(proxy_response.streaming_content) == content  # type: ignore[attr-defined]
         assert proxy_response.status_code == mock_response.status_code
         assert proxy_response.reason_phrase == mock_response.reason
         assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
@@ -747,7 +747,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers, HTTP_ACCEPT="text/html")
 
         assert proxy_response.status_code == 200
-        assert b"".join(proxy_response.streaming_content) == content
+        assert b"".join(proxy_response.streaming_content) == content  # type: ignore[attr-defined]
         assert proxy_response["Content-Type"] == "text/html"
         assert proxy_response["X-Arbitrary"] == "Value"
 
@@ -787,7 +787,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
         assert proxy_response.status_code == 200
-        assert b"".join(proxy_response.streaming_content) == content
+        assert b"".join(proxy_response.streaming_content) == content  # type: ignore[attr-defined]
         assert proxy_response["Content-Type"] == "application/octet-stream"
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -822,5 +822,5 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(proxy2_path, **headers, HTTP_ACCEPT="application/xml")
 
         assert proxy_response.status_code == 200
-        assert b"".join(proxy_response.streaming_content) == content
+        assert b"".join(proxy_response.streaming_content) == content  # type: ignore[attr-defined]
         assert proxy_response["Content-Type"] == "application/xml"
