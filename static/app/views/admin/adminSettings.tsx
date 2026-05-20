@@ -1,4 +1,3 @@
-import Feature from 'sentry/components/acl/feature';
 import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -89,11 +88,6 @@ export default function AdminSettings() {
           <PanelHeader>{t('Beacon')}</PanelHeader>
           {fields['beacon.anonymous']}
         </Panel>
-        <Feature features="organizations:view-hierarchies-options-dev">
-          <Panel>
-            <PanelHeader>{t('View Hierarchy')}</PanelHeader>
-          </Panel>
-        </Feature>
       </Form>
     </div>
   );

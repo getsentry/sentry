@@ -40,8 +40,9 @@ export function IssuesSecondaryNavigation() {
           <SecondaryNavigation.List>
             {Object.values(ISSUE_TAXONOMY_CONFIG)
               .filter(
-                ({featureFlag}) =>
-                  !featureFlag || organization.features.includes(featureFlag)
+                ({featureFlags}) =>
+                  !featureFlags ||
+                  featureFlags.some(feature => organization.features.includes(feature))
               )
               .map(({key, label}) => (
                 <SecondaryNavigation.ListItem key={key}>

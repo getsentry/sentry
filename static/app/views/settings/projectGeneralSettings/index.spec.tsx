@@ -1,3 +1,4 @@
+import {isValidElement} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
@@ -129,9 +130,7 @@ describe('projectGeneralSettings', () => {
       })
     );
 
-    const addSuccessMessageMock = addSuccessMessage as jest.MockedFunction<
-      typeof addSuccessMessage
-    >;
+    const addSuccessMessageMock = jest.mocked(addSuccessMessage);
     const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
 
     expect(undo).toBeInstanceOf(Function);
@@ -264,7 +263,11 @@ describe('projectGeneralSettings', () => {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
+    const errorMessage = jest.mocked(addErrorMessage).mock.calls[0]![0];
+    if (!isValidElement(errorMessage)) {
+      throw new Error('Expected addErrorMessage to be called with a React element');
+    }
+    const {container} = render(errorMessage);
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );

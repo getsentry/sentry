@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {getHook} from 'sentry/hookRegistry';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {getPeriod} from 'sentry/utils/duration/getPeriod';
@@ -38,7 +38,7 @@ export function useGroupDefaultStatsPeriod(
   project: Project
 ): UseGroupDefaultStatsPeriodResult {
   const useGetMaxRetentionDays =
-    getHook('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
+    getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays();
   let isMaxRetention = false;
 

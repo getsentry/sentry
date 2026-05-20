@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import logging
+import re
 import sys
 import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
@@ -91,6 +92,12 @@ SAMPLED_ROUTES = {
     "/_warmup/": 0.0,
     "/api/0/auth/validate/": 0.0,
 }
+
+# List of (compiled_pattern, sample_rate) tried in order when no exact route matches.
+SAMPLED_ROUTE_PATTERNS: list[tuple[re.Pattern[str], float]] = [
+    # Temporary: monitoring AI Conversations rollout
+    (re.compile(r"^/api/0/organizations/[^/]+/ai-conversations/"), 1.0),
+]
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
@@ -182,8 +189,12 @@ def get_project_key():
 
 def traces_sampler(sampling_context):
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
-        return SAMPLED_ROUTES[wsgi_path]
+    if wsgi_path:
+        if wsgi_path in SAMPLED_ROUTES:
+            return SAMPLED_ROUTES[wsgi_path]
+        for pattern, rate in SAMPLED_ROUTE_PATTERNS:
+            if pattern.search(wsgi_path):
+                return rate
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")

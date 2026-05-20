@@ -10,8 +10,8 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -132,8 +132,8 @@ function AccountClose() {
     removeAccount(Array.from(orgsToRemove));
   };
 
-  const HookedCustomConfirmAccountClose = HookOrDefault({
-    hookName: 'component:confirm-account-close',
+  const HookedCustomConfirmAccountClose = OverrideOrDefault({
+    overrideName: 'component:confirm-account-close',
     defaultComponent: props => <ConfirmAccountClose {...props} />,
   });
 

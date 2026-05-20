@@ -8,14 +8,14 @@ import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import {Footer} from 'sentry/components/footer';
-import Hook from 'sentry/components/hook';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {Override} from 'sentry/components/override';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {getHook} from 'sentry/hookRegistry';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -37,8 +37,8 @@ import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExpl
 
 import {OrganizationDetailsBody} from './body';
 
-const OrganizationHeader = HookOrDefault({
-  hookName: 'component:organization-header',
+const OrganizationHeader = OverrideOrDefault({
+  overrideName: 'component:organization-header',
 });
 
 export function OrganizationLayout() {
@@ -88,13 +88,13 @@ function AppLayout({organization}: LayoutProps) {
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !getHook('component:superuser-warning-excluded')?.(organization);
+    !getOverride('component:superuser-warning-excluded')?.(organization);
 
   return (
     <PrimaryNavigationContextProvider>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
         {hasPageFrame && showSuperuserWarning && (
-          <Hook name="component:superuser-warning" organization={organization} />
+          <Override name="component:superuser-warning" organization={organization} />
         )}
         {hasPageFrame && <SystemAlerts className="messages-container" />}
         <Flex

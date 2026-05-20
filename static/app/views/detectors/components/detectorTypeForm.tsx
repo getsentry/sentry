@@ -7,9 +7,9 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
-import Hook from 'sentry/components/hook';
-import {getHook} from 'sentry/hookRegistry';
+import {Override} from 'sentry/components/override';
 import {t, tct} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
@@ -77,7 +77,7 @@ function MonitorTypeField() {
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
-    getHook('react-hook:use-metric-detector-limit') ?? (() => null);
+    getOverride('react-hook:use-metric-detector-limit') ?? (() => null);
   const quota = useMetricDetectorLimit();
   const canCreateMetricDetector = !quota?.hasReachedLimit;
 
@@ -94,7 +94,7 @@ function MonitorTypeField() {
       ),
       visualization: <MetricVisualization />,
       infoBanner: canCreateMetricDetector ? undefined : (
-        <Hook name="component:metric-alert-quota-message" />
+        <Override name="component:metric-alert-quota-message" />
       ),
       disabled: !canCreateMetricDetector,
     },

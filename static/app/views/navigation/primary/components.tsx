@@ -26,11 +26,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import Hook from 'sentry/components/hook';
 import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
-import {getHook} from 'sentry/hookRegistry';
+import {Override} from 'sentry/components/override';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -83,7 +83,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !getHook('component:superuser-warning-excluded')?.(organization);
+    !getOverride('component:superuser-warning-excluded')?.(organization);
 
   const hasPageFrame = useHasPageFrameFeature();
 
@@ -125,7 +125,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
               background: theme.tokens.background.danger.vibrant,
             }}
           >
-            <Hook name="component:superuser-warning" organization={organization} />
+            <Override name="component:superuser-warning" organization={organization} />
           </Container>
         )}
       </Flex>
