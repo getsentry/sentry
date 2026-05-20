@@ -57,7 +57,7 @@ import {toPercent} from 'sentry/utils/number/toPercent';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
 import {
   findLinkedDashboardForField,
@@ -360,7 +360,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      if (isUrl(value)) {
+      if (isValidUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
             <Container>
@@ -586,7 +586,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           maxWidth={400}
         >
           <Container>
-            {isUrl(value) ? (
+            {isValidUrl(value) ? (
               <ExternalLink href={value}>{value}</ExternalLink>
             ) : (
               nullableValue(value)

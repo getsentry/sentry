@@ -180,6 +180,36 @@ describe('Discover -> CellAction', () => {
       );
     });
 
+    it('does not offer link actions for wildcard URLs', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+
+      render(
+        <CellAction
+          dataRow={{url: 'http://*/v1/api/auth/register'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <strong>http://*/v1/api/auth/register</strong>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    });
+
     it('error.handled with null adds condition', async () => {
       renderComponent({
         eventView: view,

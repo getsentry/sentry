@@ -18,7 +18,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {FieldKey} from 'sentry/utils/fields';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 
@@ -301,7 +301,7 @@ function makeCellActions({
     );
   }
 
-  if (isUrl(value)) {
+  if (isValidUrl(value)) {
     addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
   }
 
