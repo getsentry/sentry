@@ -5,6 +5,7 @@ import sentry.db.models.fields.foreignkey
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -36,12 +37,23 @@ class Migration(CheckedMigration):
                 on_delete=django.db.models.deletion.CASCADE, to="workflow_engine.action"
             ),
         ),
-        migrations.AlterField(
-            model_name="notificationmessage",
-            name="group",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.group"
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                SafeRunSQL(
+                    sql='ALTER TABLE "sentry_notificationmessage" ALTER COLUMN "group_id" SET NOT NULL',
+                    reverse_sql='ALTER TABLE "sentry_notificationmessage" ALTER COLUMN "group_id" DROP NOT NULL',
+                    hints={"tables": ["sentry_notificationmessage"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AlterField(
+                    model_name="notificationmessage",
+                    name="group",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.group"
+                    ),
+                ),
+            ],
         ),
         migrations.AlterField(
             model_name="notificationmessage",
