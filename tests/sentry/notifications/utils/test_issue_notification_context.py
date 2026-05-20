@@ -53,6 +53,7 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
         return IssueNotificationContext(invocation)
 
