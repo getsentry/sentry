@@ -378,7 +378,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
-        ? data[field].slice(-1)
+        ? (data[field].at(-1) ?? emptyValue)
         : defined(data[field])
           ? data[field]
           : emptyValue;

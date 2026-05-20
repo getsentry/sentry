@@ -102,6 +102,29 @@ describe('getFieldRenderer', () => {
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
+  it('renders the last element when string fields are stored as arrays', () => {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = ['https://example.com/old', 'https://example.com/new'];
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('https://example.com/new')).toBeInTheDocument();
+  });
+
+  it('renders the last non-url element when string fields are stored as arrays', () => {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = ['old-value', 'latest-value'];
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('latest-value')).toBeInTheDocument();
+    expect(document.querySelector('a')).not.toBeInTheDocument();
+  });
+
   it('renders gen_ai.output.messages assistant content', () => {
     const renderer = getFieldRenderer(
       SpanFields.GEN_AI_OUTPUT_MESSAGES,
