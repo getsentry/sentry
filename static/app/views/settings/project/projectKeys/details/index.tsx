@@ -79,17 +79,17 @@ export default function ProjectKeyDetails() {
   return (
     <SentryDocumentTitle title={t('Key Details')}>
       <div data-test-id="key-details">
-      <SettingsPageHeader title={t('Key Details')} />
-      <ProjectPermissionAlert project={project} />
-      <KeyStats api={api} organization={organization} params={params} theme={theme} />
-      <KeySettings
-        data={projKeyData}
-        updateData={onDataChange}
-        onRemove={handleRemove}
-        organization={organization}
-        project={project}
-        params={params}
-      />
+        <SettingsPageHeader title={t('Key Details')} />
+        <ProjectPermissionAlert project={project} />
+        <KeyStats api={api} organization={organization} params={params} theme={theme} />
+        <KeySettings
+          data={projKeyData}
+          updateData={onDataChange}
+          onRemove={handleRemove}
+          organization={organization}
+          project={project}
+          params={params}
+        />
       </div>
     </SentryDocumentTitle>
   );
