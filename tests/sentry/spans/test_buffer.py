@@ -245,7 +245,7 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert_clean(buffer.client)
 
 
-@mock.patch("sentry.spans.buffer.emit_observability_metrics")
+@mock.patch("sentry.spans.buffer_logger.emit_observability_metrics")
 def test_observability_metrics(
     emit_observability_metrics: mock.MagicMock, buffer: SpansBuffer
 ) -> None:

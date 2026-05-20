@@ -52,6 +52,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
     get_autofix_state,
+    has_project_connected_repos,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -254,6 +255,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
     def _post_agent(self, request: Request, group: Group) -> Response:
         """Handle POST for the agent-based autofix."""
+        if not has_project_connected_repos(group.organization, group.project):
+            return Response(
+                {"detail": "SCM integration is not configured for this project."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

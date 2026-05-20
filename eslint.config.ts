@@ -360,6 +360,14 @@ export default typescript.config([
             'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
         },
         {
+          selector: "MemberExpression[object.name='React'][property.name='Fragment']",
+          message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+        },
+        {
+          selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
+          message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+        },
+        {
           selector:
             "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
           message:
@@ -875,6 +883,7 @@ export default typescript.config([
         'error',
         {additionalTestBlockFunctions: ['it.isKnownFlake']},
       ],
+      'jest/prefer-jest-mocked': 'error',
 
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line

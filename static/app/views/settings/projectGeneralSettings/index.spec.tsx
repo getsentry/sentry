@@ -130,9 +130,7 @@ describe('projectGeneralSettings', () => {
       })
     );
 
-    const addSuccessMessageMock = addSuccessMessage as jest.MockedFunction<
-      typeof addSuccessMessage
-    >;
+    const addSuccessMessageMock = jest.mocked(addSuccessMessage);
     const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
 
     expect(undo).toBeInstanceOf(Function);

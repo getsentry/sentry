@@ -5,7 +5,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {
+  Actions,
+  ActionTriggerType,
+  CellAction,
+  updateQuery,
+} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 const defaultData: TableDataRow = {
@@ -32,6 +37,8 @@ function renderComponent({
   handleCellAction = jest.fn(),
   columnIndex = 0,
   data = defaultData,
+  pin,
+  triggerType,
 }: {
   eventView: EventView;
   columnIndex?: number;
@@ -40,12 +47,16 @@ function renderComponent({
     action: Actions,
     value: string | number | null[] | string[] | null
   ) => void;
+  pin?: React.ReactNode;
+  triggerType?: ActionTriggerType;
 }) {
   return render(
     <CellAction
       dataRow={data}
       column={eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
+      pin={pin}
+      triggerType={triggerType}
     >
       <strong>some content</strong>
     </CellAction>
@@ -387,6 +398,28 @@ describe('Discover -> CellAction', () => {
         },
       });
       expect(screen.queryByRole('button', {name: 'Actions'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pin prop', () => {
+    it('renders the pin element with the bold hover trigger', () => {
+      renderComponent({
+        eventView: view,
+        triggerType: ActionTriggerType.BOLD_HOVER,
+        pin: <button type="button">pin me</button>,
+      });
+
+      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
+    });
+
+    it('renders the pin element with the ellipsis trigger', () => {
+      renderComponent({
+        eventView: view,
+        triggerType: ActionTriggerType.ELLIPSIS,
+        pin: <button type="button">pin me</button>,
+      });
+
+      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
     });
   });
 });
