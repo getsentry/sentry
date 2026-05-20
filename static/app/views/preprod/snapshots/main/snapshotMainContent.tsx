@@ -43,8 +43,8 @@ import {
   type SnapshotListViewHandle,
 } from './snapshotListView';
 
-type ViewMode = 'single' | 'list';
-type SortBy = 'diff' | 'alpha';
+export type ViewMode = 'single' | 'list';
+export type SortBy = 'diff' | 'alpha';
 
 export interface NavButtonRefs {
   next: React.RefObject<HTMLButtonElement | null>;
@@ -562,7 +562,7 @@ function SingleViewLayout({
   );
 }
 
-function SoloDiffToggle({
+export function SoloDiffToggle({
   isSoloView,
   onToggleSoloView,
 }: {
@@ -590,7 +590,7 @@ function SoloDiffToggle({
   );
 }
 
-function ViewModeToggle({
+export function ViewModeToggle({
   viewMode,
   onViewModeChange,
 }: {
@@ -627,7 +627,7 @@ function ViewModeToggle({
   );
 }
 
-function SortDropdown({
+export function SortDropdown({
   value,
   onChange,
 }: {
@@ -647,7 +647,7 @@ function SortDropdown({
   );
 }
 
-function ColorPickerButton({
+export function ColorPickerButton({
   color,
   onChange,
 }: {
@@ -703,7 +703,7 @@ function ColorPickerButton({
   );
 }
 
-function DiffModeToggle({
+export function DiffModeToggle({
   diffMode,
   onDiffModeChange,
 }: {
@@ -831,18 +831,18 @@ const ColorTrigger = styled('button')<{color: string}>`
   }
 `;
 
-const ProgressPill = styled('div')`
+export const ProgressPill = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
 `;
 
-const ProgressCounter = styled(Text)`
+export const ProgressCounter = styled(Text)`
   white-space: nowrap;
   font-family: ${p => p.theme.font.family.mono};
 `;
 
-const ToolbarProgressBar = styled(ProgressBar)`
+export const ToolbarProgressBar = styled(ProgressBar)`
   width: 50px;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -875,7 +875,7 @@ const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
     `}
 `;
 
-function ToolbarContainer({
+export function ToolbarContainer({
   toggle,
   sortDropdown,
   progressIndicator,
