@@ -11,7 +11,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
-from sentry.issues.derived.types import ActorType, GroupActionType
+from sentry.issues.action_log.types import ActorType, GroupActionType
 
 
 @cell_silo_model
@@ -21,6 +21,9 @@ class GroupActionLogEntry(Model):
 
     Each entry records who did what, when, with optional structured payload.
     Ordered by (group_id, date_added, id).
+
+    **Do not create or update rows directly.** Use the helpers in
+    ``sentry.issues.action_log`` instead.
     """
 
     __relocation_scope__ = RelocationScope.Excluded

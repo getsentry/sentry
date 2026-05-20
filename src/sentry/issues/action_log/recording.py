@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
 
-from sentry.issues.derived.types import GroupAction, GroupActionActor
+from sentry.issues.action_log.types import GroupAction, GroupActionActor
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 
 

@@ -1,7 +1,7 @@
 import pytest
 
-from sentry.issues.derived.recording import DuplicateActionError, record_group_action
-from sentry.issues.derived.types import ActorType, GroupActionActor, GroupActionType, ViewAction
+from sentry.issues.action_log.recording import DuplicateActionError, record_group_action
+from sentry.issues.action_log.types import ActorType, GroupActionActor, GroupActionType, ViewAction
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.testutils.cases import TestCase
 
