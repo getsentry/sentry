@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import {Link} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
@@ -16,8 +17,8 @@ export function SamplesModeAggregateFilterWarning() {
     const nextLocation = getTargetWithReadableQueryParams(location, {
       mode: Mode.AGGREGATE,
     });
-    const {[SPANS_TABLE_KEY]: _table, ...query} = nextLocation.query;
-    return {...nextLocation, query};
+    updateNullableLocation(nextLocation, SPANS_TABLE_KEY, null);
+    return nextLocation;
   }, [location]);
 
   return tct(
