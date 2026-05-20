@@ -515,6 +515,21 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
+            key: 'toggleBillingPlatformMigration',
+            name: subscription.hasMigratedToBillingPlatform
+              ? '[Do Not Use] Unmigrate to Billing Platform'
+              : '[Do Not Use] Migrate to Billing Platform',
+            help: subscription.hasMigratedToBillingPlatform
+              ? 'Mark this org as not migrated to the billing platform.'
+              : 'Mark this org as migrated to the billing platform.',
+            onAction: params =>
+              onUpdateMutation.mutate({
+                ...params,
+                migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'convertToSelfServe',
             name: 'Convert to self-serve',
             help: 'Cancel subscription and convert to self-serve.',

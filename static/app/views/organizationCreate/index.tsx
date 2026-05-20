@@ -114,7 +114,6 @@ function OrganizationCreate() {
               nextUrl = `${createdOrg.links.organizationUrl}${nextUrl}`;
             }
             // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
-            // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
             testableWindowLocation.assign(nextUrl);
           }}
           onSubmitError={error => {

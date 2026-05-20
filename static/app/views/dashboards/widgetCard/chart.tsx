@@ -308,6 +308,7 @@ function TableComponent({
 
             return {
               location,
+              navigate,
               organization,
               projects,
               theme,

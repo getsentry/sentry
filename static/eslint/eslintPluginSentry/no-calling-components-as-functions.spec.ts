@@ -63,7 +63,7 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
       code: 'import {DO_NOT_USE_getButtonStyles} from "./styles"; const x = DO_NOT_USE_getButtonStyles({size: "md"});',
     },
     {
-      code: 'import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from "./router"; DANGEROUS_SET_REACT_ROUTER_6_HISTORY({history});',
+      code: 'import {DANGEROUS_SET_FOO} from "./foo"; DANGEROUS_SET_FOO({foo: 1});',
     },
     {
       code: 'const BREAKPOINTS = (theme) => ({ mobile: 0 }); const x = BREAKPOINTS(theme);',
