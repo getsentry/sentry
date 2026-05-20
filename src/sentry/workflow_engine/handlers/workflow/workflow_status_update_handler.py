@@ -55,12 +55,15 @@ def workflow_status_update_handler(
     if detector_id is None:
         # We should not hit this case, it's should only occur if there is a bug
         # passing it from the workflow_engine to the issue platform.
-        metrics.incr("workflow_engine.tasks.error.no_detector_id")
+        metrics.incr(
+            "workflow_engine.tasks.error.no_detector_id",
+            tags={"activity_type": activity.type},
+        )
         return
 
     organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
     can_process_seer_activities = features.has(
-        "organization:workflow_engine_evaluate_seer_activities", organization
+        "organization:workflow-engine-evaluate-seer-activities", organization
     )
 
     if activity.type in SEER_ACTIVITIES and not can_process_seer_activities:
