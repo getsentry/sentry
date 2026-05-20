@@ -207,7 +207,7 @@ export function ToolbarSaveAs() {
     isSubmenu: chartOptions.length > 1 ? true : false,
     label: (
       <Feature
-        hookName="feature-disabled:dashboards-edit"
+        overrideName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
         renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
       >

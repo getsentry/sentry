@@ -26,13 +26,13 @@ import {
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -79,6 +79,7 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -112,7 +113,7 @@ export const UNSAVED_FILTERS_MESSAGE = t(
   'You have unsaved dashboard filters. You can save or discard them.'
 );
 
-const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
+const OverrideHeader = OverrideOrDefault({overrideName: 'component:dashboards-header'});
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
@@ -283,6 +284,19 @@ class DashboardDetail extends Component<Props, State> {
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
+  closeFullScreenView = () => {
+    const {location, navigate} = this.props;
+    // Filter out Widget Viewer Modal query params when exiting the Modal
+    const query = omit(location.query, Object.values(WidgetViewerQueryField));
+    navigate(
+      {
+        pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
+        query,
+      },
+      {preventScrollReset: true}
+    );
+  };
+
   checkIfShouldMountWidgetViewerModal() {
     const {
       params: {widgetId},
@@ -290,10 +304,14 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       location,
       router,
-      navigate,
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
+      // When the releases drawer is triggered from within the full-screen widget viewer modal, close the modal by navigating away from the widget path.
+      if (location.query[ReleasesDrawerFields.DRAWER] === 'show') {
+        this.closeFullScreenView();
+        return;
+      }
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
         openWidgetViewerModal({
@@ -306,15 +324,7 @@ class DashboardDetail extends Component<Props, State> {
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
-            // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            navigate(
-              {
-                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
-                query,
-              },
-              {preventScrollReset: true}
-            );
+            this.closeFullScreenView();
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
@@ -1084,7 +1094,7 @@ class DashboardDetail extends Component<Props, State> {
                     widgetLimitReached={widgetLimitReached}
                   />
                 </StyledPageHeader>
-                <HookHeader organization={organization} />
+                <OverrideHeader organization={organization} />
                 <Stack gap="xl">
                   {pageAlerts}
                   <FiltersBar

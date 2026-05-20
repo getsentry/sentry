@@ -24,6 +24,7 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {
   ListItemCheckboxProvider,
@@ -130,6 +131,7 @@ export function SeerRepoTable() {
     isPending,
     isFetchingNextPage,
   } = result;
+  const isFetchingAllPages = !isError && (hasNextPage || isFetchingNextPage);
 
   const {mutate: mutateRepositorySettings, mutateAsync: mutateRepositorySettingsAsync} =
     useBulkUpdateRepositorySettings({
@@ -170,7 +172,7 @@ export function SeerRepoTable() {
       <Grid
         minWidth="0"
         gap="md"
-        columns={isFetchingNextPage ? '1fr max-content max-content' : '1fr max-content'}
+        columns={isFetchingAllPages ? '1fr max-content max-content' : '1fr max-content'}
       >
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
@@ -186,7 +188,7 @@ export function SeerRepoTable() {
           />
         </InputGroup>
 
-        {isFetchingNextPage ? <LoadingIndicator mini /> : null}
+        {isFetchingAllPages ? <LoadingIndicator mini /> : null}
 
         <LinkButton
           variant="primary"
@@ -200,12 +202,12 @@ export function SeerRepoTable() {
       <ListItemCheckboxProvider
         hits={repositories?.length ?? 0}
         knownIds={knownIds}
-        queryKey={queryOptions.queryKey}
+        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
         <TablePanel>
           <SeerRepoTableHeader
             gridColumns={GRID_COLUMNS}
-            isFetchingNextPage={isFetchingNextPage}
+            isFetchingNextPage={isFetchingAllPages}
             isPending={isPending}
             mutateRepositorySettings={mutateRepositorySettingsAsync}
             onSortClick={setSort}
@@ -233,7 +235,7 @@ export function SeerRepoTable() {
           ) : (
             <VirtualizedRepoTable
               hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
+              isFetchingNextPage={isFetchingAllPages}
               mutateRepositorySettings={mutateRepositorySettings}
               repositories={repositories}
               scrollBodyRef={scrollBodyRef}

@@ -10,7 +10,8 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -79,7 +80,7 @@ export function getProjectStoppingPointValueFromSettings(
  *   - External agent: automation_handoff.auto_create_pr === true
  */
 export function getProjectStoppingPointValue(
-  project: Project,
+  project: DetailedProject,
   preference: ProjectSeerPreferences | null | undefined
 ): UserFacingStoppingPoint {
   if (!project.autofixAutomationTuning || project.autofixAutomationTuning === 'off') {
@@ -150,7 +151,7 @@ type StoppingPointVariables = {
 };
 
 export type MutateStoppingPoint = UseMutateFunction<
-  [Project, SeerPreferencesResponse | undefined],
+  [DetailedProject, SeerPreferencesResponse | undefined],
   unknown,
   StoppingPointVariables
 >;
@@ -166,7 +167,7 @@ export function getProjectStoppingPointMutationOptions({
     mutationFn: async ({stoppingPoint, project}: StoppingPointVariables) => {
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
-      const projectPromise = fetchMutation<Project>({
+      const projectPromise = fetchMutation<DetailedProject>({
         method: 'PUT',
         url: `/projects/${organization.slug}/${project.slug}/`,
         data: {autofixAutomationTuning: tuning},
@@ -208,7 +209,8 @@ export function getProjectStoppingPointMutationOptions({
       const previousPreference = queryClient.getQueryData(seerPrefsQueryKey);
 
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
-      ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: tuning});
+      const updatedProject = {...project, autofixAutomationTuning: tuning};
+      ProjectsStore.onUpdateSuccess(updatedProject);
 
       const bulkQueryKey = bulkAutofixAutomationSettingsInfiniteOptions({
         organization,
@@ -282,6 +284,12 @@ export function getProjectStoppingPointMutationOptions({
       );
       queryClient.invalidateQueries({
         queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeDetailedProjectQueryKey({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+        }),
       });
     },
   });

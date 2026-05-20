@@ -1,14 +1,14 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,6 +18,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -43,7 +44,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
+import {type DashboardsLayout, DashboardsTab} from 'sentry/views/dashboards/manage/types';
+import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -65,6 +67,18 @@ export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
 const TABLE = 'table';
+
+const DASHBOARDS_TAB_TITLES: Record<DashboardsTab, string> = {
+  [DashboardsTab.CUSTOM]: t('Custom Dashboards'),
+  [DashboardsTab.ALL]: t('All Dashboards'),
+  [DashboardsTab.PREBUILT]: PREBUILT_DASHBOARD_LABEL,
+};
+
+const DASHBOARDS_TAB_API_QUERY: Record<DashboardsTab, {filter?: DashboardFilter}> = {
+  [DashboardsTab.CUSTOM]: {filter: DashboardFilter.EXCLUDE_PREBUILT},
+  [DashboardsTab.ALL]: {},
+  [DashboardsTab.PREBUILT]: {filter: DashboardFilter.ONLY_PREBUILT},
+};
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorageWrapper.getItem(LAYOUT_KEY);
@@ -109,6 +123,7 @@ function getDefaultSort({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
 
 function ManageDashboards() {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const api = useApi();
@@ -118,8 +133,12 @@ function ManageDashboards() {
     'dashboards-prebuilt-insights-dashboards'
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const isOnlyPrebuilt =
-    hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
+  const dashboardsTab = getDashboardsTab(hasPrebuiltDashboards, urlFilter);
+  const isOnlyPrebuilt = dashboardsTab === DashboardsTab.PREBUILT;
+  const pageTitle =
+    dashboardsTab === DashboardsTab.CUSTOM && !hasPrebuiltDashboards
+      ? t('All Dashboards')
+      : DASHBOARDS_TAB_TITLES[dashboardsTab];
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
@@ -151,15 +170,17 @@ function ManageDashboards() {
         pin: 'favorites',
         per_page:
           dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-        ...(isOnlyPrebuilt
-          ? {filter: DashboardFilter.ONLY_PREBUILT}
-          : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
+        ...DASHBOARDS_TAB_API_QUERY[dashboardsTab],
       },
     }),
     select: selectJsonWithHeaders,
     enabled: hasProjectAccess || !projectsLoaded,
   });
   const dashboardsWithoutPrebuiltConfigs = dashboardsResponse?.json;
+
+  function invalidateDashboards() {
+    queryClient.invalidateQueries(dashboardsApiOptions(organization));
+  }
 
   const dashboards = useMemo(
     () =>
@@ -458,12 +479,38 @@ function ManageDashboards() {
   }
 
   function renderDashboards() {
+    if (
+      dashboardsTab === DashboardsTab.CUSTOM &&
+      hasPrebuiltDashboards &&
+      !isLoading &&
+      !dashboards?.length &&
+      !getQuery()
+    ) {
+      return (
+        <EmptyMessage
+          title={t("You haven't created any dashboards.")}
+          action={
+            <LinkButton
+              to={`${location.pathname}?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+              variant="primary"
+            >
+              {t('Check out Sentry Built dashboards')}
+            </LinkButton>
+          }
+        >
+          {t(
+            'Check out Sentry Built dashboards for common use cases and examples that you can clone to get started.'
+          )}
+        </EmptyMessage>
+      );
+    }
+
     return dashboardsLayout === GRID ? (
       <DashboardGrid
         api={api}
         dashboards={dashboards}
         organization={organization}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
@@ -474,7 +521,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
       />
     );
@@ -530,10 +577,7 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle
-        title={isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
-        orgSlug={organization.slug}
-      >
+      <SentryDocumentTitle title={pageTitle} orgSlug={organization.slug}>
         <ErrorBoundary>
           {isError ? (
             <Stack flex={1} padding="2xl 3xl">
@@ -545,7 +589,7 @@ function ManageDashboards() {
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
                     <Layout.Title>
-                      {isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
+                      {pageTitle}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
                         title={

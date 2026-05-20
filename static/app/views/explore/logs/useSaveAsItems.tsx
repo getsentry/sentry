@@ -225,7 +225,7 @@ export function useSaveAsItems({
       key: 'add-to-dashboard',
       label: (
         <Feature
-          hookName="feature-disabled:dashboards-edit"
+          overrideName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
         >
@@ -242,9 +242,7 @@ export function useSaveAsItems({
   return useMemo(() => {
     const saveAs = [];
     if (isLogsEnabled(organization)) {
-      saveAs.push(...saveAsQuery);
-      saveAs.push(saveAsAlert);
-      saveAs.push(saveAsDashboard);
+      saveAs.push(...saveAsQuery, saveAsAlert, saveAsDashboard);
     }
     return saveAs;
   }, [organization, saveAsQuery, saveAsAlert, saveAsDashboard]);

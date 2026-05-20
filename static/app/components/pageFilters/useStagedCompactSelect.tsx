@@ -7,7 +7,6 @@ import type {
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
-  SelectSection,
 } from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -66,13 +65,23 @@ function stagingReducer<Value extends SelectKey>(
     case 'toggle': {
       const newSet = new Set(action.currentStaged);
       newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-      return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
+      const stagedValue = Array.from(newSet);
+      return {
+        ...state,
+        stagedValue,
+        lastSelected: stagedValue.length === 0 ? null : action.val,
+      };
     }
     case 'toggle range': {
       if (state.lastSelected === null) {
         const newSet = new Set(action.currentStaged);
         newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-        return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
+        const stagedValue = Array.from(newSet);
+        return {
+          ...state,
+          stagedValue,
+          lastSelected: stagedValue.length === 0 ? null : action.val,
+        };
       }
 
       // Only include options visible in the current filtered state so that
@@ -92,7 +101,12 @@ function stagingReducer<Value extends SelectKey>(
         // Anchor or clicked item not visible — fall back to single toggle
         const newSet = new Set(action.currentStaged);
         newSet.has(action.val) ? newSet.delete(action.val) : newSet.add(action.val);
-        return {...state, stagedValue: Array.from(newSet), lastSelected: action.val};
+        const stagedValue = Array.from(newSet);
+        return {
+          ...state,
+          stagedValue,
+          lastSelected: stagedValue.length === 0 ? null : action.val,
+        };
       }
 
       const targetState = !action.currentStaged.includes(action.val);
@@ -112,7 +126,11 @@ function stagingReducer<Value extends SelectKey>(
         return aIdx - bIdx;
       });
 
-      return {...state, stagedValue: sortedValue, lastSelected: action.val};
+      return {
+        ...state,
+        stagedValue: sortedValue,
+        lastSelected: sortedValue.length === 0 ? null : action.val,
+      };
     }
     case 'remove staged':
       return {...state, stagedValue: null};
@@ -138,7 +156,6 @@ interface UseStagedCompactSelectOptions<Value extends SelectKey> {
   hasExternalChanges?: boolean;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
-  onSectionToggle?: (section: SelectSection<SelectKey>) => void;
   onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
 }
@@ -149,7 +166,6 @@ interface UseStagedCompactSelectReturn<Value extends SelectKey> {
     MultipleSelectProps<Value>,
     | 'value'
     | 'onChange'
-    | 'onSectionToggle'
     | 'onInteractOutside'
     | 'onOpenChange'
     | 'onKeyDown'
@@ -175,7 +191,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
   onToggle,
   filterOptionsOnSearch,
   onReplace,
-  onSectionToggle,
   multiple,
   disableCommit,
   hasExternalChanges = false,
@@ -282,15 +297,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
     [commit, stagedValue, disableCommit]
   );
 
-  const sectionToggleWasPressed = useRef(false);
-  const handleSectionToggle = useCallback(
-    (section: SelectSection<SelectKey>) => {
-      onSectionToggle?.(section);
-      sectionToggleWasPressed.current = true;
-    },
-    [onSectionToggle]
-  );
-
   const handleChange = useCallback(
     (selectedOptions: Array<SelectOption<Value>>) => {
       const newValue = selectedOptions.map(op => op.value);
@@ -307,8 +313,7 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       const diff =
         newValueSet.size > 0 ? Array.from(newValueSet) : Array.from(oldValueSet);
 
-      if (diff.length > 1 || sectionToggleWasPressed.current) {
-        sectionToggleWasPressed.current = false;
+      if (diff.length > 1) {
         commit(newValue);
         return;
       }
@@ -435,7 +440,6 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       value: stagedValue,
       closeOnSelect: !modifierActive,
       onChange: handleChange,
-      onSectionToggle: handleSectionToggle,
       onInteractOutside: commitStagedChanges,
       onKeyDown: handleKeyDown,
       onOpenChange: (open: boolean) => {

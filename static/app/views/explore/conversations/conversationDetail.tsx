@@ -1,8 +1,10 @@
-import {useCallback, useMemo} from 'react';
-import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
+import {useCallback, useEffect, useMemo} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
@@ -14,33 +16,34 @@ function useConversationDetailQueryState() {
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
-      start: parseAsInteger,
-      end: parseAsInteger,
     },
     {history: 'replace'}
   );
 }
 
 function ConversationDetailPage() {
+  const organization = useOrganization();
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
-  const conversation = useMemo(
-    () => ({
-      conversationId,
-      startTimestamp: queryState.start ?? undefined,
-      endTimestamp: queryState.end ?? undefined,
-    }),
-    [conversationId, queryState.start, queryState.end]
-  );
+  const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
   const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
 
+  useEffect(() => {
+    trackAnalytics('conversations.detail.page-view', {
+      organization,
+    });
+  }, [organization, conversationId]);
+
   const handleSelectSpan = useCallback(
     (spanId: string) => {
+      trackAnalytics('conversations.detail.select-span', {
+        organization,
+      });
       setQueryState({spanId, focusedTool: null});
     },
-    [setQueryState]
+    [organization, setQueryState]
   );
 
   return (

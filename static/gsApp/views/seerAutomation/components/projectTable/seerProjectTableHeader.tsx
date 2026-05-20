@@ -6,16 +6,17 @@ import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   useListItemCheckboxContext,
@@ -44,7 +45,7 @@ const COLUMNS = [
   {
     title: ({organization}: {organization: Organization}) => (
       <Flex gap="sm" align="center">
-        {t('Preferred Coding Agent')}
+        {t('Handoff to Agent')}
         <InfoTip
           title={tct(
             'Select the coding agent to use when proposing code changes. [manageLink:Manage Coding Agent Integrations]',
@@ -114,14 +115,13 @@ export function ProjectTableHeader({
     countSelected,
     isAllSelected,
     isAnySelected,
-    queryKeyRef,
+    endpointOptionsRef,
     selectAll,
     selectedIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current
-    ? parseQueryKey(queryKeyRef.current).options
-    : undefined;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const endpointOptions = endpointOptionsRef.current;
+  const rawQuery = endpointOptions?.query?.query;
+  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const projectIds = useMemo(
     () => (selectedIds === 'all' ? projects.map(project => project.id) : selectedIds),
@@ -188,6 +188,18 @@ export function ProjectTableHeader({
                 })) ?? []
               }
               triggerLabel={t('Agent')}
+              menuFooter={
+                <DropdownMenuFooter>
+                  <Link
+                    to={{
+                      pathname: `/settings/${organization.slug}/integrations/`,
+                      query: {category: 'coding agent'},
+                    }}
+                  >
+                    {t('Manage Coding Agents')}
+                  </Link>
+                </DropdownMenuFooter>
+              }
             />
             <DropdownMenu
               isDisabled={!canWrite}
@@ -219,6 +231,16 @@ export function ProjectTableHeader({
                 },
               }))}
               triggerLabel={t('Automation Steps')}
+              menuFooter={
+                <DropdownMenuFooter>
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works">
+                    <Flex gap="sm" align="center">
+                      <IconOpen size="xs" />
+                      {t('Read the Docs')}
+                    </Flex>
+                  </ExternalLink>
+                </DropdownMenuFooter>
+              }
             />
           </TableCellsRemainingContent>
         </TableHeader>

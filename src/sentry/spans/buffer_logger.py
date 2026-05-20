@@ -2,26 +2,21 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple, TypeVar
 
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
+
 from sentry import options
+from sentry.spans.buffer_types import EvalshaData, EvalshaResult
+from sentry.spans.debug_trace_logger import DebugTraceLogger
+from sentry.spans.segment_key import SegmentKey
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 MAX_ENTRIES = 50
 LOGGING_INTERVAL = 60  # 1 minute in seconds
-
-
-class FlusherLogEntry(NamedTuple):
-    """
-    Represents a single flush operation for a given project and trace.
-    """
-
-    project_and_trace: str
-    span_count: int
-    bytes_flushed: int
 
 
 class BufferAggregate(NamedTuple):
@@ -31,16 +26,6 @@ class BufferAggregate(NamedTuple):
 
     operation_count: int
     cumulative_latency_ms: int
-
-
-class FlusherAggregate(NamedTuple):
-    """
-    Tracks the number of segments, spans, and bytes flushed for a given project and trace.
-    """
-
-    segment_count: int
-    span_count: int
-    bytes_flushed: int
 
 
 TAggregate = TypeVar("TAggregate", bound=tuple[Any, ...])
@@ -143,81 +128,115 @@ class BufferLogger:
         )
 
 
-class FlusherLogger:
-    """
-    Tracks per-trace flush operations and logs the dominant traces by
-    cumulative bytes flushed.
+type QueueKey = bytes
 
-    This logger keeps a bounded map (max 50 entries) of project_and_trace keys
-    to their segment counts, span counts, and cumulative bytes.
-    Every minute the top 50 traces by cumulative bytes are logged at INFO level,
-    along with the cumulative per-phase latencies over the logging interval.
-    """
 
+class SubsegmentDebugLog(NamedTuple):
+    project_and_trace: str
+    parent_span_id: str
+    subsegment: Sequence[Any]
+
+    def emit(self, get_debug_trace_logger: Callable[[], DebugTraceLogger]) -> None:
+        try:
+            get_debug_trace_logger().log_subsegment_info(
+                self.project_and_trace, self.parent_span_id, self.subsegment
+            )
+        except Exception:
+            logger.exception("process_spans: Failed to log debug trace info")
+
+
+class ProcessSpansObservability:
     def __init__(self) -> None:
-        self._metrics_per_trace: dict[str, FlusherAggregate] = {}
-        self._cumulative_load_ids_latency_ms: int = 0
-        self._cumulative_load_data_latency_ms: int = 0
-        self._cumulative_decompress_latency_ms: int = 0
-        self._last_log_time: float | None = None
-
-    def log(
-        self,
-        entries: list[FlusherLogEntry],
-        load_ids_latency_ms: int,
-        load_data_latency_ms: int,
-        decompress_latency_ms: int,
-    ) -> None:
-        """
-        Record a batch of flush operations and periodically log the top traces sorted by
-        cumulative bytes flushed.
-        """
-
-        if not options.get("spans.buffer.flusher-cumulative-logger-enabled"):
-            return
-
-        self._cumulative_load_ids_latency_ms += load_ids_latency_ms
-        self._cumulative_load_data_latency_ms += load_data_latency_ms
-        self._cumulative_decompress_latency_ms += decompress_latency_ms
-
-        for entry in entries:
-            if entry.project_and_trace in self._metrics_per_trace:
-                aggregate = self._metrics_per_trace[entry.project_and_trace]
-                self._metrics_per_trace[entry.project_and_trace] = FlusherAggregate(
-                    aggregate.segment_count + 1,
-                    aggregate.span_count + entry.span_count,
-                    aggregate.bytes_flushed + entry.bytes_flushed,
-                )
-            else:
-                self._metrics_per_trace[entry.project_and_trace] = FlusherAggregate(
-                    1,
-                    entry.span_count,
-                    entry.bytes_flushed,
-                )
-
-        self._last_log_time = _prune_and_maybe_log(
-            self._metrics_per_trace,
-            self._last_log_time,
-            sort_index=2,
-            log_message="spans.buffer.top_flush_operations_by_bytes",
-            entries_key="top_flush_operations",
-            format_entry=lambda key, val: (
-                f"{key}:{val.segment_count}:{val.span_count}:{val.bytes_flushed}"
-            ),
-            extra={
-                "cumulative_load_ids_latency_ms": self._cumulative_load_ids_latency_ms,
-                "cumulative_load_data_latency_ms": self._cumulative_load_data_latency_ms,
-                "cumulative_decompress_latency_ms": self._cumulative_decompress_latency_ms,
-            },
+        self._latency_entries: list[tuple[str, int]] = []
+        self._latency_metrics: list[EvalshaData] = []
+        self._gauge_metrics: list[EvalshaData] = []
+        self._longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+            -1.0,
+            [],
+            [],
         )
-        if self._last_log_time is None:
-            self._cumulative_load_ids_latency_ms = 0
-            self._cumulative_load_data_latency_ms = 0
-            self._cumulative_decompress_latency_ms = 0
+
+    def record_evalsha_result(self, project_and_trace: str, result: EvalshaResult) -> None:
+        self._latency_entries.append((project_and_trace, result.latency_ms))
+        self._latency_metrics.append(result.latency_metrics)
+        self._gauge_metrics.append(result.gauge_metrics)
+
+        if result.latency_ms > self._longest_evalsha_data[0]:
+            self._longest_evalsha_data = (
+                result.latency_ms,
+                result.latency_metrics,
+                result.gauge_metrics,
+            )
+
+    @property
+    def evalsha_latency_entries(self) -> list[tuple[str, int]]:
+        return self._latency_entries
+
+    def emit_metrics(self) -> None:
+        try:
+            emit_observability_metrics(
+                self._latency_metrics,
+                self._gauge_metrics,
+                self._longest_evalsha_data,
+            )
+        except Exception as e:
+            logger.exception("Error emitting observability metrics: %s", e)
 
 
-type DataPoint = tuple[bytes, float]
-type EvalshaData = list[DataPoint]
+class DeadlineUpdateLog(NamedTuple):
+    segment_key: SegmentKey
+    project_and_trace: str
+    queue_key: QueueKey
+    new_deadline: int
+    message_timestamp: int
+    has_root_span: bool
+
+    def emit(
+        self,
+        client: RedisCluster[bytes] | StrictRedis[bytes],
+        get_debug_trace_logger: Callable[[], DebugTraceLogger],
+    ) -> None:
+        try:
+            old_deadline = None
+            debug_trace_logger = get_debug_trace_logger()
+            if debug_trace_logger._should_log_trace(self.project_and_trace):
+                old_deadline_score = client.zscore(self.queue_key, self.segment_key)
+                old_deadline = int(old_deadline_score) if old_deadline_score is not None else None
+
+            debug_trace_logger.log_deadline_update(
+                segment_key=self.segment_key,
+                project_and_trace=self.project_and_trace,
+                old_deadline=old_deadline,
+                new_deadline=self.new_deadline,
+                message_timestamp=self.message_timestamp,
+                has_root_span=self.has_root_span,
+            )
+        except Exception:
+            logger.exception("process_spans: Failed to log deadline update")
+
+
+class FlushSegmentLog(NamedTuple):
+    segment_key: SegmentKey
+    segment_span_id: str
+    has_root_span: bool
+    num_spans: int
+    shard: int
+    queue_key: QueueKey
+    timestamp: int
+
+    def emit(self, get_debug_trace_logger: Callable[[], DebugTraceLogger]) -> None:
+        try:
+            get_debug_trace_logger().log_flush_info(
+                self.segment_key,
+                self.segment_span_id,
+                self.has_root_span,
+                self.num_spans,
+                self.shard,
+                self.queue_key,
+                self.timestamp,
+            )
+        except Exception:
+            logger.exception("flush_segments: Failed to log debug trace flush info")
 
 
 def emit_observability_metrics(

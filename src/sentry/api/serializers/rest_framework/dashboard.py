@@ -41,7 +41,6 @@ from sentry.tasks.on_demand_metrics import (
     check_field_cardinality,
     set_or_create_on_demand_state,
 )
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.strings import oxfordize_list
 
@@ -98,9 +97,8 @@ def validate_id(self, value):
 
 
 def is_table_display_type(display_type):
-    return (
-        display_type
-        == DashboardWidgetDisplayTypes.as_text_choices()[DashboardWidgetDisplayTypes.TABLE][0]
+    return display_type == DashboardWidgetDisplayTypes.get_type_name(
+        DashboardWidgetDisplayTypes.TABLE
     )
 
 
@@ -412,16 +410,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if data.get("display_type") == DashboardWidgetDisplayTypes.TEXT:
             return self._validate_text_widget(data)
 
-        if (
-            not data.get("id")
-            and data.get("display_type") in DashboardWidgetDisplayTypes.DEPRECATED_TYPES
-        ):
-            raise serializers.ValidationError(
-                {
-                    "display_type": f"{DashboardWidgetDisplayTypes.get_type_name(data['display_type'])} is no longer a supported display type."
-                }
-            )
-
         query_errors = []
         all_columns: set[str] = set()
         has_columns = False
@@ -544,12 +532,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # Validate limit on chart widgets with group-by columns:
         # if there are too many groups the server cannot serve the
         # request to get widget data and hence the chart fails to load.
-        # WHEEL widgets render a single aggregated row and don't use `limit`,
+        # WHEEL and DETAILS widgets render a single row and don't use `limit`,
         # so they're exempted from this check.
         if (
             data.get("display_type") != DashboardWidgetDisplayTypes.TABLE
             and data.get("display_type") != DashboardWidgetDisplayTypes.BIG_NUMBER
             and data.get("display_type") != DashboardWidgetDisplayTypes.WHEEL
+            and data.get("display_type") != DashboardWidgetDisplayTypes.DETAILS
             and data.get("limit") is None
             and has_columns
         ):
@@ -833,8 +822,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_permissions(self.instance, validated_data)
 
-        schedule_update_project_configs(self.instance)
-
         return self.instance
 
     def update(self, instance, validated_data):
@@ -857,8 +844,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.update_dashboard_filters(instance, validated_data)
 
         self.update_permissions(instance, validated_data)
-
-        schedule_update_project_configs(instance)
 
         return instance
 
@@ -1265,22 +1250,3 @@ class DashboardStarredOrderSerializer(serializers.Serializer):
         if len(dashboard_ids) != len(set(dashboard_ids)):
             raise serializers.ValidationError("Single dashboard cannot take up multiple positions")
         return dashboard_ids
-
-
-def schedule_update_project_configs(dashboard: Dashboard):
-    """
-    Schedule a task to update project configs for all projects of an organization when a dashboard is updated.
-    """
-    org = dashboard.organization
-
-    on_demand_metrics = features.has("organizations:on-demand-metrics-extraction", org)
-    dashboard_on_demand_metrics = features.has(
-        "organizations:on-demand-metrics-extraction-experimental", org
-    )
-
-    if not on_demand_metrics or not dashboard_on_demand_metrics:
-        return
-
-    schedule_invalidate_project_config(
-        trigger="dashboards:create-on-demand-metric", organization_id=org.id
-    )

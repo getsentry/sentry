@@ -12,7 +12,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
@@ -137,7 +137,7 @@ function getSubmitTooltipText({
 }
 
 export function CreateProject() {
-  const globalModal = useModal();
+  const {openModal, visible: isModalVisible} = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
@@ -241,7 +241,7 @@ export function CreateProject() {
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
     isNotifyingViaIntegration && validateChannel.error,
-  ].filter(value => value).length;
+  ].filter(Boolean).length;
 
   const submitTooltipText =
     isNotifyingViaIntegration && validateChannel.error
@@ -419,7 +419,7 @@ export function CreateProject() {
         }
       );
     },
-    [configurePlatform, organization]
+    [configurePlatform, organization, openModal]
   );
 
   const debounceHandleProjectCreation = useMemo(
@@ -593,7 +593,7 @@ export function CreateProject() {
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {!globalModal.visible && (
+          {!isModalVisible && (
             <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
         </List>

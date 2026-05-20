@@ -9,7 +9,7 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -175,7 +175,7 @@ function CustomersByVolume() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   return (
-    <SectionFull>
+    <Container column="1 / 3">
       <SectionHeading>
         <span>
           Customers by Volume <small>(last 24h)</small>
@@ -217,7 +217,7 @@ function CustomersByVolume() {
         columnsForRow={getCustomerRow}
         inPanel
       />
-    </SectionFull>
+    </Container>
   );
 }
 
@@ -247,7 +247,7 @@ export function Overview() {
         </SectionHeading>
         <DocIntegrationList />
       </div>
-      <SectionFull>
+      <Container column="1 / 3">
         <SectionHeading>Signups</SectionHeading>
         <p>
           Go{' '}
@@ -256,7 +256,7 @@ export function Overview() {
           </a>
           .
         </p>
-      </SectionFull>
+      </Container>
     </OverviewContainer>
   );
 }
@@ -267,10 +267,6 @@ const OverviewContainer = styled('div')`
   grid-auto-flow: row;
   gap: 0 ${p => p.theme.space.xl};
   margin-top: ${p => p.theme.space['2xl']};
-`;
-
-const SectionFull = styled('div')`
-  grid-column: 1 / 3;
 `;
 
 const SectionHeading = styled('h3')`

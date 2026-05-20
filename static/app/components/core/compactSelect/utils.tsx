@@ -19,7 +19,6 @@ import type {
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
-  SelectSection,
   SelectSectionWithKey,
 } from './types';
 
@@ -216,13 +215,13 @@ export function getHiddenOptions<Value extends SelectKey>(
   //
   // Then, limit the number of remaining options to `limit`
   //
-  let threshold = [Infinity, Infinity];
+  let threshold: [number, number] = [Infinity, Infinity];
   let accumulator = 0;
   let currentIndex = 0;
 
   while (currentIndex < orderedRemainingItems.length) {
-    const item = orderedRemainingItems[currentIndex]!;
-    const delta = 'options' in item ? item.options.length : 1;
+    const item = orderedRemainingItems[currentIndex];
+    const delta = item && 'options' in item ? item.options.length : 1;
 
     if (accumulator + delta > limit) {
       threshold = [currentIndex, limit - accumulator];
@@ -233,15 +232,17 @@ export function getHiddenOptions<Value extends SelectKey>(
     currentIndex += 1;
   }
 
-  for (let i = threshold[0]!; i < orderedRemainingItems.length; i++) {
-    const item = orderedRemainingItems[i]!;
-    if ('options' in item) {
-      const startingIndex = i === threshold[0] ? threshold[1]! : 0;
-      for (let j = startingIndex; j < item.options.length; j++) {
-        hiddenOptionsSet.add(item.options[j]!.key);
+  for (let i = threshold[0]; i < orderedRemainingItems.length; i++) {
+    const item = orderedRemainingItems[i];
+    if (item) {
+      if ('options' in item) {
+        const startingIndex = i === threshold[0] ? threshold[1] : 0;
+        for (const option of item.options.slice(startingIndex)) {
+          hiddenOptionsSet.add(option.key);
+        }
+      } else {
+        hiddenOptionsSet.add(item.key);
       }
-    } else {
-      hiddenOptionsSet.add(item.key);
     }
   }
 
@@ -307,14 +308,13 @@ interface SectionToggleProps {
   item: Node<any>;
   listState: ListState<any>;
   listId?: string;
-  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A visible toggle button to select/unselect all options within a given section. See
  * also: `HiddenSectionToggle`.
  */
-export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
+export function SectionToggle({item, listState}: SectionToggleProps) {
   const allOptionsSelected = useMemo(
     () => [...item.childNodes].every(n => listState.selectionManager.isSelected(n.key)),
     [item, listState.selectionManager]
@@ -329,12 +329,11 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
   }, [item, listState.selectionManager.focusedKey, listState.selectionManager.isFocused]);
 
   const toggleAllOptions = useCallback(() => {
-    onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
     toggleOptions(
       [...item.childNodes].map(n => n.key),
       listState.selectionManager
     );
-  }, [onToggle, allOptionsSelected, item, listState.selectionManager]);
+  }, [item, listState.selectionManager]);
 
   return (
     <SectionToggleButton
@@ -365,7 +364,6 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
 export function HiddenSectionToggle({
   item,
   listState,
-  onToggle,
   listId = '',
   ...props
 }: SectionToggleProps) {
@@ -403,7 +401,6 @@ export function HiddenSectionToggle({
 
   const {pressProps} = usePress({
     onPress: () => {
-      onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
       toggleOptions(
         [...item.childNodes].map(n => n.key),
         listState.selectionManager

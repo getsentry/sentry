@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -80,7 +81,7 @@ export function TransactionsTable(props: Props) {
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
-          <HeadCellContainer key={index}>
+          <Container padding="xl" key={index}>
             <SortLink
               align={align}
               title={
@@ -102,14 +103,14 @@ export function TransactionsTable(props: Props) {
               direction={undefined}
               canSort={false}
             />
-          </HeadCellContainer>
+          </Container>
         );
       }
 
       return (
-        <HeadCellContainer key={index}>
+        <Container padding="xl" key={index}>
           <SortLink align={align} title={title} direction={undefined} canSort={false} />
-        </HeadCellContainer>
+        </Container>
       );
     });
 
@@ -257,10 +258,6 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
     });
   };
 }
-
-const HeadCellContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-`;
 
 const BodyCellContainer = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

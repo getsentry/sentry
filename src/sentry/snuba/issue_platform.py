@@ -1,8 +1,10 @@
+import functools
 from collections.abc import Sequence
 from datetime import timedelta
 
 import sentry_sdk
 
+from sentry import options
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -12,7 +14,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
-from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, get_snuba_column_name
 
 
 def query(
@@ -150,6 +152,13 @@ def timeseries_query(
 
     with sentry_sdk.start_span(op="issueplatform", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
+
+        column_resolver = None
+        if options.get("issues.search.use-tag-aware-condition-resolver"):
+            column_resolver = functools.partial(
+                get_snuba_column_name, dataset=Dataset.IssuePlatform
+            )
+
         base_builder = IssuePlatformTimeseriesQueryBuilder(
             Dataset.IssuePlatform,
             {},
@@ -162,6 +171,7 @@ def timeseries_query(
                 functions_acl=functions_acl,
                 has_metrics=has_metrics,
                 transform_alias_to_input_format=transform_alias_to_input_format,
+                column_resolver=column_resolver,
             ),
         )
         query_list = [base_builder]
@@ -181,6 +191,7 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 equations=equations,
+                config=QueryBuilderConfig(column_resolver=column_resolver),
             )
             query_list.append(comparison_builder)
 

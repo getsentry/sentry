@@ -22,6 +22,8 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 LOWER_SPAN_LIMIT = 20
 UPPER_SPAN_LIMIT = 500
 TRACE_SAMPLE_SIZE = 5
+EXCLUDED_ENVIRONMENTS = ["test", "testing", "development", "local"]
+EXCLUDED_ENVIRONMENTS_FILTER = f"!environment:[{','.join(EXCLUDED_ENVIRONMENTS)}]"
 
 
 def get_valid_trace_ids_by_span_count(
@@ -121,7 +123,7 @@ def _build_project_playlist(
 
     result = Spans.run_table_query(
         params=snuba_params,
-        query_string="is_transaction:true",
+        query_string=f"is_transaction:true {EXCLUDED_ENVIRONMENTS_FILTER}",
         selected_columns=["project_id", "count()"],
         orderby=None,
         offset=0,
@@ -152,6 +154,7 @@ def get_project_top_transaction_traces_for_llm_detection(
     project_id: int,
     limit: int,
     start_time_delta_minutes: int,
+    sample_multiplier: int = 1,
 ) -> list[TraceMetadataWithSpanCount]:
     """
     Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
@@ -182,7 +185,7 @@ def get_project_top_transaction_traces_for_llm_detection(
 
     transactions_result = Spans.run_table_query(
         params=transaction_snuba_params,
-        query_string="is_transaction:true",
+        query_string=f"is_transaction:true {EXCLUDED_ENVIRONMENTS_FILTER}",
         selected_columns=[
             "transaction",
             "sum(span.duration)",
@@ -197,7 +200,7 @@ def get_project_top_transaction_traces_for_llm_detection(
 
     transaction_rows = transactions_result.get("data", [])
     random.shuffle(transaction_rows)
-    transaction_rows = transaction_rows[:TRACE_SAMPLE_SIZE]
+    transaction_rows = transaction_rows[: TRACE_SAMPLE_SIZE * sample_multiplier]
 
     trace_ids: list[str] = []
     seen_names: set[str] = set()
@@ -217,7 +220,7 @@ def get_project_top_transaction_traces_for_llm_detection(
         escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
         trace_result = Spans.run_table_query(
             params=trace_snuba_params,
-            query_string=f'is_transaction:true transaction:"{escaped_transaction_name}"',
+            query_string=f'is_transaction:true transaction:"{escaped_transaction_name}" {EXCLUDED_ENVIRONMENTS_FILTER}',
             selected_columns=["trace", "precise.start_ts"],
             orderby=["precise.start_ts"],  # First trace in the window
             offset=0,

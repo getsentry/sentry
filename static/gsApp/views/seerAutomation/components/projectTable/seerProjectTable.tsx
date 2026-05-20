@@ -9,13 +9,17 @@ import {
 } from '@tanstack/react-query';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
+import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
+
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   useUpdateBulkAutofixAutomationSettings,
@@ -28,9 +32,9 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   getFilteredCodingAgentName,
@@ -61,8 +65,6 @@ export function SeerProjectTable() {
     fetchError: projectFetchError,
   } = useProjects();
 
-  const [isLoadingModal, setIsLoadingModal] = useState(false);
-
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
     filterCodingAgentQueryOptions({
@@ -86,7 +88,8 @@ export function SeerProjectTable() {
   const {
     data: autofixSettingsByProjectId,
     isPending: isPendingSettings,
-    isFetchingNextPage,
+    hasNextPage: hasNextSettingsPage,
+    isFetchingNextPage: isFetchingNextSettingsPage,
     isError: isErrorSettings,
   } = result;
 
@@ -142,7 +145,7 @@ export function SeerProjectTable() {
             ProjectsStore.onUpdateSuccess({
               id: projectId,
               autofixAutomationTuning: updates.autofixAutomationTuning ?? undefined,
-            });
+            } as Partial<DetailedProject>);
           }
         }
       },
@@ -162,11 +165,6 @@ export function SeerProjectTable() {
     'sort',
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
-
-  const queryKey = [
-    'seer-projects',
-    {query: {query: searchTerm, sort, agent: agentFilter}},
-  ] as unknown as ApiQueryKey;
 
   const sortedProjects = useMemo(() => {
     return projects.toSorted((a, b) => {
@@ -234,11 +232,45 @@ export function SeerProjectTable() {
     return filtered;
   }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
 
+  if (
+    !fetchingProjects &&
+    !isPendingSettings &&
+    !hasNextSettingsPage &&
+    projects.length === 0
+  ) {
+    return (
+      <Container display="flex" padding="2xl" border="primary" radius="md">
+        <Flex flexGrow={1} justify="center">
+          <Flex align="center" justify="center" gap="2xl">
+            <Flex>
+              <Image src={SeerConfigConnect2} alt="" height="132px" />
+            </Flex>
+            <Stack gap="xl" maxWidth="330px">
+              <Heading as="h3" size="lg">
+                {t('Enable Autofix on a Project')}
+              </Heading>
+              <Text variant="muted" size="md">
+                {t(
+                  'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+                )}
+              </Text>
+              <Flex>
+                <AddProjectButton />
+              </Flex>
+            </Stack>
+          </Flex>
+        </Flex>
+      </Container>
+    );
+  }
+
   return (
     <ListItemCheckboxProvider
       hits={filteredProjects.length}
       knownIds={filteredProjects.map(project => project.id)}
-      queryKey={queryKey}
+      endpointOptions={{
+        query: {query: searchTerm, sort, agent: agentFilter},
+      }}
     >
       <Stack gap="lg">
         <Flex gap="md">
@@ -269,35 +301,7 @@ export function SeerProjectTable() {
             />
           </InputGroup>
 
-          <Button
-            variant="primary"
-            size="md"
-            onClick={async () => {
-              setIsLoadingModal(true);
-              try {
-                const {ProjectAddRepoModal} =
-                  await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
-
-                openModal(
-                  deps => (
-                    <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />
-                  ),
-                  {
-                    modalCss: css`
-                      width: 700px;
-                    `,
-                  }
-                );
-              } finally {
-                setIsLoadingModal(false);
-              }
-            }}
-            icon={<IconAdd />}
-            busy={isLoadingModal}
-            disabled={isLoadingModal}
-          >
-            {t('Add Project')}
-          </Button>
+          <AddProjectButton />
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
@@ -308,8 +312,11 @@ export function SeerProjectTable() {
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
 
-          {fetchingProjects || isPendingSettings || isFetchingNextPage ? (
-            <SimpleTable.Empty>
+          {fetchingProjects ||
+          isPendingSettings ||
+          hasNextSettingsPage ||
+          isFetchingNextSettingsPage ? (
+            <SimpleTable.Empty key="loading">
               <LoadingIndicator />
             </SimpleTable.Empty>
           ) : projectFetchError || isErrorSettings ? (
@@ -356,3 +363,39 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content 3fr max-content minmax(240px, 1fr) minmax(200px, 1fr);
   overflow: visible;
 `;
+
+function AddProjectButton() {
+  const {openModal} = useModal();
+
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
+
+  return (
+    <Button
+      variant="primary"
+      size="md"
+      onClick={async () => {
+        setIsLoadingModal(true);
+        try {
+          const {ProjectAddRepoModal} =
+            await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
+
+          openModal(
+            deps => <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />,
+            {
+              modalCss: css`
+                width: 700px;
+              `,
+            }
+          );
+        } finally {
+          setIsLoadingModal(false);
+        }
+      }}
+      icon={<IconAdd />}
+      busy={isLoadingModal}
+      disabled={isLoadingModal}
+    >
+      {t('Add Project')}
+    </Button>
+  );
+}

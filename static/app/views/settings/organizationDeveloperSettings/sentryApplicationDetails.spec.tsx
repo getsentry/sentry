@@ -125,6 +125,7 @@ describe('Sentry Application Details', () => {
         isAlertable: true,
         allowedOrigins: [],
         schema: {},
+        overview: '',
       };
 
       expect(createAppRequest).toHaveBeenCalledWith(
@@ -401,6 +402,14 @@ describe('Sentry Application Details', () => {
       await waitFor(() => {
         expect(screen.getAllByLabelText('Generated token')).toHaveLength(1);
       });
+    });
+
+    it('disables the new token button when user lacks org:write', async () => {
+      const organization = OrganizationFixture({access: ['org:read']});
+      render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+
+      const button = await screen.findByRole('button', {name: 'New Token'});
+      expect(button).toBeDisabled();
     });
 
     it('removing token from list', async () => {

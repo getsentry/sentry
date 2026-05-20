@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
@@ -36,6 +37,8 @@ function TransactionThresholdButton({
   projects,
   transactionName,
 }: Props) {
+  const {openModal} = useModal();
+
   const [loadingThreshold, setLoadingThreshold] = useState(false);
   const [transactionThreshold, setTransactionThreshold] = useState<number>();
   const [transactionThresholdMetric, setTransactionThresholdMetric] =
@@ -82,9 +85,16 @@ function TransactionThresholdButton({
           })
           .catch(err => {
             setLoadingThreshold(false);
-            const errorMessage =
-              err instanceof RequestError ? err.responseJSON?.threshold : null;
-            addErrorMessage(errorMessage as string);
+            const thresholdMessage =
+              err instanceof RequestError ? err.responseJSON?.threshold : undefined;
+            const message =
+              typeof thresholdMessage === 'string'
+                ? thresholdMessage
+                : getRequestErrorUserMessage(
+                    err,
+                    t('Failed to load transaction threshold settings.')
+                  );
+            addErrorMessage(message);
           });
       });
   }, [api, project, organization.slug, transactionName]);

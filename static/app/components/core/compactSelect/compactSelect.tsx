@@ -65,7 +65,6 @@ export function CompactSelect<Value extends SelectKey>({
   options,
   value,
   onChange,
-  onSectionToggle,
   multiple,
   clearable,
   isOptionDisabled,
@@ -233,7 +232,6 @@ export function CompactSelect<Value extends SelectKey>({
       <List
         {...listProps}
         items={itemsWithKey}
-        onSectionToggle={onSectionToggle}
         isOptionDisabled={isOptionDisabled}
         size={size}
         sizeLimit={sizeLimit}

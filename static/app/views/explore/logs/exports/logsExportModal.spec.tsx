@@ -131,7 +131,7 @@ describe('LogsExportModal', () => {
     });
 
     expect(mockDownloadLogs).toHaveBeenCalledWith({
-      rows: tableData.slice(0, 100),
+      rows: tableData.slice(0, 500),
       fields: queryInfo.field,
       filename: 'logs',
       format: 'csv',
@@ -169,11 +169,11 @@ describe('LogsExportModal', () => {
       expect.objectContaining({
         data: {
           format: 'csv',
-          query_type: 'trace_item_full_export',
+          limit: aboveSyncLimit,
+          query_type: 'Explore',
           query_info: {
             ...queryInfo,
             dataset: 'logs',
-            limit: aboveSyncLimit,
           },
         },
         method: 'POST',

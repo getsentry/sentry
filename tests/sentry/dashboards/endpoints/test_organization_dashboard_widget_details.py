@@ -20,7 +20,6 @@ pytestmark = [requires_snuba]
 ONDEMAND_FEATURES = [
     "organizations:on-demand-metrics-extraction",
     "organizations:on-demand-metrics-extraction-widgets",
-    "organizations:on-demand-metrics-extraction-experimental",
     "organizations:on-demand-metrics-prefill",
 ]
 

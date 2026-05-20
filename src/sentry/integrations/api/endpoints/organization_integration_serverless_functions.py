@@ -25,7 +25,7 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 @cell_silo_endpoint
 class OrganizationIntegrationServerlessFunctionsEndpoint(CellOrganizationIntegrationBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

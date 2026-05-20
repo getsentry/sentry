@@ -41,10 +41,13 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
+import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
+import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -58,6 +61,7 @@ import {
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -106,6 +110,8 @@ type LogsTableProps = {
     filteredItems: OurLogsResponseItem[];
   };
   numberAttributes?: TagCollection;
+  showCellActions?: boolean;
+  showExploreSimilarSpansLink?: boolean;
   stringAttributes?: TagCollection;
 };
 
@@ -125,6 +131,8 @@ export function LogsInfiniteTable({
   embeddedStyling,
   embeddedOptions,
   additionalData,
+  showCellActions,
+  showExploreSimilarSpansLink,
 }: LogsTableProps) {
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
@@ -235,17 +243,6 @@ export function LogsInfiniteTable({
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.slice(),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths: {
-        [OurLogKnownFieldKey.MESSAGE]: 'minmax(90px,1fr)',
-      },
-    }
-  );
 
   const estimateSize = useCallback(
     (index: number) => {
@@ -357,6 +354,25 @@ export function LogsInfiniteTable({
 
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 
+  const [staticColumnWidths, clearColumnWidths] = useLogsTableColumnWidths({
+    fields,
+    tableRef,
+    isPending,
+    isScrolling,
+    dataLength: data?.length ?? 0,
+  });
+
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths,
+      onResizeEnd: clearColumnWidths,
+    }
+  );
+
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
       setTimeout(() => {
@@ -450,6 +466,39 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const renderRow = useCallback(
+    (dataRow: LogTableRowItem) => {
+      const pinnedId = dataRow[OurLogKnownFieldKey.ID];
+      const pinnedExpandKey = `pinned-${pinnedId}`;
+      return (
+        <LogRowContent
+          dataRow={dataRow}
+          meta={meta}
+          highlightTerms={highlightTerms}
+          embedded={false}
+          sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+          expansionKey={pinnedExpandKey}
+          onExpand={handleExpand}
+          onCollapse={handleCollapse}
+          isExpanded={expandedLogRows.has(pinnedExpandKey)}
+          onExpandHeight={handleExpandHeight}
+          logStart={logStart}
+          logEnd={logEnd}
+        />
+      );
+    },
+    [
+      expandedLogRows,
+      handleCollapse,
+      handleExpand,
+      handleExpandHeight,
+      highlightTerms,
+      logEnd,
+      logStart,
+      meta,
+    ]
+  );
+
   // For replay context, render empty states outside the table for proper centering
   if (hasReplay && (isPending || isError || isEmpty)) {
     return (
@@ -477,7 +526,7 @@ export function LogsInfiniteTable({
   }
 
   return (
-    <Fragment>
+    <LogsPinningProvider>
       <LogTable
         ref={tableRef}
         style={initialTableStyles}
@@ -497,6 +546,7 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
+        {!isPending && <PinnedLogs allRows={data} renderRow={renderRow} />}
         <LogTableBody
           showHeader={!embedded}
           ref={tableBodyRef}
@@ -537,6 +587,9 @@ export function LogsInfiniteTable({
             if (!dataRow) {
               return null;
             }
+
+            const rowId = dataRow[OurLogKnownFieldKey.ID];
+
             return (
               <Fragment key={virtualRow.key}>
                 <LogRowContent
@@ -546,13 +599,16 @@ export function LogsInfiniteTable({
                   embedded={embedded}
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                  expansionKey={rowId}
                   key={virtualRow.key}
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}
                   logEnd={logEnd}
-                  isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
+                  isExpanded={expandedLogRows.has(rowId)}
                   onExpandHeight={handleExpandHeight}
+                  showCellActions={showCellActions}
+                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                 />
               </Fragment>
             );
@@ -592,7 +648,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
-    </Fragment>
+    </LogsPinningProvider>
   );
 }
 
@@ -643,8 +699,16 @@ function LogsTableHeader({
                   isFrozen
                     ? undefined
                     : () => {
-                        const kind = direction === 'desc' ? 'asc' : 'desc';
-                        setSortBys([{field, kind}]);
+                        switch (direction) {
+                          case 'asc':
+                            setSortBys([logsTimestampDescendingSortBy]);
+                            break;
+                          case 'desc':
+                            setSortBys([{field, kind: 'asc'}]);
+                            break;
+                          default:
+                            setSortBys([{field, kind: 'desc'}]);
+                        }
                       }
                 }
                 isFrozen={isFrozen}

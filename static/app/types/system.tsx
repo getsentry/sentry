@@ -3,13 +3,12 @@ import type {FocusTrap} from 'focus-trap';
 import type {ApiResult} from 'sentry/api';
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
-import type {ParntershipAgreementType} from './hooks';
+import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
   SETUP_WIZARD = 'SetupWizard',
-  SYSTEM_ALERTS = 'SystemAlerts',
   WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
@@ -75,7 +74,6 @@ declare global {
     // TODO: improve typing
     SentryApp?: {
       ConfigStore: any;
-      HookStore: any;
       Modal: any;
       getModalPortal: () => HTMLElement;
       modalFocusTrap?: {

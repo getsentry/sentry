@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
@@ -50,6 +50,8 @@ export function DataScrubbing({
   additionalContext,
   relayPiiConfig,
 }: Props) {
+  const {openModal} = useModal();
+
   const api = useApi();
   const [rules, setRules] = useState<Rule[]>([]);
   const navigate = useNavigate();
@@ -110,6 +112,7 @@ export function DataScrubbing({
     organization.slug,
     successfullySaved,
     handleCloseModal,
+    openModal,
   ]);
 
   useEffect(() => {

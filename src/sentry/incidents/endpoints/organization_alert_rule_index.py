@@ -10,6 +10,7 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Q,
+    QuerySet,
     Subquery,
     Value,
     When,
@@ -31,6 +32,7 @@ from sentry.api.bases.organization import OrganizationAlertRulePermission, Organ
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -38,11 +40,12 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
@@ -50,7 +53,6 @@ from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     AlertRuleSerializerResponse,
-    CombinedRuleSerializer,
 )
 from sentry.incidents.endpoints.serializers.workflow_engine_combined import (
     WorkflowEngineCombinedRuleSerializer,
@@ -62,7 +64,7 @@ from sentry.incidents.endpoints.utils import parse_team_params
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
@@ -75,7 +77,6 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
 from sentry.monitors.models import (
     MONITOR_ENVIRONMENT_ORDERING,
@@ -99,7 +100,6 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import (
     Detector,
@@ -397,7 +397,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         projects: Sequence[Project],
-        teams_query: BaseQuerySet[Team] | None,
+        teams_query: QuerySet[Team] | None,
         unassigned: bool | None,
         name: str | None,
         datasets: list[str],
@@ -633,171 +633,20 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         # Common setup: type filter
         type_filter = request.GET.getlist("alertType", [])
 
-        if features.has(
-            "organizations:workflow-engine-rule-serializers", organization
-        ) or features.has("organizations:workflow-engine-combinedruleindex-get", organization):
-            return self._get_workflow_engine(
-                request=request,
-                organization=organization,
-                projects=projects,
-                teams_query=teams_query,
-                unassigned=unassigned,
-                name=name,
-                datasets=datasets,
-                expand=expand,
-                sort_key=sort_key,
-                is_asc=is_asc,
-                case_insensitive=case_insensitive,
-                type_filter=type_filter,
-            )
-
-        # Legacy path below
-        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-        report_used_legacy_models()
-
-        issue_rules = Rule.objects.filter(
-            status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
-            source__in=[RuleSource.ISSUE],
-            project__in=projects,
-        )
-
-        uptime_rules = self._get_uptime_rules_base_queryset(projects)
-        crons_rules = self._get_cron_rules_base_queryset(projects)
-
-        if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-        else:
-            if len(datasets) > 0:
-                alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
-                if Dataset.Events.value not in datasets:
-                    issue_rules = Rule.objects.none()
-
-        if name:
-            alert_rules = alert_rules.filter(name__icontains=name)
-            issue_rules = issue_rules.filter(label__icontains=name)
-            uptime_rules = uptime_rules.filter(name__icontains=name)
-            crons_rules = crons_rules.filter(name__icontains=name)
-
-        if teams_query is not None:
-            # XXX(epurkhiser): We need to resolve teams now since some queries
-            # (crons) do not exist in the same database as the teams table
-            team_ids = list(teams_query.values_list("id", flat=True))
-
-            team_rule_condition = Q(owner_team_id__in=team_ids)
-            team_alert_condition = Q(team_id__in=team_ids)
-            if unassigned:
-                team_alert_condition = team_alert_condition | Q(team_id__isnull=True)
-                team_rule_condition = team_rule_condition | Q(owner_team_id__isnull=True)
-            alert_rules = alert_rules.filter(team_alert_condition)
-            issue_rules = issue_rules.filter(team_rule_condition)
-            uptime_rules = uptime_rules.filter(team_rule_condition)
-            crons_rules = crons_rules.filter(team_rule_condition)
-
-        if "latestIncident" in expand:
-            alert_rules = alert_rules.annotate(
-                incident_id=Coalesce(
-                    Subquery(
-                        Incident.objects.filter(alert_rule=OuterRef("pk"))
-                        .order_by("-date_started")
-                        .values("id")[:1]
-                    ),
-                    Value(-1),
-                )
-            )
-
-        rule_sort_key = [
-            "label" if x == "name" else x for x in sort_key
-        ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.
-
-        if "incident_status" in sort_key:
-            alert_rules = alert_rules.annotate(
-                incident_status=Coalesce(
-                    Subquery(
-                        Incident.objects.filter(alert_rule=OuterRef("pk"))
-                        .order_by("-date_started")
-                        .values("status")[:1]
-                    ),
-                    Value(INCIDENT_STATUS_NONE, output_field=IntegerField()),
-                )
-            )
-            issue_rules = issue_rules.annotate(
-                incident_status=Value(INCIDENT_STATUS_NOT_APPLICABLE, output_field=IntegerField())
-            )
-            uptime_rules = uptime_rules.annotate(
-                detector_priority=Subquery(
-                    DetectorState.objects.filter(detector=OuterRef("pk")).values("state")[:1]
-                ),
-                incident_status=Case(
-                    # If an uptime detector is in HIGH priority (failing)
-                    # state, treat it like a critical incident
-                    When(
-                        detector_priority=DetectorPriorityLevel.HIGH,
-                        then=IncidentStatus.CRITICAL.value,
-                    ),
-                    default=INCIDENT_STATUS_NOT_APPLICABLE,
-                ),
-            )
-            crons_rules = crons_rules.annotate(
-                incident_status=Case(
-                    # If a cron monitor is failing we want to treat it the same
-                    # as if an alert is failing, so sort by the critical status
-                    When(resolved_status=MonitorStatus.ERROR, then=IncidentStatus.CRITICAL.value),
-                    default=INCIDENT_STATUS_NOT_APPLICABLE,
-                )
-            )
-
-        if "date_triggered" in sort_key:
-            far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
-            alert_rules = alert_rules.annotate(
-                date_triggered=Coalesce(
-                    Subquery(
-                        Incident.objects.filter(alert_rule=OuterRef("pk"))
-                        .order_by("-date_started")
-                        .values("date_started")[:1]
-                    ),
-                    far_past_date,
-                ),
-            )
-            issue_rules = issue_rules.annotate(date_triggered=far_past_date)
-            uptime_rules = uptime_rules.annotate(date_triggered=far_past_date)
-            crons_rules = crons_rules.annotate(
-                date_triggered=Coalesce(
-                    Subquery(
-                        MonitorIncident.objects.filter(monitor_id=OuterRef("pk"))
-                        .order_by("-starting_timestamp")
-                        .values("starting_timestamp")[:1]
-                    ),
-                    far_past_date,
-                ),
-            )
-
-        def has_type(type: str) -> bool:
-            return not type_filter or type in type_filter
-
-        intermediaries: list[CombinedQuerysetIntermediary] = []
-
-        if has_type("alert_rule"):
-            intermediaries.append(CombinedQuerysetIntermediary(alert_rules, sort_key))
-        if has_type("rule"):
-            intermediaries.append(CombinedQuerysetIntermediary(issue_rules, rule_sort_key))
-        if has_type("uptime"):
-            intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
-        if has_type("monitor"):
-            intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
-
-        response = self.paginate(
-            request,
-            paginator_cls=CombinedQuerysetPaginator,
-            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer(expand=expand)),
-            default_per_page=25,
-            intermediaries=intermediaries,
-            desc=not is_asc,
-            cursor_cls=StringCursor if case_insensitive else Cursor,
+        return self._get_workflow_engine(
+            request=request,
+            organization=organization,
+            projects=projects,
+            teams_query=teams_query,
+            unassigned=unassigned,
+            name=name,
+            datasets=datasets,
+            expand=expand,
+            sort_key=sort_key,
+            is_asc=is_asc,
             case_insensitive=case_insensitive,
+            type_filter=type_filter,
         )
-        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
-        return response
 
 
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
@@ -912,8 +761,8 @@ Metric alert rule trigger actions follow the following structure:
 class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAlertRulePermission,)
     workflow_engine_method_flags = {
@@ -935,6 +784,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated
@@ -966,6 +816,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated
@@ -1124,9 +975,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            alert_count = AlertRule.objects.fetch_for_organization(organization=organization)
+            alert_rules = AlertRule.objects.fetch_for_organization(organization=organization)
             # filter out alert rules without any projects
-            alert_count = alert_count.filter(projects__isnull=False).distinct().count()
+            alert_count = alert_rules.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
                 log_alerting_quota_hit(

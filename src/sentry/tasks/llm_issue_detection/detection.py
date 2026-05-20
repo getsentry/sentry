@@ -215,7 +215,7 @@ def create_issue_occurrence_from_detection(
         issue_title=(
             FALLBACK_ISSUE_TITLE if detected_issue.title == "Other" else detected_issue.title
         ),
-        subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
+        subtitle=detected_issue.explanation,
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
@@ -319,22 +319,30 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
             if not body.get("has_budget", True):
                 logger.info(
                     "llm_issue_detection.budget_exceeded",
-                    extra={"organization_id": org_id},
+                    extra={"organization_id": org_id, "plan_tier": plan_tier},
                 )
                 return
         except json.JSONDecodeError:
             pass
 
+    traces_per_invocation_mapping = options.get(
+        "issue-detection.llm-detection.traces-per-invocation"
+    )
+    traces_per_invocation = traces_per_invocation_mapping.get(
+        plan_tier, DEFAULT_TRACES_PER_INVOCATION
+    )
+    sample_multiplier = 1 if traces_per_invocation == DEFAULT_TRACES_PER_INVOCATION else 2
+
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(
-        project_id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=START_TIME_DELTA_MINUTES
+        project_id,
+        limit=TRANSACTION_BATCH_SIZE,
+        sample_multiplier=sample_multiplier,
+        start_time_delta_minutes=START_TIME_DELTA_MINUTES,
     )
     if not evidence_traces:
         return
 
-    traces_per_invocation = options.get("issue-detection.llm-detection.traces-per-invocation")
-    traces_to_send = evidence_traces[
-        : traces_per_invocation.get(plan_tier, DEFAULT_TRACES_PER_INVOCATION)
-    ]
+    traces_to_send = evidence_traces[:traces_per_invocation]
 
     sentry_sdk.metrics.count(
         "llm_issue_detection.seer_request",

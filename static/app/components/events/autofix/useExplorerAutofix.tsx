@@ -1,12 +1,13 @@
 import {useCallback, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
@@ -221,58 +222,6 @@ const getPollInterval = (
   return false;
 };
 
-/**
- * Extract artifacts from Explorer blocks.
- * Returns the latest artifact for each key (later blocks override earlier ones).
- */
-export function getArtifactsFromBlocks(blocks: Block[]): Record<string, Artifact> {
-  const artifacts: Record<string, Artifact> = {};
-
-  for (const block of blocks) {
-    if (block.artifacts) {
-      for (const artifact of block.artifacts) {
-        artifacts[artifact.key] = artifact;
-      }
-    }
-  }
-
-  return artifacts;
-}
-
-/**
- * Get the ordered list of artifact keys based on their first appearance in blocks.
- * Returns keys sorted by the index of the first block where each artifact appeared.
- */
-export function getOrderedArtifactKeys(
-  blocks: Block[],
-  artifacts: Record<string, Artifact>
-): string[] {
-  // Map artifact key to the index of the first block where it appeared
-  const firstAppearanceIndex: Record<string, number> = {};
-
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    if (block?.artifacts) {
-      for (const artifact of block.artifacts) {
-        // Only record the first appearance
-        if (!(artifact.key in firstAppearanceIndex)) {
-          firstAppearanceIndex[artifact.key] = i;
-        }
-      }
-    }
-  }
-
-  // Get all artifact keys that exist in artifacts
-  const artifactKeys = Object.keys(artifacts).filter(key => key in firstAppearanceIndex);
-
-  // Sort by first appearance index
-  return artifactKeys.sort((a, b) => {
-    const indexA = firstAppearanceIndex[a] ?? Infinity;
-    const indexB = firstAppearanceIndex[b] ?? Infinity;
-    return indexA - indexB;
-  });
-}
-
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
   blocks: Block[];
@@ -313,15 +262,19 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   };
 
   // Closes the current section and pushes it to `sections` (if non-empty).
-  function finalizeSection() {
+  function finalizeSection({forceCompletion}: {forceCompletion: boolean}) {
     if (section.blocks.length) {
-      // Mark the section as completed if the last message is a terminal marker.
-      const lastBlock = section.blocks[section.blocks.length - 1];
-      if (isLastBlockOfSection(lastBlock)) {
+      if (
+        forceCompletion ||
+        // Mark the section as completed if the last message is a terminal marker.
+        isLastBlockOfSection(section.blocks[section.blocks.length - 1]) ||
+        // We have an artifact for the section so good enough to mark it as completed
+        section.artifacts.length > 0
+      ) {
         section.status = 'completed';
       }
 
-      if (section.step === 'code_changes') {
+      if (section.status === 'completed' && section.step === 'code_changes') {
         // Snapshot the accumulated file patches as an artifact for this section.
         section.artifacts.push(Array.from(mergedByFile.values()));
       }
@@ -348,7 +301,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     const metadata = message.metadata;
     if (defined(metadata) && defined(metadata.step)) {
       if (metadata.step !== section.step) {
-        finalizeSection();
+        // since there's a new section coming up, this section must be compelete
+        finalizeSection({forceCompletion: true});
       }
 
       section = {
@@ -366,7 +320,10 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   }
 
   // Finalize the last in-progress section.
-  finalizeSection();
+  finalizeSection({
+    // run is complete so last section must be complete as well
+    forceCompletion: runState?.status !== 'processing',
+  });
 
   // If there are any PR states, append a synthetic "pull_request" section.
   const pullRequests = Object.values(runState?.repo_pr_states ?? {});
@@ -460,34 +417,6 @@ function isLastBlockOfSection(block?: Block): boolean {
   );
 }
 
-/**
- * Extract merged file patches from Explorer blocks.
- * Returns the latest merged patch (original → current) for each file.
- */
-export function getMergedFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
-  const mergedByFile = new Map<string, ExplorerFilePatch>();
-
-  for (const block of blocks) {
-    if (block.merged_file_patches) {
-      for (const patch of block.merged_file_patches) {
-        const key = `${patch.repo_name}:${patch.patch.path}`;
-        mergedByFile.set(key, patch);
-      }
-    }
-  }
-
-  return Array.from(mergedByFile.values());
-}
-
-/**
- * Check if there are code changes in the state.
- */
-export function hasCodeChanges(blocks: Block[]): boolean {
-  return blocks.some(
-    block => block.merged_file_patches && block.merged_file_patches.length > 0
-  );
-}
-
 interface UseExplorerAutofixOptions {
   /**
    * Whether to enable the hook and make API calls.
@@ -509,6 +438,8 @@ export function useExplorerAutofix(
   groupId: string,
   options: UseExplorerAutofixOptions = {}
 ) {
+  const {openModal} = useModal();
+
   const {enabled = true} = options;
   const api = useApi();
   const queryClient = useQueryClient();
@@ -569,7 +500,7 @@ export function useExplorerAutofix(
       setWaitingForResponse(true);
 
       try {
-        const data: Record<string, any> = {step};
+        const data: Record<string, any> = {step, referrer: 'api.web'};
 
         if (defined(startStepOptions?.insertIndex)) {
           data.insert_index = startStepOptions.insertIndex;
@@ -629,6 +560,7 @@ export function useExplorerAutofix(
         const data: Record<string, any> = {
           step: 'open_pr',
           run_id: runId,
+          referrer: 'api.web',
         };
         if (repoName) {
           data.repo_name = repoName;
@@ -688,6 +620,7 @@ export function useExplorerAutofix(
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
         run_id: runId,
+        referrer: 'api.web',
       };
 
       if (integration.id === null) {
@@ -781,7 +714,16 @@ export function useExplorerAutofix(
         setWaitingForCodingAgent(false);
       }
     },
-    [api, orgSlug, groupId, queryClient, organization, user.id, appendCodingAgentErrors]
+    [
+      api,
+      orgSlug,
+      groupId,
+      queryClient,
+      organization,
+      user.id,
+      appendCodingAgentErrors,
+      openModal,
+    ]
   );
 
   // Clear waiting state when we get a response

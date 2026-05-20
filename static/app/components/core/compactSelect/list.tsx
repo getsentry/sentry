@@ -16,7 +16,6 @@ import type {
   SelectOption,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
-  SelectSection,
 } from './types';
 import {
   getDisabledOptions,
@@ -75,12 +74,6 @@ interface BaseListProps<Value extends SelectKey>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  /**
-   * To be called when the user toggle-selects a whole section (applicable when sections
-   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
-   * and before `onChange`.
-   */
-  onSectionToggle?: (section: SelectSection<SelectKey>) => void;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -225,6 +218,7 @@ export function List<Value extends SelectKey>({
       disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const selectedOption = getSelectedOptions(items, selection)[0]!;
         onChange?.(selectedOption);
 
@@ -379,17 +373,15 @@ export function List<Value extends SelectKey>({
         />
       )}
       {multiple &&
-        sections.map(
-          section =>
-            section.value.showToggleAllButton && (
-              <HiddenSectionToggle
-                key={section.key}
-                item={section}
-                listState={listState}
-                listId={listId}
-                onToggle={props.onSectionToggle}
-              />
-            )
+        sections.map(section =>
+          section.value.showToggleAllButton ? (
+            <HiddenSectionToggle
+              key={section.key}
+              item={section}
+              listState={listState}
+              listId={listId}
+            />
+          ) : null
         )}
     </Fragment>
   );

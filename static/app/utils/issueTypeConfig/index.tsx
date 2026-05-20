@@ -12,7 +12,6 @@ import {
 import {feedbackConfig} from 'sentry/utils/issueTypeConfig/feedbackConfig';
 import {frontendConfig} from 'sentry/utils/issueTypeConfig/frontendConfig';
 import {httpClientConfig} from 'sentry/utils/issueTypeConfig/httpClientConfig';
-import {instrumentationConfig} from 'sentry/utils/issueTypeConfig/instrumentationConfig';
 import {metricConfig} from 'sentry/utils/issueTypeConfig/metricConfig';
 import {metricIssueConfig} from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import {mobileConfig} from 'sentry/utils/issueTypeConfig/mobileConfig';
@@ -92,7 +91,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   issueSummary: {enabled: false},
   useOpenPeriodChecks: false,
   groupingInfo: {enabled: true},
-  instrumentationFixSection: {enabled: false},
 };
 
 const issueTypeConfig: Config = {
@@ -111,7 +109,6 @@ const issueTypeConfig: Config = {
   [IssueCategory.METRIC]: metricConfig,
   [IssueCategory.AI_DETECTED]: aiDetectedConfig,
   [IssueCategory.PREPROD]: preprodConfig,
-  [IssueCategory.INSTRUMENTATION]: instrumentationConfig,
   [IssueCategory.CONFIGURATION]: configurationIssuesConfig,
 };
 

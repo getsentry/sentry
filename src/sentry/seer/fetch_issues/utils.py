@@ -92,15 +92,15 @@ def get_repo_and_projects(
     repo_configs = list(
         RepositoryProjectPathConfig.objects.filter(
             organization_id=organization_id,
-            repository_id=repo.id,
-        )
+            project_repository__repository_id=repo.id,
+        ).select_related("project_repository__project")
     )
 
     projects = []
     valid_configs = []
     for config in repo_configs:
         try:
-            project = config.project
+            project = config.project_repository.project
         except Project.DoesNotExist:
             continue
         else:

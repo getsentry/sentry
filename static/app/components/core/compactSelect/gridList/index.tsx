@@ -13,8 +13,6 @@ import {
   SelectFilterContext,
   SizeLimitMessage,
   useVirtualizedItems,
-  type SelectKey,
-  type SelectSection,
 } from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 
@@ -51,15 +49,6 @@ interface GridListProps
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  /**
-   * To be called when the user toggle-selects a whole section (applicable when sections
-   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
-   * and before `onChange`.
-   */
-  onSectionToggle?: (
-    section: SelectSection<SelectKey>,
-    type: 'select' | 'unselect'
-  ) => void;
   size?: GridListOptionProps['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
@@ -85,7 +74,6 @@ function GridList({
   listState,
   size = 'md',
   label,
-  onSectionToggle,
   sizeLimitMessage,
   keyDownHandler,
   virtualized,
@@ -143,7 +131,8 @@ function GridList({
               ref={ref}
             >
               {virtualizer.items.map(row => {
-                const item = listItems[row.index]!;
+                const item = listItems[row.index];
+                if (!item) return null;
                 if (item.type === 'section') {
                   return (
                     <GridListSection
@@ -151,7 +140,6 @@ function GridList({
                       key={item.key}
                       node={item}
                       listState={listState}
-                      onToggle={onSectionToggle}
                       size={size}
                     />
                   );

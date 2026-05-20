@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 
 type DashboardCreateLimitWrapperResult = {
   dashboardsLimit: number;
@@ -9,8 +9,8 @@ type DashboardCreateLimitWrapperResult = {
   limitMessage: ReactNode | null;
 };
 
-export const DashboardCreateLimitWrapper = HookOrDefault({
-  hookName: 'component:dashboards-limit-provider',
+export const DashboardCreateLimitWrapper = OverrideOrDefault({
+  overrideName: 'component:dashboards-limit-provider',
   defaultComponent: ({children}) =>
     typeof children === 'function'
       ? children({

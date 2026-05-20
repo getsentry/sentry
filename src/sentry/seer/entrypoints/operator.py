@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.constants import DataCategory
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
@@ -43,16 +44,21 @@ from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
-SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS = {
-    SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
-    SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
-    SentryAppEventType.SEER_SOLUTION_STARTED,
-    SentryAppEventType.SEER_SOLUTION_COMPLETED,
-    SentryAppEventType.SEER_CODING_STARTED,
-    SentryAppEventType.SEER_CODING_COMPLETED,
+SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
+    SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
+    SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED: ActivityType.SEER_RCA_COMPLETED,
+    SentryAppEventType.SEER_SOLUTION_STARTED: ActivityType.SEER_SOLUTION_STARTED,
+    SentryAppEventType.SEER_SOLUTION_COMPLETED: ActivityType.SEER_SOLUTION_COMPLETED,
+    SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
+    SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
+}
+
+SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS: set[SentryAppEventType] = {
+    *SEER_EVENT_TO_ACTIVITY_TYPE.keys(),
     SentryAppEventType.SEER_PR_CREATED,
 }
 
@@ -610,6 +616,12 @@ class SeerAgentOperator[CachePayloadT]:
                 }
             )
 
+            enable_code_mode_tools = "off"
+            if category_key == "slack_thread" and features.has(
+                "organizations:seer-slack-code-mode", organization
+            ):
+                enable_code_mode_tools = "only"
+
             try:
                 # RpcUser is not in SeerAgentClient's type signature but works at runtime
                 client = SeerAgentClient(
@@ -620,6 +632,7 @@ class SeerAgentOperator[CachePayloadT]:
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
                     enable_coding=False,
+                    enable_code_mode_tools=enable_code_mode_tools,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -683,6 +696,42 @@ class SeerAgentOperator[CachePayloadT]:
             return run_id
 
 
+def _create_seer_activity(
+    group: Group,
+    event_type: SentryAppEventType,
+    event_payload: dict[str, Any],
+) -> None:
+    activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
+    if not activity_type:
+        return
+
+    organization = group.project.organization
+    if not features.has("organizations:seer-activity-timeline", organization):
+        return
+
+    run_id = event_payload.get("run_id")
+
+    activity_data: dict[str, Any] = {}
+    if run_id is not None:
+        activity_data["run_id"] = run_id
+
+    if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
+        root_cause = event_payload.get("root_cause")
+        if root_cause:
+            activity_data["summary"] = root_cause.get("one_line_description")
+    elif event_type == SentryAppEventType.SEER_SOLUTION_COMPLETED:
+        solution = event_payload.get("solution")
+        if solution:
+            activity_data["summary"] = solution.get("one_line_summary")
+
+    Activity.objects.create_group_activity(
+        group,
+        activity_type,
+        data=activity_data if activity_data else None,
+        send_notification=False,
+    )
+
+
 @instrumented_task(
     name="sentry.seer.entrypoints.operator.process_autofix_updates",
     namespace=seer_tasks,
@@ -732,6 +781,18 @@ def process_autofix_updates(
         if not SeerAutofixOperator.has_access(organization=organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
+
+        try:
+            _create_seer_activity(group, event_type, event_payload)
+        except Exception:
+            logger.exception(
+                "seer.activity_creation_failed",
+                extra={
+                    "group_id": group_id,
+                    "run_id": run_id,
+                    "event_type": str(event_type),
+                },
+            )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {

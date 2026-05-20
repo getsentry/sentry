@@ -9,22 +9,16 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Tab} from 'sentry/views/explore/hooks/useTab';
-import type {Mode} from 'sentry/views/explore/queryParams/mode';
-
-import {useChartSelection} from './chartSelectionContext';
 
 type Props = {
   chartIndex: number;
   params: SelectionCallbackParams;
-  setTab: (tab: Mode | Tab) => void;
 };
 
-export function FloatingTrigger({chartIndex, params, setTab}: Props) {
+export function FloatingTrigger({chartIndex, params}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {setChartSelection} = useChartSelection();
   const {selectionState, setSelectionState, clearSelection} = params;
 
   const handleZoomIn = useCallback(() => {
@@ -71,19 +65,25 @@ export function FloatingTrigger({chartIndex, params, setTab}: Props) {
       ...selectionState,
       isActionMenuVisible: false,
     });
-    setChartSelection({
-      selection: selectionState.selection,
-      chartIndex,
+
+    // Combine chartSelection and tab change into a single navigate() call.
+    // Using setChartSelection (nuqs) + setTab (navigate) separately causes a
+    // race: setTab's navigate() builds its target from location.query which
+    // doesn't yet include the queued nuqs update, clobbering chartSelection.
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        mode: 'samples',
+        table: 'attribute_breakdowns',
+        chartSelection: JSON.stringify({
+          chartIndex,
+          range: selectionState.selection.range,
+          panelId: selectionState.selection.panelId,
+        }),
+      },
     });
-    setTab(Tab.ATTRIBUTE_BREAKDOWNS);
-  }, [
-    selectionState,
-    setSelectionState,
-    chartIndex,
-    setChartSelection,
-    setTab,
-    organization,
-  ]);
+  }, [selectionState, setSelectionState, chartIndex, navigate, location, organization]);
 
   return (
     <List>

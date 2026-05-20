@@ -1,6 +1,6 @@
 import {AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -20,14 +20,14 @@ import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtec
 
 describe('project renders and toggles', () => {
   const projects = [
-    ProjectFixture({
+    DetailedProjectFixture({
       id: '1',
       slug: 'project1',
       // If the project option is True, the feature is disabled
       options: {[SPIKE_PROTECTION_OPTION_DISABLED]: true},
       access: ['project:read'],
     }),
-    ProjectFixture({
+    DetailedProjectFixture({
       id: '2',
       slug: 'project2',
       // If the project option is False, the feature is Enabled
@@ -217,12 +217,12 @@ describe('project renders and toggles', () => {
 
   it('renders default value for toggles', async () => {
     const newProjects = [
-      ProjectFixture({
+      DetailedProjectFixture({
         id: '1',
         slug: 'project1',
         options: {[SPIKE_PROTECTION_OPTION_DISABLED]: true},
       }),
-      ProjectFixture({
+      DetailedProjectFixture({
         id: '2',
         slug: 'project2',
         options: {[SPIKE_PROTECTION_OPTION_DISABLED]: false},

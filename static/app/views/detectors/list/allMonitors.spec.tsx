@@ -32,6 +32,10 @@ describe('DetectorsList', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
     });
@@ -273,6 +277,10 @@ describe('DetectorsList', () => {
   describe('bulk actions', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
