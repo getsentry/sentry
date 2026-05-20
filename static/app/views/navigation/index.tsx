@@ -10,7 +10,6 @@ import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/c
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {t} from 'sentry/locale';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MobileNavigation,
@@ -127,20 +126,14 @@ export function Navigation() {
 
   if (!organization) {
     // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
-    return (
-      <HoverOverlayGroupProvider>
-        <UserOnlyNavigation />
-      </HoverOverlayGroupProvider>
-    );
+    return <UserOnlyNavigation />;
   }
 
   return (
-    <HoverOverlayGroupProvider>
-      <NavigationTourProvider>
-        <SkipLink />
-        <UserAndOrganizationNavigation />
-      </NavigationTourProvider>
-    </HoverOverlayGroupProvider>
+    <NavigationTourProvider>
+      <SkipLink />
+      <UserAndOrganizationNavigation />
+    </NavigationTourProvider>
   );
 }
 
