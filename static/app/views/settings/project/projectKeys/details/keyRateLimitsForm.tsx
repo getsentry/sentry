@@ -171,7 +171,7 @@ export function KeyRateLimitsForm({
     <form.AppForm form={form}>
       <Feature
         features="projects:rate-limits"
-        hookName="feature-disabled:rate-limits"
+        overrideName="feature-disabled:rate-limits"
         project={project}
         renderDisabled={({children, ...props}) =>
           typeof children === 'function' &&

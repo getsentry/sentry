@@ -3,7 +3,7 @@ import type {FocusTrap} from 'focus-trap';
 import type {ApiResult} from 'sentry/api';
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
-import type {ParntershipAgreementType} from './hooks';
+import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {

@@ -318,7 +318,7 @@ function CustomFilters({
   return (
     <Feature
       features="projects:custom-inbound-filters"
-      hookName="feature-disabled:custom-inbound-filters"
+      overrideName="feature-disabled:custom-inbound-filters"
       project={project}
       renderDisabled={({children, ...props}) => {
         if (typeof children === 'function') {

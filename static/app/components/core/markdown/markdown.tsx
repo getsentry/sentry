@@ -10,32 +10,42 @@ import {MarkedLexer} from 'sentry/utils/marked/marked';
 import {Token} from './token';
 import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
+type WithDefault<Props> = Props & {Default: ComponentType<Props>};
+
 export type MarkdownComponents = Partial<{
-  Blockquote: ComponentType<{children: ReactNode}>;
-  CodeBlock: ComponentType<{children: string; lang?: string}>;
-  Emphasis: ComponentType<{children: ReactNode}>;
-  Heading: ComponentType<{children: ReactNode; level: 1 | 2 | 3 | 4 | 5 | 6}>;
-  HorizontalRule: ComponentType<Record<PropertyKey, unknown>>;
-  Html: ComponentType<{html: string}>;
+  Blockquote: ComponentType<WithDefault<{children: ReactNode}>>;
+  CodeBlock: ComponentType<WithDefault<{children: string; lang?: string}>>;
+  Emphasis: ComponentType<WithDefault<{children: ReactNode}>>;
+  Heading: ComponentType<
+    WithDefault<{children: ReactNode; level: 1 | 2 | 3 | 4 | 5 | 6}>
+  >;
+  HorizontalRule: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
+  Html: ComponentType<WithDefault<{html: string}>>;
   Image: ComponentType<{src: string; alt?: string; title?: string | null}>;
-  InlineCode: ComponentType<{children: string}>;
-  LineBreak: ComponentType<Record<PropertyKey, unknown>>;
-  Link: ComponentType<{children: ReactNode; href: string; title?: string | null}>;
-  ListItem: ComponentType<{children: ReactNode; checked?: boolean}>;
-  OrderedList: ComponentType<{children: ReactNode}>;
-  Paragraph: ComponentType<{children: ReactNode}>;
-  Strikethrough: ComponentType<{children: ReactNode}>;
-  Strong: ComponentType<{children: ReactNode}>;
-  Table: ComponentType<{children: ReactNode}>;
-  TableBody: ComponentType<{children: ReactNode}>;
-  TableCell: ComponentType<{children: ReactNode; align?: string | null}>;
-  TableHead: ComponentType<{children: ReactNode}>;
-  TableHeaderCell: ComponentType<{children: ReactNode; align?: string | null}>;
-  TableRow: ComponentType<{children: ReactNode}>;
-  TaskList: ComponentType<{children: ReactNode}>;
-  TaskListItem: ComponentType<{checked: boolean; children: ReactNode}>;
-  Text: ComponentType<{children: string}>;
-  UnorderedList: ComponentType<{children: ReactNode}>;
+  InlineCode: ComponentType<WithDefault<{children: string}>>;
+  LineBreak: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
+  Link: ComponentType<
+    WithDefault<{children: ReactNode; href: string; title?: string | null}>
+  >;
+  ListItem: ComponentType<WithDefault<{children: ReactNode; checked?: boolean}>>;
+  OrderedList: ComponentType<WithDefault<{children: ReactNode}>>;
+  Paragraph: ComponentType<WithDefault<{children: ReactNode}>>;
+  Strikethrough: ComponentType<WithDefault<{children: ReactNode}>>;
+  Strong: ComponentType<WithDefault<{children: ReactNode}>>;
+  Table: ComponentType<WithDefault<{children: ReactNode}>>;
+  TableBody: ComponentType<WithDefault<{children: ReactNode}>>;
+  TableCell: ComponentType<
+    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
+  >;
+  TableHead: ComponentType<WithDefault<{children: ReactNode}>>;
+  TableHeaderCell: ComponentType<
+    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
+  >;
+  TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
+  TaskList: ComponentType<WithDefault<{children: ReactNode}>>;
+  TaskListItem: ComponentType<WithDefault<{checked: boolean; children: ReactNode}>>;
+  Text: ComponentType<WithDefault<{children: string}>>;
+  UnorderedList: ComponentType<WithDefault<{children: ReactNode}>>;
 }>;
 
 interface MarkdownProps {

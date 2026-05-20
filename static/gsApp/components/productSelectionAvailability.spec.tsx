@@ -333,9 +333,7 @@ describe('ProductSelectionAvailability', () => {
         },
       };
 
-      const MockUsePreviewData = usePreviewData as jest.MockedFunction<
-        typeof usePreviewData
-      >;
+      const MockUsePreviewData = jest.mocked(usePreviewData);
       const mockReservations: Reservations = {
         reservedErrors: 50000,
         reservedTransactions: 0,

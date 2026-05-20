@@ -23,7 +23,7 @@ function LogsTabContentHarness({
 }: {
   datePageFilterProps: DatePageFilterProps;
 }) {
-  return <LogsTabContent datePageFilterProps={datePageFilterProps} tableExpando />;
+  return <LogsTabContent datePageFilterProps={datePageFilterProps} />;
 }
 
 const datePageFilterProps: DatePageFilterProps = {

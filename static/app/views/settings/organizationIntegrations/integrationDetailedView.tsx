@@ -10,9 +10,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import type {RequestOptions} from 'sentry/api';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -51,13 +51,13 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];
 
-const FirstPartyIntegrationAlert = HookOrDefault({
-  hookName: 'component:first-party-integration-alert',
+const FirstPartyIntegrationAlert = OverrideOrDefault({
+  overrideName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
-const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
-  hookName: 'component:first-party-integration-additional-cta',
+const FirstPartyIntegrationAdditionalCTA = OverrideOrDefault({
+  overrideName: 'component:first-party-integration-additional-cta',
   defaultComponent: () => null,
 });
 

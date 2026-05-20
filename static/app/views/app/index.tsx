@@ -12,9 +12,9 @@ import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
-import {getHook} from 'sentry/hookRegistry';
+import {Override} from 'sentry/components/override';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
@@ -142,7 +142,7 @@ export function App() {
 
     // Set the user for analytics
     if (user) {
-      getHook('analytics:init-user')?.(user);
+      getOverride('analytics:init-user')?.(user);
     }
 
     initApiClientErrorHandling();
@@ -192,7 +192,7 @@ export function App() {
     if (partnershipAgreementPrompt) {
       return (
         <Suspense fallback={null}>
-          <Hook
+          <Override
             name="component:partnership-agreement"
             partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
             agreements={partnershipAgreementPrompt.agreements}
@@ -225,7 +225,7 @@ export function App() {
           <AppAlerts />
           <GlobalModal />
           <Indicators className="indicators-container" />
-          <Hook name="component:replay-init" />
+          <Override name="component:replay-init" />
           <ErrorBoundary>{renderBody()}</ErrorBoundary>
         </MainContainer>
       </AppProviders>

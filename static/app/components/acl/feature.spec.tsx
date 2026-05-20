@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Feature from 'sentry/components/acl/feature';
-import {registerHook} from 'sentry/hookRegistry';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('Feature', () => {
@@ -279,18 +279,18 @@ describe('Feature', () => {
     });
   });
 
-  describe('using HookStore for renderDisabled', () => {
-    let hookFn: jest.Mock;
+  describe('using override registry for renderDisabled', () => {
+    let overrideFn: jest.Mock;
 
     beforeEach(() => {
-      hookFn = jest.fn(() => null);
-      registerHook('feature-disabled:sso-basic', hookFn);
+      overrideFn = jest.fn(() => null);
+      registerOverride('feature-disabled:sso-basic', overrideFn);
     });
 
-    it('uses hookName if provided', () => {
+    it('uses overrideName if provided', () => {
       const children = <div>The Child</div>;
       render(
-        <WrappedFeature features="org-bazar" hookName="feature-disabled:sso-basic">
+        <WrappedFeature features="org-bazar" overrideName="feature-disabled:sso-basic">
           {children}
         </WrappedFeature>,
         {organization}
@@ -298,7 +298,7 @@ describe('Feature', () => {
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
 
-      expect(hookFn).toHaveBeenCalledWith({
+      expect(overrideFn).toHaveBeenCalledWith({
         hasFeature: false,
         children,
         organization,

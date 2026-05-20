@@ -1,7 +1,6 @@
 import type {ComponentType} from 'react';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getHook} from 'sentry/hookRegistry';
 import {
   IconGraph,
   IconProfiling,
@@ -12,6 +11,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 
 export type FeatureMeta = {
   description: string;
@@ -102,6 +102,7 @@ function useFallbackScmFeatureMeta(): UseScmFeatureMetaResult {
  * returned with isLoading=false.
  */
 export function useScmFeatureMeta(): UseScmFeatureMetaResult {
-  const hook = getHook('react-hook:use-scm-feature-meta') ?? useFallbackScmFeatureMeta;
+  const hook =
+    getOverride('react-hook:use-scm-feature-meta') ?? useFallbackScmFeatureMeta;
   return hook();
 }
