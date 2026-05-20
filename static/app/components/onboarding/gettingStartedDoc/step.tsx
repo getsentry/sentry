@@ -35,10 +35,11 @@ export function Step({
   OnboardingStep & {stepIndex: number}) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
+  const safeContent = Array.isArray(content) ? content : [];
   const config = (
     <Container marginTop="xl">
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer contentBlocks={content} />
+        <ContentBlocksRenderer contentBlocks={safeContent} />
       </StepIndexProvider>
     </Container>
   );
