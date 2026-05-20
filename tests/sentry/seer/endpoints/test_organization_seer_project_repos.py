@@ -226,6 +226,32 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
 
         self.get_error_response(status_code=400)
 
+    def test_duplicate_branch_overrides_returns_400(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+
+        self.get_error_response(
+            branchOverrides=[
+                {"tagName": "environment", "tagValue": "production", "branchName": "release"},
+                {"tagName": "environment", "tagValue": "production", "branchName": "hotfix"},
+            ],
+            status_code=400,
+        )
+
+    def test_branch_overrides_does_not_bump_date_updated(self):
+        project_repo = self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="main"
+        )
+        original_date_updated = project_repo.date_updated
+
+        self.get_success_response(
+            branchOverrides=[
+                {"tagName": "environment", "tagValue": "staging", "branchName": "staging-branch"},
+            ],
+        )
+
+        project_repo.refresh_from_db()
+        assert project_repo.date_updated == original_date_updated
+
 
 class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-project-repo-details"
