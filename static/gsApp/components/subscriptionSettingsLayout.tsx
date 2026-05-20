@@ -1,7 +1,7 @@
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -20,9 +20,9 @@ export default function SubscriptionSettingsLayout() {
         <SettingsSearch />
       </TopBar.Slot>
 
-      <Flex flex="1" minWidth="0">
+      <Container flex="1" minWidth="0" background="primary">
         <Outlet />
-      </Flex>
+      </Container>
     </SettingsColumn>
   );
 }
