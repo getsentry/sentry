@@ -150,16 +150,6 @@ function cloneFieldGroups(fieldGroups: FieldGroups): FieldGroups {
   };
 }
 
-function normalizeChoices(
-  choices: readonly Choice[] | undefined
-): Array<[string, string]> {
-  return (
-    choices?.map(
-      ([value, label]) => [String(value), choiceLabelToString(label)] as [string, string]
-    ) ?? []
-  );
-}
-
 function omitValues(
   values: Record<string, unknown>,
   fieldNames: Set<string>
@@ -242,11 +232,8 @@ function updateSchemaFieldChoices(
   fieldName: string,
   choices: Choices
 ): FieldGroups {
-  const normalizedChoices = normalizeChoices(choices);
   const updateGroup = (fields?: FieldFromSchema[]) =>
-    fields?.map(field =>
-      field.name === fieldName ? {...field, choices: normalizedChoices} : field
-    ) ?? [];
+    fields?.map(field => (field.name === fieldName ? {...field, choices} : field)) ?? [];
 
   return {
     required_fields: updateGroup(fieldGroups.required_fields),
@@ -271,26 +258,27 @@ function choiceLabelToString(label: Choice[1]) {
 function mergeFieldChoices(
   field: FieldFromSchema,
   resetValues: ResetValues | undefined
-): Array<[string, string]> {
-  const choices = normalizeChoices(field.choices);
+): Choices {
+  const choices = field.choices ?? [];
 
   const savedSetting = getSavedSetting(resetValues, field.name);
   const savedValue = savedSetting?.value;
   if (
     (typeof savedValue === 'string' || typeof savedValue === 'number') &&
     savedSetting?.label &&
-    !choices.some(([value]) => value === String(savedValue))
+    !choices.some(([value]) => String(value) === String(savedValue))
   ) {
-    return [[String(savedValue), savedSetting.label], ...choices];
+    return [[savedValue, savedSetting.label], ...choices];
   }
 
   return choices;
 }
 
-function toSelectValues(
-  choices: ReadonlyArray<[string, string]>
-): Array<SelectValue<string>> {
-  return choices.map(([value, label]) => ({value, label}));
+function toSelectValues(choices: Choices): Array<SelectValue<string>> {
+  return choices.map(([value, label]) => ({
+    value: value as unknown as string,
+    label: choiceLabelToString(label),
+  }));
 }
 
 function getBaseFieldDefaultValue(
@@ -758,7 +746,15 @@ export function SentryAppExternalFormNew({
           };
         case 'select':
           return {
-            choices: mergeFieldChoices(field, normalizedResetValues),
+            // The adapter types choices as [string, string], but react-select
+            // round-trips the original value type at runtime — see
+            // BackendJsonSubmitForm's transformChoices which only renames
+            // tuple positions to {value, label}. Cast so a schema choice with
+            // a numeric value (e.g. an integration's project/board ID) reaches
+            // the wire with its type preserved.
+            choices: mergeFieldChoices(field, normalizedResetValues) as Array<
+              [string, string]
+            >,
             default: defaultValue,
             disabled,
             help: field.help,
@@ -829,15 +825,10 @@ export function SentryAppExternalFormNew({
 
             setAsyncOptionsCache(prev => ({
               ...prev,
-              [field.name]: normalizeChoices(choices),
+              [field.name]: choices,
             }));
 
-            return toSelectValues(
-              choices.map(
-                ([value, label]) =>
-                  [String(value), choiceLabelToString(label)] as [string, string]
-              )
-            );
+            return toSelectValues(choices);
           },
         });
     }
