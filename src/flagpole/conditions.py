@@ -30,6 +30,11 @@ class ConditionOperatorKind(str, Enum):
     Provided a list of patterns, check if the property value matches any pattern.
     """
 
+    NOT_MATCHES = "not_matches"
+    """
+    Provided a list of patterns, check if the property value matches none of the patterns.
+    """
+
 
 class ConditionTypeMismatchException(Exception):
     pass
@@ -120,6 +125,23 @@ class ConditionBase:
             return condition_property.lower() == self.value.lower()
 
         return condition_property == self.value
+
+    def _evaluate_matches(self, condition_property: Any, segment_name: str) -> bool:
+        if not isinstance(self.value, list):
+            raise ConditionTypeMismatchException(
+                f"'Matches' condition value must be a list of strings, but was provided a"
+                f" '{get_type_name(self.value)}' of segment {segment_name}"
+            )
+        if isinstance(condition_property, (list, dict)):
+            raise ConditionTypeMismatchException(
+                "'Matches' condition property value must be a string, but was provided a"
+                f" '{get_type_name(condition_property)}' of segment {segment_name}"
+            )
+        if condition_property is None:
+            return False
+        if not isinstance(condition_property, str):
+            return False
+        return any(_glob_star_match(pattern, condition_property) for pattern in self.value)
 
 
 InOperatorValueTypes = list[int] | list[float] | list[str]
@@ -241,21 +263,19 @@ class MatchesCondition(ConditionBase):
     operator: str = dataclasses.field(default="matches")
 
     def _operator_match(self, condition_property: Any, segment_name: str) -> bool:
-        if not isinstance(self.value, list):
-            raise ConditionTypeMismatchException(
-                f"'Matches' condition value must be a list of strings, but was provided a"
-                f" '{get_type_name(self.value)}' of segment {segment_name}"
-            )
-        if isinstance(condition_property, (list, dict)):
-            raise ConditionTypeMismatchException(
-                "'Matches' condition property value must be a string, but was provided a"
-                f" '{get_type_name(condition_property)}' of segment {segment_name}"
-            )
-        if condition_property is None:
-            return False
-        if not isinstance(condition_property, str):
-            return False
-        return any(_glob_star_match(pattern, condition_property) for pattern in self.value)
+        return self._evaluate_matches(
+            condition_property=condition_property, segment_name=segment_name
+        )
+
+
+class NotMatchesCondition(ConditionBase):
+    value: MatchesOperatorValueTypes
+    operator: str = dataclasses.field(default="not_matches")
+
+    def _operator_match(self, condition_property: Any, segment_name: str) -> bool:
+        return not self._evaluate_matches(
+            condition_property=condition_property, segment_name=segment_name
+        )
 
 
 OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
@@ -266,6 +286,7 @@ OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
     ConditionOperatorKind.EQUALS: EqualsCondition,
     ConditionOperatorKind.NOT_EQUALS: NotEqualsCondition,
     ConditionOperatorKind.MATCHES: MatchesCondition,
+    ConditionOperatorKind.NOT_MATCHES: NotMatchesCondition,
 }
 
 

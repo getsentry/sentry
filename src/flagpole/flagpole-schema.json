@@ -332,6 +332,31 @@
       },
       "required": ["property", "value"]
     },
+    "NotMatchesCondition": {
+      "title": "NotMatchesCondition",
+      "type": "object",
+      "properties": {
+        "property": {
+          "title": "Property",
+          "description": "The evaluation context property to match against.",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "default": "not_matches",
+          "enum": ["not_matches"],
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["property", "value"]
+    },
     "Segment": {
       "title": "Segment",
       "type": "object",
@@ -356,7 +381,8 @@
                 "not_contains": "#/definitions/NotContainsCondition",
                 "equals": "#/definitions/EqualsCondition",
                 "not_equals": "#/definitions/NotEqualsCondition",
-                "matches": "#/definitions/MatchesCondition"
+                "matches": "#/definitions/MatchesCondition",
+                "not_matches": "#/definitions/NotMatchesCondition"
               }
             },
             "oneOf": [
@@ -380,6 +406,9 @@
               },
               {
                 "$ref": "#/definitions/MatchesCondition"
+              },
+              {
+                "$ref": "#/definitions/NotMatchesCondition"
               }
             ]
           }

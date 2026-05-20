@@ -10,6 +10,7 @@ from flagpole.conditions import (
     NotContainsCondition,
     NotEqualsCondition,
     NotInCondition,
+    NotMatchesCondition,
     create_case_insensitive_set_from_list,
 )
 
@@ -301,5 +302,126 @@ class TestMatchesConditions:
 
     def test_type_mismatch_dict_property(self) -> None:
         condition = MatchesCondition(property="foo", value=["bar*"])
+        with pytest.raises(ConditionTypeMismatchException):
+            condition.match(context=EvaluationContext({"foo": {"key": "val"}}), segment_name="test")
+
+
+class TestNotMatchesConditions:
+    def test_literal_match(self) -> None:
+        condition = NotMatchesCondition(property="slug", value=["sentry"])
+        # Exact match → not_matches returns False
+        assert not condition.match(
+            context=EvaluationContext({"slug": "sentry"}), segment_name="test"
+        )
+        # No match → not_matches returns True
+        assert condition.match(
+            context=EvaluationContext({"slug": "getsentry"}), segment_name="test"
+        )
+
+    def test_prefix_wildcard(self) -> None:
+        condition = NotMatchesCondition(property="slug", value=["jayonb*"])
+        assert not condition.match(
+            context=EvaluationContext({"slug": "jayonb73"}), segment_name="test"
+        )
+        assert not condition.match(
+            context=EvaluationContext({"slug": "jayonb"}), segment_name="test"
+        )
+        assert condition.match(
+            context=EvaluationContext({"slug": "dangoldonb1"}), segment_name="test"
+        )
+
+    def test_prefix_and_suffix_wildcard(self) -> None:
+        condition = NotMatchesCondition(property="email", value=["jay.goss+onboarding*@sentry.io"])
+        assert not condition.match(
+            context=EvaluationContext({"email": "jay.goss+onboarding70@sentry.io"}),
+            segment_name="test",
+        )
+        assert not condition.match(
+            context=EvaluationContext({"email": "jay.goss+onboarding@sentry.io"}),
+            segment_name="test",
+        )
+        assert condition.match(
+            context=EvaluationContext({"email": "jay.goss+onboarding70@example.com"}),
+            segment_name="test",
+        )
+
+    def test_suffix_wildcard(self) -> None:
+        condition = NotMatchesCondition(property="email", value=["*@sentry.io"])
+        assert not condition.match(
+            context=EvaluationContext({"email": "user@sentry.io"}), segment_name="test"
+        )
+        assert condition.match(
+            context=EvaluationContext({"email": "user@example.com"}), segment_name="test"
+        )
+
+    def test_multi_segment_wildcard(self) -> None:
+        condition = NotMatchesCondition(property="name", value=["a*b*c"])
+        assert not condition.match(context=EvaluationContext({"name": "abc"}), segment_name="test")
+        assert not condition.match(
+            context=EvaluationContext({"name": "aXbYc"}), segment_name="test"
+        )
+        assert not condition.match(
+            context=EvaluationContext({"name": "aXXbYYc"}), segment_name="test"
+        )
+        assert condition.match(context=EvaluationContext({"name": "aXXc"}), segment_name="test")
+
+    def test_star_only_pattern(self) -> None:
+        # "*" matches everything — not_matches always returns False
+        condition = NotMatchesCondition(property="slug", value=["*"])
+        assert not condition.match(
+            context=EvaluationContext({"slug": "anything"}), segment_name="test"
+        )
+        assert not condition.match(context=EvaluationContext({"slug": ""}), segment_name="test")
+
+    def test_case_insensitive(self) -> None:
+        condition = NotMatchesCondition(property="slug", value=["JAYONB*"])
+        assert not condition.match(
+            context=EvaluationContext({"slug": "jayonb73"}), segment_name="test"
+        )
+        condition2 = NotMatchesCondition(property="slug", value=["jayonb*"])
+        assert not condition2.match(
+            context=EvaluationContext({"slug": "JAYONB73"}), segment_name="test"
+        )
+
+    def test_no_match(self) -> None:
+        condition = NotMatchesCondition(property="slug", value=["jayonb*"])
+        assert condition.match(
+            context=EvaluationContext({"slug": "dangoldonb1"}), segment_name="test"
+        )
+
+    def test_multiple_patterns_all_must_not_match(self) -> None:
+        condition = NotMatchesCondition(
+            property="slug", value=["jayonb*", "dangoldonb*", "value-disc-*"]
+        )
+        # Any match → False
+        assert not condition.match(
+            context=EvaluationContext({"slug": "jayonb73"}), segment_name="test"
+        )
+        assert not condition.match(
+            context=EvaluationContext({"slug": "dangoldonb3"}), segment_name="test"
+        )
+        assert not condition.match(
+            context=EvaluationContext({"slug": "value-disc-7"}), segment_name="test"
+        )
+        # No pattern matches → True
+        assert condition.match(
+            context=EvaluationContext({"slug": "other-org"}), segment_name="test"
+        )
+
+    def test_overlapping_prefix_suffix_anchors(self) -> None:
+        # "a*a" requires at least "aa" — "a" alone doesn't match → not_matches returns True
+        condition = NotMatchesCondition(property="slug", value=["a*a"])
+        assert condition.match(context=EvaluationContext({"slug": "a"}), segment_name="test")
+        assert not condition.match(context=EvaluationContext({"slug": "aa"}), segment_name="test")
+
+    def test_type_mismatch_list_property(self) -> None:
+        condition = NotMatchesCondition(property="foo", value=["bar*"])
+        with pytest.raises(ConditionTypeMismatchException):
+            condition.match(
+                context=EvaluationContext({"foo": ["bar1", "bar2"]}), segment_name="test"
+            )
+
+    def test_type_mismatch_dict_property(self) -> None:
+        condition = NotMatchesCondition(property="foo", value=["bar*"])
         with pytest.raises(ConditionTypeMismatchException):
             condition.match(context=EvaluationContext({"foo": {"key": "val"}}), segment_name="test")

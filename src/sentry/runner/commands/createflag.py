@@ -43,6 +43,7 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
         ConditionOperatorKind.IN,
         ConditionOperatorKind.NOT_IN,
         ConditionOperatorKind.MATCHES,
+        ConditionOperatorKind.NOT_MATCHES,
     }:
         value = []
     condition = {
