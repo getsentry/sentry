@@ -135,7 +135,7 @@ function TimelineItem({
   const organization = useOrganization();
   const theme = useTheme();
   const [editing, setEditing] = useState(false);
-  const useTwoColumnLayout = organization.features.includes('activity-feed-v2');
+  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
   const authorName = getAuthorName(item);
   const colorConfig = getActivityColorConfig(theme, item.type);
   const {title, message} = getGroupActivityItem(
