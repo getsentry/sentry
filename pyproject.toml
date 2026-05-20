@@ -458,7 +458,6 @@ module = [
     "sentry.api.base",
     "sentry.api.client",
     "sentry.api.endpoints",
-    "sentry.api.endpoints.accept_organization_invite",
     "sentry.api.endpoints.accept_project_transfer",
     "sentry.api.endpoints.admin_project_configs",
     "sentry.api.endpoints.api_application_details",

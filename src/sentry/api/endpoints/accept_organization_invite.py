@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib.auth import logout
 from django.http import HttpResponse
 from django.urls import reverse
@@ -57,9 +59,9 @@ class AcceptOrganizationInvite(Endpoint):
         member_id: str,
         token: str,
         organization_id_or_slug: str,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         # Demo users will be logged out in get() before processing the invite,
         # so we should fetch the invite context as if they were anonymous.
         # This matches the original behavior where logout happened before get_invite_state().
@@ -92,7 +94,7 @@ class AcceptOrganizationInvite(Endpoint):
         member_id: str,
         token: str,
         invite_context: RpcUserInviteContext,
-        **kwargs,
+        **kwargs: Any,
     ) -> Response | HttpResponse:
         # Demo user can't accept invites, this invite is probably meant for another user
         # so we log out the demo user and let the invite flow continue since it can handle
@@ -197,7 +199,7 @@ class AcceptOrganizationInvite(Endpoint):
         request: Request,
         token: str,
         invite_context: RpcUserInviteContext,
-        **kwargs,
+        **kwargs: Any,
     ) -> Response:
         if is_demo_user(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)
