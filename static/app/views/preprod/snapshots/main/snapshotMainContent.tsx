@@ -43,8 +43,8 @@ import {
   type SnapshotListViewHandle,
 } from './snapshotListView';
 
-export type ViewMode = 'single' | 'list';
-export type SortBy = 'diff' | 'alpha';
+type ViewMode = 'single' | 'list';
+type SortBy = 'diff' | 'alpha';
 
 export interface NavButtonRefs {
   next: React.RefObject<HTMLButtonElement | null>;
