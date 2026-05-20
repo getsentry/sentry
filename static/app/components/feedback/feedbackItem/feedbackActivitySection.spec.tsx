@@ -12,7 +12,7 @@ import {
 
 import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
-import {GroupActivityType} from 'sentry/types/group';
+import {GroupActivityType, IssueCategory} from 'sentry/types/group';
 
 describe('FeedbackActivitySection', () => {
   const organization = OrganizationFixture();
@@ -140,5 +140,33 @@ describe('FeedbackActivitySection', () => {
 
     expect(editFrame).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeEnabled();
+  });
+
+  it('renders ignored feedback activity as spam', async () => {
+    const feedbackItem = GroupFixture({
+      id: '1337',
+      activity: [
+        {
+          type: GroupActivityType.SET_IGNORED,
+          id: 'spam-1',
+          data: {},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      issueCategory: IssueCategory.FEEDBACK,
+      project,
+    });
+
+    render(
+      <FeedbackApiOptions organization={organization}>
+        <FeedbackActivitySection feedbackItem={feedbackItem} />
+      </FeedbackApiOptions>,
+      {organization}
+    );
+
+    expect(await screen.findByText('Marked as Spam')).toBeInTheDocument();
+    expect(screen.queryByText('Archived')).not.toBeInTheDocument();
+    expect(screen.queryByText(/forever/)).not.toBeInTheDocument();
   });
 });

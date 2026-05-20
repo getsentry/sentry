@@ -71,6 +71,7 @@ function TimelineItem({
     item,
     organization,
     group.project,
+    group.issueCategory,
     <strong>{authorName}</strong>,
     teams
   );

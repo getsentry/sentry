@@ -16,8 +16,9 @@ import type {
   GroupActivityAssigned,
   GroupActivitySetEscalating,
   GroupActivitySetIgnored,
+  IssueCategory,
 } from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
+import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/types/group';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
@@ -28,10 +29,12 @@ export function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   project: Project,
+  issueCategory: IssueCategory,
   author: React.ReactNode,
   teams: Team[]
 ) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']): {
     message: React.JSX.Element | string | null;
@@ -107,12 +110,19 @@ export function getGroupActivityItem(
       };
     }
 
-    return {
-      title: t('Archived'),
-      message: tct('by [author] forever', {
-        author,
-      }),
-    };
+    return isFeedback
+      ? {
+          title: t('Marked as Spam'),
+          message: tct('by [author]', {
+            author,
+          }),
+        }
+      : {
+          title: t('Archived'),
+          message: tct('by [author] forever', {
+            author,
+          }),
+        };
   }
 
   function getAssignedMessage(assignedActivity: GroupActivityAssigned) {
