@@ -486,7 +486,7 @@ export const getNodeLogsOnboarding = <
   generateConfigureSnippet?: typeof getNodeLogsConfigureSnippet;
   importPath?: string;
 }): OnboardingConfig<PlatformOptions> => {
-  const importFrom = importPath ?? packageName;
+  const importFrom = (importPath ?? packageName) as `@sentry/${string}`;
   return {
     install: (params: DocsParams) => [
       {
@@ -530,7 +530,7 @@ export const getNodeLogsOnboarding = <
               {code: <code />}
             ),
           },
-          generateConfigureSnippet(params, importFrom as `@sentry/${string}`),
+          generateConfigureSnippet(params, importFrom),
           {
             type: 'text',
             text: tct(

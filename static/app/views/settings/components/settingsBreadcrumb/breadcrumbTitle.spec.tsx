@@ -34,11 +34,28 @@ describe('BreadcrumbTitle', () => {
     {name: 'Three', path: '/three/'},
   ];
 
+  const routerConfig = {
+    location: {pathname: '/one/two/three'},
+    route: '/one',
+    children: [
+      {
+        path: 'two',
+        handle: {path: '/two/', name: 'Two'},
+        children: [
+          {
+            path: 'three',
+            handle: {path: '/three/', name: 'Three'},
+          },
+        ],
+      },
+    ],
+  };
+
   it('renders settings breadcrumbs and replaces title', () => {
     render(
       <BreadcrumbProvider>
         <SettingsBreadcrumb params={{}} />
-        <BreadcrumbTitle routes={testRoutes} title="Last Title" />
+        <BreadcrumbTitle title="Last Title" />
       </BreadcrumbProvider>,
       {
         initialRouterConfig: {
@@ -56,13 +73,13 @@ describe('BreadcrumbTitle', () => {
   });
 
   it('cleans up routes', () => {
-    let upOneRoutes = testRoutes.slice(0, -1);
+    const upOneRoutes = testRoutes.slice(0, -1);
 
     const {rerender, router} = render(
       <BreadcrumbProvider>
         <SettingsBreadcrumb params={{}} />
-        <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
-        <BreadcrumbTitle routes={testRoutes} title="Last Title" />
+        <BreadcrumbTitle title="Second Title" />
+        <BreadcrumbTitle title="Last Title" />
       </BreadcrumbProvider>,
       {
         initialRouterConfig: {
@@ -76,11 +93,7 @@ describe('BreadcrumbTitle', () => {
     const crumbs = screen.getAllByRole('link');
 
     expect(crumbs).toHaveLength(3);
-    expect(crumbs[1]).toHaveTextContent('Second Title');
     expect(crumbs[2]).toHaveTextContent('Last Title');
-
-    // Mutate the object so that breadcrumbTitle re-renders
-    upOneRoutes = testRoutes.slice(0, -1);
 
     // Simulate navigating up a level, trimming the last title
     router.navigate('/one/two/');
@@ -88,13 +101,13 @@ describe('BreadcrumbTitle', () => {
     rerender(
       <BreadcrumbProvider>
         <SettingsBreadcrumb params={{}} />
-        <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
+        <BreadcrumbTitle title="Second Title" />
       </BreadcrumbProvider>
     );
 
     const crumbsNext = screen.getAllByRole('link');
 
     expect(crumbsNext).toHaveLength(2);
-    expect(crumbsNext[1]).toHaveTextContent('Second Title');
+    expect(crumbsNext[1]).toHaveTextContent('Two');
   });
 });

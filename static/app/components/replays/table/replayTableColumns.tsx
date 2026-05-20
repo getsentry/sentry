@@ -37,6 +37,7 @@ import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIco
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {
@@ -542,6 +543,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   sortKey: undefined,
   Component: ({replay}) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const organization = useOrganization();
     const theme = useTheme();
 
@@ -558,7 +560,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location, theme},
+          {navigate, organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>
