@@ -14,12 +14,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
-type CreateSampleEventButtonProps = ButtonProps & {
+type CreateSampleEventButtonOuterProps = ButtonProps & {
   api: Client;
   organization: Organization;
   source: string;
@@ -27,6 +28,10 @@ type CreateSampleEventButtonProps = ButtonProps & {
   onClick?: () => void;
   onCreateSampleGroup?: () => void;
   project?: Project;
+};
+
+type CreateSampleEventButtonProps = CreateSampleEventButtonOuterProps & {
+  navigate: ReactRouter3Navigate;
 };
 
 type State = {
@@ -190,7 +195,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
     this.props.onClick?.();
 
-    browserHistory.push(
+    this.props.navigate(
       normalizeUrl(
         `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}&referrer=sample-error`
       )
@@ -200,6 +205,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
   render() {
     const {
       api: _api,
+      navigate: _navigate,
       organization: _organization,
       project: _project,
       source: _source,
@@ -219,4 +225,12 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
   }
 }
 
-export default withApi(withOrganization(CreateSampleEventButton));
+function CreateSampleEventButtonWithNavigate({
+  ref: _ref,
+  ...props
+}: CreateSampleEventButtonOuterProps) {
+  const navigate = useNavigate();
+  return <CreateSampleEventButton {...props} navigate={navigate} />;
+}
+
+export default withApi(withOrganization(CreateSampleEventButtonWithNavigate));
