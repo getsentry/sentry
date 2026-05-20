@@ -98,7 +98,6 @@ const Wrapper = styled('div')`
   white-space: nowrap;
 
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  z-index: ${p => p.theme.zIndex.sidebarPanel - 1};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     height: 54px;

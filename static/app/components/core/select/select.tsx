@@ -62,7 +62,7 @@ const getStylesConfig = ({
   theme,
   size = 'md',
   maxMenuWidth,
-  isInsideModal,
+  isInsideModal: _isInsideModal,
   isSearchable,
   isDisabled,
 }: {
@@ -139,7 +139,6 @@ const getStylesConfig = ({
     menuPortal: provided => ({
       ...provided,
       maxWidth: maxMenuWidth ?? '24rem',
-      zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
     }),
 
     option: provided => ({

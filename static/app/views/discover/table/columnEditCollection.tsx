@@ -92,7 +92,6 @@ class ColumnEditCollection extends Component<Props, State> {
       portal.style.position = 'absolute';
       portal.style.top = '0';
       portal.style.left = '0';
-      portal.style.zIndex = String(this.props.theme.zIndex.modal);
 
       this.portal = portal;
 

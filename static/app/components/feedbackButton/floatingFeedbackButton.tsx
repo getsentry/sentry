@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {css, Global, useTheme} from '@emotion/react';
 
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 
@@ -12,7 +11,6 @@ import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFee
  * which allows taking screenshots of what's visible on the page.
  */
 export function FloatingFeedbackButton() {
-  const theme = useTheme();
   const {feedback, defaultOptions} = useFeedbackSDKIntegration();
 
   useEffect(() => {
@@ -30,14 +28,5 @@ export function FloatingFeedbackButton() {
     return null;
   }
 
-  // z-index needs to be below our indicators which is 10001
-  return (
-    <Global
-      styles={css`
-        #sentry-feedback {
-          --z-index: ${theme.zIndex.toast - 1};
-        }
-      `}
-    />
-  );
+  return null;
 }

@@ -54,8 +54,6 @@ const StyledHovercardWithBodyClass = styled(HovercardWithBodyClass)`
 `;
 
 const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
-  /* Lower z-index to match the modals (10000 vs 10002) to allow stackTraceLinkModal be on top of stack trace preview. */
-  z-index: ${p => p.theme.zIndex.modal};
   width: auto;
 
   ${p =>

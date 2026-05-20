@@ -163,7 +163,7 @@ export function WidgetBuilderV2({
               }
             `}
           />
-          <Backdrop zIndex="widgetBuilderDrawer" />
+          <Backdrop />
           <WidgetBuilderProvider>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
               <ContainerWithoutSidebar
@@ -271,12 +271,7 @@ export function WidgetPreviewContainer({
     top: isDragEnabled ? (top ?? 0) : undefined,
     left: isDragEnabled ? (left ?? 0) : undefined,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragEnabled
-      ? theme.zIndex.modal
-      : isSmallScreen
-        ? theme.zIndex.initial
-        : // if not responsive, set z-index to default in styled component
-          undefined,
+    zIndex: isDragEnabled ? 1 : undefined,
     cursor: isDragEnabled ? 'grab' : undefined,
     margin: isDragEnabled ? '0' : undefined,
     alignSelf: isDragEnabled ? 'flex-start' : undefined,
@@ -412,13 +407,12 @@ const SampleWidgetCard = styled(motion.div)`
   border: 1px dashed ${p => p.theme.colors.gray400};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  z-index: ${p => p.theme.zIndex.initial};
   position: relative;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 40vw;
     min-width: 300px;
-    z-index: ${p => p.theme.zIndex.modal};
+    z-index: 1;
     cursor: auto;
   }
 
@@ -431,20 +425,18 @@ const SampleWidgetCard = styled(motion.div)`
 
 const DraggableWidgetContainer = styled('div')`
   align-content: center;
-  z-index: ${p => p.theme.zIndex.initial};
   position: relative;
   margin: auto;
   cursor: auto;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    z-index: ${p => p.theme.zIndex.modal};
+    z-index: 1;
     transform: none;
     cursor: auto;
   }
 `;
 
 const ContainerWithoutSidebar = styled('div')`
-  z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   position: fixed;
   top: 0;
   right: 0;
@@ -456,7 +448,6 @@ const ContainerWithoutSidebar = styled('div')`
 `;
 
 const WidgetBuilderContainer = styled('div')`
-  z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   display: flex;
   align-items: center;
   position: absolute;
@@ -507,7 +498,7 @@ const FilterBarContainer = styled(motion.div)`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 40vw;
     min-width: 300px;
-    z-index: ${p => p.theme.zIndex.modal};
+    z-index: 1;
     cursor: auto;
   }
 

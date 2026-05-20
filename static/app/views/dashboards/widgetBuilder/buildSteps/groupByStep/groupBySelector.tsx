@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -61,7 +60,6 @@ export function GroupBySelector({
   const organization = useOrganization();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
-  const theme = useTheme();
   const builderVersion = WidgetBuilderVersion.SLIDEOUT;
 
   function handleAdd() {
@@ -228,11 +226,7 @@ export function GroupBySelector({
                 ))}
               </SortableQueryFields>
             </SortableContext>
-            <DragOverlay
-              dropAnimation={null}
-              zIndex={theme.zIndex.modal}
-              modifiers={[correctDragOverlayOffset]}
-            >
+            <DragOverlay dropAnimation={null} modifiers={[correctDragOverlayOffset]}>
               {activeId ? (
                 <Ghost>
                   <QueryField

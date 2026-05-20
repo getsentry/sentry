@@ -1,5 +1,4 @@
 import {useEffect, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
@@ -30,7 +29,6 @@ export function UserDropdown() {
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
   const portalContainerRef = useRef<HTMLElement | null>(null);
-  const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
 
   useEffect(() => {
@@ -67,7 +65,6 @@ export function UserDropdown() {
       usePortal
       size={size}
       portalContainerRef={portalContainerRef}
-      zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       minMenuWidth={200}

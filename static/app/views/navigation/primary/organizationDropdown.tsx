@@ -1,5 +1,4 @@
 import {useEffect, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
@@ -38,7 +37,6 @@ interface OrganizationDropdownProps {
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
-  const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -67,7 +65,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     <DropdownMenu
       usePortal
       portalContainerRef={portalContainerRef}
-      zIndex={theme.zIndex.modal}
       trigger={triggerProps => (
         <AvatarButton
           avatar={
