@@ -261,7 +261,10 @@ describe('DetectorDetailsAutomations', () => {
 
     expect(await screen.findByText(automation1.name)).toBeInTheDocument();
 
-    const searchInput = screen.getByRole('combobox', {name: 'Add a search term'});
+    const connectedSection = screen.getByText('Connected Alerts').closest('section')!;
+    const searchInput = within(connectedSection).getByRole('combobox', {
+      name: 'Add a search term',
+    });
     await userEvent.click(searchInput);
     await userEvent.keyboard('Alert 2{Enter}');
 
