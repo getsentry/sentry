@@ -3,7 +3,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;

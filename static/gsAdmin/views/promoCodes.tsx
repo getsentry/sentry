@@ -7,7 +7,7 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: any) => [

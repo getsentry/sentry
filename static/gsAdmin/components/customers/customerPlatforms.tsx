@@ -3,7 +3,7 @@ import {PlatformIcon} from 'platformicons';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;

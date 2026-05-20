@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {IconProject} from 'sentry/icons';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   orgId: string;

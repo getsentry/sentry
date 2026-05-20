@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {IconMail} from 'sentry/icons';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   orgId: string;
