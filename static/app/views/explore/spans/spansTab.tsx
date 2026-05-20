@@ -367,14 +367,18 @@ function SpanTabContentSectionInner({
               tracesTableResult={tracesTableResult}
               confidences={confidences}
               tab={tab}
-              setTab={(newTab: Mode | Tab) => {
+              setTab={(newTab, reason) => {
                 if (newTab === Mode.AGGREGATE) {
                   setControlSectionExpanded(true);
                 }
-                trackAnalytics('trace.explorer.table_tab_changed', {
-                  organization,
-                  tab: newTab,
-                });
+
+                if (reason === 'click') {
+                  trackAnalytics('trace.explorer.table_tab_changed', {
+                    organization,
+                    tab: newTab,
+                  });
+                }
+
                 setTab(newTab);
               }}
             />
