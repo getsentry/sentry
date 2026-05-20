@@ -729,7 +729,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
@@ -1677,11 +1676,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/config/integrations/$",
         OrganizationConfigIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-config-integrations",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/config/repos/$",
-        OrganizationConfigRepositoriesEndpoint.as_view(),
-        name="sentry-api-0-organization-config-repositories",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-rates/$",

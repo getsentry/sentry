@@ -212,7 +212,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/combined-rules/'
   | '/organizations/$organizationIdOrSlug/conduit-demo/'
   | '/organizations/$organizationIdOrSlug/config/integrations/'
-  | '/organizations/$organizationIdOrSlug/config/repos/'
   | '/organizations/$organizationIdOrSlug/dashboards/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/'
