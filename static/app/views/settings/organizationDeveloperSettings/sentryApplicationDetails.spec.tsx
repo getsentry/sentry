@@ -404,6 +404,14 @@ describe('Sentry Application Details', () => {
       });
     });
 
+    it('disables the new token button when user lacks org:write', async () => {
+      const organization = OrganizationFixture({access: ['org:read']});
+      render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+
+      const button = await screen.findByRole('button', {name: 'New Token'});
+      expect(button).toBeDisabled();
+    });
+
     it('removing token from list', async () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.id}/`,

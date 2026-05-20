@@ -159,7 +159,6 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
         "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
-        "organizations:on-demand-metrics-extraction-experimental",
         "organizations:on-demand-metrics-prefill",
     ]
 
