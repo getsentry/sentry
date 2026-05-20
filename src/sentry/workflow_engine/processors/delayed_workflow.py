@@ -665,7 +665,7 @@ def get_group_to_groupevent(
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
     project: Project,
 ) -> dict[Group, tuple[GroupEvent, datetime | None]]:
-    groups = Group.objects.filter(id__in=event_data.group_ids)
+    groups = Group.objects.get_many_from_cache(event_data.group_ids)
     group_id_to_group = {group.id: group for group in groups}
 
     bulk_event_id_to_events = bulk_fetch_events(list(event_data.event_ids), project)
