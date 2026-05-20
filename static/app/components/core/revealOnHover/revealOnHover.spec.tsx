@@ -109,4 +109,46 @@ describe('RevealOnHover', () => {
     await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Copy'})).toHaveFocus();
   });
+
+  it('supports callback children for custom elements', () => {
+    render(
+      <RevealOnHover>
+        {({className}) => (
+          <div data-test-id="custom-root" className={className}>
+            <span>Grid content</span>
+            <RevealOnHover.Action>
+              <Button aria-label="Copy">Copy</Button>
+            </RevealOnHover.Action>
+          </div>
+        )}
+      </RevealOnHover>
+    );
+
+    expect(screen.getByTestId('custom-root')).toBeInTheDocument();
+    expect(screen.getByText('Grid content')).toBeInTheDocument();
+    const button = screen.getByRole('button', {name: 'Copy'});
+    expect(button.closest('[data-reveal-on-hover]')).toBeInTheDocument();
+  });
+
+  it('callback children action button is clickable', async () => {
+    const onClick = jest.fn();
+
+    render(
+      <RevealOnHover>
+        {({className}) => (
+          <div className={className}>
+            <span>Content</span>
+            <RevealOnHover.Action>
+              <Button aria-label="Copy" onClick={onClick}>
+                Copy
+              </Button>
+            </RevealOnHover.Action>
+          </div>
+        )}
+      </RevealOnHover>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy'}));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });

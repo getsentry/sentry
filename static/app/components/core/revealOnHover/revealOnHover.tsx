@@ -1,44 +1,66 @@
-import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-interface RevealOnHoverProps extends FlexProps {
-  children: React.ReactNode;
+interface RevealOnHoverRenderProps {
+  className: string;
 }
 
-function RevealOnHoverRoot({children, ...props}: RevealOnHoverProps) {
-  const theme = useTheme();
+type RevealOnHoverProps =
+  | (FlexProps & {children: React.ReactNode})
+  | {children: (props: RevealOnHoverRenderProps) => React.ReactNode};
+
+function RevealOnHoverRoot(props: RevealOnHoverProps) {
+  const {children, ...rest} = props;
+
+  if (typeof children === 'function') {
+    return (
+      <RevealOnHoverStyles>{({className}) => children({className})}</RevealOnHoverStyles>
+    );
+  }
 
   return (
-    <Flex
-      align="center"
-      gap="xs"
-      css={css`
-        @media (hover: hover) {
-          [data-reveal-on-hover] {
-            opacity: 0;
-            visibility: hidden;
-            transition:
-              opacity ${theme.motion.exit.fast},
-              visibility ${theme.motion.exit.fast};
-          }
-
-          &:hover [data-reveal-on-hover],
-          &:focus-within [data-reveal-on-hover] {
-            opacity: 1;
-            visibility: visible;
-            transition:
-              opacity ${theme.motion.enter.moderate},
-              visibility ${theme.motion.enter.moderate};
-          }
-        }
-      `}
-      {...props}
-    >
+    <RevealOnHoverFlex align="center" gap="xs" {...rest}>
       {children}
-    </Flex>
+    </RevealOnHoverFlex>
   );
 }
+
+const revealStyles = (p: {theme: any}) => `
+  @media (hover: hover) {
+    [data-reveal-on-hover] {
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity ${p.theme.motion.exit.fast},
+        visibility ${p.theme.motion.exit.fast};
+    }
+
+    &:hover [data-reveal-on-hover],
+    &:focus-within [data-reveal-on-hover] {
+      opacity: 1;
+      visibility: visible;
+      transition:
+        opacity ${p.theme.motion.enter.moderate},
+        visibility ${p.theme.motion.enter.moderate};
+    }
+  }
+`;
+
+const RevealOnHoverFlex = styled(Flex)`
+  ${revealStyles}
+`;
+
+const RevealOnHoverStyles = styled(
+  (props: {
+    children: (renderProps: RevealOnHoverRenderProps) => React.ReactNode;
+    className?: string;
+  }) => {
+    return props.children({className: props.className ?? ''});
+  }
+)`
+  ${revealStyles}
+`;
 
 interface ActionProps {
   children: React.ReactNode;
