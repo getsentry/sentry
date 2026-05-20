@@ -154,11 +154,6 @@ const OverlayInner = styled(motion.div)<{
 
 interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
   ref?: React.Ref<HTMLDivElement>;
-  /**
-   * @deprecated Stacking is handled by Layer portal outlets. Only pass
-   * this when rendering outside a Layer.
-   */
-  zIndex?: number;
 }
 
 /**
@@ -182,7 +177,6 @@ export function PositionWrapper({
   onDragStart: _onDragStart,
   onDragEnd: _onDragEnd,
   onDrag: _onDrag,
-  zIndex,
   style,
   ...props
 }: PositionWrapperProps) {
@@ -191,7 +185,7 @@ export function PositionWrapper({
     <motion.div
       {...props}
       ref={ref}
-      style={{...style, zIndex, pointerEvents: isPresent ? 'auto' : 'none'}}
+      style={{...style, pointerEvents: isPresent ? 'auto' : 'none'}}
     />
   );
 }

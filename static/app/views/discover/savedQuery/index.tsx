@@ -91,6 +91,7 @@ export function SaveAsDropdown({
   const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({
     position: 'bottom',
   });
+<<<<<<< HEAD
   const layerPortal = usePortalContainer();
 
   return (

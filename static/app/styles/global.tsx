@@ -157,7 +157,9 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
 
   body {
     .sentry-error-embed-wrapper {
-      z-index: ${theme.zIndex.sentryErrorEmbed};
+      /* External Sentry error-feedback widget — hardcoded because it lives
+         outside the React tree and cannot use the Layer primitive. */
+      z-index: 1090;
     }
 
     .loading .loading-indicator {

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {AvatarList, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -27,7 +26,6 @@ export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps
     isKeyboardDismissDisabled: false,
   });
 
-  const theme = useTheme();
   const showHeaders = users.length > 0 && teams && teams.length > 0;
 
   return (
@@ -52,7 +50,7 @@ export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps
         />
       </Button>
       {isOpen && (
-        <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+        <PositionWrapper {...overlayProps}>
           <StyledOverlay>
             <ParticipantListWrapper>
               {showHeaders && teams && teams.length > 0 && (
