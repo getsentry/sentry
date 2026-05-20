@@ -755,7 +755,8 @@ if (IS_UI_DEV_ONLY) {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
       }
-    : {};
+    : // Will attempt to self sign via the selfsigned package
+      {};
 
   appConfig.devServer = {
     ...appConfig.devServer,
