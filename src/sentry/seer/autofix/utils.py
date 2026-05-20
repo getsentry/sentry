@@ -854,24 +854,8 @@ def bulk_update_seer_project_settings(
         ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
 
 
-class BranchOverrideData(TypedDict):
-    tag_name: str
-    tag_value: str
-    branch_name: str
-
-
-class ProjectRepoCreateData(TypedDict, total=False):
-    repository_id: int
-    branch_name: str | None
-    instructions: str | None
-    branch_overrides: list[BranchOverrideData]
-
-
-def _validate_repo_ids(
-    organization: Organization,
-    repo_ids: list[int],
-) -> None:
-    """Raise ValueError if any repo IDs are invalid, inactive, or unsupported."""
+def validate_repo_ids_for_seer(organization: Organization, repo_ids: list[int]) -> None:
+    """Raise ValueError if any repo IDs are invalid, inactive, or have providers not supported by Seer."""
     valid_ids = set(
         Repository.objects.filter(
             id__in=repo_ids,
@@ -883,6 +867,19 @@ def _validate_repo_ids(
     invalid_ids = set(repo_ids) - valid_ids
     if invalid_ids:
         raise ValueError(sorted(invalid_ids))
+
+
+class BranchOverrideData(TypedDict):
+    tag_name: str
+    tag_value: str
+    branch_name: str
+
+
+class ProjectRepoCreateData(TypedDict, total=False):
+    repository_id: int
+    branch_name: str | None
+    instructions: str | None
+    branch_overrides: list[BranchOverrideData]
 
 
 def replace_all_branch_overrides(
@@ -906,12 +903,8 @@ def replace_all_branch_overrides(
         )
 
 
-def add_seer_project_repos(
-    project: Project, organization: Organization, repos_data: list[ProjectRepoCreateData]
-) -> list[int]:
-    """Upsert Seer project repos. Raises ValueError if any repo IDs are invalid."""
-    _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
-
+def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
+    """Upsert Seer project repos."""
     result_ids = []
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         for data in repos_data:
@@ -934,15 +927,12 @@ def add_seer_project_repos(
 
 
 def replace_all_seer_project_repos(
-    project: Project, organization: Organization, repos_data: list[ProjectRepoCreateData]
+    project: Project, repos_data: list[ProjectRepoCreateData]
 ) -> None:
-    """Replace all active Seer repos for the given project.
-    Raises ValueError if any repo IDs are invalid."""
+    """Replace all active Seer repos for the given project."""
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        # Lock project rows to serialize concurrent replaces.
         list(Project.objects.select_for_update().filter(id=project.id))
-
-        if repos_data:
-            _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
 
         SeerProjectRepository.objects.filter(
             project_repository__project=project,
@@ -955,7 +945,7 @@ def replace_all_seer_project_repos(
                 repository_id=data["repository_id"],
                 defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
             )
-            seer_project_repo = SeerProjectRepository.objects.create(
+            seer_project_repo, _ = SeerProjectRepository.objects.get_or_create(
                 project_repository=project_repo,
                 branch_name=data.get("branch_name"),
                 instructions=data.get("instructions"),
