@@ -42,7 +42,6 @@ type Props = {
 interface AutomationsTableProps {
   detectorId: string;
   emptyMessage: React.ReactNode;
-  showSearch?: boolean;
 }
 
 function Skeletons({numberOfRows}: {numberOfRows: number}) {
@@ -62,7 +61,7 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
   );
 }
 
-function AutomationsTable({detectorId, emptyMessage, showSearch}: AutomationsTableProps) {
+function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const onSearch = useCallback((query: string) => {
@@ -127,14 +126,10 @@ function AutomationsTable({detectorId, emptyMessage, showSearch}: AutomationsTab
 
   return (
     <Container>
-      {showSearch ? (
-        <Stack gap="md">
-          <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
-          {table}
-        </Stack>
-      ) : (
-        table
-      )}
+      <Stack gap="md">
+        <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
+        {table}
+      </Stack>
       <Pagination
         onCursor={setCursor}
         pageLinks={pageLinks}
@@ -264,7 +259,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
         <ErrorBoundary mini>
           <AutomationsTable
             detectorId={detector.id}
-            showSearch
             emptyMessage={
               project ? (
                 <Stack gap="md" align="center">
