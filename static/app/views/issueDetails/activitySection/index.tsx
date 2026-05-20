@@ -109,8 +109,6 @@ function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
     case GroupActivityType.SET_IGNORED:
       return {
         ...defaultConfig,
-        icon: theme.tokens.graphics.promotion.vibrant,
-        iconBorder: theme.tokens.border.promotion.vibrant,
       };
     default:
       return defaultConfig;
@@ -496,8 +494,18 @@ const ActivityInputFrame = styled('div')`
 
 const AvatarMarker = styled('span')<{color: string}>`
   display: block;
+  position: relative;
   border-radius: 100%;
-  box-shadow: 0 0 0 1px ${p => p.color};
+  line-height: 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 100%;
+    box-shadow: inset 0 0 0 2px ${p => p.color};
+    pointer-events: none;
+  }
 `;
 
 const SentryMarker = styled('span')<{color: string}>`
