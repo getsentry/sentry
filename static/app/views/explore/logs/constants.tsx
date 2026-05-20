@@ -105,3 +105,5 @@ export const MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS = 1000;
 export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 50; // Items from bottom of table to trigger table fetch.
 
 export const QUANTIZE_MINUTES = 120;
+
+export const LOGS_LARGE_SEARCH_TOTAL_THRESHOLD_BYTES = 1_099_511_627_776; // 1 TiB

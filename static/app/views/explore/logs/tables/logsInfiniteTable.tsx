@@ -46,6 +46,7 @@ import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
+import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
@@ -153,6 +154,7 @@ export function LogsInfiniteTable({
     bytesScanned,
     canResumeAutoFetch,
     resumeAutoFetch,
+    totalPayloadBytes,
   } = useLogsPageDataQueryResult();
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
@@ -561,7 +563,12 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
+          {!hasReplay && isPending && (
+            <LoadingRenderer
+              bytesScanned={bytesScanned}
+              totalPayloadBytes={totalPayloadBytes}
+            />
+          )}
           {!hasReplay && isError && <ErrorRenderer />}
           {!hasReplay &&
             isEmpty &&
@@ -571,6 +578,7 @@ export function LogsInfiniteTable({
               <LogsEmptyResults
                 analyticsPageSource={analyticsPageSource}
                 bytesScanned={bytesScanned}
+                totalPayloadBytes={totalPayloadBytes}
                 canResumeAutoFetch={canResumeAutoFetch}
                 resumeAutoFetch={resumeAutoFetch}
               />
@@ -751,7 +759,18 @@ function ErrorRenderer() {
   );
 }
 
-export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
+export function LoadingRenderer({
+  bytesScanned,
+  totalPayloadBytes,
+}: {
+  bytesScanned?: number;
+  totalPayloadBytes?: number;
+}) {
+  const displayTotalPayloadBytes = getDisplayTotalPayloadBytes(
+    bytesScanned,
+    totalPayloadBytes
+  );
+
   return (
     <TableStatus>
       <Stack align="center">
@@ -762,9 +781,14 @@ export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
               {t('Searching for a needle in a haystack. This could take a while.')}
               <br />
               <span>
-                {tct('[bytesScanned] scanned', {
-                  bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
-                })}
+                {displayTotalPayloadBytes
+                  ? tct('[bytesScanned] of ~[totalBytes] scanned', {
+                      bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                      totalBytes: <FileSize bytes={displayTotalPayloadBytes} base={2} />,
+                    })
+                  : tct('[bytesScanned] scanned', {
+                      bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                    })}
               </span>
             </Fragment>
           )}
