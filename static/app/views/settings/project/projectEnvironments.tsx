@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
@@ -87,10 +88,11 @@ function useEventCounts(organization: Organization, project: DetailedProject) {
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/values/',
       {
         path: {
-          organizationIdOrSlug: organization.id,
+          organizationIdOrSlug: organization.slug,
           projectIdOrSlug: project.slug,
           key: 'environment',
         },
+        query: {statsPeriod: '30d'},
         staleTime: 60_000,
       }
     )
@@ -225,7 +227,11 @@ export default function ProjectEnvironments() {
           <SimpleTable.HeaderCell>
             {isHidden ? t('Hidden') : t('Active Environments')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Recent Events')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>
+            <Tooltip title={t('Count of all error events from the last 30 days')}>
+              {t('Recent Error Events')}
+            </Tooltip>
+          </SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
         {isPending ? (
