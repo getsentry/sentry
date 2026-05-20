@@ -38,6 +38,8 @@ export function MessageToolCalls({
             radius="sm"
             padding="xs sm"
             cursor="pointer"
+            hasError={tool.hasError}
+            isSelected={isToolSelected}
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               trackAnalytics('conversations.message.click-tool-call', {organization});
@@ -52,14 +54,12 @@ export function MessageToolCalls({
                   {t('Called tool')}
                 </Text>
               </Container>
-              <ClickableTag
+              <Tag
                 variant={tool.hasError ? 'danger' : 'info'}
                 icon={tool.hasError ? <IconFire /> : undefined}
-                hasError={tool.hasError}
-                isSelected={isToolSelected}
               >
                 {tool.name}
-              </ClickableTag>
+              </Tag>
               {toolNode && <ToolInputPreview node={toolNode} />}
             </Flex>
           </ToolCallLine>
@@ -81,15 +81,10 @@ function ToolInputPreview({node}: {node: AITraceSpanNode}) {
   );
 }
 
-const ToolCallLine = styled(Container)`
+const ToolCallLine = styled(Container)<{hasError?: boolean; isSelected?: boolean}>`
   &:hover {
     opacity: 0.85;
   }
-`;
-
-const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
-  cursor: pointer;
-  padding: 0 ${p => p.theme.space.xs};
   ${p =>
     p.isSelected &&
     `
