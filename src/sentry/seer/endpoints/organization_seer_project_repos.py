@@ -183,6 +183,64 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
 
 
 @cell_silo_endpoint
+class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+    }
+    permission_classes = (OrganizationPermission,)
+
+    def get(
+        self, request: Request, organization: Organization, project_id: int, repo_id: int
+    ) -> Response:
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
+
+        project_repo = (
+            _get_project_repos_queryset(project)
+            .filter(project_repository__repository_id=repo_id)
+            .first()
+        )
+        if project_repo is None:
+            return Response(status=404)
+
+        return Response(_serialize_project_repo(project_repo))
+
+    def put(
+        self, request: Request, organization: Organization, project_id: int, repo_id: int
+    ) -> Response:
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
+
+        serializer = SeerProjectRepoUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        project_repo = update_seer_project_repo(project, repo_id, serializer.validated_data)
+        if project_repo is None:
+            return Response(status=404)
+
+        return Response(_serialize_project_repo(project_repo))
+
+    def delete(
+        self, request: Request, organization: Organization, project_id: int, repo_id: int
+    ) -> Response:
+        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
+
+        with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+            deleted_count, _ = SeerProjectRepository.objects.filter(
+                project_repository__project=project,
+                project_repository__repository_id=repo_id,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            ).delete()
+
+        if deleted_count == 0:
+            return Response(status=404)
+
+        return Response(status=204)
+
+
+@cell_silo_endpoint
 class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
@@ -254,63 +312,5 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
             replace_all_seer_project_repos(project, organization, repos_data)
         except ValueError as e:
             return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
-
-        return Response(status=204)
-
-
-@cell_silo_endpoint
-class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ML_AI
-    publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
-    }
-    permission_classes = (OrganizationPermission,)
-
-    def get(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
-        project_repo = (
-            _get_project_repos_queryset(project)
-            .filter(project_repository__repository_id=repo_id)
-            .first()
-        )
-        if project_repo is None:
-            return Response(status=404)
-
-        return Response(_serialize_project_repo(project_repo))
-
-    def put(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
-        serializer = SeerProjectRepoUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        project_repo = update_seer_project_repo(project, repo_id, serializer.validated_data)
-        if project_repo is None:
-            return Response(status=404)
-
-        return Response(_serialize_project_repo(project_repo))
-
-    def delete(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
-        with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-            deleted_count, _ = SeerProjectRepository.objects.filter(
-                project_repository__project=project,
-                project_repository__repository_id=repo_id,
-                project_repository__repository__status=ObjectStatus.ACTIVE,
-            ).delete()
-
-        if deleted_count == 0:
-            return Response(status=404)
 
         return Response(status=204)
