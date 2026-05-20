@@ -90,10 +90,7 @@ export default function IntegrationOrganizationLink() {
     data: organizations = [],
     isPending: isPendingOrganizations,
     error: organizationsError,
-  } = useApiQuery<Organization[]>(
-    [getApiUrl('/organizations/'), {query: {include_feature_flags: 1}}],
-    {staleTime: Infinity}
-  );
+  } = useApiQuery<Organization[]>([getApiUrl('/organizations/')], {staleTime: Infinity});
 
   const hasSelectedOrg = !!selectedOrgSlug;
   const organizationQuery = useQuery(
