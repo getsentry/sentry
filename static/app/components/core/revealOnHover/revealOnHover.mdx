@@ -1,0 +1,199 @@
+---
+title: RevealOnHover
+description: A container that reveals secondary actions (like copy or delete buttons) on hover and focus, with built-in accessibility and touch device support.
+category: interaction
+source: '@sentry/scraps/revealOnHover'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/revealOnHover/revealOnHover.tsx
+  a11y:
+    WCAG 1.4.13: https://www.w3.org/TR/WCAG22/#content-on-hover-or-focus
+    WCAG 3.2.7: https://www.w3.org/TR/WCAG22/#visible-controls
+---
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+
+import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation =
+  import('!!type-loader!@sentry/scraps/revealOnHover/revealOnHover');
+
+Use `<RevealOnHover>` to hide secondary actions at rest and reveal them when the user hovers or focuses within the container. Actions are always visible on touch devices.
+
+<Storybook.Demo>
+  <RevealOnHover>
+    <Text>Hover to reveal the action</Text>
+    <RevealOnHover.Action>
+      <Tooltip title="Copy to clipboard">
+        <Button
+          size="zero"
+          variant="transparent"
+          aria-label="Copy"
+          icon={<IconCopy size="xs" />}
+        />
+      </Tooltip>
+    </RevealOnHover.Action>
+  </RevealOnHover>
+</Storybook.Demo>
+
+```jsx
+<RevealOnHover>
+  <Text>Hover to reveal the action</Text>
+  <RevealOnHover.Action>
+    <Tooltip title="Copy to clipboard">
+      <Button
+        size="zero"
+        variant="transparent"
+        aria-label="Copy"
+        icon={<IconCopy size="xs" />}
+      />
+    </Tooltip>
+  </RevealOnHover.Action>
+</RevealOnHover>
+```
+
+## Multiple Actions
+
+Wrap each action in its own `<RevealOnHover.Action>`.
+
+<Storybook.Demo>
+  <RevealOnHover>
+    <Text>Row with multiple actions</Text>
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        variant="transparent"
+        aria-label="Edit"
+        icon={<IconEdit size="xs" />}
+      />
+    </RevealOnHover.Action>
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        variant="transparent"
+        aria-label="Delete"
+        icon={<IconDelete size="xs" />}
+      />
+    </RevealOnHover.Action>
+  </RevealOnHover>
+</Storybook.Demo>
+
+```jsx
+<RevealOnHover>
+  <Text>Row with multiple actions</Text>
+  <RevealOnHover.Action>
+    <Button
+      size="zero"
+      variant="transparent"
+      aria-label="Edit"
+      icon={<IconEdit size="xs" />}
+    />
+  </RevealOnHover.Action>
+  <RevealOnHover.Action>
+    <Button
+      size="zero"
+      variant="transparent"
+      aria-label="Delete"
+      icon={<IconDelete size="xs" />}
+    />
+  </RevealOnHover.Action>
+</RevealOnHover>
+```
+
+## Always Visible
+
+Use the `alwaysVisible` prop on `<RevealOnHover.Action>` to override the reveal behavior for specific actions.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="sm" width="300px">
+    <RevealOnHover>
+      <Text>Pinned item</Text>
+      <RevealOnHover.Action alwaysVisible>
+        <Button
+          size="zero"
+          variant="transparent"
+          aria-label="Copy"
+          icon={<IconCopy size="xs" />}
+        />
+      </RevealOnHover.Action>
+    </RevealOnHover>
+    <RevealOnHover>
+      <Text>Normal item</Text>
+      <RevealOnHover.Action>
+        <Button
+          size="zero"
+          variant="transparent"
+          aria-label="Copy"
+          icon={<IconCopy size="xs" />}
+        />
+      </RevealOnHover.Action>
+    </RevealOnHover>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<RevealOnHover>
+  <Text>Pinned item</Text>
+  <RevealOnHover.Action alwaysVisible>
+    <Button
+      size="zero"
+      variant="transparent"
+      aria-label="Copy"
+      icon={<IconCopy size="xs" />}
+    />
+  </RevealOnHover.Action>
+</RevealOnHover>
+```
+
+## Layout Props
+
+`RevealOnHover` extends `Flex`, so all layout props are available.
+
+<Storybook.Demo>
+  <RevealOnHover justify="between" width="300px" gap="md">
+    <Text>Spread layout</Text>
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        variant="transparent"
+        aria-label="Copy"
+        icon={<IconCopy size="xs" />}
+      />
+    </RevealOnHover.Action>
+  </RevealOnHover>
+</Storybook.Demo>
+
+```jsx
+<RevealOnHover justify="between" width="300px" gap="md">
+  <Text>Spread layout</Text>
+  <RevealOnHover.Action>
+    <Button
+      size="zero"
+      variant="transparent"
+      aria-label="Copy"
+      icon={<IconCopy size="xs" />}
+    />
+  </RevealOnHover.Action>
+</RevealOnHover>
+```
+
+## How It Works
+
+- Actions use `opacity: 0` + `visibility: hidden` at rest, ensuring space is reserved (no layout shift) while preventing ghost clicks.
+- On `:hover` or `:focus-within`, actions transition to `opacity: 1` + `visibility: visible`.
+- Individual actions with `:focus-visible` also reveal themselves, supporting keyboard-only navigation.
+- On touch devices (`@media (hover: none)`), actions are always visible since there is no hover interaction.
+- Transitions use `motion.enter.moderate` (160ms) to appear and `motion.exit.fast` (120ms) to disappear.
+
+## Accessibility
+
+- **Keyboard**: Actions are always focusable and reveal themselves via `:focus-visible`, even when not hovered.
+- **Screen readers**: Actions are in the DOM at all times, so they are discoverable. `visibility: hidden` removes them from the accessibility tree at rest, but they become available on focus.
+- **Touch devices**: Actions are persistently visible since hover is not available.
+- **WCAG 1.4.13**: Content revealed on hover is hoverable and persistent.
+- **WCAG 3.2.7**: Use this only for secondary/supplementary actions. Primary actions should always be visible.
