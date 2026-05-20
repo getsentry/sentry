@@ -200,7 +200,6 @@ export function ConversationAggregatesBar({
                     ))}
                   </MoreToolsTooltip>
                 }
-                maxWidth={400}
                 isHoverable
                 skipWrapper
               >
