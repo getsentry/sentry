@@ -23,9 +23,8 @@ import {ConfigStore} from './stores/configStore';
 
 /**
  * `api.tsx` is consumed outside React, so it can't use the `useNavigate` hook.
- * The app's bootstrap (alongside `DANGEROUS_SET_REACT_ROUTER_6_HISTORY`) calls
- * `setApiNavigate` once to install a navigate function the auth-error handler
- * can use.
+ * The app's bootstrap calls `setApiNavigate` once to install a navigate
+ * function the auth-error handler can use.
  */
 let apiNavigate: ReactRouter3Navigate | null = null;
 
