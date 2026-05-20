@@ -301,6 +301,12 @@ describe('ProjectFilters', () => {
     expect(textbox).toHaveValue('');
   });
 
+  it('shows ip address filter without custom-inbound-filters flag', async () => {
+    renderComponent();
+
+    expect(await screen.findByRole('textbox', {name: 'IP Addresses'})).toBeEnabled();
+  });
+
   it('filter by release/error message are not enabled', async () => {
     renderComponent();
 

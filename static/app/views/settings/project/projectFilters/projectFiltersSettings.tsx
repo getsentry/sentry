@@ -346,131 +346,103 @@ function CustomFiltersForm({
   });
 
   return (
-    <Feature
-      features="projects:custom-inbound-filters"
-      hookName="feature-disabled:custom-inbound-filters"
-      project={project}
-      renderDisabled={({children, ...props}) => {
-        if (typeof children === 'function') {
-          return children({
-            ...props,
-            renderDisabled: p => (
-              <FeatureDisabled
-                featureName={t('Custom Inbound Filters')}
-                features={p.features}
-                alert={PanelAlert}
-                message={t(
-                  'Release and Error Message filtering are not enabled on your Sentry installation'
-                )}
-              />
-            ),
-          });
-        }
-        return null;
-      }}
-    >
-      {({hasFeature, organization, renderDisabled, ...featureProps}) => (
-        <form.AppForm form={form}>
-          <FormSearch route="/settings/:orgId/projects/:projectId/filters/">
-            <FieldGroup title={t('Custom Filters')}>
-              {!hasFeature &&
-                typeof renderDisabled === 'function' &&
-                renderDisabled({
-                  organization,
-                  hasFeature,
-                  children: null,
-                  ...featureProps,
-                })}
+    <form.AppForm form={form}>
+      <FormSearch route="/settings/:orgId/projects/:projectId/filters/">
+        <FieldGroup title={t('Custom Filters')}>
+          <form.AppField name="filters:blacklisted_ips">
+            {field => (
+              <field.Layout.Row
+                label={t('IP Addresses')}
+                hintText={
+                  <Fragment>
+                    {t('Filter events from these IP addresses. ')}
+                    {newLineHelpText}
+                  </Fragment>
+                }
+              >
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled}
+                  monospace
+                  autosize
+                  rows={1}
+                  maxRows={10}
+                  placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
 
-              <form.AppField name="filters:blacklisted_ips">
-                {field => (
-                  <field.Layout.Row
-                    label={t('IP Addresses')}
-                    hintText={
-                      <Fragment>
-                        {t('Filter events from these IP addresses. ')}
-                        {newLineHelpText}
-                      </Fragment>
-                    }
-                  >
-                    <field.TextArea
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      disabled={disabled}
-                      monospace
-                      autosize
-                      rows={1}
-                      maxRows={10}
-                      placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
+          <Feature
+            features="projects:custom-inbound-filters"
+            hookName="feature-disabled:custom-inbound-filters"
+            project={project}
+            renderDisabled={({children, ...props}) => {
+              if (typeof children === 'function') {
+                return children({
+                  ...props,
+                  renderDisabled: p => (
+                    <FeatureDisabled
+                      featureName={t('Custom Inbound Filters')}
+                      features={p.features}
+                      alert={PanelAlert}
+                      message={t(
+                        'Release and Error Message filtering are not enabled on your Sentry installation'
+                      )}
                     />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
+                  ),
+                });
+              }
+              return null;
+            }}
+          >
+            {({hasFeature, organization, renderDisabled, ...featureProps}) => (
+              <Fragment>
+                {!hasFeature &&
+                  typeof renderDisabled === 'function' &&
+                  renderDisabled({
+                    organization,
+                    hasFeature,
+                    children: null,
+                    ...featureProps,
+                  })}
 
-              <form.AppField name="filters:releases">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Releases')}
-                    hintText={
-                      <Fragment>
-                        {t('Filter events from these releases. ')}
-                        {newLineHelpText} {globHelpText}
-                      </Fragment>
-                    }
-                  >
-                    <field.TextArea
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      disabled={disabled || !hasFeature}
-                      monospace
-                      autosize
-                      rows={1}
-                      maxRows={10}
-                      placeholder="e.g. 1.* or [!3].[0-9].*"
-                    />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
-
-              <form.AppField name="filters:error_messages">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Error Message')}
-                    hintText={
-                      <Fragment>
-                        {t('Filter events by error messages. ')}
-                        {newLineHelpText} {globHelpText}{' '}
-                        {t(
-                          'Exceptions are matched on "<type>: <message>", for example "TypeError: *".'
-                        )}
-                      </Fragment>
-                    }
-                  >
-                    <field.TextArea
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      disabled={disabled || !hasFeature}
-                      monospace
-                      autosize
-                      rows={1}
-                      maxRows={10}
-                      placeholder="e.g. TypeError* or *: integer division or modulo by zero"
-                    />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
-
-              {organization.features.includes('ourlogs-ingestion') && (
-                <form.AppField name="filters:log_messages">
+                <form.AppField name="filters:releases">
                   {field => (
                     <field.Layout.Row
-                      label={t('Log Message')}
+                      label={t('Releases')}
                       hintText={
                         <Fragment>
-                          {t('Filter logs by messages. ')}
+                          {t('Filter events from these releases. ')}
+                          {newLineHelpText} {globHelpText}
+                        </Fragment>
+                      }
+                    >
+                      <field.TextArea
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        disabled={disabled || !hasFeature}
+                        monospace
+                        autosize
+                        rows={1}
+                        maxRows={10}
+                        placeholder="e.g. 1.* or [!3].[0-9].*"
+                      />
+                    </field.Layout.Row>
+                  )}
+                </form.AppField>
+
+                <form.AppField name="filters:error_messages">
+                  {field => (
+                    <field.Layout.Row
+                      label={t('Error Message')}
+                      hintText={
+                        <Fragment>
+                          {t('Filter events by error messages. ')}
                           {newLineHelpText} {globHelpText}{' '}
                           {t(
-                            'Logs are matched on "<message>", for example "Rate limit*".'
+                            'Exceptions are matched on "<type>: <message>", for example "TypeError: *".'
                           )}
                         </Fragment>
                       }
@@ -483,70 +455,101 @@ function CustomFiltersForm({
                         autosize
                         rows={1}
                         maxRows={10}
-                        placeholder="e.g. Rate limit* or *connection"
+                        placeholder="e.g. TypeError* or *: integer division or modulo by zero"
                       />
                     </field.Layout.Row>
                   )}
                 </form.AppField>
-              )}
 
-              {organization.features.includes('tracemetrics-ingestion') && (
-                <form.AppField name="filters:trace_metric_names">
-                  {field => (
-                    <field.Layout.Row
-                      label={t('Application Metrics')}
-                      hintText={
-                        <Fragment>
-                          {t('Filter application metrics by name. ')}
-                          {newLineHelpText} {globHelpText}{' '}
-                          {t(
-                            'Application metrics are matched on the metric name, for example "my_metric.*".'
-                          )}
-                        </Fragment>
-                      }
-                    >
-                      <field.TextArea
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                        disabled={disabled || !hasFeature}
-                        monospace
-                        autosize
-                        rows={1}
-                        maxRows={10}
-                        placeholder="e.g. my_metric.*"
-                      />
-                    </field.Layout.Row>
-                  )}
-                </form.AppField>
-              )}
+                {organization.features.includes('ourlogs-ingestion') && (
+                  <form.AppField name="filters:log_messages">
+                    {field => (
+                      <field.Layout.Row
+                        label={t('Log Message')}
+                        hintText={
+                          <Fragment>
+                            {t('Filter logs by messages. ')}
+                            {newLineHelpText} {globHelpText}{' '}
+                            {t(
+                              'Logs are matched on "<message>", for example "Rate limit*".'
+                            )}
+                          </Fragment>
+                        }
+                      >
+                        <field.TextArea
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                          disabled={disabled || !hasFeature}
+                          monospace
+                          autosize
+                          rows={1}
+                          maxRows={10}
+                          placeholder="e.g. Rate limit* or *connection"
+                        />
+                      </field.Layout.Row>
+                    )}
+                  </form.AppField>
+                )}
 
-              {hasFeature && project.options?.['filters:error_messages'] && (
-                <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
-                  {t(
-                    "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
-                  )}
-                </PanelAlert>
-              )}
-              <Flex gap="sm" align="center">
-                <form.Subscribe selector={state => state.isDirty}>
-                  {isDirty =>
-                    isDirty ? (
-                      <Alert variant="info">
-                        {t('Changing this filter will apply to all new events.')}
-                      </Alert>
-                    ) : null
-                  }
-                </form.Subscribe>
-                <Flex gap="sm" justify="end" flexGrow={1}>
-                  <form.ResetButton>{t('Cancel')}</form.ResetButton>
-                  <form.SubmitButton>{t('Save')}</form.SubmitButton>
-                </Flex>
-              </Flex>
-            </FieldGroup>
-          </FormSearch>
-        </form.AppForm>
-      )}
-    </Feature>
+                {organization.features.includes('tracemetrics-ingestion') && (
+                  <form.AppField name="filters:trace_metric_names">
+                    {field => (
+                      <field.Layout.Row
+                        label={t('Application Metrics')}
+                        hintText={
+                          <Fragment>
+                            {t('Filter application metrics by name. ')}
+                            {newLineHelpText} {globHelpText}{' '}
+                            {t(
+                              'Application metrics are matched on the metric name, for example "my_metric.*".'
+                            )}
+                          </Fragment>
+                        }
+                      >
+                        <field.TextArea
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                          disabled={disabled || !hasFeature}
+                          monospace
+                          autosize
+                          rows={1}
+                          maxRows={10}
+                          placeholder="e.g. my_metric.*"
+                        />
+                      </field.Layout.Row>
+                    )}
+                  </form.AppField>
+                )}
+
+                {hasFeature && project.options?.['filters:error_messages'] && (
+                  <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
+                    {t(
+                      "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
+                    )}
+                  </PanelAlert>
+                )}
+              </Fragment>
+            )}
+          </Feature>
+
+          <Flex gap="sm" align="center">
+            <form.Subscribe selector={state => state.isDirty}>
+              {isDirty =>
+                isDirty ? (
+                  <Alert variant="info">
+                    {t('Changing this filter will apply to all new events.')}
+                  </Alert>
+                ) : null
+              }
+            </form.Subscribe>
+            <Flex gap="sm" justify="end" flexGrow={1}>
+              <form.ResetButton>{t('Cancel')}</form.ResetButton>
+              <form.SubmitButton>{t('Save')}</form.SubmitButton>
+            </Flex>
+          </Flex>
+        </FieldGroup>
+      </FormSearch>
+    </form.AppForm>
   );
 }
 
