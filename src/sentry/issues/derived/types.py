@@ -1,5 +1,5 @@
 """
-Types for the issue action log. No Django dependencies — safe to import anywhere.
+Types for the group action log. No Django dependencies — safe to import anywhere.
 """
 
 from __future__ import annotations
@@ -37,20 +37,20 @@ class ActionActor:
 ActionActor.SYSTEM = ActionActor(actor_type=ActorType.SYSTEM, actor_id=0)
 
 
-class IssueActionType(IntEnum):
+class GroupActionType(IntEnum):
     """
-    Action kinds stored in IssueActionLogEntry.type.
+    Action kinds stored in GroupActionLogEntry.type.
 
     To add a new kind: add a value here, then add a corresponding
-    IssueAction subclass below. Values need not be contiguous.
+    GroupAction subclass below. Values need not be contiguous.
     """
 
     VIEW = 0
 
 
-class IssueAction(BaseModel, abc.ABC):
+class GroupAction(BaseModel, abc.ABC):
     """
-    Typed payload for an IssueActionLogEntry. Subclasses define the schema
+    Typed payload for a GroupActionLogEntry. Subclasses define the schema
     for a specific action kind's ``data`` column. Frozen after construction.
     """
 
@@ -59,10 +59,10 @@ class IssueAction(BaseModel, abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def get_type(cls) -> IssueActionType: ...
+    def get_type(cls) -> GroupActionType: ...
 
 
-class ViewAction(IssueAction):
+class ViewAction(GroupAction):
     @classmethod
-    def get_type(cls) -> IssueActionType:
-        return IssueActionType.VIEW
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.VIEW

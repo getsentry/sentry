@@ -11,13 +11,13 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
-from sentry.issues.derived.types import ActorType, IssueActionType
+from sentry.issues.derived.types import ActorType, GroupActionType
 
 
 @cell_silo_model
-class IssueActionLogEntry(Model):
+class GroupActionLogEntry(Model):
     """
-    Append-only log of actions taken on an issue (Group).
+    Append-only log of actions taken on a Group.
 
     Each entry records who did what, when, with optional structured payload.
     Ordered by (group_id, date_added, id).
@@ -32,9 +32,9 @@ class IssueActionLogEntry(Model):
     # The group_id before a merge, if this entry was migrated.
     original_group_id = BoundedBigIntegerField(null=True)
 
-    # An IssueActionType value.
+    # A GroupActionType value.
     type = BoundedPositiveIntegerField(
-        choices=[(t.value, t.name) for t in IssueActionType],
+        choices=[(t.value, t.name) for t in GroupActionType],
     )
 
     actor_type = BoundedPositiveIntegerField(
@@ -42,7 +42,7 @@ class IssueActionLogEntry(Model):
     )
     actor_id = BoundedBigIntegerField()
 
-    # JSON payload of the IssueAction subclass for this type.
+    # JSON payload of the GroupAction subclass for this type.
     data = models.JSONField(default=dict)
 
     # DB-defaulted; backfill code may pass an explicit value.
@@ -53,7 +53,7 @@ class IssueActionLogEntry(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_issueactionlogentry"
+        db_table = "sentry_groupactionlogentry"
         indexes = [
             models.Index(fields=["group_id", "date_added", "id"]),
             models.Index(fields=["project_id", "group_id"]),
@@ -61,7 +61,7 @@ class IssueActionLogEntry(Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["group_id", "idempotency_key"],
-                name="uniq_issueactionlogentry_group_idempotency_key",
+                name="uniq_groupactionlogentry_group_idempotency_key",
                 condition=models.Q(idempotency_key__isnull=False),
             ),
         ]

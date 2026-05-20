@@ -20,13 +20,13 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
+from sentry.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
-from sentry.models.issueactionlogentry import IssueActionLogEntry
 from sentry.models.userreport import UserReport
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -72,7 +72,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         Activity.objects.create(
             group=event.group, project=self.project, type=ActivityType.SET_RESOLVED.value
         )
-        IssueActionLogEntry.objects.create(
+        GroupActionLogEntry.objects.create(
             group_id=event.group.id,
             project_id=event.project_id,
             type=0,
@@ -107,7 +107,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not Activity.objects.filter(group_id=event.group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=event.group.id).exists()
         assert not GroupHash.objects.filter(group_id=event.group.id).exists()
-        assert not IssueActionLogEntry.objects.filter(group_id=event.group.id).exists()
+        assert not GroupActionLogEntry.objects.filter(group_id=event.group.id).exists()
         assert not Group.objects.filter(id=event.group.id).exists()
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(event2))
