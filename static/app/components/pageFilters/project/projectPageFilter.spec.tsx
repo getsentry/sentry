@@ -440,7 +440,8 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    // Single-project orgs show the project name, not "All Projects"
+    await userEvent.click(await screen.findByRole('button', {name: 'project-3'}));
 
     expect(
       screen.queryByRole('checkbox', {name: 'Select All Projects'})

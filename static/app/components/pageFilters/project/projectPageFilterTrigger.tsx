@@ -37,8 +37,8 @@ export function ProjectPageFilterTrigger({
     selectionIntentKind === 'my' && memberProjects.length > 0 && totalProjects > 1;
 
   const isAllProjectsSelected =
-    selectionIntentKind === 'all' ||
-    (selectionIntentKind === 'none' && totalProjects > 1);
+    totalProjects > 1 &&
+    (selectionIntentKind === 'all' || selectionIntentKind === 'none');
 
   const selectedProjects = value
     .slice(0, 2) // we only need to know about the first two projects
