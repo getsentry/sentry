@@ -254,7 +254,7 @@ def test_batch_subsegments_groups_by_pipeline_batch_size() -> None:
     assert buffer._batch_subsegments(subsegments, pipeline_batch_size=0) == [subsegments]
 
 
-def test_push_payloads_writes_payloads_and_emits_process_counts() -> None:
+def test_push_payloads_writes_payloads() -> None:
     buffer = SpansBuffer(assigned_shards=[0])
     client = mock.MagicMock()
     pipeline = mock.MagicMock()
@@ -269,16 +269,12 @@ def test_push_payloads_writes_payloads_and_emits_process_counts() -> None:
         _span("b" * 16, parent_span_id),
     ]
 
-    with (
-        mock.patch("sentry.spans.buffer.metrics.timing") as timing,
-        mock.patch("sentry.spans.buffer.metrics.incr") as incr,
-    ):
-        trees, subsegment_batches = buffer._push_payloads(
-            spans,
-            redis_ttl=3600,
-            max_spans_per_evalsha=0,
-            pipeline_batch_size=0,
-        )
+    trees, subsegment_batches = buffer._push_payloads(
+        spans,
+        redis_ttl=3600,
+        max_spans_per_evalsha=0,
+        pipeline_batch_size=0,
+    )
 
     subsegment = subsegment_batches[0][0]
     payload_key = buffer._get_payload_key(project_and_trace, subsegment.salt)
@@ -289,13 +285,6 @@ def test_push_payloads_writes_payloads_and_emits_process_counts() -> None:
     assert set(sadd_args[1:]) == {span.payload for span in spans}
     pipeline.expire.assert_called_once_with(payload_key, 3600)
     pipeline.execute.assert_called_once_with()
-    timing.assert_has_calls(
-        [
-            mock.call("spans.buffer.process_spans.num_spans", 2),
-            mock.call("spans.buffer.process_spans.num_subsegments", 1),
-        ]
-    )
-    incr.assert_called_once_with("spans.buffer.process_spans.count_spans", amount=2)
 
 
 def test_insert_spans_builds_evalsha_commands_and_results() -> None:
@@ -339,10 +328,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
     ]
     pipeline.execute.return_value = [root_result, child_result]
 
-    with (
-        mock.patch.object(buffer, "_ensure_script", return_value="add-buffer-sha"),
-        mock.patch("sentry.spans.buffer.metrics.timing") as timing,
-    ):
+    with mock.patch.object(buffer, "_ensure_script", return_value="add-buffer-sha"):
         inserted_subsegments = buffer._insert_spans(
             [[root_subsegment, child_subsegment]],
             redis_ttl=3600,
@@ -389,12 +375,54 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
         ]
     )
     pipeline.execute.assert_called_once_with()
+
+
+def test_emit_process_spans_count_metrics() -> None:
+    buffer = SpansBuffer(assigned_shards=[0])
+
+    trace_id = "a" * 32
+    project_and_trace = f"1:{trace_id}"
+    parent_span_id = "f" * 16
+    root_span = _span("a" * 16, parent_span_id, is_segment_span=True)
+    child_span = _span("b" * 16, parent_span_id)
+    subsegment = Subsegment(
+        project_and_trace=project_and_trace,
+        parent_span_id=parent_span_id,
+        salt="salted",
+        spans=[root_span, child_span],
+    )
+    inserted_subsegments = [
+        InsertedSubsegment(
+            subsegment,
+            EvalshaResult(
+                segment_key=_segment_id(1, trace_id, parent_span_id),
+                has_root_span=True,
+                latency_ms=15,
+                latency_metrics=[],
+                gauge_metrics=[],
+            ),
+        )
+    ]
+
+    with (
+        mock.patch("sentry.spans.buffer.metrics.timing") as timing,
+        mock.patch("sentry.spans.buffer.metrics.incr") as incr,
+    ):
+        buffer._emit_process_spans_count_metrics(
+            [root_span, child_span],
+            {subsegment.key: [root_span, child_span]},
+            inserted_subsegments,
+        )
+
     timing.assert_has_calls(
         [
+            mock.call("spans.buffer.process_spans.num_spans", 2),
             mock.call("spans.buffer.process_spans.num_is_root_spans", 1),
-            mock.call("spans.buffer.process_spans.num_evalsha_calls", 2),
+            mock.call("spans.buffer.process_spans.num_subsegments", 1),
+            mock.call("spans.buffer.process_spans.num_evalsha_calls", 1),
         ]
     )
+    incr.assert_called_once_with("spans.buffer.process_spans.count_spans", amount=2)
 
 
 def test_update_queue_uses_inserted_subsegment_metadata() -> None:

@@ -299,7 +299,8 @@ class SpansBuffer:
             root_timeout=root_timeout,
         )
 
-        observability.emit_metrics()
+        self._emit_process_spans_count_metrics(spans, trees, inserted_subsegments)
+        observability.emit_evalsha_metrics()
 
     def _build_subsegments(
         self,
@@ -371,11 +372,6 @@ class SpansBuffer:
 
                     p.execute()
 
-            metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
-            # This incr metric is needed to get a rate overall.
-            metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
-            metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
-
         return trees, subsegment_batches
 
     def _insert_spans(
@@ -396,7 +392,6 @@ class SpansBuffer:
 
             result_subsegments: list[Subsegment] = []
             results: list[Any] = []
-            is_root_span_count = 0
 
             for batch in batches:
                 with self.client.pipeline(transaction=False) as p:
@@ -423,7 +418,6 @@ class SpansBuffer:
                             *subsegment.span_ids,
                         )
 
-                        is_root_span_count += sum(span.is_segment_span for span in subsegment.spans)
                         result_subsegments.append(subsegment)
 
                     results.extend(p.execute())
@@ -435,12 +429,26 @@ class SpansBuffer:
                 for subsegment, result in zip(result_subsegments, results)
             ]
 
-            metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
-            metrics.timing(
-                "spans.buffer.process_spans.num_evalsha_calls", len(inserted_subsegments)
-            )
-
             return inserted_subsegments
+
+    def _emit_process_spans_count_metrics(
+        self,
+        spans: Sequence[Span],
+        trees: dict[tuple[str, str], list[Span]],
+        inserted_subsegments: Sequence[InsertedSubsegment],
+    ) -> None:
+        is_root_span_count = sum(
+            span.is_segment_span
+            for inserted_subsegment in inserted_subsegments
+            for span in inserted_subsegment.subsegment.spans
+        )
+
+        metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
+        # This incr metric is needed to get a rate overall.
+        metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
+        metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
+        metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
+        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(inserted_subsegments))
 
     def _update_queue(
         self,

@@ -172,7 +172,7 @@ class ProcessSpansObservability:
     def evalsha_latency_entries(self) -> list[tuple[str, int]]:
         return self._latency_entries
 
-    def emit_metrics(self) -> None:
+    def emit_evalsha_metrics(self) -> None:
         try:
             emit_observability_metrics(
                 self._latency_metrics,
