@@ -188,35 +188,41 @@ type Colors = typeof lightColors;
 const commonTheme = {
   motion: generateMotion(),
 
-  // Try to keep these ordered plz
+  /**
+   * @deprecated Use the `Layer` primitive for stacking context isolation.
+   * The only z-index value needed is `z-index: 1` for local overrides
+   * within a Layer (e.g., sticky headers, hover states).
+   */
+  /**
+   * @deprecated Use the `Layer` primitive for stacking context isolation.
+   * The only z-index value needed is `z-index: 1` for local overrides
+   * within a Layer (e.g., sticky headers, hover states).
+   */
   zIndex: {
-    // Generic z-index when you hope your component is isolated and
-    // does not need to battle others for z-index priority
+    /** @deprecated Use `z-index: 1` instead */
     initial: 1,
+    /** @deprecated Use `z-index: 1` instead */
     truncationFullValue: 10,
-
+    /** @deprecated Use `<Layer variant="nav">` instead */
     header: 1000,
-
-    // dashboard widget builder backdrop sits behind the sidebar
-    // because it renders on the right next to the sidebar
-    // @TODO(design-engineering): resolve this inconsistency
+    /** @deprecated Use `<Layer variant="overlay">` instead */
     widgetBuilderDrawer: 1016,
-
+    /** @deprecated Use `<Layer variant="nav">` instead */
     sidebarPanel: 1019,
+    /** @deprecated Handled by Layer portal outlets */
     dropdown: 1020,
+    /** @deprecated Use `<Layer variant="nav">` instead */
     sidebar: 1020,
-
-    // Sentry user feedback modal
     sentryErrorEmbed: 1090,
-
-    // If you change modal also update shared-components.less
-    // as the z-index for bootstrap modals lives there.
+    /** @deprecated Use `<Layer variant="overlay">` instead */
     drawer: 9999,
+    /** @deprecated Use `<Layer variant="overlay">` instead */
     modal: 10000,
+    /** @deprecated Use `<Layer variant="overlay">` instead */
     toast: 10001,
-
-    // tooltips and hovercards can be inside modals sometimes.
+    /** @deprecated Handled by Layer portal outlets */
     hovercard: 10002,
+    /** @deprecated Handled by Layer portal outlets */
     tooltip: 10003,
   },
 
