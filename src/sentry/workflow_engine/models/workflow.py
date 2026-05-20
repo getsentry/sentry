@@ -147,7 +147,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if group is None:
             # This isn't expected under normal conditions, but weird things can happen in the
             # midst of deletions and migrations.
-            logger.exception(
+            logger.critical(
                 "DataConditionGroup does not exist",
                 extra={"id": self.when_condition_group_id},
             )
