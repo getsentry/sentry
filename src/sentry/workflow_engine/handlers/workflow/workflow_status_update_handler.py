@@ -1,21 +1,37 @@
 import logging
 
+from sentry import features
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+SEER_ACTIVITIES = [
+    ActivityType.SEER_RCA_STARTED.value,
+    ActivityType.SEER_RCA_COMPLETED.value,
+    ActivityType.SEER_SOLUTION_STARTED.value,
+    ActivityType.SEER_SOLUTION_COMPLETED.value,
+    ActivityType.SEER_CODING_STARTED.value,
+    ActivityType.SEER_CODING_COMPLETED.value,
+    ActivityType.SEER_PR_CREATED.value,
+]
 
-SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
+SUPPORTED_ACTIVITIES = [
+    ActivityType.SET_RESOLVED.value,
+    *SEER_ACTIVITIES,
+]
 
 
 @group_status_update_registry.register("workflow_status_update")
 def workflow_status_update_handler(
-    group: Group, status_change_message: StatusChangeMessageData, activity: Activity
+    group: Group,
+    status_change_message: StatusChangeMessageData,
+    activity: Activity,
 ) -> None:
     """
     Hook the process_workflow_task into the activity creation registry.
@@ -40,6 +56,16 @@ def workflow_status_update_handler(
         # We should not hit this case, it's should only occur if there is a bug
         # passing it from the workflow_engine to the issue platform.
         metrics.incr("workflow_engine.tasks.error.no_detector_id")
+        return
+
+    organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
+    can_process_seer_activities = features.has(
+        "organization:workflow_engine_evaluate_seer_activities", organization
+    )
+
+    if activity.type in SEER_ACTIVITIES and not can_process_seer_activities:
+        # Don't process these activities yet
+        # If the processing is enabled, then it's ok because no workflows can be triggered
         return
 
     process_workflow_activity.delay(
