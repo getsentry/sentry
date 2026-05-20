@@ -236,6 +236,37 @@ describe('traceItemAttributeKeysOptions', () => {
     expect(cachedRequest).toHaveBeenCalledTimes(1);
     expect(currentRequest).toHaveBeenCalledTimes(1);
   });
+
+  it('project and environment filter overrides selection values', async () => {
+    const request = addAttributeKeysMock({
+      substringMatch: 'foo',
+      body: [makeAttribute('foo.bar')],
+      query: {project: ['2'], environment: ['production']},
+    });
+
+    const result = await fetchAttributeKeys({
+      search: 'foo',
+      projectIds: [2],
+      environments: ['production'],
+      selection: PageFiltersFixture({
+        ...selection,
+        projects: [9999],
+        environments: ['not-production'],
+      }),
+    });
+
+    expect(result.json).toEqual([makeAttribute('foo.bar')]);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/trace-items/attributes/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: ['2'],
+          environment: ['production'],
+        }),
+      })
+    );
+  });
 });
 
 describe('getTraceItemTagCollection', () => {

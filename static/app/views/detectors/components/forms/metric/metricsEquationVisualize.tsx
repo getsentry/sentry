@@ -412,7 +412,11 @@ function MetricToolbar({
             />
           </Flex>
           <AggregateDropdown traceMetric={traceMetric} singleSelect />
-          <Filter traceMetric={traceMetric} />
+          <Filter
+            traceMetric={traceMetric}
+            projectIds={projectIds}
+            environments={environments}
+          />
           <DeleteMetricButton disabledReason={deleteDisabledReason} />
         </Fragment>
       ) : isVisualizeEquation(visualize) ? (
@@ -422,7 +426,12 @@ function MetricToolbar({
             referenceMap={referenceMap}
             handleExpressionChange={handleExpressionChange}
           />
-          <Filter traceMetric={traceMetric} skipTraceMetricFilter />
+          <Filter
+            traceMetric={traceMetric}
+            skipTraceMetricFilter
+            projectIds={projectIds}
+            environments={environments}
+          />
           <DeleteMetricButton />
         </Fragment>
       ) : null}

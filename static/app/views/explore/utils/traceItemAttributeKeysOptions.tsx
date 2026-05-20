@@ -31,6 +31,7 @@ type TraceItemAttributeKeyOptions = Pick<
 > & {
   attributeType: TraceItemAttributeType | TraceItemAttributeType[];
   itemType: TraceItemDataset;
+  environment?: string[];
   project?: string[];
   query?: string;
   substringMatch?: string;
@@ -40,6 +41,7 @@ interface TraceItemAttributeKeysOptions {
   organization: Organization;
   selection: PageFilters;
   traceItemType: TraceItemDataset;
+  environments?: string[];
   projectIds?: Array<string | number>;
   projects?: Project[];
   query?: string;
@@ -56,6 +58,7 @@ export function traceItemAttributeKeysOptions({
   type = ['string', 'number', 'boolean'],
   projects,
   projectIds: explicitProjectIds,
+  environments,
   query,
   search,
 }: TraceItemAttributeKeysOptions) {
@@ -68,6 +71,7 @@ export function traceItemAttributeKeysOptions({
     itemType: traceItemType,
     attributeType: type,
     project: projectIds?.map(String),
+    environment: environments ?? selection.environments,
     query,
     ...normalizeDateTimeParams(selection.datetime),
     ...(substringMatch === undefined ? {} : {substringMatch}),
