@@ -41,7 +41,10 @@ function getFontFaceCSS(): string {
   `;
 }
 
-function renderToHTML(element: ReactElement): string {
+function renderToHTML(
+  element: ReactElement,
+  rootDisplay: 'inline-block' | 'block' = 'inline-block'
+): string {
   const cache = createCache({key: 'snap'});
   const {extractCriticalToChunks, constructStyleTagsFromChunks} =
     createEmotionServer(cache);
@@ -60,7 +63,7 @@ function renderToHTML(element: ReactElement): string {
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
     body { font-family: 'Rubik', sans-serif; background: transparent; }
-    #root { display: inline-block; }
+    #root { display: ${rootDisplay}; }
   </style>
 </head>
 <body>
@@ -108,6 +111,7 @@ interface TakeSnapshotOptions {
   renderFn: () => ReactElement;
   testFilePath: string;
   theme: string | undefined;
+  viewport?: {width: number; height?: number};
 }
 
 export async function takeSnapshot({
@@ -118,13 +122,17 @@ export async function takeSnapshot({
   group,
   theme,
   metadata,
+  viewport,
 }: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
-  const fullHTML = renderToHTML(element);
+  const fullHTML = renderToHTML(element, viewport ? 'block' : 'inline-block');
 
   const browser = await getBrowser();
   const context = await browser.newContext({
     deviceScaleFactor: 2,
+    ...(viewport && {
+      viewport: {width: viewport.width, height: viewport.height ?? 720},
+    }),
   });
 
   try {
@@ -158,6 +166,10 @@ export async function takeSnapshot({
       group: metadata.group ?? group,
       tags: Object.keys(tags).length > 0 ? tags : undefined,
       context: {test_file_path: relativePath},
+      ...(viewport && {
+        viewport_width: String(viewport.width),
+        ...(viewport.height != null ? {viewport_height: String(viewport.height)} : {}),
+      }),
     };
 
     await Promise.all([

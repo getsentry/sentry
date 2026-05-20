@@ -6,6 +6,8 @@ export interface SnapshotImageMetadata {
   };
   group?: string | null;
   tags?: Record<string, string>;
+  viewport_height?: string;
+  viewport_width?: string;
   // Skip height, width and image_file_name as they're handled by the CLI
 }
 
