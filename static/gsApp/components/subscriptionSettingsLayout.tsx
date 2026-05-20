@@ -21,8 +21,10 @@ export default function SubscriptionSettingsLayout() {
   const matches = useMatches();
   const hasPageFrameFeature = useHasPageFrameFeature();
   let feedbackSource = location.pathname;
-  for (const match of matches) {
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const match = matches[i];
     if (
+      match &&
       match.handle &&
       typeof match.handle === 'object' &&
       'name' in match.handle &&
