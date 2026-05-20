@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
@@ -37,7 +36,6 @@ function UnstyledSettingsPageHeader({
   noTitleStyles = false,
   ...props
 }: Props) {
-  const routes = useRoutes();
   const hasPageFrame = useHasPageFrameFeature();
   // If Header is narrow, use align-items to center <Action>.
   // Otherwise, use a fixed margin to prevent an odd alignment.
@@ -51,7 +49,7 @@ function UnstyledSettingsPageHeader({
     return (
       <Fragment>
         {typeof title === 'string' ? (
-          <BreadcrumbTitle routes={routes} title={title} />
+          <BreadcrumbTitle title={title} />
         ) : (
           title && <Layout.Title>{title}</Layout.Title>
         )}
