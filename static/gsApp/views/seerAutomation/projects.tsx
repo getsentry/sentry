@@ -1,7 +1,6 @@
 import {Outlet} from 'react-router-dom';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -24,33 +23,29 @@ export default function SeerAutomationProjects() {
       <SentryDocumentTitle title={t('Autofix')} />
       <SettingsPageHeader
         title={t('Autofix')}
-        subtitle={
-          <Flex justify="between" align="center" gap="md">
-            <div>
-              {tct(
-                'Configure [rca:Autofix] by connecting your repositories with projects. Connecting your source code is required and gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
-                {
-                  rca: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
-                  ),
-                  docs: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-                  ),
-                }
-              )}
-            </div>
-            <LinkButton
-              size="sm"
-              icon={<IconSettings />}
-              to={{
-                pathname: `/settings/${organization.slug}/seer/projects/defaults/`,
-                query: location.query,
-              }}
-            >
-              {t('Defaults')}
-            </LinkButton>
-          </Flex>
+        action={
+          <LinkButton
+            size="sm"
+            icon={<IconSettings />}
+            to={{
+              pathname: `/settings/${organization.slug}/seer/projects/defaults/`,
+              query: location.query,
+            }}
+          >
+            {t('Defaults')}
+          </LinkButton>
         }
+        subtitle={tct(
+          'Configure [rca:Autofix] by connecting your repositories with projects. Connecting your source code is required and gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
+          {
+            rca: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
+            ),
+            docs: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+            ),
+          }
+        )}
       />
       <SeerSettingsPageContent>
         <SeerProjectTable />

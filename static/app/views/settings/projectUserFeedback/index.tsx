@@ -5,7 +5,6 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Access} from 'sentry/components/acl/access';
@@ -81,25 +80,21 @@ export default function ProjectUserFeedback() {
       <SentryDocumentTitle title={t('User Feedback')} projectSlug={project.slug}>
         <SettingsPageHeader
           title={t('User Feedback')}
-          subtitle={
-            <Flex justify="between" align="center" gap="md">
-              <span>
-                {tct(
-                  `Don't rely on stack traces and graphs alone to understand
+          action={
+            <Button variant="primary" size="md" onClick={handleClick}>
+              {t('Open the Crash Report Modal')}
+            </Button>
+          }
+          subtitle={tct(
+            `Don't rely on stack traces and graphs alone to understand
             the cause and impact of errors. Enable the User Feedback Widget to collect
             your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs. [link:Read the Docs]`,
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
-                    ),
-                  }
-                )}
-              </span>
-              <Button variant="primary" size="md" onClick={handleClick}>
-                {t('Open the Crash Report Modal')}
-              </Button>
-            </Flex>
-          }
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+              ),
+            }
+          )}
         />
         <ProjectPermissionAlert project={project} />
 

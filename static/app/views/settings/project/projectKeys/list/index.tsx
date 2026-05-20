@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -189,33 +188,29 @@ export default function ProjectKeys() {
       <SentryDocumentTitle title={t('Client Keys')} projectSlug={project.slug} />
       <SettingsPageHeader
         title={t('Client Keys')}
-        subtitle={
-          <Flex justify="between" align="center" gap="md">
-            <span>
-              {tct(
-                `To send data to Sentry you will need to configure an SDK with a client key
+        action={
+          <Button
+            onClick={() => handleCreateKeyMutation.mutate()}
+            size="md"
+            variant="primary"
+            icon={<IconAdd />}
+            disabled={!hasAccess}
+          >
+            {t('Generate New Key')}
+          </Button>
+        }
+        subtitle={tct(
+          `To send data to Sentry you will need to configure an SDK with a client key
           (usually referred to as the [code:SENTRY_DSN] value). For more
           information on integrating Sentry with your application take a look at our
           [link:documentation].`,
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
-                  ),
-                  code: <code />,
-                }
-              )}
-            </span>
-            <Button
-              onClick={() => handleCreateKeyMutation.mutate()}
-              size="md"
-              variant="primary"
-              icon={<IconAdd />}
-              disabled={!hasAccess}
-            >
-              {t('Generate New Key')}
-            </Button>
-          </Flex>
-        }
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
+            ),
+            code: <code />,
+          }
+        )}
       />
 
       <ProjectPermissionAlert project={project} />

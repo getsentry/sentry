@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -67,21 +66,17 @@ export default function DynamicSamplingSettings() {
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Dynamic Sampling')}
-        subtitle={
-          <Flex justify="between" align="center" gap="md">
-            <div>
-              {t(
-                'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
-              )}
-            </div>
-            <LinkButton
-              external
-              href="https://docs.sentry.io/organization/dynamic-sampling/"
-            >
-              {t('Read the docs')}
-            </LinkButton>
-          </Flex>
+        action={
+          <LinkButton
+            external
+            href="https://docs.sentry.io/organization/dynamic-sampling/"
+          >
+            {t('Read the docs')}
+          </LinkButton>
         }
+        subtitle={t(
+          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
+        )}
       />
       <OrganizationPermissionAlert />
       {hasReadAccess ? (

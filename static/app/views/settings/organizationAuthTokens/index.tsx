@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -170,25 +170,23 @@ function OrganizationAuthTokensIndex() {
           />
           <SettingsPageHeader
             title={t('Organization Tokens')}
+            action={createNewToken}
             subtitle={
-              <Flex justify="between" align="center" gap="md">
-                <Stack gap="md">
-                  <div>
-                    {t(
-                      'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-                    )}
-                  </div>
-                  <div>
-                    {tct(
-                      'For more information on how to use the web API, see our [link:documentation].',
-                      {
-                        link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                      }
-                    )}
-                  </div>
-                </Stack>
-                {createNewToken}
-              </Flex>
+              <Stack gap="md">
+                <div>
+                  {t(
+                    'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+                  )}
+                </div>
+                <div>
+                  {tct(
+                    'For more information on how to use the web API, see our [link:documentation].',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                    }
+                  )}
+                </div>
+              </Stack>
             }
           />
 
