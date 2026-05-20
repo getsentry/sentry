@@ -478,6 +478,70 @@ describe('LogsInfiniteTable', () => {
     await screen.findByText('abc123ee');
   });
 
+  it('renders a pin button on a hovered row when ourlogs-pinning is enabled', async () => {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinning: 'true',
+        },
+      })
+    );
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const [firstRow] = await screen.findAllByTestId('log-table-row');
+    await userEvent.hover(firstRow!);
+
+    expect(
+      await within(firstRow!).findByRole('button', {name: 'Pin log row'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not render a pin button when ourlogs-pinning is disabled', async () => {
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const [firstRow] = await screen.findAllByTestId('log-table-row');
+    await userEvent.hover(firstRow!);
+
+    expect(
+      within(firstRow!).queryByRole('button', {name: 'Pin log row'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks the row as pinned when its id is in the logsPinned query', async () => {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        search: '?logsPinned=1',
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinning: 'true',
+          logsPinned: '1',
+        },
+      })
+    );
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const [firstRow] = await screen.findAllByTestId('log-table-row');
+
+    expect(screen.getByTestId('pinned-logs-table-body').contains(firstRow ?? null)).toBe(
+      true
+    );
+  });
+
   it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
     // Start with severity sorted ascending (second click has already happened)
     mockUseLocation.mockReturnValue(
