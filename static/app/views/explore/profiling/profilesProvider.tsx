@@ -1,7 +1,10 @@
 import {createContext, useContext, useLayoutEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -199,6 +202,8 @@ export function ContinuousProfileProvider({
   const api = useApi();
   const {projects} = useProjects();
 
+  const project = projects.find(p => p.slug === projectSlug);
+
   useLayoutEffect(() => {
     if (!profileMeta) {
       Sentry.captureMessage(
@@ -207,7 +212,6 @@ export function ContinuousProfileProvider({
       return;
     }
 
-    const project = projects.find(p => p.slug === projectSlug);
     if (!project) {
       Sentry.captureMessage('Failed to fetch continuous profile - project not found.');
       return;
@@ -228,7 +232,27 @@ export function ContinuousProfileProvider({
       });
 
     return () => api.clear();
-  }, [api, profileMeta, orgSlug, projectSlug, projects, setProfile]);
+  }, [api, profileMeta, orgSlug, project, setProfile]);
+
+  if (!profileMeta) {
+    return (
+      <UnresolvedArea>
+        <LoadingError message="This page is missing URL parameters." />
+      </UnresolvedArea>
+    );
+  }
+
+  if (!project) {
+    return (
+      <UnresolvedArea>
+        <LoadingError message="This page's project slug is not known." />
+      </UnresolvedArea>
+    );
+  }
 
   return <ProfileContext value={profile}>{children}</ProfileContext>;
+}
+
+function UnresolvedArea({children}: React.PropsWithChildren) {
+  return <Container padding="xl">{children}</Container>;
 }
