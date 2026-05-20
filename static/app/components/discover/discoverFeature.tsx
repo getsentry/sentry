@@ -31,7 +31,7 @@ export function DiscoverFeature({children}: Props) {
 
   return (
     <Feature
-      hookName="feature-disabled:open-discover"
+      overrideName="feature-disabled:open-discover"
       features="organizations:discover-basic"
       renderDisabled={renderDisabled}
     >

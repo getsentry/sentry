@@ -19,7 +19,6 @@ import type {
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
-  SelectSection,
   SelectSectionWithKey,
 } from './types';
 
@@ -309,14 +308,13 @@ interface SectionToggleProps {
   item: Node<any>;
   listState: ListState<any>;
   listId?: string;
-  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A visible toggle button to select/unselect all options within a given section. See
  * also: `HiddenSectionToggle`.
  */
-export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
+export function SectionToggle({item, listState}: SectionToggleProps) {
   const allOptionsSelected = useMemo(
     () => [...item.childNodes].every(n => listState.selectionManager.isSelected(n.key)),
     [item, listState.selectionManager]
@@ -331,12 +329,11 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
   }, [item, listState.selectionManager.focusedKey, listState.selectionManager.isFocused]);
 
   const toggleAllOptions = useCallback(() => {
-    onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
     toggleOptions(
       [...item.childNodes].map(n => n.key),
       listState.selectionManager
     );
-  }, [onToggle, allOptionsSelected, item, listState.selectionManager]);
+  }, [item, listState.selectionManager]);
 
   return (
     <SectionToggleButton
@@ -367,7 +364,6 @@ export function SectionToggle({item, listState, onToggle}: SectionToggleProps) {
 export function HiddenSectionToggle({
   item,
   listState,
-  onToggle,
   listId = '',
   ...props
 }: SectionToggleProps) {
@@ -405,7 +401,6 @@ export function HiddenSectionToggle({
 
   const {pressProps} = usePress({
     onPress: () => {
-      onToggle?.(item.value, allOptionsSelected ? 'unselect' : 'select');
       toggleOptions(
         [...item.childNodes].map(n => n.key),
         listState.selectionManager

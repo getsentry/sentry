@@ -6,13 +6,13 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   OnboardingContextProvider,
@@ -24,8 +24,6 @@ import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
-
-jest.mock('sentry/actionCreators/modal');
 
 // Mock the virtualizer so all items render in JSDOM (no layout engine).
 jest.mock('@tanstack/react-virtual', () => ({
@@ -433,8 +431,6 @@ describe('ScmPlatformFeatures', () => {
   });
 
   it('shows framework suggestion modal when selecting a base language', async () => {
-    const mockOpenModal = openModal as jest.Mock;
-
     render(
       <ScmPlatformFeatures
         onComplete={jest.fn()}
@@ -446,6 +442,7 @@ describe('ScmPlatformFeatures', () => {
         additionalWrapper: makeOnboardingWrapper(),
       }
     );
+    renderGlobalModal();
 
     await screen.findByText('Select a platform');
 
@@ -453,14 +450,10 @@ describe('ScmPlatformFeatures', () => {
     await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
     await userEvent.click(await screen.findByText('Browser JavaScript'));
 
-    await waitFor(() => {
-      expect(mockOpenModal).toHaveBeenCalled();
-    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('opens console modal when selecting a disabled gaming platform', async () => {
-    const mockOpenConsoleModal = openConsoleModal as jest.Mock;
-
     render(
       <ScmPlatformFeatures
         onComplete={jest.fn()}
@@ -475,6 +468,7 @@ describe('ScmPlatformFeatures', () => {
         additionalWrapper: makeOnboardingWrapper(),
       }
     );
+    renderGlobalModal();
 
     await screen.findByText('Select a platform');
 
@@ -482,9 +476,7 @@ describe('ScmPlatformFeatures', () => {
     await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
     await userEvent.click(await screen.findByText('Nintendo Switch'));
 
-    await waitFor(() => {
-      expect(mockOpenConsoleModal).toHaveBeenCalled();
-    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('disabling tracing auto-disables profiling', async () => {
@@ -837,6 +829,68 @@ describe('ScmPlatformFeatures', () => {
       });
     });
 
+    it('links selected repository to project after creation', async () => {
+      const onComplete = jest.fn();
+      const createdProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${mockRepository.id}/platforms/`,
+        body: [],
+      });
+
+      const repoLinkRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+        method: 'POST',
+        body: {
+          id: '1',
+          projectId: createdProject.id,
+          repositoryId: mockRepository.id,
+          source: 'scm_onboarding',
+          created: true,
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedPlatform: nextJsPlatform,
+            selectedRepository: mockRepository,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }),
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalled();
+      });
+
+      expect(repoLinkRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {repositoryId: mockRepository.id},
+        })
+      );
+    });
+
     it('reuses the existing project when the platform is unchanged', async () => {
       const onComplete = jest.fn();
       const existingProject = ProjectFixture({
@@ -951,6 +1005,11 @@ describe('ScmPlatformFeatures', () => {
         url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
         method: 'POST',
         body: createdProject,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+        method: 'POST',
+        body: {},
       });
 
       render(

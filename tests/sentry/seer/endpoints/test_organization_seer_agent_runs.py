@@ -64,6 +64,7 @@ class TestOrganizationSeerAgentRunsEndpoint(APITestCase):
             offset=0,
             limit=101,  # Default per_page of 100 + 1 for has_more
             only_current_user=True,
+            query=None,
         )
 
     def test_get_cursor_pagination(self) -> None:
@@ -98,7 +99,12 @@ class TestOrganizationSeerAgentRunsEndpoint(APITestCase):
         assert 'rel="next"; results="true"' in response.headers["Link"]
 
         self.mock_client.get_runs.assert_called_once_with(
-            category_key=None, category_value=None, offset=0, limit=3, only_current_user=True
+            category_key=None,
+            category_value=None,
+            offset=0,
+            limit=3,
+            only_current_user=True,
+            query=None,
         )
 
         # Second page - mock seer response for offset 2, limit 3.
@@ -177,6 +183,43 @@ class TestOrganizationSeerAgentRunsEndpoint(APITestCase):
         call_args = self.mock_client.get_runs.call_args
         assert call_args.kwargs["category_key"] is None
         assert call_args.kwargs["category_value"] == "issue-123"
+
+    def test_get_with_query_filter(self) -> None:
+        self.mock_client.get_runs.return_value = [
+            AgentRun(
+                run_id=1,
+                title="Fix login bug",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+        ]
+        response = self.client.get(self.url + "?query=login")
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+        assert data[0]["title"] == "Fix login bug"
+
+        call_args = self.mock_client.get_runs.call_args
+        assert call_args.kwargs["query"] == "login"
+
+    def test_get_with_query_and_category_filters(self) -> None:
+        self.mock_client.get_runs.return_value = [
+            AgentRun(
+                run_id=1,
+                title="Fix login bug",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+                category_key="bug-fixer",
+            ),
+        ]
+        response = self.client.get(self.url + "?query=login&category_key=bug-fixer")
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+
+        call_args = self.mock_client.get_runs.call_args
+        assert call_args.kwargs["query"] == "login"
+        assert call_args.kwargs["category_key"] == "bug-fixer"
 
     def test_get_with_both_category_filters(self) -> None:
         self.mock_client.get_runs.return_value = [

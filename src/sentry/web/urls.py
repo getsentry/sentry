@@ -1105,6 +1105,11 @@ urlpatterns += [
                     name="sentry-organization-project-event-redirect",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
+                    GroupTagExportView.as_view(),
+                    name="sentry-organization-group-tag-export",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",
                     react_page_view,
                     name="sentry-organization-api-keys",

@@ -1,7 +1,7 @@
 import {createContext, useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -39,7 +39,7 @@ interface Props {
 }
 
 export function RouteAnalyticsContextProvider({children}: Props) {
-  const useRouteActivatedHook = HookStore.get('react-hook:route-activated');
+  const useRouteActivatedHook = getOverride('react-hook:route-activated');
 
   const context: RouteContextInterface = {
     params: useParams(),

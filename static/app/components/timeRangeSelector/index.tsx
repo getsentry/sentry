@@ -10,7 +10,7 @@ import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -41,13 +41,13 @@ import {
 
 const ABSOLUTE_OPTION_VALUE = 'absolute';
 
-const DateRangeHook = HookOrDefault({
-  hookName: 'component:header-date-range',
+const DateRangeHook = OverrideOrDefault({
+  overrideName: 'component:header-date-range',
   defaultComponent: DateRange,
 });
 
-const SelectorItemsHook = HookOrDefault({
-  hookName: 'component:header-selector-items',
+const SelectorItemsHook = OverrideOrDefault({
+  overrideName: 'component:header-selector-items',
   defaultComponent: SelectorItems,
 });
 

@@ -1,4 +1,4 @@
-import type {ElementType, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
@@ -29,6 +29,7 @@ import {
   DefaultTableRow,
   DefaultTaskList,
   DefaultTaskListItem,
+  DefaultText,
   DefaultUnorderedList,
 } from './defaultComponents';
 import type {MarkdownComponents} from './markdown';
@@ -71,13 +72,13 @@ export function Token({
 
     case 'paragraph': {
       const P = components.Paragraph ?? DefaultParagraph;
-      return <P>{renderInline(token.tokens, components)}</P>;
+      return <P Default={DefaultParagraph}>{renderInline(token.tokens, components)}</P>;
     }
 
     case 'heading': {
       const H = components.Heading ?? DefaultHeading;
       return (
-        <H level={token.depth as 1 | 2 | 3 | 4 | 5 | 6}>
+        <H Default={DefaultHeading} level={token.depth as 1 | 2 | 3 | 4 | 5 | 6}>
           {renderInline(token.tokens, components)}
         </H>
       );
@@ -85,28 +86,52 @@ export function Token({
 
     case 'code': {
       const Code = components.CodeBlock ?? DefaultCodeBlock;
-      return <Code lang={token.lang ?? undefined}>{token.text}</Code>;
+      return (
+        <Code Default={DefaultCodeBlock} lang={token.lang ?? undefined}>
+          {token.text}
+        </Code>
+      );
     }
 
     case 'codespan': {
       const Code = components.InlineCode ?? DefaultInlineCode;
-      return <Code>{token.text}</Code>;
+      return <Code Default={DefaultInlineCode}>{token.text}</Code>;
     }
 
     case 'blockquote': {
       const Blockquote = components.Blockquote ?? DefaultBlockquote;
-      return <Blockquote>{renderInline(token.tokens, components)}</Blockquote>;
+      return (
+        <Blockquote Default={DefaultBlockquote}>
+          {renderInline(token.tokens, components)}
+        </Blockquote>
+      );
     }
 
     case 'list': {
       const isTaskList = token.items.some(item => item.task);
-      const List: ElementType = isTaskList
-        ? (components.TaskList ?? DefaultTaskList)
-        : token.ordered
-          ? (components.OrderedList ?? DefaultOrderedList)
-          : (components.UnorderedList ?? DefaultUnorderedList);
+      if (isTaskList) {
+        const List = components.TaskList ?? DefaultTaskList;
+        return (
+          <List Default={DefaultTaskList}>
+            {token.items.map((item, i) => (
+              <Token key={i} token={item} components={components} />
+            ))}
+          </List>
+        );
+      }
+      if (token.ordered) {
+        const List = components.OrderedList ?? DefaultOrderedList;
+        return (
+          <List Default={DefaultOrderedList}>
+            {token.items.map((item, i) => (
+              <Token key={i} token={item} components={components} />
+            ))}
+          </List>
+        );
+      }
+      const List = components.UnorderedList ?? DefaultUnorderedList;
       return (
-        <List>
+        <List Default={DefaultUnorderedList}>
           {token.items.map((item, i) => (
             <Token key={i} token={item} components={components} />
           ))}
@@ -118,13 +143,13 @@ export function Token({
       if (token.task) {
         const TaskLi = components.TaskListItem ?? DefaultTaskListItem;
         return (
-          <TaskLi checked={token.checked ?? false}>
+          <TaskLi Default={DefaultTaskListItem} checked={token.checked ?? false}>
             {renderInline(token.tokens, components)}
           </TaskLi>
         );
       }
       const Li = components.ListItem ?? DefaultListItem;
-      return <Li>{renderInline(token.tokens, components)}</Li>;
+      return <Li Default={DefaultListItem}>{renderInline(token.tokens, components)}</Li>;
     }
 
     case 'checkbox':
@@ -139,21 +164,29 @@ export function Token({
       const Td = components.TableCell ?? DefaultTableCell;
 
       return (
-        <TableComp>
-          <Thead>
-            <Tr>
+        <TableComp Default={DefaultTable}>
+          <Thead Default={DefaultTableHead}>
+            <Tr Default={DefaultTableRow}>
               {token.header.map((cell, i) => (
-                <Th key={i} align={token.align[i] ?? undefined}>
+                <Th
+                  key={i}
+                  Default={DefaultTableHeaderCell}
+                  align={token.align[i] ?? undefined}
+                >
                   {renderInline(cell.tokens, components)}
                 </Th>
               ))}
             </Tr>
           </Thead>
-          <Tbody>
+          <Tbody Default={DefaultTableBody}>
             {token.rows.map((row, rowIndex) => (
-              <Tr key={rowIndex}>
+              <Tr key={rowIndex} Default={DefaultTableRow}>
                 {row.map((cell, cellIndex) => (
-                  <Td key={cellIndex} align={token.align[cellIndex] ?? undefined}>
+                  <Td
+                    key={cellIndex}
+                    Default={DefaultTableCell}
+                    align={token.align[cellIndex] ?? undefined}
+                  >
                     {renderInline(cell.tokens, components)}
                   </Td>
                 ))}
@@ -166,27 +199,31 @@ export function Token({
 
     case 'hr': {
       const Hr = components.HorizontalRule ?? DefaultHorizontalRule;
-      return <Hr />;
+      return <Hr Default={DefaultHorizontalRule} />;
     }
 
     case 'html': {
       const Html = components.Html ?? DefaultHtmlBlock;
-      return <Html html={sanitizeHtml(token.text)} />;
+      return <Html Default={DefaultHtmlBlock} html={sanitizeHtml(token.text)} />;
     }
 
     case 'strong': {
       const Strong = components.Strong ?? DefaultStrong;
-      return <Strong>{renderInline(token.tokens, components)}</Strong>;
+      return (
+        <Strong Default={DefaultStrong}>{renderInline(token.tokens, components)}</Strong>
+      );
     }
 
     case 'em': {
       const Em = components.Emphasis ?? DefaultEmphasis;
-      return <Em>{renderInline(token.tokens, components)}</Em>;
+      return <Em Default={DefaultEmphasis}>{renderInline(token.tokens, components)}</Em>;
     }
 
     case 'del': {
       const Del = components.Strikethrough ?? DefaultStrikethrough;
-      return <Del>{renderInline(token.tokens, components)}</Del>;
+      return (
+        <Del Default={DefaultStrikethrough}>{renderInline(token.tokens, components)}</Del>
+      );
     }
 
     case 'link': {
@@ -195,7 +232,7 @@ export function Token({
       }
       const A = components.Link ?? DefaultLink;
       return (
-        <A href={token.href} title={token.title}>
+        <A Default={DefaultLink} href={token.href} title={token.title}>
           {renderInline(token.tokens, components)}
         </A>
       );
@@ -217,7 +254,7 @@ export function Token({
       }
       const TextComponent = components.Text;
       if (TextComponent) {
-        return <TextComponent>{token.text}</TextComponent>;
+        return <TextComponent Default={DefaultText}>{token.text}</TextComponent>;
       }
       return token.text;
     }
@@ -227,7 +264,7 @@ export function Token({
 
     case 'br': {
       const Br = components.LineBreak ?? DefaultLineBreak;
-      return <Br />;
+      return <Br Default={DefaultLineBreak} />;
     }
 
     case 'def':

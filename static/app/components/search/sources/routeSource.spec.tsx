@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {RouteSource} from 'sentry/components/search/sources/routeSource';
-import {HookStore} from 'sentry/stores/hookStore';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('RouteSource', () => {
@@ -35,7 +35,7 @@ describe('RouteSource', () => {
 
   it('can load links via hooks', async () => {
     const mock = jest.fn().mockReturnValue(null);
-    HookStore.set('react-hook:use-billing-navigation-config', () => ({
+    registerOverride('react-hook:use-billing-navigation-config', () => ({
       id: 'settings-usage-billing',
       name: 'Usage & Billing',
       items: [

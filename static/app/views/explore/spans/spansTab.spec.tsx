@@ -154,7 +154,7 @@ describe('SpansTabContent', () => {
       expect.objectContaining({result_mode: 'span samples'})
     );
 
-    (trackAnalytics as jest.Mock).mockClear();
+    jest.mocked(trackAnalytics).mockClear();
     await userEvent.click(await screen.findByText('Trace Samples'));
 
     await screen.findByText(/No trace results found/);
@@ -164,7 +164,7 @@ describe('SpansTabContent', () => {
       expect.objectContaining({result_mode: 'trace samples'})
     );
 
-    (trackAnalytics as jest.Mock).mockClear();
+    jest.mocked(trackAnalytics).mockClear();
     await userEvent.click(await screen.findByRole('tab', {name: 'Aggregates'}));
 
     await screen.findByText(/No spans found/);

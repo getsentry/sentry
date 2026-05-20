@@ -7,11 +7,11 @@ import {Flex, type FlexProps, Grid, Stack} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {IconChevron, IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
@@ -77,7 +77,7 @@ export function MobileNavigation() {
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')?.(organization);
+    !getOverride('component:superuser-warning-excluded')?.(organization);
 
   return (
     <MobileNavigationHeader>
@@ -86,7 +86,7 @@ export function MobileNavigation() {
           {/* If the view is not closed, it will render under the full screen mobile menu */}
           <OrganizationDropdown onClick={() => setView('closed')} />
           {showSuperuserWarning && (
-            <Hook name="component:superuser-warning" organization={organization} />
+            <Override name="component:superuser-warning" organization={organization} />
           )}
         </Flex>
       </SizeProvider>
