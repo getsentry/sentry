@@ -37,7 +37,7 @@ const Subtitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};
-  padding: ${p => p.theme.space.lg} 0 0;
+  padding: 0;
 `;
 
 const BodyWrapper = styled('div')`
