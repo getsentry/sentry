@@ -1166,6 +1166,7 @@ class DashboardDetail extends Component<Props, State> {
   renderDashboardDetail() {
     const {
       api,
+      navigate,
       organization,
       dashboard,
       location,
@@ -1313,7 +1314,7 @@ class DashboardDetail extends Component<Props, State> {
                               storageNamespace={this.props.storageNamespace}
                               widgetLimitReached={widgetLimitReached}
                               onCancel={() => {
-                                resetPageFilters(dashboard, location);
+                                resetPageFilters(dashboard, location, navigate);
                                 trackAnalytics('dashboards2.filter.cancel', {
                                   organization,
                                 });
