@@ -69,16 +69,11 @@ class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
         assert response.status_code == 404
 
     def test_unsupported_provider_returns_404(self):
-        unsupported_repo = self.create_repo(
-            project=self.project,
-            name="getsentry/other",
-            provider="integrations:bitbucket",
-            external_id="222",
-        )
-        self.create_seer_project_repository(self.project, repository=unsupported_repo)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.repo1.provider = "integrations:bitbucket"
+        self.repo1.save()
 
-        response = self.client.get(self.detail_url(unsupported_repo.id))
-        assert response.status_code == 404
+        self.get_error_response(status_code=404)
 
 
 class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
@@ -202,24 +197,11 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         self.get_error_response(branchName="develop", status_code=404)
 
     def test_unsupported_provider_returns_404(self):
-        unsupported_repo = self.create_repo(
-            project=self.project,
-            name="getsentry/other",
-            provider="integrations:bitbucket",
-            external_id="222",
-        )
-        self.create_seer_project_repository(self.project, repository=unsupported_repo)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.repo1.provider = "integrations:bitbucket"
+        self.repo1.save()
 
-        url = reverse(
-            self.endpoint,
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
-                "repo_id": unsupported_repo.id,
-            },
-        )
-        response = self.client.put(url, data={"branchName": "develop"}, format="json")
-        assert response.status_code == 404
+        self.get_error_response(branchName="develop", status_code=404)
 
     def test_empty_body_returns_400(self):
         self.create_seer_project_repository(self.project, repository=self.repo1)
@@ -309,21 +291,8 @@ class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
         self.get_error_response(status_code=404)
 
     def test_unsupported_provider_returns_404(self):
-        unsupported_repo = self.create_repo(
-            project=self.project,
-            name="getsentry/other",
-            provider="integrations:bitbucket",
-            external_id="222",
-        )
-        self.create_seer_project_repository(self.project, repository=unsupported_repo)
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.repo1.provider = "integrations:bitbucket"
+        self.repo1.save()
 
-        url = reverse(
-            self.endpoint,
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
-                "repo_id": unsupported_repo.id,
-            },
-        )
-        response = self.client.delete(url)
-        assert response.status_code == 404
+        self.get_error_response(status_code=404)
