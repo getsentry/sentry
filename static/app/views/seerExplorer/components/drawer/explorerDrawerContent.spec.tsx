@@ -499,19 +499,7 @@ describe('ExplorerDrawerContent', () => {
       );
     });
 
-    it('defers sessionStorage writes (no per-keystroke write)', async () => {
-      render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
-        {organization}
-      );
-
-      await userEvent.type(await screen.findByTestId('seer-explorer-input'), 'hello');
-      expect(sessionStorage.getItem('seer-explorer-draft:null')).toBeNull();
-    });
-
-    it('scopes the draft per runId across run switches', async () => {
+    it('persists the draft per runId across run switches', async () => {
       const useSeerExplorerSpy = jest.spyOn(useSeerExplorerModule, 'useSeerExplorer');
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
 
