@@ -105,6 +105,73 @@ def is_table_display_type(display_type):
 MAX_WIDGET_COLS = 6
 
 
+_DEFAULT_CHART_AND_TABLE_TYPES: frozenset[int] = frozenset(
+    {
+        DashboardWidgetDisplayTypes.LINE_CHART,
+        DashboardWidgetDisplayTypes.AREA_CHART,
+        DashboardWidgetDisplayTypes.BAR_CHART,
+        DashboardWidgetDisplayTypes.TABLE,
+        DashboardWidgetDisplayTypes.BIG_NUMBER,
+        DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
+    }
+)
+
+
+class DatasetConfig(TypedDict):
+    supported_display_types: frozenset[int]
+
+
+# Per-dataset config mirroring the frontend dataset configs
+# (``static/app/views/dashboards/datasetConfig/*.tsx``). A display type is
+# allowed for a widget_type iff it appears in ``supported_display_types`` here.
+DATASET_CONFIG: dict[int, DatasetConfig] = {
+    DashboardWidgetTypes.DISCOVER: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    DashboardWidgetTypes.ERROR_EVENTS: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    DashboardWidgetTypes.TRANSACTION_LIKE: {
+        "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
+    },
+    DashboardWidgetTypes.RELEASE_HEALTH: {
+        "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
+    },
+    DashboardWidgetTypes.METRICS: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    DashboardWidgetTypes.LOGS: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    DashboardWidgetTypes.ISSUE: {
+        "supported_display_types": frozenset(
+            {
+                DashboardWidgetDisplayTypes.TABLE,
+                DashboardWidgetDisplayTypes.LINE_CHART,
+                DashboardWidgetDisplayTypes.AREA_CHART,
+                DashboardWidgetDisplayTypes.BAR_CHART,
+            }
+        )
+    },
+    DashboardWidgetTypes.SPANS: {
+        "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
+        | frozenset(
+            {
+                DashboardWidgetDisplayTypes.DETAILS,
+                # WHEEL is used by built-in performance-score widgets.
+                DashboardWidgetDisplayTypes.WHEEL,
+            }
+        )
+    },
+    DashboardWidgetTypes.TRACEMETRICS: {
+        "supported_display_types": frozenset(
+            {
+                DashboardWidgetDisplayTypes.LINE_CHART,
+                DashboardWidgetDisplayTypes.AREA_CHART,
+                DashboardWidgetDisplayTypes.BAR_CHART,
+                DashboardWidgetDisplayTypes.BIG_NUMBER,
+                DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
+            }
+        )
+    },
+    DashboardWidgetTypes.PREPROD_APP_SIZE: {
+        "supported_display_types": frozenset({DashboardWidgetDisplayTypes.LINE_CHART})
+    },
+}
+
+
 class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
     """Widget grid layout position and dimensions.
 
@@ -326,7 +393,28 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     )
 
     def validate_display_type(self, display_type):
-        return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+        display_type_id = DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+
+        # Reject display types that aren't in the dataset's config. widget_type
+        # is stashed on context by ``to_internal_value`` since field-level
+        # validators don't otherwise see other fields. TEXT widgets don't have
+        # a widget_type and are validated separately.
+        widget_type_name = self.context.get("widget_type")
+        if widget_type_name is not None and display_type_id is not None:
+            widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
+            config = DATASET_CONFIG.get(widget_type_id) if widget_type_id is not None else None
+            if config is not None and display_type_id not in config["supported_display_types"]:
+                supported_names = sorted(
+                    DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
+                    for d in config["supported_display_types"]
+                )
+                raise serializers.ValidationError(
+                    f"Display type '{display_type}' is not supported for the "
+                    f"'{widget_type_name}' dataset. Supported display types: "
+                    f"{', '.join(supported_names)}."
+                )
+
+        return display_type_id
 
     def _validate_widget_type(self, data):
         widget_type = DashboardWidgetTypes.get_id_for_type_name(data.get("widget_type"))
@@ -362,6 +450,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             additional_context["display_type"] = data.get("display_type")
         if data.get("widget_type"):
             additional_context["widget_type"] = data.get("widget_type")
+            # Field-level validators (validate_display_type) need widget_type
+            # too, but they only receive the single field value.
+            self.context["widget_type"] = data.get("widget_type")
         if self.context.get("request") and self.context["request"].user:
             additional_context["user"] = self.context["request"].user
 
