@@ -306,7 +306,6 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
     pipeline = mock.MagicMock()
     client.pipeline.return_value.__enter__.return_value = pipeline
     buffer.__dict__["client"] = client
-    buffer._ensure_script = mock.Mock(return_value="add-buffer-sha")
     buffer._debug_trace_logger = mock.Mock()
 
     trace_id = "a" * 32
@@ -350,6 +349,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
                 "spans.buffer.flusher.flush-lock-ttl": 30,
             }
         ),
+        mock.patch.object(buffer, "_ensure_script", return_value="add-buffer-sha"),
         mock.patch("sentry.spans.buffer.metrics.timing") as timing,
     ):
         inserted_subsegments = buffer._insert_spans([[root_subsegment, child_subsegment]])
