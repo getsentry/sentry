@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -196,22 +197,26 @@ function TagDetailsRow({
         : `${cappedPercentage.toFixed(0)}%`;
 
   return (
-    <Row>
-      <TagDetailsValue
-        valueLocation={allEventsLocation}
-        tagKey={key}
-        tagValue={tagValue}
-      />
-      <OverflowTimeSince date={tagValue.lastSeen} />
-      <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
-      <RightAlignedValue>{displayPercentage}</RightAlignedValue>
-      {tag.totalValues ? (
-        <TagBar percentage={percentage} style={{height: theme.space.lg}} />
-      ) : (
-        '--'
+    <RevealOnHover>
+      {({className}) => (
+        <Row className={className}>
+          <TagDetailsValue
+            valueLocation={allEventsLocation}
+            tagKey={key}
+            tagValue={tagValue}
+          />
+          <OverflowTimeSince date={tagValue.lastSeen} />
+          <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
+          <RightAlignedValue>{displayPercentage}</RightAlignedValue>
+          {tag.totalValues ? (
+            <TagBar percentage={percentage} style={{height: theme.space.lg}} />
+          ) : (
+            '--'
+          )}
+          <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
+        </Row>
       )}
-      <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
-    </Row>
+    </RevealOnHover>
   );
 }
 
@@ -292,55 +297,54 @@ function TagValueActionsMenu({
     : generateQueryWithTag({referrer}, {key, value: tagValue.value});
   const globalSelectionParams = extractSelectionParameters(location.query);
   const eventView = useIssueDetailsEventView({group, queryProps: query});
-  const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <DropdownMenu
-      size="xs"
-      className={isVisible ? '' : 'invisible'}
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Tag Value Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
-      items={[
-        {
-          key: 'open-in-discover',
-          label: t('Open in Discover'),
-          to: eventView.getResultsViewUrlTarget(
-            organization,
-            false,
-            hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-          ),
-          hidden: !group || !organization.features.includes('discover-basic'),
-        },
-        {
-          key: 'view-events',
-          label: t('View other events with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-            query: {...globalSelectionParams, ...query},
+    <RevealOnHover.Action>
+      <DropdownMenu
+        size="xs"
+        triggerProps={{
+          'aria-label': t('Tag Value Actions Menu'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          size: 'xs',
+        }}
+        items={[
+          {
+            key: 'open-in-discover',
+            label: t('Open in Discover'),
+            to: eventView.getResultsViewUrlTarget(
+              organization,
+              false,
+              hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+            ),
+            hidden: !group || !organization.features.includes('discover-basic'),
           },
-        },
-        {
-          key: 'view-issues',
-          label: t('Search issues with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {...globalSelectionParams, ...query},
+          {
+            key: 'view-events',
+            label: t('View other events with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+              query: {...globalSelectionParams, ...query},
+            },
           },
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy tag value to clipboard'),
-          onAction: () =>
-            copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
-          hidden: tagValue.value === '',
-        },
-      ]}
-    />
+          {
+            key: 'view-issues',
+            label: t('Search issues with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {...globalSelectionParams, ...query},
+            },
+          },
+          {
+            key: 'copy-value',
+            label: t('Copy tag value to clipboard'),
+            onAction: () =>
+              copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
+            hidden: tagValue.value === '',
+          },
+        ]}
+      />
+    </RevealOnHover.Action>
   );
 }
 
@@ -399,16 +403,6 @@ const Row = styled(Body)`
   align-items: center;
   border-radius: 4px;
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible {
-      visibility: visible;
-    }
-  }
 `;
 
 const RightAlignedValue = styled('div')`

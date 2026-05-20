@@ -1,10 +1,11 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
@@ -153,15 +154,19 @@ export function FlagDetailsDrawerContent({group}: Props) {
 
 function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
   return (
-    <Row>
-      <LeftAlignedValue>{flagValue.provider}</LeftAlignedValue>
-      <LeftAlignedValue>
-        <code>{flagValue.flag}</code>
-      </LeftAlignedValue>
-      {getFlagActionLabel(flagValue.action)}
-      <DateTime date={flagValue.createdAt} year timeZone />
-      <FlagValueActionsMenu flagValue={flagValue} />
-    </Row>
+    <RevealOnHover>
+      {({className}) => (
+        <Row className={className}>
+          <LeftAlignedValue>{flagValue.provider}</LeftAlignedValue>
+          <LeftAlignedValue>
+            <code>{flagValue.flag}</code>
+          </LeftAlignedValue>
+          {getFlagActionLabel(flagValue.action)}
+          <DateTime date={flagValue.createdAt} year timeZone />
+          <FlagValueActionsMenu flagValue={flagValue} />
+        </Row>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -181,44 +186,43 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
   const organization = useOrganization();
   const {copy} = useCopyToClipboard();
   const key = flagValue.flag;
-  const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <DropdownMenu
-      size="xs"
-      className={isVisible ? '' : 'invisible'}
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Flag Audit Log Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
-      items={[
-        {
-          key: 'view-issues-true',
-          label: t('Search issues where this flag value is TRUE'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
+    <RevealOnHover.Action>
+      <DropdownMenu
+        size="xs"
+        triggerProps={{
+          'aria-label': t('Flag Audit Log Actions Menu'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          size: 'xs',
+        }}
+        items={[
+          {
+            key: 'view-issues-true',
+            label: t('Search issues where this flag value is TRUE'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
+            },
           },
-        },
-        {
-          key: 'view-issues-false',
-          label: t('Search issues where this flag value is FALSE'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
+          {
+            key: 'view-issues-false',
+            label: t('Search issues where this flag value is FALSE'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
+            },
           },
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy flag value to clipboard'),
-          onAction: () =>
-            copy(flagValue.flag, {successMessage: t('Copied flag value to clipboard')}),
-        },
-      ]}
-    />
+          {
+            key: 'copy-value',
+            label: t('Copy flag value to clipboard'),
+            onAction: () =>
+              copy(flagValue.flag, {successMessage: t('Copied flag value to clipboard')}),
+          },
+        ]}
+      />
+    </RevealOnHover.Action>
   );
 }
 
@@ -258,16 +262,6 @@ const Row = styled(Body)`
   align-items: center;
   border-radius: 4px;
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible {
-      visibility: visible;
-    }
-  }
 `;
 
 const LeftAlignedValue = styled('div')`
