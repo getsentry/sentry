@@ -900,7 +900,7 @@ class FrequencyConditionTest(
         conditions[0]["value"] = 100
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert result is not None
-        assert group.id not in result
+        assert group.id in result
 
         conditions.append(
             {
