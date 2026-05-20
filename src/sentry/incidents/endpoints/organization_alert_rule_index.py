@@ -107,10 +107,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
 
@@ -239,10 +236,6 @@ class AlertRuleFetchMixin(Endpoint):
     Can be used with any endpoint base class (OrganizationEndpoint, ProjectEndpoint, etc).
     """
 
-    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
-    # with the broad workflow-engine-rule-serializers flag.
-    workflow_engine_method_flags: dict[str, str] = {}
-
     def fetch_metric_alerts(
         self,
         request: Request,
@@ -260,53 +253,30 @@ class AlertRuleFetchMixin(Endpoint):
                 extra={"organization": organization.id},
             )
 
-        method_flag = self.workflow_engine_method_flags.get(request.method or "")
-        use_workflow_engine = (
-            features.has("organizations:workflow-engine-rule-serializers", organization)
-            or method_flag is not None
-            and features.has(method_flag, organization)
+        # Filter to metric alerts only, then check if dual-written or single-written
+        detectors = (
+            Detector.objects.filter(
+                type="metric_issue",
+                project__in=projects,
+            )
+            .filter(
+                Q(alertruledetector__alert_rule_id__isnull=False)  # Dual-written
+                | Q(alertruledetector__isnull=True)  # Single-written
+            )
+            .distinct()
+        )  # Deduplicate after JOIN
+        if not features.has("organizations:performance-view", organization):
+            detectors = filter_detectors_by_datasets(detectors, [Dataset.Events])
+        response = self.paginate(
+            request,
+            queryset=detectors,
+            order_by="-date_added",
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
+            default_per_page=25,
+            count_hits=True,
         )
-
-        if use_workflow_engine:
-            # Filter to metric alerts only, then check if dual-written or single-written
-            detectors = (
-                Detector.objects.filter(
-                    type="metric_issue",
-                    project__in=projects,
-                )
-                .filter(
-                    Q(alertruledetector__alert_rule_id__isnull=False)  # Dual-written
-                    | Q(alertruledetector__isnull=True)  # Single-written
-                )
-                .distinct()
-            )  # Deduplicate after JOIN
-            if not features.has("organizations:performance-view", organization):
-                detectors = filter_detectors_by_datasets(detectors, [Dataset.Events])
-            response = self.paginate(
-                request,
-                queryset=detectors,
-                order_by="-date_added",
-                paginator_cls=OffsetPaginator,
-                on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
-                default_per_page=25,
-                count_hits=True,
-            )
-            response[ALERT_RULES_COUNT_HEADER] = detectors.count()
-        else:
-            alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-            report_used_legacy_models()
-            if not features.has("organizations:performance-view", organization):
-                alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-            response = self.paginate(
-                request,
-                queryset=alert_rules,
-                order_by="-date_added",
-                paginator_cls=OffsetPaginator,
-                on_results=lambda x: serialize(x, request.user),
-                default_per_page=25,
-                count_hits=True,
-            )
-            response[ALERT_RULES_COUNT_HEADER] = alert_rules.count()
+        response[ALERT_RULES_COUNT_HEADER] = detectors.count()
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
@@ -765,9 +735,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAlertRulePermission,)
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
-    }
 
     @extend_schema(
         operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",

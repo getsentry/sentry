@@ -379,7 +379,12 @@ class WorkflowEngineDetectorSerializer(Serializer):
             snuba_query = query_subscription.snuba_query
             snuba_query_ids.append(snuba_query.id)
             result[detector]["query"] = snuba_query.query
-            result[detector]["aggregate"] = snuba_query.aggregate
+            # Apply transparency: Convert upsampled_count() back to count() for user-facing responses
+            # This hides the internal upsampling implementation from users
+            aggregate = snuba_query.aggregate
+            if aggregate == "upsampled_count()":
+                aggregate = "count()"
+            result[detector]["aggregate"] = aggregate
             result[detector]["timeWindow"] = snuba_query.time_window / 60
             result[detector]["resolution"] = snuba_query.resolution / 60
             env = snuba_query.environment
