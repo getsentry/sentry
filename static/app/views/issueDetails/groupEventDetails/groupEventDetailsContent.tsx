@@ -70,6 +70,7 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
@@ -130,6 +131,10 @@ export function EventDetailsContent({
 
   if (group.issueType === IssueType.SOURCEMAP_CONFIGURATION) {
     return <SourceMapIssueDetails group={group} event={event} project={project} />;
+  }
+
+  if (group.issueType === IssueType.LOW_VALUE_SPAN_CONFIGURATION) {
+    return <LowValueSpanIssueDetails group={group} event={event} project={project} />;
   }
 
   return (
