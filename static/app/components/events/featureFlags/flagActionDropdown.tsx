@@ -1,6 +1,7 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
+
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
@@ -30,46 +31,44 @@ export function FlagActionDropdown({
   const {copy} = useCopyToClipboard();
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
-  const [isVisible, setIsVisible] = useState(false);
-
   return (
-    <StyledDropdownMenu
-      position="bottom-end"
-      className={isVisible ? '' : 'invisible'}
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      size="xs"
-      triggerProps={{
-        'aria-label': t('Flag Details'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-        className: 'flag-button',
-      }}
-      items={[
-        {
-          key: 'open-flag-details',
-          label: t('See flag details'),
-          to: {
-            pathname: `${baseUrl}${Tab.DISTRIBUTIONS}/${flag}`,
-            query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+    <RevealOnHover.Action>
+      <StyledDropdownMenu
+        position="bottom-end"
+        size="xs"
+        triggerProps={{
+          'aria-label': t('Flag Details'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          size: 'xs',
+          className: 'flag-button',
+        }}
+        items={[
+          {
+            key: 'open-flag-details',
+            label: t('See flag details'),
+            to: {
+              pathname: `${baseUrl}${Tab.DISTRIBUTIONS}/${flag}`,
+              query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+            },
           },
-        },
-        {
-          key: 'view-issues',
-          label: t('Search issues for this flag value'),
-          to: generateAction({
-            key: makeFeatureFlagSearchKey(flag),
-            value: result.toString(),
-          }),
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy flag value to clipboard'),
-          onAction: () =>
-            copy(result, {successMessage: t('Flag value copied to clipboard.')}),
-        },
-      ]}
-    />
+          {
+            key: 'view-issues',
+            label: t('Search issues for this flag value'),
+            to: generateAction({
+              key: makeFeatureFlagSearchKey(flag),
+              value: result.toString(),
+            }),
+          },
+          {
+            key: 'copy-value',
+            label: t('Copy flag value to clipboard'),
+            onAction: () =>
+              copy(result, {successMessage: t('Flag value copied to clipboard.')}),
+          },
+        ]}
+      />
+    </RevealOnHover.Action>
   );
 }
 
