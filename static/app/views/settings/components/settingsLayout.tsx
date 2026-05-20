@@ -25,7 +25,7 @@ export function SettingsLayout({children}: Props) {
       </TopBar.Slot>
 
       <Flex flex="1">
-        <Container flex="1" padding={{sm: 'xl', md: 'xl'}} minWidth="0">
+        <Container flex="1" padding="xl" minWidth="0">
           {children}
         </Container>
       </Flex>
