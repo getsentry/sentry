@@ -100,6 +100,21 @@ def _valid_project_repos_queryset(project: Project, organization: Organization):
     ).select_related("project_repository", "project_repository__repository")
 
 
+def _validate_repo_ids(organization: Organization, repo_ids: list[int]) -> None:
+    """Raise ValueError if any repo IDs are invalid, inactive, or have providers not supported by Seer."""
+    valid_ids = set(
+        Repository.objects.filter(
+            id__in=repo_ids,
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=get_supported_scm_providers(organization),
+        ).values_list("id", flat=True)
+    )
+    invalid_ids = set(repo_ids) - valid_ids
+    if invalid_ids:
+        raise ValueError(sorted(invalid_ids))
+
+
 def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     for f in filters:
         if not isinstance(f, SearchFilter):
@@ -135,20 +150,6 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
                 queryset = queryset.exclude(provider_normalized__in=[normalize(v) for v in value])
 
     return queryset
-
-
-def _validate_repo_ids_for_seer(organization: Organization, repo_ids: list[int]) -> None:
-    valid_ids = set(
-        Repository.objects.filter(
-            id__in=repo_ids,
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            provider__in=get_supported_scm_providers(organization),
-        ).values_list("id", flat=True)
-    )
-    invalid_ids = set(repo_ids) - valid_ids
-    if invalid_ids:
-        raise ValueError(sorted(invalid_ids))
 
 
 def _validate_branch_overrides(value):
@@ -289,9 +290,14 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization, project_id: int) -> Response:
         project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
-        queryset = _get_project_repos_queryset(project, organization).annotate(
-            provider_normalized=Replace(
-                "project_repository__repository__provider", Value("integrations:"), Value("")
+        queryset = (
+            _valid_project_repos_queryset(project, organization)
+            .prefetch_related("branch_overrides")
+            # Normalize provider by stripping the "integrations:" prefix.
+            .annotate(
+                provider_normalized=Replace(
+                    "project_repository__repository__provider", Value("integrations:"), Value("")
+                )
             )
         )
 
@@ -328,7 +334,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
             return Response({"detail": "repos must not be empty."}, status=400)
 
         try:
-            _validate_repo_ids_for_seer(organization, [d["repository_id"] for d in repos_data])
+            _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
         except ValueError as e:
             return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
@@ -347,7 +353,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
 
         if repos_data:
             try:
-                _validate_repo_ids_for_seer(organization, [d["repository_id"] for d in repos_data])
+                _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
             except ValueError as e:
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
