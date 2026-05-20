@@ -37,7 +37,6 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -58,7 +57,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
 import {
@@ -142,7 +140,6 @@ type Props = {
   params: RouteParams;
   projects: Project[];
   queryClient: QueryClient;
-  router: InjectedRouter;
   theme: Theme;
   hasPageFrameFeature?: boolean;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -302,7 +299,7 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       location,
-      router,
+      navigate,
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
@@ -351,11 +348,12 @@ class DashboardDetail extends Component<Props, State> {
         });
       } else {
         // Replace the URL if the widget isn't found and raise an error in toast
-        router.replace(
+        navigate(
           normalizeUrl({
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: location.query,
-          })
+          }),
+          {replace: true}
         );
         addErrorMessage(t('Widget not found'));
       }
@@ -572,7 +570,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
-    const {organization, dashboard, api, onDashboardUpdate, location, queryClient} =
+    const {organization, dashboard, api, onDashboardUpdate, queryClient, navigate} =
       this.props;
     const {modifiedDashboard} = this.state;
 
@@ -608,14 +606,15 @@ class DashboardDetail extends Component<Props, State> {
           this.state.widgetLegendState.setMultipleWidgetSelectionStateURL(newDashboard);
 
         if (dashboard && newDashboard.id !== dashboard.id) {
-          this.props.router.replace(
-            normalizeUrl({
+          navigate(
+            {
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
-                ...location.query,
+                ...this.props.location.query,
                 unselectedSeries: legendQuery,
               },
-            })
+            },
+            {replace: true}
           );
         }
         addSuccessMessage(t('Dashboard updated'));
@@ -1578,7 +1577,6 @@ export function DashboardDetailWithInjectedProps(
   const {projects} = useProjects();
   const location = useLocation();
   const params = useParams<RouteParams>();
-  const router = useRouter();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   const hasPageFrameFeature = useHasPageFrameFeature();
@@ -1597,7 +1595,6 @@ export function DashboardDetailWithInjectedProps(
       projects={projects}
       location={location}
       params={params}
-      router={router}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
       hasPageFrameFeature={hasPageFrameFeature}
