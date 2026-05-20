@@ -1,7 +1,7 @@
 import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -151,21 +151,21 @@ describe('NotificationSettingsByType', () => {
   it('renders all the quota subcategories', async () => {
     renderComponent({notificationType: 'quota'});
 
-    // check for all the quota subcategories
+    // The page title is always "Quota Notifications"; per-org feature filtering
+    // is no longer applied here, so every billed category is shown.
+    expect(await screen.findAllByText('Quota Notifications')).toHaveLength(1);
     expect(
-      await screen.findByText(
+      screen.getByText(
         'Receive notifications when your organization exceeds the following limits.'
       )
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText('Receive notifications about your error quotas.')
-    ).toBeInTheDocument();
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.queryByText('Spans')).not.toBeInTheDocument();
   });
   it('adds a project override and removes it', async () => {
     renderComponent({});
@@ -263,208 +263,10 @@ describe('NotificationSettingsByType', () => {
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders spend notifications page instead of quota notifications with flag', async () => {
-    const organizationWithFlag = OrganizationFixture();
-    organizationWithFlag.features.push('spend-visibility-notifications');
-    const organizationNoFlag = OrganizationFixture();
-    renderComponent({
-      notificationType: 'quota',
-      organizations: [organizationWithFlag, organizationNoFlag],
-    });
-
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
-    expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Control the notifications you receive for organization spend.')
-    ).toBeInTheDocument();
-  });
-
-  it('toggle user spend notifications', async () => {
-    const organizationWithFlag = OrganizationFixture();
-    organizationWithFlag.features.push('spend-visibility-notifications');
-    const organizationNoFlag = OrganizationFixture();
-    renderComponent({
-      notificationType: 'quota',
-      organizations: [organizationWithFlag, organizationNoFlag],
-    });
-
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
-
-    const editSettingMock = MockApiClient.addMockResponse({
-      url: '/users/me/notification-options/',
-      method: 'PUT',
-      body: {
-        id: '7',
-        scopeIdentifier: '1',
-        scopeType: 'user',
-        type: 'quota',
-        value: 'never',
-      },
-    });
-
-    // toggle spend notifications off
-    await selectEvent.select(screen.getAllByText('On')[0]!, 'Off');
-
-    expect(editSettingMock).toHaveBeenCalledTimes(1);
-    expect(editSettingMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          scopeIdentifier: '1',
-          scopeType: 'user',
-          type: 'quota',
-          value: 'never',
-        },
-      })
-    );
-  });
-
-  it('spend notifications on org with am3 with spend visibility notifications', async () => {
-    const organization = OrganizationFixture({
-      features: [
-        'spend-visibility-notifications',
-        'am3-tier',
-        'continuous-profiling-billing',
-        'seer-billing',
-        'logs-billing',
-        'expose-category-trace-metric-byte',
-        'seer-user-billing-launch',
-      ],
-    });
-    renderComponent({
-      notificationType: 'quota',
-      organizations: [organization],
-    });
-
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
-
-    expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Session Replays')).toBeInTheDocument();
-    expect(screen.getByText('Attachments')).toBeInTheDocument();
-    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(
-      screen.getByText('Continuous Profile Hours', {exact: true})
-    ).toBeInTheDocument();
-    expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
-    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
-    expect(screen.getByText('Logs')).toBeInTheDocument();
-    expect(screen.getByText('Active Contributors')).toBeInTheDocument();
-    expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
-
-    const editSettingMock = MockApiClient.addMockResponse({
-      url: '/users/me/notification-options/',
-      method: 'PUT',
-      body: {
-        id: '7',
-        scopeIdentifier: '1',
-        scopeType: 'user',
-        type: 'quotaSpans',
-        value: 'never',
-      },
-    });
-
-    // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[4]!, 'Off');
-
-    expect(editSettingMock).toHaveBeenCalledTimes(1);
-    expect(editSettingMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          scopeIdentifier: '1',
-          scopeType: 'user',
-          type: 'quotaSpans',
-          value: 'never',
-        },
-      })
-    );
-  });
-
-  it('spend notifications on org with am3 and org without am3', async () => {
-    const organization = OrganizationFixture({
-      features: [
-        'spend-visibility-notifications',
-        'am3-tier',
-        'continuous-profiling-billing',
-        'seer-billing',
-      ],
-    });
-    const otherOrganization = OrganizationFixture();
-    renderComponent({
-      notificationType: 'quota',
-      organizations: [organization, otherOrganization],
-    });
-
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
-
-    expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Session Replays')).toBeInTheDocument();
-    expect(screen.getByText('Attachments')).toBeInTheDocument();
-    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(
-      screen.getByText('Continuous Profile Hours', {exact: true})
-    ).toBeInTheDocument();
-    expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
-    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
-  });
-
-  it('spend notifications on org with am1 org only', async () => {
-    const organization = OrganizationFixture({
-      features: [
-        'spend-visibility-notifications',
-        'am1-tier',
-        'continuous-profiling-billing',
-        'seer-billing',
-      ],
-    });
-    const otherOrganization = OrganizationFixture();
-    renderComponent({
-      notificationType: 'quota',
-      organizations: [organization, otherOrganization],
-    });
-
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
-
-    expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Session Replays')).toBeInTheDocument();
-    expect(screen.getByText('Attachments')).toBeInTheDocument();
-    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Continuous Profile Hours', {exact: true})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
-    expect(screen.queryByText('Spans')).not.toBeInTheDocument();
-    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
-    expect(screen.getByText('Size Analysis Builds')).toBeInTheDocument();
-  });
-
-  it('spend notifications on org with am3 without spend visibility notifications', async () => {
-    const organization = OrganizationFixture({
-      features: ['am3-tier', 'continuous-profiling-billing', 'seer-billing'],
-    });
-    renderComponent({
-      notificationType: 'quota',
-      organizations: [organization],
-    });
+  it('toggles a quota subcategory', async () => {
+    renderComponent({notificationType: 'quota'});
 
     expect(await screen.findAllByText('Quota Notifications')).toHaveLength(1);
-    expect(screen.queryByText('Spend Notifications')).not.toBeInTheDocument();
-
-    expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Session Replays')).toBeInTheDocument();
-    expect(screen.getByText('Attachments')).toBeInTheDocument();
-    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(
-      screen.getByText('Continuous Profile Hours', {exact: true})
-    ).toBeInTheDocument();
-    expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
-    expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
-    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
       url: '/users/me/notification-options/',
@@ -478,8 +280,11 @@ describe('NotificationSettingsByType', () => {
       },
     });
 
-    // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[3]!, 'Off');
+    // Spans is rendered alongside the other categories; toggle it off.
+    const spansLabel = screen.getByText('Spans');
+    const spansRow = spansLabel.closest('form');
+    expect(spansRow).not.toBeNull();
+    await selectEvent.select(within(spansRow!).getByText('On'), 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -493,42 +298,5 @@ describe('NotificationSettingsByType', () => {
         },
       })
     );
-  });
-
-  it('should not show categories without related features', async () => {
-    const organization = OrganizationFixture({
-      features: [
-        'spend-visibility-notifications',
-        'am3-tier',
-        // No continuous-profiling-billing feature
-        // No seer-billing feature
-        // No logs-billing feature
-        // No expose-category-trace-metric-byte feature
-      ],
-    });
-    renderComponent({
-      notificationType: 'quota',
-      organizations: [organization],
-    });
-
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
-
-    // These should be present
-    expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Session Replays')).toBeInTheDocument();
-    expect(screen.getByText('Attachments')).toBeInTheDocument();
-    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-
-    // These should NOT be present
-    expect(
-      screen.queryByText('Continuous Profile Hours', {exact: true})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
-    expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seer Budget')).not.toBeInTheDocument();
-    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
-    expect(screen.queryByText('Active Contributors')).not.toBeInTheDocument();
   });
 });
