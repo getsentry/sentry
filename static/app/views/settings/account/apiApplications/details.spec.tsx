@@ -36,9 +36,7 @@ describe('ApiApplicationDetails', () => {
       },
     });
 
-    expect(
-      await screen.findByDisplayValue('http://example.com')
-    ).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('http://example.com')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/redirect')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/privacy')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/terms')).toBeInTheDocument();
