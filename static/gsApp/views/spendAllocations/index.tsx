@@ -304,7 +304,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
 
   if (!organization.features.includes('spend-allocations')) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <PlanFeature organization={organization} features={['spend-allocations']}>
           {({plan}) => (
             <Panel dashedBorder data-test-id="disabled-allocations">
@@ -351,14 +351,14 @@ export function SpendAllocationsRoot({subscription}: Props) {
 
   if (isDisabledByPartner(subscription)) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <PartnershipNote subscription={subscription} />
       </SubscriptionPageContainer>
     );
   }
 
   return (
-    <SubscriptionPageContainer background="secondary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Spend Allocations')}
