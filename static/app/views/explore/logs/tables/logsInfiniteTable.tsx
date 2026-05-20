@@ -12,7 +12,7 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -31,11 +31,9 @@ import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
-  TableBodyCell,
   TableHead,
   TableHeadCell,
   TableHeadCellContent,
-  TableRow,
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
@@ -262,25 +260,13 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
-  const isContainedVirtualizer = expanded !== undefined;
-
-  const windowVirtualizer = useWindowVirtualizer({
-    count: isContainedVirtualizer ? 0 : (data?.length ?? 0),
-    estimateSize,
-    overscan: 50,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
-    scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
-  });
-
-  const containerVirtualizer = useVirtualizer<HTMLElement, Element>({
-    count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
+  const virtualizer = useVirtualizer<HTMLElement, Element>({
+    count: data?.length ?? 0,
     estimateSize,
     overscan: expanded ? 50 : 25,
     getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
-
-  const virtualizer = isContainedVirtualizer ? containerVirtualizer : windowVirtualizer;
 
   useLayoutEffect(() => {
     virtualizer.measure();
@@ -288,9 +274,7 @@ export function LogsInfiniteTable({
 
   const virtualItems = virtualizer.getVirtualItems();
 
-  const firstItem = virtualItems[0]?.start;
   const firstItemIndex = virtualItems[0]?.index;
-  const lastItem = virtualItems[virtualItems.length - 1]?.end;
   const lastItemIndex = virtualItems[virtualItems.length - 1]?.index;
 
   const handleScrollToRow = useCallback(
@@ -341,14 +325,6 @@ export function LogsInfiniteTable({
     showJumpDownButton,
     showJumpUpButton,
   } = replayJumpButtons;
-
-  const [paddingTop, paddingBottom] =
-    defined(firstItem) && defined(lastItem)
-      ? [
-          Math.max(0, firstItem - virtualizer.options.scrollMargin),
-          Math.max(0, virtualizer.getTotalSize() - lastItem),
-        ]
-      : [0, 0];
 
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 
@@ -517,13 +493,6 @@ export function LogsInfiniteTable({
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
           expanded={expanded}
         >
-          {paddingTop > 0 && (
-            <TableRow>
-              {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingTop}} />
-              ))}
-            </TableRow>
-          )}
           {/* Only render these in table for non-replay contexts */}
           {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
           {!hasReplay && isError && <ErrorRenderer />}
@@ -573,13 +542,6 @@ export function LogsInfiniteTable({
               </Fragment>
             );
           })}
-          {paddingBottom > 0 && (
-            <TableRow>
-              {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingBottom}} />
-              ))}
-            </TableRow>
-          )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
           )}
