@@ -174,6 +174,8 @@ export function Filter({
         namespace: traceMetric.name,
         attributeQuery,
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
+        projects: projectIds,
+        environments,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -188,6 +190,8 @@ export function Filter({
       traceMetric.name,
       attributeQuery,
       skipTraceMetricFilter,
+      projectIds,
+      environments,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
