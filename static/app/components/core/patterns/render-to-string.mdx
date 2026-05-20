@@ -1,0 +1,117 @@
+---
+title: Render to HTML
+layout: document
+description: How to render React components to HTML strings, primarily for eCharts tooltip formatters.
+status: stable
+source: app/components/core/renderToString.tsx
+---
+
+Some third-party libraries accept HTML strings instead of React elements. The most common case in Sentry is **eCharts**, whose [tooltip formatter](https://echarts.apache.org/en/option.html#tooltip.formatter) expects a callback that returns an HTML string. `useRenderToString` bridges this gap by synchronously rendering a React tree to an HTML string on the client.
+
+## API
+
+```tsx
+import {useRenderToString} from '@sentry/scraps/renderToString';
+
+function useMyTooltipFormatter() {
+  const renderToString = useRenderToString();
+
+  return useCallback(
+    (params: TooltipComponentFormatterCallbackParams) => {
+      return renderToString(<MyTooltip params={params} />);
+    },
+    [renderToString]
+  );
+}
+```
+
+`useRenderToString` is a hook that returns a `(tree: ReactNode) => string` function. It automatically wraps the tree in a `ThemeProvider` so Emotion styles and theme tokens resolve correctly.
+
+## When to use
+
+- **eCharts tooltip formatters** — the primary use case. The formatter callback must return a string, but the tooltip content should use our design system components.
+- **eCharts label formatters** — similar situation where a string is required.
+- **Any third-party API that accepts HTML strings** — rare, but the same pattern applies.
+
+## When _not_ to use
+
+- **React-rendered tooltips** — if the tooltip is rendered by React (e.g., a standard tooltip), just pass JSX directly.
+- **Plain text** — if you only need text without markup, just return a string. No need for `renderToString`.
+
+## Pattern: eCharts tooltip formatter
+
+This is the most common pattern. Create a custom hook that returns a formatter function.
+
+```tsx
+import {useCallback} from 'react';
+import type {TooltipComponentFormatterCallbackParams} from 'echarts';
+
+import {Flex} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Text} from '@sentry/scraps/text';
+
+export function useMyChartTooltipFormatter() {
+  const renderToString = useRenderToString();
+
+  return useCallback(
+    (params: TooltipComponentFormatterCallbackParams) => {
+      const data = Array.isArray(params) ? params[0] : params;
+      if (!data) {
+        return '';
+      }
+
+      return renderToString(
+        <Flex direction="column" gap="sm">
+          <Text bold>{data.name}</Text>
+          <Text variant="muted">{data.value}</Text>
+        </Flex>
+      );
+    },
+    [renderToString]
+  );
+}
+```
+
+Then pass the formatter to your eCharts option:
+
+```tsx
+function MyChart() {
+  const formatTooltip = useMyChartTooltipFormatter();
+
+  const option = {
+    tooltip: {
+      formatter: formatTooltip,
+    },
+    // ...
+  };
+
+  return <ReactEchartsCore option={option} />;
+}
+```
+
+## How it works
+
+Under the hood, `renderToString` creates a temporary DOM node, renders into it with `flushSync`, reads `.innerHTML`, and unmounts. This is synchronous — the HTML string is available immediately, which is what eCharts expects.
+
+```tsx
+const renderToString = (tree: ReactNode) => {
+  const div = document.createElement('div');
+  const root = createRoot(div);
+
+  flushSync(() => {
+    root.render(tree);
+  });
+
+  const html = div.innerHTML;
+  root.unmount();
+  return html;
+};
+```
+
+The `useRenderToString` hook wraps the tree in a `ThemeProvider` so that Emotion's `useTheme` and styled components work correctly inside the rendered tree.
+
+## Tips
+
+- **Wrap the formatter in `useCallback`** with `[renderToString]` in the dependency array. The `renderToString` function is stable as long as the theme doesn't change, so memoization works well here.
+- **Use design system components** inside `renderToString`. The theme provider is wired up, so `Text`, `Flex`, `Container`, and other scraps primitives work as expected.
+- **Keep the rendered tree small.** Each call creates and tears down a React root. This is fine for tooltips (called on hover) but would be expensive in a tight loop.
