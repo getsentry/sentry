@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 
 import {AdminConfirmationModal} from 'admin/components/adminConfirmationModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   onRemoveEmail: (hash: string) => void;

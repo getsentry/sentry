@@ -17,12 +17,11 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Region} from 'sentry/types/system';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import {withApi} from 'sentry/utils/withApi';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {ResultTable} from 'admin/components/resultTable';
 
@@ -38,6 +37,7 @@ type FilterProps = {
 };
 
 function Filter({name, queryKey, options, path, location, value}: FilterProps) {
+  const navigate = useNavigate();
   const {query, pathname} = location ?? {};
   const resolvedPath = path ?? pathname ?? '';
 
@@ -52,7 +52,7 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
       [queryKey]: filter,
       cursor: '', // reset cursor for pagination
     };
-    browserHistory.push({pathname: resolvedPath, query: newQuery});
+    navigate({pathname: resolvedPath, query: newQuery});
   };
 
   return (
@@ -67,26 +67,15 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
   );
 }
 
-type SortFn = (value: string, path: string, query: Location['query']) => void;
-
 type SortByProps = {
   options: Option[];
   path: string;
   value: string;
   location?: Location;
-  onSort?: SortFn;
 };
 
-const defaultOnSort: SortFn = (value, path, query) => {
-  const newQuery = {
-    ...query,
-    sortBy: value,
-    cursor: '', // reset cursor for pagination
-  };
-  browserHistory.push({pathname: path, query: newQuery});
-};
-
-function SortBy({options, path, location, value, onSort = defaultOnSort}: SortByProps) {
+function SortBy({options, path, location, value}: SortByProps) {
+  const navigate = useNavigate();
   const {query, pathname} = location ?? {};
   const resolvedPath = path ?? pathname;
 
@@ -100,7 +89,12 @@ function SortBy({options, path, location, value, onSort = defaultOnSort}: SortBy
         />
       )}
       value={value}
-      onChange={opt => onSort(opt.value, resolvedPath, query ?? {})}
+      onChange={opt =>
+        navigate({
+          pathname: resolvedPath,
+          query: {...query, sortBy: opt.value, cursor: ''},
+        })
+      }
       options={options.map(item => ({value: item[0], label: item[1]}))}
     />
   );
@@ -111,7 +105,7 @@ type FilterDescriptor = {
   options: Option[];
 };
 
-interface ResultGridProps extends WithRouterProps {
+interface ResultGridProps {
   api: Client;
   /**
    * A list of table header column labels
@@ -121,6 +115,8 @@ interface ResultGridProps extends WithRouterProps {
    * The API path to get the grid data from
    */
   endpoint: string;
+  location: Location;
+  navigate: ReactRouter3Navigate;
   /**
    * The relative path to map result URLs to
    */
@@ -228,7 +224,7 @@ export type State = {
 const extractQuery = (query: Location['query'][string], defaultVal = '') =>
   (Array.isArray(query) ? query[0] : query) ?? defaultVal;
 
-class ResultGrid extends Component<ResultGridProps, State> {
+class ResultGridImpl extends Component<ResultGridProps, State> {
   static defaultProps: Partial<ResultGridProps> = {
     method: 'GET',
     endpoint: '',
@@ -281,10 +277,13 @@ class ResultGrid extends Component<ResultGridProps, State> {
     // Remove regionalUrl after setting state
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
     if (needsRegion && this.props.location?.query?.regionUrl) {
-      browserHistory.replace({
-        pathname: this.props.location.pathname,
-        query: {...this.props.location.query, regionUrl: undefined},
-      });
+      this.props.navigate(
+        {
+          pathname: this.props.location.pathname,
+          query: {...this.props.location.query, regionUrl: undefined},
+        },
+        {replace: true}
+      );
     }
   }
 
@@ -373,7 +372,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
     e.preventDefault();
 
     if (this.props.useQueryString) {
-      browserHistory.push({
+      this.props.navigate({
         pathname: this.props.path,
         query: {...queryParams, ...query},
       });
@@ -616,4 +615,20 @@ const ErrorAlert = styled(Alert)`
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
-export default withApi(withSentryRouter(ResultGrid));
+type ResultGridWrapperProps = Omit<ResultGridProps, 'api' | 'location' | 'navigate'> & {
+  api?: Client;
+};
+
+export function ResultGrid({api, ...props}: ResultGridWrapperProps) {
+  const defaultApi = useApi();
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (
+    <ResultGridImpl
+      {...props}
+      api={api ?? defaultApi}
+      location={location}
+      navigate={navigate}
+    />
+  );
+}

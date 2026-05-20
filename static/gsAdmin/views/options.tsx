@@ -10,7 +10,7 @@ import {IconEdit, IconStack} from 'sentry/icons';
 
 import {EditAdminOptionModal} from 'admin/components/editAdminOptionModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 export interface SerializedOption {
   fieldType: 'bool' | 'rate';

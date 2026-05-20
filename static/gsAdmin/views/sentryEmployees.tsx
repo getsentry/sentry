@@ -8,7 +8,7 @@ import {IconEdit} from 'sentry/icons';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
 export function SentryEmployees() {

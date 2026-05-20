@@ -9,7 +9,7 @@ import type {DocIntegration} from 'sentry/types/integrations';
 
 import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (doc: DocIntegration) => [
   <td key="name" style={{textAlign: 'left'}}>
