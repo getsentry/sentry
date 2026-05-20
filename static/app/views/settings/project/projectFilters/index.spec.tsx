@@ -365,6 +365,9 @@ describe('ProjectFilters', () => {
     checkboxes.forEach(checkbox => {
       expect(checkbox).toBeDisabled();
     });
+
+    expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
   });
 
   it('shows disclaimer if error message filter is populated', async () => {

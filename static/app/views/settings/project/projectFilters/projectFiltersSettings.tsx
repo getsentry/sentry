@@ -532,21 +532,23 @@ function CustomFiltersForm({
             )}
           </Feature>
 
-          <Flex gap="sm" align="center">
-            <form.Subscribe selector={state => state.isDirty}>
-              {isDirty =>
-                isDirty ? (
-                  <Alert variant="info">
-                    {t('Changing this filter will apply to all new events.')}
-                  </Alert>
-                ) : null
-              }
-            </form.Subscribe>
-            <Flex gap="sm" justify="end" flexGrow={1}>
-              <form.ResetButton>{t('Cancel')}</form.ResetButton>
-              <form.SubmitButton>{t('Save')}</form.SubmitButton>
+          {!disabled && (
+            <Flex gap="sm" align="center">
+              <form.Subscribe selector={state => state.isDirty}>
+                {isDirty =>
+                  isDirty ? (
+                    <Alert variant="info">
+                      {t('Changing this filter will apply to all new events.')}
+                    </Alert>
+                  ) : null
+                }
+              </form.Subscribe>
+              <Flex gap="sm" justify="end" flexGrow={1}>
+                <form.ResetButton>{t('Cancel')}</form.ResetButton>
+                <form.SubmitButton>{t('Save')}</form.SubmitButton>
+              </Flex>
             </Flex>
-          </Flex>
+          )}
         </FieldGroup>
       </FormSearch>
     </form.AppForm>
