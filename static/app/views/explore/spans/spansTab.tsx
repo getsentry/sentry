@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -370,6 +371,10 @@ function SpanTabContentSectionInner({
                 if (newTab === Mode.AGGREGATE) {
                   setControlSectionExpanded(true);
                 }
+                trackAnalytics('trace.explorer.table_tab_changed', {
+                  organization,
+                  tab: newTab,
+                });
                 setTab(newTab);
               }}
             />

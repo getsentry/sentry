@@ -10,8 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -46,7 +44,6 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 
 export function ExploreTables(props: ExploreTablesProps) {
   const {openModal} = useModal();
-  const organization = useOrganization();
 
   const {setTab, tab} = props;
   const crossEvents = useQueryParamsCrossEvents();
@@ -103,18 +100,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
-        <Tabs
-          value={tab}
-          onChange={newTab => {
-            trackAnalytics('trace.explorer.table_tab_changed', {
-              organization,
-              tab: newTab,
-            });
-            setTab(newTab);
-          }}
-          size="sm"
-          disableOverflow
-        >
+        <Tabs value={tab} onChange={setTab} size="sm" disableOverflow>
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item
