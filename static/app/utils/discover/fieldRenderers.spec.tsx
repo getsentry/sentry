@@ -102,6 +102,16 @@ describe('getFieldRenderer', () => {
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
+  it('can render numeric values with the string renderer', () => {
+    const renderer = getFieldRenderer('numeric', {numeric: 'string'});
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText(data.numeric)).toBeInTheDocument();
+  });
+
   it('renders the last element when string fields are stored as arrays', () => {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = ['https://example.com/old', 'https://example.com/new'];

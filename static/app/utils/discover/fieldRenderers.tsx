@@ -199,8 +199,16 @@ export function nullableValue(value: string | null): string | React.ReactElement
  * Invalid/template URLs render as plain text without an anchor tag.
  */
 export function renderUrlCellValue(value: unknown): React.ReactNode {
-  if (typeof value !== 'string' || !isValidUrl(value)) {
-    return nullableValue(typeof value === 'string' ? value : null);
+  if (value === null || value === undefined) {
+    return emptyValue;
+  }
+
+  if (typeof value !== 'string') {
+    return typeof value === 'number' || typeof value === 'boolean' ? value : emptyValue;
+  }
+
+  if (!isValidUrl(value)) {
+    return nullableValue(value);
   }
 
   return (
