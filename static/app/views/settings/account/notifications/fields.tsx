@@ -328,23 +328,3 @@ export const QUOTA_FIELDS = [
     ] as const,
   },
 ];
-
-export const SPEND_FIELDS = [
-  {
-    name: 'quota',
-    label: t('Spend Notifications'),
-    help: tct(
-      'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
-      {
-        learnMore: (
-          <ExternalLink href="https://docs.sentry.io/product/alerts/notifications/#spend-notifications" />
-        ),
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  ...QUOTA_FIELDS.slice(1),
-];
