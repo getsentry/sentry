@@ -105,9 +105,7 @@ describe('ProjectPageFilter', () => {
     });
 
     // Should show "My Projects" not "All Projects", even though user is member of all projects
-    expect(
-      await screen.findByRole('button', {name: 'My Projects'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
   });
 
   it('renders keyboard-accessible trailing items', async () => {
