@@ -66,16 +66,13 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
     )
 
 
-def _get_project_repos_queryset(project: Project, organization: Organization):
-    return (
-        SeerProjectRepository.objects.filter(
-            project_repository__project=project,
-            project_repository__repository__status=ObjectStatus.ACTIVE,
-            project_repository__repository__provider__in=get_supported_scm_providers(organization),
-        )
-        .select_related("project_repository", "project_repository__repository")
-        .prefetch_related("branch_overrides")
-    )
+def _base_project_repos_queryset(project: Project, organization: Organization):
+    """Get a project's base SeerProjectRepository queryset for active repos with providers supported by Seer."""
+    return SeerProjectRepository.objects.filter(
+        project_repository__project=project,
+        project_repository__repository__status=ObjectStatus.ACTIVE,
+        project_repository__repository__provider__in=get_supported_scm_providers(organization),
+    ).select_related("project_repository", "project_repository__repository")
 
 
 def _validate_branch_overrides(value):
@@ -123,7 +120,8 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
         project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         project_repo = (
-            _get_project_repos_queryset(project, organization)
+            _base_project_repos_queryset(project, organization)
+            .prefetch_related("branch_overrides")
             .filter(project_repository__repository_id=repo_id)
             .first()
         )
@@ -145,16 +143,9 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             project_repo = (
-                SeerProjectRepository.objects.select_for_update()
-                .select_related("project_repository", "project_repository__repository")
-                .filter(
-                    project_repository__project=project,
-                    project_repository__repository_id=repo_id,
-                    project_repository__repository__status=ObjectStatus.ACTIVE,
-                    project_repository__repository__provider__in=get_supported_scm_providers(
-                        organization
-                    ),
-                )
+                _base_project_repos_queryset(project, organization)
+                .select_for_update()
+                .filter(project_repository__repository_id=repo_id)
                 .first()
             )
             if project_repo is None:
@@ -177,14 +168,11 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
         project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-            deleted_count, _ = SeerProjectRepository.objects.filter(
-                project_repository__project=project,
-                project_repository__repository_id=repo_id,
-                project_repository__repository__status=ObjectStatus.ACTIVE,
-                project_repository__repository__provider__in=get_supported_scm_providers(
-                    organization
-                ),
-            ).delete()
+            deleted_count, _ = (
+                _base_project_repos_queryset(project, organization)
+                .filter(project_repository__repository_id=repo_id)
+                .delete()
+            )
 
         if deleted_count == 0:
             return Response(status=404)
