@@ -40,12 +40,6 @@ class NotificationMessage(Model):
     # Reference to another notification if we choose to modify the original message or reply to it (like start a thread)
     parent_notification_message = FlexibleForeignKey("self", null=True)
 
-    # Related information regarding Alert Rules (Metric Alerts)
-    incident = FlexibleForeignKey("sentry.Incident", null=True, db_constraint=False)
-    trigger_action = FlexibleForeignKey(
-        "sentry.AlertRuleTriggerAction", null=True, db_constraint=False
-    )
-
     date_added = DateTimeField(default=timezone.now)
 
     # Related information regarding Action (Workflow Engine)
@@ -63,6 +57,7 @@ class NotificationMessage(Model):
                 fields=["group", "action", "date_added"],
                 name="idx_notifmsg_group_action_date",
             ),
+            models.Index(fields=["date_added"]),
         ]
 
     __repr__ = sane_repr("id", "message_identifier", "error_code")
