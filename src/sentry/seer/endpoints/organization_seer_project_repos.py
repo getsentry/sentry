@@ -164,7 +164,8 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
                 project_repo.branch_name = data["branch_name"]
             if "instructions" in data:
                 project_repo.instructions = data["instructions"]
-            project_repo.save()
+            if "branch_name" in data or "instructions" in data:
+                project_repo.save()
 
             if "branch_overrides" in data:
                 replace_all_branch_overrides(project_repo, data["branch_overrides"])
