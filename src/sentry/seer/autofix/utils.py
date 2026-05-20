@@ -854,21 +854,6 @@ def bulk_update_seer_project_settings(
         ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
 
 
-def validate_repo_ids_for_seer(organization: Organization, repo_ids: list[int]) -> None:
-    """Raise ValueError if any repo IDs are invalid, inactive, or have providers not supported by Seer."""
-    valid_ids = set(
-        Repository.objects.filter(
-            id__in=repo_ids,
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            provider__in=get_supported_scm_providers(organization),
-        ).values_list("id", flat=True)
-    )
-    invalid_ids = set(repo_ids) - valid_ids
-    if invalid_ids:
-        raise ValueError(sorted(invalid_ids))
-
-
 class BranchOverrideData(TypedDict):
     tag_name: str
     tag_value: str

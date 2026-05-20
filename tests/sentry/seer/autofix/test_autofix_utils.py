@@ -2099,7 +2099,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
         )
         assert project_repo.branch_overrides.count() == 0
 
-    def test_does_not_delete_inactive_repos(self):
+    def test_preserves_inactive_repos(self):
         inactive_repo = self.create_repo(
             project=self.project,
             name="getsentry/inactive",
