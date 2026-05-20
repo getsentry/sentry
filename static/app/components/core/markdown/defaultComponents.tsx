@@ -1,4 +1,4 @@
-import React, {type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
@@ -151,7 +151,7 @@ export function DefaultHorizontalRule() {
 }
 
 export function DefaultText({children}: {children: string}) {
-  return <React.Fragment>{children}</React.Fragment>;
+  return <Fragment>{children}</Fragment>;
 }
 
 export function DefaultLineBreak() {

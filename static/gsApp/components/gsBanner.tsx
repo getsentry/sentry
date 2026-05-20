@@ -1,4 +1,4 @@
-import React, {Component, Fragment, useEffect} from 'react';
+import {Component, Fragment, useEffect} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
@@ -1040,9 +1040,9 @@ class GSBanner extends Component<Props, State> {
     const overageAlertType = this.overageAlertType;
     if (overageAlertType !== null) {
       return (
-        <React.Fragment>
+        <Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
@@ -1056,7 +1056,7 @@ class GSBanner extends Component<Props, State> {
       const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
       // only disabling members if the plan allows exactly one member
       return (
-        <React.Fragment>
+        <Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
           <Alert.Container>
             <InvertedAlert
@@ -1106,7 +1106,7 @@ class GSBanner extends Component<Props, State> {
               )}
             </InvertedAlert>
           </Alert.Container>
-        </React.Fragment>
+        </Fragment>
       );
     }
 

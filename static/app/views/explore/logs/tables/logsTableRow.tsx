@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import React, {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -427,12 +427,12 @@ export const LogRowContent = memo(function LogRowContent({
                 </TraceIconStyleWrapper>
               </Flex>
             ) : (
-              <React.Fragment>
+              <Fragment>
                 <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
                 {project ? (
                   <ProjectBadge project={project} avatarSize={12} hideName />
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
