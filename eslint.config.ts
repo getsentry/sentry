@@ -875,6 +875,7 @@ export default typescript.config([
         'error',
         {additionalTestBlockFunctions: ['it.isKnownFlake']},
       ],
+      'jest/prefer-jest-mocked': 'error',
 
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
@@ -1399,6 +1400,9 @@ export default typescript.config([
     ignores: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'error',
+      ...(enableTypeAwareLinting && {
+        '@typescript-eslint/no-unsafe-return': 'error',
+      }),
     },
   },
 ]);

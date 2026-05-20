@@ -4,7 +4,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -40,7 +39,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         )
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.select_related(
-                "project", "project_repository__project"
+                "project_repository__project"
             ).get(
                 id=config_id,
                 organization_integration_id__in=[oi.id for oi in ois],
@@ -69,10 +68,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
-        if features.has("organizations:project-repository-fk-reads", organization):
-            project = config.project_repository.project
-        else:
-            project = config.project
+        project = config.project_repository.project
         if not request.access.has_projects_access([project, new_project]):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
 
@@ -109,10 +105,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :auth: required
         """
 
-        if features.has("organizations:project-repository-fk-reads", organization):
-            project = config.project_repository.project
-        else:
-            project = config.project
+        project = config.project_repository.project
         if not request.access.has_project_access(project):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
 

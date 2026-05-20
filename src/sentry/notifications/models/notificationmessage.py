@@ -41,14 +41,16 @@ class NotificationMessage(Model):
     parent_notification_message = FlexibleForeignKey("self", null=True)
 
     # Related information regarding Alert Rules (Metric Alerts)
-    incident = FlexibleForeignKey("sentry.Incident", null=True)
-    trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction", null=True)
+    incident = FlexibleForeignKey("sentry.Incident", null=True, db_constraint=False)
+    trigger_action = FlexibleForeignKey(
+        "sentry.AlertRuleTriggerAction", null=True, db_constraint=False
+    )
 
     date_added = DateTimeField(default=timezone.now)
 
     # Related information regarding Action (Workflow Engine)
-    action = FlexibleForeignKey("workflow_engine.Action", null=True)
-    group = FlexibleForeignKey("sentry.Group", null=True)
+    action = FlexibleForeignKey("workflow_engine.Action")
+    group = FlexibleForeignKey("sentry.Group")
     # Key for a start of a specific open period of the group (e.g. metric/uptime issues)
     # This doesn't have to be set for all actions, only for actions that are related to a group which has a defined open period
     open_period_start = DateTimeField(null=True)

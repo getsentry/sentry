@@ -17,7 +17,6 @@ export enum ModuleName {
   MCP_TOOLS = 'mcp-tools',
   MCP_RESOURCES = 'mcp-resources',
   MCP_PROMPTS = 'mcp-prompts',
-  MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
   SESSIONS = 'sessions',

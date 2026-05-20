@@ -45,7 +45,7 @@ class IntegrationSerializer(serializers.Serializer):
 @control_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,

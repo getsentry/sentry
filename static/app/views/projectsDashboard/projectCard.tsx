@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
@@ -6,7 +6,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {IdBadge} from 'sentry/components/idBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -22,13 +21,9 @@ import {
 } from 'sentry/components/scoreCard';
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
@@ -42,6 +37,7 @@ import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureB
 
 import {Deploys} from './deploys';
 import {ProjectChart} from './projectChart';
+import {useProjectStats} from './useProjectStats';
 
 interface ProjectCardProps {
   hasProjectAccess: boolean;
@@ -52,28 +48,17 @@ export function ProjectCard({
   project: simpleProject,
   hasProjectAccess,
 }: ProjectCardProps) {
-  const api = useApi();
   const organization = useOrganization();
-
-  const statsProject = useLegacyStore(ProjectsStatsStore)[simpleProject.slug];
-  const project = statsProject ?? simpleProject;
-
-  const {stats, slug, transactionStats, sessionStats} = project;
-  const {hasHealthData, currentCrashFreeRate, previousCrashFreeRate} = sessionStats || {};
-
   const hasPerformance = organization.features.includes('performance-view');
+  const {getOne: getProjectStats} = useProjectStats({
+    organization,
+    hasPerformance,
+  });
 
-  useEffect(() => {
-    loadStatsForProject(api, project.id, {
-      orgId: organization.slug,
-      projectId: project.id,
-      query: {
-        transactionStats: hasPerformance ? '1' : undefined,
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
-        sessionStats: '1',
-      },
-    });
-  }, [project, organization.slug, hasPerformance, api]);
+  const {stats, transactionStats, sessionStats, latestDeploys} =
+    getProjectStats(simpleProject);
+  const {slug} = simpleProject;
+  const {hasHealthData, currentCrashFreeRate, previousCrashFreeRate} = sessionStats || {};
 
   const crashFreeTrend =
     defined(currentCrashFreeRate) && defined(previousCrashFreeRate)
@@ -90,7 +75,7 @@ export function ProjectCard({
         <MissingReleasesButtons
           organization={organization}
           health
-          platform={project.platform}
+          platform={simpleProject.platform}
         />
       }
     />
@@ -112,9 +97,9 @@ export function ProjectCard({
   const totalTransactions =
     transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
 
-  const hasFirstEvent = !!project.firstEvent || project.firstTransactionEvent;
-  const domainView = project
-    ? platformToDomainView([project], [parseInt(project.id, 10)])
+  const hasFirstEvent = !!simpleProject.firstEvent || simpleProject.firstTransactionEvent;
+  const domainView = simpleProject
+    ? platformToDomainView([simpleProject], [parseInt(simpleProject.id, 10)])
     : 'backend';
 
   return (
@@ -122,7 +107,7 @@ export function ProjectCard({
       <Container height="32px">
         <HeaderRow>
           <AlignedIdBadge
-            project={project}
+            project={simpleProject}
             avatarSize={32}
             hideOverflow
             disableLink={!hasProjectAccess}
@@ -136,7 +121,7 @@ export function ProjectCard({
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
             />
-            <BookmarkStar organization={organization} project={project} />
+            <BookmarkStar organization={organization} project={simpleProject} />
           </Grid>
         </HeaderRow>
         <SummaryLinks data-test-id="summary-links">
@@ -144,14 +129,14 @@ export function ProjectCard({
             <Fragment>
               <Link
                 data-test-id="project-errors"
-                to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
+                to={`/organizations/${organization.slug}/issues/?project=${simpleProject.id}`}
               >
                 {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
               </Link>
               {hasPerformance && (
                 <TransactionsLink
                   data-test-id="project-transactions"
-                  to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
+                  to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${simpleProject.id}`}
                 >
                   {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
                   {totalTransactions === 0 && (
@@ -175,7 +160,7 @@ export function ProjectCard({
             firstEvent={hasFirstEvent}
             stats={stats}
             transactionStats={transactionStats}
-            project={project}
+            project={simpleProject}
           />
         ) : (
           <Placeholder height="150px" />
@@ -209,7 +194,11 @@ export function ProjectCard({
         </ScoreCardWrapper>
         <div>
           <SubHeading>{t('Latest Deploys')}</SubHeading>
-          {stats ? <Deploys project={project} /> : <FooterPlaceholder />}
+          {stats ? (
+            <Deploys project={simpleProject} latestDeploys={latestDeploys} />
+          ) : (
+            <FooterPlaceholder />
+          )}
         </div>
       </CardFooter>
     </CardPanel>

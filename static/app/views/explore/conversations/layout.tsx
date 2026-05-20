@@ -93,7 +93,7 @@ function ConversationsHeader() {
           />
         ) : (
           <Fragment>
-            {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="alpha" />
+            {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="beta" />
           </Fragment>
         )}
       </TopBar.Slot>

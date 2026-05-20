@@ -40,8 +40,9 @@ export function IssuesSecondaryNavigation() {
           <SecondaryNavigation.List>
             {Object.values(ISSUE_TAXONOMY_CONFIG)
               .filter(
-                ({featureFlag}) =>
-                  !featureFlag || organization.features.includes(featureFlag)
+                ({featureFlags}) =>
+                  !featureFlags ||
+                  featureFlags.some(feature => organization.features.includes(feature))
               )
               .map(({key, label}) => (
                 <SecondaryNavigation.ListItem key={key}>
@@ -62,16 +63,6 @@ export function IssuesSecondaryNavigation() {
                 {t('User Feedback')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {organization.features.includes('seer-autopilot') && (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/instrumentation/`}
-                  analyticsItemName="issues_instrumentation"
-                >
-                  {t('Instrumentation')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         {organization.features.includes('autofix-on-explorer') && (

@@ -150,6 +150,9 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
     target_url = urljoin(cell.address, request.path)
 
+    if settings.APIGW_WARN_REQS:
+        logger.warning("apigateway.legacy-sync-request", extra={"endpoint": target_url})
+
     content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"

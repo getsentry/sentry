@@ -19,6 +19,7 @@ from collections.abc import (
 )
 from contextlib import contextmanager
 from dataclasses import dataclass
+from threading import local
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
@@ -31,6 +32,7 @@ from requests.adapters import HTTPAdapter, Retry
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
@@ -493,6 +495,44 @@ def dispatch_remote_call(
     return remote_silo_call.dispatch(use_test_client)
 
 
+def _create_request_session(retry_count: int) -> requests.Session:
+    retry_adapter = HTTPAdapter(
+        max_retries=Retry(
+            total=retry_count,
+            backoff_factor=0.1,
+            status_forcelist=[503],
+            allowed_methods=["POST"],
+        )
+    )
+    http = requests.Session()
+    http.mount("http://", retry_adapter)
+    http.mount("https://", retry_adapter)
+    return http
+
+
+_connections = local()
+
+
+def _get_connection(retry_count: int) -> requests.Session:
+    """
+    Get a shared requests.Session.
+
+    Because retry limits are part of the session definition,
+    each unique retry value creates a different connection pool.
+    """
+    if not in_random_rollout("hybridcloud.rpc.use_pooling.rate"):
+        return _create_request_session(retry_count)
+
+    if not hasattr(_connections, "lookup"):
+        _connections.lookup = {}
+
+    if not _connections.lookup.get(retry_count, None):
+        http = _create_request_session(retry_count)
+        _connections.lookup[retry_count] = http
+
+    return _connections.lookup[retry_count]
+
+
 @dataclass(frozen=True)
 class _RemoteSiloCall:
     cell: Cell | None
@@ -688,19 +728,8 @@ class _RemoteSiloCall:
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_count = self.get_method_retry_count()
-        retry_adapter = HTTPAdapter(
-            max_retries=Retry(
-                total=retry_count,
-                backoff_factor=0.1,
-                status_forcelist=[503],
-                allowed_methods=["POST"],
-            )
-        )
-        http = requests.Session()
-        http.mount("http://", retry_adapter)
-        http.mount("https://", retry_adapter)
+        http = _get_connection(retry_count)
 
-        # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
         timeout = self.get_method_timeout()

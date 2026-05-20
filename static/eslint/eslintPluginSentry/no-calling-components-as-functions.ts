@@ -14,7 +14,7 @@ import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
 import type {TSESTree} from '@typescript-eslint/utils';
 import type {RuleFix, RuleFixer} from '@typescript-eslint/utils/ts-eslint';
 
-const IGNORED_NAMES = new Set(['HookOrDefault']);
+const IGNORED_NAMES = new Set(['OverrideOrDefault']);
 
 // Matches names that are clearly not PascalCase components:
 // - SCREAMING_SNAKE prefix: DO_NOT_USE_foo, DANGEROUS_SET_REACT_ROUTER_6_HISTORY

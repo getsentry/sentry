@@ -106,11 +106,9 @@ class BaseDeriveCodeMappings(TestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         RepositoryProjectPathConfig.objects.create(
-            project_id=self.project.id,
             stack_root=stack_root,
             source_root=source_root,
             default_branch=default_branch,
-            repository=repository,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
@@ -184,17 +182,20 @@ class BaseDeriveCodeMappings(TestCase):
                     )
                     for expected_cm in expected_new_code_mappings:
                         code_mapping = current_code_mappings.get(
-                            project_id=self.project.id,
+                            project_repository__project_id=self.project.id,
                             stack_root=expected_cm["stack_root"],
                             source_root=expected_cm["source_root"],
                         )
                         assert code_mapping is not None
-                        assert code_mapping.repository.name == expected_cm["repo_name"]
+                        assert (
+                            code_mapping.project_repository.repository.name
+                            == expected_cm["repo_name"]
+                        )
                         assert code_mapping.project_repository is not None
                         assert code_mapping.project_repository.project_id == self.project.id
                         assert (
                             code_mapping.project_repository.repository_id
-                            == code_mapping.repository_id
+                            == code_mapping.project_repository.repository_id
                         )
                 else:
                     assert current_code_mappings.count() == starting_code_mappings_count
@@ -699,21 +700,30 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
     def test_marked_in_app_and_code_mapping_already_exists(self) -> None:
         """Test that the in-app rule is created regardless of whether the code mapping already exists"""
-        # The developer may have already created the code mapping and repository
-        self.create_repo_and_code_mapping("REPO1", "com/example/foo/", "src/com/example/foo/")
+        # First run: create the code mapping via the normal flow
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
-            # The developer may have marked the frame as in-app in the SDK
             frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
             platform=self.platform,
-            # We're not expecting to create anything new
-            expected_new_code_mappings=[],
-            # The in-app rule will still be created
+            expected_new_code_mappings=[
+                {
+                    "stack_root": "com/example/foo/",
+                    "source_root": "src/com/example/foo/",
+                    "repo_name": REPO1,
+                }
+            ],
             expected_new_in_app_stack_trace_rules=[
                 "stack.module:com.example.** +app",
             ],
         )
-        assert RepositoryProjectPathConfig.objects.count() == 1
+        # Second run: the code mapping already exists, but the in-app rule is still applied
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
+            platform=self.platform,
+            expected_new_code_mappings=[],
+            expected_new_in_app_stack_trace_rules=[],
+        )
 
     def test_short_packages(self) -> None:
         self._process_and_assert_configuration_changes(
@@ -970,7 +980,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         )
         # Both mappings should coexist: the manual one and the auto-created one
         mappings = RepositoryProjectPathConfig.objects.filter(
-            project=self.project, stack_root="foo/bar/"
+            project_repository__project=self.project, stack_root="foo/bar/"
         )
         assert mappings.count() == 2
         assert set(mappings.values_list("source_root", flat=True)) == {

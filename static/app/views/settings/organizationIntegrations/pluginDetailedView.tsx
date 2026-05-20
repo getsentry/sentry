@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
@@ -32,7 +33,6 @@ import {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {PluginDeprecationAlert} from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
@@ -59,9 +59,10 @@ function PluginDetailedView() {
   const {openModal} = useModal();
 
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
-  const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
-    initialTab: 'overview',
-  });
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
+  );
 
   const organization = useOrganization();
   const queryClient = useQueryClient();

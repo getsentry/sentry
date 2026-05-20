@@ -1,5 +1,5 @@
-import type {ComponentProps, ReactNode} from 'react';
-import {Fragment, useEffect} from 'react';
+import type {ReactNode} from 'react';
+import {createContext, Fragment, useContext, useEffect} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
@@ -12,8 +12,6 @@ import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnh
 import {MetricsCompatibilityQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import type {MetricsCompatibilitySumData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
 import {MetricsCompatibilitySumsQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
-
-import {createDefinedContext} from './utils';
 
 const UNPARAM_THRESHOLD = 0.01;
 const NULL_THRESHOLD = 0.01;
@@ -31,11 +29,9 @@ export interface MetricsCardinalityContext {
 
 type MergedMetricsData = MetricsCompatibilityData & MetricsCompatibilitySumData;
 
-const [_Provider, _useContext, _Context] =
-  createDefinedContext<MetricsCardinalityContext>({
-    name: 'MetricsCardinalityContext',
-    strict: false,
-  });
+const MetricsCardinalityCtx = createContext<MetricsCardinalityContext | undefined>(
+  undefined
+);
 
 /**
  * This provider determines whether the metrics data is storing performance information correctly before we
@@ -51,7 +47,7 @@ export function MetricsCardinalityProvider(props: {
 
   if (!isUsingMetrics) {
     return (
-      <_Provider
+      <MetricsCardinalityCtx
         value={{
           isLoading: false,
           outcome: {
@@ -60,7 +56,7 @@ export function MetricsCardinalityProvider(props: {
         }}
       >
         {props.children}
-      </_Provider>
+      </MetricsCardinalityCtx>
     );
   }
 
@@ -135,12 +131,12 @@ export function MetricsCardinalityProvider(props: {
   );
 }
 
-function Provider(
-  props: ComponentProps<typeof _Provider> & {
-    organization: Organization;
-    sendOutcomeAnalytics?: boolean;
-  }
-) {
+function Provider(props: {
+  children: ReactNode;
+  organization: Organization;
+  value: MetricsCardinalityContext;
+  sendOutcomeAnalytics?: boolean;
+}) {
   const fallbackFromNull = props.value.outcome?.shouldWarnIncompatibleSDK ?? false;
   const fallbackFromUnparam =
     props.value.outcome?.shouldNotifyUnnamedTransactions ?? false;
@@ -162,10 +158,12 @@ function Provider(
     fallbackFromNull,
     props.sendOutcomeAnalytics,
   ]);
-  return <_Provider {...props}>{props.children}</_Provider>;
+  return <MetricsCardinalityCtx {...props}>{props.children}</MetricsCardinalityCtx>;
 }
 
-export const useMetricsCardinalityContext = _useContext;
+export function useMetricsCardinalityContext(): MetricsCardinalityContext | undefined {
+  return useContext(MetricsCardinalityCtx);
+}
 
 /**
  * Logic for picking sides of metrics vs. transactions along with the associated warnings.

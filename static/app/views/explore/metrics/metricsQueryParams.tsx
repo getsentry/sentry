@@ -1,8 +1,7 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
@@ -33,10 +32,17 @@ interface TraceMetricContextValue {
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
-const [_MetricMetadataContextProvider, useTraceMetricContext, TraceMetricContext] =
-  createDefinedContext<TraceMetricContextValue>({
-    name: 'TraceMetricContext',
-  });
+const TraceMetricContext = createContext<TraceMetricContextValue | undefined>(undefined);
+
+function useTraceMetricContext(): TraceMetricContextValue {
+  const context = useContext(TraceMetricContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "TraceMetricContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;

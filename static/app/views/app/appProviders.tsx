@@ -4,6 +4,7 @@ import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
+import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
@@ -36,6 +37,7 @@ export function AppProviders({preloadData, children}: AppProvidersProps) {
       GlobalFeedbackForm,
       DemoToursProvider,
       LLMContextProvider,
+      GlobalAlertProvider,
     ];
 
   return providers.reduceRight((acc, Provider) => <Provider>{acc}</Provider>, children);

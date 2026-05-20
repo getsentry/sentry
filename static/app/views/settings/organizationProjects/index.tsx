@@ -17,7 +17,7 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {Project, ProjectStats} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,6 +33,7 @@ import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/cr
 import {ProjectStatsGraph} from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
+type ProjectListItem = Project & {stats?: ProjectStats};
 
 function OrganizationProjects() {
   const organization = useOrganization();
@@ -47,17 +48,20 @@ function OrganizationProjects() {
     isPending,
     isError,
   } = useQuery({
-    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {
-        ...location.query,
-        query,
-        per_page: ITEMS_PER_PAGE,
-        statsPeriod: '24h',
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
-      staleTime: 0,
-    }),
+    ...apiOptions.as<ProjectListItem[]>()(
+      '/organizations/$organizationIdOrSlug/projects/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          ...location.query,
+          query,
+          per_page: ITEMS_PER_PAGE,
+          statsPeriod: '24h',
+          collapse: ['latestDeploys', 'unusedFeatures'],
+        },
+        staleTime: 0,
+      }
+    ),
     select: selectJsonWithHeaders,
   });
 
@@ -113,7 +117,7 @@ function OrganizationProjects() {
                   <ProjectItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
-                  <ProjectStatsGraph project={project} />
+                  <ProjectStatsGraph stats={project.stats} />
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}

@@ -197,7 +197,7 @@ class MsTeamsEvents(Enum):
 
 @all_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

@@ -56,7 +56,7 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     },
     // Known utility — even if imported, skip
     {
-      code: 'import {HookOrDefault} from "sentry/utils/hook"; const x = HookOrDefault({hookName: "x"});',
+      code: 'import {OverrideOrDefault} from "sentry/components/overrideOrDefault"; const x = OverrideOrDefault({overrideName: "x"});',
     },
     // All-uppercase names — constants, not components
     {

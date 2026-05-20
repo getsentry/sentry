@@ -29,9 +29,6 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectAlertRulePermission,)
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
-    }
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rules")
     @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")

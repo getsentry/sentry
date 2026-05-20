@@ -54,6 +54,9 @@ from .public.project_preprod_build_distribution_latest import (
 from .public.project_preprod_size_analysis_status_check_rules import (
     ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint,
 )
+from .public.project_preprod_snapshot_status_check_rules import (
+    ProjectPreprodSnapshotStatusCheckRulesEndpoint,
+)
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .pull_request.organization_pullrequest_size_analysis_download import (
@@ -126,6 +129,11 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/size-analysis/status-check-rules/$",
         ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint.as_view(),
         name="sentry-api-0-project-preprod-size-analysis-status-check-rules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/snapshots/status-check-rules/$",
+        ProjectPreprodSnapshotStatusCheckRulesEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshot-status-check-rules",
     ),
 ]
 

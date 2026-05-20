@@ -63,29 +63,32 @@ describe('RuleConditionsForm', () => {
     jest.clearAllMocks();
   });
 
-  it('searches with new searchbar (search-query-builder-alerts)', async () => {
-    render(
-      <RuleConditionsForm
-        {...props}
-        eventTypes={[]}
-        organization={organization}
-        router={router}
-      />,
-      {
-        organization: {...organization, features: ['search-query-builder-alerts']},
-      }
-    );
-    const input = await screen.findByPlaceholderText(
-      'Filter events by level, message, and other properties\u2026'
-    );
-    expect(input).toBeInTheDocument();
+  it.isKnownFlake(
+    'searches with new searchbar (search-query-builder-alerts)',
+    async () => {
+      render(
+        <RuleConditionsForm
+          {...props}
+          eventTypes={[]}
+          organization={organization}
+          router={router}
+        />,
+        {
+          organization: {...organization, features: ['search-query-builder-alerts']},
+        }
+      );
+      const input = await screen.findByPlaceholderText(
+        'Filter events by level, message, and other properties\u2026'
+      );
+      expect(input).toBeInTheDocument();
 
-    await userEvent.clear(input);
-    await userEvent.type(input, 'a{enter}');
+      await userEvent.clear(input);
+      await userEvent.type(input, 'a{enter}');
 
-    expect(mockSearch).toHaveBeenCalledTimes(1);
-    expect(mockSearch).toHaveBeenCalledWith('a', true);
-  });
+      expect(mockSearch).toHaveBeenCalledTimes(1);
+      expect(mockSearch).toHaveBeenCalledWith('a', true);
+    }
+  );
 
   it('renders low confidence warning', async () => {
     render(

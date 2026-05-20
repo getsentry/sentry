@@ -40,18 +40,11 @@ def _is_autofix_enabled_for_repo(organization: Organization, repository_id: int)
     this repository, ie, if any project has this repository configured
     in Seer preferences.
     """
-    if features.has("organizations:project-repository-fk-reads", organization):
-        return SeerProjectRepository.objects.filter(
-            project_repository__repository_id=repository_id,
-            project_repository__project__organization_id=organization.id,
-            project_repository__project__status=ObjectStatus.ACTIVE,
-            project_repository__repository__status=ObjectStatus.ACTIVE,
-        ).exists()
     return SeerProjectRepository.objects.filter(
-        repository_id=repository_id,
-        project__organization_id=organization.id,
-        project__status=ObjectStatus.ACTIVE,
-        repository__status=ObjectStatus.ACTIVE,
+        project_repository__repository_id=repository_id,
+        project_repository__project__organization_id=organization.id,
+        project_repository__project__status=ObjectStatus.ACTIVE,
+        project_repository__repository__status=ObjectStatus.ACTIVE,
     ).exists()
 
 

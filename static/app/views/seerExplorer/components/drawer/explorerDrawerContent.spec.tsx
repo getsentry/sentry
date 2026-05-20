@@ -7,6 +7,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
@@ -14,7 +15,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
-  errorStatusCode: null,
+  errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
   overrideCtxEngEnable: true,
@@ -131,7 +132,7 @@ describe('ExplorerDrawerContent', () => {
         ...defaultHookReturn,
         runId: 123,
         isError: true,
-        errorStatusCode: null,
+        errorStatusCode: undefined,
       });
 
       render(
@@ -217,7 +218,7 @@ describe('ExplorerDrawerContent', () => {
           run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:01:00Z',
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -451,7 +452,7 @@ describe('ExplorerDrawerContent', () => {
           run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -482,7 +483,7 @@ describe('ExplorerDrawerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 2,
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -512,7 +513,7 @@ describe('ExplorerDrawerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 1,
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -542,7 +543,7 @@ describe('ExplorerDrawerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: undefined,
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(

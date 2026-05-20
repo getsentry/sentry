@@ -102,6 +102,13 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/objectstore.git
         mode: containerized
+    synapse:
+      description: Cell routing services (proxy + ingest-router)
+      remote:
+        repo_name: synapse
+        branch: main
+        repo_link: https://github.com/getsentry/synapse.git
+        mode: default
     #########################################################
     # Supervisor Programs
     #########################################################
@@ -281,6 +288,7 @@ x-sentry-service-config:
         post-process-forwarder-errors,
       ]
     minimal: [postgres, snuba]
+    cell-routing: [postgres, snuba, relay, spotlight, objectstore, synapse]
     # The minimal set of services Symbolicator needs to run
     # Sentry integration tests.
     symbolicator-tests: [postgres, snuba, objectstore]

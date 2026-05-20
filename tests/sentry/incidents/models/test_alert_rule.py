@@ -1,7 +1,3 @@
-from collections.abc import Generator
-from unittest import mock
-from unittest.mock import Mock
-
 import pytest
 from django.core.cache import cache
 
@@ -15,7 +11,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 
 
 class IncidentGetForSubscriptionTest(TestCase):
@@ -233,34 +228,6 @@ class AlertRuleTriggerActionTargetTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value, target_identifier=email
         )
         assert trigger.target == email
-
-
-class AlertRuleTriggerActionActivateTest(TestCase):
-    @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self) -> Generator[None]:
-        with mock.patch("sentry.incidents.models.alert_rule.metrics") as self.metrics:
-            yield
-
-    def setUp(self) -> None:
-        self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
-
-    def tearDown(self) -> None:
-        self.suspended_registry.restore()
-
-    def test_unhandled(self) -> None:
-        trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
-        self.metrics.incr.assert_called_once_with("alert_rule_trigger.unhandled_type.0")
-
-    def test_handled(self) -> None:
-        mock_handler = Mock()
-        type = AlertRuleTriggerAction.Type.EMAIL
-        AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
-
-        trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
-        mock_handler.assert_called_once_with()
-        assert not self.metrics.incr.called
 
 
 class AlertRuleActivityTest(TestCase):

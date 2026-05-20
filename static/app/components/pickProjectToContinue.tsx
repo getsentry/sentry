@@ -1,9 +1,9 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -33,9 +33,11 @@ export function PickProjectToContinue({
   projects,
   allowAllProjectsSelection = false,
 }: Props) {
+  const {openModal} = useModal();
   const navigate = useNavigate();
   const nextPathQuery = nextPath.query;
-  let navigating = false;
+  const navigating = useRef(false);
+
   let path = `${nextPath.pathname}?project=`;
 
   if (nextPathQuery) {
@@ -56,36 +58,50 @@ export function PickProjectToContinue({
     }
   }, [shouldRedirect, navigate, path, projects]);
 
+  useEffect(() => {
+    if (shouldRedirect) {
+      return;
+    }
+    navigating.current = false;
+    openModal(
+      modalProps => (
+        <ContextPickerModal
+          {...modalProps}
+          needOrg={false}
+          needProject
+          nextPath={`${path}:project`}
+          onFinish={to => {
+            navigating.current = true;
+            navigate(to, {replace: true});
+            modalProps.closeModal();
+          }}
+          projectSlugs={projects.map(p => p.slug)}
+          allowAllProjectsSelection={allowAllProjectsSelection}
+        />
+      ),
+      {
+        onClose() {
+          // we want this to be executed only if the user didn't select any project
+          // (closed modal either via button, Esc, clicking outside, ...)
+          if (!navigating.current) {
+            navigate(noProjectRedirectPath);
+          }
+        },
+      }
+    );
+  }, [
+    shouldRedirect,
+    openModal,
+    navigate,
+    noProjectRedirectPath,
+    path,
+    projects,
+    allowAllProjectsSelection,
+  ]);
+
   if (shouldRedirect) {
     return null;
   }
-
-  openModal(
-    modalProps => (
-      <ContextPickerModal
-        {...modalProps}
-        needOrg={false}
-        needProject
-        nextPath={`${path}:project`}
-        onFinish={to => {
-          navigating = true;
-          navigate(to, {replace: true});
-          modalProps.closeModal();
-        }}
-        projectSlugs={projects.map(p => p.slug)}
-        allowAllProjectsSelection={allowAllProjectsSelection}
-      />
-    ),
-    {
-      onClose() {
-        // we want this to be executed only if the user didn't select any project
-        // (closed modal either via button, Esc, clicking outside, ...)
-        if (!navigating) {
-          navigate(noProjectRedirectPath);
-        }
-      },
-    }
-  );
 
   return <Container width="100%" height="100vh" />;
 }

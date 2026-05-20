@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

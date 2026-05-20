@@ -4486,6 +4486,11 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         self.assert_deleted_groups([group1, group2])
 
+    def test_delete_with_invalid_group_ids(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_response(qs_params={"id": ["not_an_int", "123"]})
+        assert response.status_code == 400
+
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2
         project_2 = self.create_project(slug="baz", organization=self.organization)

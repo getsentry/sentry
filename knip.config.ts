@@ -23,8 +23,6 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
-  // TODO: Remove when integration into Explore has started
-  'static/app/views/dashboards/widgets/heatMapWidget/**/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [

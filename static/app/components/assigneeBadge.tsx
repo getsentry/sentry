@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from '@sentry/scraps/avatar';
+import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -13,12 +13,13 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
+  assignedUser?: User | undefined;
   assignmentReason?: SuggestedOwnerReason;
   chevronDirection?: 'up' | 'down';
-  isTooltipDisabled?: boolean;
   loading?: boolean;
   showLabel?: boolean;
 };
@@ -27,11 +28,11 @@ const AVATAR_SIZE = 16;
 
 export function AssigneeBadge({
   assignedTo,
+  assignedUser,
   assignmentReason,
   showLabel = false,
   chevronDirection = 'down',
   loading = false,
-  isTooltipDisabled,
 }: AssigneeBadgeProps) {
   const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
@@ -46,20 +47,29 @@ export function AssigneeBadge({
   };
 
   const makeAssignedIcon = (actor: Actor) => {
-    return (
-      <Fragment>
+    const avatar =
+      actor.type === 'user' ? (
+        <UserAvatar
+          user={assignedUser ?? actor}
+          className="avatar"
+          size={AVATAR_SIZE}
+          hasTooltip={false}
+          data-test-id="assigned-avatar"
+        />
+      ) : (
         <ActorAvatar
           actor={actor}
           className="avatar"
           size={AVATAR_SIZE}
           hasTooltip={false}
           data-test-id="assigned-avatar"
-          // Team avatars need extra left margin since the
-          // square team avatar is being fit into a rounded borders
-          style={{
-            marginLeft: actor.type === 'team' ? theme.space.xs : '0',
-          }}
+          style={{marginLeft: theme.space.xs}}
         />
+      );
+
+    return (
+      <Fragment>
+        {avatar}
         {showLabel && (
           <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
@@ -94,7 +104,6 @@ export function AssigneeBadge({
   ) : assignedTo ? (
     <Tooltip
       isHoverable
-      disabled={isTooltipDisabled}
       title={
         <TooltipWrapper>
           {t('Assigned to ')}
@@ -111,7 +120,6 @@ export function AssigneeBadge({
   ) : (
     <Tooltip
       isHoverable
-      disabled={isTooltipDisabled}
       title={
         <TooltipWrapper>
           <div>{t('Unassigned')}</div>

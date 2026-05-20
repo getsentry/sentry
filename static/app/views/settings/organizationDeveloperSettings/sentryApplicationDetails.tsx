@@ -844,14 +844,22 @@ function SentryApplicationForm({
             t('Created On'),
             t('Scopes'),
             <AddTokenHeader key="token-add">
-              <Button
-                size="xs"
-                icon={<IconAdd />}
-                onClick={onAddToken}
-                data-test-id="token-add"
+              <Tooltip
+                disabled={hasTokenAccess()}
+                title={t(
+                  'You must be a Manager or Owner to create authentication tokens.'
+                )}
               >
-                {t('New Token')}
-              </Button>
+                <Button
+                  size="xs"
+                  icon={<IconAdd />}
+                  onClick={onAddToken}
+                  disabled={!hasTokenAccess()}
+                  data-test-id="token-add"
+                >
+                  {t('New Token')}
+                </Button>
+              </Tooltip>
             </AddTokenHeader>,
           ]}
           isEmpty={tokens.length === 0}

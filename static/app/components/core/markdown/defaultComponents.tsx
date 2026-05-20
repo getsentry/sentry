@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import React, {type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
@@ -150,6 +150,10 @@ export function DefaultHorizontalRule() {
   return <Separator orientation="horizontal" />;
 }
 
+export function DefaultText({children}: {children: string}) {
+  return <React.Fragment>{children}</React.Fragment>;
+}
+
 export function DefaultLineBreak() {
   return <br />;
 }
@@ -183,7 +187,8 @@ export const DefaultTableRow = styled('tr')`
   }
 `;
 
-export const DefaultTableHeaderCell = styled('th')<{align?: string | null}>`
+type Align = 'left' | 'center' | 'right';
+export const DefaultTableHeaderCell = styled('th')<{align?: Align}>`
   padding-inline: ${p => p.theme.space.xl};
   padding-block: ${p => p.theme.space.sm};
   text-align: ${p => p.align ?? 'left'};
@@ -196,7 +201,7 @@ export const DefaultTableHeaderCell = styled('th')<{align?: string | null}>`
   }
 `;
 
-export const DefaultTableCell = styled('td')<{align?: string | null}>`
+export const DefaultTableCell = styled('td')<{align?: Align}>`
   padding-inline: ${p => p.theme.space.xl};
   padding-block: ${p => p.theme.space.lg};
   text-align: ${p => p.align ?? 'left'};

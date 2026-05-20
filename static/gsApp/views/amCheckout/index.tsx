@@ -777,7 +777,7 @@ function AMCheckout(props: Props) {
                           // Fall back to mailto
                           const supportEmail = ConfigStore.get('supportEmail');
                           if (supportEmail) {
-                            window.location.href = `mailto:${supportEmail}`;
+                            window.location.href = `mailto:${supportEmail}?subject=${window.encodeURIComponent('Billing Question')}`;
                           }
                         }
                       }}

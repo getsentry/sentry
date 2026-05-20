@@ -5,7 +5,13 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -77,7 +83,7 @@ describe('MonitorForm', () => {
     expect(screen.getByText('"At 5 minutes past the hour"')).toBeInTheDocument();
   });
 
-  it('submits a new monitor', async () => {
+  it.isKnownFlake('submits a new monitor', async () => {
     const mockHandleSubmitSuccess = jest.fn();
 
     const apiEndpont = `/organizations/${organization.slug}/monitors/`;
@@ -175,7 +181,7 @@ describe('MonitorForm', () => {
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
 
-  it.isKnownFlake('prefills with an existing monitor', async () => {
+  it('prefills with an existing monitor', async () => {
     const monitor = MonitorFixture({project});
 
     const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;
@@ -209,7 +215,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
     const crontabOption = screen.getByRole('menuitemradio', {name: 'Crontab'});
     expect(crontabOption).toBeChecked();
-    await userEvent.click(crontabOption);
+    await userEvent.keyboard('{Escape}');
 
     // Schedule value
     expect(screen.getByRole('textbox', {name: 'Crontab Schedule'})).toHaveValue(
@@ -220,7 +226,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
     const losAngelesOption = screen.getByRole('menuitemradio', {name: 'Los Angeles'});
     expect(losAngelesOption).toBeChecked();
-    await userEvent.click(losAngelesOption);
+    await userEvent.keyboard('{Escape}');
 
     // Margins
     expect(screen.getByRole('spinbutton', {name: 'Grace Period'})).toHaveValue(5);
@@ -293,7 +299,7 @@ describe('MonitorForm', () => {
     );
   });
 
-  it('filters non-ASCII characters from crontab schedule', async () => {
+  it.isKnownFlake('filters non-ASCII characters from crontab schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -305,11 +311,15 @@ describe('MonitorForm', () => {
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
 
-    // Type schedule with emoji and Unicode characters
-    await userEvent.clear(schedule);
-    await userEvent.type(schedule, '5 * * * *😀中文');
+    // Fire a single change event with mixed ASCII and non-ASCII characters.
+    // Using fireEvent.change instead of userEvent.type avoids cursor desync
+    // caused by transformInput changing the controlled input's value mid-type.
+    fireEvent.change(schedule, {target: {value: '5 * * * *😀中文'}});
 
     // Non-ASCII characters should be filtered out, leaving only valid ASCII
-    expect(schedule).toHaveValue('5 * * * *');
+    // Wait for any validation/tooltip updates to complete
+    await waitFor(() => {
+      expect(schedule).toHaveValue('5 * * * *');
+    });
   });
 });

@@ -17,6 +17,8 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -167,6 +169,7 @@ function IssueListOverviewInner({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -460,6 +463,19 @@ function IssueListOverviewInner({
         setQueryMaxCount(newQueryMaxCount);
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
+        // AI query analytics
+        const aiQueryRunId = getRunIdForAnalytics();
+        if (aiQueryRunId !== null) {
+          trackAiQueryOutcome({
+            dataset: 'issues',
+            mode: 'samples',
+            referrer: 'issues',
+            resultCount: data.length, // Can also use newQueryCount for total hits
+            orgSlug: organization.slug,
+            runId: aiQueryRunId,
+          });
+        }
+
         // Need to wait for stats request to finish before saving to cache
         await fetchStats(data.map((group: BaseGroup) => group.id));
         IssueListCacheStore.save(requestParams, {
@@ -502,6 +518,7 @@ function IssueListOverviewInner({
     location.query,
     query,
     resumePolling,
+    getRunIdForAnalytics,
   ]);
 
   useDisableRouteAnalytics(issuesLoading);
