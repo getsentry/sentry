@@ -262,10 +262,8 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
-  const isContainedVirtualizer = expanded !== undefined;
-
   const virtualizer = useVirtualizer<HTMLElement, Element>({
-    count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
+    count: data?.length ?? 0,
     estimateSize,
     overscan: expanded ? 50 : 25,
     getScrollElement: () => tableBodyRef?.current,
