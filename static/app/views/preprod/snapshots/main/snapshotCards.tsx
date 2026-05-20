@@ -275,7 +275,7 @@ export const CardHeader = memo(function CardHeader({
   const displayTags = tags ?? {lang: 'en', dir: 'ltr', theme: 'light'};
   return (
     <CardHeaderRow onDoubleClick={onDoubleClick} $showBottomBorder={showBottomBorder}>
-      <Flex align="center" justify="space-between" gap="md">
+      <Flex align="center" justify="between" gap="md">
         {displayName && (
           <Flex align="center" width="fit-content" maxWidth="100%" minWidth="0">
             <Text size="md" bold ellipsis>
@@ -289,7 +289,7 @@ export const CardHeader = memo(function CardHeader({
             />
           </Flex>
         )}
-        <Flex align="center" gap="sm" shrink="0" onClick={e => e.stopPropagation()}>
+        <Flex align="center" gap="sm" flex="0 0 auto" onClick={e => e.stopPropagation()}>
           {status && <StatusBadge status={status} diffPercent={diffPercent} />}
           <IconButton
             aria-label={isDark ? t('Light preview') : t('Dark preview')}
@@ -447,7 +447,7 @@ const CardHeaderRow = styled('div')<{
 }>`
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.xxs};
+  gap: ${p => p.theme.space['2xs']};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-bottom: ${p =>
     p.$showBottomBorder ? `1px solid ${p.theme.tokens.border.secondary}` : 0};
