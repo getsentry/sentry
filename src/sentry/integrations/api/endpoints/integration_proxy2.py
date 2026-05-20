@@ -49,10 +49,13 @@ class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
             stream=True,
         )
 
-        with resp as r:
-            return StreamingHttpResponse(
-                r.iter_content(16 * 1024),
-                status=r.status_code,
-                headers=clean_outbound_headers(r.headers),
-                reason=r.reason,
-            )
+        def iter_response(response):
+            with response as r:
+                yield from r.iter_content(16 * 1024)
+
+        return StreamingHttpResponse(
+            iter_response(resp),
+            status=resp.status_code,
+            headers=clean_outbound_headers(resp.headers),
+            reason=resp.reason,
+        )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, TypedDict
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
@@ -180,7 +180,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
         content = str({"some": "data"}).encode("utf-8")
-        mock_response = Mock(spec=Response)
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.content = content
         mock_response.status_code = 400
         mock_response.reason = "Bad Request"
@@ -237,7 +238,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
         content = str({"some": "data"}).encode("utf-8")
-        mock_response = Mock(spec=Response)
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.content = content
         mock_response.status_code = 400
         mock_response.reason = "Bad Request"
@@ -296,7 +298,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             integration_id=None,
         )
 
-        mock_response = Mock(spec=Response)
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.content = str({"foo": "bar"}).encode("utf-8")
         mock_response.status_code = 200
         mock_response.headers = {
@@ -729,7 +732,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
         content = b"<html><body>Hello</body></html>"
-        mock_response = Mock(spec=Response)
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.content = content
         mock_response.status_code = 200
         mock_response.reason = "OK"
@@ -768,7 +772,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
         content = b"\x00\x01\x02\x03binary-data"
-        mock_response = Mock(spec=Response)
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.content = content
         mock_response.status_code = 200
         mock_response.reason = "OK"
@@ -805,7 +810,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
 
         content = b"<response><status>ok</status></response>"
-        mock_response = Mock(spec=Response)
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.content = content
         mock_response.status_code = 200
         mock_response.reason = "OK"
