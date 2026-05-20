@@ -6,7 +6,7 @@ from typing import Any
 from requests.exceptions import ConnectionError, ReadTimeout
 from taskbroker_client.retry import Retry
 
-from sentry import features, metrics
+from sentry import features
 from sentry.exceptions import RestrictedIPAddress
 from sentry.models.group import Group
 from sentry.sentry_apps.services.legacy_webhook.client import LegacyWebhookClient
@@ -15,6 +15,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_tasks
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.legacy_webhook")
 

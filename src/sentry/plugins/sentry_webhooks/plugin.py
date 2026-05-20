@@ -8,11 +8,11 @@ from django.utils.translation import gettext_lazy as _
 from requests.exceptions import ConnectionError, ReadTimeout
 
 import sentry
-from sentry import metrics
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.net.socket import is_valid_url
 from sentry.plugins.bases import notify
+from sentry.utils import metrics
 
 from .client import WebhookApiClient
 
