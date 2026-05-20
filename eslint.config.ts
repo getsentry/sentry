@@ -141,11 +141,6 @@ const restrictedImportPaths = [
     message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
   },
   {
-    name: 'sentry/utils/withSentryRouter',
-    message:
-      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-  },
-  {
     name: 'qs',
     message: 'Please use query-string instead of qs',
   },
