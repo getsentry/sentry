@@ -78,6 +78,7 @@ CURSOR_CACHE_KEY_PREFIX = "cursored_scheduler_offset"
 BATCH_SIZE_CACHE_KEY_PREFIX = "cursored_scheduler_batch_size"
 CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_cycle_start"
 PK_LIST_CACHE_KEY_PREFIX = "cursored_scheduler_pks"
+TICK_INTERVAL_CACHE_KEY_PREFIX = "cursored_scheduler_tick_interval"
 LOCK_PREFIX = "cursored_scheduler_lock"
 DEFAULT_LOCK_DURATION_SECONDS = 120
 MIN_BATCH_SIZE = 1
@@ -142,6 +143,7 @@ class CursoredScheduler[M: Model]:
         self.batch_size_cache_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:{name}"
         self.cycle_start_cache_key = f"{CYCLE_START_CACHE_KEY_PREFIX}:{name}"
         self.pk_list_cache_key = f"{PK_LIST_CACHE_KEY_PREFIX}:{name}"
+        self.tick_interval_cache_key = f"{TICK_INTERVAL_CACHE_KEY_PREFIX}:{name}"
         self.lock_key = f"{LOCK_PREFIX}:{name}"
         self.queryset = queryset
         self.task = task
@@ -192,7 +194,7 @@ class CursoredScheduler[M: Model]:
         if cursor == 0:
             batch_size = self._initialize_cycle()
         else:
-            batch_size = self._get_batch_size()
+            batch_size = self._maybe_recalculate_batch_size(cursor) or self._get_batch_size()
 
         items = self._get_cached_pks_page(cursor, batch_size)
 
@@ -245,6 +247,11 @@ class CursoredScheduler[M: Model]:
 
         batch_size = self._calculate_batch_size(len(all_pks))
         cache.set(self.batch_size_cache_key, batch_size, self.cache_ttl)
+        cache.set(
+            self.tick_interval_cache_key,
+            self.tick_interval.total_seconds(),
+            self.cache_ttl,
+        )
         cache.set(self.cycle_start_cache_key, time.time(), self.cache_ttl)
 
         metrics.timing(
@@ -260,6 +267,7 @@ class CursoredScheduler[M: Model]:
         cache.set(self.batch_size_cache_key, 0, self.cache_ttl)
         self._get_redis_client().delete(self.pk_list_cache_key)
         cache.delete(self.cycle_start_cache_key)
+        cache.delete(self.tick_interval_cache_key)
         metrics.incr("cursored_scheduler.cycle_complete", tags=self._metric_tags)
 
     def _calculate_batch_size(self, total_rows: int) -> int:
@@ -271,6 +279,39 @@ class CursoredScheduler[M: Model]:
         ticks_per_cycle = self.cycle_duration / self.tick_interval
         batch_size = math.ceil(total_rows / ticks_per_cycle)
         return max(batch_size, MIN_BATCH_SIZE)
+
+    def _maybe_recalculate_batch_size(self, cursor: int) -> int | None:
+        cached_interval = cache.get(self.tick_interval_cache_key)
+        if cached_interval is None:
+            return None
+
+        current_interval = self.tick_interval
+        if float(cached_interval) == current_interval.total_seconds():
+            return None
+
+        total_pks = self._get_redis_client().llen(self.pk_list_cache_key)
+        remaining = total_pks - cursor
+        if remaining <= 0:
+            return None
+
+        old_batch_size = self._get_batch_size()
+        if old_batch_size <= 0:
+            return None
+
+        remaining_ticks_at_old_rate = math.ceil(remaining / old_batch_size)
+        remaining_time = remaining_ticks_at_old_rate * timedelta(seconds=float(cached_interval))
+        remaining_ticks_at_new_rate = remaining_time / current_interval
+        if remaining_ticks_at_new_rate <= 0:
+            return None
+
+        new_batch_size = max(math.ceil(remaining / remaining_ticks_at_new_rate), MIN_BATCH_SIZE)
+
+        cache.set(self.batch_size_cache_key, new_batch_size, self.cache_ttl)
+        cache.set(self.tick_interval_cache_key, current_interval.total_seconds(), self.cache_ttl)
+
+        metrics.incr("cursored_scheduler.interval_recalculated", tags=self._metric_tags)
+
+        return new_batch_size
 
     def _emit_cycle_duration(self) -> None:
         """Emit timing metrics for the completed cycle."""
