@@ -187,7 +187,8 @@ export const LogTableBody = styled(TableBody)<{
       ? ''
       : `
     overflow-y: auto;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     `}
 `;
 

@@ -77,6 +77,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
 const PinnedTableBody = styled(TableBody)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   height: max-content;
+  flex-shrink: 0;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
