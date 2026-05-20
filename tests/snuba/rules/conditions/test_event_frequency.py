@@ -741,8 +741,8 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         self.assertDoesNotPass(rule, event, is_new=False)
 
     def test_comparison_empty_comparison_period(self) -> None:
-        # Test data is 1 event in the current period and 0 events in the comparison period. This
-        # should always result in 0 and never fire.
+        # Test data is 1 event in the current period and 0 events in the comparison period.
+        # Any activity from a zero baseline is an infinite percent increase, so the alert should fire. (Fixes #114120)
         event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
@@ -758,7 +758,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event, is_new=False)
+        self.assertPasses(rule, event, is_new=False)
 
         data = {
             "interval": "1h",
@@ -767,7 +767,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event, is_new=False)
+        self.assertPasses(rule, event, is_new=False)
 
     @patch("sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.get_rate")
     def test_is_new_issue_skips_snuba(self, mock_get_rate: MagicMock) -> None:
@@ -915,8 +915,8 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
         self.assertDoesNotPass(rule, event, is_new=False)
 
     def test_comparison_empty_comparison_period(self) -> None:
-        # Test data is 1 event in the current period and 0 events in the comparison period. This
-        # should always result in 0 and never fire.
+        # Test data is 1 event in the current period and 0 events in the comparison period.
+        # Any activity from a zero baseline is an infinite percent increase, so the alert should fire. (Fixes #114120)
         event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
