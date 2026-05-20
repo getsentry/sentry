@@ -66,6 +66,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
 from sentry.workflow_engine.models import Action, DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -368,6 +370,51 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
 
         assert len(resp.data) == 1
         assert resp.data[0]["name"] == self.detector.name
+
+    def test_workflow_engine_serializer_gte_lte_condition_types(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        query_subscription = QuerySubscription.objects.get(snuba_query=self.alert_rule.snuba_query)
+        data_source, _ = DataSource.objects.get_or_create(
+            type="snuba_query_subscription",
+            source_id=str(query_subscription.id),
+            defaults={"organization_id": self.organization.id},
+        )
+
+        for condition_type, expected_threshold_type, name in (
+            (Condition.GREATER_OR_EQUAL, AlertRuleThresholdType.ABOVE, "GTE Detector"),
+            (Condition.LESS_OR_EQUAL, AlertRuleThresholdType.BELOW, "LTE Detector"),
+        ):
+            dcg = self.create_data_condition_group()
+            detector = self.create_detector(
+                project=self.project,
+                type=MetricIssue.slug,
+                name=name,
+                config={"detection_type": "percent", "comparison_delta": 604800},
+                workflow_condition_group=dcg,
+            )
+            data_source.detectors.add(detector)
+            self.create_data_condition(
+                type=condition_type,
+                comparison=150,
+                condition_result=DetectorPriorityLevel.HIGH,
+                condition_group=dcg,
+            )
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        results_by_name = {item["name"]: item for item in resp.data}
+        assert (
+            results_by_name["GTE Detector"]["thresholdType"] == AlertRuleThresholdType.ABOVE.value
+        )
+        assert (
+            results_by_name["LTE Detector"]["thresholdType"] == AlertRuleThresholdType.BELOW.value
+        )
 
 
 @freeze_time("2024-12-11 03:21:34")
