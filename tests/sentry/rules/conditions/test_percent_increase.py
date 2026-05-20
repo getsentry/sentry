@@ -18,22 +18,14 @@ class TestPercentIncrease:
     def test_zero_baseline_with_current_events_returns_large_value(self):
         """
         When the comparison window has zero events but the current window
-        has events, the percent increase should be a large positive number
+        has events, the percent increase should be a very large number
         so that any configured threshold is exceeded and the alert fires.
 
         This is the core bug fix for github.com/getsentry/sentry/issues/114120
         """
-        result = percent_increase(50, 0)
-        assert result > 0
-        assert result == 5000  # 50 * 100
-
-        result = percent_increase(1, 0)
-        assert result > 0
-        assert result == 100  # 1 * 100
-
-        result = percent_increase(100, 0)
-        assert result > 0
-        assert result == 10000  # 100 * 100
+        assert percent_increase(50, 0) == 10_000_000
+        assert percent_increase(1, 0) == 10_000_000
+        assert percent_increase(100, 0) == 10_000_000
 
     def test_both_zero_returns_zero(self):
         # No events in either window = no change
@@ -49,20 +41,16 @@ class TestPercentIncrease:
 
     def test_float_inputs(self):
         # Function should handle float inputs
-        result = percent_increase(50.0, 0.0)
-        assert result > 0
-
-        result = percent_increase(50.0, 10.0)
-        assert result == 400
+        assert percent_increase(50.0, 0.0) == 10_000_000
+        assert percent_increase(50.0, 10.0) == 400
 
     def test_zero_baseline_always_exceeds_any_threshold(self):
         """
         Any positive event count against a zero baseline should produce
-        a result that exceeds typical alert thresholds (e.g., 100%, 500%, 1000%).
+        a result that exceeds any configured threshold.
         """
-        for threshold in [100, 500, 1000, 5000]:
+        for threshold in [50, 100, 500, 1000, 5000, 100000]:
             result = percent_increase(1, 0)
-            assert result >= threshold or True  # Even 1 event = 100%, exceeds 100%
+            assert result >= threshold, f"Expected {result} >= {threshold}"
 
-        # Even a single event should exceed a 50% threshold
-        assert percent_increase(1, 0) > 50
+        assert percent_increase(1, 0) > 1_000_000
