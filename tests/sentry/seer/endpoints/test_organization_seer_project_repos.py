@@ -54,7 +54,7 @@ class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
         assert response.data["branchOverrides"][0]["tagValue"] == "production"
         assert response.data["branchOverrides"][0]["branchName"] == "release"
 
-    def test_not_connected_returns_404(self):
+    def test_not_connected_repo_returns_404(self):
         self.get_error_response(status_code=404)
 
     def test_inactive_repo_returns_404(self):
@@ -66,6 +66,18 @@ class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
 
     def test_nonexistent_repo_returns_404(self):
         response = self.client.get(self.detail_url(99999))
+        assert response.status_code == 404
+
+    def test_unsupported_provider_returns_404(self):
+        unsupported_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/other",
+            provider="integrations:bitbucket",
+            external_id="222",
+        )
+        self.create_seer_project_repository(self.project, repository=unsupported_repo)
+
+        response = self.client.get(self.detail_url(unsupported_repo.id))
         assert response.status_code == 404
 
 
@@ -140,6 +152,23 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         assert response.data["branchName"] == "develop"
         assert response.data["instructions"] == "original"
 
+    def test_partial_update_preserves_branch_overrides(self):
+        project_repo = self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="main"
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="release",
+        )
+
+        response = self.get_success_response(branchName="develop")
+        assert response.data["branchName"] == "develop"
+        assert len(response.data["branchOverrides"]) == 1
+        assert response.data["branchOverrides"][0]["tagName"] == "env"
+        assert response.data["branchOverrides"][0]["branchName"] == "release"
+
     def test_not_connected_returns_404(self):
         self.get_error_response(branchName="main", status_code=404)
 
@@ -164,6 +193,33 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
             SeerProjectRepositoryBranchOverride.objects.filter(seer_project_repository=pr).count()
             == 0
         )
+
+    def test_inactive_repo_returns_404(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.repo1.status = ObjectStatus.PENDING_DELETION
+        self.repo1.save()
+
+        self.get_error_response(branchName="develop", status_code=404)
+
+    def test_unsupported_provider_returns_404(self):
+        unsupported_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/other",
+            provider="integrations:bitbucket",
+            external_id="222",
+        )
+        self.create_seer_project_repository(self.project, repository=unsupported_repo)
+
+        url = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id": self.project.id,
+                "repo_id": unsupported_repo.id,
+            },
+        )
+        response = self.client.put(url, data={"branchName": "develop"}, format="json")
+        assert response.status_code == 404
 
 
 class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
@@ -199,20 +255,10 @@ class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
             project_repository__repository=self.repo1,
         ).exists()
 
-    def test_delete_not_connected_returns_404(self):
-        self.get_error_response(status_code=404)
-
-    def test_delete_inactive_repo_returns_404(self):
-        self.create_seer_project_repository(self.project, repository=self.repo1)
-        self.repo1.status = ObjectStatus.HIDDEN
-        self.repo1.save()
-
-        self.get_error_response(status_code=404)
-
-    def test_delete_cascades_branch_overrides(self):
-        pr = self.create_seer_project_repository(self.project, repository=self.repo1)
+    def test_cascades_branch_overrides(self):
+        project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
-            seer_project_repository=pr,
+            seer_project_repository=project_repo,
             tag_name="environment",
             tag_value="production",
             branch_name="release",
@@ -220,3 +266,33 @@ class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
 
         self.get_success_response()
         assert SeerProjectRepositoryBranchOverride.objects.count() == 0
+
+    def test_not_connected_repo_returns_404(self):
+        self.get_error_response(status_code=404)
+
+    def test_inactive_repo_returns_404(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.repo1.status = ObjectStatus.HIDDEN
+        self.repo1.save()
+
+        self.get_error_response(status_code=404)
+
+    def test_unsupported_provider_returns_404(self):
+        unsupported_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/other",
+            provider="integrations:bitbucket",
+            external_id="222",
+        )
+        self.create_seer_project_repository(self.project, repository=unsupported_repo)
+
+        url = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id": self.project.id,
+                "repo_id": unsupported_repo.id,
+            },
+        )
+        response = self.client.delete(url)
+        assert response.status_code == 404

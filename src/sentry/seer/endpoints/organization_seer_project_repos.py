@@ -15,8 +15,9 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.autofix.utils import update_seer_project_repo
+from sentry.seer.autofix.utils import replace_all_branch_overrides
 from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.seer_setup import get_supported_scm_providers
 
 
 class BranchOverrideResponse(TypedDict):
@@ -65,11 +66,12 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
     )
 
 
-def _get_project_repos_queryset(project: Project):
+def _get_project_repos_queryset(project: Project, organization: Organization):
     return (
         SeerProjectRepository.objects.filter(
             project_repository__project=project,
             project_repository__repository__status=ObjectStatus.ACTIVE,
+            project_repository__repository__provider__in=get_supported_scm_providers(organization),
         )
         .select_related("project_repository", "project_repository__repository")
         .prefetch_related("branch_overrides")
@@ -121,7 +123,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
         project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
 
         project_repo = (
-            _get_project_repos_queryset(project)
+            _get_project_repos_queryset(project, organization)
             .filter(project_repository__repository_id=repo_id)
             .first()
         )
@@ -139,9 +141,33 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        project_repo = update_seer_project_repo(project, repo_id, serializer.validated_data)
-        if project_repo is None:
-            return Response(status=404)
+        data = serializer.validated_data
+
+        with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+            project_repo = (
+                SeerProjectRepository.objects.select_for_update()
+                .select_related("project_repository", "project_repository__repository")
+                .filter(
+                    project_repository__project=project,
+                    project_repository__repository_id=repo_id,
+                    project_repository__repository__status=ObjectStatus.ACTIVE,
+                    project_repository__repository__provider__in=get_supported_scm_providers(
+                        organization
+                    ),
+                )
+                .first()
+            )
+            if project_repo is None:
+                return Response(status=404)
+
+            if "branch_name" in data:
+                project_repo.branch_name = data["branch_name"]
+            if "instructions" in data:
+                project_repo.instructions = data["instructions"]
+            project_repo.save()
+
+            if "branch_overrides" in data:
+                replace_all_branch_overrides(project_repo, data["branch_overrides"])
 
         return Response(_serialize_project_repo(project_repo))
 
@@ -155,6 +181,9 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
                 project_repository__project=project,
                 project_repository__repository_id=repo_id,
                 project_repository__repository__status=ObjectStatus.ACTIVE,
+                project_repository__repository__provider__in=get_supported_scm_providers(
+                    organization
+                ),
             ).delete()
 
         if deleted_count == 0:
