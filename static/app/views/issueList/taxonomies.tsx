@@ -3,6 +3,11 @@ import type {ReactNode} from 'react';
 import {t} from 'sentry/locale';
 import {IssueCategory} from 'sentry/types/group';
 
+export const SENTRY_CONFIGURATION_FEATURE_FLAGS = [
+  'issue-sourcemap-configuration-visible',
+  'issue-low-value-span-configuration-visible',
+];
+
 export enum IssueTaxonomy {
   ERRORS_AND_OUTAGES = 'errors-outages',
   BREACHED_METRICS = 'breached-metrics',
@@ -17,7 +22,7 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     description: ReactNode;
     key: string;
     label: string;
-    featureFlag?: string;
+    featureFlags?: string[];
   }
 > = {
   [IssueTaxonomy.ERRORS_AND_OUTAGES]: {
@@ -56,6 +61,6 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     description: t(
       'Issues detected from SDK or tooling configuration problems that degrade your ability to debug telemetry using Sentry.'
     ),
-    featureFlag: 'issue-sourcemap-configuration-visible',
+    featureFlags: SENTRY_CONFIGURATION_FEATURE_FLAGS,
   },
 };
