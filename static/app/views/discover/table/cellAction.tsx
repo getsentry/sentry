@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -473,38 +474,46 @@ export function CellAction({
   }
 
   return (
-    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
-      {children}
-      {cellActions?.length && (
-        <DropdownMenu
-          items={cellActions}
-          usePortal
-          disableTextSelection
-          size="sm"
-          offset={4}
-          position="bottom"
-          preventOverflowOptions={{padding: 4}}
-          flipOptions={{
-            fallbackPlacements: [
-              'top',
-              'right-start',
-              'right-end',
-              'left-start',
-              'left-end',
-            ],
-          }}
-          trigger={triggerProps => (
-            <ActionMenuTrigger
-              {...triggerProps}
-              aria-label={t('Actions')}
-              icon={<IconEllipsis size="xs" />}
-              size="zero"
-            />
+    <RevealOnHover>
+      {({className}) => (
+        <Container
+          className={className}
+          data-test-id={cellActions === null ? undefined : 'cell-action-container'}
+        >
+          {children}
+          {cellActions?.length && (
+            <RevealOnHover.Action>
+              <DropdownMenu
+                items={cellActions}
+                usePortal
+                size="sm"
+                offset={4}
+                position="bottom"
+                preventOverflowOptions={{padding: 4}}
+                flipOptions={{
+                  fallbackPlacements: [
+                    'top',
+                    'right-start',
+                    'right-end',
+                    'left-start',
+                    'left-end',
+                  ],
+                }}
+                trigger={triggerProps => (
+                  <ActionMenuTrigger
+                    {...triggerProps}
+                    aria-label={t('Actions')}
+                    icon={<IconEllipsis size="xs" />}
+                    size="zero"
+                  />
+                )}
+              />
+            </RevealOnHover.Action>
           )}
-        />
+          {pin}
+        </Container>
       )}
-      {pin}
-    </Container>
+    </RevealOnHover>
   );
 }
 
@@ -528,17 +537,8 @@ const ActionMenuTrigger = styled(Button)`
   right: -1px;
   transform: translateY(-50%);
   padding: ${p => p.theme.space.xs};
-
   display: flex;
   align-items: center;
-
-  opacity: 0;
-  transition: opacity 0.1s;
-  &:focus-visible,
-  &[aria-expanded='true'],
-  ${Container}:hover & {
-    opacity: 1;
-  }
 `;
 
 const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`

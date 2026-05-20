@@ -16,6 +16,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -592,48 +593,54 @@ function VirtualizedRepoList({
                   height: virtualItem.size,
                 }}
               />
-              <RepoRow
-                role="listitem"
-                ref={virtualizer.measureElement}
-                data-index={virtualItem.index}
-                column={contentColumn}
-                position="absolute"
-                top="0"
-                left="0"
-                right="0"
-                align="center"
-                justify="between"
-                gap="sm"
-                padding={nested ? 'xs xl xs 0' : 'xs lg'}
-                style={{transform: `translateY(${virtualItem.start}px)`}}
-              >
-                <Flex align="center" gap="sm" minWidth="0">
-                  <Text>
-                    {nameMatch
-                      ? highlightFuseMatches(nameMatch, HighlightMark)
-                      : repo.name}
-                  </Text>
-                  <LinkButton
-                    className="hover-reveal"
-                    href={repo.url ?? ''}
-                    external
-                    size="zero"
-                    variant="transparent"
-                    icon={<IconOpen variant="muted" />}
-                    aria-label={t('View repository on %s', providerName)}
-                    tooltipProps={{
-                      title: t('View repository on %s', providerName),
-                    }}
-                  />
-                </Flex>
-                {mappedProjectSlugsByRepoId && (
-                  <RepoMappings
-                    slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
-                    mappingsLoading={mappingsLoading}
-                    action={installation.repoActions?.(repo)}
-                  />
+              <RevealOnHover>
+                {({className}) => (
+                  <Flex
+                    role="listitem"
+                    ref={virtualizer.measureElement}
+                    data-index={virtualItem.index}
+                    column={contentColumn}
+                    position="absolute"
+                    top="0"
+                    left="0"
+                    right="0"
+                    align="center"
+                    justify="between"
+                    gap="sm"
+                    padding={nested ? 'xs xl xs 0' : 'xs lg'}
+                    className={className}
+                    style={{transform: `translateY(${virtualItem.start}px)`}}
+                  >
+                    <Flex align="center" gap="sm" minWidth="0">
+                      <Text>
+                        {nameMatch
+                          ? highlightFuseMatches(nameMatch, HighlightMark)
+                          : repo.name}
+                      </Text>
+                      <RevealOnHover.Action>
+                        <LinkButton
+                          href={repo.url ?? ''}
+                          external
+                          size="zero"
+                          variant="transparent"
+                          icon={<IconOpen variant="muted" />}
+                          aria-label={t('View repository on %s', providerName)}
+                          tooltipProps={{
+                            title: t('View repository on %s', providerName),
+                          }}
+                        />
+                      </RevealOnHover.Action>
+                    </Flex>
+                    {mappedProjectSlugsByRepoId && (
+                      <RepoMappings
+                        slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
+                        mappingsLoading={mappingsLoading}
+                        action={installation.repoActions?.(repo)}
+                      />
+                    )}
+                  </Flex>
                 )}
-              </RepoRow>
+              </RevealOnHover>
             </Fragment>
           );
         })}
@@ -692,17 +699,6 @@ const RowButton = styled('div')`
   &:focus-visible {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
     outline-offset: -2px;
-  }
-`;
-
-const RepoRow = styled(Flex)`
-  .hover-reveal {
-    opacity: 0;
-    transition: opacity 100ms;
-  }
-  &:hover .hover-reveal,
-  &:focus-within .hover-reveal {
-    opacity: 1;
   }
 `;
 
