@@ -406,9 +406,7 @@ function OnboardingContent({
         platformKey={currentPlatform.id}
         project={currentProject}
         configType={
-          setupMode === 'jsLoader' &&
-          !npmOnlyFramework &&
-          !mobilePlatform
+          setupMode === 'jsLoader' && !npmOnlyFramework && !mobilePlatform
             ? 'replayOnboardingJsLoader'
             : 'replayOnboarding'
         }
