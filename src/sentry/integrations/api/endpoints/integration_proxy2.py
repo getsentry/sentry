@@ -1,14 +1,12 @@
 import logging
 
-from django.http import HttpResponseBadRequest, HttpResponseBase, StreamingHttpResponse
+from django.http import StreamingHttpResponse
 from requests import Request, Response
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.renderers import JSONRenderer
 
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
-from sentry.silo.util import (
-    clean_outbound_headers,
-)
+from sentry.silo.util import clean_outbound_headers
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +32,7 @@ class _PassthroughContentNegotiation(BaseContentNegotiation):
 class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
     content_negotiation_class = _PassthroughContentNegotiation
 
-    def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponseBase:
-        if not self._should_operate(request):
-            return HttpResponseBadRequest()
-
+    def _call_third_party_api(self, request, full_url: str, headers) -> StreamingHttpResponse:
         prepared_request = Request(
             method=request.method, url=full_url, headers=headers, data=request.body
         ).prepare()
@@ -51,9 +46,10 @@ class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
             stream=True,
         )
 
-        return StreamingHttpResponse(
-            resp.iter_content(16 * 1024),
-            status=resp.status_code,
-            headers=clean_outbound_headers(resp.headers),
-            reason=resp.reason,
-        )
+        with resp as r:
+            return StreamingHttpResponse(
+                r.iter_content(16 * 1024),
+                status=r.status_code,
+                headers=clean_outbound_headers(r.headers),
+                reason=r.reason,
+            )
