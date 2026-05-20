@@ -551,7 +551,6 @@ function CustomFiltersForm({
 }
 
 type Props = {
-  features: Set<string>;
   params: {
     projectId: string;
   };
@@ -630,7 +629,7 @@ function StandardFilter({
   );
 }
 
-export function ProjectFiltersSettings({project, params, features: _features}: Props) {
+export function ProjectFiltersSettings({project, params}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projectId: projectSlug} = params;
