@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
+import {INPUT_STORAGE_KEY_PREFIX} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
@@ -530,7 +531,9 @@ describe('ExplorerDrawerContent', () => {
       await waitFor(() =>
         expect(screen.getByTestId('seer-explorer-input')).toHaveValue('')
       );
-      expect(sessionStorage.getItem('seer-explorer-draft:1')).toBe('draft for run 1');
+      expect(
+        JSON.parse(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:1`) ?? '')
+      ).toBe('draft for run 1');
 
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
       rerender(
@@ -561,10 +564,9 @@ describe('ExplorerDrawerContent', () => {
       unmount();
 
       const draftWrites = setItemSpy.mock.calls.filter(([k]) =>
-        String(k).startsWith('seer-explorer-draft:')
+        String(k).startsWith(`${INPUT_STORAGE_KEY_PREFIX}:`)
       );
       expect(draftWrites).toHaveLength(0);
-      expect(sessionStorage.getItem('seer-explorer-draft:null')).toBeNull();
     });
 
     it('clears the persisted draft when a message is sent', async () => {
@@ -588,7 +590,7 @@ describe('ExplorerDrawerContent', () => {
 
       expect(sendMessage).toHaveBeenCalledWith('hello', 0);
       expect(textarea).toHaveValue('');
-      expect(sessionStorage.getItem('seer-explorer-draft:42')).toBeNull();
+      expect(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:42`)).toBeNull();
     });
   });
 

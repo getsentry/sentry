@@ -7,6 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -21,7 +22,6 @@ import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/file
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
-import {usePersistedValue} from 'sentry/views/seerExplorer/hooks/usePersistedValue';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
@@ -31,6 +31,8 @@ import {
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
 } from 'sentry/views/seerExplorer/utils';
+
+export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 
 export function ExplorerDrawerContent({
   getPageReferrer,
@@ -81,8 +83,11 @@ export function ExplorerDrawerContent({
   const {
     value: inputValue,
     setValue: setInputValue,
-    clear: clearInput,
-  } = usePersistedValue('seer-explorer-draft', runId);
+    reset: clearInput,
+  } = useDeferredSessionStorage(
+    runId === null ? null : `${INPUT_STORAGE_KEY_PREFIX}:${runId}`,
+    ''
+  );
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&

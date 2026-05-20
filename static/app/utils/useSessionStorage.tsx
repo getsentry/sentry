@@ -4,7 +4,7 @@ import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 const isBrowser = typeof window !== 'undefined';
 
-export function readStorageValue(key: string, initialValue: unknown) {
+export function readStorageValue<T>(key: string, initialValue: T): T {
   const value = sessionStorageWrapper.getItem(key);
 
   // We check for 'undefined' because the value may have
@@ -20,6 +20,17 @@ export function readStorageValue(key: string, initialValue: unknown) {
   } catch {
     // If parsing fails, return initial value.
     return initialValue;
+  }
+}
+
+export function writeStorageValue(key: string | null, value: unknown): void {
+  if (key === null) {
+    return;
+  }
+  try {
+    sessionStorageWrapper.setItem(key, JSON.stringify(value));
+  } catch {
+    // Best effort and just update the in-memory value.
   }
 }
 
@@ -45,12 +56,7 @@ export function useSessionStorage<T>(
             ? (valueOrUpdater as (prev: T) => T)(prev)
             : valueOrUpdater;
 
-        try {
-          sessionStorageWrapper.setItem(key, JSON.stringify(next));
-        } catch {
-          // Best effort and just update the in-memory value.
-        }
-
+        writeStorageValue(key, next);
         return next;
       });
     },
