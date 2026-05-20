@@ -142,7 +142,6 @@ export const LogTable = styled(ContentsTable)<{minWidth: string}>`
 
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
-  expanded?: boolean;
   showHeader?: boolean;
 }>`
   ${p =>
@@ -160,14 +159,6 @@ export const LogTableBody = styled(TableBody)<{
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
-
-  ${p =>
-    p.expanded === undefined
-      ? ''
-      : `
-    overflow-y: auto;
-    height: 100%;
-    `}
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`

@@ -1,14 +1,14 @@
 import {useEffect, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
@@ -196,7 +196,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <LayoutPageWithHiddenFooter flex={1}>
+        <ViewportConstrainedPage>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}
@@ -254,21 +254,13 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
               <TraceAiTab traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
-        </LayoutPageWithHiddenFooter>
+        </ViewportConstrainedPage>
       </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
 
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
-
-// @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
-// When that feature is enabled, the footer is no longer rendered at the bottom of the page.
-const LayoutPageWithHiddenFooter = styled(Stack)`
-  ~ footer {
-    display: none;
-  }
-`;
 
 function TraceInnerLayout(props: FlexProps) {
   const hasPageFrame = useHasPageFrameFeature();

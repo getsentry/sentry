@@ -102,7 +102,6 @@ type LogsTableProps = {
     showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
-  expanded?: boolean;
   localOnlyItemFilters?: {
     filterText: string;
     filteredItems: OurLogsResponseItem[];
@@ -119,7 +118,6 @@ const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; 
 
 export function LogsInfiniteTable({
   embedded = false,
-  expanded,
   localOnlyItemFilters,
   emptyRenderer,
   analyticsPageSource,
@@ -265,7 +263,7 @@ export function LogsInfiniteTable({
   const virtualizer = useVirtualizer<HTMLElement, Element>({
     count: data?.length ?? 0,
     estimateSize,
-    overscan: expanded ? 50 : 25,
+    overscan: 35,
     getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
@@ -503,7 +501,6 @@ export function LogsInfiniteTable({
           showHeader={!embedded}
           ref={tableBodyRef}
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
-          expanded={expanded}
         >
           {paddingTop > 0 && (
             <TableRow>
@@ -574,7 +571,7 @@ export function LogsInfiniteTable({
         </LogTableBody>
       </LogTable>
       <FloatingBackToTopContainer
-        position={expanded === undefined ? 'fixed' : 'absolute'}
+        position="absolute"
         inReplay={!!embeddedOptions?.replay}
         tableWidth={tableWidth}
       >

@@ -80,7 +80,6 @@ function LogsSectionContent() {
         <LogsInfiniteTable
           analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
           embedded
-          expanded
           showCellActions
           showExploreSimilarSpansLink
         />

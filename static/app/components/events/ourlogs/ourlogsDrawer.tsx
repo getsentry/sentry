@@ -161,7 +161,6 @@ export function OurlogsDrawer({
             <LogsInfiniteTable
               embedded
               embeddedOptions={embeddedOptions}
-              expanded
               additionalData={additionalData}
               analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
             />
