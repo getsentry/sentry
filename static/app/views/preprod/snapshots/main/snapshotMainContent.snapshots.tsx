@@ -131,14 +131,16 @@ describe('SnapshotMainContent Toolbar', () => {
       );
     }
 
-    describe('xs', () => {
-      beforeEach(() => {
-        mockBreakpoints = XS_BREAKPOINTS;
-      });
+    function withBreakpoints(bp: Record<string, boolean>, el: React.ReactElement) {
+      mockBreakpoints = bp;
+      return el;
+    }
 
-      it.snapshot(
-        'full',
-        () => (
+    it.snapshot(
+      'full',
+      () =>
+        withBreakpoints(
+          XS_BREAKPOINTS,
           <Wrapper>
             <ToolbarContainer
               toggle={<ViewModeToggle viewMode="list" onViewModeChange={noop} />}
@@ -155,12 +157,14 @@ describe('SnapshotMainContent Toolbar', () => {
             />
           </Wrapper>
         ),
-        {viewport: 'xs', metadata: {theme: themeName, state: 'full'}}
-      );
+      {viewport: 'xs', metadata: {theme: themeName, state: 'full'}}
+    );
 
-      it.snapshot(
-        'minimal',
-        () => (
+    it.snapshot(
+      'minimal',
+      () =>
+        withBreakpoints(
+          XS_BREAKPOINTS,
           <Wrapper>
             <ToolbarContainer
               toggle={<ViewModeToggle viewMode="single" onViewModeChange={noop} />}
@@ -168,12 +172,14 @@ describe('SnapshotMainContent Toolbar', () => {
             />
           </Wrapper>
         ),
-        {viewport: 'xs', metadata: {theme: themeName, state: 'minimal'}}
-      );
+      {viewport: 'xs', metadata: {theme: themeName, state: 'minimal'}}
+    );
 
-      it.snapshot(
-        'no-diff-controls',
-        () => (
+    it.snapshot(
+      'no-diff-controls',
+      () =>
+        withBreakpoints(
+          XS_BREAKPOINTS,
           <Wrapper>
             <ToolbarContainer
               toggle={<ViewModeToggle viewMode="list" onViewModeChange={noop} />}
@@ -183,18 +189,14 @@ describe('SnapshotMainContent Toolbar', () => {
             />
           </Wrapper>
         ),
-        {viewport: 'xs', metadata: {theme: themeName, state: 'no-diff-controls'}}
-      );
-    });
+      {viewport: 'xs', metadata: {theme: themeName, state: 'no-diff-controls'}}
+    );
 
-    describe('sm', () => {
-      beforeEach(() => {
-        mockBreakpoints = SM_BREAKPOINTS;
-      });
-
-      it.snapshot(
-        'full',
-        () => (
+    it.snapshot(
+      'full',
+      () =>
+        withBreakpoints(
+          SM_BREAKPOINTS,
           <Wrapper>
             <ToolbarContainer
               toggle={<ViewModeToggle viewMode="list" onViewModeChange={noop} />}
@@ -212,12 +214,14 @@ describe('SnapshotMainContent Toolbar', () => {
             />
           </Wrapper>
         ),
-        {viewport: 'sm', metadata: {theme: themeName, state: 'full'}}
-      );
+      {viewport: 'sm', metadata: {theme: themeName, state: 'full'}}
+    );
 
-      it.snapshot(
-        'minimal',
-        () => (
+    it.snapshot(
+      'minimal',
+      () =>
+        withBreakpoints(
+          SM_BREAKPOINTS,
           <Wrapper>
             <ToolbarContainer
               toggle={<ViewModeToggle viewMode="single" onViewModeChange={noop} />}
@@ -225,12 +229,14 @@ describe('SnapshotMainContent Toolbar', () => {
             />
           </Wrapper>
         ),
-        {viewport: 'sm', metadata: {theme: themeName, state: 'minimal'}}
-      );
+      {viewport: 'sm', metadata: {theme: themeName, state: 'minimal'}}
+    );
 
-      it.snapshot(
-        'no-diff-controls',
-        () => (
+    it.snapshot(
+      'no-diff-controls',
+      () =>
+        withBreakpoints(
+          SM_BREAKPOINTS,
           <Wrapper>
             <ToolbarContainer
               toggle={<ViewModeToggle viewMode="list" onViewModeChange={noop} />}
@@ -240,18 +246,14 @@ describe('SnapshotMainContent Toolbar', () => {
             />
           </Wrapper>
         ),
-        {viewport: 'sm', metadata: {theme: themeName, state: 'no-diff-controls'}}
-      );
-    });
+      {viewport: 'sm', metadata: {theme: themeName, state: 'no-diff-controls'}}
+    );
 
-    describe('md', () => {
-      beforeEach(() => {
-        mockBreakpoints = MD_BREAKPOINTS;
-      });
-
-      it.snapshot(
-        'full',
-        () => (
+    it.snapshot(
+      'full',
+      () =>
+        withBreakpoints(
+          MD_BREAKPOINTS,
           <Wrapper>
             <ToolbarContainer
               toggle={<ViewModeToggle viewMode="list" onViewModeChange={noop} />}
@@ -269,8 +271,7 @@ describe('SnapshotMainContent Toolbar', () => {
             />
           </Wrapper>
         ),
-        {viewport: 'md', metadata: {theme: themeName, state: 'full'}}
-      );
-    });
+      {viewport: 'md', metadata: {theme: themeName, state: 'full'}}
+    );
   });
 });
