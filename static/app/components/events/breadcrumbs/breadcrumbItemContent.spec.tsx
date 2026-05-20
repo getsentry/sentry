@@ -1,4 +1,9 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import {
@@ -8,6 +13,7 @@ import {
   type BreadcrumbTypeDefault,
   type BreadcrumbTypeHTTP,
 } from 'sentry/types/breadcrumbs';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 describe('BreadcrumbItemContent', () => {
   it('renders default crumbs with all data', () => {
@@ -141,6 +147,22 @@ describe('BreadcrumbItemContent', () => {
         'ValidationError: {"field":"email","error":"invalid"}, {"field":"password","error":"too short"}'
       )
     ).toBeInTheDocument();
+  });
+
+  it('opens full URL from compact breadcrumb message', async () => {
+    const longUrl = `https://example.com/${'a'.repeat(250)}`;
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      message: longUrl,
+    };
+    renderGlobalModal();
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />);
+
+    expect(screen.getByText(ellipsize(longUrl, 200))).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', {name: 'Open link'}));
+    expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
+    expect(screen.getByText(longUrl)).toBeInTheDocument();
   });
 
   it('applies item limits with fullyExpanded', () => {

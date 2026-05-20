@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
 import {Timeline} from 'sentry/components/timeline';
 import {
   BreadcrumbMessageFormat,
@@ -53,6 +54,11 @@ export function BreadcrumbItemContent({
           meta={meta?.message}
           {...structuredDataProps}
         />
+      ) : isUrl(bc.message) && !defined(meta) ? (
+        <Fragment>
+          {ellipsize(bc.message, MESSAGE_PREVIEW_CHAR_LIMIT)}
+          <LinkHint value={bc.message} />
+        </Fragment>
       ) : (
         <StructuredData
           value={ellipsize(bc.message, MESSAGE_PREVIEW_CHAR_LIMIT)}
