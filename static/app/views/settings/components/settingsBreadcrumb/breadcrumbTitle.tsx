@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
-
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useMatches} from 'react-router-dom';
 
 import {useBreadcrumbTitleEffect} from './context';
 
@@ -12,8 +11,8 @@ type Props = {
  * Breadcrumb title sets the breadcrumb label for the provided route match
  */
 export function BreadcrumbTitle({title}: Props) {
-  const routes = useRoutes();
-  const props = useMemo(() => ({routes, title}), [routes, title]);
+  const matches = useMatches();
+  const props = useMemo(() => ({matches, title}), [matches, title]);
   useBreadcrumbTitleEffect(props);
 
   return null;

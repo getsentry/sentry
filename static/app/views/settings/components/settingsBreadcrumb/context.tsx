@@ -6,13 +6,12 @@ import {
   useLayoutEffect,
   useState,
 } from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches, type UIMatch} from 'react-router-dom';
 
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 type ExplicitTitleProps = {
-  routes: PlainRoute[];
+  matches: UIMatch[];
   title: string;
 };
 
@@ -68,8 +67,8 @@ function BreadcrumbProvider({children}: ProviderProps) {
   );
 
   const setExplicitTitle = useCallback(
-    ({routes: updateRoutes, title}: ExplicitTitleProps) => {
-      const key = getRouteStringFromRoutes({routes: updateRoutes});
+    ({matches: updateRoutes, title}: ExplicitTitleProps) => {
+      const key = getRouteStringFromRoutes({matches: updateRoutes});
 
       setExplicitPathMap(lastState => ({...lastState, [key]: title}));
 
