@@ -90,9 +90,7 @@ export default function ProjectUserFeedback() {
             the cause and impact of errors. Enable the User Feedback Widget to collect
             your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs. [link:Read the Docs]`,
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
-              ),
+              link: <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />,
             }
           )}
         />
