@@ -7,7 +7,7 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 
-function getFeedbackSnippet(importPath: string): string {
+function getFeedbackSnippet(importPath:`@sentry/${string}/${string}`): string {
   return `import * as Sentry from "${importPath}";
 
 const userFeedback = {
