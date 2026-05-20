@@ -9,6 +9,7 @@ import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LogsPageDataProvider,
@@ -23,11 +24,15 @@ import {
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
+import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
+import {
+  useQueryParamsSearch,
+  useSetQueryParamsSearch,
+} from 'sentry/views/explore/queryParams/context';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/ourlogFilters';
 import {ourlogsAsFrames} from 'sentry/views/explore/replays/detail/ourlogs/ourlogsAsFrames';
-import {useOurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/useOurLogFilters';
 
 export function OurLogs() {
   const replay = useReplayReader();
@@ -71,9 +76,12 @@ interface OurLogsContentProps {
 }
 
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
-  const {attributes: stringAttributes} = useLogItemAttributes({}, 'string');
-  const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
-  const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useLogItemAttributes({}, 'string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useLogItemAttributes({}, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({}, 'boolean');
 
   const {currentTime, setCurrentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -82,9 +90,22 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {data: logItems, isPending} = infiniteLogsQueryResult;
 
-  const filterProps = useOurLogFilters({logItems});
-  const {items: filteredLogItems, setSearchTerm} = filterProps;
-  const clearSearchTerm = () => setSearchTerm('');
+  const logsSearch = useQueryParamsSearch();
+  const setLogsSearch = useSetQueryParamsSearch();
+  const filterText = logsSearch.freeText.join(' ');
+  const clearSearch = useCallback(
+    () => setLogsSearch(new MutableSearch('')),
+    [setLogsSearch]
+  );
+
+  const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
+    stringAttributes,
+    numberAttributes,
+    booleanAttributes,
+    stringSecondaryAliases,
+    numberSecondaryAliases,
+    booleanSecondaryAliases,
+  });
 
   const handleReplayTimeClick = useCallback(
     (offsetMs: string) => {
@@ -120,7 +141,10 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
 
   return (
     <OurLogsContentWrapper>
-      <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
+      <OurLogFilters
+        replayId={replayId}
+        searchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+      />
       <LogsItemContainer border="primary" radius="md" flex="1 1 auto">
         {isPending ? (
           <Placeholder height="100%" />
@@ -134,12 +158,12 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             embeddedOptions={embeddedOptions}
             expanded
             localOnlyItemFilters={{
-              filteredItems: filteredLogItems,
-              filterText: filterProps.searchTerm,
+              filteredItems: logItems,
+              filterText,
             }}
             embeddedStyling={{disableBodyPadding: true, showVerticalScrollbar: false}}
             emptyRenderer={() => (
-              <NoRowRenderer unfilteredItems={logItems} clearSearchTerm={clearSearchTerm}>
+              <NoRowRenderer unfilteredItems={logItems} clearSearchTerm={clearSearch}>
                 {t('No logs recorded')}
               </NoRowRenderer>
             )}
