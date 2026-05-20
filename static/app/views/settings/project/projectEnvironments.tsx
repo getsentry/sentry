@@ -228,7 +228,10 @@ export default function ProjectEnvironments() {
             {isHidden ? t('Hidden') : t('Active Environments')}
           </SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>
-            <Tooltip title={t('Count of all error events from the last 30 days')}>
+            <Tooltip
+              showUnderline
+              title={t('Count of all error events from the last 30 days')}
+            >
               {t('Recent Error Events')}
             </Tooltip>
           </SimpleTable.HeaderCell>
