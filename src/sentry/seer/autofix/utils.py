@@ -867,6 +867,24 @@ class ProjectRepoCreateData(TypedDict, total=False):
     branch_overrides: list[BranchOverrideData]
 
 
+def _validate_repo_ids(
+    organization: Organization,
+    repo_ids: list[int],
+) -> None:
+    """Raise ValueError if any repo IDs are invalid, inactive, or unsupported."""
+    valid_ids = set(
+        Repository.objects.filter(
+            id__in=repo_ids,
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=get_supported_scm_providers(),
+        ).values_list("id", flat=True)
+    )
+    invalid_ids = set(repo_ids) - valid_ids
+    if invalid_ids:
+        raise ValueError(sorted(invalid_ids))
+
+
 def replace_all_branch_overrides(
     seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
 ) -> None:
@@ -888,8 +906,12 @@ def replace_all_branch_overrides(
         )
 
 
-def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
-    """Upsert Seer project repos."""
+def add_seer_project_repos(
+    project: Project, organization: Organization, repos_data: list[ProjectRepoCreateData]
+) -> list[int]:
+    """Upsert Seer project repos. Raises ValueError if any repo IDs are invalid."""
+    _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
+
     result_ids = []
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         for data in repos_data:
@@ -912,12 +934,21 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
 
 
 def replace_all_seer_project_repos(
-    project: Project, repos_data: list[ProjectRepoCreateData]
+    project: Project, organization: Organization, repos_data: list[ProjectRepoCreateData]
 ) -> None:
-    """Replace all Seer repos for the given project."""
+    """Replace all active Seer repos for the given project.
+    Raises ValueError if any repo IDs are invalid."""
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         list(Project.objects.select_for_update().filter(id=project.id))
-        SeerProjectRepository.objects.filter(project_repository__project=project).delete()
+
+        if repos_data:
+            _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
+
+        SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).delete()
+
         for data in repos_data:
             project_repo, _ = ProjectRepository.objects.get_or_create(
                 project=project,

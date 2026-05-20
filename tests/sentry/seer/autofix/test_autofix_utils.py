@@ -1951,6 +1951,7 @@ class TestAddSeerProjectRepos(TestCase):
     def test_creates_project_repos(self):
         add_seer_project_repos(
             self.project,
+            self.organization,
             [
                 {"repository_id": self.repo1.id, "branch_name": "main", "instructions": "hello"},
                 {"repository_id": self.repo2.id},
@@ -1969,6 +1970,7 @@ class TestAddSeerProjectRepos(TestCase):
     def test_creates_branch_overrides(self):
         add_seer_project_repos(
             self.project,
+            self.organization,
             [
                 {
                     "repository_id": self.repo1.id,
@@ -1991,7 +1993,9 @@ class TestAddSeerProjectRepos(TestCase):
         self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="old")
 
         add_seer_project_repos(
-            self.project, [{"repository_id": self.repo1.id, "branch_name": "new"}]
+            self.project,
+            self.organization,
+            [{"repository_id": self.repo1.id, "branch_name": "new"}],
         )
 
         assert (
@@ -2004,7 +2008,9 @@ class TestAddSeerProjectRepos(TestCase):
         assert pr.branch_name == "new"
 
     def test_returns_created_ids(self):
-        created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
+        created_ids = add_seer_project_repos(
+            self.project, self.organization, [{"repository_id": self.repo1.id}]
+        )
         assert created_ids == list(
             SeerProjectRepository.objects.filter(
                 project_repository__project=self.project
@@ -2033,7 +2039,9 @@ class TestReplaceAllSeerProjectRepos(TestCase):
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
         replace_all_seer_project_repos(
-            self.project, [{"repository_id": self.repo2.id, "branch_name": "develop"}]
+            self.project,
+            self.organization,
+            [{"repository_id": self.repo2.id, "branch_name": "develop"}],
         )
 
         assert not SeerProjectRepository.objects.filter(
@@ -2047,7 +2055,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
     def test_clears_all_when_empty(self):
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
-        replace_all_seer_project_repos(self.project, [])
+        replace_all_seer_project_repos(self.project, self.organization, [])
 
         assert (
             SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
@@ -2057,6 +2065,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
     def test_creates_branch_overrides(self):
         replace_all_seer_project_repos(
             self.project,
+            self.organization,
             [
                 {
                     "repository_id": self.repo1.id,
@@ -2080,7 +2089,9 @@ class TestReplaceAllSeerProjectRepos(TestCase):
             branch_name="old",
         )
 
-        replace_all_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
+        replace_all_seer_project_repos(
+            self.project, self.organization, [{"repository_id": self.repo1.id}]
+        )
 
         project_repo = SeerProjectRepository.objects.get(
             project_repository__project=self.project, project_repository__repository=self.repo1
