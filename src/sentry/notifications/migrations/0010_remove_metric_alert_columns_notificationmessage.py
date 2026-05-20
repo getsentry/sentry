@@ -41,12 +41,8 @@ class Migration(CheckedMigration):
             database_operations=[
                 SafeRunSQL(
                     sql="""
-                    DO $$
-                    BEGIN
-                        ALTER TABLE "sentry_notificationmessage" ADD CONSTRAINT "sentry_notificationmessage_group_id_notnull" CHECK ("group_id" IS NOT NULL) NOT VALID;
-                    EXCEPTION
-                        WHEN duplicate_object THEN NULL;
-                    END $$;
+                    ALTER TABLE "sentry_notificationmessage" DROP CONSTRAINT IF EXISTS "sentry_notificationmessage_group_id_notnull";
+                    ALTER TABLE "sentry_notificationmessage" ADD CONSTRAINT "sentry_notificationmessage_group_id_notnull" CHECK ("group_id" IS NOT NULL) NOT VALID;
                     """,
                     reverse_sql='ALTER TABLE "sentry_notificationmessage" DROP CONSTRAINT IF EXISTS "sentry_notificationmessage_group_id_notnull";',
                     hints={"tables": ["sentry_notificationmessage"]},
