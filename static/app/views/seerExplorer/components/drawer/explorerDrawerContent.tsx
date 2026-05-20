@@ -21,6 +21,7 @@ import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/file
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
+import {usePersistedValue} from 'sentry/views/seerExplorer/hooks/usePersistedValue';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
@@ -43,7 +44,6 @@ export function ExplorerDrawerContent({
   const user = useUser();
   const {closeDrawer} = useDrawer();
 
-  const [inputValue, setInputValue] = useState('');
   const [showThinking, setShowThinking] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -65,8 +65,8 @@ export function ExplorerDrawerContent({
     errorStatusCode,
     isTimedOut,
     sendMessage,
-    startNewSession: startNewSessionBase,
-    switchToRun: switchToRunBase,
+    startNewSession,
+    switchToRun,
     respondToUserInput,
     createPR,
     interruptRun,
@@ -76,10 +76,13 @@ export function ExplorerDrawerContent({
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
-  const clearInput = () => setInputValue('');
-  const startNewSession = () => startNewSessionBase({onSuccess: clearInput});
-  const switchToRun = (newRunId: number | null) =>
-    switchToRunBase(newRunId, {onSuccess: clearInput});
+  // Persist the input draft per-run so drawer closes / run switches
+  // don't lose the user's in-progress text.
+  const {
+    value: inputValue,
+    setValue: setInputValue,
+    clear: clearInput,
+  } = usePersistedValue('seer-explorer-draft', runId);
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -260,9 +263,9 @@ export function ExplorerDrawerContent({
       return;
     }
     sendMessage(inputValue.trim(), blocks.length);
-    setInputValue('');
+    clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage, blocks.length]);
+  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -452,7 +455,7 @@ export function ExplorerDrawerContent({
         canSendMessage={canSendMessage}
         interruptState={interruptState}
         isTimedOut={isTimedOut}
-        onClear={() => setInputValue('')}
+        onClear={clearInput}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
