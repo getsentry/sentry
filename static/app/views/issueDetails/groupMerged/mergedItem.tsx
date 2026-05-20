@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,14 +9,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Fingerprint} from 'sentry/stores/groupingStore';
-import {GroupingStore} from 'sentry/stores/groupingStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
+import {type FingerprintWithLatestEvent, useGroupMerged} from './useGroupMerged';
+
 interface Props {
-  fingerprint: Fingerprint;
+  fingerprint: FingerprintWithLatestEvent;
   totalFingerprint: number;
 }
 
@@ -25,36 +24,14 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const [busy, setBusy] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [checked, setChecked] = useState(false);
-
-  function onGroupChange({unmergeState}: any) {
-    if (!unmergeState) {
-      return;
-    }
-
-    const stateForId = unmergeState.has(fingerprint.id)
-      ? unmergeState.get(fingerprint.id)
-      : undefined;
-
-    if (!stateForId) {
-      return;
-    }
-
-    Object.keys(stateForId).forEach(key => {
-      if (key === 'collapsed') {
-        setCollapsed(Boolean(stateForId[key]));
-      } else if (key === 'checked') {
-        setChecked(Boolean(stateForId[key]));
-      } else if (key === 'busy') {
-        setBusy(Boolean(stateForId[key]));
-      }
-    });
-  }
+  const {state, toggleCollapsed, toggleSelected} = useGroupMerged();
+  const stateForId = state.fingerprintState.get(fingerprint.id);
+  const busy = Boolean(stateForId?.busy);
+  const collapsed = Boolean(stateForId?.collapsed);
+  const checked = Boolean(stateForId?.checked);
 
   function handleToggleEvents() {
-    GroupingStore.onToggleCollapseFingerprint(fingerprint.id);
+    toggleCollapsed(fingerprint.id);
   }
 
   function handleToggle() {
@@ -65,7 +42,7 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
     }
 
     // clicking anywhere in the row will toggle the checkbox
-    GroupingStore.onToggleUnmerge([fingerprint.id, latestEvent.id]);
+    toggleSelected(fingerprint.id, latestEvent.id);
   }
 
   function handleCheckClick() {
@@ -73,38 +50,16 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
     // we handle change via row click
   }
 
-  function renderFingerprint(id: string, label?: string) {
-    if (!label) {
-      return id;
-    }
-
-    return (
-      <Tooltip title={id}>
-        <code>{label}</code>
-      </Tooltip>
-    );
-  }
-
-  useEffect(() => {
-    const teardown = GroupingStore.listen((data: any) => onGroupChange(data), undefined);
-    return () => {
-      teardown();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const {latestEvent, id, label} = fingerprint;
+  const {latestEvent, id} = fingerprint;
   const checkboxDisabled = busy || totalFingerprint === 1;
 
-  const issueLink = latestEvent
-    ? createIssueLink({
-        organization,
-        location,
-        data: latestEvent,
-        eventId: latestEvent.id,
-        referrer: 'merged-item',
-      })
-    : null;
+  const issueLink = createIssueLink({
+    organization,
+    location,
+    data: latestEvent,
+    eventId: latestEvent.id,
+    referrer: 'merged-item',
+  });
 
   // `latestEvent` can be null if last event w/ fingerprint is not within retention period
   return (
@@ -128,7 +83,7 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
               size="xs"
             />
           </Tooltip>
-          {renderFingerprint(id, label)}
+          {id}
           {fingerprint.mergedBySeer && ' (merged by Sentry)'}
         </FingerprintLabel>
 
@@ -145,24 +100,22 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
 
       {!collapsed && (
         <MergedEventList>
-          {issueLink ? (
-            <Flex align="center" gap="xs">
-              <LinkButton
-                to={issueLink}
-                icon={<IconLink variant="accent" />}
-                tooltipProps={{title: t('View latest event')}}
-                aria-label={t('View latest event')}
-                variant="transparent"
-                size="xs"
-                style={{marginLeft: theme.space.md}}
-              />
-              <Flex justify="between" padding="md">
-                <Text size="md" data-issue-title-primary>
-                  {latestEvent.title}
-                </Text>
-              </Flex>
+          <Flex align="center" gap="xs">
+            <LinkButton
+              to={issueLink}
+              icon={<IconLink variant="accent" />}
+              tooltipProps={{title: t('View latest event')}}
+              aria-label={t('View latest event')}
+              variant="transparent"
+              size="xs"
+              style={{marginLeft: theme.space.md}}
+            />
+            <Flex justify="between" padding="md">
+              <Text size="md" data-issue-title-primary>
+                {latestEvent.title}
+              </Text>
             </Flex>
-          ) : null}
+          </Flex>
         </MergedEventList>
       )}
     </MergedGroup>

@@ -22,11 +22,10 @@ describe('MergedIssuesDrawer', () => {
     GroupStore.init();
 
     mockMergedIssues = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/hashes/?limit=50&query=`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/hashes/`,
       body: [
         {
           latestEvent: event,
-          state: 'unlocked',
           id: '2c4887696f708c476a81ce4e834c4b02',
           mergedBySeer: true,
         },

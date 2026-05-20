@@ -6,18 +6,15 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import type {Fingerprint} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
 import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
+import {hasLatestEvent, type Fingerprint} from './useGroupMerged';
 
 type Props = {
   groupId: Group['id'];
-  /**
-   * From GroupingStore.onToggleCollapseFingerprints
-   */
   onToggleCollapse: () => void;
   /**
    * From GroupMergedView -> handleUnmerge
@@ -36,9 +33,7 @@ export function MergedList({
   groupId,
   project,
 }: Props) {
-  const fingerprintsWithLatestEvent = fingerprints.filter(
-    ({latestEvent}) => !!latestEvent
-  );
+  const fingerprintsWithLatestEvent = fingerprints.filter(hasLatestEvent);
   const hasResults = fingerprintsWithLatestEvent.length > 0;
   if (!hasResults) {
     return (
