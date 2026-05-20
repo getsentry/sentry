@@ -242,14 +242,6 @@ export function ContinuousProfileProvider({
     );
   }
 
-  if (!project && ['errored', 'resolved'].includes(profile.type)) {
-    return (
-      <UnresolvedArea>
-        <LoadingError message="This page's project slug is not known." />
-      </UnresolvedArea>
-    );
-  }
-
   return <ProfileContext value={profile}>{children}</ProfileContext>;
 }
 
