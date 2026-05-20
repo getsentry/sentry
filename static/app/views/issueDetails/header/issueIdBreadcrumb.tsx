@@ -1,10 +1,11 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -28,7 +29,6 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const {openModal} = useModal();
 
   const organization = useOrganization();
-  const [isHovered, setIsHovered] = useState(false);
   const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
   const {copy} = useCopyToClipboard();
 
@@ -48,39 +48,34 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
 
   return (
     <Flex align="center" gap="xs">
-      <Flex gap="md" align="center">
+      <RevealOnHover gap="md">
         <ProjectBadge
           project={project}
           avatarSize={16}
           hideName
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
         />
-        <ShortIdCopyable
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          <Tooltip
-            title={t(
-              'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-            )}
-            position="bottom"
-            delay={1000}
-          >
-            <StyledShortId onClick={handleCopyShortId} shortId={group.shortId} />
-          </Tooltip>
-          {isHovered && (
-            <Button
-              tooltipProps={{title: t('Copy Issue Short-ID')}}
-              aria-label={t('Copy Issue Short-ID')}
-              onClick={handleCopyShortId}
-              size="zero"
-              variant="transparent"
-              icon={<IconCopy size="xs" variant="muted" />}
-            />
+        <Tooltip
+          title={t(
+            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
           )}
-        </ShortIdCopyable>
-      </Flex>
-      {!isHovered && group.isPublic && shareUrl && (
+          position="bottom"
+          delay={1000}
+        >
+          <StyledShortId onClick={handleCopyShortId} shortId={group.shortId} />
+        </Tooltip>
+        <RevealOnHover.Action>
+          <Button
+            tooltipProps={{title: t('Copy Issue Short-ID')}}
+            aria-label={t('Copy Issue Short-ID')}
+            onClick={handleCopyShortId}
+            size="zero"
+            variant="transparent"
+            icon={<IconCopy size="xs" variant="muted" />}
+          />
+        </RevealOnHover.Action>
+      </RevealOnHover>
+      {group.isPublic && shareUrl && (
         <Button
           size="zero"
           variant="transparent"
@@ -119,17 +114,4 @@ const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.font.family.sans};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1;
-`;
-
-const ShortIdCopyable = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  align-items: center;
-  /* hardcoded height avoids layout shift on button hover */
-  height: 36px;
-  button[aria-haspopup] {
-    display: block;
-    opacity: 0;
-    transition: opacity 50ms linear;
-  }
 `;

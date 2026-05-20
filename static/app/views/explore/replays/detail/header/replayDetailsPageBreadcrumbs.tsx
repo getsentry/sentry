@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -136,7 +137,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             />
           </Tooltip>
         </div>
-        <HoverArea align="center" gap="xs">
+        <RevealOnHover>
           {project ? (
             <ProjectBadge disableLink project={project} avatarSize={16} hideName />
           ) : (
@@ -151,19 +152,21 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
           >
             {getShortEventId(replayRecord?.id)}
           </div>
-          <LinkCopyButton
-            tooltipProps={{title: t('Copy link to replay at current timestamp')}}
-            aria-label={t('Copy link to replay at current timestamp')}
-            onClick={() =>
-              copy(replayUrlWithTimestamp, {
-                successMessage: t('Copied replay link to clipboard'),
-              })
-            }
-            size="zero"
-            variant="transparent"
-            icon={<IconCopy size="xs" variant="muted" />}
-          />
-        </HoverArea>
+          <RevealOnHover.Action>
+            <Button
+              tooltipProps={{title: t('Copy link to replay at current timestamp')}}
+              aria-label={t('Copy link to replay at current timestamp')}
+              onClick={() =>
+                copy(replayUrlWithTimestamp, {
+                  successMessage: t('Copied replay link to clipboard'),
+                })
+              }
+              size="zero"
+              variant="transparent"
+              icon={<IconCopy size="xs" variant="muted" />}
+            />
+          </RevealOnHover.Action>
+        </RevealOnHover>
         {shouldShowRefreshButton ? (
           <Button
             tooltipProps={{
@@ -194,15 +197,4 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
   height: 34px;
-`;
-
-const HoverArea = styled(Flex)``;
-
-const LinkCopyButton = styled(Button)`
-  opacity: 0;
-
-  ${HoverArea}:focus-within &,
-  ${HoverArea}:hover & {
-    opacity: 1;
-  }
 `;
