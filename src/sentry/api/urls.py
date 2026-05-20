@@ -234,6 +234,7 @@ from sentry.integrations.api.endpoints.external_user_details import ExternalUser
 from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.integrations.api.endpoints.integration_proxy2 import InternalIntegrationProxy2Endpoint
 from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -3614,6 +3615,12 @@ INTERNAL_URLS = [
         r"^integration-proxy/$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
+    ),
+    re_path(
+        # If modifying, ensure PROXY_BASE_PATH is updated as well
+        r"^integration-proxy2/$",
+        InternalIntegrationProxy2Endpoint.as_view(),
+        name="sentry-api-0-internal-integration-proxy2",
     ),
     re_path(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",

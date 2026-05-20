@@ -22,6 +22,7 @@ from sentry.http import build_session
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.net.http import SafeSession
+from sentry.scm.utils import check_rollout_option
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
@@ -141,7 +142,10 @@ class IntegrationProxyClient(ApiClient):
 
         if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True
-            self.proxy_url = get_proxy_url()
+            if check_rollout_option("sentry.scm.streaming-integration-proxy"):
+                self.proxy_url = f"{get_proxy_url()}2"
+            else:
+                self.proxy_url = get_proxy_url()
 
         if in_test_environment() and not self._use_proxy_url_for_tests:
             logger.info("proxy_disabled_in_test_env")
