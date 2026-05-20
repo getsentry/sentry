@@ -116,11 +116,6 @@ const Text = styled('div')`
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
-
-  /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const IconWrapper = styled('span')`

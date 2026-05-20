@@ -191,8 +191,17 @@ export function ConversationAggregatesBar({
             ))}
             {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
               <Tooltip
-                title={aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).join(', ')}
-                maxWidth={300}
+                title={
+                  <MoreToolsTooltip>
+                    {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                      <Tag key={name} variant="info">
+                        {name}
+                      </Tag>
+                    ))}
+                  </MoreToolsTooltip>
+                }
+                maxWidth={400}
+                isHoverable
                 skipWrapper
               >
                 <Text size="sm" variant="muted" wrap="nowrap">
@@ -386,3 +395,10 @@ function ToolTagsRow({children}: {children: React.ReactNode}) {
     </Flex>
   );
 }
+
+const MoreToolsTooltip = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} 0;
+`;
