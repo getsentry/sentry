@@ -1,4 +1,4 @@
-import type {ComponentType, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -80,14 +80,10 @@ export function hasValidContent(content: string | null | undefined): content is 
 const ISSUE_SHORT_ID_PATTERN =
   /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
 
-function LinkifyIssueShortIds(props: {
-  children: string;
-  wrapper?: ComponentType<{children: string}>;
-}): ReactNode {
-  const {children, wrapper: Wrapper = Fragment} = props;
+function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
   const parts = children.split(ISSUE_SHORT_ID_PATTERN);
   if (parts.length === 1) {
-    return <Wrapper>{children}</Wrapper>;
+    return children;
   }
   return (
     <Fragment>
@@ -96,11 +92,11 @@ function LinkifyIssueShortIds(props: {
         if (i % 2 === 1) {
           return (
             <Link key={i} to={`/issues/${part}/`}>
-              <Wrapper>{part}</Wrapper>
+              {part}
             </Link>
           );
         }
-        return <Wrapper key={i}>{part}</Wrapper>;
+        return <Fragment key={i}>{part}</Fragment>;
       })}
     </Fragment>
   );
@@ -108,9 +104,17 @@ function LinkifyIssueShortIds(props: {
 
 const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
   Text: ({children}) => <LinkifyIssueShortIds>{children}</LinkifyIssueShortIds>,
-  InlineCode: ({children, Default}) => (
-    <LinkifyIssueShortIds wrapper={Default}>{children}</LinkifyIssueShortIds>
-  ),
+  InlineCode: ({children, Default}) => {
+    const parts = children.split(ISSUE_SHORT_ID_PATTERN);
+    if (parts.length === 3 && parts[1]) {
+      return (
+        <Link to={`/issues/${parts[1]}/`}>
+          <Default>{children}</Default>
+        </Link>
+      );
+    }
+    return <Default>{children}</Default>;
+  },
   Heading: ({children, level}) => (
     <Heading as={`h${level}`} size="lg">
       {children}
