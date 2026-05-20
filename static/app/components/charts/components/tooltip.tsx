@@ -3,6 +3,7 @@ import 'echarts/lib/component/tooltip';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
+import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import moment from 'moment-timezone';
 
 import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
@@ -11,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
@@ -74,7 +76,7 @@ function defaultMarkerFormatter(value: string) {
   return value;
 }
 
-function getSeriesValue(series: any, offset: number) {
+export function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
     return;
   }
@@ -114,6 +116,10 @@ export type FormatterOptions = Pick<
      */
     addSecondsToTimeFormat?: boolean;
     /**
+     * Content that IS NOT part of the series data but is shown on the tooltip.
+     */
+    extraContent?: (seriesParams: CallbackDataParams) => string | null;
+    /**
      * Limit the number of series rendered in the tooltip and display "+X more".
      */
     limit?: number;
@@ -138,6 +144,7 @@ export function getFormatter({
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
   markerFormatter = defaultMarkerFormatter,
+  extraContent,
   subLabels = [],
   addSecondsToTimeFormat = false,
   limit,
@@ -244,16 +251,28 @@ export function getFormatter({
         );
 
         if (serie.seriesType === 'heatmap') {
-          const zAxisCountValue = (getSeriesValue(serie, 2) ?? 0).toString();
+          const zAxisCountValue = formatAbbreviatedNumber(
+            getSeriesValue(serie, 2) ?? 0,
+            4,
+            false
+          );
           const yAxisValue = valueFormatter(
             getSeriesValue(serie, 1),
             serie.seriesName,
             serie
           );
 
-          acc.series.push(
-            `<div><span class="tooltip-label"><strong>${yAxisValue}</strong></span> ${zAxisCountValue}</div>`
-          );
+          const additionalContent = extraContent ? extraContent(serie) : null;
+
+          if (additionalContent) {
+            acc.series.push(
+              `<div><span class="tooltip-label"><strong>${yAxisValue}</strong></span> ${zAxisCountValue}</div><div><span class="tooltip-label tooltip-label-centered">${additionalContent}</span></div>`
+            );
+          } else {
+            acc.series.push(
+              `<div><span class="tooltip-label"><strong>${yAxisValue}</strong></span> ${zAxisCountValue}</div>`
+            );
+          }
 
           return acc;
         }

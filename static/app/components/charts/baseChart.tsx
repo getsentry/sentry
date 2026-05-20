@@ -764,6 +764,11 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: flex-start;
     align-items: baseline;
   }
+  .tooltip-label-centered {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
   .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;

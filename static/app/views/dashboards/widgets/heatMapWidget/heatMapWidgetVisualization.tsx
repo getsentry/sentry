@@ -6,20 +6,24 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
+import type {LocationDescriptor} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {getFormatter} from 'sentry/components/charts/components/tooltip';
+import {getFormatter, getSeriesValue} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {getExploreUrl, type GetExploreUrlArgs} from 'sentry/views/explore/utils';
 
 import {HeatMap} from './plottables/heatMap';
 import type {HeatMapPlottable} from './plottables/heatMapPlottable';
@@ -34,11 +38,16 @@ interface HeatMapWidgetVisualizationProps {
    * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
    */
   scale?: 'linear' | 'log';
+  /**
+   * getExploreUrl props that will be used to generate an explore link for the tooltip. Omitting this will not generate an explore link.
+   */
+  tooltipExploreUrlArgs?: Omit<GetExploreUrlArgs, 'organization'>;
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
   const {plottables} = props;
   const theme = useTheme();
+  const organization = useOrganization();
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
@@ -94,6 +103,11 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           fieldType,
           heatMapPlottable.yAxisValueUnit ?? undefined
         );
+
+        if (bucketSize === 0) {
+          return yAxisMinValueFormatted;
+        }
+
         const yAxisMaxValueFormatted = formatTooltipValue(
           value + bucketSize,
           fieldType,
@@ -102,6 +116,50 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
         return `${yAxisMinValueFormatted} – ${yAxisMaxValueFormatted}`;
       },
+      extraContent: props.tooltipExploreUrlArgs
+        ? function (contentParams) {
+            // TODO(nikki): the y axis values might have to be changed if it's on a log scale :(
+            const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
+            const yAxisMinValue = getSeriesValue(contentParams, 1) as number;
+            const yAxisMaxValue = yAxisMinValue + yAxisBucketSize;
+
+            const xAxisBucketSize = heatMapPlottable.heatMapSeries.meta.xAxis.bucketSize;
+            const xAxisMinValue = getSeriesValue(contentParams, 0) as number;
+            const xAxisMaxValue = xAxisMinValue + xAxisBucketSize * 1000;
+
+            const exploreUrlProps: GetExploreUrlArgs = {
+              selection: {
+                ...pageFilters.selection,
+                datetime: {
+                  ...pageFilters.selection.datetime,
+                  start: new Date(xAxisMinValue),
+                  end: new Date(xAxisMaxValue),
+                  period: null,
+                },
+              },
+              organization,
+              // TODO(nikki): we're only handling metrics for now but if we're looking to support other explore
+              // surfaces then we'll need to add more logic here
+              ...props.tooltipExploreUrlArgs,
+              crossEvents: props.tooltipExploreUrlArgs?.crossEvents?.map(crossEvent => {
+                if (crossEvent.type === 'metrics') {
+                  return {
+                    ...crossEvent,
+                    query:
+                      yAxisBucketSize === 0
+                        ? `value:<=${yAxisMinValue}`
+                        : `value:>=${yAxisMinValue} value:<${yAxisMaxValue}`,
+                  };
+                }
+                return crossEvent;
+              }),
+            };
+
+            const tracesLink = getExploreUrl(exploreUrlProps);
+
+            return `<a href="${toHref(tracesLink)}">${t('View related traces')}</a>`;
+          }
+        : undefined,
       truncate: false,
       utc: utc ?? false,
     })(params, asyncTicket);
@@ -118,6 +176,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         ref={chartRef}
         tooltip={{
           show: true,
+          enterable: true,
+          extraCssText: 'pointer-events: auto !important;',
           axisPointer: {
             show: false,
           },
@@ -196,4 +256,12 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       />
     </Flex>
   );
+}
+
+function toHref(to: LocationDescriptor): string {
+  if (typeof to === 'string') {
+    return to;
+  }
+  const {pathname = '', search = '', hash = ''} = to;
+  return `${pathname}${search}${hash}`;
 }

@@ -49,7 +49,7 @@ export class HeatMap implements HeatMapPlottable {
 
   toSeries(plottingOptions: HeatMapPlottingOptions): SeriesOption[] {
     const {heatMapSeries} = this;
-    const {scale = 'linear'} = plottingOptions;
+    const {scale = 'linear', theme} = plottingOptions;
 
     return [
       {
@@ -64,7 +64,10 @@ export class HeatMap implements HeatMapPlottable {
           ];
         }),
         emphasis: {
-          disabled: true,
+          itemStyle: {
+            borderColor: theme.tokens.content.primary,
+            borderWidth: 2,
+          },
         },
       },
     ];
