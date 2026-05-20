@@ -30,19 +30,15 @@ const revealStyles = (p: {theme: any}) => `
   @media (hover: hover) {
     [data-reveal-on-hover] {
       opacity: 0;
-      visibility: hidden;
-      transition:
-        opacity ${p.theme.motion.exit.fast},
-        visibility ${p.theme.motion.exit.fast};
+      pointer-events: none;
+      transition: opacity ${p.theme.motion.exit.fast};
     }
 
     &:hover [data-reveal-on-hover],
     &:focus-within [data-reveal-on-hover] {
       opacity: 1;
-      visibility: visible;
-      transition:
-        opacity ${p.theme.motion.enter.moderate},
-        visibility ${p.theme.motion.enter.moderate};
+      pointer-events: auto;
+      transition: opacity ${p.theme.motion.enter.moderate};
     }
   }
 `;
