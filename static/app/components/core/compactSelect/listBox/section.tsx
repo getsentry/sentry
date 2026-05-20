@@ -13,7 +13,7 @@ import {
   SectionToggle,
   SectionWrap,
 } from '@sentry/scraps/compactSelect';
-import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 
@@ -24,7 +24,6 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   showSectionHeaders: boolean;
   size: ListBoxOptionProps['size'];
   'data-index'?: number;
-  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
 }
@@ -36,7 +35,6 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
 export function ListBoxSection({
   item,
   listState,
-  onToggle,
   size,
   hiddenOptions,
   showSectionHeaders,
@@ -69,9 +67,7 @@ export function ListBoxSection({
             {item.rendered && (
               <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
             )}
-            {showToggleAllButton && (
-              <SectionToggle item={item} listState={listState} onToggle={onToggle} />
-            )}
+            {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
           </SectionHeader>
         )}
         <SectionGroup {...groupProps}>
