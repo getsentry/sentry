@@ -49,7 +49,7 @@ const filterDescriptions = {
   },
   localhost: {
     label: t('Filter out events coming from localhost'),
-    help: 'This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.',
+    help: t('This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.'),
   },
   'filtered-transaction': {
     label: t('Filter out health check transactions'),
