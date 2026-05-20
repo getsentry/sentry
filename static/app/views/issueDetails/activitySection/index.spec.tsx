@@ -197,7 +197,7 @@ describe('ActivitySection', () => {
     });
 
     render(<ActivitySection group={activityGroup} />, {
-      organization: OrganizationFixture({features: ['issue-activity-two-column-icons']}),
+      organization: OrganizationFixture({features: ['activity-feed-v2']}),
     });
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
