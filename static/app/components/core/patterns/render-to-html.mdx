@@ -6,7 +6,7 @@ status: stable
 source: app/components/core/renderToString.tsx
 ---
 
-Some third-party libraries accept HTML strings instead of React elements. The most common case in Sentry is **eCharts**, whose [tooltip formatter](https://echarts.apache.org/en/option.html#tooltip.formatter) expects a callback that returns an HTML string. `useRenderToString` bridges this gap by synchronously rendering a React tree to an HTML string on the client.
+Some third-party libraries accept HTML strings instead of React elements. The most common case in Sentry is **eCharts**, whose [tooltip formatter](https://echarts.apache.org/en/option.html#tooltip.formatter) expects a callback that returns an HTML string. `useRenderToString` bridges this gap using the [technique recommended by React](https://react.dev/reference/react-dom/server/renderToString#removing-rendertostring-from-the-client-code) for removing `renderToString` from client code.
 
 ## API
 
@@ -88,27 +88,6 @@ function MyChart() {
   return <ReactEchartsCore option={option} />;
 }
 ```
-
-## How it works
-
-Under the hood, `renderToString` creates a temporary DOM node, renders into it with `flushSync`, reads `.innerHTML`, and unmounts. This is synchronous — the HTML string is available immediately, which is what eCharts expects.
-
-```tsx
-const renderToString = (tree: ReactNode) => {
-  const div = document.createElement('div');
-  const root = createRoot(div);
-
-  flushSync(() => {
-    root.render(tree);
-  });
-
-  const html = div.innerHTML;
-  root.unmount();
-  return html;
-};
-```
-
-The `useRenderToString` hook wraps the tree in a `ThemeProvider` so that Emotion's `useTheme` and styled components work correctly inside the rendered tree.
 
 ## Tips
 
