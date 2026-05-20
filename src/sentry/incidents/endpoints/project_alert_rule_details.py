@@ -34,7 +34,7 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+        suggested_api="sentry-api-0-organization-detector-details",
     )
     def get(self, request: Request, project: Project, alert_rule: AlertRule | Detector) -> Response:
         """
@@ -47,7 +47,7 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+        suggested_api="sentry-api-0-organization-detector-details",
     )
     def put(self, request: Request, project: Project, alert_rule: AlertRule | Detector) -> Response:
         """
@@ -60,7 +60,7 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+        suggested_api="sentry-api-0-organization-detector-details",
     )
     def delete(
         self, request: Request, project: Project, alert_rule: AlertRule | Detector

@@ -784,7 +784,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated
@@ -816,7 +818,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated

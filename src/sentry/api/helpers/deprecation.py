@@ -101,6 +101,52 @@ def _add_deprecation_headers(
         response[SUGGESTED_API_HEADER] = suggested_api
 
 
+def _resolve_route_name(route_name: str, request: Request) -> str | None:
+    """Resolve a Django route name into a URL path for the deprecation header.
+
+    Uses the URL resolver's reverse_dict to get the URL template and substitutes
+    parameters from the current request where available. Missing parameters are
+    replaced with :param_name placeholders.
+    """
+    from django.urls import get_resolver
+
+    try:
+        resolver = get_resolver()
+        entries = resolver.reverse_dict.getlist(route_name)
+        if not entries:
+            logger.warning("deprecation.unknown_route_name", extra={"route_name": route_name})
+            return None
+
+        bits, _pattern, _defaults, _converters = entries[0]
+        template, params = bits[0]
+
+        if not template:
+            logger.warning("deprecation.empty_route_template", extra={"route_name": route_name})
+            return None
+
+        request_kwargs: dict[str, str] = {}
+        if request.resolver_match is not None:
+            request_kwargs = request.resolver_match.kwargs
+
+        subs = {}
+        for param in params:
+            if param in request_kwargs:
+                subs[param] = str(request_kwargs[param])
+            else:
+                subs[param] = f":{param}"
+
+        return "/" + (template % subs)
+    except Exception:
+        logger.exception("deprecation.route_resolution_failed", extra={"route_name": route_name})
+        return None
+
+
+def _resolve_suggested_api(suggested_api: str | None, request: Request) -> str | None:
+    if suggested_api is None:
+        return None
+    return _resolve_route_name(suggested_api, request)
+
+
 SelfT = TypeVar("SelfT")
 P = ParamSpec("P")
 EndpointT = Callable[Concatenate[SelfT, Request, P], HttpResponseBase]
@@ -128,7 +174,10 @@ def deprecated(
     This decorator will do nothing if the environment is self-hosted and not set to 'development'.
 
     :param deprecation_date: The date at which the endpoint is starts brownouts;
-    :param suggested_api: The suggested API to use instead of the deprecated one;
+    :param suggested_api: A Django route name for the replacement endpoint
+                          (e.g. "sentry-api-0-organization-projects"). Resolved at request time,
+                          interpolating URL parameters from the current request and using
+                          :param_name placeholders for the rest.
     :param key: The key prefix for an option use for the brownout schedule and duration
                 If not set 'api.deprecation.brownout' will be used, which currently
                 is using schedule of a 1 minute blackout at noon UTC.
@@ -172,7 +221,8 @@ def deprecated(
                         "action": metric_action,
                     },
                 )
-                _add_deprecation_headers(response, deprecation_date, suggested_api)
+                resolved_api = _resolve_suggested_api(suggested_api, request)
+                _add_deprecation_headers(response, deprecation_date, resolved_api)
 
             return response
 

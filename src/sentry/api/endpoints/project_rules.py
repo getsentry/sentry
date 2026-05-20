@@ -849,7 +849,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/workflows/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-workflow-index"
+    )
     def get(self, request: Request, project: Project) -> Response:
         """
         ## Deprecated
@@ -909,7 +911,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/",
+        suggested_api="sentry-api-0-organization-workflow-index",
     )
     def post(self, request: Request, project) -> Response:
         """
