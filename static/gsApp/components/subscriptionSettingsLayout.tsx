@@ -1,7 +1,7 @@
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
