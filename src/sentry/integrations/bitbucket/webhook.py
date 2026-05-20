@@ -179,14 +179,14 @@ class BitbucketWebhookEndpoint(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest, organization_id: str) -> HttpResponse:
-        organization_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
+        org_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
+            organization = Organization.objects.get_from_cache(id=org_id)
         except Organization.DoesNotExist:
             logger.info(
                 "%s.webhook.invalid-organization",
                 PROVIDER_NAME,
-                extra={"organization_id": organization_id},
+                extra={"organization_id": org_id},
             )
             return HttpResponse(status=400)
 

@@ -172,15 +172,15 @@ class BitbucketServerWebhookEndpoint(Endpoint):
     def post(
         self, request: HttpRequest, organization_id: str, integration_id: str
     ) -> HttpResponseBase:
-        organization_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
-        integration_id_int = to_valid_int_id("integration_id", integration_id, raise_404=True)
+        org_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
+        integ_id = to_valid_int_id("integration_id", integration_id, raise_404=True)
         try:
-            organization: Organization = Organization.objects.get_from_cache(id=organization_id)
+            organization: Organization = Organization.objects.get_from_cache(id=org_id)
         except Organization.DoesNotExist:
             logger.warning(
                 "%s.webhook.invalid-organization",
                 PROVIDER_NAME,
-                extra={"organization_id": organization_id, "integration_id": integration_id},
+                extra={"organization_id": org_id, "integration_id": integ_id},
             )
             return HttpResponse(status=400)
 
@@ -197,7 +197,7 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             logger.warning(
                 "%s.webhook.missing-event",
                 PROVIDER_NAME,
-                extra={"organization_id": organization.id, "integration_id": integration_id},
+                extra={"organization_id": organization.id, "integration_id": integ_id},
             )
             return HttpResponse(status=400)
 
@@ -210,13 +210,13 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             logger.warning(
                 "%s.webhook.invalid-json",
                 PROVIDER_NAME,
-                extra={"organization_id": organization.id, "integration_id": integration_id},
+                extra={"organization_id": organization.id, "integration_id": integ_id},
             )
             return HttpResponse(status=400)
 
         event_handler = handler()
 
         with webhook_viewer_context(organization.id):
-            event_handler(event, organization=organization, integration_id=integration_id_int)
+            event_handler(event, organization=organization, integration_id=integ_id)
 
         return HttpResponse(status=204)
