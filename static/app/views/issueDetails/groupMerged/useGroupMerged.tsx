@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo, useReducer, type ReactNode} from 'react';
+import {useMemo, useReducer} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
@@ -13,12 +13,6 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-
-interface ApiFingerprint {
-  id: string;
-  latestEvent: Event | null;
-  mergedBySeer?: boolean;
-}
 
 export interface Fingerprint {
   id: string;
@@ -36,7 +30,7 @@ interface FingerprintState {
   collapsed?: boolean;
 }
 
-interface GroupMergedState {
+export interface GroupMergedState {
   fingerprintState: ReadonlyMap<string, Readonly<FingerprintState>>;
   unmergeLastCollapsed: boolean;
   unmergeList: ReadonlyMap<string, string>;
@@ -50,56 +44,13 @@ type GroupMergedAction =
   | {fingerprintIds: string[]; type: 'unmergeSuccess'}
   | {fingerprintIds: string[]; type: 'unmergeError'};
 
-interface UnmergeMessages {
+export interface UnmergeMessages {
   errorMessage?: string;
   loadingMessage?: string;
   successMessage?: string;
 }
 
-interface GroupMergedContextValue {
-  enableFingerprintCompare: boolean;
-  error: boolean;
-  fingerprints: Fingerprint[];
-  fingerprintsWithLatestEvent: FingerprintWithLatestEvent[];
-  loading: boolean;
-  refetch: () => void;
-  selectedEventIds: string[];
-  state: GroupMergedState;
-  toggleAllCollapsed: () => void;
-  toggleCollapsed: (fingerprintId: string) => void;
-  toggleSelected: (fingerprintId: string, eventId: string) => void;
-  unmerge: (messages: UnmergeMessages) => void;
-  unmergeDisabled: boolean;
-  pageLinks?: string;
-}
-
-interface ProviderProps {
-  children: ReactNode;
-  groupId: Group['id'];
-  location: Location;
-  organization: Organization;
-}
-
-interface GroupMergedStateProviderProps {
-  children: ReactNode;
-  error: boolean;
-  fingerprints: Fingerprint[];
-  groupId: Group['id'];
-  loading: boolean;
-  organization: Organization;
-  refetch: () => void;
-  pageLinks?: string;
-}
-
-const GroupMergedContext = createContext<GroupMergedContextValue | null>(null);
-
-export function processMergedFingerprints(items: ApiFingerprint[]): Fingerprint[] {
-  return items;
-}
-
-export function createInitialGroupMergedState(
-  _fingerprints: Fingerprint[]
-): GroupMergedState {
+export function createInitialGroupMergedState(): GroupMergedState {
   return {
     fingerprintState: new Map(),
     unmergeLastCollapsed: false,
@@ -132,13 +83,11 @@ export function isAllUnmergedSelected(
   state: Pick<GroupMergedState, 'fingerprintState' | 'unmergeList'>,
   fingerprints: Fingerprint[]
 ) {
-  const lockedItems = Array.from(state.fingerprintState.values()).filter(
-    ({busy}) => busy
-  );
+  const busyItems = Array.from(state.fingerprintState.values()).filter(({busy}) => busy);
 
   return (
     state.unmergeList.size ===
-    fingerprints.filter(({latestEvent}) => !!latestEvent).length - lockedItems.length
+    fingerprints.filter(hasLatestEvent).length - busyItems.length
   );
 }
 
@@ -251,12 +200,15 @@ function getErrorMessage(error: RequestError, fallback?: string) {
   return fallback;
 }
 
-export function GroupMergedProvider({
-  children,
+export function useGroupMergedHashes({
   groupId,
   location,
   organization,
-}: ProviderProps) {
+}: {
+  groupId: Group['id'];
+  location: Location;
+  organization: Organization;
+}) {
   const {
     data,
     dataUpdatedAt,
@@ -264,7 +216,7 @@ export function GroupMergedProvider({
     isPending: isLoading,
     refetch,
   } = useQuery({
-    ...apiOptions.as<ApiFingerprint[]>()(
+    ...apiOptions.as<Fingerprint[]>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/hashes/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: groupId},
@@ -276,40 +228,28 @@ export function GroupMergedProvider({
     select: selectJsonWithHeaders,
   });
 
-  const fingerprints = useMemo(
-    () => processMergedFingerprints(data?.json ?? []),
-    [data?.json]
-  );
-
-  return (
-    <GroupMergedStateProvider
-      key={`${groupId}:${dataUpdatedAt}`}
-      error={isError}
-      fingerprints={fingerprints}
-      groupId={groupId}
-      loading={isLoading}
-      organization={organization}
-      pageLinks={data?.headers.Link}
-      refetch={refetch}
-    >
-      {children}
-    </GroupMergedStateProvider>
-  );
+  return {
+    dataUpdatedAt,
+    error: isError,
+    fingerprints: data?.json ?? [],
+    loading: isLoading,
+    pageLinks: data?.headers.Link,
+    refetch,
+  };
 }
 
-function GroupMergedStateProvider({
-  children,
-  error,
+export function useGroupMergedState({
   fingerprints,
   groupId,
-  loading,
   organization,
-  pageLinks,
-  refetch,
-}: GroupMergedStateProviderProps) {
+}: {
+  fingerprints: Fingerprint[];
+  groupId: Group['id'];
+  organization: Organization;
+}) {
   const [state, dispatch] = useReducer(
     groupMergedReducer,
-    fingerprints,
+    undefined,
     createInitialGroupMergedState
   );
   const {isPending: isUnmerging, mutate: unmergeFingerprints} = useMutation<
@@ -341,83 +281,47 @@ function GroupMergedStateProvider({
     allUnmergedSelected;
   const enableFingerprintCompare = state.unmergeList.size === 2;
 
-  const value = useMemo<GroupMergedContextValue>(
-    () => ({
-      enableFingerprintCompare,
-      error,
-      fingerprints,
-      fingerprintsWithLatestEvent,
-      loading,
-      pageLinks,
-      refetch: () => {
-        refetch();
-      },
-      selectedEventIds,
-      state,
-      toggleAllCollapsed: () => {
-        dispatch({
-          type: 'toggleAllCollapsed',
-          fingerprintIds: fingerprints.map(({id}) => id),
-        });
-      },
-      toggleCollapsed: fingerprintId => {
-        dispatch({type: 'toggleCollapsed', fingerprintId});
-      },
-      toggleSelected: (fingerprintId, eventId) => {
-        dispatch({type: 'toggleSelected', fingerprintId, eventId});
-      },
-      unmerge: ({loadingMessage, successMessage, errorMessage}) => {
-        const fingerprintIds = Array.from(state.unmergeList.keys());
+  return {
+    enableFingerprintCompare,
+    fingerprintsWithLatestEvent,
+    selectedEventIds,
+    state,
+    toggleAllCollapsed: () => {
+      dispatch({
+        type: 'toggleAllCollapsed',
+        fingerprintIds: fingerprints.map(({id}) => id),
+      });
+    },
+    toggleCollapsed: (fingerprintId: string) => {
+      dispatch({type: 'toggleCollapsed', fingerprintId});
+    },
+    toggleSelected: (fingerprintId: string, eventId: string) => {
+      dispatch({type: 'toggleSelected', fingerprintId, eventId});
+    },
+    unmerge: ({loadingMessage, successMessage, errorMessage}: UnmergeMessages) => {
+      const fingerprintIds = Array.from(state.unmergeList.keys());
 
-        if (isAllUnmergedSelected(state, fingerprints)) {
-          return;
+      if (isAllUnmergedSelected(state, fingerprints)) {
+        return;
+      }
+
+      dispatch({type: 'unmergePending', fingerprintIds});
+      addLoadingMessage(loadingMessage);
+
+      unmergeFingerprints(
+        {fingerprintIds},
+        {
+          onSuccess: () => {
+            addSuccessMessage(successMessage);
+            dispatch({type: 'unmergeSuccess', fingerprintIds});
+          },
+          onError: requestError => {
+            addErrorMessage(getErrorMessage(requestError, errorMessage));
+            dispatch({type: 'unmergeError', fingerprintIds});
+          },
         }
-
-        dispatch({type: 'unmergePending', fingerprintIds});
-        addLoadingMessage(loadingMessage);
-
-        unmergeFingerprints(
-          {fingerprintIds},
-          {
-            onSuccess: () => {
-              addSuccessMessage(successMessage);
-              dispatch({type: 'unmergeSuccess', fingerprintIds});
-            },
-            onError: requestError => {
-              addErrorMessage(getErrorMessage(requestError, errorMessage));
-              dispatch({type: 'unmergeError', fingerprintIds});
-            },
-          }
-        );
-      },
-      unmergeDisabled,
-    }),
-    [
-      enableFingerprintCompare,
-      error,
-      fingerprints,
-      fingerprintsWithLatestEvent,
-      loading,
-      pageLinks,
-      refetch,
-      selectedEventIds,
-      state,
-      unmergeDisabled,
-      unmergeFingerprints,
-    ]
-  );
-
-  return (
-    <GroupMergedContext.Provider value={value}>{children}</GroupMergedContext.Provider>
-  );
-}
-
-export function useGroupMerged() {
-  const context = useContext(GroupMergedContext);
-
-  if (!context) {
-    throw new Error('useGroupMerged must be used within GroupMergedProvider');
-  }
-
-  return context;
+      );
+    },
+    unmergeDisabled,
+  };
 }

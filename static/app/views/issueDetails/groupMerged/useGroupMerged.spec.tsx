@@ -2,11 +2,10 @@ import {
   createInitialGroupMergedState,
   groupMergedReducer,
   isAllUnmergedSelected,
-  processMergedFingerprints,
 } from './useGroupMerged';
 
 describe('groupMerged state', () => {
-  const fingerprints = processMergedFingerprints([
+  const fingerprints = [
     {
       latestEvent: {id: 'event-1'} as any,
       id: '1',
@@ -20,13 +19,13 @@ describe('groupMerged state', () => {
       latestEvent: {id: 'event-3'} as any,
       id: '3',
     },
-  ]);
+  ];
 
   function getHydratedState() {
-    return createInitialGroupMergedState(fingerprints);
+    return createInitialGroupMergedState();
   }
 
-  it('processes merged fingerprints and preserves seer merge metadata', () => {
+  it('keeps seer merge metadata from the endpoint response', () => {
     expect(fingerprints).toHaveLength(3);
     expect(fingerprints.find(fingerprint => fingerprint.id === '2')?.mergedBySeer).toBe(
       true

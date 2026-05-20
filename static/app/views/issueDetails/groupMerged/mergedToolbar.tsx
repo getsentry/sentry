@@ -8,18 +8,33 @@ import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
-import {isAllUnmergedSelected, useGroupMerged} from './useGroupMerged';
+import {
+  type Fingerprint,
+  type GroupMergedState,
+  isAllUnmergedSelected,
+} from './useGroupMerged';
 
 type Props = {
+  enableFingerprintCompare: boolean;
+  fingerprints: Fingerprint[];
   groupId: Group['id'];
   onToggleCollapse: () => void;
   onUnmerge: () => void;
   project: Project;
+  state: GroupMergedState;
+  unmergeDisabled: boolean;
 };
 
-export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: Props) {
-  const {fingerprints, state, enableFingerprintCompare, unmergeDisabled} =
-    useGroupMerged();
+export function MergedToolbar({
+  enableFingerprintCompare,
+  fingerprints,
+  groupId,
+  project,
+  state,
+  unmergeDisabled,
+  onUnmerge,
+  onToggleCollapse,
+}: Props) {
   const {unmergeLastCollapsed, unmergeList} = state;
 
   const unmergeCount = unmergeList.size;

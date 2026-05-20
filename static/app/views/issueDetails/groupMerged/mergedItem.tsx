@@ -13,18 +13,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
-import {type FingerprintWithLatestEvent, useGroupMerged} from './useGroupMerged';
+import {type FingerprintWithLatestEvent, type GroupMergedState} from './useGroupMerged';
 
 interface Props {
   fingerprint: FingerprintWithLatestEvent;
+  state: GroupMergedState;
+  toggleCollapsed: (fingerprintId: string) => void;
+  toggleSelected: (fingerprintId: string, eventId: string) => void;
   totalFingerprint: number;
 }
 
-export function MergedItem({fingerprint, totalFingerprint}: Props) {
+export function MergedItem({
+  fingerprint,
+  state,
+  toggleCollapsed,
+  toggleSelected,
+  totalFingerprint,
+}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const {state, toggleCollapsed, toggleSelected} = useGroupMerged();
   const stateForId = state.fingerprintState.get(fingerprint.id);
   const busy = Boolean(stateForId?.busy);
   const collapsed = Boolean(stateForId?.collapsed);
@@ -61,7 +69,6 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
     referrer: 'merged-item',
   });
 
-  // `latestEvent` can be null if last event w/ fingerprint is not within retention period
   return (
     <MergedGroup busy={busy}>
       <Controls expanded={!collapsed}>

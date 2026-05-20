@@ -7,12 +7,17 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QueryCount} from 'sentry/components/queryCount';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MergedList} from './mergedList';
-import {GroupMergedProvider, useGroupMerged} from './useGroupMerged';
+import {
+  type Fingerprint,
+  useGroupMergedHashes,
+  useGroupMergedState,
+} from './useGroupMerged';
 
 type Props = {
   groupId: Group['id'];
@@ -20,34 +25,62 @@ type Props = {
   project: Project;
 };
 
-export function GroupMergedView(props: Props) {
+interface GroupMergedContentProps {
+  error: boolean;
+  fingerprints: Fingerprint[];
+  groupId: Group['id'];
+  loading: boolean;
+  organization: Organization;
+  project: Project;
+  refetch: () => void;
+  pageLinks?: string;
+}
+
+export function GroupMergedView({project, groupId, location}: Props) {
   const organization = useOrganization();
-  const {groupId, location} = props;
+  const {dataUpdatedAt, error, fingerprints, loading, pageLinks, refetch} =
+    useGroupMergedHashes({
+      groupId,
+      location,
+      organization,
+    });
 
   return (
-    <GroupMergedProvider
+    <GroupMergedContent
+      key={`${groupId}:${dataUpdatedAt}`}
+      error={error}
+      fingerprints={fingerprints}
       groupId={groupId}
-      location={location}
+      loading={loading}
       organization={organization}
-    >
-      <GroupMergedContent {...props} />
-    </GroupMergedProvider>
+      pageLinks={pageLinks}
+      project={project}
+      refetch={refetch}
+    />
   );
 }
 
-function GroupMergedContent({project, groupId}: Props) {
-  const organization = useOrganization();
+function GroupMergedContent({
+  error,
+  fingerprints,
+  groupId,
+  loading,
+  organization,
+  pageLinks,
+  project,
+  refetch,
+}: GroupMergedContentProps) {
   const {
-    error,
-    fingerprints,
+    enableFingerprintCompare,
     fingerprintsWithLatestEvent,
-    loading,
-    pageLinks,
-    refetch,
     selectedEventIds,
+    state,
     toggleAllCollapsed,
+    toggleCollapsed,
+    toggleSelected,
     unmerge,
-  } = useGroupMerged();
+    unmergeDisabled,
+  } = useGroupMergedState({fingerprints, groupId, organization});
 
   const handleUnmerge = () => {
     unmerge({
@@ -99,6 +132,11 @@ function GroupMergedContent({project, groupId}: Props) {
           fingerprints={fingerprints}
           pageLinks={pageLinks}
           groupId={groupId}
+          enableFingerprintCompare={enableFingerprintCompare}
+          state={state}
+          toggleCollapsed={toggleCollapsed}
+          toggleSelected={toggleSelected}
+          unmergeDisabled={unmergeDisabled}
           onUnmerge={handleUnmerge}
           onToggleCollapse={toggleAllCollapsed}
         />
