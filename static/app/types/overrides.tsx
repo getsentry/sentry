@@ -333,7 +333,7 @@ type SpendVisibilityOverrides = {
  */
 type ReactHookOverrides = {
   'react-hook:route-activated': (
-    props: RouteContextInterface
+    props: Pick<RouteContextInterface, 'location' | 'matches'>
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-billing-navigation-config': () => NavigationSection | null;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
