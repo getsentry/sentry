@@ -27,8 +27,10 @@ export function useDeleteReplays({projectSlug}: Props) {
   const project = useProjectFromSlug({organization, projectSlug});
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
+  const hasOrgAdminAccess = hasEveryAccess(['org:admin'], {organization});
 
-  const hasAccess = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
+  const hasAccess =
+    Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess || hasOrgAdminAccess);
 
   const {mutate} = useMutation({
     mutationFn: ([data]: Vars) => {
