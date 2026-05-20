@@ -102,9 +102,28 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
   );
 }
 
+const IsInsideLinkContext = createContext(false);
+
 const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
-  Text: ({children}) => <LinkifyIssueShortIds>{children}</LinkifyIssueShortIds>,
-  InlineCode: ({children, Default}) => {
+  Link: ({children, Default, href, title}) => (
+    <IsInsideLinkContext.Provider value>
+      <Default href={href} title={title}>
+        {children}
+      </Default>
+    </IsInsideLinkContext.Provider>
+  ),
+  Text: function SeerText({children}) {
+    const isInsideLink = useContext(IsInsideLinkContext);
+    if (isInsideLink) {
+      return children;
+    }
+    return <LinkifyIssueShortIds>{children}</LinkifyIssueShortIds>;
+  },
+  InlineCode: function SeerInlineCode({children, Default}) {
+    const isInsideLink = useContext(IsInsideLinkContext);
+    if (isInsideLink) {
+      return <Default>{children}</Default>;
+    }
     const parts = children.split(ISSUE_SHORT_ID_PATTERN);
     if (parts.length === 3 && parts[1]) {
       return (
