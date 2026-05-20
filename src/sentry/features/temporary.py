@@ -135,6 +135,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:scm-repositories-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:github-repo-auto-sync-webhook", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable GitHub Enterprise to accept github.com as a valid Installation URL
+    manager.add("organizations:github-enterprise-github-com-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # API-driven integration setup pipeline (per-provider rollout)
     # ...
     # Project Management Integrations Feature Parity Flags
@@ -149,6 +151,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable rate limits for inviting members.
     manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
+    manager.add("organizations:legacy-webhook-disable-old-path", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:legacy-webhook-dry-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:legacy-webhook-new-path", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable flamegraph visualization for MetricKit hang diagnostic stack traces
     manager.add("organizations:metrickit-flamegraph", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables higher limit for alert rules
@@ -158,8 +163,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:more-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Extract on demand metrics (experimental features)
-    manager.add("organizations:on-demand-metrics-extraction-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
     # Extract on demand metrics (widget extraction)
     manager.add("organizations:on-demand-metrics-extraction-widgets", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Display on demand metrics related UI elements
@@ -200,8 +204,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-sync-all-registered-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable sentry convention fields
     manager.add("organizations:performance-sentry-conventions-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable querying spans fields stats from comparative workflows project
-    manager.add("organizations:performance-spans-fields-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable transaction name only search
     manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Suggestions for Web Vitals Module
@@ -224,8 +226,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-snapshots", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables PR page
     manager.add("organizations:pr-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Use ProjectRepository FK for code mapping and Seer repo queries
-    manager.add("organizations:project-repository-fk-reads", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables new error processing pipeline in Relay.
@@ -337,16 +337,13 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable core Session Replay link in the sidebar
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
-    # Enable the rendering of @sentry/toolbar inside the sentry app. See `useInitSentryToolbar()`
-    manager.add("organizations:init-sentry-toolbar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable new stack trace component for issue details
     manager.add("organizations:issue-details-new-stack-trace", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable double-reading from EAP for issue feed search queries
     manager.add("organizations:issue-feed.eap-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable suspect feature tags endpoint.
-    manager.add("organizations:issues-suspect-tags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable SAML2 Single-logout
@@ -396,16 +393,14 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:uptime-response-capture", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable auto spam classification at User Feedback ingest time
     manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable view hierarchies options
-    manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
     # Enable an async queue for dashboard widget queries
     manager.add("organizations:visibility-dashboards-async-queue", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new explore page
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Update action status when integration is installed/deleted
-    manager.add("organizations:update-action-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Creation of Metric Alerts that use the `group_by` field in the workflow_engine
@@ -420,9 +415,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:workflow-engine-redirect-opt-out", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use workflow engine serializers to return data for old rule / incident endpoints
     manager.add("organizations:workflow-engine-rule-serializers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Use workflow engine exclusively for OrganizationCombinedRuleIndexEndpoint.get results.
-    # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
-    manager.add("organizations:workflow-engine-combinedruleindex-get", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use workflow engine exclusively for legacy issue alert rule.get results.
     # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
     manager.add("organizations:workflow-engine-issue-alert-endpoints-get", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -464,8 +456,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable removing the schema hints section to declutter the logs UI
     manager.add("organizations:ourlogs-schema-hints-removal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the expand/collapse table height toggle in the logs UI
-    manager.add("organizations:ourlogs-table-expando", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable various explore related dev features, may be used by internal branches for testing.
     manager.add("organizations:explore-dev-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable alerting on trace metrics
@@ -498,6 +488,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sentry-app-webhook-circuit-breaker", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Override dry-run to enable real blocking per app-owner org during rollout
     manager.add("organizations:sentry-app-webhook-circuit-breaker-live-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Create organiations via control-scoped domains in saas.
+    manager.add("organizations:create-org-control", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Enables organization access to the new notification platform
     manager.add("organizations:notification-platform.internal-testing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

@@ -875,6 +875,7 @@ export default typescript.config([
         'error',
         {additionalTestBlockFunctions: ['it.isKnownFlake']},
       ],
+      'jest/prefer-jest-mocked': 'error',
 
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line

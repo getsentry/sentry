@@ -15,8 +15,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
-    repository = FlexibleForeignKey("sentry.Repository")
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     project_repository = FlexibleForeignKey("sentry.ProjectRepository", on_delete=models.CASCADE)
 
     organization_integration_id = HybridCloudForeignKey(
@@ -38,7 +36,6 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
-        unique_together = (("project", "stack_root", "source_root"),)
         constraints = [
             models.UniqueConstraint(
                 fields=["project_repository", "stack_root", "source_root"],
@@ -48,7 +45,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
 
     def __repr__(self) -> str:
         return (
-            f"RepositoryProjectPathConfig(repo={self.repository.name}, "
+            f"RepositoryProjectPathConfig(repo={self.project_repository.repository.name}, "
             + f"branch={self.default_branch}, "
             + f"stack_root={self.stack_root}, "
             + f"source_root={self.source_root})"
@@ -69,8 +66,8 @@ def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
         try:
             update_code_owners_schema.apply_async(
                 kwargs={
-                    "organization": instance.project.organization_id,
-                    "projects": [instance.project_id],
+                    "organization": instance.project_repository.project.organization_id,
+                    "projects": [instance.project_repository.project_id],
                 }
             )
         except Project.DoesNotExist:

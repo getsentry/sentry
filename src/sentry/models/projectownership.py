@@ -318,6 +318,9 @@ class ProjectOwnership(Model):
                 return
             logging_extra["resolved_owner"] = owner
 
+            if isinstance(owner, RpcUser) and owner.is_active is False:
+                return
+
             activity_details = {}
             if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value:
                 activity_details["integration"] = ActivityIntegration.SUSPECT_COMMITTER.value

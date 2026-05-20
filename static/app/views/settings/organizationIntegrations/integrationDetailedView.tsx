@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -9,9 +10,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import type {RequestOptions} from 'sentry/api';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -43,7 +44,6 @@ import type {
   IntegrationTab,
 } from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -51,13 +51,13 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];
 
-const FirstPartyIntegrationAlert = HookOrDefault({
-  hookName: 'component:first-party-integration-alert',
+const FirstPartyIntegrationAlert = OverrideOrDefault({
+  overrideName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
-const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
-  hookName: 'component:first-party-integration-additional-cta',
+const FirstPartyIntegrationAdditionalCTA = OverrideOrDefault({
+  overrideName: 'component:first-party-integration-additional-cta',
   defaultComponent: () => null,
 });
 
@@ -101,14 +101,15 @@ function makeIntegrationQueryKey({
   ];
 }
 
-const tabs = ['overview', 'configurations', 'features'] as const;
+const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
 
 export default function IntegrationDetailedView() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
-    initialTab: 'overview',
-  });
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
+  );
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();

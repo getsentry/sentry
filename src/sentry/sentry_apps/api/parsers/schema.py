@@ -42,6 +42,7 @@ SCHEMA = {
                 "name": {"type": "string"},
                 "async": {"type": "boolean"},
                 "skip_load_on_open": {"type": "boolean"},
+                "multiple": {"type": "boolean"},
                 "uri": {"$ref": "#/definitions/uri"},
                 "options": {"$ref": "#/definitions/options"},
                 "depends_on": {"type": "array", "minItems": 1, "items": {"type": "string"}},

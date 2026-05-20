@@ -373,8 +373,6 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         RepositoryProjectPathConfig.objects.create(
-            project=self.project,
-            repository=self.repo,
             stack_root="/stack/root",
             source_root="/source/root/wrong",
             default_branch="master",

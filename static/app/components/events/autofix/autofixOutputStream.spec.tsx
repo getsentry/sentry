@@ -13,8 +13,8 @@ describe('AutofixOutputStream', () => {
 
   beforeEach(() => {
     mockApi.requestPromise.mockReset();
-    (addSuccessMessage as jest.Mock).mockClear();
-    (addErrorMessage as jest.Mock).mockClear();
+    jest.mocked(addSuccessMessage).mockClear();
+    jest.mocked(addErrorMessage).mockClear();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',

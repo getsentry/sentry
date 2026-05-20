@@ -162,9 +162,13 @@ class TeamProjectsEndpoint(TeamEndpoint):
         Return a list of projects bound to a team.
         """
         if request.auth and hasattr(request.auth, "project"):
-            queryset = Project.objects.filter(id=request.auth.project.id)
+            queryset = Project.objects.filter(id=request.auth.project.id).select_related(
+                "organization"
+            )
         else:
-            queryset = Project.objects.filter(teams=team, status=ObjectStatus.ACTIVE)
+            queryset = Project.objects.filter(
+                teams=team, status=ObjectStatus.ACTIVE
+            ).select_related("organization")
 
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d", "30d"):

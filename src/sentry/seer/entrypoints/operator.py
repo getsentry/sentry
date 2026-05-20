@@ -55,7 +55,11 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_SOLUTION_COMPLETED: ActivityType.SEER_SOLUTION_COMPLETED,
     SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
     SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
-    SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
+}
+
+SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS: set[SentryAppEventType] = {
+    *SEER_EVENT_TO_ACTIVITY_TYPE.keys(),
+    SentryAppEventType.SEER_PR_CREATED,
 }
 
 logger = logging.getLogger(__name__)
@@ -712,13 +716,13 @@ def _create_seer_activity(
         activity_data["run_id"] = run_id
 
     if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
-        activity_data["root_cause"] = event_payload.get("root_cause")
+        root_cause = event_payload.get("root_cause")
+        if root_cause:
+            activity_data["summary"] = root_cause.get("one_line_description")
     elif event_type == SentryAppEventType.SEER_SOLUTION_COMPLETED:
-        activity_data["solution"] = event_payload.get("solution")
-    elif event_type == SentryAppEventType.SEER_CODING_COMPLETED:
-        activity_data["changes"] = event_payload.get("changes")
-    elif event_type == SentryAppEventType.SEER_PR_CREATED:
-        activity_data["pull_requests"] = event_payload.get("pull_requests")
+        solution = event_payload.get("solution")
+        if solution:
+            activity_data["summary"] = solution.get("one_line_summary")
 
     Activity.objects.create_group_activity(
         group,
@@ -762,7 +766,7 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
             lifecycle.record_halt(halt_reason="skipped")
             return
 

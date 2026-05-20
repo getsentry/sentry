@@ -26,6 +26,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -124,6 +125,7 @@ function DashboardInner({
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi();
+  const {addAlert} = useGlobalAlerts();
 
   const {selection} = usePageFilters();
   const {projects} = useProjects();
@@ -189,8 +191,8 @@ function DashboardInner({
 
   useEffect(() => {
     // Always load organization tags on dashboards
-    loadOrganizationTags(api, organization.slug, selection);
-  }, [api, organization.slug, selection]);
+    loadOrganizationTags(api, organization.slug, selection, addAlert);
+  }, [api, organization.slug, selection, addAlert]);
 
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {

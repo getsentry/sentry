@@ -79,7 +79,7 @@ export function DashboardBasicFeature({organization, children}: FeatureProps) {
 
   return (
     <Feature
-      hookName="feature-disabled:dashboards-page"
+      overrideName="feature-disabled:dashboards-page"
       features="organizations:dashboards-basic"
       organization={organization}
       renderDisabled={renderDisabled}

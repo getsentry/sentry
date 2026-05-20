@@ -186,7 +186,46 @@ class ProjectPreprodSnapshotTest(APITestCase):
             response = self.client.post(url, data, format="json")
 
         assert response.status_code == 400
-        assert "detail" in response.data
+        assert 'Validation error in image "hash1"' in response.data["detail"]
+
+    def test_snapshot_missing_content_hash_error_message(self) -> None:
+        url = self._get_create_url()
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "screen.png": {
+                    "width": 375,
+                    "height": 812,
+                },
+            },
+        }
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(url, data, format="json")
+
+        assert response.status_code == 400
+        assert 'Validation error in image "screen.png"' in response.data["detail"]
+        assert "content_hash" in response.data["detail"]
+
+    def test_snapshot_negative_width_error_message(self) -> None:
+        url = self._get_create_url()
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "login.png": {
+                    "content_hash": "abc123",
+                    "width": -100,
+                    "height": 812,
+                },
+            },
+        }
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(url, data, format="json")
+
+        assert response.status_code == 400
+        assert 'Validation error in image "login.png"' in response.data["detail"]
+        assert "width" in response.data["detail"]
 
     def test_snapshot_negative_dimensions(self) -> None:
         url = self._get_create_url()
