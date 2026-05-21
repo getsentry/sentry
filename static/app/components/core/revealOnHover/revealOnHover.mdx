@@ -107,13 +107,13 @@ Wrap each action in its own `<RevealOnHover.Action>`.
 
 ## Always Visible
 
-Use the `alwaysVisible` prop on `<RevealOnHover.Action>` to override the reveal behavior for specific actions.
+Use the `visible` prop on `<RevealOnHover.Action>` to override the reveal behavior for specific actions.
 
 <Storybook.Demo>
   <Flex direction="column" gap="sm" width="300px">
     <RevealOnHover>
       <Text>Pinned item</Text>
-      <RevealOnHover.Action alwaysVisible>
+      <RevealOnHover.Action visible>
         <Button
           size="zero"
           variant="transparent"
@@ -139,7 +139,7 @@ Use the `alwaysVisible` prop on `<RevealOnHover.Action>` to override the reveal 
 ```jsx
 <RevealOnHover>
   <Text>Pinned item</Text>
-  <RevealOnHover.Action alwaysVisible>
+  <RevealOnHover.Action visible>
     <Button
       size="zero"
       variant="transparent"

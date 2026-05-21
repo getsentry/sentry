@@ -32,11 +32,11 @@ describe('RevealOnHover', () => {
     expect(button.closest('[data-reveal-on-hover]')).toBeInTheDocument();
   });
 
-  it('does not wrap with data-reveal-on-hover when alwaysVisible is true', () => {
+  it('does not wrap with data-reveal-on-hover when visible is true', () => {
     render(
       <RevealOnHover>
         <span>Label</span>
-        <RevealOnHover.Action alwaysVisible>
+        <RevealOnHover.Action visible>
           <Button aria-label="Copy">Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>

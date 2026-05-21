@@ -60,11 +60,11 @@ const RevealOnHoverStyles = styled(
 
 interface ActionProps {
   children: React.ReactNode;
-  alwaysVisible?: boolean;
+  visible?: boolean;
 }
 
-function Action({children, alwaysVisible}: ActionProps) {
-  if (alwaysVisible) {
+function Action({children, visible}: ActionProps) {
+  if (visible) {
     return children;
   }
 
