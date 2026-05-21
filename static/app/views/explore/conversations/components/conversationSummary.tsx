@@ -46,7 +46,7 @@ interface ConversationSummaryProps {
 }
 
 const VISIBLE_TRACE_COUNT = 5;
-const VISIBLE_TOOL_COUNT = 5;
+const VISIBLE_TOOL_COUNT = 4;
 
 function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
   return normalizeUrl(
@@ -129,7 +129,10 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${conversationId.replace(/"/g, '\\"')}" span.status:internal_error`,
+    query: `gen_ai.conversation.id:"${conversationId.replace(
+      /"/g,
+      '\\"'
+    )}" span.status:internal_error`,
   });
 
   return (
@@ -227,7 +230,9 @@ export function ConversationSummary({
   }, [nodes]);
 
   const handleCopyConversationId = () => {
-    trackAnalytics('conversations.detail.copy-conversation-id', {organization});
+    trackAnalytics('conversations.detail.copy-conversation-id', {
+      organization,
+    });
     copyToClipboard(conversationId, {
       successMessage: t('Copied conversation ID to clipboard'),
     });
@@ -330,7 +335,9 @@ export function ConversationSummary({
         isLoading={isLoading}
         lastMessageDate={lastMessageDate}
         onErrorsLinkClick={() =>
-          trackAnalytics('conversations.detail.click-errors-link', {organization})
+          trackAnalytics('conversations.detail.click-errors-link', {
+            organization,
+          })
         }
       />
     </Flex>
