@@ -53,7 +53,11 @@ export function ExplorerDrawerHeader({
     query: debouncedSearch || undefined,
   });
 
+  const isSearchPending = search !== debouncedSearch;
   const sessionOptions = useMemo(() => {
+    if (isSearchPending || isFetching) {
+      return [];
+    }
     return (
       data?.data.map(session => ({
         value: session.run_id,
@@ -67,7 +71,7 @@ export function ExplorerDrawerHeader({
         ),
       })) ?? []
     );
-  }, [data]);
+  }, [data, isSearchPending, isFetching]);
 
   const onHistoryOpenChange = useCallback(
     (isOpen: boolean) => {

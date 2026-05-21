@@ -1,5 +1,5 @@
 import {createContext} from 'react';
-import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -33,7 +33,6 @@ export function useSeerExplorerSessionsQuery({
         staleTime: 0,
       }
     ),
-    placeholderData: keepPreviousData,
   });
 }
 
