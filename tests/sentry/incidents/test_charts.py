@@ -125,9 +125,13 @@ class BuildMetricAlertChartTest(TestCase):
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     @patch("sentry.incidents.charts.client.get")
+    @with_feature("organizations:workflow-engine-ui")
     def test_eap_log_alert(
         self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
     ) -> None:
+        from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+            get_detector_serializer,
+        )
         from sentry.snuba.models import SnubaQueryEventType
 
         mock_client_get.return_value.data = {"data": []}
@@ -147,16 +151,16 @@ class BuildMetricAlertChartTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        alert_rule_serialized_response = cast(AlertRuleSerializerResponse, {})
-        incident_serialized_response = cast(DetailedIncidentSerializerResponse, {})
+        detector = self.create_detector(project=self.project)
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule_serialized_response=alert_rule_serialized_response,
+            alert_rule_serialized_response=cast(AlertRuleSerializerResponse, {}),
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
             open_period_context=OpenPeriodContext.from_incident(incident),
-            selected_incident_serialized=incident_serialized_response,
+            detector_serialized_response=get_detector_serializer(detector),
         )
 
         assert url == "chart-url"
