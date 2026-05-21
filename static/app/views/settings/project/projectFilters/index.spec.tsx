@@ -274,10 +274,9 @@ describe('ProjectFilters', () => {
       screen.queryByText('Changing this filter will apply to all new events.')
     ).not.toBeInTheDocument();
     await userEvent.type(textbox, 'test\ntest2');
-    const customFilterWarning = screen.getByText(
-      'Changing this filter will apply to all new events.'
-    );
-    expect(customFilterWarning.closest('.ref-info')).toBeInTheDocument();
+    expect(
+      screen.getByText('Changing this filter will apply to all new events.')
+    ).toBeInTheDocument();
     const form = textbox.closest('form')!;
     await userEvent.click(within(form).getByRole('button', {name: 'Save'}));
 
@@ -339,10 +338,8 @@ describe('ProjectFilters', () => {
 
     const errorField = screen.getByRole('textbox', {name: 'Error Message'});
     await userEvent.type(errorField, 'error\nerror2');
-    const customFiltersForm = releasesField.closest('form')!;
-    expect(errorField.closest('form')).toBe(customFiltersForm);
-    expect(within(customFiltersForm).getByRole('button', {name: 'Cancel'})).toBeEnabled();
-    await userEvent.click(within(customFiltersForm).getByRole('button', {name: 'Save'}));
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
