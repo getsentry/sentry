@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
@@ -23,13 +23,12 @@ const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
 
 type Props = {
   params: Record<string, string | undefined>;
-  routes: RouteWithName[];
   className?: string;
 };
 
-export function SettingsBreadcrumb({className, routes, params}: Props) {
+export function SettingsBreadcrumb({className, params}: Props) {
+  const routes = useRoutes() as RouteWithName[];
   const pathMap = useBreadcrumbsPathmap();
-  const hasPageFrame = useHasPageFrameFeature();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
@@ -65,9 +64,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
             />
           );
         }
-        // In page-frame mode the current-page crumb is rendered as a
-        // non-interactive label; legacy mode keeps the original self-link.
-        if (isLast && hasPageFrame) {
+        if (isLast) {
           return (
             <Text key={`${route.name}:${route.path}`} as="span">
               {pathTitle || route.name}
@@ -82,7 +79,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
             >
               {pathTitle || route.name}
             </CrumbLink>
-            {isLast ? null : <Divider />}
+            <Divider />
           </Flex>
         );
       })}

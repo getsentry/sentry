@@ -59,6 +59,7 @@ describe('attributesTree', () => {
         rendererExtra={{
           theme,
           location,
+          navigate: jest.fn(),
           organization,
         }}
       />
@@ -109,6 +110,7 @@ describe('attributesTree', () => {
         rendererExtra={{
           theme,
           location,
+          navigate: jest.fn(),
           organization,
         }}
         getCustomActions={content => {

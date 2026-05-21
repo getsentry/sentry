@@ -246,6 +246,7 @@ export interface BaseChartProps {
    * See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
    */
   renderer?: ReactEChartOpts['renderer'];
+  replaceMerge?: string[];
   /**
    * Chart Series
    * This is different than the interface to higher level charts, these need to
@@ -388,6 +389,7 @@ export function BaseChart({
   width,
   renderer = 'svg',
   notMerge = true,
+  replaceMerge,
   lazyUpdate = false,
   isGroupedByDate = false,
   transformSinglePointToBar = false,
@@ -690,6 +692,7 @@ export function BaseChart({
         ref={ref}
         echarts={echarts}
         notMerge={notMerge}
+        replaceMerge={replaceMerge}
         lazyUpdate={lazyUpdate}
         theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}

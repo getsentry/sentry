@@ -1,6 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
@@ -61,9 +63,13 @@ function SpanEvidencePreviewBody({
 
   if (data) {
     return (
-      <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
+      <Container
+        padding="lg lg 0 lg"
+        width="700px"
+        data-test-id="span-evidence-preview-body"
+      >
         <SpanEvidenceKeyValueList event={data} />
-      </SpanEvidencePreviewWrapper>
+      </Container>
     );
   }
 
@@ -108,9 +114,4 @@ const EmptyWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   min-height: 56px;
-`;
-
-const SpanEvidencePreviewWrapper = styled('div')`
-  width: 700px;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} 0 ${p => p.theme.space.lg};
 `;

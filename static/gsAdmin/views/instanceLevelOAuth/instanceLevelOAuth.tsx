@@ -1,11 +1,11 @@
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {DateTime} from 'sentry/components/dateTime';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import {NewInstanceLevelOAuthClient} from 'admin/views/instanceLevelOAuth/components/newInstanceLevelOAuthClient';
 
 const getRow = (row: any) => [
@@ -23,6 +23,8 @@ const getRow = (row: any) => [
 ];
 
 export function InstanceLevelOAuth() {
+  const {openModal} = useModal();
+
   return (
     <div>
       <PageHeader title="Instance Level OAuth Clients">

@@ -14,9 +14,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconAdd, IconClock, IconCopy, IconEllipsis, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+import {useSeerExplorerSessions} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
 interface ExplorerDrawerHeaderProps {
   onChangeSession: (runId: number) => void;
@@ -173,54 +171,56 @@ export function ExplorerDrawerHeader({
             </Flex>
           </Tooltip>
         )}
-        <InlineActions>
-          <Button
-            icon={<IconCopy />}
-            onClick={onCopySessionClick}
-            disabled={!onCopySessionClick}
-            variant="secondary"
-            size="xs"
-            aria-label={t('Copy conversation to clipboard')}
-            tooltipProps={{title: t('Copy conversation to clipboard')}}
-          />
-          <Button
-            icon={<IconLink />}
-            onClick={onCopyLinkClick}
-            disabled={!onCopyLinkClick}
-            variant="secondary"
-            size="xs"
-            aria-label={t('Copy link to current chat and web page')}
-            tooltipProps={{title: t('Copy link to current chat and web page')}}
-          />
-        </InlineActions>
-        <OverflowActions>
+        <Flex gap="0" align="center">
+          <InlineActions>
+            <Button
+              icon={<IconCopy />}
+              onClick={onCopySessionClick}
+              disabled={!onCopySessionClick}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Copy conversation to clipboard')}
+              tooltipProps={{title: t('Copy conversation to clipboard')}}
+            />
+            <Button
+              icon={<IconLink />}
+              onClick={onCopyLinkClick}
+              disabled={!onCopyLinkClick}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Copy link to current chat and web page')}
+              tooltipProps={{title: t('Copy link to current chat and web page')}}
+            />
+          </InlineActions>
+          <OverflowActions>
+            <DropdownMenu
+              items={overflowMenuItems}
+              size="xs"
+              position="bottom-end"
+              triggerProps={{
+                'aria-label': t('More actions'),
+                icon: <IconEllipsis />,
+                showChevron: false,
+                variant: 'transparent',
+                size: 'xs',
+              }}
+            />
+          </OverflowActions>
           <DropdownMenu
-            items={overflowMenuItems}
+            items={sessionMenuItems}
             size="xs"
             position="bottom-end"
+            onOpenChange={onHistoryOpenChange}
             triggerProps={{
-              'aria-label': t('More actions'),
-              icon: <IconEllipsis />,
+              'aria-label': t('Chat history'),
+              tooltipProps: {title: t('Chat history')},
+              icon: <IconClock />,
               showChevron: false,
-              variant: 'secondary',
+              variant: 'transparent',
               size: 'xs',
             }}
           />
-        </OverflowActions>
-        <DropdownMenu
-          items={sessionMenuItems}
-          size="xs"
-          position="bottom-end"
-          onOpenChange={onHistoryOpenChange}
-          triggerProps={{
-            'aria-label': t('Chat history'),
-            tooltipProps: {title: t('Chat history')},
-            icon: <IconClock />,
-            showChevron: false,
-            variant: 'secondary',
-            size: 'xs',
-          }}
-        />
+        </Flex>
         <OverflowActions>
           <Button
             icon={<IconAdd />}
@@ -252,7 +252,6 @@ export function ExplorerDrawerHeader({
 
 function useSessionMenuItems({
   onChangeSession,
-  enabled = true,
 }: {
   onChangeSession: (runId: number) => void;
   enabled?: boolean;
@@ -262,12 +261,7 @@ function useSessionMenuItems({
   refetch: () => void;
   sessionMenuItems: MenuItemProps[];
 } {
-  const organization = useOrganization({allowNull: true});
-
-  const {data, isPending, isError, refetch} = useExplorerSessions({
-    limit: 20,
-    enabled: enabled && isSeerExplorerEnabled(organization),
-  });
+  const {data, isPending, isError, refetch} = useSeerExplorerSessions();
 
   const sessionMenuItems = useMemo(() => {
     return (
@@ -301,7 +295,7 @@ function useSessionMenuItems({
 }
 
 const InlineActions = styled(Flex)`
-  gap: ${p => p.theme.space.md};
+  gap: 0;
 
   @container seer-explorer-root (max-width: 500px) {
     display: none;

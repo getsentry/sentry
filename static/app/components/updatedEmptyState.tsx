@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -178,9 +178,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         <div>
           <HeaderWrapper>
             <Title>{t('Get Started with Sentry Issues')}</Title>
-            <Description>
+            <Container maxWidth="340px">
               {t('Your code sleuth eagerly awaits its first mission.')}
-            </Description>
+            </Container>
             <Image src={waitingForEventImg} />
           </HeaderWrapper>
           <Divider />
@@ -235,16 +235,16 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 })}
               </GuidedSteps>
             </Setup>
-            <Preview>
+            <Container padding="3xl">
               <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-              <ArcadeWrapper>
+              <Container marginTop="md">
                 <Arcade
                   src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                   loading="lazy"
                   allowFullScreen
                 />
-              </ArcadeWrapper>
-            </Preview>
+              </Container>
+            </Container>
           </Body>
         </div>
       </TabSelectionScope>
@@ -290,14 +290,6 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const Description = styled('div')`
-  max-width: 340px;
-`;
-
-const ArcadeWrapper = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-`;
-
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
@@ -320,10 +312,6 @@ export const BodyTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
-`;
-
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`

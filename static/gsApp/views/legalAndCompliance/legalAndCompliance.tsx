@@ -28,7 +28,7 @@ export default function LegalAndCompliance() {
   }
 
   return (
-    <SubscriptionPageContainer background="secondary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader title="Legal & Compliance" />
       {regionCount > 1 && regionData && (

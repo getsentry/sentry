@@ -46,12 +46,15 @@ class TestLaunchCodingAgents(TestCase):
             run_id=self.run_id,
             prompt="Fix the bug",
             repos=[_repo("owner", "repo")],
+            issue_short_id="AIML-2301",
         )
 
         assert len(result["successes"]) == 1
         assert len(result["failures"]) == 0
         assert result["successes"][0]["repo_name"] == "owner/repo"
         mock_installation.launch.assert_called_once()
+        launch_request = mock_installation.launch.call_args[0][0]
+        assert launch_request.issue_short_id == "AIML-2301"
         mock_store.assert_called_once_with(
             run_id=self.run_id,
             coding_agent_states=[mock_installation.launch.return_value],

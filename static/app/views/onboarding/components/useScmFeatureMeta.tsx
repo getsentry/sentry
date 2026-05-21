@@ -11,7 +11,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 
 export type FeatureMeta = {
   description: string;
@@ -103,6 +103,6 @@ function useFallbackScmFeatureMeta(): UseScmFeatureMetaResult {
  */
 export function useScmFeatureMeta(): UseScmFeatureMetaResult {
   const hook =
-    HookStore.get('react-hook:use-scm-feature-meta')[0] ?? useFallbackScmFeatureMeta;
+    getOverride('react-hook:use-scm-feature-meta') ?? useFallbackScmFeatureMeta;
   return hook();
 }

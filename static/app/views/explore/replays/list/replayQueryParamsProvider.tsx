@@ -1,69 +1,48 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
-import type {Location} from 'history';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {decodeScalar} from 'sentry/utils/queryString';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-
-const REPLAY_QUERY_KEY = 'query';
-
-function getReadableQueryParamsFromLocation(location: Location): ReadableQueryParams {
-  const query = decodeScalar(location.query[REPLAY_QUERY_KEY]) ?? '';
-  const id = decodeScalar(location.query[ID_KEY]);
-  const title = decodeScalar(location.query[TITLE_KEY]);
-
-  return new ReadableQueryParams({
-    extrapolate: false,
-    mode: Mode.SAMPLES,
-    query,
-    cursor: '',
-    fields: [],
-    sortBys: [],
-    aggregateCursor: '',
-    aggregateFields: [],
-    aggregateSortBys: [],
-    id,
-    title,
-  });
-}
-
-function getTargetWithReadableQueryParams(
-  location: Location,
-  writableQueryParams: WritableQueryParams
-): Location {
-  const target: Location = {...location, query: {...location.query}};
-
-  updateNullableLocation(target, REPLAY_QUERY_KEY, writableQueryParams.query);
-
-  return target;
-}
 
 interface ReplayQueryParamsProviderProps {
   children: ReactNode;
 }
 
 export function ReplayQueryParamsProvider({children}: ReplayQueryParamsProviderProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setNuqsParams] = useQueryStates({
+    query: parseAsString.withDefault(''),
+    id: parseAsString,
+    title: parseAsString,
+  });
 
   const readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(location),
-    [location]
+    () =>
+      new ReadableQueryParams({
+        extrapolate: false,
+        mode: Mode.SAMPLES,
+        query: queryParams.query,
+        cursor: '',
+        fields: [],
+        sortBys: [],
+        aggregateCursor: '',
+        aggregateFields: [],
+        aggregateSortBys: [],
+        id: queryParams.id ?? undefined,
+        title: queryParams.title ?? undefined,
+      }),
+    [queryParams.query, queryParams.id, queryParams.title]
   );
 
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
-      const target = getTargetWithReadableQueryParams(location, writableQueryParams);
-      navigate(target);
+      setNuqsParams({
+        query: writableQueryParams.query,
+      });
     },
-    [location, navigate]
+    [setNuqsParams]
   );
 
   return (

@@ -72,6 +72,7 @@ from sentry.seer.endpoints.seer_rpc import (
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
 
@@ -243,6 +244,18 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         seer_referrer = request.headers.get("X-Seer-Referrer")
         if seer_referrer is not None:
             sentry_sdk.set_tag("rpc.referrer", seer_referrer)
+
+        # Observe whether the caller (seer) propagated X-Viewer-Context for this
+        # method. ViewerContextMiddleware has already decoded the header into the
+        # contextvar; we pass ctx=None explicitly when the header was absent so
+        # the missing-VC signal fires (the middleware always falls back to an
+        # empty-USER ctx, which would mask "header not sent").
+        has_vc_header = bool(request.META.get("HTTP_X_VIEWER_CONTEXT"))
+        observe_viewer_context_propagation(
+            "org_seer_rpc_in",
+            ctx=get_viewer_context() if has_vc_header else None,
+            extra_attributes={"method": method_name},
+        )
 
         if not self._is_allowed(organization):
             raise NotFound()

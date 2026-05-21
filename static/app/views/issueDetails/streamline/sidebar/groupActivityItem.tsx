@@ -724,6 +724,53 @@ export function getGroupActivityItem(
           title: t('Attachment Deleted'),
           message: tct('by [author]', {author}),
         };
+      case GroupActivityType.SEER_RCA_STARTED:
+        return {
+          title: t('Root Cause Analysis'),
+          message: t('Seer started analyzing the root cause'),
+        };
+      case GroupActivityType.SEER_RCA_COMPLETED:
+        return {
+          title: t('Root Cause Analysis'),
+          message: t('Seer completed root cause analysis'),
+        };
+      case GroupActivityType.SEER_SOLUTION_STARTED:
+        return {
+          title: t('Solution'),
+          message: t('Seer started developing a solution'),
+        };
+      case GroupActivityType.SEER_SOLUTION_COMPLETED:
+        return {
+          title: t('Solution'),
+          message: t('Seer completed developing a solution'),
+        };
+      case GroupActivityType.SEER_CODING_STARTED:
+        return {
+          title: t('Autofix'),
+          message: t('Seer started implementing a fix'),
+        };
+      case GroupActivityType.SEER_CODING_COMPLETED:
+        return {
+          title: t('Autofix'),
+          message: t('Seer completed implementing a fix'),
+        };
+      case GroupActivityType.SEER_PR_CREATED: {
+        const {data: prData} = activity;
+        const pr = prData.pull_requests?.[0];
+        if (pr) {
+          return {
+            title: t('Pull Request Created'),
+            message: tct('Seer created a [link:pull request] in [repo]', {
+              link: <ExternalLink href={pr.pull_request.pr_url} />,
+              repo: pr.repo_name,
+            }),
+          };
+        }
+        return {
+          title: t('Pull Request Created'),
+          message: t('Seer created a pull request'),
+        };
+      }
       default:
         return {title: '', message: ''}; // should never hit (?)
     }

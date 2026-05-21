@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -50,7 +50,7 @@ export function ReleaseHeader({
   const {commitCount, commitFilesChanged} = releaseMeta;
 
   const titleContent = (
-    <React.Fragment>
+    <Fragment>
       <IdBadge project={project} avatarSize={16} hideName />
       <Version version={version} anchor={false} truncate />
       <CopyToClipboardButton
@@ -70,7 +70,7 @@ export function ReleaseHeader({
           </Tooltip>
         </IconWrapper>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 
   const releasePath = makeReleasesPathname({
@@ -114,14 +114,14 @@ export function ReleaseHeader({
             <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
-          <React.Fragment>
+          <Fragment>
             <NavTabsBadge variant="muted">
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
               <FeatureBadge type="new" />
             </BadgeWrapper>
-          </React.Fragment>
+          </Fragment>
         ),
     }),
     textValue: t('Mobile Builds %s', numberOfMobileBuilds),

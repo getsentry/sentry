@@ -18,6 +18,7 @@ from sentry.models.code_review_event import CodeReviewEvent
 from sentry.models.commit import Commit
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -242,8 +243,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
                 # Delete Seer preferences for this repository
                 SeerProjectRepository.objects.filter(
-                    repository_id__in=repo_ids,
-                    project__organization_id=organization_id,
+                    project_repository__repository_id__in=repo_ids,
+                    project_repository__project__organization_id=organization_id,
                 ).delete()
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
@@ -257,6 +258,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
+            # Delete project-repo links for the disconnected repos
+            if repo_ids:
+                ProjectRepository.objects.filter(
+                    repository_id__in=repo_ids,
+                    project__organization_id=organization_id,
+                ).delete()
 
             # Clear automation_handoff project options that reference this integration.
             affected_project_ids = ProjectOption.objects.filter(

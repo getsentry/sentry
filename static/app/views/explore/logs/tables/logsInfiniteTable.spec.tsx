@@ -11,6 +11,7 @@ import {
   userEvent,
   waitFor,
   within,
+  type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -194,8 +195,8 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
-  const renderWithProviders = (children: React.ReactNode) => {
-    return render(
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
       <OrganizationContext.Provider value={organization}>
         <LogsQueryParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -205,6 +206,10 @@ describe('LogsInfiniteTable', () => {
         </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
+  }
+
+  const renderWithProviders = (children: React.ReactElement, options?: RenderOptions) => {
+    return render(children, {additionalWrapper: Wrapper, ...options});
   };
 
   it('should render the table component', async () => {
@@ -264,11 +269,7 @@ describe('LogsInfiniteTable', () => {
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',
         });
-        if (field === 'timestamp') {
-          expect(actionsButton).toBeNull();
-        } else {
-          expect(actionsButton).toBeInTheDocument();
-        }
+        expect(actionsButton).toBeInTheDocument();
       }
     }
     for (const mock of traceItemMocks) {
@@ -475,5 +476,105 @@ describe('LogsInfiniteTable', () => {
 
     await screen.findByText('abc123de');
     await screen.findByText('abc123ee');
+  });
+
+  it('renders a pin button on a hovered row when ourlogs-pinning is enabled', async () => {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinning: 'true',
+        },
+      })
+    );
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const [firstRow] = await screen.findAllByTestId('log-table-row');
+    await userEvent.hover(firstRow!);
+
+    expect(
+      await within(firstRow!).findByRole('button', {name: 'Pin log row'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not render a pin button when ourlogs-pinning is disabled', async () => {
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const [firstRow] = await screen.findAllByTestId('log-table-row');
+    await userEvent.hover(firstRow!);
+
+    expect(
+      within(firstRow!).queryByRole('button', {name: 'Pin log row'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks the row as pinned when its id is in the logsPinned query', async () => {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        search: '?logsPinned=1',
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinning: 'true',
+          logsPinned: '1',
+        },
+      })
+    );
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const [firstRow] = await screen.findAllByTestId('log-table-row');
+
+    expect(screen.getByTestId('pinned-logs-table-body').contains(firstRow ?? null)).toBe(
+      true
+    );
+  });
+
+  it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
+    // Start with severity sorted ascending (second click has already happened)
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: 'severity',
+        },
+      })
+    );
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: 'severity',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    // Wait for table headers to be rendered (empty while pending)
+    const severityHeader = await screen.findByText('Severity');
+
+    // Third click (asc → reset): should navigate to default timestamp desc sort
+    await userEvent.click(severityHeader);
+    expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('-timestamp');
   });
 });

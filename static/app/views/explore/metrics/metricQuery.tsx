@@ -122,7 +122,7 @@ export function defaultMetricQuery({
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: type === 'equation' ? Mode.AGGREGATE : Mode.SAMPLES,
-      query: defaultQuery(),
+      query: '',
 
       cursor: '',
       fields: defaultFields(),
@@ -133,10 +133,6 @@ export function defaultMetricQuery({
       aggregateSortBys: defaultAggregateSortBys(newFields),
     }),
   };
-}
-
-export function defaultQuery(): string {
-  return '';
 }
 
 export function defaultFields(): string[] {
@@ -201,7 +197,7 @@ export function stripMetricParamsFromLocation(location: Location): Location {
 }
 
 function parseQuery(value: unknown): string {
-  return typeof value === 'string' ? value : defaultQuery();
+  return typeof value === 'string' ? value : '';
 }
 
 function parseVisualizes(value: unknown): Visualize[] {

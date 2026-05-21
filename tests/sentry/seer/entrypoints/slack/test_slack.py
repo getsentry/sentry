@@ -180,7 +180,10 @@ class SlackAutofixEntrypointTest(TestCase):
             )
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
     def test_send_thread_update(
         self, mock_send_threaded_message, mock_send_threaded_ephemeral_message
     ):
@@ -316,7 +319,10 @@ class SlackAutofixEntrypointTest(TestCase):
 
         assert mock_process_thread_update.apply_async.call_count == len(threads)
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
     def test_process_thread_update(self, mock_send_threaded_message):
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
         serialized_data = serialize_notification_data(data)

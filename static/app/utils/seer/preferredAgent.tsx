@@ -11,7 +11,7 @@ import {organizationIntegrationsCodingAgents} from 'sentry/components/events/aut
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -119,7 +119,7 @@ export function getProjectAgentMutationOptions({
   queryClient,
 }: {
   organization: Organization;
-  project: Project;
+  project: DetailedProject;
   queryClient: QueryClient;
 }) {
   const prefsOptions = projectSeerPreferencesApiOptions(organization.slug, project.slug);
@@ -136,7 +136,7 @@ export function getProjectAgentMutationOptions({
       const handoff = buildHandoffPayload(agent, autoCreatePr);
 
       return Promise.all([
-        fetchMutation<Project>({
+        fetchMutation<DetailedProject>({
           method: 'PUT',
           url: `/projects/${organization.slug}/${project.slug}/`,
           data: {autofixAutomationTuning: 'medium'},
@@ -155,7 +155,8 @@ export function getProjectAgentMutationOptions({
     onMutate: ({agent}: {agent: PreferredAgent}) => {
       const previousProject = ProjectsStore.getById(project.id);
       const previousPreference = queryClient.getQueryData(seerPrefsQueryKey);
-      ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: 'medium'});
+      const updatedProject = {...project, autofixAutomationTuning: 'medium' as const};
+      ProjectsStore.onUpdateSuccess(updatedProject);
       if (previousPreference?.json?.preference) {
         const autoCreatePr =
           previousPreference.json.preference.automated_run_stopping_point === 'open_pr' ||

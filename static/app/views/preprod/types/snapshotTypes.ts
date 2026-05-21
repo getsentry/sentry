@@ -1,5 +1,9 @@
 /* eslint-disable typescript-sort-keys/interface */
-import type {BuildDetailsVcsInfo} from './buildDetailsTypes';
+import type {
+  BuildDetailsVcsInfo,
+  SnapshotApprovalStatus,
+  SnapshotComparisonState,
+} from './buildDetailsTypes';
 
 export interface SnapshotImage {
   display_name: string | null;
@@ -17,12 +21,6 @@ export interface SnapshotDiffPair {
   head_image: SnapshotImage;
 }
 
-interface SnapshotComparisonRunInfo {
-  completed_at?: string;
-  duration_ms?: number;
-  state?: ComparisonState;
-}
-
 interface SnapshotApprover {
   source: 'sentry' | 'github';
   approved_at?: string | null;
@@ -31,12 +29,6 @@ interface SnapshotApprover {
   id?: string | null;
   name?: string | null;
   username?: string | null;
-}
-
-interface SnapshotApprovalInfo {
-  approvers: SnapshotApprover[];
-  status: 'approved' | 'requires_approval';
-  is_auto_approved?: boolean;
 }
 
 export interface SnapshotDetailsApiResponse {
@@ -50,9 +42,10 @@ export interface SnapshotDetailsApiResponse {
 
   app_id?: string | null;
 
-  comparison_run_info?: SnapshotComparisonRunInfo | null;
-
-  approval_info?: SnapshotApprovalInfo | null;
+  comparison_state?: SnapshotComparisonState | null;
+  approval_status?: SnapshotApprovalStatus | null;
+  comparison_error_message?: string | null;
+  approvers?: SnapshotApprover[];
 
   diff_threshold?: number | null;
 
@@ -68,13 +61,6 @@ export interface SnapshotDetailsApiResponse {
   renamed_count?: number;
   unchanged: SnapshotImage[];
   unchanged_count: number;
-}
-
-export enum ComparisonState {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
 }
 
 export enum DiffStatus {

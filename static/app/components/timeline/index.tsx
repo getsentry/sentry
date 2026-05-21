@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
@@ -63,7 +63,7 @@ function Item({
         {titleTrailingItems}
       </Flex>
       {timestamp ?? <div />}
-      <Spacer />
+      <Container justifySelf="center" width="0" height="100%" column="span 1" />
       <Content>{children}</Content>
     </Row>
   );
@@ -115,13 +115,6 @@ const Title = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const Spacer = styled('div')`
-  grid-column: span 1;
-  height: 100%;
-  width: 0;
-  justify-self: center;
-`;
-
 const Content = styled('div')`
   text-align: left;
   grid-column: span 2;
@@ -153,7 +146,7 @@ const Data = styled('div')`
   }
 `;
 
-const Container = styled('div')`
+const TimelineContainer = styled('div')`
   position: relative;
   /* vertical line connecting items */
   &::before {
@@ -172,5 +165,5 @@ export const Timeline = {
   Data,
   Text,
   Item,
-  Container,
+  Container: TimelineContainer,
 };

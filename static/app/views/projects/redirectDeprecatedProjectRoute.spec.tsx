@@ -53,7 +53,7 @@ describe('redirectDeprecatedProjectRoute', () => {
     expect(trackAnalytics).toHaveBeenCalledWith('deprecated_urls.redirect', {
       feature: 'global_views',
       url: pathname,
-      organization: project.organization.id,
+      organization: '456',
     });
   });
 

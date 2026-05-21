@@ -23,6 +23,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodComparisonApproval,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 
 search_config = SearchConfig.create_from(
     SearchConfig(),
@@ -64,7 +65,7 @@ search_config = SearchConfig.create_from(
     allowed_keys={
         "app_id",
         "app_name",
-        "approval_status",
+        "snapshot_status",
         "build_configuration_name",
         "build_number",
         "build_version",
@@ -164,15 +165,25 @@ def _translate_size_state(value: object) -> int:
     return SIZE_STATE_VALUES[raw]
 
 
-APPROVAL_STATUS_VALUES = frozenset({"approved", "auto_approved", "requires_approval"})
+SNAPSHOT_STATUS_VALUES = frozenset(
+    {
+        "approved",
+        "auto_approved",
+        "base",
+        "failed",
+        "no_base",
+        "pending",
+        "processing",
+        "requires_approval",
+    }
+)
 
 
-def _validate_approval_status(value: object) -> str:
+def _validate_snapshot_status(value: object) -> str:
     raw = str(value).lower()
-    if raw not in APPROVAL_STATUS_VALUES:
+    if raw not in SNAPSHOT_STATUS_VALUES:
         raise InvalidSearchQuery(
-            f"Invalid approval_status value: {value}. "
-            f"Valid values: {', '.join(sorted(APPROVAL_STATUS_VALUES))}"
+            f"Invalid status value: {value}. Valid values: {', '.join(sorted(SNAPSHOT_STATUS_VALUES))}"
         )
     return raw
 
@@ -337,21 +348,57 @@ def apply_filters(
                 queryset = queryset.filter(~Exists(approved_exists))
             continue
 
-        if name == "approval_status":
+        if name == "snapshot_status":
             values = token.value.value if token.is_in_filter else [token.value.value]
-            validated = [_validate_approval_status(v) for v in values]
+            validated = [_validate_snapshot_status(v) for v in values]
 
-            base_qs = PreprodComparisonApproval.objects.filter(
+            approval_base_qs = PreprodComparisonApproval.objects.filter(
                 preprod_artifact=OuterRef("pk"),
                 preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
             )
+            comparison_exists = PreprodSnapshotComparison.objects.filter(
+                head_snapshot_metrics__preprod_artifact=OuterRef("pk"),
+            )
+
             subqueries: list[Q] = []
             for val in validated:
-                if val == "approved":
+                if val == "base":
+                    subqueries.append(
+                        Q(preprodsnapshotmetrics__isnull=False)
+                        & (
+                            Q(commit_comparison__isnull=True)
+                            | Q(commit_comparison__base_sha__isnull=True)
+                        )
+                    )
+                elif val == "no_base":
+                    subqueries.append(
+                        Q(preprodsnapshotmetrics__isnull=False)
+                        & Q(commit_comparison__base_sha__isnull=False)
+                        & ~Q(Exists(comparison_exists))
+                    )
+                elif val == "pending":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.PENDING
+                        )
+                    )
+                elif val == "processing":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.PROCESSING
+                        )
+                    )
+                elif val == "failed":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.FAILED
+                        )
+                    )
+                elif val == "approved":
                     subqueries.append(
                         Q(
                             Exists(
-                                base_qs.filter(
+                                approval_base_qs.filter(
                                     approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
                                 ).exclude(extras__auto_approval=True)
                             )
@@ -361,7 +408,7 @@ def apply_filters(
                     subqueries.append(
                         Q(
                             Exists(
-                                base_qs.filter(
+                                approval_base_qs.filter(
                                     approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
                                     extras__auto_approval=True,
                                 )
@@ -372,7 +419,7 @@ def apply_filters(
                     subqueries.append(
                         Q(
                             Exists(
-                                base_qs.exclude(
+                                approval_base_qs.exclude(
                                     approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
                                 )
                             )

@@ -90,13 +90,13 @@ def run_missing_sdk_integration_detector() -> None:
         # Get repo configs for this project
         repo_names = (
             RepositoryProjectPathConfig.objects.filter(
-                project=project,
-                repository__status=ObjectStatus.ACTIVE,
-                repository__provider="integrations:github",
+                project_repository__project=project,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+                project_repository__repository__provider="integrations:github",
             )
-            .order_by("repository__name")
-            .distinct("repository__name")
-            .values_list("repository__name", flat=True)
+            .order_by("project_repository__repository__name")
+            .distinct("project_repository__repository__name")
+            .values_list("project_repository__repository__name", flat=True)
         )
         for repo_name in repo_names:
             run_missing_sdk_integration_detector_for_project_task.apply_async(

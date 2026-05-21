@@ -25,16 +25,16 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -47,8 +47,8 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import {AutofixRepositories} from './autofixRepositories';
 import {SEER_THRESHOLD_OPTIONS} from './constants';
 
-const AiSetupDataConsent = HookOrDefault({
-  hookName: 'component:ai-setup-data-consent',
+const AiSetupDataConsent = OverrideOrDefault({
+  overrideName: 'component:ai-setup-data-consent',
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
 
@@ -183,7 +183,7 @@ function CodingAgentSettings({
   );
 }
 
-function ProjectSeerGeneralForm({project}: {project: Project}) {
+function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
@@ -212,7 +212,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const claudeIntegration = claudeIntegrations[0];
 
   const handleSubmitSuccess = useCallback(
-    (resp: Project) => {
+    (resp: DetailedProject) => {
       const projectSettingsQueryKey = makeDetailedProjectQueryKey({
         orgSlug: organization.slug,
         projectSlug: project.slug,
@@ -497,7 +497,7 @@ function ProjectSeer({
   project,
 }: {
   organization: Organization;
-  project: Project;
+  project: DetailedProject;
 }) {
   const {billing, isLoading} = useOrganizationSeerSetup();
 

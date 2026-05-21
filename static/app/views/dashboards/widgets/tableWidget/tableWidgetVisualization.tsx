@@ -187,6 +187,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       organization,
       theme,
       location,
+      navigate,
       unit,
       projects,
     };

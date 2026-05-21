@@ -1,5 +1,6 @@
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
@@ -70,16 +71,16 @@ describe('StreamlinedActivitySection', () => {
 
     render(<StreamlinedActivitySection group={group} />);
 
-    const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
+    const commentInput = screen.getByPlaceholderText('Add a comment…');
     expect(commentInput).toBeInTheDocument();
+
     expect(
       screen.queryByRole('button', {name: 'Submit comment'})
     ).not.toBeInTheDocument();
 
     await userEvent.click(commentInput);
 
-    // Button appears after input is focused
-    const submitButton = await screen.findByRole('button', {name: 'Submit comment'});
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
     expect(submitButton).toBeInTheDocument();
 
     expect(submitButton).toBeDisabled();
@@ -106,7 +107,7 @@ describe('StreamlinedActivitySection', () => {
 
     render(<StreamlinedActivitySection group={group} />);
 
-    const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
+    const commentInput = screen.getByPlaceholderText('Add a comment…');
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
@@ -130,11 +131,11 @@ describe('StreamlinedActivitySection', () => {
       },
     });
 
-    render(<StreamlinedActivitySection group={group} isDrawer />);
+    render(<StreamlinedActivitySection group={group} variant="drawer" />);
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@jane');
+    await userEvent.type(screen.getByPlaceholderText('Add a comment…'), '@jane');
     await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Submit comment'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(postMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1337/comments/',
@@ -204,7 +205,7 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
+    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(editMock).not.toHaveBeenCalled();
@@ -214,7 +215,7 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
+    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     expect(editMock).toHaveBeenCalledTimes(1);
@@ -320,7 +321,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={updatedActivityGroup} isDrawer />);
+    render(<StreamlinedActivitySection group={updatedActivityGroup} variant="drawer" />);
 
     for (const activity of activities) {
       expect(
@@ -328,7 +329,7 @@ describe('StreamlinedActivitySection', () => {
       ).toBeInTheDocument();
     }
 
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('View 4 more')).not.toBeInTheDocument();
   });
 
   it('filters comments correctly', async () => {
@@ -356,7 +357,11 @@ describe('StreamlinedActivitySection', () => {
     });
 
     render(
-      <StreamlinedActivitySection group={updatedActivityGroup} isDrawer filterComments />
+      <StreamlinedActivitySection
+        group={updatedActivityGroup}
+        variant="drawer"
+        filterComments
+      />
     );
 
     for (const activity of activities) {
@@ -440,5 +445,87 @@ describe('StreamlinedActivitySection', () => {
     render(<StreamlinedActivitySection group={referencedGroup} />);
     expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
+  });
+
+  it('renders Seer activity when feature flag is enabled', async () => {
+    const seerGroup = GroupFixture({
+      id: '1342',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerGroup} />, {organization: org});
+    expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
+  });
+
+  it('hides Seer activity when feature flag is disabled', () => {
+    const seerGroup = GroupFixture({
+      id: '1343',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_COMPLETED,
+          id: 'seer-rca-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={seerGroup} />);
+    expect(screen.queryByText('Root Cause Analysis')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer completed root cause analysis')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders Seer PR created activity with link', async () => {
+    const seerPrGroup = GroupFixture({
+      id: '1344',
+      activity: [
+        {
+          type: GroupActivityType.SEER_PR_CREATED,
+          id: 'seer-pr-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            run_id: 456,
+            pull_requests: [
+              {
+                provider: 'github',
+                pull_request: {
+                  pr_number: 42,
+                  pr_url: 'https://github.com/org/repo/pull/42',
+                },
+                repo_name: 'org/repo',
+              },
+            ],
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+
+    render(<StreamlinedActivitySection group={seerPrGroup} />, {organization: org});
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repo/pull/42'
+    );
+    expect(screen.getByText(/org\/repo/)).toBeInTheDocument();
   });
 });

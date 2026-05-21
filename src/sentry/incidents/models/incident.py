@@ -280,28 +280,6 @@ class TriggerStatus(Enum):
     RESOLVED = 1
 
 
-@cell_silo_model
-class IncidentTrigger(Model):
-    """
-    An instance of an alert rule trigger (eg. each time the rule hits the trigger threshold, we create an incident trigger)
-    NOTE: dissimilar to an AlertRuleTrigger which represents the trigger threshold required to initialize an Incident
-    """
-
-    __relocation_scope__ = RelocationScope.Global
-
-    incident = FlexibleForeignKey("sentry.Incident", db_index=False)
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
-    status = models.SmallIntegerField()
-    date_modified = models.DateTimeField(default=timezone.now, null=False)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidenttrigger"
-        unique_together = (("incident", "alert_rule_trigger"),)
-        indexes = (models.Index(fields=("alert_rule_trigger", "incident_id")),)
-
-
 post_save.connect(IncidentManager.clear_active_incident_cache, sender=Incident)
 post_save.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
 post_delete.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)

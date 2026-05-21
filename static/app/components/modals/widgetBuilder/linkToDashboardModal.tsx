@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps, Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -195,7 +195,7 @@ export function LinkToDashboardModal({
         </Flex>
       </Header>
       <Body>
-        <Wrapper>
+        <Container marginBottom="xl">
           <DashboardCreateLimitWrapper>
             {({hasReachedDashboardLimit, isLoading, limitMessage}) => {
               if (isDashboardListLoading) {
@@ -218,7 +218,7 @@ export function LinkToDashboardModal({
               );
             }}
           </DashboardCreateLimitWrapper>
-        </Wrapper>
+        </Container>
       </Body>
       <Footer>
         <StyledButtonBar gap="lg">
@@ -235,10 +235,6 @@ export function LinkToDashboardModal({
     </Fragment>
   );
 }
-
-const Wrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const StyledButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />

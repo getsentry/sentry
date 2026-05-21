@@ -1,15 +1,25 @@
 import 'echarts/lib/chart/heatmap';
 
+import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import type {
+  TooltipFormatterCallback,
+  TopLevelFormatterParams,
+} from 'echarts/types/dist/shared';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
+import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {HeatMap} from './plottables/heatMap';
 import type {HeatMapPlottable} from './plottables/heatMapPlottable';
@@ -32,6 +42,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
+  const chartRef = useRef<ReactEchartsRef | null>(null);
 
   if (!plottablesCanBeVisualized(plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
@@ -57,15 +68,61 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   const Zmax =
     scale === 'log' ? Math.log1p(heatMapPlottable.Zend) : heatMapPlottable.Zend;
 
+  // Create tooltip formatter
+  const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
+    params,
+    asyncTicket
+  ) => {
+    // Only show the tooltip of the current chart. Otherwise, all tooltips
+    // in the chart group appear.
+    if (!isChartHovered(chartRef?.current)) {
+      return '';
+    }
+
+    return getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      nameFormatter: function (seriesName, _nameFormatterParams) {
+        return truncationFormatter(seriesName, true, false);
+      },
+      valueFormatter: function (value, _field, _valueFormatterParams) {
+        const bucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
+        const fieldType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
+
+        const yAxisMinValueFormatted = formatTooltipValue(
+          value,
+          fieldType,
+          heatMapPlottable.yAxisValueUnit ?? undefined
+        );
+        const yAxisMaxValueFormatted = formatTooltipValue(
+          value + bucketSize,
+          fieldType,
+          heatMapPlottable.yAxisValueUnit ?? undefined
+        );
+
+        return `${yAxisMinValueFormatted} – ${yAxisMaxValueFormatted}`;
+      },
+      truncate: false,
+      utc: utc ?? false,
+    })(params, asyncTicket);
+  };
+
   return (
     <Flex direction="column" height="100%">
       <BaseChart
         autoHeightResize
+        // will be grouped by date as we only support time as the x-axis right now.
+        // TODO(nikki): eventually this will change later and we'll pass in what kind of x-axis we have
+        isGroupedByDate
+        showTimeInTooltip
+        ref={chartRef}
         tooltip={{
-          show: false,
+          show: true,
           axisPointer: {
             show: false,
           },
+          triggerOn: 'click',
+          formatter: formatTooltip,
         }}
         series={series}
         xAxis={{

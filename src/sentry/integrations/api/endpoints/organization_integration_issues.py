@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 
 @cell_silo_endpoint
 class OrganizationIntegrationIssuesEndpoint(CellOrganizationIntegrationBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
     }

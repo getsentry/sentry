@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useResettableState} from 'sentry/utils/useResettableState';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
@@ -31,7 +31,7 @@ export function ExploreStateQueryParamsProvider({
   frozenParams,
 }: ExploreStateQueryParamsProviderProps) {
   const [mode, _setMode] = useState(defaultMode());
-  const [query, setQuery] = useResettableState(() => '');
+  const [query, setQuery] = useState('');
 
   const [cursor, _setCursor] = useState(defaultCursor());
   const [fields, _setFields] = useState(defaultFields());
@@ -76,7 +76,12 @@ export function ExploreStateQueryParamsProvider({
 
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
-      setQuery(writableQueryParams.query);
+      if (defined(writableQueryParams.query)) {
+        setQuery(writableQueryParams.query);
+      } else if (writableQueryParams.query === null) {
+        setQuery('');
+      }
+      // If `writableQueryParams.query` is undefined then do nothing.
     },
     [setQuery]
   );

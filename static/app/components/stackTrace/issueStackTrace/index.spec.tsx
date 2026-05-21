@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -79,7 +79,7 @@ describe('IssueStackTrace', () => {
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
-      body: ProjectFixture({id: '1', slug: 'project-slug'}),
+      body: DetailedProjectFixture({id: '1', slug: 'project-slug'}),
     });
     Object.assign(navigator, {
       clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
@@ -303,7 +303,7 @@ describe('IssueStackTrace', () => {
       slug: 'org-slug',
       codecovAccess: true,
     });
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       id: event.projectID,
       slug: 'project-slug',
     });
@@ -766,7 +766,7 @@ describe('IssueStackTrace', () => {
   it('fetches and renders SCM source context for frames without embedded context', async () => {
     const {event, stacktrace} = makeCopyTestData();
     const organization = OrganizationFixture();
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       id: '1',
       slug: 'project-slug',
       scmSourceContextEnabled: true,
