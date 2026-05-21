@@ -91,7 +91,6 @@ function ReplayDetailsContent() {
     replayId: replayRecord?.id,
     replaySlug,
     projectSlug: readerResult.projectSlug,
-    userName: replayRecord?.user.display_name,
     browser: replayRecord?.browser.name,
     os: replayRecord?.os.name,
     duration: replayRecord?.duration,
