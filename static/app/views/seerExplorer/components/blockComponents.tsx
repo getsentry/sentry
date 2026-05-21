@@ -696,11 +696,6 @@ const ActionButtonBar = styled(Flex)`
   white-space: nowrap;
   font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.primary};
-  visibility: hidden;
-
-  ${Block}:hover & {
-    visibility: visible;
-  }
 `;
 
 const TodoListContent = styled(MarkedText)`
