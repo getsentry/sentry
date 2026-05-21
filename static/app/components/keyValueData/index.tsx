@@ -111,7 +111,7 @@ export function Content({
               <div>
                 {hasErrors && <AnnotatedTextErrors errors={errors} />}
                 {actionButton && (
-                  <RevealOnHover.Action alwaysVisible={actionButtonAlwaysVisible}>
+                  <RevealOnHover.Action visible={actionButtonAlwaysVisible}>
                     {actionButton}
                   </RevealOnHover.Action>
                 )}

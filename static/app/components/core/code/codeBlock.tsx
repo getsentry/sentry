@@ -183,7 +183,7 @@ export function CodeBlock({
             {filename && <FileName>{filename}</FileName>}
             {!hasTabs && <Container flexGrow={1} />}
             {!hideCopyButton && (
-              <RevealOnHover.Action alwaysVisible={isAlwaysVisible}>
+              <RevealOnHover.Action visible={isAlwaysVisible}>
                 <CopyButton
                   type="button"
                   size="xs"
