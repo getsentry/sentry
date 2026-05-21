@@ -1203,7 +1203,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             assert total_count == 15
 
     def test_eap_read_path(self) -> None:
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+        with self.options({EAPOccurrencesComparator._should_run_experiment_option(): True}):
             gk = self.ts.get_group_tag_key(
                 self.proj1group1,
                 None,

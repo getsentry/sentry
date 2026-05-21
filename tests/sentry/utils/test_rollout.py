@@ -18,19 +18,19 @@ class SafeRolloutComparatorTestCase(TestCase):
     def test_options_registered(self) -> None:
         option_names = [o.name for o in all_options()]
 
-        assert TestRolloutComparator._should_eval_option_name() in option_names
+        assert TestRolloutComparator._should_run_experiment_option() in option_names
         assert TestRolloutComparator._callsite_allowlist_option_name() in option_names
         assert TestRolloutComparator._callsite_experiment_blocklist_option() in option_names
         assert TestRolloutComparator._sample_rate_option_name() in option_names
         assert TestRolloutComparator._mismatch_log_callsite_allowlist_option_name() in option_names
 
     def test_return_as_expected(self) -> None:
-        with override_options({TestRolloutComparator._should_eval_option_name(): False}):
+        with override_options({TestRolloutComparator._should_run_experiment_option(): False}):
             assert TestRolloutComparator.should_check_experiment("test_1") is False
 
         with override_options(
             {
-                TestRolloutComparator._should_eval_option_name(): True,
+                TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): ["test_blocked"],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }
@@ -50,7 +50,7 @@ class SafeRolloutComparatorTestCase(TestCase):
     def test_eval_experimental_sample_rate(self) -> None:
         with override_options(
             {
-                TestRolloutComparator._should_eval_option_name(): True,
+                TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): [],
                 TestRolloutComparator._sample_rate_option_name(): 0.5,
             }
@@ -70,7 +70,7 @@ class SafeRolloutComparatorTestCase(TestCase):
     def test_eval_experimental_respects_blocklist(self) -> None:
         with override_options(
             {
-                TestRolloutComparator._should_eval_option_name(): True,
+                TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): ["test_blocked"],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }
@@ -83,7 +83,7 @@ class SafeRolloutComparatorTestCase(TestCase):
     def test_eval_experimental_sample_rate_respects_eval_disabled(self) -> None:
         with override_options(
             {
-                TestRolloutComparator._should_eval_option_name(): False,
+                TestRolloutComparator._should_run_experiment_option(): False,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): [],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }
@@ -117,7 +117,7 @@ class SafeRolloutComparatorTestCase(TestCase):
 
         with override_options(
             {
-                TestRolloutComparator._should_eval_option_name(): True,
+                TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): [],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }

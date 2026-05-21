@@ -590,7 +590,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
 
         url = f"/api/0/issues/{event_1.group.id}/events/"
 
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+        with self.options({EAPOccurrencesComparator._should_run_experiment_option(): True}):
             response = self.do_request(url)
 
         assert response.status_code == 200, response.content

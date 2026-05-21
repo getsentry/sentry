@@ -1050,7 +1050,7 @@ class EAPEventStorageTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._should_run_experiment_option(): True,
                 EAPOccurrencesComparator._callsite_allowlist_option_name(): [callsite],
             }
         ):

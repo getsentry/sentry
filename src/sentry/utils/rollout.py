@@ -61,7 +61,7 @@ class SafeRolloutComparator:
     ROLLOUT_NAME: str
 
     @classmethod
-    def _should_eval_option_name(cls) -> str:
+    def _should_run_experiment_option(cls) -> str:
         """
         This is the high-level eval rollout option. If this option is disabled, the
         should_check_experiment function will return False.
@@ -110,7 +110,7 @@ class SafeRolloutComparator:
         from sentry.options import register
 
         register(
-            cls._should_eval_option_name(),
+            cls._should_run_experiment_option(),
             type=Bool,
             default=False,
             flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -202,7 +202,7 @@ class SafeRolloutComparator:
         2. Callsite must not be in the blocklist
         3. Random sampling based on the sample_rate option (default 1.0 = 100%)
         """
-        if not options.get(cls._should_eval_option_name()):
+        if not options.get(cls._should_run_experiment_option()):
             return False
 
         if callsite in options.get(cls._callsite_experiment_blocklist_option()):

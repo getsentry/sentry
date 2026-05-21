@@ -1503,7 +1503,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
 
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._should_run_experiment_option(): True,
                 EAPOccurrencesComparator._callsite_allowlist_option_name(): [
                     "api.trace.load_performance_issues"
                 ],
@@ -1563,7 +1563,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
 
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._should_run_experiment_option(): True,
                 EAPOccurrencesComparator._callsite_allowlist_option_name(): [
                     "api.trace.query_trace_data.errors"
                 ],
@@ -1698,7 +1698,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._should_run_experiment_option(): True,
                 EAPOccurrencesComparator._callsite_allowlist_option_name(): [
                     "api.trace.count_performance_issues"
                 ],
