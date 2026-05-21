@@ -153,7 +153,6 @@ class SnubaQueryValidatorTest(TestCase):
     @with_feature(
         {
             "organizations:performance-view": True,
-            "organizations:tracemetrics-alerts": True,
             "organizations:tracemetrics-enabled": True,
             "organizations:custom-metrics": True,
         }
