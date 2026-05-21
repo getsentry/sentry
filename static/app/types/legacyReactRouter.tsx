@@ -5,10 +5,8 @@
  */
 import type {Location, LocationDescriptor} from 'history';
 
-export type RouteComponent = React.ComponentClass<any> | React.FunctionComponent<any>;
-
 interface IndexRouteProps<Props = any> {
-  component?: RouteComponent | undefined;
+  component?: React.ComponentType<any> | undefined;
   props?: Props | undefined;
 }
 
