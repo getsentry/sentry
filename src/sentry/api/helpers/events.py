@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.serializers import serialize
 from sentry.issues.grouptype import GroupCategory
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -87,9 +86,7 @@ def get_query_builder_for_group(
     else:
         orderby_list = [orderby, "id"]
 
-    column_resolver = None
-    if options.get("issues.search.use-tag-aware-condition-resolver"):
-        column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
+    column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
 
     return DiscoverQueryBuilder(
         dataset=dataset,
