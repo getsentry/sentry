@@ -1,9 +1,8 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
-import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
@@ -83,10 +82,6 @@ export function Context({
   platform,
 }: Props) {
   const organization = useOrganization();
-  const {
-    hasCoverageData: issueHasCoverageData,
-    setHasCoverageData: setIssueHasCoverageData,
-  } = useLineCoverageContext();
 
   const {projects} = useProjects();
   const project = useMemo(
@@ -148,12 +143,6 @@ export function Context({
 
   const hasCoverageData =
     !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
-
-  useEffect(() => {
-    if (hasCoverageData && !issueHasCoverageData) {
-      setIssueHasCoverageData(true);
-    }
-  }, [hasCoverageData, issueHasCoverageData, setIssueHasCoverageData]);
 
   const [lineCoverage = [], hasCoverage] =
     hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines

@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _UNSET: Any = object()
+UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
 
 
 class NoSeerQuotaException(Exception):
@@ -204,6 +205,22 @@ def get_autofix_agent_client(
     )
 
 
+def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
+    group_id = state.metadata.get("group_id") if state.metadata else None
+    if group_id != group.id:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+
+def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> SeerRunState:
+    try:
+        state = client.get_run(run_id)
+    except ValueError:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+    _validate_run_belongs_to_group(state, group)
+    return state
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -238,6 +255,17 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
+    client = get_autofix_agent_client(
+        group,
+        intelligence_level=intelligence_level,
+        reasoning_effort=(
+            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
+        ),
+        enable_coding=config.enable_coding,
+    )
+    if run_id is not None:
+        _get_group_run_state(client, group, run_id)
+
     if config.started_event is not None:
         analytics.record(
             config.started_event(
@@ -247,19 +275,13 @@ def trigger_autofix_agent(
                 referrer=referrer.value,
             )
         )
-    client = get_autofix_agent_client(
-        group,
-        intelligence_level=intelligence_level,
-        reasoning_effort=(
-            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
-        ),
-        enable_coding=config.enable_coding,
-    )
 
     prompt = build_step_prompt(step, group, user_context)
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,
+        "has_user_context": "no" if user_context is None else "yes",
+        "is_retry": "no" if insert_index is None else "yes",
     }
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
@@ -478,6 +500,7 @@ def trigger_coding_agent_handoff(
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
+    auto_create_pr: bool | None = None,
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing agent-based autofix run.
@@ -491,6 +514,7 @@ def trigger_coding_agent_handoff(
         integration_id: The coding agent integration ID (e.g., Cursor)
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+        auto_create_pr: Optional override for whether the coding agent should create a PR
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -500,11 +524,12 @@ def trigger_coding_agent_handoff(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    auto_create_pr = False
     preference = read_preference_from_sentry_db(group.project)
     repo_definitions: list[SeerRepoDefinition] = preference.repositories
-    if preference.automation_handoff:
-        auto_create_pr = preference.automation_handoff.auto_create_pr
+    if auto_create_pr is None:
+        auto_create_pr = False
+        if preference.automation_handoff:
+            auto_create_pr = preference.automation_handoff.auto_create_pr
 
     if not repo_definitions:
         return {
@@ -513,7 +538,7 @@ def trigger_coding_agent_handoff(
         }
 
     client = get_autofix_agent_client(group)
-    state = client.get_run(run_id)
+    state = _get_group_run_state(client, group, run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
@@ -551,6 +576,7 @@ def trigger_coding_agent_handoff(
         repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
+        issue_short_id=short_id,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
@@ -562,7 +588,6 @@ def trigger_coding_agent_handoff(
             group_id=group.id,
             referrer=referrer.value,
             coding_agent=coding_agent_name,
-            initiator="automation.explorer",
         )
     )
 
@@ -593,14 +618,9 @@ def trigger_push_changes(
     client = get_autofix_agent_client(group)
 
     if state is None:
-        try:
-            state = client.get_run(run_id)
-        except ValueError:
-            raise SeerPermissionError("Unknown run id for group")
-
-    group_id = state.metadata.get("group_id") if state.metadata else None
-    if group_id != group.id:
-        raise SeerPermissionError("Unknown run id for group")
+        state = _get_group_run_state(client, group, run_id)
+    else:
+        _validate_run_belongs_to_group(state, group)
 
     analytics.record(
         AiAutofixPrCreatedStartedEvent(

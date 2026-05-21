@@ -27,7 +27,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.summaries.metrics import (
     WeeklyReportHaltReason,
     WeeklyReportOperationType,
@@ -101,11 +101,16 @@ class WeeklyReportProgressTracker:
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.schedule_organizations",
     namespace=reports_tasks,
-    retry=Retry(times=5),
+    retry=Retry(
+        times=5,
+        on=(
+            Exception,
+            ProcessingDeadlineExceeded,
+        ),
+    ),
     processing_deadline_duration=timedelta(minutes=30),
     silo_mode=SiloMode.CELL,
 )
-@retry(timeouts=True)
 def schedule_organizations(
     dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
 ) -> None:
@@ -162,10 +167,9 @@ def schedule_organizations(
     name="sentry.tasks.summaries.weekly_reports.prepare_organization_report",
     namespace=reports_tasks,
     processing_deadline_duration=60 * 10,
-    retry=Retry(times=5, delay=5),
+    retry=Retry(times=5, delay=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def prepare_organization_report(
     timestamp: float,
     duration: int,

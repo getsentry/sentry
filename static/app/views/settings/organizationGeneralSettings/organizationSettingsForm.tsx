@@ -1,12 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQuery} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -24,28 +23,28 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {MembershipSettingsProps} from 'sentry/types/overrides';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
-import {useMembers} from 'sentry/utils/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 
-const HookCodecovSettingsLink = HookOrDefault({
-  hookName: 'component:codecov-integration-settings-link',
+const OverriddenCodecovSettingsLink = OverrideOrDefault({
+  overrideName: 'component:codecov-integration-settings-link',
 });
 
-const HookOrganizationMembershipSettings = HookOrDefault({
-  hookName: 'component:organization-membership-settings',
+const OverriddenOrganizationMembershipSettings = OverrideOrDefault({
+  overrideName: 'component:organization-membership-settings',
   defaultComponent: OrganizationMembershipSettingsBase,
 });
 
@@ -95,7 +94,10 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {members, fetching} = useMembers();
+  const {data: members = [], isPending: fetching} = useQuery({
+    ...useProjectMembersQueryOptions(),
+    select: resp => selectUsersFromMembers(resp.json),
+  });
   const memberOptions = members.map(m => ({value: m.id, label: m.name}));
 
   const replayMutationOpts = mutationOptions({
@@ -420,8 +422,6 @@ function OrganizationMembershipSettingsBase({
 export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const organization = useOrganization();
   const endpoint = `/organizations/${organization.slug}/`;
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
@@ -495,9 +495,9 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                       )}
                     </Alert>
                     <Flex gap="sm" justify="end" paddingTop="lg">
-                      <Button onClick={() => slugForm.reset()} disabled={!hasWriteAccess}>
+                      <slugForm.ResetButton disabled={!hasWriteAccess}>
                         {t('Cancel')}
-                      </Button>
+                      </slugForm.ResetButton>
                       <slugForm.SubmitButton disabled={!hasWriteAccess}>
                         {t('Save')}
                       </slugForm.SubmitButton>
@@ -554,7 +554,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
           </AutoSaveForm>
 
           {/* Data Storage Region — read-only, only shown when multiple regions exist */}
-          {hasPageFrameFeature && regionData && (
+          {regionData && (
             <Flex direction="row" gap="xl" align="center" justify="between" flexGrow={1}>
               <Stack width="50%" gap="xs">
                 <Text>{t('Data Storage Region')}</Text>
@@ -655,7 +655,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                   <PoweredByCodecov>
                     {t('Enable Code Coverage Insights')}{' '}
                     <Feature
-                      hookName="feature-disabled:codecov-integration-setting"
+                      overrideName="feature-disabled:codecov-integration-setting"
                       renderDisabled={p => (
                         <Hovercard
                           body={
@@ -680,7 +680,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 hintText={
                   <PoweredByCodecov>
                     {t('powered by')} <IconCodecov /> Codecov{' '}
-                    <HookCodecovSettingsLink organization={organization} />
+                    <OverriddenCodecovSettingsLink organization={organization} />
                   </PoweredByCodecov>
                 }
               >
@@ -698,7 +698,10 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
         </FieldGroup>
       </FormSearch>
 
-      <HookOrganizationMembershipSettings organization={organization} onSave={onSave} />
+      <OverriddenOrganizationMembershipSettings
+        organization={organization}
+        onSave={onSave}
+      />
 
       <AvatarChooser
         type="organization"

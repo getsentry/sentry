@@ -18,6 +18,7 @@ import {
   useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {
   selectTraceItemTagCollection,
   traceItemAttributeKeysOptions,
@@ -28,6 +29,10 @@ interface GroupBySelectorProps {
    * The metric to filter attributes by
    */
   traceMetric: TraceMetric;
+  /**
+   * If set, disables the selector and shows this string as a tooltip.
+   */
+  disabledReason?: string;
   /**
    * Whether to skip the trace metric filter.
    *
@@ -45,11 +50,13 @@ interface GroupBySelectorProps {
 export function GroupBySelector({
   traceMetric,
   skipTraceMetricFilter,
+  disabledReason,
 }: GroupBySelectorProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const isDisabled = disabledReason !== undefined;
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -115,11 +122,20 @@ export function GroupBySelector({
   return (
     <CompactSelect
       multiple
-      search
+      search={{
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.TRACEMETRICS,
+            option,
+            searchText,
+          });
+        },
+      }}
       clearable
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          tooltipProps={{title: disabledReason}}
           prefix={t('Group by')}
           style={{width: '100%'}}
         />
@@ -127,7 +143,7 @@ export function GroupBySelector({
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
-      disabled={!skipTraceMetricFilter && !traceMetricFilter}
+      disabled={isDisabled || (!skipTraceMetricFilter && !traceMetricFilter)}
       onChange={handleChange}
       style={{width: '100%'}}
     />

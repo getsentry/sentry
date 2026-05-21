@@ -1,6 +1,11 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+
 import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -8,8 +13,32 @@ import type {Group} from 'sentry/types/group';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
-function getTooltipMarker(color: string): string {
-  return `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+function SeriesRow({
+  color,
+  label,
+  totalCount,
+}: {
+  color: string;
+  label: string;
+  totalCount: string;
+}) {
+  return (
+    <Flex justify="between" gap="xs" flexGrow={1}>
+      <Flex gap="xs" align="center">
+        <Container
+          width="10px"
+          height="10px"
+          radius="full"
+          display="inline-block"
+          style={{backgroundColor: color}}
+        />
+        <Text size="sm">{label}</Text>
+      </Flex>
+      <Text size="sm" variant="muted">
+        {totalCount}
+      </Text>
+    </Flex>
+  );
 }
 
 interface UseEventMarklineSeriesProps {
@@ -44,6 +73,7 @@ export function useCurrentEventMarklineSeries({
 }: UseEventMarklineSeriesProps) {
   const theme = useTheme();
   const eventView = useIssueDetailsEventView({group});
+  const renderToString = useRenderToString();
 
   return useMemo(() => {
     if (!event) {
@@ -126,31 +156,53 @@ export function useCurrentEventMarklineSeries({
             ?.find(s => s.name === closestEventSeries.name)
             ?.value?.toLocaleString();
 
-          // Use inline style for bold since CSS overrides <strong> to normal weight
-          const seriesRows = [
-            `<div><span class="tooltip-label" style="font-weight:bold;">${t('Current Event')}</span></div>`,
-          ];
+          const seriesRows: React.ReactNode[] = [];
 
           if (isFiltered && totalCount) {
             seriesRows.push(
-              `<div><span class="tooltip-label">${getTooltipMarker(colors.total)}<strong>${labels.total}</strong></span> ${totalCount}</div>`
+              <SeriesRow
+                key="total"
+                color={colors.total}
+                label={labels.total}
+                totalCount={totalCount}
+              />
             );
             seriesRows.push(
-              `<div><span class="tooltip-label">${getTooltipMarker(colors.matching)}<strong>${labels.matching}</strong></span> ${matchingCount}</div>`
+              <SeriesRow
+                key="matching"
+                color={colors.matching}
+                label={labels.matching}
+                totalCount={matchingCount}
+              />
             );
           } else {
             seriesRows.push(
-              `<div><span class="tooltip-label">${getTooltipMarker(colors.default)}<strong>${labels.default}</strong></span> ${matchingCount}</div>`
+              <SeriesRow
+                key="default"
+                color={colors.default}
+                label={labels.default}
+                totalCount={matchingCount}
+              />
             );
           }
 
-          return [
-            '<div class="tooltip-series">',
-            ...seriesRows,
-            '</div>',
-            `<div class="tooltip-footer">${time}</div>`,
-            '<div class="tooltip-arrow"></div>',
-          ].join('');
+          return renderToString(
+            <Stack gap="lg" padding="lg 0">
+              <Stack gap="md" padding="0 lg">
+                <Text size="sm" variant="muted" bold>
+                  {t('Current Event')}
+                </Text>
+                {seriesRows}
+              </Stack>
+              <Separator orientation="horizontal" padding="0" />
+              <Flex padding="0 lg">
+                <Text size="sm" variant="muted">
+                  {time}
+                </Text>
+              </Flex>
+              <div className="tooltip-arrow" />
+            </Stack>
+          );
         },
       },
     });
@@ -169,5 +221,6 @@ export function useCurrentEventMarklineSeries({
     isFiltered,
     unfilteredEventSeries,
     seriesType,
+    renderToString,
   ]);
 }

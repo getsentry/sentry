@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Literal
 
 import sentry_sdk
@@ -23,6 +24,12 @@ ACTION_TO_EVENTS: dict[AnalyticAction, type[AiAutofixPrEvent]] = {
     "merged": AiAutofixPrMergedEvent,
     "closed": AiAutofixPrClosedEvent,
     "opened": AiAutofixPrOpenedEvent,
+}
+
+ACTION_TO_TIMESTAMP_FIELD: dict[AnalyticAction, str] = {
+    "opened": "created_at",
+    "merged": "merged_at",
+    "closed": "closed_at",
 }
 
 
@@ -58,6 +65,8 @@ def record_pr_action_analytic(
     if pull_request["merged"]:
         analytic_action = "merged"
 
+    sent_at = _get_pr_timestamp_ms(pull_request, analytic_action)
+
     autofix_state = get_autofix_state_from_pr_id("integrations:github", pull_request["id"])
     if autofix_state:
         analytics.record(
@@ -68,6 +77,7 @@ def record_pr_action_analytic(
                 group_id=autofix_state.request.issue["id"],
                 run_id=autofix_state.run_id,
                 github_app=github_app,
+                sent_at=sent_at,
             )
         )
 
@@ -89,9 +99,18 @@ def record_pr_action_analytic(
                 group_id=group.id,
                 run_id=agent_state.run_id,
                 github_app=github_app,
+                sent_at=sent_at,
                 referrer=agent_state.metadata.get("referrer") if agent_state.metadata else None,
             )
         )
 
         metrics.incr(f"ai.autofix.pr.{analytic_action}", tags={"mode": "explorer"})
         return
+
+
+def _get_pr_timestamp_ms(pull_request: dict[str, Any], action: AnalyticAction) -> int:
+    ts_field = ACTION_TO_TIMESTAMP_FIELD[action]
+    ts_value = pull_request.get(ts_field)
+    if ts_value:
+        return int(datetime.fromisoformat(ts_value).timestamp() * 1000)
+    return int(datetime.fromisoformat(pull_request["updated_at"]).timestamp() * 1000)

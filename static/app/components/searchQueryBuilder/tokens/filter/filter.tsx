@@ -22,6 +22,7 @@ import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
   formatFilterValue,
+  getFilterValueType,
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
@@ -50,7 +51,8 @@ interface FilterValueProps extends SearchQueryTokenProps {
 }
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
-  const {size} = useSearchQueryBuilder();
+  const {size, getFieldDefinition} = useSearchQueryBuilder();
+  const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
     return (
@@ -69,7 +71,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue({token: items[0]!.value})}
+            {formatFilterValue({token: items[0]!.value, valueType})}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -81,7 +83,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {formatFilterValue({token: item.value!})}
+                {formatFilterValue({token: item.value!, valueType})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
@@ -102,7 +104,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     default: {
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue({token: token.value})}
+          {formatFilterValue({token: token.value, valueType})}
         </FilterValueSingleTruncatedValue>
       );
     }

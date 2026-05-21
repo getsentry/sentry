@@ -1,5 +1,9 @@
 /* eslint-disable typescript-sort-keys/interface */
-import type {BuildDetailsVcsInfo} from './buildDetailsTypes';
+import type {
+  BuildDetailsVcsInfo,
+  SnapshotApprovalStatus,
+  SnapshotComparisonState,
+} from './buildDetailsTypes';
 
 export interface SnapshotImage {
   display_name: string | null;
@@ -8,7 +12,6 @@ export interface SnapshotImage {
   height: number;
   key: string;
   width: number;
-  content_hash: string;
 }
 
 export interface SnapshotDiffPair {
@@ -16,12 +19,6 @@ export interface SnapshotDiffPair {
   diff: number | null;
   diff_image_key: string | null;
   head_image: SnapshotImage;
-}
-
-interface SnapshotComparisonRunInfo {
-  completed_at?: string;
-  duration_ms?: number;
-  state?: ComparisonState;
 }
 
 interface SnapshotApprover {
@@ -34,14 +31,8 @@ interface SnapshotApprover {
   username?: string | null;
 }
 
-interface SnapshotApprovalInfo {
-  approvers: SnapshotApprover[];
-  status: 'approved' | 'requires_approval';
-  is_auto_approved?: boolean;
-}
-
 export interface SnapshotDetailsApiResponse {
-  comparison_type: 'solo' | 'diff';
+  comparison_type: 'solo' | 'diff' | 'waiting_for_base';
   head_artifact_id: string;
   image_count: number;
   images: SnapshotImage[];
@@ -51,9 +42,10 @@ export interface SnapshotDetailsApiResponse {
 
   app_id?: string | null;
 
-  comparison_run_info?: SnapshotComparisonRunInfo | null;
-
-  approval_info?: SnapshotApprovalInfo | null;
+  comparison_state?: SnapshotComparisonState | null;
+  approval_status?: SnapshotApprovalStatus | null;
+  comparison_error_message?: string | null;
+  approvers?: SnapshotApprover[];
 
   diff_threshold?: number | null;
 
@@ -71,13 +63,6 @@ export interface SnapshotDetailsApiResponse {
   unchanged_count: number;
 }
 
-export enum ComparisonState {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
-}
-
 export enum DiffStatus {
   CHANGED = 'changed',
   ADDED = 'added',
@@ -91,6 +76,7 @@ export function getImageName(image: SnapshotImage): string {
 }
 
 interface SidebarItemBase {
+  displayName: string;
   key: string;
   name: string;
 }

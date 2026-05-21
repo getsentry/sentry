@@ -39,6 +39,7 @@ class ProjectCodeOwners(Model):
     schema = JSONField()
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
+    date_synced = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "sentry"

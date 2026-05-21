@@ -43,7 +43,7 @@ export function ErrorCounts({replayErrors}: Props) {
     for (const error of replayErrors) {
       const projectSlug = error['project.name'];
       const level = error.level;
-      if (!data[projectSlug]!.hasOwnProperty(level)) {
+      if (!Object.hasOwn(data[projectSlug]!, level)) {
         data[projectSlug]![level] = 0;
       }
       data[projectSlug]![level]!++;

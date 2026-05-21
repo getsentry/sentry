@@ -20,7 +20,7 @@ export const extrapolatedAreaStyle = {
     rotation: 0.785,
     scaleX: 0.5,
   },
-  opacity: 1.0,
+  opacity: 1,
 };
 
 export function OnDemandWarningIcon({

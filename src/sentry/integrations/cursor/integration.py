@@ -86,6 +86,9 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     key = "cursor"
     name = "Cursor Agent"
     metadata = metadata
+    # The organizations:integrations-cursor flag has graduated; skip the
+    # parent class's flag check rather than rely on a removed registration.
+    requires_feature_flag = False
 
     def get_pipeline_views(self):
         return []

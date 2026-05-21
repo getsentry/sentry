@@ -47,7 +47,7 @@ export function LogsExportModal({
   const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
   const payload = useMemo(
     () => ({
-      queryType: ExportQueryType.TRACE_ITEM_FULL_EXPORT,
+      queryType: ExportQueryType.EXPLORE,
       queryInfo: {
         ...queryInfo,
         dataset: TraceItemDataset.LOGS,
@@ -56,10 +56,11 @@ export function LogsExportModal({
     [queryInfo]
   );
   const handleDataExport = useDataExport();
-  const rowCountOptions = generateLogExportRowCountOptions(estimatedRowCount);
+  const {rowCountDefault, rowCountOptions} =
+    generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
     format: 'csv',
-    limit: rowCountOptions[0]!.value,
+    limit: rowCountDefault.value,
   };
 
   const form = useScrapsForm({
@@ -83,11 +84,9 @@ export function LogsExportModal({
       if (passedSyncLimit) {
         await handleDataExport({
           format: value.format,
-          queryInfo: {
-            ...payload.queryInfo,
-            limit: value.limit,
-          },
+          queryInfo: payload.queryInfo,
           queryType: payload.queryType,
+          limit: value.limit,
         });
       } else {
         downloadLogs({
@@ -139,7 +138,7 @@ export function LogsExportModal({
                   options={rowCountOptions}
                   onChange={field.handleChange}
                   value={field.state.value}
-                  defaultValue={rowCountOptions[0]}
+                  defaultValue={rowCountDefault}
                 />
               </field.Layout.Stack>
             )}

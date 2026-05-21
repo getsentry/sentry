@@ -94,7 +94,7 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
 export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   dotnet: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -214,6 +214,7 @@ export const platformProductAvailability = {
   javascript: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-react': [
@@ -255,6 +256,7 @@ export const platformProductAvailability = {
   'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-svelte': [

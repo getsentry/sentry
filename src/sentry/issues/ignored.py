@@ -154,6 +154,6 @@ def handle_ignored(
                 actor=serialized_user[0] if serialized_user else None,
             )
     else:
-        GroupSnooze.objects.filter(group__in=[group.id for group in group_list]).delete()
+        GroupSnooze.objects.filter(group__in=group_list).delete()
 
     return new_status_details

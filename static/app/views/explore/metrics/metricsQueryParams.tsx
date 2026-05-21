@@ -1,10 +1,9 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {defaultQuery, type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsFrozenContextProvider,
@@ -33,10 +32,17 @@ interface TraceMetricContextValue {
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
-const [_MetricMetadataContextProvider, useTraceMetricContext, TraceMetricContext] =
-  createDefinedContext<TraceMetricContextValue>({
-    name: 'TraceMetricContext',
-  });
+const TraceMetricContext = createContext<TraceMetricContextValue | undefined>(undefined);
+
+function useTraceMetricContext(): TraceMetricContextValue {
+  const context = useContext(TraceMetricContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "TraceMetricContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;
@@ -62,7 +68,7 @@ export function MetricsQueryParamsProvider({
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
       const newQueryParams = updateQueryParams(queryParams, {
-        query: getUpdatedValue(writableQueryParams.query, defaultQuery),
+        query: getUpdatedValue(writableQueryParams.query, ''),
         aggregateFields: writableQueryParams.aggregateFields,
         aggregateSortBys: writableQueryParams.aggregateSortBys,
         sortBys: writableQueryParams.sortBys,
@@ -108,14 +114,14 @@ export function MetricsQueryParamsProvider({
 
 function getUpdatedValue<T>(
   newValue: T | null | undefined,
-  defaultValue: () => T
+  defaultValue: T
 ): T | undefined {
   if (defined(newValue)) {
     return newValue;
   }
 
   if (newValue === null) {
-    return defaultValue();
+    return defaultValue;
   }
 
   return undefined;

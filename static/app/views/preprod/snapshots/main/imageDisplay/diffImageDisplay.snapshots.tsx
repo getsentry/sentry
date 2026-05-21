@@ -70,7 +70,6 @@ const displayHeights = {
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
-    content_hash: 'synthetic-content-hash',
     display_name: 'Button / light',
     height: 180,
     image_file_name: 'button.light.png',
@@ -82,13 +81,11 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
 
 const pair: SnapshotDiffPair = {
   base_image: image({
-    content_hash: 'base-content-hash',
     key: 'base-button-light',
   }),
   diff: 0.042,
   diff_image_key: 'diff-button-light',
   head_image: image({
-    content_hash: 'head-content-hash',
     key: 'head-button-light',
   }),
 };

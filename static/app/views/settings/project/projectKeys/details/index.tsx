@@ -12,7 +12,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import {KeyStats} from 'sentry/views/settings/project/projectKeys/details/keyStats';
@@ -78,17 +78,19 @@ export default function ProjectKeyDetails() {
 
   return (
     <SentryDocumentTitle title={t('Key Details')}>
-      <SettingsPageHeader title={t('Key Details')} data-test-id="key-details" />
-      <ProjectPermissionAlert project={project} />
-      <KeyStats api={api} organization={organization} params={params} theme={theme} />
-      <KeySettings
-        data={projKeyData}
-        updateData={onDataChange}
-        onRemove={handleRemove}
-        organization={organization}
-        project={project}
-        params={params}
-      />
+      <div data-test-id="key-details">
+        <SettingsPageHeader title={t('Key Details')} />
+        <ProjectPermissionAlert project={project} />
+        <KeyStats api={api} organization={organization} params={params} theme={theme} />
+        <KeySettings
+          data={projKeyData}
+          updateData={onDataChange}
+          onRemove={handleRemove}
+          organization={organization}
+          project={project}
+          params={params}
+        />
+      </div>
     </SentryDocumentTitle>
   );
 }

@@ -33,7 +33,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {
@@ -90,10 +90,7 @@ export default function IntegrationOrganizationLink() {
     data: organizations = [],
     isPending: isPendingOrganizations,
     error: organizationsError,
-  } = useApiQuery<Organization[]>(
-    [getApiUrl('/organizations/'), {query: {include_feature_flags: 1}}],
-    {staleTime: Infinity}
-  );
+  } = useApiQuery<Organization[]>([getApiUrl('/organizations/')], {staleTime: Infinity});
 
   const hasSelectedOrg = !!selectedOrgSlug;
   const organizationQuery = useQuery(

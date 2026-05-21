@@ -5,14 +5,13 @@ import logging
 from collections.abc import Generator
 
 from sentry.models.rule import Rule
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.base import CallbackFuture, RuleBase
 from sentry.services.eventstore.models import GroupEvent
 
 logger = logging.getLogger("sentry.rules")
 
 
-def instantiate_action(rule: Rule, action, rule_fire_history: RuleFireHistory | None = None):
+def instantiate_action(rule: Rule, action):
     from sentry.rules import rules
 
     action_id = action["id"]
@@ -21,9 +20,7 @@ def instantiate_action(rule: Rule, action, rule_fire_history: RuleFireHistory | 
         logger.warning("Unregistered action %r", action["id"])
         return None
 
-    action_inst = action_cls(
-        rule.project, data=action, rule=rule, rule_fire_history=rule_fire_history
-    )
+    action_inst = action_cls(rule.project, data=action, rule=rule)
     if not isinstance(action_inst, EventAction):
         logger.warning("Unregistered action %r", action["id"])
         return None

@@ -81,6 +81,21 @@ def _default_interval_for_query(params: QueryDict) -> str:
     return "1m"
 
 
+def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
+    """Match the frontend's `useChartIntervalImpl`: if the URL's explicit
+    interval is finer than the minimum the ladder allows for the selected
+    time range, fall back to the minimum. Stale URLs (e.g. an `interval=1m`
+    pasted from a 1h view into a 7d view) would otherwise produce thousands
+    of buckets that events-timeseries rejects, so the unfurl renders empty."""
+    url_td = parse_stats_period(url_interval)
+    minimum_td = parse_stats_period(minimum_interval)
+    if url_td is None:
+        return minimum_interval
+    if minimum_td is not None and url_td < minimum_td:
+        return minimum_interval
+    return url_interval
+
+
 def _aggregate_sorts_are_valid(
     sort_values: list[str], y_axes: list[str], group_bys: list[str]
 ) -> bool:
@@ -156,8 +171,11 @@ def _build_timeseries_query(
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    if not out.get("interval"):
-        out["interval"] = _default_interval_for_query(out)
+    minimum_interval = _default_interval_for_query(out)
+    url_interval = out.get("interval")
+    out["interval"] = (
+        _clamp_interval(url_interval, minimum_interval) if url_interval else minimum_interval
+    )
 
     return out
 
@@ -182,9 +200,13 @@ def _parse_traces_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryD
 
 
 def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
-    """Logs visualizations live in aggregateField; query/sort use logs-specific keys
-    and sorts target table columns rather than aggregate fields, so they're not
-    validated against yAxes/groupBys."""
+    """Logs visualizations live in aggregateField. The chart's topEvents sort
+    comes from `logsAggregateSortBys` (the aggregate-mode chart sort) — not
+    `logsSortBys`, which is the samples-mode logs table sort (typically
+    `-timestamp`) and would feed events-timeseries a non-aggregate sort field
+    in topEvents mode, returning no data. Validate the aggregate sort against
+    the active yAxes/groupBys like the traces parser, otherwise fall back to
+    the default `-yAxes[0]` topEvents sort."""
     y_axes, group_bys, chart_type = _parse_aggregate_field_entries(
         raw_query.getlist("aggregateField")
     )
@@ -195,39 +217,67 @@ def _parse_logs_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDic
     query_values = raw_query.getlist("logsQuery")
     query = query_values[0] if query_values else None
 
-    sort_values = raw_query.getlist("logsSortBys")
+    sort_values = raw_query.getlist("logsAggregateSortBys")
+    if sort_values and not _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+        sort_values = []
 
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[QueryDict, int | None]:
-    """Metrics encodes the entire chart config in a single ``metric`` JSON param,
-    including its own query and aggregateSortBys."""
+def _metric_chart_is_visible(metric_parsed: dict[str, Any]) -> bool:
+    """A metric renders the first aggregateField with `yAxes`. That entry's
+    `visible` flag (defaulting to True) controls whether the chart is shown
+    in the UI; mirror that here so hidden charts are skipped during unfurl."""
+    for agg_field in metric_parsed.get("aggregateFields") or []:
+        if not isinstance(agg_field, dict):
+            continue
+        if isinstance(agg_field.get("yAxes"), list):
+            return agg_field.get("visible", True) is not False
+    # No yAxes entry means we'll fall back to the dataset default, treat as visible.
+    return True
+
+
+def _parse_metrics_url(
+    raw_query: QueryDict, default_y_axis: str
+) -> tuple[QueryDict | None, int | None]:
+    """Metrics encodes each chart in its own `metric` JSON param. Multiple
+    metric params represent multiple charts; pick the first whose visualization
+    is visible (matching the Explore UI's `visible` flag). If none are
+    visible, return `None` to signal no chart should be rendered."""
     metric_list = raw_query.getlist("metric")
     if not metric_list:
         return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
 
-    try:
-        metric_parsed = json.loads(metric_list[0])
-    except (json.JSONDecodeError, TypeError, AttributeError):
-        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+    metric_parsed: dict[str, Any] | None = None
+    for raw_metric in metric_list:
+        try:
+            parsed = json.loads(raw_metric)
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            continue
+        if not isinstance(parsed, dict):
+            continue
+        if _metric_chart_is_visible(parsed):
+            metric_parsed = parsed
+            break
 
-    if not isinstance(metric_parsed, dict):
-        return _build_timeseries_query(raw_query, [default_y_axis], [], None, []), None
+    if metric_parsed is None:
+        return None, None
 
     y_axes: list[str] = []
     group_bys: list[str] = []
     chart_type: int | None = None
     # `or []` so a present-but-null aggregateFields/aggregateSortBys field in
     # the user-supplied metric JSON doesn't blow up iteration.
+    # Metrics renders multiple aggregates (e.g. p50 + p95) as multiple series on
+    # a single chart, so accumulate yAxes across every aggregateFields entry.
     for agg_field in metric_parsed.get("aggregateFields") or []:
         if not isinstance(agg_field, dict):
             continue
         if agg_field.get("groupBy"):
             group_bys.append(agg_field["groupBy"])
-        if not y_axes and isinstance(agg_field.get("yAxes"), list):
-            y_axes = list(agg_field["yAxes"])
-            if isinstance(agg_field.get("chartType"), int):
+        if isinstance(agg_field.get("yAxes"), list):
+            y_axes.extend(agg_field["yAxes"])
+            if chart_type is None and isinstance(agg_field.get("chartType"), int):
                 chart_type = agg_field["chartType"]
 
     if not y_axes:
@@ -242,12 +292,19 @@ def _parse_metrics_url(raw_query: QueryDict, default_y_axis: str) -> tuple[Query
         if sort_field:
             sort_values.append(f"-{sort_field}" if kind == "desc" else sort_field)
 
+    # A stale aggregateSortBys (e.g. left over from a previous yAxis or referencing
+    # a different metric than the one being visualized) should be dropped so the
+    # unfurl falls back to the default `-yAxes[0]` topEvents sort, matching the
+    # frontend's validateAggregateSort.
+    if sort_values and not _aggregate_sorts_are_valid(sort_values, y_axes, group_bys):
+        sort_values = []
+
     query = metric_parsed.get("query") or None
 
     return _build_timeseries_query(raw_query, y_axes, group_bys, query, sort_values), chart_type
 
 
-ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict, int | None]]
+ExploreParserFn = Callable[[QueryDict, str], tuple[QueryDict | None, int | None]]
 
 
 class ExploreDatasetConfig(TypedDict):
@@ -337,6 +394,10 @@ def _unfurl_explore(
             continue
 
         params = link.args["query"]
+        if params is None:
+            # Parser signaled no chart should be rendered (e.g. all metrics
+            # in the URL are hidden).
+            continue
         chart_type = link.args.get("chart_type")
 
         explore_dataset = link.args.get("dataset", SupportedTraceItemType.SPANS)
@@ -346,6 +407,10 @@ def _unfurl_explore(
         if not y_axes:
             y_axes = [dataset_config["default_y_axis"]]
             params.setlist("yAxis", y_axes)
+
+        display_type = _resolve_display_type(chart_type, y_axes)
+        if display_type not in SUPPORTED_DISPLAY_TYPES:
+            continue
 
         group_bys = params.getlist("groupBy")
 
@@ -381,7 +446,7 @@ def _unfurl_explore(
 
         chart_data: dict[str, Any] = {
             "timeSeries": resp.data.get("timeSeries", []),
-            "type": _resolve_display_type(chart_type, y_axes),
+            "type": display_type,
         }
 
         try:
@@ -414,23 +479,31 @@ CHART_TYPE_TO_DISPLAY_TYPE = {
     0: "bar",
     1: "line",
     2: "area",
+    3: "histogram",
 }
+
+# Display types the Slack timeseries renderer can produce. Any chartType that
+# resolves outside this set (e.g. histogram) should not unfurl, since
+# rendering it as a line chart would be misleading.
+SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
 
 # Aggregates that default to bar charts in Explore's determineDefaultChartType.
 # All other aggregates default to line.
 _BAR_AGGREGATES = {"count", "count_unique", "sum"}
 
 
-def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
-    """Return the display type string for the chart.
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str | None:
+    """Return the display type string for the chart, or ``None`` when the
+    URL's chartType isn't recognized.
 
-    Uses the explicit chartType from the URL when present, otherwise
-    mirrors the frontend's ``determineDefaultChartType`` logic which
-    maps count/count_unique/sum aggregates to bar and everything else
-    to line.
+    Uses the explicit chartType from the URL when present, otherwise mirrors
+    the frontend's ``determineDefaultChartType`` logic which maps
+    count/count_unique/sum aggregates to bar and everything else to line.
+    The caller decides whether the resolved type is renderable (see
+    ``SUPPORTED_DISPLAY_TYPES``).
     """
     if chart_type is not None:
-        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "line")
+        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type)
 
     for y_axis in y_axes:
         func_name = y_axis.split("(")[0] if "(" in y_axis else ""

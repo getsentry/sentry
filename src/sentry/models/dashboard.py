@@ -435,23 +435,3 @@ class DashboardRevision(DefaultFieldsModel):
         if old_revision_ids:
             cls.objects.filter(id__in=old_revision_ids).delete()
         return revision
-
-
-@cell_silo_model
-class DashboardLastVisited(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
-
-    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
-    member = FlexibleForeignKey("sentry.OrganizationMember", on_delete=models.CASCADE)
-
-    last_visited = models.DateTimeField(null=False, default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_dashboardlastvisited"
-        constraints = [
-            UniqueConstraint(
-                fields=["member_id", "dashboard_id"],
-                name="sentry_dashboardlastvisited_unique_last_visited_per_org_member",
-            )
-        ]

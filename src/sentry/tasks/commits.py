@@ -24,7 +24,7 @@ from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationResourceNotFoundError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -324,10 +324,15 @@ def fetch_commits_for_ref_with_lifecycle(
     name="sentry.tasks.commits.fetch_commits",
     namespace=issues_tasks,
     processing_deadline_duration=60 * 15 + 5,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(
+        times=5,
+        delay=60 * 5,
+        on=(Exception,),
+        ignore=(Release.DoesNotExist, User.DoesNotExist),
+    ),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(Release.DoesNotExist, User.DoesNotExist),
 )
-@retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(
     release_id: int,
     user_id: int,

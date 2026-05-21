@@ -13,17 +13,18 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
-import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {EntryDebugMeta, Event} from 'sentry/types/event';
@@ -32,7 +33,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {Status} from './debugImage/status';
 import {DebugImage} from './debugImage';
@@ -107,14 +108,16 @@ interface DebugMetaProps {
 type FilterSelections = Array<SelectOption<string>>;
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const [filterSelections, setFilterSelections] = useState<FilterSelections>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [lockHeight, setLockHeight] = useState(false);
+  const {searchTerm, setSearchTerm} = useDebugMetaSearch();
 
   const {allImages, filterOptions} = useMemo(() => {
     const relevant = data.images?.filter((image): image is Image => {
@@ -169,13 +172,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     setFiltersInitialized(true);
   }, [filterOptions, filtersInitialized]);
 
-  useEffect(() => {
-    const unsubscribe = DebugMetaStore.listen((store: {filter: string}) => {
-      setSearchTerm(store.filter);
-    }, undefined);
-    return () => unsubscribe();
-  }, []);
-
   const filteredImages = useMemo(
     () => filterImages(allImages, filterSelections, searchTerm),
     [allImages, filterSelections, searchTerm]
@@ -215,7 +211,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         {modalCss: modalCss(theme)}
       );
     },
-    [event, groupId, organization, projectSlug, theme]
+    [event, groupId, organization, projectSlug, theme, openModal]
   );
 
   if (shouldSkipSection(filteredImages, data.images)) {
@@ -225,18 +221,15 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const showFilters = filterOptions.some(s => 'options' in s && s.options.length > 1);
 
   return (
-    <InterimSection
-      type={SectionKey.DEBUGMETA}
+    <FoldSection
+      sectionKey={SectionKey.DEBUGMETA}
       title={t('Images Loaded')}
-      help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash.'
-      )}
       initialCollapse
     >
       <Fragment>
         <SearchBarAction
           placeholder={t('Search images')}
-          onChange={v => DebugMetaStore.updateFilter(v)}
+          onChange={setSearchTerm}
           query={searchTerm}
           filterOptions={showFilters ? filterOptions : undefined}
           onFilterChange={setFilterSelections}
@@ -325,7 +318,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           )}
         </Container>
       </Fragment>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

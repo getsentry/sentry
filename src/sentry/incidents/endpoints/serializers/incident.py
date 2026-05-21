@@ -1,7 +1,9 @@
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -13,6 +15,8 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentProject
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
@@ -39,10 +43,12 @@ class DetailedIncidentSerializerResponse(IncidentSerializerResponse):
 
 @register(Incident)
 class IncidentSerializer(Serializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand: list[str] | None = None) -> None:
         self.expand = expand or []
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self, item_list: Sequence[Incident], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Incident, Any]:
         prefetch_related_objects(item_list, "alert_rule__snuba_query")
         incident_projects = defaultdict(list)
         for incident_project in IncidentProject.objects.filter(
@@ -76,7 +82,13 @@ class IncidentSerializer(Serializer):
 
         return results
 
-    def serialize(self, obj, attrs, user, **kwargs) -> IncidentSerializerResponse:
+    def serialize(
+        self,
+        obj: Incident,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> IncidentSerializerResponse:
         # Mark that we're using legacy Incident models (which depend on AlertRule)
         report_used_legacy_models()
 
@@ -100,14 +112,20 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
-    def __init__(self, expand=None):
+    def __init__(self, expand: list[str] | None = None) -> None:
         if expand is None:
             expand = []
         if "original_alert_rule" not in expand:
             expand.append("original_alert_rule")
         super().__init__(expand=expand)
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DetailedIncidentSerializerResponse:
+    def serialize(
+        self,
+        obj: Incident,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> DetailedIncidentSerializerResponse:
         base_context = super().serialize(obj, attrs, user)
         # The query we should use to get accurate results in Discover.
         context = DetailedIncidentSerializerResponse(
@@ -116,7 +134,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
         return context
 
-    def _build_discover_query(self, incident) -> str:
+    def _build_discover_query(self, incident: Incident) -> str:
         return apply_dataset_query_conditions(
             SnubaQuery.Type(incident.alert_rule.snuba_query.type),
             incident.alert_rule.snuba_query.query,

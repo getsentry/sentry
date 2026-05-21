@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
-import {Heading} from '@sentry/scraps/text';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
@@ -371,40 +373,61 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     seriesIndex: 0,
   };
 
-  function formatInsightRow(insight: string | FlaggedInsight, index: number): string {
+  function InsightRow({
+    insight,
+    index,
+  }: {
+    index: number;
+    insight: string | FlaggedInsight;
+  }) {
     const key = typeof insight === 'string' ? insight : insight.key;
     const savings = typeof insight === 'string' ? 0 : insight.savings;
-    const savingsHtml =
-      savings > 0
-        ? `<span style="color: ${theme.tokens.content.secondary}; text-align: right; white-space: nowrap; min-width: 68px;">-${formatBytesBase10(savings)}</span>`
-        : '';
-    const bgColor = index % 2 === 0 ? theme.tokens.background.secondary : 'transparent';
 
-    return `<div style="display: flex; align-items: flex-start; justify-content: space-between; padding: 4px; border-radius: 2px; background-color: ${bgColor}; line-height: 1.2; height: 22px; box-sizing: border-box;">
-      <span style="color: ${theme.tokens.content.primary}; white-space: nowrap;">${getInsightConfig(key).name}</span>
-      ${savingsHtml}
-    </div>`;
+    return (
+      <Flex
+        justify="between"
+        align="start"
+        padding="xs"
+        radius="xs"
+        gap="xl"
+        style={{
+          backgroundColor:
+            index % 2 === 0 ? theme.tokens.background.secondary : 'transparent',
+        }}
+      >
+        <Text size="sm">{getInsightConfig(key).name}</Text>
+        {savings > 0 ? (
+          <Text size="sm" variant="muted" style={{whiteSpace: 'nowrap'}}>
+            -{formatBytesBase10(savings)}
+          </Text>
+        ) : null}
+      </Flex>
+    );
   }
 
-  function formatInsightsSection(insights: Array<string | FlaggedInsight>): string {
+  function InsightsSection({insights}: {insights: Array<string | FlaggedInsight>}) {
     if (insights.length === 0) {
-      return '';
+      return null;
     }
 
-    const rows = insights.map(formatInsightRow).join('');
-    // Must be called inside the formatter callback, not at render time.
-    // renderToString uses flushSync which React silently suppresses during render.
-    const iconFixHtml = renderToString(<IconFix size="xs" variant="muted" />);
-
-    return `<div style="border-top: 1px solid ${theme.tokens.border.secondary}; padding-top: 8px;">
-      <div style="display: flex; align-items: center; gap: 6px; padding: 0 4px; margin-bottom: 6px;">
-        ${iconFixHtml}
-        <span style="font-size: 12px; color: ${theme.tokens.content.primary}; line-height: 1.4;">${t('Insights')}</span>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
-        ${rows}
-      </div>
-    </div>`;
+    return (
+      <Stack gap="sm">
+        <Separator orientation="horizontal" padding="0" />
+        <Flex gap="xs" align="center" padding="0 xs">
+          <IconFix size="xs" />
+          <Text size="sm">{t('Insights')}</Text>
+        </Flex>
+        <Stack gap="2xs">
+          {insights.map((insight, index) => (
+            <InsightRow
+              key={typeof insight === 'string' ? insight : insight.key}
+              insight={insight}
+              index={index}
+            />
+          ))}
+        </Stack>
+      </Stack>
+    );
   }
 
   const tooltip: TooltipOption = {
@@ -422,36 +445,43 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     formatter: function (params: any) {
       const value = typeof params.value === 'number' ? params.value : 0;
       const percent = ((value / totalSize) * 100).toFixed(2);
-      const pathHtml = params.data?.path
-        ? `<div style="font-size: 12px; color: ${theme.tokens.content.secondary}; line-height: 1.2;">${params.data.path}</div>`
-        : '';
-      const scaleHtml = params.data?.misc?.scale
-        ? `<span style="font-size: 10px; background-color: ${theme.tokens.background.secondary}; color: ${theme.tokens.content.primary}; padding: 4px; border-radius: 3px; font-weight: normal;">@${params.data.misc.scale}x</span>`
-        : '';
-
       const dotColor = params.data?.itemStyle?.borderColor ?? theme.tokens.border.primary;
       const category = params.data?.category ?? 'Other';
-      const insightsHtml = formatInsightsSection(params.data?.flagged_insights ?? []);
+      const insights: Array<string | FlaggedInsight> =
+        params.data?.flagged_insights ?? [];
 
-      return `
-        <div style="font-family: Rubik; white-space: normal; line-height: 1.2; display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; flex-direction: column; gap: 6px; padding: 0 4px;">
-            <div style="display: flex; align-items: center; font-size: 12px; font-weight: 500; line-height: 1.2; gap: 4px;">
-              <span style="display: inline-block; flex: 0 0 6px; width: 6px; height: 6px; min-width: 6px; max-width: 6px; border-radius: 50%; background-color: ${dotColor};"></span>
-              <span style="color: ${theme.tokens.content.primary}; white-space: nowrap;">${category}</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px;">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 14px; font-weight: 500; line-height: 1.2; color: ${theme.tokens.content.primary};">${params.name}</span>
-                ${scaleHtml}
-              </div>
-              ${pathHtml}
-              <div style="font-size: 12px; color: ${theme.tokens.content.secondary}; line-height: 1.2;">${formatBytesBase10(value)} ( ${percent}% )</div>
-            </div>
-          </div>
-          ${insightsHtml}
-        </div>
-      `.trim();
+      return renderToString(
+        <Stack gap="md" padding="xs">
+          <Flex gap="xs" align="center">
+            <Container
+              as="span"
+              display="inline-block"
+              width="6px"
+              height="6px"
+              radius="full"
+              style={{backgroundColor: dotColor}}
+            />
+            <Text size="sm">{category}</Text>
+          </Flex>
+          <Stack gap="2xs">
+            <Flex gap="sm" align="baseline">
+              <Text bold>{params.name}</Text>
+              {params.data?.misc?.scale ? (
+                <Tag variant="muted">@{params.data.misc.scale}x</Tag>
+              ) : null}
+            </Flex>
+            {params.data?.path ? (
+              <Text size="sm" variant="muted">
+                {params.data.path}
+              </Text>
+            ) : null}
+            <Text size="sm" variant="muted">
+              {formatBytesBase10(value)} ( {percent}% )
+            </Text>
+          </Stack>
+          <InsightsSection insights={insights} />
+        </Stack>
+      );
     },
   };
 

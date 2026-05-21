@@ -83,6 +83,16 @@ export const useOpenSeerDrawer = ({
         );
       },
     });
+
+    if (locationRef.current.query.seerDrawer !== 'true') {
+      navigate({
+        pathname: locationRef.current.pathname,
+        query: {
+          ...locationRef.current.query,
+          seerDrawer: true,
+        },
+      });
+    }
   }, [openDrawer, event, group, project, navigate, organization]);
 
   return {openSeerDrawer};

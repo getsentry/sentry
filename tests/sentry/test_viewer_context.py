@@ -225,3 +225,36 @@ class TestObserve:
         with viewer_context_scope(ctx):
             observe_viewer_context_propagation("rpc_inbound")
         assert all(r.message != "viewer_context.missing" for r in caplog.records)
+
+    def test_extra_attributes_merged_into_metric_tags(self, patch_metrics):
+        observe_viewer_context_propagation(
+            "seer_rpc_in", extra_attributes={"method": "get_organization_slug"}
+        )
+        tags = self._tags(patch_metrics)
+        assert tags["point"] == "seer_rpc_in"
+        assert tags["method"] == "get_organization_slug"
+
+    def test_extra_attributes_cannot_override_fixed_tags(self, patch_metrics):
+        # Fixed tags must take precedence so callers can't accidentally swap
+        # `point` or `actor_type` and corrupt the metric's cardinality story.
+        ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            observe_viewer_context_propagation(
+                "seer_rpc_in",
+                extra_attributes={"point": "hijacked", "method": "real_method"},
+            )
+        tags = self._tags(patch_metrics)
+        assert tags["point"] == "seer_rpc_in"
+        assert tags["method"] == "real_method"
+
+    def test_extra_attributes_propagate_to_missing_log(self, patch_metrics, caplog):
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="sentry.viewer_context"):
+            observe_viewer_context_propagation(
+                "seer_rpc_in", extra_attributes={"method": "ghost_method"}
+            )
+        missing_records = [r for r in caplog.records if r.message == "viewer_context.missing"]
+        assert len(missing_records) == 1
+        assert missing_records[0].method == "ghost_method"
+        assert missing_records[0].point == "seer_rpc_in"

@@ -1,9 +1,18 @@
+from collections.abc import Sequence
+
+from django.db.models import QuerySet
+from rest_framework.request import Request
+
 from sentry.api.helpers.teams import get_teams
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.workflow_engine.models.data_condition import Condition
 
 
-def parse_team_params(request, organization, teams):
+def parse_team_params(
+    request: Request, organization: Organization, teams: Sequence[str]
+) -> tuple[QuerySet[Team], bool]:
     teams_set = set(teams)
 
     unassigned = False
@@ -11,9 +20,9 @@ def parse_team_params(request, organization, teams):
         teams_set.remove("unassigned")
         unassigned = True
 
-    teams = get_teams(request, organization, teams=teams_set)
+    resolved_teams = get_teams(request, organization, teams=teams_set)
 
-    return (teams, unassigned)
+    return (resolved_teams, unassigned)
 
 
 threshold_translators = {

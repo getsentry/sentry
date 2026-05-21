@@ -12,9 +12,9 @@ import {
   FieldGroup as FormFieldGroup,
   FormSearch,
 } from '@sentry/scraps/form';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -60,6 +60,8 @@ const schema = z.object({
 });
 
 function ApiApplicationsDetails() {
+  const {openModal} = useModal();
+
   const api = useApi();
   const {appId} = useParams<{appId: string}>();
   const queryClient = useQueryClient();

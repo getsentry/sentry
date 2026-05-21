@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -81,7 +81,7 @@ function SegmentedIssueViewSaveButton({
   return (
     <Feature
       features="organizations:issue-views"
-      hookName="feature-disabled:issue-views"
+      overrideName="feature-disabled:issue-views"
       renderDisabled={props => (
         <Hovercard
           body={
@@ -154,6 +154,8 @@ function SegmentedIssueViewSaveButton({
 }
 
 export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
+  const {openModal} = useModal();
+
   const {viewId} = useParams();
   const {selection} = usePageFilters();
   const {data: view} = useSelectedGroupSearchView();
@@ -179,7 +181,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     return (
       <Feature
         features="organizations:issue-views"
-        hookName="feature-disabled:issue-views"
+        overrideName="feature-disabled:issue-views"
         renderDisabled={props => (
           <Hovercard
             body={

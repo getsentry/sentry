@@ -31,20 +31,8 @@ CUSTOM_SOURCE_CONFIG = """
 
 
 @django_db_all
-def test_sources_no_feature(default_project) -> None:
-    features = {"organizations:symbol-sources": False, "organizations:custom-symbol-sources": False}
-
-    with Feature(features):
-        sources = get_sources_for_project(default_project)
-
-    assert len(sources) == 1
-    assert sources[0]["type"] == "sentry"
-    assert sources[0]["id"] == "sentry:project"
-
-
-@django_db_all
 def test_sources_builtin(default_project) -> None:
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+    features = {"organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", ["microsoft"])
 
@@ -60,7 +48,7 @@ def test_sources_builtin(default_project) -> None:
 # not lead to an error. It should simply be ignored.
 @django_db_all
 def test_sources_builtin_unknown(default_project) -> None:
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+    features = {"organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", ["invalid"])
 
@@ -71,24 +59,9 @@ def test_sources_builtin_unknown(default_project) -> None:
     assert source_ids == ["sentry:project"]
 
 
-# Test that previously saved builtin sources are not returned if the feature for
-# builtin sources is missing at query time.
-@django_db_all
-def test_sources_builtin_disabled(default_project) -> None:
-    features = {"organizations:symbol-sources": False, "organizations:custom-symbol-sources": False}
-
-    default_project.update_option("sentry:builtin_symbol_sources", ["microsoft"])
-
-    with Feature(features):
-        sources = get_sources_for_project(default_project)
-
-    source_ids = list(map(lambda s: s["id"], sources))
-    assert source_ids == ["sentry:project"]
-
-
 @django_db_all
 def test_sources_custom(default_project) -> None:
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+    features = {"organizations:custom-symbol-sources": True}
 
     # Remove builtin sources explicitly to avoid defaults
     default_project.update_option("sentry:builtin_symbol_sources", [])
@@ -107,7 +80,7 @@ def test_sources_custom(default_project) -> None:
 # custom sources is missing at query time.
 @django_db_all
 def test_sources_custom_disabled(default_project) -> None:
-    features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
+    features = {"organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", [])
     default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)

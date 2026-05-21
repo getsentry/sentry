@@ -56,8 +56,6 @@ class TestControlOrganizationProvisioningBase(TestCase):
                 name=name,
                 slug=slug,
                 owner=rpc_user,
-                owning_user_id=rpc_user.id,
-                owning_email=rpc_user.email,
                 create_default_team=default_team,
                 is_test=False,
             ),
@@ -201,8 +199,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         test_org_slug_reservation = self.provision_organization()
 
         new_user = self.create_user()
+        new_user_rpc = serialize_generic_user(new_user)
+        assert new_user_rpc
+
         conflicting_slug = "foobar"
-        self.provisioning_args.provision_options.owning_user_id = new_user.id
+        self.provisioning_args.provision_options.owner = new_user_rpc
         self.provisioning_args.provision_options.slug = conflicting_slug
         org_slug_res_with_conflict = self.provision_organization()
 
@@ -236,8 +237,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         original_slug = test_org_slug_reservation.slug
 
         new_user = self.create_user()
+        new_user_rpc = serialize_generic_user(new_user)
+        assert new_user_rpc
+
         conflicting_slug = "foobar"
-        self.provisioning_args.provision_options.owning_user_id = new_user.id
+        self.provisioning_args.provision_options.owner = new_user_rpc
         self.provisioning_args.provision_options.slug = conflicting_slug
         org_with_conflicting_slug = self.provision_organization()
 
@@ -263,8 +267,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         original_slug = org_reservation.slug
 
         conflicting_owner = self.create_user()
+        conflicting_owner_rpc = serialize_generic_user(conflicting_owner)
+        assert conflicting_owner_rpc
+
         conflicting_slug = "conflicty"
-        self.provisioning_args.provision_options.owning_user_id = conflicting_owner.id
+        self.provisioning_args.provision_options.owner = conflicting_owner_rpc
         self.provisioning_args.provision_options.slug = conflicting_slug
         conflicting_slug_reservation = self.provision_organization(cell_name="de")
 

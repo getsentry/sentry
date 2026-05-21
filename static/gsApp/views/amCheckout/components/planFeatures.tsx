@@ -206,7 +206,7 @@ function MonitoringAndDataFeatures({
     Record<FeatureKey | DataCategory, Omit<FeatureInfo, 'key'>>
   > = {
     alerts: {
-      displayStringSuffix: t(' metric alerts'),
+      displayStringSuffix: t(' Metric Monitors'),
       displayStringMap: {},
     },
     dashboards: {
@@ -264,7 +264,7 @@ function MonitoringAndDataFeatures({
     const {metricDetectorLimit, dashboardLimit} = plan;
     const formattedMetricDetectorLimit =
       metricDetectorLimit === UNLIMITED_RESERVED
-        ? t('Unlimited')
+        ? t('1,000')
         : metricDetectorLimit.toString();
     const formattedDashboardLimit =
       dashboardLimit === UNLIMITED_RESERVED ? t('Unlimited') : dashboardLimit.toString();

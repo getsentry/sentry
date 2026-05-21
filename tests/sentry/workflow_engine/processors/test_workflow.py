@@ -15,13 +15,9 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
-from sentry.workflow_engine.processors.contexts.workflow_event_context import (
-    WorkflowEventContext,
-    WorkflowEventContextData,
-)
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     TriggerResult,
@@ -201,8 +197,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
             event_id=self.event.event_id,
         )
 
+    @patch("sentry.workflow_engine.processors.action.fire_actions")
     @patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
-    def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
+    def test_populate_workflow_env_for_filters(
+        self, mock_filter: MagicMock, mock_fire_actions: MagicMock
+    ) -> None:
+        action = self.create_action()
+        mock_filter.return_value = (Action.objects.filter(id=action.id), {action.id: 1})
+
         # this should not pass because the environment is not None
         self.error_workflow.update(environment=self.group_event.get_environment())
         error_workflow_filters = self.create_data_condition_group(
@@ -478,28 +480,6 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             {self.workflow}, self.event_data, self.event_start_time
         )
         assert set(triggered_workflows.keys()) == {self.workflow}
-
-    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
-        ctx_token = WorkflowEventContext.set(
-            WorkflowEventContextData(
-                detector=self.detector,
-            )
-        )
-        evaluate_workflow_triggers({self.workflow}, self.event_data, self.event_start_time)
-        mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.workflow_triggered",
-            extra={
-                "workflow_id": self.workflow.id,
-                "detector_id": self.detector.id,
-                "organization_id": self.workflow.organization.id,
-                "project_id": self.event_data.group.project.id,
-                "group_type": self.event_data.group.type,
-            },
-        )
-
-        WorkflowEventContext.reset(ctx_token)
 
     def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group

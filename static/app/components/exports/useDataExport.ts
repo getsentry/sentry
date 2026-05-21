@@ -5,6 +5,7 @@ import type {ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
@@ -28,6 +29,7 @@ export interface DataExportPayload {
   queryType: ExportQueryType;
 
   format?: DataExportFormat;
+  limit?: number;
 }
 
 interface UseDataExportOptions {
@@ -84,7 +86,7 @@ export function useDataExport({
   const api = useApi();
 
   return useCallback(
-    async ({format = 'csv', queryInfo, queryType}: DataExportPayload) => {
+    async ({format = 'csv', limit, queryInfo, queryType}: DataExportPayload) => {
       inProgressCallback?.(true);
 
       const result = await api
@@ -97,6 +99,7 @@ export function useDataExport({
             method: 'POST',
             data: {
               format,
+              limit,
               query_info: queryInfo,
               query_type: queryType,
             },
@@ -112,13 +115,18 @@ export function useDataExport({
           if (unmountedRef?.current) {
             return;
           }
-          const message =
-            error?.responseJSON?.detail ??
-            t(
-              "We tried our hardest, but we couldn't export your data. Give it another go."
+          if (
+            error instanceof RequestError &&
+            typeof error.responseJSON?.detail === 'string'
+          ) {
+            addErrorMessage(error.responseJSON.detail);
+          } else {
+            addErrorMessage(
+              t(
+                "We tried our hardest, but we couldn't export your data. Try waiting a minute then giving it another go."
+              )
             );
-
-          addErrorMessage(message);
+          }
           inProgressCallback?.(false);
         });
 

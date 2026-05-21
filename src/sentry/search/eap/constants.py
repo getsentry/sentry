@@ -75,7 +75,15 @@ SearchType = (
     SizeUnit
     | DurationUnit
     | Literal[
-        "duration", "integer", "number", "percentage", "string", "boolean", "rate", "currency"
+        "duration",
+        "integer",
+        "number",
+        "percentage",
+        "string",
+        "boolean",
+        "rate",
+        "currency",
+        "array",
     ]
 )
 
@@ -128,6 +136,7 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "string": STRING,
     "boolean": BOOLEAN,
     "currency": DOUBLE,
+    "array": ARRAY,
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py

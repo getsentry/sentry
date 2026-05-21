@@ -3,6 +3,8 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {useApi} from 'sentry/utils/useApi';
@@ -57,7 +59,7 @@ export function DebounceSearch({
       if (value) {
         try {
           const queryParams = {
-            query: [queryParam, value].filter(v => v).join(':'),
+            query: [queryParam, value].filter(Boolean).join(':'),
             per_page: 10,
           };
           const results = await api.requestPromise(searchPath, {
@@ -145,11 +147,11 @@ export function DebounceSearch({
           style={error ? {border: '1px solid red'} : {}}
         />
       </div>
-      <SearchResults>
+      <Container marginBottom="xl">
         {loading && <LoadingIndicator />}
         {!loading && showResults && queryResults.map(renderSuggestion)}
         {!loading && showResults && !queryResults.length && <Card>No results found</Card>}
-      </SearchResults>
+      </Container>
       {error && <Error>{error}</Error>}
     </div>
   );
@@ -167,9 +169,6 @@ const Card = styled('div')<{highlight?: boolean}>`
 `;
 const Error = styled('div')`
   color: red;
-`;
-const SearchResults = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 const SuggestionCard = styled(Card)`
   &:hover {

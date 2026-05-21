@@ -80,7 +80,7 @@ export default function DetectorNew() {
           )}
           <Text as="p" size="md" variant="muted">
             {tct(
-              'Monitors detect problems in your application and send alerts when they occur. [docsLink:Read the Docs].',
+              'Monitors detect problems in your application and create Sentry Issues. [docsLink:Read the Docs].',
               {
                 docsLink: (
                   <ExternalLink href="https://docs.sentry.io/product/new-monitors-and-alerts/monitors/" />

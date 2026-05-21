@@ -10,7 +10,6 @@ from typing import Any, Literal, NamedTuple, NotRequired, Optional, Self, TypedD
 
 from django.utils.functional import cached_property
 
-from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
@@ -564,13 +563,6 @@ def should_use_on_demand_metrics_for_querying(organization: Organization, **kwar
 
     if function in OPS_DISALLOWED:
         return False
-
-    supported_by = _query_supported_by(**kwargs)
-    if (
-        features.has("organizations:on-demand-gen-metrics-deprecation-query-prefill", organization)
-        and supported_by.on_demand_metrics
-    ):
-        return True
 
     return should_use_on_demand_metrics(**kwargs)
 

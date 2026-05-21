@@ -7,8 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
+import {closeModal, openEditOwnershipRules} from 'sentry/actionCreators/modal';
 import {Access, hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -26,7 +27,6 @@ import {
 } from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
@@ -41,6 +41,8 @@ const ownershipSchema = z.object({
 });
 
 export default function ProjectOwnership() {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -116,8 +118,6 @@ export default function ProjectOwnership() {
     ));
   };
 
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  const buttonSize = hasPageFrameFeature ? 'md' : 'sm';
   const disabled = !hasEveryAccess(['project:write'], {organization, project});
   const editOwnershipRulesDisabled = !hasEveryAccess(['project:read'], {
     organization,
@@ -145,7 +145,7 @@ export default function ProjectOwnership() {
           {({hasAccess}) => (
             <Button
               onClick={handleAddCodeOwner}
-              size={buttonSize}
+              size="md"
               data-test-id="add-codeowner-button"
               disabled={!hasAccess}
             >
@@ -156,7 +156,7 @@ export default function ProjectOwnership() {
       )}
       <Button
         type="button"
-        size={buttonSize}
+        size="md"
         icon={<IconEdit />}
         variant="primary"
         onClick={() =>
@@ -188,7 +188,6 @@ export default function ProjectOwnership() {
               ),
             }
           )}
-          action={!hasPageFrameFeature && actionButtons}
         />
         <ProjectPermissionAlert
           access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
@@ -213,7 +212,7 @@ export default function ProjectOwnership() {
             <OwnershipRulesTable
               projectRules={ownership.schema?.rules ?? []}
               codeowners={codeowners ?? []}
-              actions={hasPageFrameFeature ? actionButtons : undefined}
+              actions={actionButtons}
             />
           </ErrorBoundary>
         )}

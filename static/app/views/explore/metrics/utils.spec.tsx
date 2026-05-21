@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
+  createTraceMetricEventsFilter,
   getEquationMetricsTotalFilter,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
@@ -265,6 +266,28 @@ describe('getEquationMetricsTotalFilter', () => {
     const result = getEquationMetricsTotalFilter(equation);
     expect(result).toBe(
       '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
+});
+
+describe('createTraceMetricEventsFilter', () => {
+  it('matches both !has:metric.unit and metric.unit:none when unit is absent', () => {
+    const result = createTraceMetricEventsFilter([
+      {name: 'chat.message_sent', type: 'counter'},
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
+
+  it('treats the legacy dash unit sentinel as no unit', () => {
+    const result = createTraceMetricEventsFilter([
+      {name: 'chat.message_sent', type: 'counter', unit: '-'},
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
     );
   });
 });

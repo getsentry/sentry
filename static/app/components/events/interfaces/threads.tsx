@@ -37,8 +37,8 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -402,15 +402,15 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
-    <InterimSection
+    <FoldSection
+      sectionKey={SectionKey.STACKTRACE}
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={SectionKey.STACKTRACE}
       disableCollapsePersistence
     >
       <Flex direction="column" gap="xl">
         {threadComponent}
       </Flex>
-    </InterimSection>
+    </FoldSection>
   ) : (
     threadComponent
   );

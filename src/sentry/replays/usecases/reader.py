@@ -255,7 +255,7 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
     yield b"["
 
     for i, segment in iter_segment_data(segments):
-        yield segment
+        yield segment.tobytes()
         if i < len(segments) - 1:
             yield b","
 
@@ -277,14 +277,14 @@ def iter_segment_data(
 
 def download_segment(segment: RecordingSegmentStorageMeta, span: Any) -> bytes:
     results = _download_segment(segment)
-    return results[1] if results is not None else b"[]"
+    return results[1].tobytes() if results is not None else b"[]"
 
 
 def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
     result = _download_segment(segment)
     if result is not None:
         video, _ = result
-        return video
+        return video.tobytes() if video is not None else None
     return None
 
 

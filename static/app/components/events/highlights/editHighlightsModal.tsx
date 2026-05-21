@@ -25,7 +25,7 @@ import {
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,8 +35,8 @@ export interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;
   highlightContext: HighlightContext;
   highlightTags: HighlightTags;
-  project: Project;
-  highlightPreset?: Project['highlightPreset'];
+  project: DetailedProject;
+  highlightPreset?: DetailedProject['highlightPreset'];
 }
 
 interface EditPreviewHighlightSectionProps {
@@ -45,7 +45,7 @@ interface EditPreviewHighlightSectionProps {
   highlightTags: HighlightTags;
   onRemoveContextKey: (contextType: string, contextKey: string) => void;
   onRemoveTag: (tagKey: string) => void;
-  project: Project;
+  project: DetailedProject;
 }
 
 function EditPreviewHighlightSection({

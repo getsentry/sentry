@@ -7,7 +7,9 @@ import {Text} from '@sentry/scraps/text';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
 import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -21,6 +23,7 @@ interface MessagesPanelProps {
 }
 
 export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPanelProps) {
+  const organization = useOrganization();
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const [clickedMessageId, setClickedMessageId] = useState<string | null>(null);
 
@@ -50,13 +53,16 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   const handleMessageClick = useCallback(
     (message: ConversationMessage) => {
+      trackAnalytics('conversations.message.click', {
+        organization,
+      });
       setClickedMessageId(message.id);
       const node = nodeMap.get(message.nodeId);
       if (node) {
         onSelectNode(node);
       }
     },
-    [nodeMap, onSelectNode]
+    [nodeMap, onSelectNode, organization]
   );
 
   if (messages.length === 0) {

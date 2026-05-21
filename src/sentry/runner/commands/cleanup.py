@@ -683,7 +683,6 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.pullrequest import PullRequest
     from sentry.models.release import Release
-    from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
@@ -699,7 +698,6 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (GroupRuleStatus, "date_added", "date_added"),
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
-        (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),

@@ -347,7 +347,7 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
   if (!maybe || maybe.length === 0) {
     return false;
   }
-  return (maybe as GroupedOptionsType<OptionType>)[0]!.options !== undefined;
+  return (maybe as GroupedOptionsType<OptionType>)[0]?.options !== undefined;
 }
 
 function MultiValueRemove(
@@ -486,7 +486,7 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
        * Because this type is embedded in the OptionType generic we
        * can't have a good type here.
        */
-      value?: any;
+      value?: unknown;
     };
 
 // TODO(ts) The exported component uses forwardRef.
@@ -496,10 +496,10 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
 export type GeneralSelectValue = SelectValue<any>;
 
 export function Select<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  p: ControlProps<OptionType>
+  props: ControlProps<OptionType>
 ) {
-  // todo(tkdodo): typing `p` and keeping `any` localized avoids leaking it
-  const props = p as any;
+  // todo(tkdodo): typing `anyProps` and keeping `any` localized avoids leaking it
+  const anyProps = props as any;
   const theme = useTheme();
   const {size, maxMenuWidth, isInsideModal} = props;
 
@@ -522,7 +522,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.colors.gray800,
       fontWeight: 600,
-      marginRight: selectSpacing[p.size ?? 'md'],
+      marginRight: selectSpacing[props.size ?? 'md'],
     },
   });
 
@@ -565,12 +565,9 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
      * because the select component fetches the options finding the mappedValue will fail
      * and the component won't work
      */
-    let flatOptions: any[] = [];
-    if (isGroupedOptions<OptionType>(choicesOrOptions)) {
-      flatOptions = choicesOrOptions.flatMap(option => option.options);
-    } else {
-      flatOptions = choicesOrOptions.flatMap((option: any) => option);
-    }
+    const flatOptions = isGroupedOptions(choicesOrOptions)
+      ? choicesOrOptions.flatMap(option => option.options)
+      : choicesOrOptions.flatMap(option => option);
 
     const compare = (
       a: OptionType['value'] | null | undefined,
@@ -584,8 +581,12 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
 
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => compare(option.value, val)))
-        : flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
+        ? value.map((val: OptionType['value'] | null | undefined) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            flatOptions.find(option => compare(option.value, val))
+          )
+        : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
   }
 
   // Override the default style with in-field labels if they are provided
@@ -624,27 +625,28 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   const filterOptions = createFilter({
     // Use `textValue` if available
-    stringify: option => option.data.textValue ?? `${option.label} ${option.value}`,
+    stringify: (option: OptionType & {data: {textValue?: string}; label: string}) =>
+      option.data.textValue ?? `${option.label} ${option.value}`,
   });
 
   return (
     <SelectPicker<OptionType>
       filterOption={filterOptions}
       styles={mappedStyles}
-      components={replacedComponents}
+      components={replacedComponents as never}
       async={async}
       creatable={creatable}
       isClearable={clearable}
       backspaceRemovesValue={clearable}
       value={mappedValue}
-      isMulti={props.multiple || props.multi}
+      isMulti={props.multiple || anyProps.multi}
       isDisabled={props.isDisabled || props.disabled}
-      isOptionDisabled={(opt: any) => !!opt.disabled}
+      isOptionDisabled={opt => !!opt.disabled}
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus}
-      blurInputOnSelect={!props.multiple && !props.multi}
-      closeMenuOnSelect={!(props.multiple || props.multi)}
+      blurInputOnSelect={!props.multiple && !anyProps.multi}
+      closeMenuOnSelect={!(props.multiple || anyProps.multi)}
       hideSelectedOptions={false}
       tabSelectsValue={false}
       {...rest}

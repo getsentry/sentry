@@ -7,6 +7,7 @@ from sentry.seer.agent.client_models import (
     FilePatch,
     MemoryBlock,
     Message,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import AutofixStep
@@ -20,6 +21,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
@@ -254,6 +256,69 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             state=state,
         )
 
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_push_changes_skips_when_all_unsynced_repos_errored(self, mock_push_changes):
+        """Does not re-push when every un-synced repo is already in pr_creation_status='error'."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+                pr_creation_error="No write access to repository test-repo",
+            )
+        }
+        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        mock_push_changes.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_push_changes_pushes_when_any_unsynced_repo_not_errored(self, mock_push_changes):
+        """Still pushes when a repo with diffs has no PR state yet (e.g. newly added)."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+                MemoryBlock(
+                    id="block-code-changes-2",
+                    message=Message(
+                        role="assistant",
+                        content="more code changes",
+                        metadata={"step": "code_changes"},
+                    ),
+                    timestamp="2026-02-10T00:00:00Z",
+                    merged_file_patches=[
+                        AgentFilePatch(
+                            repo_name="other-repo",
+                            patch=FilePatch(path="x.py", type="M", added=1, removed=0),
+                        )
+                    ],
+                ),
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+                pr_creation_error="No write access to repository test-repo",
+            )
+        }
+        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        mock_push_changes.assert_called_once()
+
 
 class TestPipelineConstants(TestCase):
     """Tests for pipeline constants."""
@@ -442,7 +507,11 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         mock_trigger_handoff.return_value = {"successes": [], "failures": []}
 
         state = run_state(
-            blocks=[root_cause_memory_block()],
+            blocks=[
+                root_cause_memory_block(
+                    referrer=AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value
+                )
+            ],
             metadata={
                 "group_id": self.group.id,
                 "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
@@ -452,6 +521,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_trigger_handoff.assert_called_once()
+        assert (
+            mock_trigger_handoff.call_args.kwargs["referrer"]
+            == AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY
+        )
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_clears_preference_on_not_found(self, mock_trigger):
@@ -487,12 +560,14 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             run_id=123,
             group=self.group,
             handoff_config=handoff_config,
+            referrer=AutofixReferrer.NIGHT_SHIFT,
         )
 
         mock_trigger.assert_called_once()
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
+        assert call_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
 
 
 class AutofixOnCompletionHookTest(TestCase):
@@ -532,6 +607,12 @@ class AutofixOnCompletionHookTest(TestCase):
         self.organization.update_option("sentry:enable_seer_coding", True)
         group = self.create_group(project=self.project)
 
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            last_triggered_at=before_now(days=1),
+        )
+
         # Mock run state: SOLUTION step just completed
         state = run_state(
             blocks=[solution_memory_block()],
@@ -551,3 +632,7 @@ class AutofixOnCompletionHookTest(TestCase):
         assert call_kwargs["step"] == AutofixStep.CODE_CHANGES
         assert call_kwargs["group"] == group
         assert call_kwargs["run_id"] == 123
+
+        seer_run.refresh_from_db()
+        group.refresh_from_db()
+        assert seer_run.last_triggered_at == group.seer_explorer_autofix_last_triggered

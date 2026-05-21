@@ -1,3 +1,4 @@
+import {partialMatchKey} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -110,11 +111,12 @@ describe('detectorListApiOptions', () => {
     it('produces a prefix key that matches all detector list queries', () => {
       const prefixKey = allDetectorListsQueryKey(organization);
 
-      // Should be a 2-element key (no options) so it prefix-matches everything
-      expect(prefixKey).toHaveLength(2);
+      // Should be a 3-element key (empty options) so it prefix-matches everything
+      expect(prefixKey).toHaveLength(3);
       expect(prefixKey).toEqual([
-        {infinite: false, version: 'v2'},
         `/organizations/${organization.slug}/detectors/`,
+        {},
+        {infinite: false},
       ]);
     });
 
@@ -125,9 +127,9 @@ describe('detectorListApiOptions', () => {
       }).queryKey;
       const defaultKey = detectorListApiOptions(organization).queryKey;
 
-      // The prefix (first 2 elements) should match both
-      expect(uptimeKey.slice(0, 2)).toEqual(prefixKey);
-      expect(defaultKey.slice(0, 2)).toEqual(prefixKey);
+      // The prefix should match both
+      expect(partialMatchKey(uptimeKey, prefixKey)).toBe(true);
+      expect(partialMatchKey(defaultKey, prefixKey)).toBe(true);
     });
   });
 });

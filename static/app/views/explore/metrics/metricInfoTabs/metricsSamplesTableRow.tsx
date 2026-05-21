@@ -5,11 +5,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
@@ -19,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
   ExpandedRowContainer,
@@ -39,11 +43,72 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const VALUE_COLUMN_MIN_WIDTH = '50px';
+const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-metrics-samples-table-similar-spans';
+
+const getExtraMenuItems = ({
+  embedded,
+  field,
+  organization,
+  row,
+  selection,
+}: {
+  embedded: boolean;
+  field: SampleTableColumnKey;
+  organization: Organization;
+  row: TraceMetricEventsResponseItem;
+  selection: PageFilters;
+}): MenuItemProps[] | undefined => {
+  if (!embedded || field !== TraceMetricKnownFieldKey.METRIC_NAME) {
+    return undefined;
+  }
+
+  const metricName = row[TraceMetricKnownFieldKey.METRIC_NAME];
+  const metricType = row[TraceMetricKnownFieldKey.METRIC_TYPE];
+  if (metricName.length === 0 || metricType.length === 0) {
+    return undefined;
+  }
+
+  const metricUnit = row[TraceMetricKnownFieldKey.METRIC_UNIT];
+  const metric = {
+    name: metricName,
+    type: metricType,
+    unit: metricUnit?.length > 0 ? metricUnit : undefined,
+  };
+
+  return [
+    {
+      key: 'explore-similar-spans',
+      label: t('Explore similar spans'),
+      to: getExploreUrl({
+        organization,
+        mode: Mode.SAMPLES,
+        referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+        selection: {
+          ...selection,
+          datetime: {
+            period: '24h',
+            start: null,
+            end: null,
+            utc: selection.datetime.utc,
+          },
+        },
+        crossEvents: [
+          {
+            type: 'metrics',
+            query: '',
+            metric,
+          },
+        ],
+      }),
+    },
+  ];
+};
 
 interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
@@ -189,6 +254,13 @@ export function SampleTableRow({
         data={row}
         unit={meta?.units?.[field]}
         meta={meta}
+        extraMenuItems={getExtraMenuItems({
+          embedded,
+          field,
+          organization,
+          row,
+          selection,
+        })}
       />
     );
   };

@@ -70,7 +70,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     metricAlertsThreadFlag: false,
     openMembership: false,
     pendingAccessRequests: 0,
-    targetSampleRate: 1.0,
+    targetSampleRate: 1,
     quota: {
       accountLimit: null,
       maxRate: null,

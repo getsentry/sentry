@@ -21,6 +21,7 @@ import {
   isSolutionArtifact,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
@@ -49,7 +50,7 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
           <Text>{t('Finding the root cause\u2026')}</Text>
         </Flex>
       ) : artifact?.data ? (
-        <Text>{artifact.data.one_line_description}</Text>
+        <StyledMarkedText text={artifact.data.one_line_description} />
       ) : (
         <Text variant="muted">
           {t(
@@ -75,7 +76,7 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
           <Text>{t('Formulating a plan\u2026')}</Text>
         </Flex>
       ) : artifact?.data ? (
-        <Text>{artifact.data.one_line_summary}</Text>
+        <StyledMarkedText text={artifact.data.one_line_summary} />
       ) : (
         <Text variant="muted">
           {t('Seer failed to generate a plan. This one is on us. Try running it again.')}

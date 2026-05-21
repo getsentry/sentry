@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {type ReactNode, useCallback} from 'react';
 import {flushSync} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 import {ThemeProvider, useTheme} from '@emotion/react';
@@ -21,6 +21,9 @@ const renderToString = (tree: ReactNode) => {
 export const useRenderToString = () => {
   const theme = useTheme();
 
-  return (tree: ReactNode) =>
-    renderToString(<ThemeProvider theme={theme}>{tree}</ThemeProvider>);
+  return useCallback(
+    (tree: ReactNode) =>
+      renderToString(<ThemeProvider theme={theme}>{tree}</ThemeProvider>),
+    [theme]
+  );
 };

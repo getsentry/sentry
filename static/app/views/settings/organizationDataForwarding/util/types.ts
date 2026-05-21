@@ -26,7 +26,8 @@ interface DataForwarderProject {
 }
 
 export interface DataForwarder {
-  config: Record<string, any>;
+  // A `null` config indicates the observing user lacks permission to manage/view the config.
+  config: Record<string, any> | null;
   enrollNewProjects: boolean;
   enrolledProjects: Array<Required<AvatarProject>>;
   id: string;

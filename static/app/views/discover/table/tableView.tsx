@@ -6,9 +6,9 @@ import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
@@ -104,6 +104,8 @@ type TableViewProps = {
  * object. The new EventView object is pushed to the location object.
  */
 export function TableView(props: TableViewProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const navigate = useNavigate();
   const {projects} = useProjects();
@@ -179,7 +181,7 @@ export function TableView(props: TableViewProps) {
 
       if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
-        value = fieldRenderer(dataRow, {organization, location, theme});
+        value = fieldRenderer(dataRow, {navigate, organization, location, theme});
       }
 
       let target: any;
@@ -310,7 +312,7 @@ export function TableView(props: TableViewProps) {
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     const unit = tableData.meta.units?.[columnKey];
-    let cell = fieldRenderer(dataRow, {organization, location, unit, theme});
+    let cell = fieldRenderer(dataRow, {navigate, organization, location, unit, theme});
 
     const isTransactionsDataset =
       hasDatasetSelector(organization) &&

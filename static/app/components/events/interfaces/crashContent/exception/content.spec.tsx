@@ -7,7 +7,7 @@ import {
 import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
@@ -16,15 +16,13 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
-import {LineCoverageProvider} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
-import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
+  const project = DetailedProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
@@ -42,7 +40,7 @@ describe('Exception Content', () => {
   });
 
   it('display redacted values from exception entry', async () => {
-    const projectDetails = ProjectFixture({
+    const projectDetails = DetailedProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
@@ -523,97 +521,6 @@ describe('Exception Content', () => {
         screen.queryByRole('button', {name: 'Collapse Section'})
       ).not.toBeInTheDocument();
       expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(4);
-    });
-  });
-
-  describe('line coverage', () => {
-    it('shows line coverage legend when coverage data is available', async () => {
-      const orgWithCodecov = OrganizationFixture({codecovAccess: true});
-      const event = EventFixture({
-        projectID: project.id,
-        entries: [
-          {
-            type: EntryType.EXCEPTION,
-            data: {
-              values: [
-                {
-                  type: 'ValueError',
-                  value: 'test',
-                  stacktrace: {
-                    frames: [
-                      {
-                        function: 'func4',
-                        filename: 'file4.py',
-                        absPath: '/path/to/file4.py',
-                        lineNo: 50,
-                        context: [
-                          [48, 'def func4():'],
-                          [49, '    try:'],
-                          [50, 'raise ValueError("test")'],
-                          [51, '    except:'],
-                          [52, '        pass'],
-                        ],
-                        inApp: true,
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCodecov.slug}/${project.slug}/stacktrace-coverage/`,
-        body: {
-          status: CodecovStatusCode.COVERAGE_EXISTS,
-          coverageUrl: 'https://codecov.io/gh/owner/repo/file4.py',
-          lineCoverage: [
-            [48, Coverage.NOT_APPLICABLE],
-            [49, Coverage.COVERED],
-            [50, Coverage.NOT_COVERED],
-            [51, Coverage.COVERED],
-            [52, Coverage.PARTIAL],
-          ],
-        },
-      });
-
-      render(
-        <LineCoverageProvider>
-          <Content
-            type={StackType.ORIGINAL}
-            stackView={StackView.APP}
-            event={event}
-            values={event.entries[0]!.data.values}
-            projectSlug={project.slug}
-            newestFirst
-          />
-        </LineCoverageProvider>,
-        {
-          organization: orgWithCodecov,
-          initialRouterConfig: {
-            location: {
-              pathname: `/organizations/${orgWithCodecov.slug}/issues/`,
-              query: {},
-            },
-            route: '/organizations/:orgId/issues/',
-          },
-        }
-      );
-
-      // The frame should be expanded
-      const toggleButton = screen.queryByRole('button', {name: 'Toggle Context'});
-      expect(toggleButton).toBeInTheDocument();
-      expect(toggleButton).toHaveAttribute('data-test-id', 'toggle-button-expanded');
-
-      // The frame context and line coverage legend should be visible
-      expect(await screen.findByText('def func4():')).toBeInTheDocument();
-      expect(await screen.findByText('Line covered by tests')).toBeInTheDocument();
-      expect(await screen.findByText('Line uncovered by tests')).toBeInTheDocument();
-      expect(
-        await screen.findByText('Line partially covered by tests')
-      ).toBeInTheDocument();
     });
   });
 });

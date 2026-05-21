@@ -37,7 +37,7 @@ export function ChartWidgetLoader(props: Props) {
   const query = useQuery<{default: React.FC<LoadableChartWidgetProps>}>({
     queryKey: [`widget-${props.id}`],
     queryFn: () => {
-      if (CHART_MAP.hasOwnProperty(props.id)) {
+      if (Object.hasOwn(CHART_MAP, props.id)) {
         const importChartFn = CHART_MAP[props.id];
         if (typeof importChartFn === 'function') {
           return importChartFn();

@@ -1,10 +1,10 @@
 import {useMemo, type ReactNode} from 'react';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,7 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 export function useDefaultMaxPickableDays(): number {
   const useDefaultMaxPickableDaysHook =
-    HookStore.get('react-hook:use-default-max-pickable-days')[0] ??
+    getOverride('react-hook:use-default-max-pickable-days') ??
     useDefaultMaxPickableDaysImpl;
   return useDefaultMaxPickableDaysHook();
 }
@@ -46,7 +46,7 @@ export function useMaxPickableDays({
   dataCategories,
 }: UseMaxPickableDaysProps): MaxPickableDaysOptions {
   const useMaxPickableDaysHook =
-    HookStore.get('react-hook:use-max-pickable-days')[0] ?? useMaxPickableDaysImpl;
+    getOverride('react-hook:use-max-pickable-days') ?? useMaxPickableDaysImpl;
   return useMaxPickableDaysHook({dataCategories});
 }
 
@@ -136,8 +136,8 @@ export function getMaxPickableDays(
   }
 }
 
-const UpsellFooterHook = HookOrDefault({
-  hookName: 'component:header-date-page-filter-upsell-footer',
+const UpsellFooterHook = OverrideOrDefault({
+  overrideName: 'component:header-date-page-filter-upsell-footer',
   defaultComponent: () => null,
 });
 

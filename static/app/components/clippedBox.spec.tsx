@@ -79,28 +79,6 @@ describe('clipped box', () => {
       clearMockGetBoundingClientRect();
     });
 
-    it('calls onSetRenderHeight once', () => {
-      if (!enableResizeObserver) {
-        mockGetBoundingClientRect({height: 100});
-      }
-
-      const onSetRenderHeight = jest.fn();
-      const {rerender} = render(
-        <ClippedBox clipHeight={50} onSetRenderedHeight={onSetRenderHeight}>
-          <Child height={100} />
-        </ClippedBox>
-      );
-
-      expect(onSetRenderHeight).toHaveBeenCalledTimes(1);
-      rerender(
-        <ClippedBox clipHeight={50} onSetRenderedHeight={onSetRenderHeight}>
-          <Child height={100} />
-        </ClippedBox>
-      );
-
-      expect(onSetRenderHeight).toHaveBeenCalledTimes(1);
-      expect(onSetRenderHeight).toHaveBeenCalledWith(100);
-    });
     it('clips height when it exceeds clipHeight and shows button', () => {
       if (!enableResizeObserver) {
         mockGetBoundingClientRect({height: 100});

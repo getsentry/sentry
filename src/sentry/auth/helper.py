@@ -25,7 +25,7 @@ from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
-from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.exceptions import AuthIdentityUserMismatch, IdentityNotValid
 from sentry.auth.idpmigration import (
     SSO_VERIFICATION_KEY,
     get_verification_value_from_key,
@@ -108,20 +108,23 @@ class AuthIdentityHandler:
 
     @cached_property
     def user(self) -> User | AnonymousUser:
+        # Session identity is authoritative for authenticated users.
+        # Fetch from DB to unwrap SimpleLazyObject<RpcUser> into a real User
+        # instance that auth.login() and model operations require.
+        if self.request.user.is_authenticated:
+            return User.objects.get(id=self.request.user.id)
+        # For unauthenticated flows (e.g. is_account_verified), resolve by IdP email.
         email = self.identity.get("email")
         if email:
             try:
-                user = resolve_email_to_user(email, organization=self.organization)
+                return (
+                    resolve_email_to_user(email, organization=self.organization)
+                    or self.request.user
+                )
             except AmbiguousUserFromEmail as e:
-                user = e.users[0]
-                self.warn_about_ambiguous_email(email, e.users, user)
-            if user is not None:
-                return user
-        return (
-            User.objects.get(id=self.request.user.id)
-            if self.request.user.is_authenticated
-            else self.request.user
-        )
+                self.warn_about_ambiguous_email(email, e.users, e.users[0])
+                return e.users[0]
+        return self.request.user  # AnonymousUser
 
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
@@ -325,6 +328,20 @@ class AuthIdentityHandler:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
+        if self.request.user.is_authenticated and self.request.user.id != self.user.id:
+            logger.error(
+                "sso.login-pipeline.attach-identity-user-mismatch",
+                extra={
+                    "organization_id": self.organization.id,
+                    "session_user_id": self.request.user.id,
+                    "target_user_id": self.user.id,
+                    "idp_identity_email": self.identity.get("email"),
+                },
+            )
+            # Defense in depth: shouldn't be possible to reach this point if the user is authenticated.
+            # self.user is resolved to request.user earlier in the flow.
+            raise AuthIdentityUserMismatch
+
         # prioritize identifying by the SSO provider's user ID
         with transaction.atomic(router.db_for_write(AuthIdentity)):
             auth_identity = self._get_auth_identity(ident=self.identity["id"])
@@ -509,20 +526,13 @@ class AuthIdentityHandler:
         self,
         state: AuthHelperSessionStore,
     ) -> HttpResponse:
-        """
-        Flow is activated upon a user logging in to where an AuthIdentity is
-        not present.
+        """Handle an SSO login where no AuthIdentity exists yet for this IdP identity.
 
-        XXX(dcramer): this docstring is out of date
+        Determines whether to link an existing account or create a new one:
 
-        The flow will attempt to answer the following:
-
-        - Is there an existing user with the same email address? Should they be
-          merged?
-
-        - Is there an existing user (via authentication) that should be merged?
-
-        - Should I create a new user based on this identity?
+        - Authenticated session user who is an org member: auto-link.
+        - Unauthenticated user who proved email ownership via verification link: auto-link.
+        - Otherwise: show a confirmation page to merge, create, or log in.
         """
         op = self.request.POST.get("op")
 
@@ -553,7 +563,15 @@ class AuthIdentityHandler:
             )
 
         is_new_account = not self.user.is_authenticated  # stateful
-        if self._app_user and (self.identity.get("email_verified") or is_account_verified):
+        session_owns_target = (
+            self.request.user.is_authenticated and self.request.user.id == self.user.id
+        )
+        # TODO: Unauthenticated users with a trusted IdP email_verified claim
+        # now see a confirmation page instead of auto-linking. Consider restoring
+        # email_verified trust for known-trustworthy providers (Google, GitHub)
+        # or hard-code the other SAML/OAuth IdPs to always have email_verified=False.
+        # (they should always be untrusted).
+        if self._app_user and (session_owns_target or is_account_verified):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
@@ -584,7 +602,7 @@ class AuthIdentityHandler:
             is_new_account = True
 
         try:
-            if op == "confirm" and ((self.request.user.id == self.user.id) or is_account_verified):
+            if op == "confirm" and (self.request.user.is_authenticated or is_account_verified):
                 auth_identity = self.handle_attach_identity()
             elif op == "confirm":
                 logger.info(
@@ -619,6 +637,11 @@ class AuthIdentityHandler:
                 return self._build_confirmation_response(is_new_account)
             else:
                 return self._build_confirmation_response(is_new_account)
+        except AuthIdentityUserMismatch:
+            messages.add_message(self.request, messages.ERROR, ERR_UID_MISMATCH)
+            return HttpResponseRedirect(
+                reverse("sentry-auth-organization", args=[self.organization.slug])
+            )
         except IntegrityError:
             logger.info(
                 "sso.login-pipeline.integrity-error",
@@ -1032,11 +1055,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             organization_id=self.organization.id, provider=self.provider.key, config=config
         )
 
-        # The setup flow should always link the identity to the admin who is
-        # performing setup, so override the email to ensure resolve_email_to_user
-        # returns the authenticated user rather than whoever the IdP asserted.
-        setup_identity = {**identity, "email": request.user.email}
-        self.auth_handler(setup_identity).handle_attach_identity(om)
+        self.auth_handler(identity).handle_attach_identity(om)
 
         auth.mark_sso_complete(request, self.organization.id)
 

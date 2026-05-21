@@ -202,7 +202,7 @@ export function useReplaySummary(
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
+        if (shouldPoll(query.state.data?.json, isStartSummaryRequestError, didTimeout)) {
           return query.state.status === 'error'
             ? ERROR_POLL_INTERVAL_MS
             : POLL_INTERVAL_MS;

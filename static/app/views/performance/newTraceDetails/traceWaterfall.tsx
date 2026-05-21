@@ -45,7 +45,7 @@ import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/u
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
-import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import {getTraceMetaSpanCount, type TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
@@ -386,10 +386,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
-    if (traceNode && props.tree.eap_spans_count !== props.meta?.data?.span_count) {
+    const metaSpanCount = getTraceMetaSpanCount(props.meta.data);
+
+    if (traceNode && props.tree.eap_spans_count !== metaSpanCount) {
       Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
         trace_eap_span_count: props.tree.eap_spans_count,
-        trace_meta_span_count: props.meta?.data?.span_count,
+        trace_meta_span_count: metaSpanCount,
       });
     }
   }, [props.tree, props.meta]);

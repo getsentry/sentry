@@ -34,6 +34,7 @@ from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_legacy_autofix
 from sentry.seer.autofix.autofix_agent import (
+    UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
     NoSeerQuotaException,
     get_autofix_agent_state,
@@ -51,6 +52,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
     get_autofix_state,
+    has_project_connected_repos,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -58,6 +60,22 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+
+def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
+    return getattr(error, "message", None) == UNKNOWN_RUN_ID_FOR_GROUP
+
+
+def _parse_autofix_referrer(raw: str | None) -> AutofixReferrer:
+    if raw is None:
+        return AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
+    try:
+        return AutofixReferrer(raw)
+    except ValueError:
+        logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
+        return AutofixReferrer.UNKNOWN
 
 
 class AutofixRequestSerializer(CamelSnakeSerializer):
@@ -77,6 +95,10 @@ class AutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         choices=["root_cause", "solution", "code_changes", "open_pr"],
         help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        help_text="Referrer identifying where the issue fix was triggered from.",
     )
 
 
@@ -131,6 +153,10 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     insert_index = serializers.IntegerField(
         required=False,
         help_text="Block index to insert at. When provided, truncates blocks after this point for retry-from-step.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        help_text="Referrer identifying where the issue fix was triggered from.",
     )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -229,6 +255,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
     def _post_agent(self, request: Request, group: Group) -> Response:
         """Handle POST for the agent-based autofix."""
+        if not has_project_connected_repos(group.organization, group.project):
+            return Response(
+                {"detail": "SCM integration is not configured for this project."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -255,14 +287,20 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            result = trigger_coding_agent_handoff(
-                group=group,
-                run_id=run_id,
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-                integration_id=integration_id,
-                provider=provider,
-                user_id=request.user.id if request.user else None,
-            )
+            try:
+                result = trigger_coding_agent_handoff(
+                    group=group,
+                    run_id=run_id,
+                    referrer=_parse_autofix_referrer(data.get("referrer")),
+                    integration_id=integration_id,
+                    provider=provider,
+                    user_id=request.user.id if request.user else None,
+                    auto_create_pr=True,
+                )
+            except SeerPermissionError as e:
+                if _is_unknown_run_id_error(e):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+                raise PermissionDenied(SEER_PERMISSION_DENIED)
             return Response(result, status=status.HTTP_202_ACCEPTED)
 
         if step == "open_pr":
@@ -275,7 +313,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 trigger_push_changes(
                     group,
                     run_id,
-                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    referrer=_parse_autofix_referrer(data.get("referrer")),
                     repo_name=repo_name,
                 )
             except SeerPermissionError:
@@ -287,7 +325,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
                 intelligence_level=data["intelligence_level"],
@@ -298,7 +336,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
         except SeerPermissionError as e:
-            raise PermissionDenied(str(e))
+            if _is_unknown_run_id_error(e):
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            raise PermissionDenied(SEER_PERMISSION_DENIED)
 
     def _post_legacy(self, request: Request, group: Group) -> Response:
         """Handle POST for legacy autofix."""
@@ -316,7 +356,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # This event_id is the event that the user is looking at when they click the "Fix" button
             event_id=data.get("event_id"),
             user=request.user,
-            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            referrer=_parse_autofix_referrer(data.get("referrer")),
             instruction=data.get("instruction"),
             pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
             stopping_point=stopping_point,
@@ -458,8 +498,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             if project:
                 code_mappings = get_sorted_code_mapping_configs(project=project)
                 for mapping in code_mappings:
-                    if mapping.repository.external_id:
-                        repo_code_mappings[mapping.repository.external_id] = mapping
+                    repo = mapping.project_repository.repository
+                    if repo.external_id:
+                        repo_code_mappings[repo.external_id] = mapping
 
             for repo_external_id, repo_state in autofix_codebase_state.items():
                 retrieved_mapping: RepositoryProjectPathConfig | None = repo_code_mappings.get(
@@ -469,7 +510,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 if not retrieved_mapping:
                     continue
 
-                mapping_repo: Repository = retrieved_mapping.repository
+                mapping_repo: Repository = retrieved_mapping.project_repository.repository
 
                 repositories.append(
                     {

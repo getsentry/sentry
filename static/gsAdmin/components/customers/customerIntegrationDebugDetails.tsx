@@ -8,7 +8,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
@@ -67,8 +67,7 @@ export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
       rowsFromData={(data: IntegrationRow[]) => {
         const transformedRows: any[] = [];
         data.forEach(row => {
-          transformedRows.push(row);
-          transformedRows.push({
+          transformedRows.push(row, {
             _isExpansionRow: true,
             _parentId: row.id,
             _parentData: row,

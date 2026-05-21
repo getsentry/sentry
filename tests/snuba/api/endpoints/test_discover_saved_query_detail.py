@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
-    feature_name = "organizations:discover"
+    feature_name = "organizations:discover-query"
 
     def setUp(self) -> None:
         super().setUp()

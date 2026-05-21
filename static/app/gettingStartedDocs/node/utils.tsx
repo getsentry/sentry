@@ -314,43 +314,47 @@ Sentry.profiler.stopProfiler();
 
 export const getNodeMcpOnboarding = ({
   packageName = '@sentry/node',
+  importPath,
 }: {
+  importPath?: string;
   packageName?: `@sentry/${string}`;
-} = {}): OnboardingConfig => ({
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: [
+} = {}): OnboardingConfig => {
+  const importFrom = (importPath ?? packageName) as `@sentry/${string}`;
+  return {
+    install: params => [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
+              {
+                code: <code />,
+              }
+            ),
+          },
+          getInstallCodeBlock(params, {
+            packageName,
+          }),
+        ],
+      },
+    ],
+    configure: params => {
+      const mcpSdkStep: ContentBlock[] = [
         {
           type: 'text',
-          text: tct(
-            'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Initialize the Sentry SDK by calling [code:Sentry.init()]:', {
+            code: <code />,
+          }),
         },
-        getInstallCodeBlock(params, {
-          packageName,
-        }),
-      ],
-    },
-  ],
-  configure: params => {
-    const mcpSdkStep: ContentBlock[] = [
-      {
-        type: 'text',
-        text: tct('Initialize the Sentry SDK by calling [code:Sentry.init()]:', {
-          code: <code />,
-        }),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${getImport(importFrom).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -358,93 +362,94 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
 });`,
-          },
-        ],
-      },
-      {
-        type: 'text',
-        text: tct(
-          'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
-          {
-            code: <code />,
-          }
-        ),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `
 const { McpServer } = require("@modelcontextprotocol/sdk");
 
 const server = Sentry.wrapMcpServerWithSentry(new McpServer({
     name: "my-mcp-server",
     version: "1.0.0",
 }));`,
-          },
-        ],
-      },
-    ];
+            },
+          ],
+        },
+      ];
 
-    const manualStep: ContentBlock[] = [
-      {
-        type: 'text',
-        text: t('Initialize the Sentry SDK in the entry point of your application:'),
-      },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'JavaScript',
-            language: 'javascript',
-            code: `${getImport(packageName).join('\n')}
+      const manualStep: ContentBlock[] = [
+        {
+          type: 'text',
+          text: t('Initialize the Sentry SDK in the entry point of your application:'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${getImport(importFrom).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
   tracesSampleRate: 1.0,
 });`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Then follow the [link:manual instrumentation guide] to instrument your MCP server.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/custom-instrumentation/mcp-module/#manual-instrumentation" />
+              ),
+            }
+          ),
+        },
+      ];
+
+      const selected = (params.platformOptions as any)?.integration ?? 'mcp_sdk';
+      const content = selected === 'manual' ? manualStep : mcpSdkStep;
+
+      return [
+        {
+          type: StepType.CONFIGURE,
+          content,
+        },
+      ];
+    },
+    verify: () => [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t(
+              'Verify that MCP monitoring is working correctly by triggering some MCP server interactions in your application.'
+            ),
           },
         ],
       },
-      {
-        type: 'text',
-        text: tct(
-          'Then follow the [link:manual instrumentation guide] to instrument your MCP server.',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/custom-instrumentation/mcp-module/#manual-instrumentation" />
-            ),
-          }
-        ),
-      },
-    ];
-
-    const selected = (params.platformOptions as any)?.integration ?? 'mcp_sdk';
-    const content = selected === 'manual' ? manualStep : mcpSdkStep;
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        content,
-      },
-    ];
-  },
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Verify that MCP monitoring is working correctly by triggering some MCP server interactions in your application.'
-          ),
-        },
-      ],
-    },
-  ],
-});
+    ],
+  };
+};
 
 function getNodeLogsConfigureSnippet(
   params: DocsParams,
@@ -473,87 +478,97 @@ export const getNodeLogsOnboarding = <
 >({
   docsPlatform,
   packageName,
+  importPath,
   generateConfigureSnippet = getNodeLogsConfigureSnippet,
 }: {
   docsPlatform: string;
   packageName: `@sentry/${string}`;
   generateConfigureSnippet?: typeof getNodeLogsConfigureSnippet;
-}): OnboardingConfig<PlatformOptions> => ({
-  install: (params: DocsParams) => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
-            {
-              code: <code />,
-              packageName: <code>{packageName}</code>,
-            }
-          ),
-        },
-        getInstallCodeBlock(params, {packageName}),
-        {
-          type: 'text',
-          text: tct(
-            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
-            {
-              link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/migration/`}
-                />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  configure: (params: DocsParams) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
-            {code: <code />}
-          ),
-        },
-        generateConfigureSnippet(params, packageName),
-        {
-          type: 'text',
-          text: tct('For more detailed information, see the [link:logs documentation].', {
-            link: (
-              <ExternalLink
-                href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/logs/`}
-              />
+  importPath?: string;
+}): OnboardingConfig<PlatformOptions> => {
+  const importFrom = (importPath ?? packageName) as `@sentry/${string}`;
+  return {
+    install: (params: DocsParams) => [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
+              {
+                code: <code />,
+                packageName: <code>{packageName}</code>,
+              }
             ),
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
-        },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: `import * as Sentry from "${packageName}";
+          },
+          getInstallCodeBlock(params, {packageName}),
+          {
+            type: 'text',
+            text: tct(
+              'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+              {
+                link: (
+                  <ExternalLink
+                    href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/migration/`}
+                  />
+                ),
+              }
+            ),
+          },
+        ],
+      },
+    ],
+    configure: (params: DocsParams) => [
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+              {code: <code />}
+            ),
+          },
+          generateConfigureSnippet(params, importFrom),
+          {
+            type: 'text',
+            text: tct(
+              'For more detailed information, see the [link:logs documentation].',
+              {
+                link: (
+                  <ExternalLink
+                    href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/logs/`}
+                  />
+                ),
+              }
+            ),
+          },
+        ],
+      },
+    ],
+    verify: () => [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t(
+              'Send a test log from your app to verify logs are arriving in Sentry.'
+            ),
+          },
+          {
+            type: 'code',
+            language: 'javascript',
+            code: `import * as Sentry from "${importFrom}";
 
 Sentry.logger.info('User triggered test log', { action: 'test_log' })`,
-        },
-      ],
-    },
-  ],
-});
+          },
+        ],
+      },
+    ],
+  };
+};
 
 /**
  *  Returns the init() with the necessary imports. It is possible to omit the imports.

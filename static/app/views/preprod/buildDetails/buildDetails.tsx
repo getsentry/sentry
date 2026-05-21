@@ -53,8 +53,7 @@ export default function BuildDetails() {
       staleTime: 0,
       enabled: !!artifactId,
       refetchInterval: query => {
-        const data = query.state.data;
-        const sizeInfo = data?.[0]?.size_info;
+        const sizeInfo = query.state.data?.json?.size_info;
         return isSizeInfoPendingOrProcessing(sizeInfo) ? 10_000 : false;
       },
     }

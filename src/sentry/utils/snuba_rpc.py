@@ -83,7 +83,17 @@ class SnubaRPCError(SnubaError):
     pass
 
 
+class SnubaRPCTimeout(SnubaRPCError):
+    pass
+
+
 class SnubaRPCRateLimitExceeded(SnubaRPCError):
+    pass
+
+
+class SnubaRPCTooManySimultaneous(SnubaRPCError):
+    """ClickHouse rejected the query because it hit the concurrent query limit."""
+
     pass
 
 
@@ -391,6 +401,7 @@ def _make_rpc_request(
                 except urllib3.exceptions.HTTPError as err:
                     if isinstance(err, urllib3.exceptions.ReadTimeoutError):
                         metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
+                        raise SnubaRPCTimeout(err)
                     raise SnubaRPCError(err)
                 span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
@@ -401,6 +412,8 @@ def _make_rpc_request(
                         raise NotFound() from SnubaRPCError(error)
                     if http_resp.status == 429:
                         raise SnubaRPCRateLimitExceeded(error)
+                    if "Too many simultaneous queries" in error.message:
+                        raise SnubaRPCTooManySimultaneous(error)
                     raise SnubaRPCError(error)
                 return http_resp
 

@@ -12,10 +12,12 @@ import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {parseCursor} from 'sentry/utils/cursor';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -26,13 +28,14 @@ import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
   getLogSeverityLevel,
   viewLogsSamplesTarget,
 } from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsAggregateCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsSearch,
@@ -46,7 +49,7 @@ import {
 export function LogsAggregateTable({
   aggregatesTableResult,
 }: {
-  aggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
+  aggregatesTableResult: LogsAggregatesTableResult;
 }) {
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
 
@@ -63,19 +66,23 @@ export function LogsAggregateTable({
   const visualizes = useQueryParamsVisualizes();
   const setAggregateCursor = useSetQueryParamsAggregateCursor();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const aggregateCursor = useQueryParamsAggregateCursor();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useQueryParamsSearch();
   const setSearch = useSetQueryParamsSearch();
   const fields = useQueryParamsFields();
   const sorts = useQueryParamsSortBys();
   const location = useLocation();
+  const navigate = useNavigate();
   const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
 
   const allFields: string[] = [];
-  allFields.push(...groupBys.filter(Boolean));
-  allFields.push(...visualizes.map(visualize => visualize.yAxis));
+  allFields.push(
+    ...groupBys.filter(Boolean),
+    ...visualizes.map(visualize => visualize.yAxis)
+  );
 
   const numberOfRowsNeedingColor = Math.min(data?.data?.length ?? 0, topEventsLimit ?? 0);
 
@@ -122,13 +129,21 @@ export function LogsAggregateTable({
                 canSort
                 direction={direction}
                 generateSortLink={() => {
+                  const nextSort = (() => {
+                    switch (direction) {
+                      case 'asc':
+                        return {
+                          field: visualizes[0]?.yAxis ?? allFields[0]!,
+                          kind: 'desc' as const,
+                        };
+                      case 'desc':
+                        return {field: column.key, kind: 'asc' as const};
+                      default:
+                        return {field: column.key, kind: 'desc' as const};
+                    }
+                  })();
                   return getTargetWithReadableQueryParams(location, {
-                    aggregateSortBys: [
-                      {
-                        field: column.key,
-                        kind: direction === 'desc' ? 'asc' : 'desc',
-                      },
-                    ],
+                    aggregateSortBys: [nextSort],
                   });
                 }}
                 title={title}
@@ -152,6 +167,7 @@ export function LogsAggregateTable({
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,
+              navigate,
               organization,
               theme,
               unit: data?.meta?.units?.[column.key],
@@ -209,9 +225,14 @@ export function LogsAggregateTable({
 
             return [
               <Fragment key={`sample-${rowIndex}`}>
-                {topEventsLimit && rowIndex < topEventsLimit && (
-                  <TopResultsIndicator color={palette[rowIndex]!} />
-                )}
+                {topEventsLimit &&
+                  rowIndex < topEventsLimit &&
+                  !parseCursor(aggregateCursor)?.offset && (
+                    <TopResultsIndicator
+                      data-test-id="top-results-indicator"
+                      color={palette[rowIndex]!}
+                    />
+                  )}
                 <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                   <StyledLink to={target}>
                     <IconStack />

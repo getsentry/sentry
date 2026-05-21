@@ -33,7 +33,7 @@ import {
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
@@ -43,6 +43,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
+import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
@@ -77,12 +78,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasCrossEventQueryingFlag = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
 
-  const hasCrossEvents =
-    hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useSpanItemAttributes({}, 'number');
@@ -118,9 +115,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
         mode === Mode.SAMPLES
           ? (key: string) => {
               if (ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)) {
-                return t(
-                  "This key won't affect the results because samples mode does not support aggregate functions"
-                );
+                return <SamplesModeAggregateFilterWarning />;
               }
               return;
             }
@@ -184,7 +179,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 <SpansSearchBar
                   spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
                 />
-                {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
+                <CrossEventQueryingDropdown />
                 {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
               </Grid>
               {hasCrossEvents ? null : (

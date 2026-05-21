@@ -57,14 +57,16 @@ export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): stri
 
     search.addFilterValue('metric.name', traceMetric.name);
     search.addFilterValue('metric.type', traceMetric.type);
-    const addNoneOperators = traceMetric.unit === NONE_UNIT;
+    const metricUnit =
+      traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
+    const addNoneOperators = metricUnit === NONE_UNIT;
     if (addNoneOperators) {
       search.addOp('(');
       search.addFilterValue('!has', 'metric.unit');
       search.addOp('OR');
     }
 
-    search.addFilterValue('metric.unit', traceMetric.unit ?? NONE_UNIT);
+    search.addFilterValue('metric.unit', metricUnit);
 
     if (addNoneOperators) {
       search.addOp(')');
@@ -98,7 +100,7 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
 
 export function hasDisplayMetricUnit(
   hasMetricUnitsUI: boolean,
-  metricUnit?: string
+  metricUnit?: string | null
 ): metricUnit is string {
   return (
     hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
@@ -300,7 +302,7 @@ const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
  * responses, so the frontend must do this mapping based on the selected
  * metric's unit.
  */
-export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
+export function mapMetricUnitToFieldType(metricUnit: string | null | undefined): {
   fieldType: ColumnType;
   unit: string | undefined;
 } {

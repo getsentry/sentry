@@ -8,13 +8,13 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -121,6 +121,8 @@ function ProjectRowWithUpdate({
   projectStates: ProjectStateMap;
   repositories: Repository[];
 }) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
@@ -167,6 +169,7 @@ function ProjectRowWithUpdate({
     project.slug,
     onSuccess,
     onUpdateProjectState,
+    openModal,
   ]);
 
   return <ProjectRow onClick={handleProjectClick} project={project} />;

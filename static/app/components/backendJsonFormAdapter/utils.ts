@@ -20,7 +20,7 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
     case 'url':
       return z.url();
     case 'choice_mapper':
-      return z.object({});
+      return z.looseObject({});
     case 'project_mapper':
     case 'table':
       return z.array(z.any());
@@ -42,6 +42,13 @@ export function transformChoices(
     return [];
   }
   return choices.map(([value, label]) => ({value, label}));
+}
+
+export function getDisabledProp(field: JsonFormAdapterFieldConfig): boolean | string {
+  if (field.disabled && field.disabledReason) {
+    return field.disabledReason;
+  }
+  return field.disabled ?? false;
 }
 
 export function getDefaultForField(field: JsonFormAdapterFieldConfig): unknown {

@@ -5,6 +5,7 @@ import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dat
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
@@ -61,8 +62,8 @@ export function useReplayTraces({
     return EventView.fromSavedQuery({
       id: undefined,
       name: `Traces in replay ${replayId}`,
-      fields: ['trace', 'min(timestamp)', 'max(transaction.duration)'],
-      orderby: 'min_timestamp',
+      fields: ['trace', 'min(precise.start_ts)'],
+      orderby: 'min_precise_start_ts',
       query: `replayId:${replayId}`,
       projects: [Number(projectId)],
       version: 2,
@@ -95,7 +96,8 @@ export function useReplayTraces({
           end,
           limit: 10,
         } as unknown as Location),
-        sort: ['min_timestamp'],
+        dataset: DiscoverDatasets.SPANS,
+        referrer: 'api.replays.replay-traces',
         cursor: cursor.cursor,
       };
 
@@ -109,30 +111,22 @@ export function useReplayTraces({
         const parsedData = data
           .filter(row => row.trace) // Filter out items where trace is not truthy
           .sort((a, b) => {
-            const aDuration = a['max(transaction.duration)'];
-            const bDuration = b['max(transaction.duration)'];
-            const aMinTimestamp = getTimeStampFromTableDateField(a['min(timestamp)']);
-            const bMinTimestamp = getTimeStampFromTableDateField(b['min(timestamp)']);
+            const aMinTimestamp = getTimeStampFromTableDateField(
+              a['min(precise.start_ts)']
+            );
+            const bMinTimestamp = getTimeStampFromTableDateField(
+              b['min(precise.start_ts)']
+            );
 
-            if (
-              !aMinTimestamp ||
-              !bMinTimestamp ||
-              typeof aDuration !== 'number' ||
-              typeof bDuration !== 'number'
-            ) {
+            if (!aMinTimestamp || !bMinTimestamp) {
               return 0;
             }
 
-            // We don't have a way to get the min start time of a trace, so we'll use the min timestamp and subtract the max duration
-            // of a transaction in that trace, to make the best guess.
-            const aMinStart = aMinTimestamp - aDuration / 1000;
-            const bMinStart = bMinTimestamp - bDuration / 1000;
-
-            return aMinStart - bMinStart;
+            return aMinTimestamp - bMinTimestamp;
           })
           .map(row => ({
             traceSlug: row.trace!.toString(),
-            timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+            timestamp: getTimeStampFromTableDateField(row['min(precise.start_ts)']),
           }));
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -260,6 +260,7 @@ class QueryBuilderConfig:
     allow_metric_aggregates: bool | None = False
     # Allow the errors query builder to use the entity prefix for fields
     use_entity_prefix_for_fields: bool = False
+    column_resolver: Callable[[str], str] | None = None
 
 
 @dataclass(frozen=True)

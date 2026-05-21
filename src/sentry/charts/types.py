@@ -25,6 +25,7 @@ class ChartType(Enum):
     SLACK_METRIC_DETECTOR_EVENTS = "slack:metricDetector.events"
     SLACK_METRIC_DETECTOR_SESSIONS = "slack:metricDetector.sessions"
     SLACK_TIMESERIES = "slack:timeseries"
+    SLACK_DASHBOARDS_WIDGET = "slack:dashboardsWidget"
 
 
 class ChartSize(TypedDict):

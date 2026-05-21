@@ -12,7 +12,7 @@ import {
   ListWrap,
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect';
-import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -68,15 +68,6 @@ interface ListBoxProps<T extends ObjectLike>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  /**
-   * To be called when the user toggle-selects a whole section (applicable when sections
-   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
-   * and before `onChange`.
-   */
-  onSectionToggle?: (
-    section: SelectSection<SelectKey>,
-    type: 'select' | 'unselect'
-  ) => void;
   /**
    * Used to determine whether to render the list box items or not
    */
@@ -137,11 +128,11 @@ export function ListBox<T extends ObjectLike>({
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
-  onSectionToggle,
   sizeLimitMessage,
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
+  hasSearch,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
@@ -251,7 +242,8 @@ export function ListBox<T extends ObjectLike>({
           >
             {overlayIsOpen &&
               virtualizer.items.map(row => {
-                const item = listItems[row.index]!;
+                const item = listItems[row.index];
+                if (!item) return null;
                 if (item.type === 'section') {
                   return (
                     <ListBoxSection
@@ -260,7 +252,6 @@ export function ListBox<T extends ObjectLike>({
                       item={item}
                       listState={listState}
                       hiddenOptions={hiddenOptions}
-                      onToggle={onSectionToggle}
                       size={size}
                       showSectionHeaders={showSectionHeaders}
                       showDetails={showDetails}
@@ -280,7 +271,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!searchable && hiddenOptions.size > 0 && (
+            {!searchable && !hasSearch && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>

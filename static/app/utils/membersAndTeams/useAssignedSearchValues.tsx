@@ -4,14 +4,14 @@ import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {escapeTagValue} from 'sentry/components/searchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 
 export function useAssignedSearchValues(): SearchGroup[] {
   const {teams} = useLegacyStore(TeamStore);
-  const {members} = useLegacyStore(MemberListStore);
+  const {data: members = []} = useMembers();
 
   const assignedValues: SearchGroup[] = useMemo(() => {
     const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);

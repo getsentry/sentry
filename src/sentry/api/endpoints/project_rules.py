@@ -18,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import (
     RuleSerializer,
@@ -30,8 +31,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
-from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
@@ -829,8 +829,8 @@ def format_request_data(
 @cell_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
@@ -848,6 +848,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rules")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-workflow-index"
+    )
     def get(self, request: Request, project: Project) -> Response:
         """
         ## Deprecated
@@ -863,24 +866,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         """
         expand = request.GET.getlist("expand", ["lastTriggered"])
 
-        queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
-        serializer: WorkflowEngineRuleSerializer | RuleSerializer
-        if features.has(
-            "organizations:workflow-engine-issue-alert-endpoints-get", project.organization
-        ) or features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            queryset = Workflow.objects.filter(
-                detectorworkflow__detector__project=project,
-                status=ObjectStatus.ACTIVE,
-            ).distinct()
-            serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
-        else:
-            queryset = Rule.objects.filter(
-                project=project,
-                status=ObjectStatus.ACTIVE,
-            ).select_related("project")
-            # Mark that we're using legacy Rule models
-            report_used_legacy_models()
-            serializer = RuleSerializer(expand=expand, project_slug=project.slug)
+        queryset = Workflow.objects.filter(
+            detectorworkflow__detector__project=project,
+            status=ObjectStatus.ACTIVE,
+        ).distinct()
+        serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
 
         return self.paginate(
             request=request,
@@ -905,6 +895,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-index",
+    )
     def post(self, request: Request, project) -> Response:
         """
         ## Deprecated

@@ -155,6 +155,14 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
 
+  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
+    autofix,
+    runId,
+    group,
+    step: 'solution',
+    referrer,
+  });
+
   const handleYesClick = useCallback(() => {
     startStep('code_changes', {runId});
     trackAnalytics('autofix.solution.code', {
@@ -196,6 +204,8 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
       rethinkPrompt={t('How can this plan be improved?')}
       labelNevermind={t('Nevermind, write a code fix')}
       labelRethink={t('Rethink plan')}
+      codingAgentIntegrations={codingAgentIntegrations}
+      onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
 }
@@ -321,7 +331,7 @@ function NextStepTemplate({
           </Button>
           <Button
             variant="primary"
-            disabled={isProcessing}
+            disabled={isProcessing || !userContext.trim()}
             onClick={() => onClickNo(userContext)}
           >
             {labelRethink}

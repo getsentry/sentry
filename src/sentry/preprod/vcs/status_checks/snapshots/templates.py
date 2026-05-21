@@ -223,6 +223,26 @@ def format_missing_base_snapshot_status_check_messages(
     return str(title), str(subtitle), str(summary)
 
 
+def format_waiting_for_base_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    project: Project,
+) -> tuple[str, str, str]:
+    if not artifacts:
+        raise ValueError("Cannot format messages for empty artifact list")
+
+    title = _SNAPSHOT_TITLE_BASE
+    subtitle = str(_("Waiting for base snapshots..."))
+
+    summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
+    summary += "\n\nWaiting for base snapshots to finish uploading. This check will update automatically within ~10 minutes or fail."
+
+    settings_url = _get_settings_url(project)
+    summary += "\n\n" + _format_configure_link(project, settings_url)
+
+    return str(title), str(subtitle), str(summary)
+
+
 def _format_solo_snapshot_summary(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],

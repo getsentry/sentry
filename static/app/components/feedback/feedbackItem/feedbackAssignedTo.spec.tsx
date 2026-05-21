@@ -8,7 +8,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {Group} from 'sentry/types/group';
 
 import {FeedbackAssignedTo} from './feedbackAssignedTo';
@@ -21,10 +20,12 @@ describe('FeedbackAssignedTo', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    MemberListStore.reset();
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
+      body: [MemberFixture({user})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
       body: [MemberFixture({user})],
     });
     MockApiClient.addMockResponse({

@@ -1,6 +1,5 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 
-import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {useSourceContext} from 'sentry/components/events/interfaces/frame/useSourceContext';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {
@@ -31,7 +30,6 @@ function getLineCoverage(
 export function IssueStackTraceFrameContext() {
   const {event, frame, isExpanded} = useStackTraceFrameContext();
   const {hasScmSourceContext, project} = useStackTraceContext();
-  const {hasCoverageData, setHasCoverageData} = useLineCoverageContext();
   const organization = useOrganization();
 
   const hasEmbeddedContext = hasContextSource(frame);
@@ -80,18 +78,6 @@ export function IssueStackTraceFrameContext() {
     coverageData.lineCoverage
       ? getLineCoverage(contextLines, coverageData.lineCoverage)
       : [];
-
-  useEffect(() => {
-    if (hasCoverageData) {
-      return;
-    }
-
-    const frameHasCoverageData =
-      !isLoadingCoverage && coverageData?.status === CodecovStatusCode.COVERAGE_EXISTS;
-    if (frameHasCoverageData) {
-      setHasCoverageData(true);
-    }
-  }, [coverageData, hasCoverageData, isLoadingCoverage, setHasCoverageData]);
 
   return (
     <FrameContent

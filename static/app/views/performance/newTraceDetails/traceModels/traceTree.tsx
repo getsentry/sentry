@@ -388,7 +388,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return trace;
   }
 
-  static Error(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
+  static ErrorState(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
     const trace = makeExampleTrace(metadata, organization);
     trace.type = 'error';
     trace.build();

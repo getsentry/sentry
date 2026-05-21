@@ -1,11 +1,16 @@
 import {createContext, useContext, useLayoutEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
+import {LoadingError} from 'sentry/components/loadingError';
+import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TransactionResult} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useApi} from 'sentry/utils/useApi';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -147,9 +152,10 @@ export function TransactionProfileProvider({
         setProfile({type: 'resolved', data: p});
       })
       .catch(err => {
-        const message = err.toString();
-
-        setProfile({type: 'errored', error: message});
+        setProfile({
+          type: 'errored',
+          error: getRequestErrorUserMessage(err, t('Failed to load profile')),
+        });
         Sentry.captureException(err);
       });
 
@@ -196,6 +202,8 @@ export function ContinuousProfileProvider({
   const api = useApi();
   const {projects} = useProjects();
 
+  const project = projects.find(p => p.slug === projectSlug);
+
   useLayoutEffect(() => {
     if (!profileMeta) {
       Sentry.captureMessage(
@@ -204,7 +212,6 @@ export function ContinuousProfileProvider({
       return;
     }
 
-    const project = projects.find(p => p.slug === projectSlug);
     if (!project) {
       Sentry.captureMessage('Failed to fetch continuous profile - project not found.');
       return;
@@ -217,12 +224,27 @@ export function ContinuousProfileProvider({
         setProfile({type: 'resolved', data: p});
       })
       .catch(err => {
-        setProfile({type: 'errored', error: 'Failed to fetch profiles'});
+        setProfile({
+          type: 'errored',
+          error: getRequestErrorUserMessage(err, t('Failed to fetch profiles')),
+        });
         Sentry.captureException(err);
       });
 
     return () => api.clear();
-  }, [api, profileMeta, orgSlug, projectSlug, projects, setProfile]);
+  }, [api, profileMeta, orgSlug, project, setProfile]);
+
+  if (!profileMeta) {
+    return (
+      <UnresolvedArea>
+        <LoadingError message={t('This page is missing URL parameters.')} />
+      </UnresolvedArea>
+    );
+  }
 
   return <ProfileContext value={profile}>{children}</ProfileContext>;
+}
+
+function UnresolvedArea({children}: React.PropsWithChildren) {
+  return <Container padding="xl">{children}</Container>;
 }

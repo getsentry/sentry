@@ -9,7 +9,6 @@ import * as qs from 'query-string';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -72,7 +71,7 @@ import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -566,13 +565,47 @@ function GroupDetailsContentError({
   }
 }
 
+type IssueView =
+  | 'specific-event'
+  | 'events-list'
+  | 'issue-overview'
+  | 'replays'
+  | 'attachments'
+  | 'distributions'
+  | 'distributions-tag-detail';
+
+const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
+  'specific-event':
+    'Sentry issue detail page. The user is viewing a specific event — You can get event details with the eventId below to see what they see.',
+  'events-list':
+    'Sentry issue events list. The user is browsing all events for this issue. You can search live telemetry to query events matching this issue.',
+  replays:
+    'Sentry issue replays tab. The user is viewing session replays where this issue occurred. You can search replays to find sessions that encountered this error, or get replay details for a specific session.',
+  attachments:
+    'Sentry issue attachments tab. The user is viewing files attached to events for this issue (screenshots, crash reports, minidumps). You can get event attachments to inspect specific files.',
+  distributions:
+    'Sentry issue distributions (tags) tab. The user is viewing how this issue is distributed across tag values. You can get issue tag values for breakdown by browser, environment, URL, release, OS, device, or any other tag.',
+  'distributions-tag-detail':
+    'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
+  'issue-overview':
+    'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+};
+
+function getIssueDetailContextHint(view: IssueView): string {
+  const preamble = ISSUE_VIEW_PREAMBLES[view];
+  const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
+  const tools =
+    'You can get issue details for aggregate stats and stack trace, get event details for a specific error event, ' +
+    'and search live telemetry for related spans/errors/logs/metrics.';
+  return `${preamble} ${shortIdNote}${tools}`;
+}
+
 function GroupDetailsContentInner({
   children,
   group,
   project,
   event,
 }: GroupDetailsContentProps) {
-  const api = useApi();
   const organization = useOrganization();
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
@@ -595,10 +628,6 @@ function GroupDetailsContentInner({
   });
 
   const {hasAutofixQuota} = useAiConfig(group, project);
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [api, organization.slug, project.id]);
 
   useEffect(() => {
     if (isAnyDrawerOpen) {
@@ -642,13 +671,26 @@ function GroupDetailsContentInner({
 
   useEngagedViewTracking({group, project});
 
+  const {eventId: eventIdParam, tagKey} = useParams<{
+    eventId?: string;
+    tagKey?: string;
+  }>();
+
+  let issueView: IssueView = 'issue-overview';
+  if (eventIdParam && !RESERVED_EVENT_IDS.has(eventIdParam)) {
+    issueView = 'specific-event';
+  } else if (currentTab === Tab.EVENTS) {
+    issueView = 'events-list';
+  } else if (currentTab === Tab.REPLAYS) {
+    issueView = 'replays';
+  } else if (currentTab === Tab.ATTACHMENTS) {
+    issueView = 'attachments';
+  } else if (currentTab === Tab.DISTRIBUTIONS) {
+    issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
+  }
+
   useLLMContext({
-    contextHint:
-      'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
-      'shortId is the human-readable issue identifier (e.g. PROJ-123). ' +
-      'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
-      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+    contextHint: getIssueDetailContextHint(issueView),
     shortId: group.shortId,
     title: group.title,
     level: group.level,
@@ -661,6 +703,8 @@ function GroupDetailsContentInner({
     lastSeen: group.lastSeen,
     projectSlug: project.slug,
     eventId: event?.id,
+    currentTab,
+    ...(tagKey ? {tagKey} : {}),
   });
 
   const isDisplayingEventDetails = [

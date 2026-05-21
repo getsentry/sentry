@@ -22,9 +22,9 @@ class DisabledSentryAppDetailsTest(APITestCase):
         self.login_as(self.user)
 
     @override_options(OPTION)
-    def test_get_disabled_app_returns_403(self) -> None:
+    def test_get_disabled_app_returns_200(self) -> None:
         disable_app(self.app)
-        self.get_error_response(self.app.slug, status_code=403)
+        self.get_success_response(self.app.slug, status_code=200)
 
     @override_options(OPTION)
     def test_get_non_disabled_app_returns_200(self) -> None:

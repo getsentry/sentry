@@ -2,8 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
-from django.db import IntegrityError, connections, models, router, transaction
-from django.db.models import Case, Value, When
+from django.db import IntegrityError, connections, router, transaction
 from django.utils import timezone
 
 from sentry import features
@@ -31,7 +30,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ActionId, WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
@@ -215,7 +214,7 @@ def update_workflow_action_group_statuses(
 
 
 def get_unique_active_actions(
-    actions_queryset: BaseQuerySet[Action],  # decorated with the workflow_ids
+    actions_queryset: BaseQuerySet[Action],
     group: Group,
 ) -> BaseQuerySet[Action]:
     """
@@ -260,20 +259,27 @@ def get_unique_active_actions(
 def fire_actions(
     actions: BaseQuerySet[Action],
     event_data: WorkflowEventData,
-    workflow_uuid_map: dict[int, str],
+    workflow_uuid_map: dict[WorkflowId, str],
+    action_to_workflow_id: dict[ActionId, WorkflowId],
 ) -> None:
     deduped_actions = get_unique_active_actions(actions, event_data.group)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, event_data, workflow_uuid_map)
+        workflow_id = action_to_workflow_id[action.id]
+        task_params = build_trigger_action_task_params(
+            action, event_data, workflow_uuid_map, workflow_id=workflow_id
+        )
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> BaseQuerySet[Action]:
+) -> tuple[BaseQuerySet[Action], dict[ActionId, WorkflowId]]:
     """
-    Returns actions associated with the provided DataConditionsGroups, excluding those that have been recently fired. Also updates associated WorkflowActionGroupStatus objects.
+    Returns actions associated with the provided DataConditionGroups, excluding
+    those that have been recently fired, along with a mapping of action_id to
+    the workflow_id each action is firing for. Also updates associated
+    WorkflowActionGroupStatus objects.
     """
 
     data_condition_group_actions = DataConditionGroupAction.objects.filter(
@@ -316,17 +322,12 @@ def filter_recently_fired_workflow_actions(
 
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
-    # annotate actions with workflow_id they are firing for (deduped)
-    workflow_id_cases = [
-        When(
-            id=action_id, then=Value(min(list(workflow_ids)))
-        )  # select 1 workflow to fire for, this is arbitrary but deterministic
-        for action_id, workflow_ids in action_to_workflows_ids.items()
-    ]
+    # Build a mapping of action_id -> workflow_id (pick one arbitrarily but deterministically)
+    action_to_workflow_id: dict[ActionId, WorkflowId] = {
+        action_id: min(wf_ids) for action_id, wf_ids in action_to_workflows_ids.items()
+    }
 
-    return actions_queryset.annotate(
-        workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
-    )
+    return actions_queryset, action_to_workflow_id
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:

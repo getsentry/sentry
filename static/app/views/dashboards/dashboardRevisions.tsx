@@ -5,11 +5,11 @@ import {useMutation} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
@@ -32,6 +32,8 @@ interface DashboardRevisionsButtonProps {
 }
 
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
+  const {openModal} = useModal();
+
   if (!dashboard.id || defined(dashboard.prebuiltId)) {
     return null;
   }

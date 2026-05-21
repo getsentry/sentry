@@ -60,6 +60,10 @@ describe('DetectorDetails', () => {
     ProjectsStore.loadInitialData([project]);
     TeamStore.loadInitialData([ownerTeam]);
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
         AutomationFixture({id: '1', name: 'Automation 1'}),

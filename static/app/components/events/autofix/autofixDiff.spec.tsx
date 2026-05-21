@@ -24,7 +24,7 @@ describe('AutofixDiff', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    (addErrorMessage as jest.Mock).mockClear();
+    jest.mocked(addErrorMessage).mockClear();
   });
 
   it('displays a modified file diff correctly', () => {

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import NativeFrame from 'sentry/components/events/interfaces/nativeFrame';
+import {NativeFrame} from 'sentry/components/events/interfaces/nativeFrame';
 import {
   findImageForAddress,
   getHiddenFrameIndices,

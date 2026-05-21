@@ -51,6 +51,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "webhookUrl": self.unpublished_app.webhook_url,
                     "redirectUrl": self.unpublished_app.redirect_url,
                     "isAlertable": self.unpublished_app.is_alertable,
+                    "isDisabled": self.unpublished_app.is_disabled,
                     "verifyInstall": self.unpublished_app.verify_install,
                     "clientId": self.unpublished_app.application.client_id,
                     "clientSecret": self.unpublished_app.application.client_secret,

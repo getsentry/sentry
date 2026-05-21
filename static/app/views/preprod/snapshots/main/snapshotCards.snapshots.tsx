@@ -116,7 +116,6 @@ const copyUrl = 'https://example.com/snapshots/button-light';
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
-    content_hash: 'synthetic-content-hash',
     display_name: 'Button / light',
     height: 180,
     image_file_name: 'button.light.png',
@@ -127,13 +126,11 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
 }
 
 const baseImage = image({
-  content_hash: 'base-content-hash',
   display_name: 'Button / light',
   key: 'base-button-light',
 });
 
 const headImage = image({
-  content_hash: 'head-content-hash',
   key: 'head-button-light',
 });
 
@@ -146,7 +143,6 @@ const changedPair: SnapshotDiffPair = {
 
 const renamedPair: SnapshotDiffPair = {
   base_image: image({
-    content_hash: 'base-renamed-content-hash',
     display_name: 'Button / light old',
     image_file_name: 'button.light.old.png',
     key: 'base-button-light-old',
@@ -154,7 +150,6 @@ const renamedPair: SnapshotDiffPair = {
   diff: null,
   diff_image_key: null,
   head_image: image({
-    content_hash: 'head-renamed-content-hash',
     display_name: 'Button / light',
     image_file_name: 'button.light.png',
     key: 'head-button-light',

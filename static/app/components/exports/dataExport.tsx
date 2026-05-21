@@ -18,7 +18,6 @@ export interface LogsQueryInfo {
   sort: string[];
   end?: string;
   environment?: string[];
-  limit?: number;
   start?: string;
   statsPeriod?: string;
 }

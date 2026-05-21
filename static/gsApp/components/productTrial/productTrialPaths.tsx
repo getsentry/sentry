@@ -107,7 +107,7 @@ export function getProductForPath(
   path = normalizePath(path);
 
   if (subscription.planTier === PlanTier.AM3) {
-    if (PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES.hasOwnProperty(path)) {
+    if (Object.hasOwn(PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES, path)) {
       return PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES[path]!;
     }
   }

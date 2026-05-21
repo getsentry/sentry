@@ -9,7 +9,6 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {HookStore} from 'sentry/stores/hookStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types/event';
 import {CodecovStatusCode} from 'sentry/types/integrations';
@@ -38,10 +37,9 @@ describe('StacktraceLink', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
-    HookStore.init?.();
   });
 
-  it.isKnownFlake('renders setup CTA with integration but no configs', async () => {
+  it('renders setup CTA with integration but no configs', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: [integration]},

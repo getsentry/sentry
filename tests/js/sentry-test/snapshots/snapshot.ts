@@ -146,6 +146,7 @@ export async function takeSnapshot({
       display_name: displayName,
       group,
       ...metadata,
+      context: {test_file_path: relativePath},
     };
 
     await Promise.all([

@@ -95,17 +95,6 @@ function ReplayLayoutBody({
     </ErrorBoundary>
   );
 
-  if (layout === LayoutKey.VIDEO_ONLY) {
-    return (
-      <BodyGrid>
-        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {video}
-          {controller}
-        </Stack>
-      </BodyGrid>
-    );
-  }
-
   const focusArea =
     isLoading || replayRecord?.is_archived ? (
       <Placeholder width="100%" height="100%" />
@@ -125,54 +114,42 @@ function ReplayLayoutBody({
     return (
       <BodyGrid>
         <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
+          {hasSize ? <PanelContainer>{focusArea}</PanelContainer> : null}
         </Stack>
       </BodyGrid>
     );
   }
 
-  if (layout === LayoutKey.SIDEBAR_LEFT) {
-    return (
-      <BodyGrid>
-        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {hasSize ? (
-            <SplitPanel
-              layout={layout}
-              key={layout}
-              availableSize={width}
-              left={{
-                content: <PanelContainer key={layout}>{video}</PanelContainer>,
-                default: width * 0.5,
-                min: MIN_SIDEBAR_WIDTH,
-                max: width - MIN_CONTENT_WIDTH,
-              }}
-              right={focusArea}
-            />
-          ) : null}
-        </Stack>
-        {controller}
-      </BodyGrid>
-    );
-  }
+  const isFocusAreaCollapsed = layout === LayoutKey.VIDEO_ONLY;
+  const effectiveLayout = isFocusAreaCollapsed ? defaultLayout : layout;
+  const isLeftRight = effectiveLayout === LayoutKey.SIDEBAR_LEFT;
 
-  // layout === 'topbar'
+  const splitPanelProps = isLeftRight
+    ? {
+        availableSize: width,
+        left: {
+          content: <PanelContainer>{video}</PanelContainer>,
+          default: width * 0.5,
+          min: MIN_SIDEBAR_WIDTH,
+          max: width - MIN_CONTENT_WIDTH,
+        },
+        right: isFocusAreaCollapsed ? null : focusArea,
+      }
+    : {
+        availableSize: height,
+        top: {
+          content: <PanelContainer>{video}</PanelContainer>,
+          default: (height - DIVIDER_SIZE) * 0.5,
+          min: MIN_VIDEO_HEIGHT,
+          max: height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT,
+        },
+        bottom: isFocusAreaCollapsed ? null : focusArea,
+      };
+
   return (
     <BodyGrid>
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-        {hasSize ? (
-          <SplitPanel
-            layout={layout}
-            key={layout}
-            availableSize={height}
-            top={{
-              content: <PanelContainer>{video}</PanelContainer>,
-              default: (height - DIVIDER_SIZE) * 0.5,
-              min: MIN_VIDEO_HEIGHT,
-              max: height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT,
-            }}
-            bottom={focusArea}
-          />
-        ) : null}
+        {hasSize ? <SplitPanel layout={effectiveLayout} {...splitPanelProps} /> : null}
       </Stack>
       {controller}
     </BodyGrid>

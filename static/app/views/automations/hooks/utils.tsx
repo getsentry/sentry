@@ -22,7 +22,7 @@ export function getAutomationActions(automation: Automation): ActionType[] {
         .flatMap(dataConditionGroup =>
           dataConditionGroup.actions?.map(action => action.type)
         )
-        .filter(x => x)
+        .filter(Boolean)
     ),
   ] as ActionType[];
 }

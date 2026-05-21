@@ -8,7 +8,7 @@ import type {Group} from 'sentry/types/group';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   bytesToMB,
@@ -120,9 +120,9 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
       : null;
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey="triggered_condition"
       title={t('Triggered Condition')}
-      type="triggered_condition"
       actions={
         <Flex gap="xs">
           <LinkButton size="xs" to={headBuildPath}>
@@ -182,6 +182,6 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
           },
         ]}
       />
-    </InterimSection>
+    </FoldSection>
   );
 }

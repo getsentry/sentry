@@ -14,7 +14,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -32,7 +32,7 @@ import {EmptyState} from './EmptyState';
 
 interface Props {
   organization: Organization;
-  project: Project;
+  project: DetailedProject;
 }
 
 export function PlayStationSettings({organization, project}: Props) {

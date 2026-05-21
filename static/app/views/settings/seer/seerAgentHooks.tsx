@@ -13,7 +13,7 @@ import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -70,7 +70,7 @@ function useApplyOptimisticUpdate({project}: {project: Project}) {
         ProjectsStore.onUpdateSuccess({
           id: project.id,
           autofixAutomationTuning: updates.autofixAutomationTuning,
-        });
+        } as Partial<DetailedProject>);
       }
     },
     [queryClient, autofixSettingsQueryOptions.queryKey, project.id]

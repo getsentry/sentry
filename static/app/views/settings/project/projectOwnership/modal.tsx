@@ -99,7 +99,7 @@ function OwnershipSuggestions({
       # {t('Here’s some suggestions based on this issue')}
       <br />
       {[pathSuggestion, urlSuggestion, transactionSuggestion]
-        .filter(x => x)
+        .filter(Boolean)
         .map(suggestion => (
           <Fragment key={suggestion}>
             {suggestion}

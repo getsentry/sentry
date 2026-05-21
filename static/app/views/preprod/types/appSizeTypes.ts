@@ -181,6 +181,7 @@ export interface OptimizableImageFile {
 
 interface ImageOptimizationInsightResult extends BaseInsightResult {
   optimizable_files: OptimizableImageFile[];
+  timed_out?: boolean;
 }
 
 export interface StripBinaryFileInfo {

@@ -3,7 +3,7 @@ from __future__ import annotations
 import socket
 from collections.abc import Callable
 from functools import partial
-from typing import Optional
+from typing import Any, Optional, cast
 
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, DEFAULT_RETRIES, HTTPAdapter, Retry
@@ -12,7 +12,7 @@ from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connectionpool import connection_from_url as _connection_from_url
 from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 from urllib3.poolmanager import PoolManager
-from urllib3.util.connection import _set_socket_options
+from urllib3.util.connection import _TYPE_SOCKET_OPTIONS, _set_socket_options
 from urllib3.util.timeout import _DEFAULT_TIMEOUT
 
 from sentry import VERSION as SENTRY_VERSION
@@ -28,6 +28,10 @@ class SafeConnectionMixin:
     """
 
     is_ipaddress_permitted: IsIpAddressPermitted = None
+    source_address: tuple[str, int] | None
+    socket_options: _TYPE_SOCKET_OPTIONS | None
+    timeout: float | None
+    port: int
 
     def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         self.is_ipaddress_permitted = is_ipaddress_permitted
@@ -37,7 +41,7 @@ class SafeConnectionMixin:
     # These `host` properties need rebound otherwise `self._dns_host` doesn't
     # get set correctly.
     @property
-    def host(self):
+    def host(self) -> str:
         """
         Getter method to remove any trailing dots that indicate the hostname is an FQDN.
         In general, SSL certificates don't include the trailing dot indicating a
@@ -54,7 +58,7 @@ class SafeConnectionMixin:
         return self._dns_host.rstrip(".")
 
     @host.setter
-    def host(self, value):
+    def host(self, value) -> None:
         """
         Setter for the `host` property.
         We assume that only urllib3 uses the _dns_host attribute; httplib itself
@@ -63,11 +67,11 @@ class SafeConnectionMixin:
         self._dns_host = value
 
     # urllib3.connection.HTTPConnection._new_conn
-    def _new_conn(self):
+    def _new_conn(self) -> socket.socket:
         """Establish a socket connection and set nodelay settings on it.
         :return: New socket connection.
         """
-        extra_kw = {}
+        extra_kw: dict[str, Any] = {}
         if self.source_address:
             extra_kw["source_address"] = self.source_address
 
@@ -91,7 +95,9 @@ class SafeConnectionMixin:
             )
 
         except OSError as e:
-            raise NewConnectionError(self, f"Failed to establish a new connection: {e}")
+            raise NewConnectionError(
+                cast(HTTPConnection, self), f"Failed to establish a new connection: {e}"
+            )
 
         return conn
 
@@ -109,8 +115,9 @@ class SafeHTTPConnectionPool(HTTPConnectionPool):
 
     def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ConnectionCls = partial(
-            self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
+        self.ConnectionCls = cast(
+            type[SafeHTTPConnection],
+            partial(self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted),
         )
 
 
@@ -119,8 +126,9 @@ class SafeHTTPSConnectionPool(HTTPSConnectionPool):
 
     def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ConnectionCls = partial(
-            self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
+        self.ConnectionCls = cast(
+            type[SafeHTTPSConnection],
+            partial(self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted),
         )
 
 
@@ -152,14 +160,16 @@ class BlacklistAdapter(HTTPAdapter):
     def __init__(
         self,
         is_ipaddress_permitted: IsIpAddressPermitted = None,
-        max_retries: Retry | int = DEFAULT_RETRIES,
+        max_retries: Retry | None | int = DEFAULT_RETRIES,
     ) -> None:
         # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
         # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(max_retries=max_retries)
 
-    def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
+    def init_poolmanager(
+        self, connections: int, maxsize: int, block: bool = DEFAULT_POOLBLOCK, **pool_kwargs: Any
+    ):
         self._pool_connections = connections
         self._pool_maxsize = maxsize
         self._pool_block = block
@@ -204,7 +214,9 @@ class Session(_Session):
 
 class SafeSession(Session):
     def __init__(
-        self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries: Retry | None = None
+        self,
+        is_ipaddress_permitted: IsIpAddressPermitted = None,
+        max_retries: Retry | None = None,
     ) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
@@ -218,7 +230,7 @@ class SafeSession(Session):
 class UnixHTTPConnection(HTTPConnection):
     default_socket_options = []
 
-    def __init__(self, host, **kwargs):
+    def __init__(self, host: str, **kwargs):
         # We're using the `host` as the socket path, but
         # urllib3 uses this host as the Host header by default.
         # If we send along the socket path as a Host header, this is
@@ -247,7 +259,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
         return f"{type(self).__name__}(host={self.host!r})"
 
 
-def connection_from_url(endpoint, **kw):
+def connection_from_url(endpoint: str, **kw: Any):
     if endpoint[:1] == "/":
         return UnixHTTPConnectionPool(endpoint, **kw)
     return _connection_from_url(endpoint, **kw)

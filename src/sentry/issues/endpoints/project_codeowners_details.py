@@ -93,7 +93,12 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
                     updated_codeowners,
                     request.user,
                     serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(
-                        expand=["ownershipSyntax", "errors"]
+                        expand=[
+                            "ownershipSyntax",
+                            "errors",
+                            "renameIdentifier",
+                            "hasTargetingContext",
+                        ]
                     ),
                 ),
                 status=status.HTTP_200_OK,

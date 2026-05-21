@@ -12,7 +12,6 @@ from drf_spectacular.utils import extend_schema_serializer
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
@@ -21,25 +20,19 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident
-from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.monitors.models import Monitor
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
-from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
-from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 __all__ = [
     "AlertRuleSerializer",
-    "CombinedRuleSerializer",
     "DetailedAlertRuleSerializer",
 ]
 
@@ -95,10 +88,10 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     timeWindow: float
     resolution: float
     thresholdPeriod: int
-    triggers: list[dict]
+    triggers: list[dict[str, Any]]
     dateModified: datetime
     dateCreated: datetime
-    createdBy: dict
+    createdBy: dict[str, Any]
     description: str
     detectionType: str
 
@@ -379,142 +372,9 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         obj: AlertRule,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: Any,
     ) -> DetailedAlertRuleSerializerResponse:
         data = cast(DetailedAlertRuleSerializerResponse, super().serialize(obj, attrs, user))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
         data["snooze"] = False
         return data
-
-
-class CombinedRuleSerializer(Serializer):
-    def __init__(self, expand: list[str] | None = None):
-        self.expand = expand or []
-
-    def get_attrs(
-        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> MutableMapping[Any, Any]:
-        results = super().get_attrs(item_list, user)
-
-        alert_rules = [x for x in item_list if isinstance(x, AlertRule)]
-        incident_map = {}
-        if "latestIncident" in self.expand:
-            for incident in Incident.objects.filter(id__in=[x.incident_id for x in alert_rules]):  # type: ignore[attr-defined]
-                incident_map[incident.id] = serialize(incident, user=user)
-
-        serialized_alert_rules = serialize(alert_rules, user=user)
-        serialized_alert_rule_map_by_id = {
-            serialized_alert["id"]: serialized_alert
-            for serialized_alert in serialized_alert_rules
-            if serialized_alert
-        }
-
-        serialized_issue_rules = serialize(
-            [x for x in item_list if isinstance(x, Rule)],
-            user=user,
-            serializer=RuleSerializer(expand=self.expand),
-        )
-        serialized_issue_rule_map_by_id = {
-            serialized_rule["id"]: serialized_rule
-            for serialized_rule in serialized_issue_rules
-            if serialized_rule
-        }
-
-        uptime_detectors = [
-            x
-            for x in item_list
-            if isinstance(x, Detector) and x.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
-        ]
-        serialized_uptime_detectors = serialize(
-            uptime_detectors,
-            user=user,
-            serializer=UptimeDetectorSerializer(),
-        )
-        serialized_uptime_detector_map_by_id = {
-            item["id"]: item for item in serialized_uptime_detectors
-        }
-
-        serialized_cron_monitors = serialize(
-            [x for x in item_list if isinstance(x, Monitor)],
-            user=user,
-        )
-        serialized_cron_monitor_map_by_guid = {
-            item["id"]: item for item in serialized_cron_monitors
-        }
-
-        for item in item_list:
-            item_id = str(item.id)
-            if isinstance(item, AlertRule) and item_id in serialized_alert_rule_map_by_id:
-                # This is a metric alert rule
-                serialized_alert_rule = serialized_alert_rule_map_by_id[item_id]
-                if "latestIncident" in self.expand:
-                    # Eg. we _have_ an incident
-                    try:
-                        serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
-                    except AttributeError as e:
-                        logger.exception(
-                            "incident serialization error",
-                            extra={
-                                "exception": e,
-                                "alert_rule_id": item_id,
-                                "is_metric_alert": isinstance(item, AlertRule),
-                                "is_issue_alert": isinstance(item, Rule),
-                            },
-                        )
-                results[item] = serialized_alert_rule
-            elif isinstance(item, Rule) and item_id in serialized_issue_rule_map_by_id:
-                # This is an issue alert rule
-                results[item] = serialized_issue_rule_map_by_id[item_id]
-            elif (
-                isinstance(item, Detector)
-                and item.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
-                and item_id in serialized_uptime_detector_map_by_id
-            ):
-                # This is an uptime detector
-                results[item] = serialized_uptime_detector_map_by_id[item_id]
-            elif (
-                # XXX(epurkhiser): Monitors use their GUID as their IDs
-                isinstance(item, Monitor) and str(item.guid) in serialized_cron_monitor_map_by_guid
-            ):
-                # This is a cron monitor
-                results[item] = serialized_cron_monitor_map_by_guid[str(item.guid)]
-            else:
-                logger.error(
-                    "Alert Rule found but dropped during serialization",
-                    extra={
-                        "id": item_id,
-                        "issue_rule": isinstance(item, Rule),
-                        "metric_rule": isinstance(item, AlertRule),
-                        "uptime_rule": (
-                            isinstance(item, Detector)
-                            and item.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
-                        ),
-                        "crons_rule": isinstance(item, Monitor),
-                    },
-                )
-
-        return results
-
-    def serialize(
-        self,
-        obj: Rule | AlertRule | Detector | Monitor,
-        attrs: Mapping[Any, Any],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> MutableMapping[Any, Any]:
-        updated_attrs = {**attrs}
-        if isinstance(obj, AlertRule):
-            # Mark that we're using legacy AlertRule models
-            report_used_legacy_models()
-            updated_attrs["type"] = "alert_rule"
-        elif isinstance(obj, Rule):
-            # Mark that we're using legacy Rule models
-            report_used_legacy_models()
-            updated_attrs["type"] = "rule"
-        elif isinstance(obj, Detector) and obj.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE:
-            updated_attrs["type"] = "uptime"
-        elif isinstance(obj, Monitor):
-            updated_attrs["type"] = "monitor"
-        else:
-            raise AssertionError(f"Invalid rule to serialize: {type(obj)}")
-        return updated_attrs

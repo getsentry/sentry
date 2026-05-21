@@ -677,6 +677,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         the ident changed from the SSO provider), we should be re-linking
         the identity automatically (without prompt) assuming the user is
         a member of the org.
+
+        Session ownership is sufficient — no IdP email_verified claim needed.
         """
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -704,8 +706,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # updated to be something else)
         resp = self.client.post(path, {"email": "adfadsf@example.com"})
 
-        # there should be no prompt as we auto merge the identity
-        assert resp.status_code == 200
+        # authenticated member auto-links without prompt
+        assert resp.status_code == 302
 
     def test_flow_authenticated_without_verified_without_password(self) -> None:
         """

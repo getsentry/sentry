@@ -29,7 +29,7 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
       setTree(t =>
         t.type === 'error'
           ? t
-          : TraceTree.Error(
+          : TraceTree.ErrorState(
               {
                 project_slug: projects?.[0]?.slug ?? '',
                 event_id: traceSlug,

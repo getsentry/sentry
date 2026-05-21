@@ -126,6 +126,11 @@ class BaseApiClient:
                 log_params["retry_after"] = retry_after
 
         log_params.update(getattr(self, "logging_context", None) or {})
+        organization_id = log_params.get("organization_id")
+        if organization_id is None and "org_id" in log_params:
+            organization_id = log_params["org_id"]
+        if organization_id is not None:
+            log_params["organization_id"] = str(organization_id)
         log_level = self.logger.warning if error else self.logger.info
         log_level("%s.http_response", self.integration_type, extra=log_params)
 
@@ -318,6 +323,12 @@ class BaseApiClient:
         integration_id = getattr(self, "integration_id", None)
         if integration_id is not None:
             extra["integration_id"] = str(integration_id)
+        logging_context = getattr(self, "logging_context", None) or {}
+        organization_id = logging_context.get("organization_id")
+        if organization_id is None:
+            organization_id = logging_context.get("org_id")
+        if organization_id is not None:
+            extra["organization_id"] = str(organization_id)
         if api_request_type_tag is not None:
             extra["api_request_type"] = api_request_type_tag
 
@@ -339,7 +350,7 @@ class BaseApiClient:
                     verify=environment_settings.get("verify"),
                     cert=environment_settings.get("cert"),
                 )
-                resp: Response = session.send(finalized_request, **session_settings)
+                resp = self._do_send(session, finalized_request, session_settings)
                 if raw_response:
                     return resp
                 resp.raise_for_status()
@@ -394,6 +405,11 @@ class BaseApiClient:
         return BaseApiResponse.from_response(
             resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
         )
+
+    def _do_send(
+        self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
+    ) -> Response:
+        return session.send(request, **session_settings)
 
     # subclasses should override ``request``
     def request(self, *args: Any, **kwargs: Any) -> Any:

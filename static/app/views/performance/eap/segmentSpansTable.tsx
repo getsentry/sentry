@@ -18,9 +18,11 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -160,7 +162,16 @@ export function SegmentSpansTable({
               column,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
+            renderBodyCell(
+              column,
+              row,
+              meta,
+              projectSlug,
+              location,
+              navigate,
+              organization,
+              theme
+            ),
         }}
       />
     </Fragment>
@@ -173,6 +184,7 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
+  navigate: ReactRouter3Navigate,
   organization: Organization,
   theme: Theme
 ) {
@@ -216,7 +228,10 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
+            pathname: makeReplaysPathname({
+              path: `/${row.replayId}/`,
+              organization,
+            }),
             query: {
               referrer: 'performance',
             },
@@ -236,6 +251,7 @@ function renderBodyCell(
 
   const rendered = renderer(row, {
     location,
+    navigate,
     organization,
     theme,
     unit: meta.units?.[column.key],

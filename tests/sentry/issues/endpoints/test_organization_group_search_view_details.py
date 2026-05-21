@@ -124,6 +124,14 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         assert response.data["name"] == view.name
         assert response.data["query"] == view.query
 
+    def test_get_invalid_view_id(self) -> None:
+        url = reverse(
+            "sentry-api-0-organization-group-search-view-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": "abc"},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 404
+
     def test_get_nonexistent_view(self) -> None:
         nonexistent_id = "37373"
         url = reverse(

@@ -21,7 +21,7 @@ from sentry.snuba.metrics.extraction import (
 )
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
-from sentry.snuba.utils import DATASET_OPTIONS
+from sentry.snuba.utils import PUBLIC_DATASET_LABELS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.on_demand import create_widget
@@ -88,8 +88,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert response.status_code == 400, response.content
         assert (
-            response.data["detail"]
-            == f"dataset must be one of: {', '.join([key for key in DATASET_OPTIONS.keys()])}"
+            response.data["detail"] == f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}"
         )
 
     def test_out_of_retention(self) -> None:
@@ -3730,15 +3729,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         for spec in specs:
             self.store_on_demand_metric(1, spec=spec)
         response = self._make_on_demand_request(params)
-        self._assert_on_demand_response(response)
-
-    def test_on_demand_for_metrics_deprecation(self) -> None:
-        params = {"field": ["count()"], "query": "", "yAxis": "count()"}
-        specs = self._create_specs(params)
-        for spec in specs:
-            self.store_on_demand_metric(1, spec=spec)
-        with self.feature("organizations:on-demand-gen-metrics-deprecation-query-prefill"):
-            response = self._make_on_demand_request(params)
         self._assert_on_demand_response(response)
 
     def test_split_decision_for_errors_widget(self) -> None:

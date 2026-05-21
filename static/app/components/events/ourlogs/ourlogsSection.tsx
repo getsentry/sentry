@@ -29,7 +29,7 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export function OurlogsSection({
   event,
@@ -185,12 +185,7 @@ function OurlogsSectionContent({
     return null;
   }
   return (
-    <InterimSection
-      key="logs"
-      type={SectionKey.LOGS}
-      title={t('Logs')}
-      data-test-id="logs-data-section"
-    >
+    <FoldSection sectionKey={SectionKey.LOGS} title={t('Logs')}>
       <Stack>
         <SmallTable>
           <TableBody>
@@ -222,7 +217,7 @@ function OurlogsSectionContent({
           </div>
         ) : null}
       </Stack>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

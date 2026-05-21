@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
@@ -8,19 +8,17 @@ import * as Storybook from 'sentry/stories';
 export default Storybook.story('ArithmeticBuilder', story => {
   story('With References', () => {
     const [expression, setExpression] = useState('A + B');
-    const [isValid, setIsValid] = useState(true);
     const [references, setReferences] = useState(new Set<string>(['A', 'B', 'C']));
     const [parseError, setParseError] = useState('');
+
+    const isValid = useMemo(
+      () => new Expression(expression, references).isValid,
+      [expression, references]
+    );
 
     const onExpressionChange = useCallback((expr: Expression) => {
       setExpression(expr.text);
     }, []);
-
-    // Explicitly check the new expression for validity since references
-    // changing is a responibility of the caller.
-    useEffect(() => {
-      setIsValid(new Expression(expression, references).isValid);
-    }, [expression, references]);
 
     return (
       <Fragment>

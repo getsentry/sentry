@@ -345,6 +345,14 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
         ):
             if features.has("organizations:seer-explorer-index", org):
                 eligible_org_ids.append(org.id)
+                continue
+
+            has_seer_plan = features.has(
+                "organizations:seat-based-seer-enabled", org
+            ) or features.has("organizations:seer-added", org)
+
+            if has_seer_plan:
+                eligible_org_ids.append(org.id)
 
         logger.info(
             "Eligible org ids for context engine indexing",

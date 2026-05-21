@@ -1199,6 +1199,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
         assert serializer.is_valid()
         action = serializer.save()
+        assert isinstance(action.sentry_app_config, dict)
         assert action.sentry_app_config["priority"] == "critical"
 
     @patch(
@@ -1217,6 +1218,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
         assert serializer.is_valid()
         action = serializer.save()
+        assert isinstance(action.sentry_app_config, dict)
         assert action.sentry_app_config["priority"] == "P1"
 
     def test_discord(self) -> None:

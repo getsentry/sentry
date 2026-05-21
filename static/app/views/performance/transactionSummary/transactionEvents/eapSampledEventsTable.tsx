@@ -38,8 +38,11 @@ import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -128,6 +131,7 @@ export function SampledEventsTable({
 }: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
+  const navigate = useNavigate();
   const {projects} = useProjects();
   const theme = useTheme();
   const organization = useOrganization();
@@ -249,7 +253,7 @@ export function SampledEventsTable({
             });
           },
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, theme),
+            renderBodyCell(column, row, meta, location, navigate, organization, theme),
         }}
       />
       <Pagination
@@ -267,6 +271,7 @@ function renderBodyCell(
   row: Record<string, any>,
   meta: EventsMetaType | undefined,
   location: Location,
+  navigate: ReactRouter3Navigate,
   organization: Organization,
   theme: Theme
 ) {
@@ -303,6 +308,7 @@ function renderBodyCell(
       const renderer = getFieldRenderer('trace', meta.fields, false);
       const rendered = renderer(row, {
         location,
+        navigate,
         organization,
         theme,
         unit: meta.units?.trace,
@@ -342,9 +348,10 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: normalizeUrl(
-              `/organizations/${organization.slug}/replays/${row.replayId}/`
-            ),
+            pathname: makeReplaysPathname({
+              path: `/${row.replayId}/`,
+              organization,
+            }),
             query: {
               referrer: 'performance',
             },
@@ -368,6 +375,7 @@ function renderBodyCell(
 
   const rendered = renderer(row, {
     location,
+    navigate,
     organization,
     theme,
     unit: meta.units?.[column.key],

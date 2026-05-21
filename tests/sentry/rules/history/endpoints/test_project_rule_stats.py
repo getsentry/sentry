@@ -3,14 +3,13 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -35,30 +34,34 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
     def test(self) -> None:
         rule = self.create_project_rule(project=self.event.project)
         rule_2 = self.create_project_rule(project=self.event.project)
-        history = []
+        workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+        workflow_2 = AlertRuleWorkflow.objects.get(rule_id=rule_2.id).workflow
 
+        history = []
+        target_dates = []
         for i in range(3):
             for _ in range(i + 1):
                 history.append(
-                    RuleFireHistory(
-                        project=rule.project,
-                        rule=rule,
+                    WorkflowFireHistory(
+                        workflow=workflow,
                         group=self.group,
-                        date_added=before_now(hours=i + 1),
                     )
                 )
+                target_dates.append(before_now(hours=i + 1))
 
         for i in range(2):
             history.append(
-                RuleFireHistory(
-                    project=rule_2.project,
-                    rule=rule_2,
+                WorkflowFireHistory(
+                    workflow=workflow_2,
                     group=self.group,
-                    date_added=before_now(hours=i + 1),
                 )
             )
+            target_dates.append(before_now(hours=i + 1))
 
-        RuleFireHistory.objects.bulk_create(history)
+        # date_added uses auto_now_add, so set it after bulk_create
+        created = WorkflowFireHistory.objects.bulk_create(history)
+        for record, target_date in zip(created, target_dates):
+            record.update(date_added=target_date)
         self.login_as(self.user)
         resp = self.get_success_response(
             self.organization.slug,

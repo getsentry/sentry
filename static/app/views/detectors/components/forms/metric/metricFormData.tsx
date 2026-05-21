@@ -14,6 +14,7 @@ import type {
   MetricDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   AlertRuleSensitivity,
@@ -523,6 +524,12 @@ export function metricSavedDetectorToFormData(
   const datasetConfig = getDatasetConfig(dataset);
   const anomalyCondition = getAnomalyCondition(detector);
 
+  const aggregateFunction =
+    datasetConfig.supportsEquations && isEquation(snubaQuery?.aggregate || '')
+      ? snubaQuery?.aggregate
+      : datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
+        DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction;
+
   return {
     // Core detector fields
     name: detector.name,
@@ -533,9 +540,7 @@ export function metricSavedDetectorToFormData(
     description: detector.description || null,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     extrapolationMode: snubaQuery.extrapolationMode,
-    aggregateFunction:
-      datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
-      DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,
+    aggregateFunction,
     dataset,
     interval: snubaQuery?.timeWindow ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.interval,
 

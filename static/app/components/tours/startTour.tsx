@@ -1,7 +1,7 @@
 import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -32,7 +32,7 @@ export function StartTourModal({
     <ThemeProvider theme={invertedTheme}>
       <TourContainer>
         <ModalImage {...img} />
-        <TextContainer>
+        <Container padding="lg xl">
           <Header>{header}</Header>
           <Description>{description}</Description>
           <Flex justify="end" marginTop="xl" gap="md">
@@ -54,7 +54,7 @@ export function StartTourModal({
               {t('Take a tour')}
             </TourAction>
           </Flex>
-        </TextContainer>
+        </Container>
       </TourContainer>
     </ThemeProvider>
   );
@@ -78,10 +78,6 @@ const TourContainer = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
-`;
-
-const TextContainer = styled('div')`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const Header = styled('div')`

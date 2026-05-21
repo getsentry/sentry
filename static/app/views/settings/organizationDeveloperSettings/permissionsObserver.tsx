@@ -8,12 +8,19 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
-import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
+import type {
+  PermissionResource,
+  Permissions,
+  WebhookEvent,
+} from 'sentry/types/integrations';
 import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {
+  PermissionSelection,
+  permissionStateToList,
+} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
@@ -25,6 +32,10 @@ type Props = DefaultProps & {
   events: WebhookEvent[];
   newApp: boolean;
   scopes: Scope[];
+  continuousIntegrationError?: string;
+  onEventsChange?: (events: WebhookEvent[]) => void;
+  onScopesChange?: (scopes: Scope[]) => void;
+  permissionErrors?: Partial<Record<PermissionResource, string>>;
 };
 
 type State = {
@@ -71,6 +82,9 @@ export class PermissionsObserver extends Component<Props, State> {
 
   onPermissionChange = (permissions: Permissions, hasContinuousIntegration: boolean) => {
     this.setState({permissions, hasContinuousIntegration});
+    this.props.onScopesChange?.(
+      permissionStateToList(permissions, hasContinuousIntegration)
+    );
     const new_permissions = toResourcePermissions(this.props.scopes);
 
     let elevating = false;
@@ -98,6 +112,7 @@ export class PermissionsObserver extends Component<Props, State> {
 
   onEventChange = (events: WebhookEvent[]) => {
     this.setState({events});
+    this.props.onEventsChange?.(events);
   };
 
   renderCallout() {
@@ -131,6 +146,8 @@ export class PermissionsObserver extends Component<Props, State> {
               permissions={permissions}
               onChange={this.onPermissionChange}
               appPublished={this.props.appPublished}
+              errors={this.props.permissionErrors}
+              continuousIntegrationError={this.props.continuousIntegrationError}
             />
             {this.renderCallout()}
           </PanelBody>

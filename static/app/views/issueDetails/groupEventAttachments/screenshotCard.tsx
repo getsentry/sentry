@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -44,6 +44,8 @@ export function ScreenshotCard({
   eventId,
   onDelete,
 }: Props) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
 

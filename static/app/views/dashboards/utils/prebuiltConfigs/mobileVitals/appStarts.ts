@@ -3,17 +3,16 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  COLD_START_CONDITION,
+  COLD_START_TABLE_OPERATIONS_CONDITION,
+  TRANSACTION_COUNT,
+  WARM_START_CONDITION,
+  WARM_START_TABLE_OPERATIONS_CONDITION,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {APP_STARTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-
-const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
-const COLD_START_CONDITION = `${SpanFields.SPAN_OP}:app.start.cold ${SpanFields.SPAN_DESCRIPTION}:["Cold Start","Cold App Start"]`;
-const WARM_START_CONDITION = `${SpanFields.SPAN_OP}:app.start.warm ${SpanFields.SPAN_DESCRIPTION}:["Warm Start","Warm App Start"]`;
-
-const COLD_START_TABLE_OPERATIONS_CONDITION = `!${SpanFields.SPAN_DESCRIPTION}:"Cold Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm Start" !${SpanFields.SPAN_DESCRIPTION}:"Cold App Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm App Start" !${SpanFields.SPAN_DESCRIPTION}:"Initial Frame Render" has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:ttid app_start_type:cold ${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
-
-const WARM_START_TABLE_OPERATIONS_CONDITION = `!${SpanFields.SPAN_DESCRIPTION}:"Cold Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm Start" !${SpanFields.SPAN_DESCRIPTION}:"Cold App Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm App Start" !${SpanFields.SPAN_DESCRIPTION}:"Initial Frame Render" has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:ttid app_start_type:warm ${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 
 const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: Widget = {
   id: 'avg-cold-starts-big-number',
@@ -26,8 +25,8 @@ const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
       columns: [],
       conditions: COLD_START_CONDITION,
       orderby: '',
@@ -53,8 +52,8 @@ const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`count(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+      fields: [TRANSACTION_COUNT],
+      aggregates: [TRANSACTION_COUNT],
       columns: [],
       conditions: COLD_START_CONDITION,
       orderby: '',
@@ -80,8 +79,8 @@ const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
       columns: [],
       conditions: WARM_START_CONDITION,
       orderby: '',
@@ -107,8 +106,8 @@ const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`count(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+      fields: [TRANSACTION_COUNT],
+      aggregates: [TRANSACTION_COUNT],
       columns: [],
       conditions: WARM_START_CONDITION,
       orderby: '',
@@ -134,12 +133,12 @@ const AVG_COLD_START_LINE_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
       columns: [],
       fieldAliases: [],
       conditions: COLD_START_CONDITION,
-      orderby: `-avg(${SpanFields.SPAN_DURATION})`,
+      orderby: `-avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
     },
   ],
   layout: {
@@ -162,12 +161,12 @@ const AVG_WARM_START_LINE_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
+      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
       columns: [],
       fieldAliases: [],
       conditions: WARM_START_CONDITION,
-      orderby: `-avg(${SpanFields.SPAN_DURATION})`,
+      orderby: `-avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
     },
   ],
   layout: {
@@ -190,10 +189,10 @@ const COLD_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_COLD})`],
-      aggregates: [`avg(${SpanFields.APP_START_COLD})`],
+      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
       columns: [SpanFields.DEVICE_CLASS],
-      conditions: TRANSACTION_OP_CONDITION,
+      conditions: COLD_START_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,
     },
   ],
@@ -217,10 +216,10 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_START_WARM})`],
-      aggregates: [`avg(${SpanFields.APP_START_WARM})`],
+      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
       columns: [SpanFields.DEVICE_CLASS],
-      conditions: TRANSACTION_OP_CONDITION,
+      conditions: WARM_START_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,
     },
   ],
@@ -246,12 +245,18 @@ const COLD_OPERATIONS_TABLE: Widget = {
       name: '',
       fields: [
         SpanFields.SPAN_OP,
+        SpanFields.NAME,
         SpanFields.SPAN_DESCRIPTION,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
       ],
       aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-      columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
-      fieldAliases: [t('Operation'), t('Span Description'), WIDGET_COLUMN_LABELS.avg],
+      columns: [SpanFields.SPAN_OP, SpanFields.NAME, SpanFields.SPAN_DESCRIPTION],
+      fieldAliases: [
+        t('Operation'),
+        t('Span Name'),
+        t('Span Description'),
+        WIDGET_COLUMN_LABELS.avg,
+      ],
       conditions: COLD_START_TABLE_OPERATIONS_CONDITION,
       orderby: '-avg(span.self_time)',
     },
@@ -278,12 +283,18 @@ const WARM_OPERATIONS_TABLE: Widget = {
       name: '',
       fields: [
         SpanFields.SPAN_OP,
+        SpanFields.NAME,
         SpanFields.SPAN_DESCRIPTION,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
       ],
       aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-      columns: [SpanFields.SPAN_OP, SpanFields.SPAN_DESCRIPTION],
-      fieldAliases: [t('Operation'), t('Span Description'), WIDGET_COLUMN_LABELS.avg],
+      columns: [SpanFields.SPAN_OP, SpanFields.NAME, SpanFields.SPAN_DESCRIPTION],
+      fieldAliases: [
+        t('Operation'),
+        t('Span Name'),
+        t('Span Description'),
+        WIDGET_COLUMN_LABELS.avg,
+      ],
       conditions: WARM_START_TABLE_OPERATIONS_CONDITION,
       orderby: '-avg(span.self_time)',
     },
@@ -339,8 +350,8 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'transaction',
-          name: 'transaction',
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
           kind: FieldKind.TAG,
         },
         value: '',

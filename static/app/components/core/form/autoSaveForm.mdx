@@ -88,6 +88,35 @@ const schema = z.object({
 > [!NOTE]
 > Do NOT use toasts to communicate auto-save status. The built-in inline indicators are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently.
 
+## Transformed Submit Values
+
+`AutoSaveForm` keeps field state typed as the schema input, but submits the schema's parsed output to the mutation. This matches `useScrapsForm` and lets you use transforms or narrower output types without extra parsing in `mutationFn`.
+
+> [!WARNING]
+> The schema is applied to the form value on submit, so unknown keys are stripped per Zod's default behavior. For map-like fields with arbitrary keys, use `z.record(z.string(), …)` or `z.looseObject({})` — not `z.object({})`, which declares zero keys and will strip everything at submit time.
+
+```jsx
+const schema = z.object({
+  highlightContext: z.string().transform(value => JSON.parse(value)),
+});
+
+<AutoSaveForm
+  name="highlightContext"
+  schema={schema}
+  initialValue="{}"
+  mutationOptions={{
+    mutationFn: (data: {highlightContext: Record<string, string[]>}) =>
+      fetchMutation({url: '/project/', method: 'PUT', data}),
+  }}
+>
+  {field => (
+    <field.Layout.Row label="Highlight Context">
+      <field.TextArea value={field.state.value} onChange={field.handleChange} />
+    </field.Layout.Row>
+  )}
+</AutoSaveForm>
+```
+
 ## Confirmation Dialogs
 
 For dangerous operations (security settings, permissions), use the `confirm` prop to show a confirmation modal before saving. It accepts a string (always shown) or a function (conditionally shown).

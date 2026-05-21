@@ -89,7 +89,7 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
     <FlyingLinesContainer style={{left: position.left, top: position.top}}>
       <AdditionalLine delay={-0.6} variant="leftColored" />
       <AdditionalLine delay={-0.8} rotation={45} variant="rightColored" />
-      <AdditionalLine delay={-1.0} rotation={-30} variant="leftColored" />
+      <AdditionalLine delay={-1} rotation={-30} variant="leftColored" />
     </FlyingLinesContainer>,
     portalContainerRef.current
   );

@@ -160,6 +160,8 @@ describe('useReplayData', () => {
       },
     });
 
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
     await waitFor(() => expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1));
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
@@ -230,6 +232,8 @@ describe('useReplayData', () => {
         errorsPerPage: 1,
       },
     });
+
+    await act(() => jest.advanceTimersByTimeAsync(0));
 
     await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
     expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1);
@@ -363,6 +367,8 @@ describe('useReplayData', () => {
         errorsPerPage: 1,
       },
     });
+
+    await act(() => jest.advanceTimersByTimeAsync(0));
 
     await waitFor(() => expect(mockedErrorEventsMetaCall1).toHaveBeenCalledTimes(1));
     expect(mockedErrorEventsMetaCall2).toHaveBeenCalledTimes(1);
@@ -547,7 +553,8 @@ describe('useReplayData', () => {
       },
     });
 
-    // We need this 'await waitFor()' for the following assertions to pass:
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
     await waitFor(() => {
       expect(result.current).toBeTruthy();
     });
@@ -560,6 +567,8 @@ describe('useReplayData', () => {
     });
 
     result.current.onRetry();
+
+    await act(() => jest.advanceTimersByTimeAsync(0));
 
     await waitFor(() => {
       expect(mockedReplayCall).toHaveBeenCalledTimes(2);

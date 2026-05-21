@@ -2,9 +2,12 @@ import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
+import {IconBroadcast} from 'sentry/icons/iconBroadcast';
+import {IconLab} from 'sentry/icons/iconLab';
 import {t} from 'sentry/locale';
+import type {TagVariant} from 'sentry/utils/theme';
 
-import {Badge, type BadgeProps} from './badge';
+import {Tag, type TagProps} from './tag';
 
 const defaultTitles: Record<FeatureBadgeProps['type'], string> = {
   alpha: t('This feature is internal and available for QA purposes'),
@@ -15,36 +18,40 @@ const defaultTitles: Record<FeatureBadgeProps['type'], string> = {
   ),
 };
 
-const labels: Record<FeatureBadgeProps['type'], string> = {
-  alpha: t('alpha'),
-  beta: t('beta'),
-  new: t('new'),
-  experimental: t('experimental'),
+const variantMap: Record<FeatureBadgeProps['type'], TagVariant> = {
+  alpha: 'promotion',
+  beta: 'warning',
+  new: 'success',
+  experimental: 'muted',
 };
 
-export interface FeatureBadgeProps extends Omit<BadgeProps, 'children' | 'variant'> {
+const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
+  alpha: <IconLab isSolid size="xs" aria-hidden />,
+  beta: <IconLab isSolid size="xs" aria-hidden />,
+  new: <IconBroadcast size="xs" aria-hidden />,
+  experimental: <IconLab isSolid size="xs" aria-hidden />,
+};
+
+export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'> {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   tooltipProps?: Partial<TooltipProps>;
 }
 
-function InnerFeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
+export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
   const title = tooltipProps?.title ?? defaultTitles[type] ?? '';
 
   return (
     <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <StyledBadge variant={type} {...props}>
-        {labels[type]}
-      </StyledBadge>
+      <SquareTag variant={variantMap[type]} aria-label={type} {...props}>
+        {iconMap[type]}
+      </SquareTag>
     </Tooltip>
   );
 }
 
-/**
- * Requires the result of styled(Badge) to be exported as it
- * is in some cases targeted with a child selector.
- */
-export const FeatureBadge = styled(InnerFeatureBadge)``;
-
-const StyledBadge = styled(Badge)`
-  text-transform: capitalize;
+const SquareTag = styled(Tag)`
+  width: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  justify-content: center;
 `;

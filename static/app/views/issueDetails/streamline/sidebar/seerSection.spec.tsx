@@ -3,7 +3,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -24,7 +24,7 @@ describe('SeerSection', () => {
     ],
   });
   let mockGroup!: ReturnType<typeof GroupFixture>;
-  const mockProject = ProjectFixture();
+  const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
     features: ['gen-ai-features'],

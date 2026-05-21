@@ -1,13 +1,25 @@
-import {Token} from 'sentry/components/searchSyntax/parser';
+import type {TokenResult} from 'sentry/components/searchSyntax/parser';
+import {parseSearch, TermOperator, Token} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 import {
   areWildcardOperatorsAllowed,
   escapeTagValueForSearch,
   formatFilterValue,
+  getValidOpsForFilter,
   unescapeAsteriskSearchValue,
   unescapeTagValue,
 } from './utils';
+
+function parseFilterToken(query: string): TokenResult<Token.FILTER> {
+  const token = parseSearch(query)?.find(
+    (result): result is TokenResult<Token.FILTER> => result.type === Token.FILTER
+  );
+
+  expect(token).toBeDefined();
+
+  return token!;
+}
 
 describe('areWildcardOperatorsAllowed', () => {
   it('returns false when fieldDefinition is null', () => {
@@ -71,6 +83,75 @@ describe('areWildcardOperatorsAllowed', () => {
     };
 
     expect(areWildcardOperatorsAllowed(fieldDefinition)).toBe(false);
+  });
+});
+
+describe('getValidOpsForFilter', () => {
+  it('allows wildcard operators for fields with a null valueType', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: null,
+    };
+
+    expect(
+      getValidOpsForFilter({
+        filterToken: parseFilterToken('message:hello'),
+        fieldDefinition,
+      })
+    ).toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('allows wildcard operators when the field definition is missing', () => {
+    expect(
+      getValidOpsForFilter({
+        filterToken: parseFilterToken('custom_tag_name:hello'),
+        fieldDefinition: null,
+      })
+    ).toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('does not allow wildcard operators when allowWildcard is false', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    };
+
+    expect(
+      getValidOpsForFilter({
+        filterToken: parseFilterToken('message:hello'),
+        fieldDefinition,
+      })
+    ).not.toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('does not allow wildcard operators when disallowWildcardOperators is true', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      disallowWildcardOperators: true,
+    };
+
+    expect(
+      getValidOpsForFilter({
+        filterToken: parseFilterToken('message:hello'),
+        fieldDefinition,
+      })
+    ).not.toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('does not allow wildcard operators for non-string effective value types', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NUMBER,
+    };
+
+    expect(
+      getValidOpsForFilter({
+        filterToken: parseFilterToken('timesSeen:10'),
+        fieldDefinition,
+      })
+    ).not.toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
   });
 });
 

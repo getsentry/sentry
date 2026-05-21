@@ -311,7 +311,7 @@ function makeSearchTokenVariants(theme: Theme) {
     searchTokenBackground: {
       valid: theme.tokens.background.transparent.accent.muted,
       validActive: modifyColor(theme.tokens.background.transparent.accent.muted)
-        .opaquer(1.0)
+        .opaquer(1)
         .string(),
       invalid: theme.tokens.background.transparent.danger.muted,
       invalidActive: modifyColor(theme.tokens.background.transparent.danger.muted)

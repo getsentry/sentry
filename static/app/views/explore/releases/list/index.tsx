@@ -55,6 +55,8 @@ import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListIn
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
 import {ReleasesSortOptions} from './releasesSortOptions';
@@ -119,7 +121,7 @@ const releasesFeedbackOptions = {
   },
 };
 
-export default function ReleasesList() {
+function ReleasesListInnerPage() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -305,6 +307,19 @@ export default function ReleasesList() {
     shouldShowSnapshotsTab,
     location.query.tab,
   ]);
+
+  useLLMContext({
+    contextHint:
+      'Sentry releases list page. Shows deployed releases with crash-free rates, adoption, and session/user health. ' +
+      'Users can search, sort, filter by status (active/archived), and toggle sessions vs users display. ' +
+      'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days").',
+    searchQuery: activeQuery,
+    activeSort,
+    activeDisplay,
+    activeStatus,
+    selectedTab,
+    currentSelectedDateRange: selection.datetime,
+  });
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -523,7 +538,7 @@ export default function ReleasesList() {
                       >
                         <Flex align="center" gap="sm">
                           {t('Snapshots')}
-                          <FeatureBadge type="alpha" />
+                          <FeatureBadge type="beta" />
                         </Flex>
                       </TabList.Item>
                     </TabList>
@@ -690,3 +705,5 @@ const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
     grid-column: 1 / -1;
   }
 `;
+
+export default registerLLMContext('releases-list', ReleasesListInnerPage);

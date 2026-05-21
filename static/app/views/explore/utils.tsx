@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -524,7 +524,7 @@ export function findSuggestedColumns(
     }
 
     if (
-      !oldFilters.hasOwnProperty(key) || // new filter key
+      !Object.hasOwn(oldFilters, key) || // new filter key
       isSimpleFilter(key, oldFilters[key] || [], attributes) // existing filter key turned complex
     ) {
       keys.add(normalizeKey(key));
@@ -534,14 +534,14 @@ export function findSuggestedColumns(
 
   const oldHas = new Set(oldFilters.has);
   for (const key of newFilters.has || []) {
-    if (oldFilters.hasOwnProperty(key) || oldHas.has(key)) {
+    if (Object.hasOwn(oldFilters, key) || oldHas.has(key)) {
       // old condition, don't add column
       continue;
     }
 
     // if there's a simple filter on the key, don't add column
     if (
-      newFilters.hasOwnProperty(key) &&
+      Object.hasOwn(newFilters, key) &&
       isSimpleFilter(key, newFilters[key] || [], attributes)
     ) {
       continue;
@@ -769,7 +769,7 @@ export class TraceItemMetaInfo {
     attribute: string,
     meta: TraceItemDetailsMeta,
     organization?: Organization,
-    project?: Project
+    project?: DetailedProject
   ): string | React.ReactNode | null {
     const metaInfo = new TraceItemMetaInfo(meta);
     const remarks = metaInfo.getRemarks(attribute);

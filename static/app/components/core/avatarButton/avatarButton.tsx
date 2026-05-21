@@ -1,6 +1,6 @@
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
@@ -32,8 +32,10 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
 
   const {data: imageResult} = useQuery({
     queryKey: ['avatar-button-chonk', imageUrl, theme.type],
-    queryFn: () => resolveImageAvatarColors(imageUrl!, theme.type),
-    enabled: !!imageUrl && avatarDefinition.type === 'image',
+    queryFn:
+      imageUrl && avatarDefinition.type === 'image'
+        ? () => resolveImageAvatarColors(imageUrl, theme.type)
+        : skipToken,
     staleTime: Infinity,
   });
 
@@ -133,6 +135,7 @@ const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
 // Returns 'fill' when the image covers the full frame edge-to-edge, 'padded' otherwise.
 // Each edge check returns 'padded' when every pixel on that edge is transparent (alpha < 128).
 // Pixel (col, row) has its alpha channel at (row * 12 + col) * 4 + 3 in a 12×12 RGBA canvas.
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
   // oxfmt-ignore
   if (!(data[3]!>=128   || data[51]!>=128  || data[99]!>=128  ||
@@ -159,6 +162,7 @@ function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
 
   return 'fill';
 }
+/* eslint-enable @typescript-eslint/no-non-null-assertion */
 
 function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   const SAMPLE_SIZE = 12;
@@ -200,18 +204,24 @@ function sampleAvatarColor(
   const style = shouldPadImage(data);
 
   // Accumulate two sets: chromatic pixels (saturation ≥ 0.15) and all opaque pixels.
-  // oxfmt-ignore
-  let cr = 0, cg = 0, cb = 0, ccount = 0;
-  // oxfmt-ignore
-  let ar = 0, ag = 0, ab = 0, acount = 0;
+  let cr = 0,
+    cg = 0,
+    cb = 0,
+    ccount = 0;
+  let ar = 0,
+    ag = 0,
+    ab = 0,
+    acount = 0;
 
   for (let i = 0; i < data.length; i += 4) {
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
     if (data[i + 3]! < 128) continue;
 
     const r = data[i]!,
       g = data[i + 1]!,
       b = data[i + 2]!;
 
+    /* eslint-enable @typescript-eslint/no-non-null-assertion */
     // accumulate all pixels
     ar += r;
     ag += g;

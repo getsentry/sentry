@@ -45,7 +45,7 @@ class RepositoryService(RpcService):
         *,
         organization_id: int,
         integration_id: int | None = None,
-        external_id: int | None = None,
+        external_id: str | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,

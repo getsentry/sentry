@@ -7,9 +7,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -41,6 +41,8 @@ interface ProjectSeerProps {
 }
 
 export function AutofixRepositories({project}: ProjectSeerProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
   const repositoriesQuery = useInfiniteQuery({

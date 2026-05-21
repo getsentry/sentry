@@ -41,7 +41,8 @@ describe('PageUpsellOverlay', () => {
         description=""
         requiredPlan=""
         source=""
-      />
+      />,
+      {organization: org}
     );
     expect(screen.queryByText('Learn More')).not.toBeInTheDocument();
     expect(screen.getByText('My Text')).toBeInTheDocument();
@@ -64,7 +65,8 @@ describe('PageUpsellOverlay', () => {
         description=""
         requiredPlan=""
         source=""
-      />
+      />,
+      {organization: org}
     );
     expect(screen.getByText('Learn More')).toBeInTheDocument();
     expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
@@ -86,7 +88,8 @@ describe('PageUpsellOverlay', () => {
         description=""
         requiredPlan=""
         source=""
-      />
+      />,
+      {organization: org}
     );
     expect(screen.getByText('Learn More')).toBeInTheDocument();
     expect(screen.queryByText('Upgrade Plan')).not.toBeInTheDocument();

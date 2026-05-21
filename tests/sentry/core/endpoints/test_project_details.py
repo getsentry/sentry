@@ -1220,9 +1220,7 @@ class ProjectUpdateTest(APITestCase):
 
     @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets(self, create_audit_entry: mock.MagicMock) -> None:
-        with Feature(
-            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-        ):
+        with Feature({"organizations:custom-symbol-sources": True}):
             config = {
                 "id": "honk",
                 "name": "honk source",
@@ -1275,9 +1273,7 @@ class ProjectUpdateTest(APITestCase):
     def test_redacted_symbol_source_secrets_unknown_secret(
         self, create_audit_entry: mock.MagicMock
     ) -> None:
-        with Feature(
-            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-        ):
+        with Feature({"organizations:custom-symbol-sources": True}):
             config = {
                 "id": "honk",
                 "name": "honk source",

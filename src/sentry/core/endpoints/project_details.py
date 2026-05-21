@@ -344,18 +344,6 @@ E.g. `['release', 'environment']`""",
         return validate_pii_config_update(organization, value)
 
     def validate_builtinSymbolSources(self, value):
-        if not value:
-            return value
-
-        from sentry import features
-
-        organization = self.context["project"].organization
-        request = self.context["request"]
-        has_sources = features.has("organizations:symbol-sources", organization, actor=request.user)
-
-        if not has_sources:
-            raise serializers.ValidationError("Organization is not allowed to set symbol sources")
-
         return value
 
     def validate_symbolSources(self, sources_json) -> str:

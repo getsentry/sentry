@@ -7,11 +7,7 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
@@ -240,7 +236,7 @@ function drilldownAggregate(
   const aggregation = AGGREGATIONS[key];
   let column = func.function[1];
 
-  if (ALIASED_AGGREGATES_COLUMN.hasOwnProperty(key)) {
+  if (Object.hasOwn(ALIASED_AGGREGATES_COLUMN, key)) {
     // Some aggregates are just shortcuts to other aggregates with
     // predefined arguments so we can directly map them to the result.
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -346,7 +342,7 @@ function generateAdditionalConditions(
     // Or is a simple key in the event. More complex deeply nested fields are
     // more challenging to get at as their location in the structure does not
     // match their name.
-    if (dataRow.hasOwnProperty(dataKey)) {
+    if (Object.hasOwn(dataRow, dataKey)) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       let value = dataRow[dataKey];
 
@@ -458,7 +454,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: OrganizationSummary;
+  organization: Organization;
   aggregations?: Record<string, Aggregation>;
   customMeasurements?: Array<{functions: string[]; key: string}> | null;
   fieldKeys?: string[];
@@ -586,7 +582,7 @@ export function generateFieldOptions({
     tagKeys.sort();
     tagKeys.forEach(tag => {
       const tagValue =
-        fieldKeys.includes(tag) || aggregations.hasOwnProperty(tag)
+        fieldKeys.includes(tag) || Object.hasOwn(aggregations, tag)
           ? `tags[${tag}]`
           : tag;
       fieldOptions[`tag:${tag}`] = {

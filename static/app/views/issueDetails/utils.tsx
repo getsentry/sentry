@@ -133,7 +133,7 @@ export function getSubscriptionReason(group: Group) {
       );
     }
 
-    if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+    if (reason && Object.hasOwn(SUBSCRIPTION_REASONS, reason)) {
       return SUBSCRIPTION_REASONS[reason as keyof typeof SUBSCRIPTION_REASONS];
     }
   }

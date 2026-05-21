@@ -24,6 +24,7 @@ import {
   type MutateStoppingPoint,
   PROJECT_STOPPING_POINT_OPTIONS,
 } from 'sentry/utils/seer/stoppingPoint';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useMutateSelectedAgent,
@@ -49,6 +50,7 @@ export function SeerProjectTableRow({
   mutateStoppingPoint,
   project,
 }: Props) {
+  const location = useLocation();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
@@ -83,7 +85,12 @@ export function SeerProjectTableRow({
         </CheckboxClickTarget>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Link to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}>
+        <Link
+          to={{
+            pathname: `/settings/${organization.slug}/seer/projects/${project.slug}/`,
+            query: location.query,
+          }}
+        >
           <ProjectBadge disableLink project={project} avatarSize={16} />
         </Link>
       </SimpleTable.RowCell>

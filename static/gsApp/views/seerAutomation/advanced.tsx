@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -13,7 +14,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
-import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const schema = z.object({
@@ -32,7 +32,7 @@ export default function SeerAutomationAdvancedSettings() {
   });
 
   return (
-    <SeerSettingsPageWrapper>
+    <Fragment>
       <SentryDocumentTitle title={t('Advanced Settings')} />
       <SettingsPageHeader
         title={t('Advanced Settings')}
@@ -85,6 +85,6 @@ export default function SeerAutomationAdvancedSettings() {
           </AutoSaveForm>
         </FieldGroup>
       </SeerSettingsPageContent>
-    </SeerSettingsPageWrapper>
+    </Fragment>
   );
 }

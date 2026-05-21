@@ -63,7 +63,7 @@ export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
     (authorCommitsAccumulator, commit) => {
       const email = commit.author?.email ?? 'unknown';
 
-      if (authorCommitsAccumulator.hasOwnProperty(email)) {
+      if (Object.hasOwn(authorCommitsAccumulator, email)) {
         authorCommitsAccumulator[email]!.commitCount += 1;
       } else {
         authorCommitsAccumulator[email] = {

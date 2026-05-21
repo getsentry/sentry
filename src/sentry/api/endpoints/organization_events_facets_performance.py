@@ -479,7 +479,7 @@ def query_facet_performance_key_histogram(
     aggregate_column: str,
     *,
     filter_query: str,
-) -> dict:
+) -> dict[str, Any] | EventsResponse:
     precision = 0
 
     tag_values = [x["tags_value"] for x in top_tags]

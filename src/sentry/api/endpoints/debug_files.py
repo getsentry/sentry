@@ -27,6 +27,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -258,7 +259,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         """
         download_requested = request.GET.get("id") is not None
         if download_requested and has_download_permission(request, project):
-            return self.download(request.GET.get("id"), project)
+            return self.download(to_valid_int_id("id", request.GET["id"], raise_404=True), project)
         elif download_requested:
             return Response(status=403)
 
@@ -356,9 +357,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
         """
         debug_file_id = request.GET.get("id")
         if debug_file_id and _has_delete_permission(request.access, project):
+            validated_id = to_valid_int_id("id", debug_file_id, raise_404=True)
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=debug_file_id, project_id=project.id)
+                    ProjectDebugFile.objects.filter(id=validated_id, project_id=project.id)
                     .select_related("file")
                     .first()
                 )

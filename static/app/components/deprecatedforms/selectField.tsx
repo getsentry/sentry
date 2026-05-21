@@ -73,7 +73,7 @@ export class SelectField extends FormField<SelectFieldProps> {
     if (defined(props.value)) {
       return props.value;
     }
-    if (form?.data.hasOwnProperty(props.name)) {
+    if (form && Object.hasOwn(form.data, props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : defaultValue;
     }
     return defined(props.defaultValue) ? props.defaultValue : defaultValue;
@@ -93,7 +93,7 @@ export class SelectField extends FormField<SelectFieldProps> {
     if (this.isMultiple()) {
       return value.map((v: any) => v.value);
     }
-    if (value.hasOwnProperty('value')) {
+    if (Object.hasOwn(value, 'value')) {
       return value.value;
     }
 

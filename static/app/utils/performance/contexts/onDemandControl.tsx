@@ -1,18 +1,11 @@
 import type {ReactNode} from 'react';
-import {useCallback, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {createContext, useCallback, useContext, useState} from 'react';
 import type {Location} from 'history';
 
-import {Switch} from '@sentry/scraps/switch';
-
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {FlexContainer} from 'sentry/utils/discover/styles';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
@@ -22,14 +15,13 @@ export interface OnDemandControlContext {
   isControlEnabled?: boolean;
 }
 
-const [_OnDemandControlProvider, _useOnDemandControl, _context] =
-  createDefinedContext<OnDemandControlContext>({
-    name: 'OnDemandControlContext',
-    strict: false,
-  });
+const OnDemandControlContext = createContext<OnDemandControlContext | undefined>(
+  undefined
+);
 
-export const OnDemandControlConsumer = _context.Consumer;
-export const useOnDemandControl = _useOnDemandControl;
+export function useOnDemandControl(): OnDemandControlContext | undefined {
+  return useContext(OnDemandControlContext);
+}
 
 export function OnDemandControlProvider({
   children,
@@ -68,9 +60,9 @@ export function OnDemandControlProvider({
   );
 
   return (
-    <_OnDemandControlProvider value={{setForceOnDemand, isControlEnabled, forceOnDemand}}>
+    <OnDemandControlContext value={{setForceOnDemand, isControlEnabled, forceOnDemand}}>
       {children}
-    </_OnDemandControlProvider>
+    </OnDemandControlContext>
   );
 }
 /**
@@ -138,33 +130,3 @@ export const shouldUseOnDemandMetrics = (
 
   return isOnDemandMetricWidget(widget);
 };
-
-export function ToggleOnDemand() {
-  const theme = useTheme();
-  const org = useOrganization();
-  const onDemand = _useOnDemandControl();
-
-  const toggle = () => {
-    onDemand.setForceOnDemand(!onDemand.forceOnDemand);
-  };
-
-  if (!onDemand) {
-    return null;
-  }
-
-  if (!org.features.includes('on-demand-metrics-extraction-experimental')) {
-    return null;
-  }
-
-  return (
-    <FlexContainer
-      style={{
-        opacity: onDemand.isControlEnabled ? 1.0 : 0.5,
-        gap: theme.space.md,
-      }}
-    >
-      {t('On-demand metrics')}
-      <Switch checked={onDemand.forceOnDemand} size="sm" onChange={toggle} />
-    </FlexContainer>
-  );
-}

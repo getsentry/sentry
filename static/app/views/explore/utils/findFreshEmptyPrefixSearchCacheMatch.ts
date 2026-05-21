@@ -58,7 +58,7 @@ function getPrefixSearchCacheKey(queryKey: unknown): PrefixSearchCacheKey | unde
   }
 
   const parsed = safeParseQueryKey(queryKey);
-  if (parsed?.version !== 'v2' || parsed.isInfinite || !parsed.options) {
+  if (!parsed || parsed.isInfinite) {
     return undefined;
   }
 

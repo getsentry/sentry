@@ -119,6 +119,7 @@ export type SeerAnalyticsEventsParameters = {
     has_legacy_seer: boolean;
     has_seat_based_seer: boolean;
   };
+  'seer.explorer.block_copied': Record<string, unknown>;
   'seer.explorer.feedback_submitted': {
     block_index: number;
     block_message: string;
@@ -146,6 +147,9 @@ export type SeerAnalyticsEventsParameters = {
     surface: 'global_panel';
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
+  'seer.explorer.timed_out': {
+    run_id: number | null;
+  };
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
@@ -170,6 +174,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
   'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
+  'seer.explorer.block_copied': 'Seer Explorer: Block Content Copied',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
@@ -178,4 +183,5 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.session_copied_to_clipboard':
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
+  'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
 };

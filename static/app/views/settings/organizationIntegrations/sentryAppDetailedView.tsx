@@ -6,9 +6,9 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {
   installSentryApp,
   uninstallSentryApp,
@@ -49,6 +49,8 @@ function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQu
 }
 
 export default function SentryAppDetailedView() {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
@@ -227,6 +229,7 @@ export default function SentryAppDetailedView() {
     installationStatus,
     integrationSlug,
     redirectUser,
+    openModal,
   ]);
 
   const handleUninstall = useCallback(

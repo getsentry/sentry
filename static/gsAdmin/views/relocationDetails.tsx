@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
@@ -10,7 +11,6 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -36,7 +36,7 @@ import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
 import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
 import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
 import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
@@ -172,6 +172,8 @@ const getUserRow = (row: any) => [
 ];
 
 export function RelocationDetails() {
+  const {openModal} = useModal();
+
   const {regionName, relocationUuid} = useParams<{
     regionName: string;
     relocationUuid: string;

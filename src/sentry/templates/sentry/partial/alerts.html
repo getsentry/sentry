@@ -50,20 +50,11 @@
 {% endif %}
 {% endblock %}
 
-<div id="blk_alerts" class="messages-container"></div>
 <div id="blk_indicators"></div>
 
 {% script %}
 <script>
   window.__onSentryInit = window.__onSentryInit || [];
-  window.__onSentryInit.push({
-    name: 'renderReact',
-    component: 'SystemAlerts',
-    container: '#blk_alerts',
-    props: {
-      className: 'alert-list',
-    },
-  });
   window.__onSentryInit.push({
     name: 'renderReact ',
     component: 'Indicators',

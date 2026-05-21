@@ -29,7 +29,7 @@ import {
   useProfiles,
 } from 'sentry/views/explore/profiling/profilesProvider';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export function ProfilePreviewSection({
   event,
@@ -82,8 +82,8 @@ export function ProfilePreviewSection({
       >
         <ProfileContext.Consumer>
           {profiles => (
-            <InterimSection
-              type={SectionKey.PROFILE_PREVIEW}
+            <FoldSection
+              sectionKey={SectionKey.PROFILE_PREVIEW}
               title={
                 <span>
                   {sectionTitle}
@@ -117,7 +117,7 @@ export function ProfilePreviewSection({
                   />
                 </FlamegraphThemeProvider>
               </ProfileGroupProvider>
-            </InterimSection>
+            </FoldSection>
           )}
         </ProfileContext.Consumer>
       </ProfilesProvider>

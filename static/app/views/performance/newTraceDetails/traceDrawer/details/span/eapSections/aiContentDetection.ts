@@ -18,8 +18,15 @@ interface AIContentDetectionResult {
   wasFixed?: boolean;
 }
 
-/** Best-effort conversion of a Python dict literal to a JSON-parseable string. */
-export function tryParsePythonDict(text: string): Record<PropertyKey, unknown> | null {
+/**
+ * Best-effort conversion of a Python repr literal to a parsed object.
+ *
+ * Uses naive string replacements — works for the common all-single-quote
+ * case but will return null for mixed-quote edge cases (e.g. double-quoted
+ * values containing apostrophes). The backend uses ast.literal_eval for
+ * full Python repr support.
+ */
+export function tryParsePythonDict(text: string): unknown | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
     return null;

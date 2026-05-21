@@ -22,15 +22,15 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
-import ZendeskLink from 'getsentry/components/zendeskLink';
+import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import {
   ANNUAL,
   MONTHLY,
@@ -81,7 +81,6 @@ type Props = {
   isLoading: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
-  organization: Organization;
   queryClient: QueryClient;
   subscription: Subscription;
   promotionData?: PromotionData;
@@ -100,16 +99,9 @@ export type State = {
 };
 
 function AMCheckout(props: Props) {
-  const {
-    api,
-    checkoutTier,
-    isLoading,
-    location,
-    navigate,
-    organization,
-    subscription,
-    promotionData,
-  } = props;
+  const organization = useOrganization();
+  const {api, checkoutTier, isLoading, location, navigate, subscription, promotionData} =
+    props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -564,6 +556,8 @@ function AMCheckout(props: Props) {
     loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
   }, []);
 
+  const hasIntercom = organization.features.includes('intercom-support');
+
   useEffect(() => {
     trackGetsentryAnalytics('am_checkout.viewed', {
       organization,
@@ -572,6 +566,15 @@ function AMCheckout(props: Props) {
 
     Sentry.getReplay()?.start();
   }, [organization, subscription]);
+
+  useEffect(() => {
+    if (hasIntercom) {
+      trackGetsentryAnalytics('intercom_link.viewed', {
+        organization,
+        source: 'checkout',
+      });
+    }
+  }, [hasIntercom, organization]);
 
   useEffect(() => {
     if (subscription.canSelfServe) {
@@ -750,7 +753,29 @@ function AMCheckout(props: Props) {
                   help: (
                     <ExternalLink href="https://www.sentry.help/en/collections/18842102-account-billing" />
                   ),
-                  contact: hasZendesk() ? (
+                  contact: hasIntercom ? (
+                    <Button
+                      size="zero"
+                      variant="link"
+                      onClick={async () => {
+                        trackGetsentryAnalytics('intercom_link.clicked', {
+                          organization,
+                          source: 'checkout',
+                        });
+                        try {
+                          await showIntercom(organization.slug);
+                        } catch {
+                          // Fall back to mailto
+                          const supportEmail = ConfigStore.get('supportEmail');
+                          if (supportEmail) {
+                            window.location.href = `mailto:${supportEmail}?subject=${window.encodeURIComponent('Billing Question')}`;
+                          }
+                        }
+                      }}
+                    >
+                      <Text variant="accent">{t('ask Support')}</Text>
+                    </Button>
+                  ) : hasZendesk() ? (
                     <Button size="zero" variant="link" onClick={activateZendesk}>
                       <Text variant="accent">{t('ask Support')}</Text>
                     </Button>
@@ -935,4 +960,4 @@ const CheckoutStepsContainer = styled('div')`
   }
 `;
 
-export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));
+export default withPromotions(withApi(withSubscription(AMCheckout)));

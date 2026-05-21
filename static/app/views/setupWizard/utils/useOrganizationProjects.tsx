@@ -15,7 +15,7 @@ export function useOrganizationProjects({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
       host: organization?.region.url,
-      query: {query},
+      query: {query, collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: 0,
     }),
     refetchOnWindowFocus: true,

@@ -14,7 +14,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
@@ -27,6 +26,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -125,6 +125,7 @@ function DashboardInner({
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi();
+  const {addAlert} = useGlobalAlerts();
 
   const {selection} = usePageFilters();
   const {projects} = useProjects();
@@ -136,7 +137,7 @@ function DashboardInner({
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     contextHint:
-      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. Use telemetry_live_search or telemetry_index_list_nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
+      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. You can search live telemetry or list telemetry index nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
     queryHints: getQueryHintLegend(dashboard.widgets),
@@ -188,26 +189,14 @@ function DashboardInner({
     }
   }, [newWidget, handleAddCustomWidget, onSetNewWidget, api, organization.slug]);
 
-  const fetchMemberList = useCallback(() => {
-    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
-    fetchOrgMembers(
-      api,
-      organization.slug,
-      selection.projects?.map(projectId => String(projectId))
-    );
-  }, [api, organization.slug, selection.projects]);
-
   useEffect(() => {
     // Always load organization tags on dashboards
-    loadOrganizationTags(api, organization.slug, selection);
-  }, [api, organization.slug, selection]);
+    loadOrganizationTags(api, organization.slug, selection, addAlert);
+  }, [api, organization.slug, selection, addAlert]);
 
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
-
-    // Get member list data for issue widgets
-    fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
     trackEngagementAnalytics(
@@ -234,10 +223,6 @@ function DashboardInner({
       addNewWidget();
     }
   }, [newWidget, addNewWidget]);
-
-  useEffect(() => {
-    fetchMemberList();
-  }, [fetchMemberList]);
 
   const handleDeleteWidget = useCallback(
     (widgetToDelete: Widget) => () => {
@@ -498,7 +483,7 @@ const AddWidgetWrapper = styled('div')`
 
 // eslint-disable-next-line @sentry/no-calling-components-as-functions
 const GridLayout = styled(WidthProvider(Responsive))`
-  margin: -${p => p.theme.space.xl};
+  margin: -${p => p.theme.space.lg} -${p => p.theme.space.xl};
 
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.tokens.background.transparent.accent.muted};

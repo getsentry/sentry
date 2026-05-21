@@ -88,7 +88,7 @@ function createGetIsAiNode(predicate: (genAiOpType: string | undefined) => boole
   };
 }
 
-export const getIsAiNode = createGetIsAiNode(genAiOpType => Boolean(genAiOpType));
+export const getIsAiNode = createGetIsAiNode(Boolean);
 export const getIsAiAgentNode = createGetIsAiNode(getIsAiAgentSpan);
 export const getIsAiGenerationNode = createGetIsAiNode(getIsAiGenerationSpan);
 export const getIsExecuteToolNode = createGetIsAiNode(getIsExecuteToolSpan);

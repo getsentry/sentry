@@ -2,6 +2,7 @@ import {Component, Fragment, type ChangeEvent} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
@@ -21,6 +22,8 @@ import type {
   Permissions,
   PermissionValue,
 } from 'sentry/types/integrations';
+
+type PermissionErrors = Partial<Record<PermissionResource, string>>;
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -96,6 +99,7 @@ type Props = {
   appPublished: boolean;
   onChange: (permissions: Permissions, hasContinuousIntegration: boolean) => void;
   permissions: Permissions;
+  continuousIntegrationError?: string;
   displaySpecialPermissions?: boolean;
   /**
    * Optional list of permissions to display in the selection.
@@ -103,6 +107,7 @@ type Props = {
    * Useful for limiting permissions available to personal tokens vs integration tokens.
    */
   displayedPermissions?: PermissionObj[];
+  errors?: PermissionErrors;
   hasContinuousIntegration?: boolean;
 };
 
@@ -240,8 +245,10 @@ export class PermissionSelection extends Component<Props, State> {
   render() {
     const {hasContinuousIntegration, permissions} = this.state;
     const {
+      continuousIntegrationError,
       displaySpecialPermissions = true,
       displayedPermissions = SENTRY_APP_PERMISSIONS,
+      errors,
     } = this.props;
 
     return (
@@ -253,36 +260,50 @@ export class PermissionSelection extends Component<Props, State> {
           }));
 
           const value = permissions[config.resource];
+          const errorMessage = errors?.[config.resource];
 
           return (
-            <SelectField
-              // These are not real fields we want submitted, so we use
-              // `--permission` as a suffix here, then filter these
-              // fields out when submitting the form in
-              // sentryApplicationDetails.jsx
-              name={`${config.resource}--permission`}
-              key={config.resource}
-              options={options}
-              help={config.help}
-              label={config.label || config.resource}
-              onChange={this.onChange.bind(this, config.resource)}
-              value={value}
-              defaultValue={value}
-              disabled={this.props.appPublished}
-              disabledReason={t('Cannot update permissions on a published integration')}
-            />
+            <Fragment key={config.resource}>
+              <SelectField
+                // These are not real fields we want submitted, so we use
+                // `--permission` as a suffix here, then filter these
+                // fields out when submitting the form in
+                // sentryApplicationDetails.jsx
+                name={`${config.resource}--permission`}
+                options={options}
+                help={config.help}
+                label={config.label || config.resource}
+                onChange={this.onChange.bind(this, config.resource)}
+                value={value}
+                defaultValue={value}
+                disabled={this.props.appPublished}
+                disabledReason={t('Cannot update permissions on a published integration')}
+              />
+              {errorMessage ? (
+                <Text variant="danger" size="sm" role="alert">
+                  {errorMessage}
+                </Text>
+              ) : null}
+            </Fragment>
           );
         })}
         {displaySpecialPermissions && (
-          <SpecialPermissionField
-            name={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName}
-            label={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.label}
-            help={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.help}
-            onChange={this.onContinuousIntegrationChange}
-            value={hasContinuousIntegration}
-            disabled={this.props.appPublished}
-            disabledReason={t('Cannot update permissions on a published integration')}
-          />
+          <Fragment>
+            <SpecialPermissionField
+              name={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName}
+              label={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.label}
+              help={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.help}
+              onChange={this.onContinuousIntegrationChange}
+              value={hasContinuousIntegration}
+              disabled={this.props.appPublished}
+              disabledReason={t('Cannot update permissions on a published integration')}
+            />
+            {continuousIntegrationError ? (
+              <Text variant="danger" size="sm" role="alert">
+                {continuousIntegrationError}
+              </Text>
+            ) : null}
+          </Fragment>
         )}
       </Fragment>
     );

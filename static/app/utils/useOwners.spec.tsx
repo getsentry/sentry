@@ -5,7 +5,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
@@ -20,8 +19,6 @@ describe('useOwners', () => {
   let membersRequest: jest.Mock;
 
   beforeEach(() => {
-    MemberListStore.init();
-    MemberListStore.loadInitialData(mockUsers);
     TeamStore.init();
     TeamStore.loadInitialData(mockTeams);
     OrganizationStore.onUpdate(org, {replace: true});
@@ -37,7 +34,7 @@ describe('useOwners', () => {
     });
     membersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [],
+      body: mockUsers.map(user => ({user})),
     });
   });
 
@@ -46,13 +43,13 @@ describe('useOwners', () => {
       initialProps: {},
     });
 
-    await waitFor(() => !result.current.fetching);
+    await waitFor(() => expect(result.current.fetching).toBe(false));
 
     expect(result.current.members).toEqual(mockUsers);
     expect(result.current.teams).toEqual(mockTeams);
   });
 
-  it('fetches users and memberrs', async () => {
+  it('fetches users and members', async () => {
     const members = [
       MemberFixture({
         user: UserFixture({id: '5'}),
@@ -67,13 +64,14 @@ describe('useOwners', () => {
     membersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: members,
+      match: [MockApiClient.matchQuery({query: 'user.id:5'})],
     });
 
     const {result} = renderHookWithProviders(useOwners, {
       initialProps: {currentValue: ['user:5', 'team:4']},
     });
 
-    await waitFor(() => !result.current.fetching);
+    await waitFor(() => expect(result.current.fetching).toBe(false));
 
     expect(teamsRequest).toHaveBeenCalledWith(
       expect.anything(),

@@ -104,7 +104,7 @@ function SplitView({
   diffMaskUrl,
   maskSize,
 }: SplitViewProps) {
-  const [zoom1, zoom2] = useSyncedD3Zoom();
+  const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
   const [displayBaseUrl, displayHeadUrl, displayMaskUrl] = useBufferedImageGroup([
     baseImageUrl,
     headImageUrl,
