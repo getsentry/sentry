@@ -1,0 +1,72 @@
+import logging
+from collections.abc import Generator
+from typing import MutableMapping
+
+import sentry_sdk
+from django.http import HttpRequest, StreamingHttpResponse
+from requests import Request, Response
+from requests.exceptions import RequestException
+from rest_framework.negotiation import BaseContentNegotiation
+from rest_framework.renderers import JSONRenderer
+
+from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.silo.util import clean_outbound_headers
+
+logger = logging.getLogger(__name__)
+
+
+class _PassthroughContentNegotiation(BaseContentNegotiation):
+    """
+    DRF's initial() method calls perform_content_negotiation() before the handler runs. The default
+    negotiation class (DefaultContentNegotiation) tries to match the request's Accept header against
+    configured renderers. Sentry only configures JSONRenderer, so any request with Accept: text/html,
+    application/xml, etc. gets rejected with 406 Not Acceptable — even though this endpoint never
+    uses DRF's rendering at all (it returns a raw StreamingHttpResponse).
+
+    _PassthroughContentNegotiation bypasses that check by always returning a valid renderer,
+    regardless of what the client sent in Accept. The returned renderer is never actually used.
+    StreamingHttpResponse skips DRF's finalize_response rendering entirely — but DRF requires
+    select_renderer to succeed for the request to proceed past initial().
+    """
+
+    def select_renderer(self, request, renderers, format_suffix=None):  # type: ignore[no-untyped-def]
+        return (JSONRenderer(), JSONRenderer.media_type)
+
+
+class InternalIntegrationProxy2Endpoint(InternalIntegrationProxyEndpoint):
+    content_negotiation_class = _PassthroughContentNegotiation
+
+    @sentry_sdk.trace
+    def _call_third_party_api(  # type: ignore[override]
+        self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
+    ) -> StreamingHttpResponse:
+        prepared_request = Request(
+            method=request.method, url=full_url, headers=headers, data=request.body
+        ).prepare()
+
+        resp: Response = self.client.request(
+            request.method,
+            self.proxy_path,
+            allow_text=True,
+            prepared_request=prepared_request,
+            raw_response=True,
+            stream=True,
+        )
+
+        def iter_response(response: Response) -> Generator[bytes]:
+            with response as r:
+                try:
+                    yield from r.iter_content(16 * 1024)
+                except (RequestException, ConnectionError, OSError) as e:
+                    logger.warning(
+                        "integrations.proxy2.stream_interrupted",
+                        extra={"error": str(e), "url": full_url},
+                    )
+                    return
+
+        return StreamingHttpResponse(
+            iter_response(resp),
+            status=resp.status_code,
+            headers=clean_outbound_headers(resp.headers),
+            reason=resp.reason,
+        )

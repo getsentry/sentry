@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -70,12 +70,12 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
             ) : null}
           </div>
           {icon}
-          <React.Fragment>
+          <Fragment>
             {props.node.value.op && props.node.value.op !== 'default' && (
-              <React.Fragment>
+              <Fragment>
                 <span className="TraceOperation">{props.node.value.op}</span>
                 <strong className="TraceEmDash"> — </strong>
-              </React.Fragment>
+              </Fragment>
             )}
             <span className="TraceDescription" title={props.node.description}>
               {isPrefetch ? '(prefetch) ' : ''}
@@ -83,7 +83,7 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
                 ? ellipsize(props.node.description, 100)
                 : (spanId ?? 'unknown')}
             </span>
-          </React.Fragment>
+          </Fragment>
         </div>
       </div>
       <div

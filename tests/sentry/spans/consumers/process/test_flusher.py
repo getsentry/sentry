@@ -1,5 +1,6 @@
 import time
 from time import sleep
+from types import SimpleNamespace
 from typing import Any
 from unittest import mock
 
@@ -9,7 +10,7 @@ from arroyo.processing.strategies.noop import Noop
 from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer import FlushedSegment, OutputSpan, SpansBuffer
 from sentry.spans.buffer_types import Span
 from sentry.spans.consumers.process.flusher import MultiProducer, SpanFlusher
 from sentry.testutils.helpers.options import override_options
@@ -28,6 +29,48 @@ def _blocking_main_for_join_test(
     # Block ignoring stopped to simulate stuck I/O (e.g., blocked on Kafka produce)
     while True:
         sleep(0.1)
+
+
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.log-flushed-segments": True})
+def test_flusher_logs_flushed_segments() -> None:
+    segment_key = f"span-buf:s:{{1:{'a' * 32}}}:{'b' * 16}".encode()
+    flushed_segment = FlushedSegment(
+        queue_key=b"span-buf:q:0",
+        spans=[OutputSpan(payload={"span_id": "b" * 16})],
+        project_id=1,
+    )
+    buffer = mock.Mock()
+    buffer.any_shard_at_limit = False
+    buffer.flush_segments.return_value = {segment_key: flushed_segment}
+    stopped = SimpleNamespace(value=0)
+    current_drift = SimpleNamespace(value=0)
+    backpressure_since = SimpleNamespace(value=0)
+    healthy_since = SimpleNamespace(value=0)
+
+    def produce_to_pipe(project_id, payload, dropped):
+        stopped.value = 1
+
+    with mock.patch("sentry.spans.consumers.process.flusher.logger") as mock_logger:
+        SpanFlusher.main(
+            buffer,
+            shards=[0],
+            stopped=stopped,
+            current_drift=current_drift,
+            backpressure_since=backpressure_since,
+            healthy_since=healthy_since,
+            produce_to_pipe=produce_to_pipe,
+        )
+
+    mock_logger.info.assert_any_call(
+        "spans.buffer.flushed_segment",
+        extra={
+            "segment_key": segment_key.decode("utf-8"),
+            "queue_key": "span-buf:q:0",
+            "span_count": 1,
+            "project_id": 1,
+        },
+    )
+    buffer.done_flush_segments.assert_called_once_with({segment_key: flushed_segment})
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})

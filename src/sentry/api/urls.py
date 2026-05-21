@@ -234,6 +234,7 @@ from sentry.integrations.api.endpoints.external_user_details import ExternalUser
 from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.integrations.api.endpoints.integration_proxy2 import InternalIntegrationProxy2Endpoint
 from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -729,7 +730,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
@@ -1677,11 +1677,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/config/integrations/$",
         OrganizationConfigIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-config-integrations",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/config/repos/$",
-        OrganizationConfigRepositoriesEndpoint.as_view(),
-        name="sentry-api-0-organization-config-repositories",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-rates/$",
@@ -3614,6 +3609,12 @@ INTERNAL_URLS = [
         r"^integration-proxy/$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
+    ),
+    re_path(
+        # If modifying, ensure PROXY_BASE_PATH is updated as well
+        r"^integration-proxy2/$",
+        InternalIntegrationProxy2Endpoint.as_view(),
+        name="sentry-api-0-internal-integration-proxy2",
     ),
     re_path(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",

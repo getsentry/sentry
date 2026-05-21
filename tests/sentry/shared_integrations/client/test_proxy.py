@@ -120,6 +120,33 @@ class IntegrationProxyClientTest(TestCase):
             assert header in prepared_request.headers
         assert prepared_request.headers[PROXY_PATH] == "get?query=1&user=me"
 
+    @patch("sentry.shared_integrations.client.proxy.check_rollout_option", return_value=True)
+    @patch.object(IntegrationProxyClient, "authorize_request")
+    def test_finalize_request_region_streaming_proxy(
+        self, mock_authorize: MagicMock, mock_rollout: MagicMock
+    ) -> None:
+        prepared_request = Request(method="DELETE", url=self.test_url).prepare()
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        assert client.proxy_url == "http://controlserver/api/0/internal/integration-proxy2"
+
+        client.finalize_request(prepared_request)
+        assert not mock_authorize.called
+        assert prepared_request.url == "http://controlserver/api/0/internal/integration-proxy2/"
+        for header in [PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER, PROXY_PATH]:
+            assert header in prepared_request.headers
+        assert prepared_request.headers[PROXY_PATH] == "get?query=1&user=me"
+
+    @patch("sentry.shared_integrations.client.proxy.check_rollout_option", return_value=False)
+    def test_proxy_url_without_streaming_rollout(self, mock_rollout: MagicMock) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        assert client.proxy_url == "http://controlserver/api/0/internal/integration-proxy"
+
+    @patch("sentry.shared_integrations.client.proxy.check_rollout_option", return_value=True)
+    def test_proxy_url_with_streaming_rollout(self, mock_rollout: MagicMock) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        assert client.proxy_url == "http://controlserver/api/0/internal/integration-proxy2"
+
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
     def test_invalid_control_silo_ip_address(
