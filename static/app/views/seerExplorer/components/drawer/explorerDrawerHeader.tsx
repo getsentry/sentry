@@ -201,11 +201,7 @@ export function ExplorerDrawerHeader({
             onChange={option => onChangeSession(option.value)}
             onOpenChange={onHistoryOpenChange}
             loading={isFetching || search !== debouncedSearch}
-            emptyMessage={
-              isError
-                ? t('Error loading session history.')
-                : t('No previous sessions to show.')
-            }
+            emptyMessage={isError ? t('Error loading session history.') : ' '}
             search={{
               filter: false,
               onChange: setSearch,
