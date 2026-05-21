@@ -185,18 +185,17 @@ export function ConversationAggregatesBar({
               {t('Used Tools')}
             </Text>
             {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map((name, index, arr) => (
-              <Tooltip key={name} title={name} showOnlyOnOverflow skipWrapper>
-                <Tag
-                  variant="info"
-                  style={
-                    index === arr.length - 1
-                      ? {flexShrink: 1, minWidth: 0}
-                      : {flexShrink: 0}
-                  }
-                >
-                  {name}
-                </Tag>
-              </Tooltip>
+              <Tag
+                key={name}
+                variant="info"
+                style={
+                  index === arr.length - 1
+                    ? {flexShrink: 1, minWidth: 0}
+                    : {flexShrink: 0}
+                }
+              >
+                {index === arr.length - 1 ? <Text ellipsis>{name}</Text> : name}
+              </Tag>
             ))}
             {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
               <InfoText
