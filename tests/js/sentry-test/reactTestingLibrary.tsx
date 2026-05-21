@@ -123,6 +123,18 @@ function makeAllTheProviders(options: ProviderOptions) {
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
       <TopBar.Slot.Provider>
+        <TopBar.Slot.Outlet name="title">
+          {props => <div {...props} />}
+        </TopBar.Slot.Outlet>
+        <TopBar.Slot.Outlet name="search">
+          {props => <div {...props} />}
+        </TopBar.Slot.Outlet>
+        <TopBar.Slot.Outlet name="actions">
+          {props => <div {...props} />}
+        </TopBar.Slot.Outlet>
+        <TopBar.Slot.Outlet name="feedback">
+          {props => <div {...props} />}
+        </TopBar.Slot.Outlet>
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
             <GlobalAlertProvider>
