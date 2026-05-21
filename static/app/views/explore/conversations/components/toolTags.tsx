@@ -56,7 +56,6 @@ export function ToolTags({toolNames}: ToolTagsProps) {
       observer.disconnect();
     };
     // hiddenCount is included so we re-check after the button appears (it only renders when hiddenCount > 0)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toolNames, expanded, hiddenCount]);
 
   return (
