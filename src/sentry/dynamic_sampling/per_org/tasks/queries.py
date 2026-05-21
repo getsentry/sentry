@@ -25,7 +25,7 @@ def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
 def run_eap_spans_table_query_in_chunks(
     query: dict[str, Any],
     chunk_size: int = 1000,
-) -> Iterator[list[dict[str, Any]]]:
+) -> Iterator[dict[str, Any]]:
     offset = 0
 
     while True:
@@ -37,7 +37,7 @@ def run_eap_spans_table_query_in_chunks(
             data = data[:chunk_size]
 
         if data:
-            yield data
+            yield from data
 
         if not more_results:
             return
