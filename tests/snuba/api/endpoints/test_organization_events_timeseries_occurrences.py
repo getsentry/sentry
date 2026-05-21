@@ -5,7 +5,9 @@ from typing import Any
 import pytest
 from django.urls import reverse
 
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import (
+    EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION,
+)
 from sentry.testutils.cases import OccurrenceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
@@ -71,9 +73,7 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         ]
         self.store_eap_items(occurrences)
         with self.options(
-            {
-                EAPOccurrencesComparator._callsite_use_experimental_data_allowlist_option(): self.callsite_name
-            }
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
         ):
             return self._do_request(
                 data={

@@ -10,7 +10,10 @@ from sentry.search.eap.occurrences.query_utils import (
     build_group_id_in_filter,
     build_keyset_pagination_filter,
 )
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import (
+    EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION,
+    EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION,
+)
 from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.services.eventstore.base import Filter
 from sentry.services.eventstore.models import Event
@@ -1050,10 +1053,8 @@ class EAPEventStorageTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         with self.options(
             {
-                EAPOccurrencesComparator._should_run_experiment_option(): True,
-                EAPOccurrencesComparator._callsite_use_experimental_data_allowlist_option(): [
-                    callsite
-                ],
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [callsite],
             }
         ):
             events = self.eventstore.get_events(
