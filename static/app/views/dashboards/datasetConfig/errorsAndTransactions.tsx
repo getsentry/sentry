@@ -121,8 +121,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 
 export function getTableSortOptions(
   _organization: Organization,
-  widgetQuery: WidgetQuery,
-  useEquationAlias = true
+  widgetQuery: WidgetQuery
 ) {
   const {columns, aggregates} = widgetQuery;
   const options: Array<SelectValue<string>> = [];
@@ -133,7 +132,7 @@ export function getTableSortOptions(
       let alias: any;
       let label = stripEquationPrefix(field);
       // Equations are referenced via a standard alias following this pattern
-      if (isEquation(field) && useEquationAlias) {
+      if (isEquation(field)) {
         alias = `equation[${equations}]`;
         equations += 1;
       }
