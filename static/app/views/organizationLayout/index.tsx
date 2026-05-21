@@ -29,7 +29,6 @@ import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/dom
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -84,7 +83,6 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
-  const hasPageFrame = useHasPageFrameFeature();
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
@@ -93,10 +91,10 @@ function AppLayout({organization}: LayoutProps) {
   return (
     <PrimaryNavigationContextProvider>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
-        {hasPageFrame && showSuperuserWarning && (
+        {showSuperuserWarning && (
           <Override name="component:superuser-warning" organization={organization} />
         )}
-        {hasPageFrame && <SystemAlerts className="messages-container" />}
+        <SystemAlerts className="messages-container" />
         <Flex
           flex="1"
           minWidth="0"
@@ -111,7 +109,7 @@ function AppLayout({organization}: LayoutProps) {
             tabIndex={-1}
             flex="1"
             minWidth="0"
-            background={hasPageFrame ? 'secondary' : undefined}
+            background="secondary"
           >
             <DemoHeader />
             <AppBodyContent>

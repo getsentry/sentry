@@ -16,7 +16,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {StatusToggleButton} from './statusToggleButton';
 
@@ -31,7 +30,6 @@ export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const endpointOptions = {
     query: {
@@ -87,18 +85,14 @@ export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
 
   return (
     <Flex direction="row" align="center" gap="md" wrap="wrap">
-      {hasPageFrameFeature ? (
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-      ) : (
-        <FeedbackButton />
-      )}
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
       <Button
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
