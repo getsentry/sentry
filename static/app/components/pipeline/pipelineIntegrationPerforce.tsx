@@ -16,11 +16,6 @@ const AUTH_TYPE_CHOICES = [
   {value: 'ticket', label: t('P4 Ticket')},
 ];
 
-const CHARSET_CHOICES = [
-  {value: 'none', label: t('Non-Unicode server (default)')},
-  {value: 'utf8', label: t('Unicode server (UTF-8)')},
-];
-
 interface InstallationConfigAdvanceData {
   authType: string;
   charset: string;
@@ -41,7 +36,7 @@ const installationConfigSchema = z
     client: z.string(),
     sslFingerprint: z.string(),
     webUrl: z.string(),
-    charset: z.string().min(1, t('Server encoding is required')),
+    unicodeServer: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (data.p4port.startsWith('ssl:') && !data.sslFingerprint) {
@@ -69,7 +64,7 @@ function PerforceInstallationConfigStep({
       client: '',
       sslFingerprint: '',
       webUrl: '',
-      charset: 'none',
+      unicodeServer: false,
     },
     validators: {onDynamic: installationConfigSchema},
     onSubmit: ({value}) => {
@@ -81,7 +76,9 @@ function PerforceInstallationConfigStep({
         client: value.client || undefined,
         sslFingerprint: value.sslFingerprint || undefined,
         webUrl: value.webUrl || undefined,
-        charset: value.charset,
+        // Backend stores charset as a string enum (Charset.NONE / Charset.UTF8)
+        // so it can grow to other encodings without an API contract change.
+        charset: value.unicodeServer ? 'utf8' : 'none',
       });
     },
   });
@@ -139,20 +136,15 @@ function PerforceInstallationConfigStep({
             </field.Layout.Stack>
           )}
         </form.AppField>
-        <form.AppField name="charset">
+        <form.AppField name="unicodeServer">
           {field => (
             <field.Layout.Stack
-              label={t('Server Encoding')}
+              label={t('Unicode Server (UTF-8)')}
               hintText={t(
-                "Select 'Unicode server (UTF-8)' if your Perforce server was initialized in Unicode mode (p4d -xi). Unicode servers reject clients that do not declare a charset on connect."
+                'Enable this if your Perforce server was initialized in Unicode mode (p4d -xi). Unicode servers reject clients that do not declare a charset on connect.'
               )}
-              required
             >
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={CHARSET_CHOICES}
-              />
+              <field.Switch checked={field.state.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
         </form.AppField>
