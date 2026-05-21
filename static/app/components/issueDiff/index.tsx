@@ -104,18 +104,15 @@ export function IssueDiff({
     }
   );
 
-  // Read resolved event IDs from cache (populated after the "latest" queries resolve)
-  const cachedBaseLatest = queryClient.getQueryData<ApiResponse<{eventID: string}>>(
-    baseLatestQueryOptions.queryKey
-  );
-  const cachedTargetLatest = queryClient.getQueryData<ApiResponse<{eventID: string}>>(
-    targetLatestQueryOptions.queryKey
-  );
+  // Resolve event IDs from cache (for "latest") or use the provided concrete IDs
+  // This enables the actual event data queries to run once we know the IDs
+  const cachedBaseLatest = queryClient.getQueryData(baseLatestQueryOptions.queryKey);
+  const cachedTargetLatest = queryClient.getQueryData(targetLatestQueryOptions.queryKey);
 
   const resolvedBaseEventId =
-    baseEventId !== 'latest' ? baseEventId : cachedBaseLatest?.json?.eventID;
+    baseEventId === 'latest' ? cachedBaseLatest?.json?.eventID : baseEventId;
   const resolvedTargetEventId =
-    targetEventId !== 'latest' ? targetEventId : cachedTargetLatest?.json?.eventID;
+    targetEventId === 'latest' ? cachedTargetLatest?.json?.eventID : targetEventId;
 
   const {combinedBase, combinedTarget, isLoading, hasError, baseEventData, targetEventData} =
     useQueries({
