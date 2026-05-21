@@ -476,6 +476,19 @@ def process_workflows(
         log_context.set_verbose(True)
 
     workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    wrong_org_workflows = {wf for wf in workflows if wf.organization_id != organization.id}
+    if wrong_org_workflows:
+        logger.warning(
+            "workflow_engine.process_workflows.wrong_organization",
+            extra={
+                "organization_id": organization.id,
+                "wrong_org_workflow_ids": sorted(wf.id for wf in wrong_org_workflows),
+                "wrong_org_organization_ids": sorted(
+                    wf.organization_id for wf in wrong_org_workflows
+                ),
+            },
+        )
+        workflows = workflows - wrong_org_workflows
 
     if workflows:
         metrics_incr("process_workflows", len(workflows))
