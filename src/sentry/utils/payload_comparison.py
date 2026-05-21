@@ -126,6 +126,23 @@ class ParityChecker:
                     self.mismatches.append(
                         f"{full_path}: old={self.format_value(old_val)}, new={self.format_value(new_val)}"
                     )
+            elif isinstance(old_val, Mapping) and isinstance(new_val, Mapping):
+                self.compare(old_val, new_val, frozenset(), full_path, _qualify(diffs_path, key))
+            elif isinstance(old_val, list) and isinstance(new_val, list):
+                if len(old_val) != len(new_val):
+                    self.mismatches.append(
+                        f"{full_path} count: old={len(old_val)}, new={len(new_val)}"
+                    )
+                for i, (old_item, new_item) in enumerate(zip(old_val, new_val)):
+                    item_path = f"{full_path}[{i}]"
+                    if isinstance(old_item, Mapping) and isinstance(new_item, Mapping):
+                        self.compare(
+                            old_item, new_item, frozenset(), item_path, _qualify(diffs_path, key)
+                        )
+                    elif old_item != new_item:
+                        self.mismatches.append(
+                            f"{item_path}: old={self.format_value(old_item)}, new={self.format_value(new_item)}"
+                        )
             elif old_val != new_val:
                 self.mismatches.append(
                     f"{full_path}: old={self.format_value(old_val)}, new={self.format_value(new_val)}"
