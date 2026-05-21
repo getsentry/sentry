@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-def qualify(prefix: str, name: str) -> str:
+def _qualify(prefix: str, name: str) -> str:
     return f"{prefix}.{name}" if prefix else name
 
 
@@ -29,7 +29,7 @@ def describe_value(value: Any) -> str:
 
 
 @dataclass
-class PayloadComparator:
+class ParityChecker:
     """Recursive dict comparator with dot-separated field paths.
 
     ``format_value`` controls how values appear in mismatch messages.
@@ -64,20 +64,20 @@ class PayloadComparator:
     ) -> None:
         for key in set(list(old.keys()) + list(new.keys())):
             if key in known_diffs:
-                full_diffs_key = qualify(diffs_path, key)
+                full_diffs_key = _qualify(diffs_path, key)
                 if key not in new or key not in old or old[key] != new[key]:
                     self.confirmed.add(full_diffs_key)
                 continue
 
             if key in unreliable:
-                full_path = qualify(path, key)
+                full_path = _qualify(path, key)
                 if key not in new:
                     self.mismatches.append(f"Missing from new: {full_path}")
                 elif key not in old:
                     self.mismatches.append(f"Extra in new: {full_path}")
                 continue
 
-            full_path = qualify(path, key)
+            full_path = _qualify(path, key)
 
             if key not in new:
                 self.mismatches.append(f"Missing from new: {full_path}")
@@ -92,7 +92,7 @@ class PayloadComparator:
             nested_unreliable = self._nested_fields(unreliable, key)
 
             if nested_diffs or nested_unreliable:
-                child_diffs_path = qualify(diffs_path, key)
+                child_diffs_path = _qualify(diffs_path, key)
                 if isinstance(old_val, list) and isinstance(new_val, list):
                     if len(old_val) != len(new_val):
                         self.mismatches.append(

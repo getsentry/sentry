@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.utils.payload_comparison import PayloadComparator
+from sentry.utils.payload_comparison import ParityChecker
 
 
 def assert_serializer_parity(
@@ -51,7 +51,7 @@ def assert_serializer_parity(
     """
     known_diffs = frozenset(known_differences or ())
     unreliable_fields = frozenset(unreliable or ())
-    checker = PayloadComparator(format_value=repr)
+    checker = ParityChecker(format_value=repr)
     checker.compare(old, new, known_diffs, unreliable=unreliable_fields)
 
     assert not checker.mismatches, "Serializer differences:\n" + "\n".join(checker.mismatches)
