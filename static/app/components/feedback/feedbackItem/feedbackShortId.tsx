@@ -1,9 +1,9 @@
 import type {CSSProperties} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import {Flex} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -20,20 +20,6 @@ interface Props {
   className?: string;
   style?: CSSProperties;
 }
-
-const hideDropdown = css`
-  button[aria-haspopup] {
-    display: block;
-    opacity: 0;
-    transition: opacity 50ms linear;
-  }
-
-  &:hover button[aria-haspopup],
-  button[aria-expanded='true'],
-  button[aria-haspopup]:focus-visible {
-    opacity: 1;
-  }
-`;
 
 export function FeedbackShortId({className, feedbackItem, style}: Props) {
   const organization = useOrganization();
@@ -59,7 +45,7 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
   const {copy} = useCopyToClipboard();
 
   return (
-    <Flex gap="md" align="center" className={className} style={style} css={hideDropdown}>
+    <RevealOnHover gap="md" className={className} style={style}>
       <Flex gap="sm" align="center">
         {feedbackItem.project ? (
           <ProjectBadge
@@ -71,44 +57,46 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
         ) : null}
         <ShortId>{feedbackItem.shortId}</ShortId>
       </Flex>
-      <DropdownMenu
-        triggerProps={{
-          'aria-label': t('Short-ID copy actions'),
-          icon: <IconChevron direction="down" size="xs" />,
-          size: 'zero',
-          variant: 'transparent',
-          showChevron: false,
-        }}
-        position="bottom"
-        size="xs"
-        items={[
-          {
-            key: 'copy-url',
-            label: t('Copy Feedback URL'),
-            onAction: () =>
-              copy(feedbackUrl, {
-                successMessage: t('Copied Feedback URL to clipboard'),
-              }),
-          },
-          {
-            key: 'copy-short-id',
-            label: t('Copy Short-ID'),
-            onAction: () =>
-              copy(feedbackItem.shortId, {
-                successMessage: t('Copied Short-ID to clipboard'),
-              }),
-          },
-          {
-            key: 'copy-markdown-link',
-            label: t('Copy Markdown Link'),
-            onAction: () =>
-              copy(`[${feedbackItem.shortId}](${feedbackUrl})`, {
-                successMessage: t('Copied Markdown Feedback Link to clipboard'),
-              }),
-          },
-        ]}
-      />
-    </Flex>
+      <RevealOnHover.Action>
+        <DropdownMenu
+          triggerProps={{
+            'aria-label': t('Short-ID copy actions'),
+            icon: <IconChevron direction="down" size="xs" />,
+            size: 'zero',
+            variant: 'transparent',
+            showChevron: false,
+          }}
+          position="bottom"
+          size="xs"
+          items={[
+            {
+              key: 'copy-url',
+              label: t('Copy Feedback URL'),
+              onAction: () =>
+                copy(feedbackUrl, {
+                  successMessage: t('Copied Feedback URL to clipboard'),
+                }),
+            },
+            {
+              key: 'copy-short-id',
+              label: t('Copy Short-ID'),
+              onAction: () =>
+                copy(feedbackItem.shortId, {
+                  successMessage: t('Copied Short-ID to clipboard'),
+                }),
+            },
+            {
+              key: 'copy-markdown-link',
+              label: t('Copy Markdown Link'),
+              onAction: () =>
+                copy(`[${feedbackItem.shortId}](${feedbackUrl})`, {
+                  successMessage: t('Copied Markdown Feedback Link to clipboard'),
+                }),
+            },
+          ]}
+        />
+      </RevealOnHover.Action>
+    </RevealOnHover>
   );
 }
 

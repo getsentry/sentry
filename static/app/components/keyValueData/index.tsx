@@ -1,9 +1,9 @@
 import React, {Children, useRef, useState, type ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container as LayoutContainer} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -89,33 +89,38 @@ export function Content({
   );
 
   return (
-    <ContentWrapper
-      expandLeft={expandLeft}
-      hasErrors={hasErrors}
-      isSuspectFlag={isSuspectFlag}
-      {...props}
-    >
-      {subjectNode === undefined ? <Subject>{subject}</Subject> : subjectNode}
-      <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
-        <ValueWrapper hasSuffix={hasSuffix}>
-          {!disableLink && defined(action?.link) ? (
-            <ValueLink to={action.link}>{dataComponent}</ValueLink>
-          ) : (
-            dataComponent
-          )}
-        </ValueWrapper>
-        {hasSuffix && (
-          <div>
-            {hasErrors && <AnnotatedTextErrors errors={errors} />}
-            {actionButton && (
-              <ActionButtonWrapper actionButtonAlwaysVisible={actionButtonAlwaysVisible}>
-                {actionButton}
-              </ActionButtonWrapper>
+    <RevealOnHover>
+      {({className}) => (
+        <ContentWrapper
+          expandLeft={expandLeft}
+          hasErrors={hasErrors}
+          isSuspectFlag={isSuspectFlag}
+          className={className}
+          {...props}
+        >
+          {subjectNode === undefined ? <Subject>{subject}</Subject> : subjectNode}
+          <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
+            <ValueWrapper hasSuffix={hasSuffix}>
+              {!disableLink && defined(action?.link) ? (
+                <ValueLink to={action.link}>{dataComponent}</ValueLink>
+              ) : (
+                dataComponent
+              )}
+            </ValueWrapper>
+            {hasSuffix && (
+              <div>
+                {hasErrors && <AnnotatedTextErrors errors={errors} />}
+                {actionButton && (
+                  <RevealOnHover.Action alwaysVisible={actionButtonAlwaysVisible}>
+                    {actionButton}
+                  </RevealOnHover.Action>
+                )}
+              </div>
             )}
-          </div>
-        )}
-      </ValueSection>
-    </ContentWrapper>
+          </ValueSection>
+        </ContentWrapper>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -275,16 +280,6 @@ const ContentWrapper = styled('div')<{
           ? p.theme.colors.yellow100
           : p.theme.tokens.background.secondary};
   }
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible {
-      visibility: visible;
-    }
-  }
 `;
 
 export const Subject = styled('div')`
@@ -328,17 +323,6 @@ const CardWrapper = styled('div')<{columnCount: number}>`
 
 export const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
-`;
-
-const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`
-  ${p =>
-    !p.actionButtonAlwaysVisible &&
-    css`
-      visibility: hidden;
-      ${ContentWrapper}:hover & {
-        visibility: visible;
-      }
-    `}
 `;
 
 export const KeyValueData = {
