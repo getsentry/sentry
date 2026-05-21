@@ -3,6 +3,7 @@ import {Outlet} from 'react-router-dom';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -12,6 +13,7 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -88,7 +90,15 @@ function ConversationsHeader() {
                 to: conversationsBaseUrl,
                 preservePageFilters: true,
               },
-              {label: conversationId.slice(0, 8)},
+              {
+                label: isUUID(conversationId) ? (
+                  conversationId.slice(0, 8)
+                ) : (
+                  <Tooltip title={conversationId}>
+                    <span>{conversationId}</span>
+                  </Tooltip>
+                ),
+              },
             ]}
           />
         ) : (
