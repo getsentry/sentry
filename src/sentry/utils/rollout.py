@@ -78,7 +78,7 @@ class SafeRolloutComparator:
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_callsite_blocklist"
 
     @classmethod
-    def _callsite_allowlist_option_name(cls) -> str:
+    def _callsite_use_experimental_data_allowlist_option(cls) -> str:
         """
         This is the callsite-level use-experimental-path rollout option. If the option
         contains a callsite, then that callsite will use the experimental-path data.
@@ -122,7 +122,7 @@ class SafeRolloutComparator:
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._callsite_allowlist_option_name(),
+            cls._callsite_use_experimental_data_allowlist_option(),
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -220,7 +220,9 @@ class SafeRolloutComparator:
         you should instead use check_and_choose (which standardizes the choice logic
         and has better logging).
         """
-        use_experimental_data = callsite in options.get(cls._callsite_allowlist_option_name())
+        use_experimental_data = callsite in options.get(
+            cls._callsite_use_experimental_data_allowlist_option()
+        )
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,

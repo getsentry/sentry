@@ -19,7 +19,9 @@ class SafeRolloutComparatorTestCase(TestCase):
         option_names = [o.name for o in all_options()]
 
         assert TestRolloutComparator._should_run_experiment_option() in option_names
-        assert TestRolloutComparator._callsite_allowlist_option_name() in option_names
+        assert (
+            TestRolloutComparator._callsite_use_experimental_data_allowlist_option() in option_names
+        )
         assert TestRolloutComparator._callsite_experiment_blocklist_option() in option_names
         assert TestRolloutComparator._sample_rate_option_name() in option_names
         assert TestRolloutComparator._mismatch_log_callsite_allowlist_option_name() in option_names
@@ -40,7 +42,9 @@ class SafeRolloutComparatorTestCase(TestCase):
 
         with override_options(
             {
-                TestRolloutComparator._callsite_allowlist_option_name(): ["test_allowed"],
+                TestRolloutComparator._callsite_use_experimental_data_allowlist_option(): [
+                    "test_allowed"
+                ],
                 TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): [],
             }
         ):

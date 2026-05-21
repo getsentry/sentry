@@ -116,7 +116,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         with self.options(
             {
                 EAPOccurrencesComparator._should_run_experiment_option(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                EAPOccurrencesComparator._callsite_use_experimental_data_allowlist_option(): [
                     "api.trace.count_performance_issues"
                 ],
             }
@@ -181,7 +181,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         with self.options(
             {
                 EAPOccurrencesComparator._should_run_experiment_option(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [],
+                EAPOccurrencesComparator._callsite_use_experimental_data_allowlist_option(): [],
             }
         ):
             with self.feature(self.FEATURES):
@@ -213,7 +213,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         with self.options(
             {
                 EAPOccurrencesComparator._should_run_experiment_option(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                EAPOccurrencesComparator._callsite_use_experimental_data_allowlist_option(): [
                     "api.trace.count_errors"
                 ],
             }
