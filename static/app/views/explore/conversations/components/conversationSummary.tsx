@@ -18,6 +18,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -248,8 +249,19 @@ export function ConversationSummary({
 
   return (
     <Flex direction="column" gap="md" flex={1}>
-      <Flex align="center" gap="sm">
-        <Heading as="h2">{t('Conversation #%s', conversationId.slice(0, 8))}</Heading>
+      <Flex align="center" gap="sm" minWidth={0}>
+        <Tooltip
+          title={conversationId}
+          showOnlyOnOverflow
+          skipWrapper
+          disabled={isUUID(conversationId)}
+        >
+          <Heading as="h2" ellipsis style={{minWidth: 0, flexShrink: 1}}>
+            {isUUID(conversationId)
+              ? t('Conversation #%s', conversationId.slice(0, 8))
+              : t('Conversation #%s', conversationId)}
+          </Heading>
+        </Tooltip>
         <Tooltip title={t('Copy conversation ID')}>
           <Button
             size="zero"

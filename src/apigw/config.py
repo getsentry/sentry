@@ -63,3 +63,7 @@ def load_config(app: App) -> None:
     app.config.Prometheus.enable_ws_metrics = False
     app.config.Prometheus.http_histogram_buckets = [35, 100, 500, 1000, 5000, "INF"]
     app.config.Prometheus.exclude_routes = ["internal.health"]
+
+    from django.conf import settings
+
+    app.config.cells.default = settings.SENTRY_MONOLITH_REGION
