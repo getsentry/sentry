@@ -100,10 +100,7 @@ class CellSiloClient(BaseApiClient):
     metrics_prefix = "silo_client.cell"
     logger = logging.getLogger("sentry.silo.client.cell")
     silo_client_name = "cell"
-    # Use a shorter timeout than the BaseApiClient default (30s) to avoid
-    # blocking Django request threads for extended periods when the Cell Silo
-    # is slow or unresponsive.
-    timeout: int = 10
+    timeout: int = 20
 
     def __init__(self, cell: Cell, retry: bool = False) -> None:
         super().__init__()
