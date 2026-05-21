@@ -76,6 +76,12 @@ class ProjectSeerRepoGetTest(APITestCase):
 
         self.get_error_response(status_code=404)
 
+    def test_repo_from_other_project_returns_404(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(other_project, repository=self.repo1)
+
+        self.get_error_response(status_code=404)
+
 
 class ProjectSeerRepoPutTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repo"
@@ -235,6 +241,12 @@ class ProjectSeerRepoPutTest(APITestCase):
         project_repo.refresh_from_db()
         assert project_repo.date_updated == original_date_updated
 
+    def test_other_project_repo_returns_404(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(other_project, repository=self.repo1)
+
+        self.get_error_response(branchName="develop", status_code=404)
+
 
 class ProjectSeerRepoDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repo"
@@ -295,6 +307,12 @@ class ProjectSeerRepoDeleteTest(APITestCase):
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.provider = "integrations:bitbucket"
         self.repo1.save()
+
+        self.get_error_response(status_code=404)
+
+    def test_other_project_repo_returns_404(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(other_project, repository=self.repo1)
 
         self.get_error_response(status_code=404)
 
@@ -395,6 +413,19 @@ class ProjectSeerReposGetTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "relay"
 
+    def test_search_by_name_in(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
+
+        response = self.get_success_response(
+            qs_params={"query": "name:[getsentry/sentry, getsentry/relay]"}
+        )
+        assert len(response.data) == 2
+
+        response = self.get_success_response(qs_params={"query": "name:[getsentry/sentry]"})
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "sentry"
+
     def test_search_by_name_exclude(self):
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
@@ -429,6 +460,25 @@ class ProjectSeerReposGetTest(APITestCase):
         names = [r["name"] for r in response.data]
         assert names == ["sentry", "relay"]
 
+    def test_sort_by_provider(self):
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/other",
+            provider="integrations:github_enterprise",
+            external_id="333",
+            integration_id=self.integration.id,
+        )
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=gitlab_repo)
+
+        response = self.get_success_response(qs_params={"sortBy": "provider"})
+        providers = [r["provider"] for r in response.data]
+        assert providers == sorted(providers)
+
+        response = self.get_success_response(qs_params={"sortBy": "-provider"})
+        providers = [r["provider"] for r in response.data]
+        assert providers == sorted(providers, reverse=True)
+
     def test_invalid_sort_field(self):
         response = self.get_error_response(qs_params={"sortBy": "invalid"}, status_code=400)
         assert "Invalid sortBy" in response.data["detail"]
@@ -449,6 +499,13 @@ class ProjectSeerReposGetTest(APITestCase):
         response = self.get_success_response()
         assert len(response.data) == 1
         assert response.data[0]["name"] == "sentry"
+
+    def test_repo_from_other_project_not_returned(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(other_project, repository=self.repo1)
+
+        response = self.get_success_response()
+        assert len(response.data) == 0
 
 
 class ProjectSeerReposPostTest(APITestCase):
@@ -702,3 +759,11 @@ class ProjectSeerReposPutTest(APITestCase):
         )
 
         self.get_error_response(repos=[{"repositoryId": unsupported_repo.id}], status_code=400)
+
+    def test_repo_from_other_org_returns_400(self):
+        other_org = self.create_organization(owner=self.user)
+        other_repo = Repository.objects.create(
+            organization_id=other_org.id, name="other/repo", provider="github", external_id="999"
+        )
+
+        self.get_error_response(repos=[{"repositoryId": other_repo.id}], status_code=400)
