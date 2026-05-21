@@ -65,7 +65,7 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
 
       - name: Run snapshot tests
-        run: pnpm run snapshots
+        run: pnpm run snapshots -- --testPathPattern="diffImageDisplay"
 
       - name: Compute merge base SHA
         if: github.event_name == 'pull_request' && !cancelled()
@@ -92,6 +92,7 @@ jobs:
             build snapshots "$SNAPSHOT_OUTPUT_DIR" \
             --app-id sentry-frontend \
             --project sentry-frontend \
+            --selective \
             ${BASE_SHA:+--base-sha "$BASE_SHA"}
 
       - name: Report upload failure to Sentry
