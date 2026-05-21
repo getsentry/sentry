@@ -1,4 +1,4 @@
-import React from 'react';
+import {createRef, Fragment} from 'react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -36,7 +36,7 @@ function StoreCapture({
 }
 
 function makeStoreRef() {
-  return React.createRef() as React.MutableRefObject<ReturnType<
+  return createRef() as React.MutableRefObject<ReturnType<
     typeof TestCollection.useStore
   > | null>;
 }
@@ -294,7 +294,7 @@ describe('Collection', () => {
     }
 
     render(
-      <React.Fragment>
+      <Fragment>
         <A.Provider>
           <ItemA name="a-item" />
           <CaptureA />
@@ -303,7 +303,7 @@ describe('Collection', () => {
           <ItemB name="b-item" />
           <CaptureB />
         </B.Provider>
-      </React.Fragment>
+      </Fragment>
     );
 
     expect(storeRefA.current!.tree().map(n => n.name)).toEqual(['a-item']);

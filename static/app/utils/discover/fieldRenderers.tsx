@@ -32,7 +32,6 @@ import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
@@ -59,6 +58,7 @@ import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/ro
 import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
 import {
   findLinkedDashboardForField,
@@ -109,6 +109,7 @@ import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamK
  */
 export type RenderFunctionBaggage = {
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   theme: Theme;
   /**
@@ -1284,7 +1285,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView, theme}: RenderFunctionBaggage,
+  {location, navigate, organization, eventView, theme}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};
@@ -1363,7 +1364,7 @@ export const spanOperationRelativeBreakdownRenderer = (
                     action: filter,
                     organization,
                   });
-                  browserHistory.push({
+                  navigate({
                     pathname: location.pathname,
                     query: {
                       ...location.query,

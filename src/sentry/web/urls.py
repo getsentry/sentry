@@ -1225,9 +1225,15 @@ urlpatterns += [
         name="sentry-user-avatar-url",
     ),
     re_path(
-        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        r"^organization-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
+    ),
+    # Deprecated because it lacks an organization slug
+    re_path(
+        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        OrganizationAvatarPhotoView.as_view(),
+        name="sentry-organization-avatar-url-deprecated",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",

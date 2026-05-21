@@ -126,6 +126,7 @@ describe('getIssueFieldRenderer', () => {
       render(
         renderer(data, {
           location,
+          navigate: jest.fn(),
           organization,
           theme,
         }) as React.ReactElement
@@ -191,6 +192,7 @@ describe('getIssueFieldRenderer', () => {
       render(
         renderer(data, {
           location,
+          navigate: jest.fn(),
           organization,
           theme,
         }) as React.ReactElement
@@ -220,6 +222,7 @@ describe('getIssueFieldRenderer', () => {
       render(
         renderer(data, {
           location,
+          navigate: jest.fn(),
           organization,
           theme,
         }) as React.ReactElement
@@ -246,6 +249,7 @@ describe('getIssueFieldRenderer', () => {
     render(
       renderer(data, {
         location,
+        navigate: jest.fn(),
         organization,
         theme,
       }) as React.ReactElement
@@ -269,6 +273,7 @@ describe('getIssueFieldRenderer', () => {
     render(
       renderer(data, {
         location,
+        navigate: jest.fn(),
         organization,
         theme,
       }) as React.ReactElement
