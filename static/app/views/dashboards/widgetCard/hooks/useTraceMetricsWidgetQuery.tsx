@@ -288,14 +288,17 @@ export function useTraceMetricsTableQuery(
 
       if (query.orderby) {
         if (isEquationAlias(trimStart(query.orderby, '-'))) {
-          const equations = query.fields?.filter(isEquation) ?? [];
+          const fields = query.fields ?? [...query.columns, ...query.aggregates];
+          const equations = fields.filter(isEquation);
           const equationIndex = getEquationAliasIndex(trimStart(query.orderby, '-'));
           const equation = equations[equationIndex];
-          if (equation) {
-            requestParams.sort = toArray(
-              query.orderby.startsWith('-') ? `-${equation}` : equation
-            );
-          }
+          requestParams.sort = toArray(
+            equation
+              ? query.orderby.startsWith('-')
+                ? `-${equation}`
+                : equation
+              : query.orderby
+          );
         } else {
           requestParams.sort = toArray(query.orderby);
         }
