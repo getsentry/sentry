@@ -527,6 +527,7 @@ export function CustomerDetails() {
                 ...params,
                 migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
               }),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',
