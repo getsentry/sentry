@@ -136,7 +136,7 @@ describe('useMetricAggregatesTable', () => {
             'sum(value,test-metric,none)',
             'count(value,test-metric,none)',
             // The count aggregate includes metric details: count(metric.name,<name>,<type>,none)
-            expect.stringMatching(/^count\(metric\.name,test-metric,counter,-\)$/),
+            expect.stringMatching(/^count\(metric\.name,test-metric,counter,none\)$/),
           ]),
         }),
       })
@@ -201,7 +201,9 @@ describe('useMetricAggregatesTable', () => {
             'avg(value,test-metric,none)',
             'p95(value,test-metric,none)',
             // The count aggregate includes metric details: count(metric.name,<name>,<type>,none)
-            expect.stringMatching(/^count\(metric\.name,test-metric,distribution,-\)$/),
+            expect.stringMatching(
+              /^count\(metric\.name,test-metric,distribution,none\)$/
+            ),
           ]),
         }),
       })

@@ -14,7 +14,7 @@ describe('parseAggregateExpression', () => {
     expect(result.metricQueries[0]).toEqual(
       expect.objectContaining({
         label: 'A',
-        metric: {name: 'foo', type: 'counter', unit: undefined},
+        metric: {name: 'foo', type: 'counter', unit: 'none'},
       })
     );
     expect(result.metricQueries[0]!.queryParams.aggregateFields).toEqual([
@@ -31,13 +31,13 @@ describe('parseAggregateExpression', () => {
     expect(result.metricQueries[0]).toEqual(
       expect.objectContaining({
         label: 'A',
-        metric: {name: 'metricA', type: 'counter', unit: undefined},
+        metric: {name: 'metricA', type: 'counter', unit: 'none'},
       })
     );
     expect(result.metricQueries[1]).toEqual(
       expect.objectContaining({
         label: 'B',
-        metric: {name: 'metricB', type: 'gauge', unit: undefined},
+        metric: {name: 'metricB', type: 'gauge', unit: 'none'},
       })
     );
     expect(result.compactExpression).toBe('A + B');
@@ -57,7 +57,7 @@ describe('parseAggregateExpression', () => {
     expect(result.metricQueries[0]).toEqual(
       expect.objectContaining({
         label: 'A',
-        metric: {name: 'metricA', type: 'counter', unit: undefined},
+        metric: {name: 'metricA', type: 'counter', unit: 'none'},
       })
     );
     expect(result.compactExpression).toBe('A + A');

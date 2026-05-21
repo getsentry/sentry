@@ -228,7 +228,7 @@ describe('getDetectorOpenInDestination', () => {
         expect(result?.to).toContain('interval=5m');
         // Metric query params are JSON-encoded then URL-encoded
         expect(result?.to).toContain('my_metric');
-        expect(result?.to).toContain('sum%28value%2Cmy_metric%2Ccounter%2C-%29');
+        expect(result?.to).toContain('sum%28value%2Cmy_metric%2Ccounter%2Cnone%29');
       });
 
       it('expands equation aggregates into per-function rows plus an equation row', () => {

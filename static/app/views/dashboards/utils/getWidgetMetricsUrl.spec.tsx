@@ -260,9 +260,9 @@ describe('getWidgetMetricsUrl', () => {
       const parsedMetrics = metrics.map(metric => JSON.parse(metric!));
       expect(parsedMetrics).toHaveLength(3);
       expect(parsedMetrics.map(m => m.metric)).toEqual([
-        {name: 'test_metric_a', type: 'duration'},
-        {name: 'test_metric_b', type: 'gauge'},
-        {name: 'test_metric_c', type: 'counter'},
+        {name: 'test_metric_a', type: 'duration', unit: 'none'},
+        {name: 'test_metric_b', type: 'gauge', unit: 'none'},
+        {name: 'test_metric_c', type: 'counter', unit: 'none'},
       ]);
     });
   });

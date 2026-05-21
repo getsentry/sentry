@@ -22,9 +22,9 @@ describe('mapMetricUnitToFieldType', () => {
     ['megabyte', {fieldType: 'size', unit: 'megabyte'}],
     ['ratio', {fieldType: 'percentage', unit: 'ratio'}],
     ['percent', {fieldType: 'percentage', unit: 'percent'}],
-    [undefined, {fieldType: 'number', unit: undefined}],
-    ['-', {fieldType: 'number', unit: undefined}],
-    ['custom_unit', {fieldType: 'number', unit: undefined}],
+    [undefined, {fieldType: 'number', unit: 'none'}],
+    ['-', {fieldType: 'number', unit: 'none'}],
+    ['custom_unit', {fieldType: 'number', unit: 'none'}],
   ])('maps %s to the correct field type', (unit, expected) => {
     expect(mapMetricUnitToFieldType(unit)).toEqual(expected);
   });

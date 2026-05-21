@@ -138,7 +138,7 @@ describe('MetricSelectRow', () => {
       },
       {
         kind: 'function',
-        function: ['sum', 'value', 'alpha_metric', 'counter', '-'],
+        function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
       },
     ];
     render(
@@ -186,7 +186,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['p50', 'value', 'distribution_metric', 'distribution', '-'],
+            function: ['p50', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -222,7 +222,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -238,7 +238,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
           }}
           index={0}
           disabled={false}
@@ -274,7 +274,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'distribution_metric', 'distribution', '-'],
+                function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
               },
             ]),
           }),
@@ -290,7 +290,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['sum', 'value', 'distribution_metric', 'distribution', '-'],
+            function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -335,16 +335,16 @@ describe('MetricSelectRow', () => {
                   'value',
                   'counter_metric',
                   'counter',
-                  '-',
+                  'none',
                 ],
               },
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -360,7 +360,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['avg', 'value', 'gauge_metric', 'gauge', '-'],
+            function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
           }}
           index={0}
           disabled={false}
@@ -394,7 +394,7 @@ describe('MetricSelectRow', () => {
             field: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -410,7 +410,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['p50', 'value', 'distribution_metric', 'distribution', '-'],
+            function: ['p50', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -446,7 +446,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['avg', 'value', 'gauge_metric', 'gauge', '-'],
+                function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
               },
             ]),
           }),
@@ -454,5 +454,50 @@ describe('MetricSelectRow', () => {
         expect.anything()
       );
     });
+  });
+
+  it('converts - to none for unit', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['sum(value,counter_metric,counter,-)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    const metricSelector = await screen.findByRole('button', {name: 'counter_metric'});
+    await userEvent.click(metricSelector);
+    await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: serializeFields([
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+            },
+          ]),
+        }),
+      }),
+      expect.anything()
+    );
   });
 });

@@ -1953,7 +1953,7 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: ['avg', 'value', 'other.metric', 'gauge', '-'],
+              function: ['avg', 'value', 'other.metric', 'gauge', 'none'],
             },
           ] as Column[],
         });
@@ -1989,11 +1989,11 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: ['sum', 'value', 'my.metric', 'counter', '-'],
+              function: ['sum', 'value', 'my.metric', 'counter', 'none'],
             },
             {
               kind: 'function',
-              function: ['avg', 'value', 'my.metric', 'counter', '-'],
+              function: ['avg', 'value', 'my.metric', 'counter', 'none'],
             },
           ] as Column[],
         });
@@ -2028,12 +2028,12 @@ describe('useWidgetBuilderState', () => {
       // stores all args in the args array when there are more than 3.
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', 'my.metric', 'counter', '-'],
+          function: ['sum', 'value', 'my.metric', 'counter', 'none'],
           alias: undefined,
           kind: 'function',
         },
         {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
+          function: ['per_second', 'value', 'my.metric', 'counter', 'none'],
           alias: undefined,
           kind: 'function',
         },
@@ -2066,7 +2066,7 @@ describe('useWidgetBuilderState', () => {
               {kind: FieldValueKind.FIELD, field: 'project'},
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'my.metric', 'counter', '-'],
+                function: ['sum', 'value', 'my.metric', 'counter', 'none'],
               },
               {
                 kind: FieldValueKind.FUNCTION,
@@ -2075,7 +2075,7 @@ describe('useWidgetBuilderState', () => {
                   'value',
                   'my.metric',
                   'counter',
-                  '-',
+                  'none',
                 ],
               },
             ]),

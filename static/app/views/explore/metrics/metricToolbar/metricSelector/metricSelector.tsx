@@ -165,17 +165,13 @@ export function MetricSelector({
         const metricType = option[TraceMetricKnownFieldKey.METRIC_TYPE];
         const rawMetricUnit: unknown = option[TraceMetricKnownFieldKey.METRIC_UNIT];
         const metricUnit =
-          rawMetricUnit === null || rawMetricUnit === NONE_UNIT
-            ? null
-            : typeof rawMetricUnit === 'string'
-              ? rawMetricUnit
-              : undefined;
-        const metricDisplayUnit =
-          metricUnit && metricUnit !== '-' ? metricUnit : NONE_UNIT;
+          rawMetricUnit && typeof rawMetricUnit === 'string' && rawMetricUnit !== '-'
+            ? rawMetricUnit
+            : NONE_UNIT;
         const value = makeMetricSelectValue({
           name: metricName,
           type: metricType,
-          unit: metricDisplayUnit,
+          unit: metricUnit,
         });
 
         // Skip duplicate options. This can happen specifically for the edge case where
@@ -212,7 +208,7 @@ export function MetricSelector({
               <MetricOptionTrailingItems
                 hasMetricUnitsUI={hasMetricUnitsUI}
                 metricType={metricType}
-                metricUnit={metricDisplayUnit}
+                metricUnit={metricUnit}
               />
             ),
           },
