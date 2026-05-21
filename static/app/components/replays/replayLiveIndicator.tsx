@@ -142,7 +142,6 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
 
   const doRefresh = useCallback(async () => {
     trackAnalytics('replay.details-refresh-clicked', {organization});
-
     await queryClient.invalidateQueries(
       replayRecordApiOptions({organizationIdOrSlug: orgSlug, replayId})
     );
