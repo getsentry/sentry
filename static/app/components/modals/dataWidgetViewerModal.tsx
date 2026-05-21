@@ -41,7 +41,6 @@ import {
   isEquationAlias,
   parseFunction,
   prettifyParsedFunction,
-  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
   createOnDemandFilterWarning,
@@ -1071,11 +1070,6 @@ function ViewerTableV2({
     const parsedFunction = parseFunction(column.key);
     if (!aliases[column.key] && parsedFunction) {
       aliases[column.key] = prettifyParsedFunction(parsedFunction);
-    }
-
-    // Strip the equation prefix if the full equation is used
-    if (isEquation(column.key)) {
-      aliases[column.key] = stripEquationPrefix(column.key);
     }
   }
 

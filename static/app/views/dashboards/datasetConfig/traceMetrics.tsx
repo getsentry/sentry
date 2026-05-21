@@ -12,6 +12,7 @@ import {
   isEquationAlias,
   parseFunction,
   RateUnit,
+  stripEquationPrefix,
   type AggregationOutputType,
   type DataUnit,
   type QueryFieldValue,
@@ -329,7 +330,9 @@ export const TraceMetricsConfig: DatasetConfig<
   getFieldHeaderMap: widgetQuery => {
     return (
       widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
-        acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+        acc[aggregate] = stripEquationPrefix(
+          formatTraceMetricsFunction(aggregate) as string
+        );
         return acc;
       }, {}) ?? {}
     );
