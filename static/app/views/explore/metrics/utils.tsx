@@ -309,7 +309,7 @@ export function mapMetricUnitToFieldType(metricUnit: string | null | undefined):
   unit: string | undefined;
 } {
   if (!metricUnit || metricUnit === '-') {
-    return {fieldType: 'number', unit: NONE_UNIT};
+    return {fieldType: 'number', unit: undefined};
   }
   if (DURATION_UNIT_VALUES.has(metricUnit)) {
     return {fieldType: 'duration', unit: metricUnit};
@@ -320,7 +320,7 @@ export function mapMetricUnitToFieldType(metricUnit: string | null | undefined):
   if (PERCENTAGE_UNIT_VALUES.has(metricUnit)) {
     return {fieldType: 'percentage', unit: metricUnit};
   }
-  return {fieldType: 'number', unit: NONE_UNIT};
+  return {fieldType: 'number', unit: undefined};
 }
 
 /**
