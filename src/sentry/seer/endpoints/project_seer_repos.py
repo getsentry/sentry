@@ -130,16 +130,12 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
         value = f.value.value
 
         if key == "name":
-            if op not in ("=", "!=", "IN", "NOT IN"):
+            if op not in ("=", "!="):
                 raise InvalidSearchQuery(f"name does not support the {op} operator.")
             if op == "=":
                 queryset = queryset.filter(project_repository__repository__name__icontains=value)
             elif op == "!=":
                 queryset = queryset.exclude(project_repository__repository__name__icontains=value)
-            elif op == "IN":
-                queryset = queryset.filter(project_repository__repository__name__in=value)
-            elif op == "NOT IN":
-                queryset = queryset.exclude(project_repository__repository__name__in=value)
 
         elif key == "provider":
             if op not in ("=", "!=", "IN", "NOT IN"):

@@ -415,19 +415,6 @@ class ProjectSeerReposGetTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "relay"
 
-    def test_search_by_name_in(self):
-        self.create_seer_project_repository(self.project, repository=self.repo1)
-        self.create_seer_project_repository(self.project, repository=self.repo2)
-
-        response = self.get_success_response(
-            qs_params={"query": "name:[getsentry/sentry, getsentry/relay]"}
-        )
-        assert len(response.data) == 2
-
-        response = self.get_success_response(qs_params={"query": "name:[getsentry/sentry]"})
-        assert len(response.data) == 1
-        assert response.data[0]["name"] == "sentry"
-
     def test_search_by_name_exclude(self):
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
