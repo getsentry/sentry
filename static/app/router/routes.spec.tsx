@@ -1,4 +1,4 @@
-import type {RouteObject} from 'react-router-dom';
+import {matchRoutes, type RouteObject} from 'react-router-dom';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/router/routes';
@@ -65,6 +65,17 @@ function extractRoutes(rootRoute: RouteObject[]): Set<string> {
   return routes;
 }
 
+/**
+ * Returns the paths of all matched route segments for a given URL.
+ */
+function getMatchedPaths(routes: RouteObject[], url: string): string[] {
+  const matches = matchRoutes(routes, url);
+  if (!matches) {
+    return [];
+  }
+  return matches.map(m => m.route.path ?? '(layout)');
+}
+
 describe('buildRoutes()', () => {
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
@@ -108,5 +119,20 @@ describe('buildRoutes()', () => {
           'If you need help with this drop by #proj-hybrid-cloud.'
       );
     }
+  });
+
+  describe('explore route catch-all', () => {
+    it('catches unknown subpaths under /explore/', () => {
+      const routes = buildRoutes();
+
+      let matchedPaths = getMatchedPaths(routes, '/explore/nonexistent-page/');
+      expect(matchedPaths).toContain('*');
+
+      matchedPaths = getMatchedPaths(
+        routes,
+        '/organizations/test-org/explore/nonexistent-page/also-nonexistent-page/'
+      );
+      expect(matchedPaths).toContain('*');
+    });
   });
 });

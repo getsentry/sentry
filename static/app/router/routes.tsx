@@ -2336,9 +2336,13 @@ function buildRoutes(): RouteObject[] {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
+    {
+      path: '*',
+      component: make(() => import('sentry/views/explore/indexRedirect')),
+    },
   ];
   const exploreRoutes: SentryRouteObject = {
-    path: '/explore/',
+    path: '/explore/*',
     withOrgPath: true,
     children: exploreChildren,
   };
