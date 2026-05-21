@@ -166,8 +166,8 @@ describe('useSaveAsMetricItems', () => {
   });
 
   it('formats add-to-dashboard submenu labels for multiple visualizes', () => {
-    const yAxis1 = 'p50(value,metric.a,counter,-)';
-    const yAxis2 = 'p75(value,metric.a,counter,-)';
+    const yAxis1 = 'p50(value,metric.a,counter,none)';
+    const yAxis2 = 'p75(value,metric.a,counter,none)';
     const encodedMetricQuery = encodeMetricQueryParams({
       metric: {name: 'metric.a', type: 'counter'},
       queryParams: new ReadableQueryParams({

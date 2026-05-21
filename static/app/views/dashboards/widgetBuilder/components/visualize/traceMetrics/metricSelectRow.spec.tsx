@@ -99,8 +99,8 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,alpha_metric,counter,-)',
-                'sum(value,alpha_metric,counter,-)',
+                'per_second(value,alpha_metric,counter,none)',
+                'sum(value,alpha_metric,counter,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -153,8 +153,8 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,alpha_metric,counter,-)',
-                'sum(value,alpha_metric,counter,-)',
+                'per_second(value,alpha_metric,counter,none)',
+                'sum(value,alpha_metric,counter,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -197,7 +197,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['p50(value,distribution_metric,distribution,-)'],
+              yAxis: ['p50(value,distribution_metric,distribution,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },
@@ -249,7 +249,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['sum(value,counter_metric,counter,-)'],
+              yAxis: ['sum(value,counter_metric,counter,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },
@@ -302,9 +302,9 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,distribution_metric,distribution,-)',
-                'p99(value,distribution_metric,distribution,-)',
-                'count(value,distribution_metric,distribution,-)',
+                'per_second(value,distribution_metric,distribution,none)',
+                'p99(value,distribution_metric,distribution,none)',
+                'count(value,distribution_metric,distribution,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -371,7 +371,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['avg(value,gauge_metric,gauge,-)'],
+              field: ['avg(value,gauge_metric,gauge,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.BIG_NUMBER,
             },
@@ -421,7 +421,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['p50(value,distribution_metric,distribution,-)'],
+              yAxis: ['p50(value,distribution_metric,distribution,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },

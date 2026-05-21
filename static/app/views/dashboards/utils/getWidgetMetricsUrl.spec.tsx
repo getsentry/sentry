@@ -40,7 +40,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: [],
             conditions: 'transaction:"/api/users"',
             orderby: '',
@@ -74,9 +74,9 @@ describe('getWidgetMetricsUrl', () => {
             name: 'Query 1',
             fields: [],
             aggregates: [
-              'avg(value,duration,d,-)',
-              'p95(value,duration,d,-)',
-              'count(value,duration,d,-)',
+              'avg(value,duration,d,none)',
+              'p95(value,duration,d,none)',
+              'count(value,duration,d,none)',
             ],
             columns: [],
             conditions: 'transaction:"/api/users"',
@@ -106,7 +106,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: ['transaction', 'http.status_code'],
             conditions: '',
             orderby: '',
@@ -126,7 +126,7 @@ describe('getWidgetMetricsUrl', () => {
       // Should have visualize + 2 group bys
       expect(metricQuery.aggregateFields).toHaveLength(3);
       expect(metricQuery.aggregateFields).toEqual([
-        {chartType: ChartType.LINE, yAxes: ['avg(value,duration,d,-)']},
+        {chartType: ChartType.LINE, yAxes: ['avg(value,duration,d,none)']},
         {groupBy: 'transaction'},
         {groupBy: 'http.status_code'},
       ]);
@@ -143,7 +143,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: [],
             conditions: 'transaction:"/api/users"',
             orderby: '',
@@ -179,10 +179,10 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: ['transaction'],
             conditions: '',
-            orderby: '-avg(value,duration,d,-)',
+            orderby: '-avg(value,duration,d,none)',
             fieldAliases: [],
           },
         ],
@@ -196,7 +196,7 @@ describe('getWidgetMetricsUrl', () => {
       const metricQuery = JSON.parse(metrics[0]!);
       expect(metricQuery.aggregateSortBys).toBeDefined();
       expect(metricQuery.aggregateSortBys).toHaveLength(1);
-      expect(metricQuery.aggregateSortBys[0].field).toBe('avg(value,duration,d,-)');
+      expect(metricQuery.aggregateSortBys[0].field).toBe('avg(value,duration,d,none)');
       expect(metricQuery.aggregateSortBys[0].kind).toBe('desc');
     });
 
@@ -238,9 +238,9 @@ describe('getWidgetMetricsUrl', () => {
             name: 'Query 1',
             fields: [],
             aggregates: [
-              'avg(value,test_metric_a,duration,-)',
-              'p95(value,test_metric_b,gauge,-)',
-              'count(value,test_metric_c,counter,-)',
+              'avg(value,test_metric_a,duration,none)',
+              'p95(value,test_metric_b,gauge,none)',
+              'count(value,test_metric_c,counter,none)',
             ],
             columns: [],
             conditions: 'transaction:"/api/users"',
@@ -279,7 +279,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)', 'p95(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)', 'p95(value,duration,d,none)'],
             columns: [],
             conditions: 'transaction:"/api/users"',
             orderby: '',
@@ -288,7 +288,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 2',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)', 'p95(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)', 'p95(value,duration,d,none)'],
             columns: [],
             conditions: 'transaction:"/api/posts"',
             orderby: '',
@@ -328,7 +328,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Success',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: [],
             conditions: 'http.status_code:200',
             orderby: '',
@@ -337,7 +337,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Errors',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: [],
             conditions: 'http.status_code:500',
             orderby: '',
@@ -372,7 +372,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: [],
             conditions: '',
             orderby: '',
@@ -400,7 +400,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['count(value,duration,d,-)'],
+            aggregates: ['count(value,duration,d,none)'],
             columns: [],
             conditions: '',
             orderby: '',
@@ -428,7 +428,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['sum(value,duration,d,-)'],
+            aggregates: ['sum(value,duration,d,none)'],
             columns: [],
             conditions: '',
             orderby: '',
@@ -457,7 +457,7 @@ describe('getWidgetMetricsUrl', () => {
         {
           name: 'Query 1',
           fields: [],
-          aggregates: ['avg(value,duration,d,-)'],
+          aggregates: ['avg(value,duration,d,none)'],
           columns: [],
           conditions: '',
           orderby: '',
@@ -498,7 +498,7 @@ describe('getWidgetMetricsUrl', () => {
           {
             name: 'Query 1',
             fields: [],
-            aggregates: ['avg(value,duration,d,-)'],
+            aggregates: ['avg(value,duration,d,none)'],
             columns: [],
             conditions: '',
             orderby: '',

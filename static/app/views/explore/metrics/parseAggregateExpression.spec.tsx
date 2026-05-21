@@ -6,7 +6,7 @@ import {
 
 describe('parseAggregateExpression', () => {
   it('parses a single aggregate into one row with label A', () => {
-    const result = parseAggregateExpression('sum(value,foo,counter,-)');
+    const result = parseAggregateExpression('sum(value,foo,counter,none)');
 
     expect(result.compactExpression).toBeNull();
     expect(result.equationRow).toBeNull();
@@ -18,13 +18,13 @@ describe('parseAggregateExpression', () => {
       })
     );
     expect(result.metricQueries[0]!.queryParams.aggregateFields).toEqual([
-      new VisualizeFunction('sum(value,foo,counter,-)'),
+      new VisualizeFunction('sum(value,foo,counter,none)'),
     ]);
   });
 
   it('parses an equation with two distinct metrics into two labeled rows', () => {
     const result = parseAggregateExpression(
-      'equation|sum(value,metricA,counter,-) + avg(value,metricB,gauge,-)'
+      'equation|sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)'
     );
 
     expect(result.metricQueries).toHaveLength(2);
@@ -43,14 +43,14 @@ describe('parseAggregateExpression', () => {
     expect(result.compactExpression).toBe('A + B');
     expect(result.equationRow?.queryParams.aggregateFields).toEqual([
       new VisualizeEquation(
-        'equation|sum(value,metricA,counter,-) + avg(value,metricB,gauge,-)'
+        'equation|sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)'
       ),
     ]);
   });
 
   it('dedupes identical function calls into a single row', () => {
     const result = parseAggregateExpression(
-      'equation|sum(value,metricA,counter,-) + sum(value,metricA,counter,-)'
+      'equation|sum(value,metricA,counter,none) + sum(value,metricA,counter,none)'
     );
 
     expect(result.metricQueries).toHaveLength(1);
@@ -64,7 +64,9 @@ describe('parseAggregateExpression', () => {
   });
 
   it('preserves numeric literals alongside references', () => {
-    const result = parseAggregateExpression('equation|sum(value,metricA,counter,-) / 2');
+    const result = parseAggregateExpression(
+      'equation|sum(value,metricA,counter,none) / 2'
+    );
 
     expect(result.metricQueries).toHaveLength(1);
     expect(result.compactExpression).toBe('A / 2');
@@ -72,7 +74,7 @@ describe('parseAggregateExpression', () => {
 
   it('assigns labels in order of first appearance within nested parens', () => {
     const result = parseAggregateExpression(
-      'equation|(sum(value,metricB,counter,-) + sum(value,metricA,counter,-)) / sum(value,metricC,counter,-)'
+      'equation|(sum(value,metricB,counter,none) + sum(value,metricA,counter,none)) / sum(value,metricC,counter,none)'
     );
 
     expect(result.metricQueries).toHaveLength(3);
@@ -141,7 +143,7 @@ describe('parseAggregateExpression', () => {
 
   it('dedupes identical _if calls and distinguishes different filters', () => {
     const result = parseAggregateExpression(
-      'equation|sum_if(`env:prod`,value,metricA,counter,-) + sum_if(`env:dev`,value,metricA,counter,-) + sum_if(`env:prod`,value,metricA,counter,-)'
+      'equation|sum_if(`env:prod`,value,metricA,counter,none) + sum_if(`env:dev`,value,metricA,counter,none) + sum_if(`env:prod`,value,metricA,counter,none)'
     );
 
     expect(result.metricQueries).toHaveLength(2);
