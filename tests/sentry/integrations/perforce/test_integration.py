@@ -475,6 +475,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
                 "client": "sentry-workspace",
                 "ssl_fingerprint": "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD",
                 "web_url": "https://swarm.example.com",
+                "charset": "utf8",
             },
             "name": "Perforce (ssl:perforce.example.com:1666)",
         }
@@ -504,6 +505,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
             == "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
         )
         assert metadata["web_url"] == "https://swarm.example.com"
+        assert metadata["charset"] == "utf8"
 
         # Step 2: Create integration (simulating ensure_integration)
         integration = self.create_integration(
@@ -519,7 +521,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
 
         # Test get_organization_config returns form schema
         org_config = installation.get_organization_config()
-        assert len(org_config) == 7  # 7 configuration fields
+        assert len(org_config) == 8  # 8 configuration fields
         field_names = {field["name"] for field in org_config}
         assert field_names == {
             "p4port",
@@ -529,6 +531,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
             "ssl_fingerprint",
             "client",
             "web_url",
+            "charset",
         }
 
         # Verify field types
@@ -540,6 +543,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
         assert field_types["ssl_fingerprint"] == "string"
         assert field_types["client"] == "string"
         assert field_types["web_url"] == "string"
+        assert field_types["charset"] == "choice"
 
         # Test get_config_data returns current values, with the credential
         # field omitted (allowlist mode — see _CONFIG_DATA_ALLOWLIST). The
@@ -554,6 +558,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
             == "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
         )
         assert config_data["web_url"] == "https://swarm.example.com"
+        assert config_data["charset"] == "utf8"
         assert integration.metadata["password"] == "initial_password"
 
         # Step 4: Test partial update (only change password)

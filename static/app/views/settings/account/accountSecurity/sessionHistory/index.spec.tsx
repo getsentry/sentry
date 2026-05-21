@@ -41,7 +41,7 @@ describe('AccountSecuritySessionHistory', () => {
   });
 
   it('renders empty in demo mode even if ips exist', () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    jest.mocked(isDemoModeActive).mockReturnValue(true);
 
     render(<SessionHistory />);
 
@@ -49,6 +49,6 @@ describe('AccountSecuritySessionHistory', () => {
     expect(screen.queryByText('192.168.0.1')).not.toBeInTheDocument();
     expect(screen.queryByText('US (CA)')).not.toBeInTheDocument();
 
-    (isDemoModeActive as jest.Mock).mockReset();
+    jest.mocked(isDemoModeActive).mockReset();
   });
 });

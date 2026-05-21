@@ -1,7 +1,7 @@
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 
-export const InviteModalHook = HookOrDefault({
-  hookName: 'member-invite-modal:customization',
+export const InviteModalHook = OverrideOrDefault({
+  overrideName: 'member-invite-modal:customization',
   defaultComponent: ({onSendInvites, children}) =>
     children({sendInvites: onSendInvites, canSend: true, isOverMemberLimit: false}),
 });

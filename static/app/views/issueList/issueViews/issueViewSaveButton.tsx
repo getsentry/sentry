@@ -81,7 +81,7 @@ function SegmentedIssueViewSaveButton({
   return (
     <Feature
       features="organizations:issue-views"
-      hookName="feature-disabled:issue-views"
+      overrideName="feature-disabled:issue-views"
       renderDisabled={props => (
         <Hovercard
           body={
@@ -181,7 +181,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     return (
       <Feature
         features="organizations:issue-views"
-        hookName="feature-disabled:issue-views"
+        overrideName="feature-disabled:issue-views"
         renderDisabled={props => (
           <Hovercard
             body={

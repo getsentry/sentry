@@ -134,6 +134,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         )  # Default to password for backwards compat
         self.client_name = metadata.get("client")
         self.ssl_fingerprint = metadata.get("ssl_fingerprint")
+        # P4 charset for Unicode-mode servers. Must be set BEFORE p4.connect()
+        # or the server will reject the connection with
+        # "Unicode server permits only unicode enabled clients".
+        # Empty / "none" means non-Unicode server — leave p4.charset alone.
+        self.charset = metadata.get("charset") or ""
 
     @contextmanager
     def _connect(self) -> Generator[P4]:
@@ -185,6 +190,12 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             if self.client_name:
                 p4.client = self.client_name
 
+            # Declare the client charset for Unicode-mode servers. Must be set
+            # before p4.connect() — the server inspects it during the initial
+            # handshake. "none" / empty preserves the legacy non-Unicode path.
+            if self.charset and self.charset != "none":
+                p4.charset = self.charset
+
             p4.exception_level = 1  # Only errors raise exceptions
 
             # Connect to Perforce server
@@ -192,6 +203,13 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 p4.connect()
             except P4Exception as e:
                 error_msg = str(e)
+                if "unicode server" in error_msg.lower():
+                    raise ApiError(
+                        f"Failed to connect to Perforce: {error_msg}. "
+                        "This server is running in Unicode mode — set "
+                        "'Server Encoding' to 'Unicode server (UTF-8)' in the "
+                        "integration configuration."
+                    )
                 if "SSL" in error_msg or "trust" in error_msg.lower():
                     raise ApiError(
                         f"Failed to connect to Perforce (SSL issue): {error_msg}. "

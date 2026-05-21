@@ -26,13 +26,31 @@ from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
-CREATE_ON_PAGE_CONTEXT = "The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code changes or any tasks unrelated to dashboard generation."
+TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemetrics"`:
+- Aggregates use a multi-argument form: `func(attribute, metric_name, metric_type)`.
+  - `attribute` must be `value` (the numeric value of the metric); no other attributes are supported at this time.
+  - `metric_name` is the metric's name as ingested (e.g. `my.app.latency`).
+  - `metric_type` is exactly one of `counter`, `gauge`, or `distribution`.
+- Examples: `count(value, my.app.requests, counter)`, `avg(value, my.app.cpu, gauge)`, `p95(value, my.app.latency, distribution)`.
+- Single-argument forms like `p50(my.metric)` are INVALID for tracemetrics.
+- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type` values, or fetching trace-item attributes). Do NOT guess the type — if you cannot confirm it, pick a different dataset or omit the widget."""
 
-EDIT_ON_PAGE_CONTEXT_TEMPLATE = """The user is editing an existing dashboard. The current dashboard state is:
+CREATE_ON_PAGE_CONTEXT = (
+    "The user is on the dashboard generation page. This session must ONLY generate a dashboard "
+    "artifact. Do not perform code changes or any tasks unrelated to dashboard generation.\n\n"
+    + TRACE_METRICS_GUIDANCE
+)
+
+EDIT_ON_PAGE_CONTEXT_TEMPLATE = (
+    """The user is editing an existing dashboard. The current dashboard state is:
 
 {current_dashboard_json}
 
-This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Do not perform code changes or any tasks unrelated to dashboard editing."""
+This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Do not perform code changes or any tasks unrelated to dashboard editing.
+
+"""
+    + TRACE_METRICS_GUIDANCE
+)
 
 DASHBOARD_INSTRUCTIONS = """\
 You are generating a Sentry dashboard. Follow these rules strictly:

@@ -284,6 +284,8 @@ class TestLaunchAgentsForRepos(TestCase):
         mock_get_prompt.assert_called_once()
         call_args = mock_get_prompt.call_args
         assert call_args[0][3] == "AIML-2301"
+        launch_request = mock_installation.launch.call_args[0][0]
+        assert launch_request.issue_short_id == "AIML-2301"
         assert mock_store_states.call_args.kwargs["organization_id"] == self.organization.id
 
 

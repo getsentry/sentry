@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.api.utils import to_valid_int_id
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
@@ -46,7 +47,8 @@ class CursorWebhookEndpoint(Endpoint):
             raise MethodNotAllowed(request.method or "unknown")
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id: int) -> Response:
+    def post(self, request: Request, organization_id: str) -> Response:
+        org_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
         try:
             payload = orjson.loads(request.body)
         except orjson.JSONDecodeError:
@@ -55,11 +57,11 @@ class CursorWebhookEndpoint(Endpoint):
 
         event_type = payload.get("event", payload.get("event_type", "unknown"))
 
-        if not self._validate_signature(request, request.body, organization_id):
+        if not self._validate_signature(request, request.body, org_id):
             logger.warning("cursor_webhook.invalid_signature")
             raise PermissionDenied("Invalid signature")
 
-        with webhook_viewer_context(organization_id):
+        with webhook_viewer_context(org_id):
             self._process_webhook(payload)
         logger.info("cursor_webhook.success", extra={"event_type": event_type})
         return self.respond(status=204)

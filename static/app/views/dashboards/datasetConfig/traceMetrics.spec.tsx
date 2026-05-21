@@ -59,7 +59,7 @@ describe('TraceMetricsConfig', () => {
 
   describe('formatTraceMetricsFunction', () => {
     it('formats a single parseable function string', () => {
-      expect(formatTraceMetricsFunction('avg(value,test_metric,millisecond,-)')).toBe(
+      expect(formatTraceMetricsFunction('avg(value,test_metric,millisecond,none)')).toBe(
         'avg(test_metric)'
       );
     });
@@ -73,16 +73,16 @@ describe('TraceMetricsConfig', () => {
     });
 
     it('formats a single parseable function in an array', () => {
-      expect(formatTraceMetricsFunction(['avg(value,test_metric,millisecond,-)'])).toBe(
-        'avg(test_metric)'
-      );
+      expect(
+        formatTraceMetricsFunction(['avg(value,test_metric,millisecond,none)'])
+      ).toBe('avg(test_metric)');
     });
 
     it('formats multiple parseable functions in an array', () => {
       expect(
         formatTraceMetricsFunction([
-          'p50(value,test_metric,millisecond,-)',
-          'p75(value,test_metric,millisecond,-)',
+          'p50(value,test_metric,millisecond,none)',
+          'p75(value,test_metric,millisecond,none)',
         ])
       ).toBe('p50, p75(test_metric)');
     });
@@ -97,7 +97,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -114,7 +114,7 @@ describe('TraceMetricsConfig', () => {
         fields: [],
         columns: [],
         fieldAliases: [],
-        aggregates: ['avg(value,test_metric,millisecond,-)'],
+        aggregates: ['avg(value,test_metric,millisecond,none)'],
         conditions: '',
         orderby: '',
       };
@@ -129,7 +129,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -139,7 +139,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             meta: {
               interval: 0,
@@ -156,8 +156,8 @@ describe('TraceMetricsConfig', () => {
         columns: [],
         fieldAliases: [],
         aggregates: [
-          'avg(value,test_metric,millisecond,-)',
-          'p50(value,test_metric,millisecond,-)',
+          'avg(value,test_metric,millisecond,none)',
+          'p50(value,test_metric,millisecond,none)',
         ],
         conditions: '',
         orderby: '',
@@ -174,7 +174,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
             meta: {
@@ -184,7 +184,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
             meta: {
@@ -201,7 +201,7 @@ describe('TraceMetricsConfig', () => {
         fields: [],
         columns: ['project'],
         fieldAliases: [],
-        aggregates: ['avg(value,test_metric,millisecond,-)'],
+        aggregates: ['avg(value,test_metric,millisecond,none)'],
         conditions: '',
         orderby: '',
       };
@@ -218,7 +218,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
             meta: {
@@ -228,7 +228,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
             meta: {
@@ -238,7 +238,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [{key: 'project', value: 'frontend'}],
             meta: {
@@ -248,7 +248,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 160}],
             groupBy: [{key: 'project', value: 'backend'}],
             meta: {
@@ -266,8 +266,8 @@ describe('TraceMetricsConfig', () => {
         columns: ['project'],
         fieldAliases: [],
         aggregates: [
-          'avg(value,test_metric,millisecond,-)',
-          'p50(value,test_metric,millisecond,-)',
+          'avg(value,test_metric,millisecond,none)',
+          'p50(value,test_metric,millisecond,none)',
         ],
         conditions: '',
         orderby: '',
@@ -288,7 +288,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [
               {key: 'project', value: 'frontend'},
@@ -301,7 +301,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [
               {key: 'project', value: 'frontend'},
@@ -314,7 +314,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [
               {key: 'project', value: 'frontend'},
@@ -327,7 +327,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 160}],
             groupBy: [
               {key: 'project', value: 'frontend'},
@@ -348,8 +348,8 @@ describe('TraceMetricsConfig', () => {
         columns: ['project', 'environment'],
         fieldAliases: [],
         aggregates: [
-          'avg(value,test_metric,millisecond,-)',
-          'p50(value,test_metric,millisecond,-)',
+          'avg(value,test_metric,millisecond,none)',
+          'p50(value,test_metric,millisecond,none)',
         ],
         conditions: '',
         orderby: '',
@@ -369,7 +369,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: null}],
             meta: {
@@ -379,7 +379,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [{key: 'project', value: null}],
             meta: {
@@ -397,8 +397,8 @@ describe('TraceMetricsConfig', () => {
         columns: ['project'],
         fieldAliases: [],
         aggregates: [
-          'avg(value,test_metric,millisecond,-)',
-          'p50(value,test_metric,millisecond,-)',
+          'avg(value,test_metric,millisecond,none)',
+          'p50(value,test_metric,millisecond,none)',
         ],
         conditions: '',
         orderby: '',
@@ -416,7 +416,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -433,7 +433,7 @@ describe('TraceMetricsConfig', () => {
         fields: [],
         columns: [],
         fieldAliases: [],
-        aggregates: ['avg(value,test_metric,millisecond,-)'],
+        aggregates: ['avg(value,test_metric,millisecond,none)'],
         conditions: '',
         orderby: '',
       };
@@ -448,7 +448,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -458,7 +458,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [],
             meta: {
@@ -476,8 +476,8 @@ describe('TraceMetricsConfig', () => {
         columns: [],
         fieldAliases: [],
         aggregates: [
-          'avg(value,test_metric,millisecond,-)',
-          'p50(value,test_metric,millisecond,-)',
+          'avg(value,test_metric,millisecond,none)',
+          'p50(value,test_metric,millisecond,none)',
         ],
         conditions: '',
         orderby: '',
@@ -494,7 +494,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
             meta: {
@@ -504,7 +504,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
             meta: {
@@ -521,7 +521,7 @@ describe('TraceMetricsConfig', () => {
         fields: [],
         columns: ['project'],
         fieldAliases: [],
-        aggregates: ['avg(value,test_metric,millisecond,-)'],
+        aggregates: ['avg(value,test_metric,millisecond,none)'],
         conditions: '',
         orderby: '',
       };
@@ -537,7 +537,7 @@ describe('TraceMetricsConfig', () => {
       const data: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [{key: 'project', value: 'frontend'}],
             meta: {
@@ -547,7 +547,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 200}],
             groupBy: [{key: 'project', value: 'backend'}],
             meta: {
@@ -557,7 +557,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 80}],
             groupBy: [{key: 'project', value: 'frontend'}],
             meta: {
@@ -567,7 +567,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'p50(value,test_metric,millisecond,-)',
+            yAxis: 'p50(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 160}],
             groupBy: [{key: 'project', value: 'backend'}],
             meta: {
@@ -585,8 +585,8 @@ describe('TraceMetricsConfig', () => {
         columns: ['project'],
         fieldAliases: [],
         aggregates: [
-          'avg(value,test_metric,millisecond,-)',
-          'p50(value,test_metric,millisecond,-)',
+          'avg(value,test_metric,millisecond,none)',
+          'p50(value,test_metric,millisecond,none)',
         ],
         conditions: '',
         orderby: '',
@@ -607,7 +607,7 @@ describe('TraceMetricsConfig', () => {
       const data1: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,db_latency,millisecond,-)',
+            yAxis: 'avg(value,db_latency,millisecond,none)',
             values: [{timestamp: 1, value: 150}],
             groupBy: [{key: 'environment', value: 'prod'}],
             meta: {
@@ -617,7 +617,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'avg(value,db_latency,millisecond,-)',
+            yAxis: 'avg(value,db_latency,millisecond,none)',
             values: [{timestamp: 1, value: 75}],
             groupBy: [{key: 'environment', value: 'dev'}],
             meta: {
@@ -634,7 +634,7 @@ describe('TraceMetricsConfig', () => {
         fields: [],
         columns: ['environment'],
         fieldAliases: [],
-        aggregates: ['avg(value,db_latency,millisecond,-)'],
+        aggregates: ['avg(value,db_latency,millisecond,none)'],
         conditions: '',
         orderby: '',
       };
@@ -643,7 +643,7 @@ describe('TraceMetricsConfig', () => {
       const data2: EventsTimeSeriesResponse = {
         timeSeries: [
           {
-            yAxis: 'avg(value,cache_hits,counter,-)',
+            yAxis: 'avg(value,cache_hits,counter,none)',
             values: [{timestamp: 1, value: 980}],
             groupBy: [{key: 'environment', value: 'prod'}],
             meta: {
@@ -653,7 +653,7 @@ describe('TraceMetricsConfig', () => {
             },
           },
           {
-            yAxis: 'avg(value,cache_hits,counter,-)',
+            yAxis: 'avg(value,cache_hits,counter,none)',
             values: [{timestamp: 1, value: 920}],
             groupBy: [{key: 'environment', value: 'dev'}],
             meta: {
@@ -670,7 +670,7 @@ describe('TraceMetricsConfig', () => {
         fields: [],
         columns: ['environment'],
         fieldAliases: [],
-        aggregates: ['avg(value,cache_hits,counter,-)'],
+        aggregates: ['avg(value,cache_hits,counter,none)'],
         conditions: '',
         orderby: '',
       };
@@ -733,7 +733,10 @@ describe('TraceMetricsConfig', () => {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
-                yAxis: ['avg(value,metric_a,counter,-)', 'avg(value,metric_b,gauge,-)'],
+                yAxis: [
+                  'avg(value,metric_a,counter,none)',
+                  'avg(value,metric_b,gauge,none)',
+                ],
                 dataset: WidgetType.TRACEMETRICS,
                 displayType: DisplayType.LINE,
               },
@@ -760,7 +763,7 @@ describe('TraceMetricsConfig', () => {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
-                yAxis: ['avg(value,my_metric,counter,-)'],
+                yAxis: ['avg(value,my_metric,counter,none)'],
                 dataset: WidgetType.TRACEMETRICS,
                 displayType: DisplayType.LINE,
               },
@@ -788,8 +791,8 @@ describe('TraceMetricsConfig', () => {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 yAxis: [
-                  'avg(value,same_metric,counter,-)',
-                  'p50(value,same_metric,counter,-)',
+                  'avg(value,same_metric,counter,none)',
+                  'p50(value,same_metric,counter,none)',
                 ],
                 dataset: WidgetType.TRACEMETRICS,
                 displayType: DisplayType.LINE,
@@ -841,7 +844,10 @@ describe('TraceMetricsConfig', () => {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
-                yAxis: ['avg(value,metric_a,counter,-)', 'avg(value,metric_b,gauge,-)'],
+                yAxis: [
+                  'avg(value,metric_a,counter,none)',
+                  'avg(value,metric_b,gauge,none)',
+                ],
                 dataset: WidgetType.TRACEMETRICS,
                 displayType: DisplayType.LINE,
               },
@@ -871,8 +877,8 @@ describe('TraceMetricsConfig', () => {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 yAxis: [
-                  'avg(value,same_metric,counter,-)',
-                  'p50(value,same_metric,counter,-)',
+                  'avg(value,same_metric,counter,none)',
+                  'p50(value,same_metric,counter,none)',
                 ],
                 dataset: WidgetType.TRACEMETRICS,
                 displayType: DisplayType.LINE,
