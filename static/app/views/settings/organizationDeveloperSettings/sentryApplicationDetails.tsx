@@ -60,12 +60,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -224,8 +221,6 @@ export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
-  const routes = useRoutes();
-  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
 
   const isInternalRoute = location.pathname.endsWith('new-internal/');
@@ -261,18 +256,10 @@ export default function SentryApplicationDetails() {
   );
 
   const isInternal = app ? app.status === 'internal' : isInternalRoute;
-  const headerTitle = tct('[action] [type] Integration', {
-    action: app ? 'Edit' : 'Create',
-    type: isInternal ? 'Internal' : 'Public',
-  });
 
   return (
     <div>
-      {hasPageFrame ? (
-        <BreadcrumbTitle routes={routes} title={appSlug ? (app?.name ?? '') : t('New')} />
-      ) : (
-        <SettingsPageHeader title={headerTitle} />
-      )}
+      <BreadcrumbTitle title={appSlug ? (app?.name ?? '') : t('New')} />
 
       {isLoading || isPlaceholderData ? (
         <LoadingIndicator />
@@ -844,14 +831,22 @@ function SentryApplicationForm({
             t('Created On'),
             t('Scopes'),
             <AddTokenHeader key="token-add">
-              <Button
-                size="xs"
-                icon={<IconAdd />}
-                onClick={onAddToken}
-                data-test-id="token-add"
+              <Tooltip
+                disabled={hasTokenAccess()}
+                title={t(
+                  'You must be a Manager or Owner to create authentication tokens.'
+                )}
               >
-                {t('New Token')}
-              </Button>
+                <Button
+                  size="xs"
+                  icon={<IconAdd />}
+                  onClick={onAddToken}
+                  disabled={!hasTokenAccess()}
+                  data-test-id="token-add"
+                >
+                  {t('New Token')}
+                </Button>
+              </Tooltip>
             </AddTokenHeader>,
           ]}
           isEmpty={tokens.length === 0}

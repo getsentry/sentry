@@ -667,6 +667,36 @@ describe('AutomationNewSettings', () => {
     expect(await screen.findByText('member-project')).toBeInTheDocument();
   });
 
+  it('surfaces API error message when automation creation fails', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      statusCode: 400,
+      body: ['You may not exceed 1000 workflows per organization.'],
+    });
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
+
+    // Add an action so builder validation passes
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'You may not exceed 1000 workflows per organization.'
+      );
+    });
+  });
+
   it('surfaces error details when test notification fails', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
 

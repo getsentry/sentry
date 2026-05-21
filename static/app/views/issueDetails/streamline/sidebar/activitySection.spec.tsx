@@ -71,16 +71,16 @@ describe('StreamlinedActivitySection', () => {
 
     render(<StreamlinedActivitySection group={group} />);
 
-    const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
+    const commentInput = screen.getByPlaceholderText('Add a comment…');
     expect(commentInput).toBeInTheDocument();
+
     expect(
       screen.queryByRole('button', {name: 'Submit comment'})
     ).not.toBeInTheDocument();
 
     await userEvent.click(commentInput);
 
-    // Button appears after input is focused
-    const submitButton = await screen.findByRole('button', {name: 'Submit comment'});
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
     expect(submitButton).toBeInTheDocument();
 
     expect(submitButton).toBeDisabled();
@@ -107,7 +107,7 @@ describe('StreamlinedActivitySection', () => {
 
     render(<StreamlinedActivitySection group={group} />);
 
-    const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
+    const commentInput = screen.getByPlaceholderText('Add a comment…');
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
@@ -131,11 +131,11 @@ describe('StreamlinedActivitySection', () => {
       },
     });
 
-    render(<StreamlinedActivitySection group={group} isDrawer />);
+    render(<StreamlinedActivitySection group={group} variant="drawer" />);
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@jane');
+    await userEvent.type(screen.getByPlaceholderText('Add a comment…'), '@jane');
     await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Submit comment'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(postMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1337/comments/',
@@ -205,7 +205,7 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
+    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(editMock).not.toHaveBeenCalled();
@@ -215,7 +215,7 @@ describe('StreamlinedActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
+    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     expect(editMock).toHaveBeenCalledTimes(1);
@@ -321,7 +321,7 @@ describe('StreamlinedActivitySection', () => {
       project,
     });
 
-    render(<StreamlinedActivitySection group={updatedActivityGroup} isDrawer />);
+    render(<StreamlinedActivitySection group={updatedActivityGroup} variant="drawer" />);
 
     for (const activity of activities) {
       expect(
@@ -329,7 +329,7 @@ describe('StreamlinedActivitySection', () => {
       ).toBeInTheDocument();
     }
 
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('View 4 more')).not.toBeInTheDocument();
   });
 
   it('filters comments correctly', async () => {
@@ -357,7 +357,11 @@ describe('StreamlinedActivitySection', () => {
     });
 
     render(
-      <StreamlinedActivitySection group={updatedActivityGroup} isDrawer filterComments />
+      <StreamlinedActivitySection
+        group={updatedActivityGroup}
+        variant="drawer"
+        filterComments
+      />
     );
 
     for (const activity of activities) {

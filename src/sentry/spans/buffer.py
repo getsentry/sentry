@@ -100,6 +100,7 @@ from __future__ import annotations
 import itertools
 import logging
 import math
+import time
 import uuid
 from collections.abc import Generator, MutableMapping, Sequence
 from hashlib import blake2b
@@ -116,7 +117,16 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
-from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
+from sentry.spans.buffer_logger import (
+    BufferLogger,
+    DeadlineUpdateLog,
+    FlusherLogEntry,
+    FlusherLogger,
+    FlushSegmentLog,
+    ProcessSpansObservability,
+    SubsegmentDebugLog,
+)
+from sentry.spans.buffer_types import EvalshaResult
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import (
@@ -240,10 +250,12 @@ class SpansBuffer:
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
+        self._last_decompress_latency_ms = 0
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
         self._buffer_logger = BufferLogger()
+        self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
@@ -266,6 +278,11 @@ class SpansBuffer:
 
     def _get_flush_lock_key(self, segment_key: SegmentKey) -> bytes:
         return b"span-buf:fl:" + segment_key
+
+    def _get_debug_trace_logger(self) -> DebugTraceLogger:
+        if self._debug_trace_logger is None:
+            self._debug_trace_logger = DebugTraceLogger(self.client)
+        return self._debug_trace_logger
 
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
@@ -336,14 +353,11 @@ class SpansBuffer:
                     for (project_and_trace, parent_span_id), salt, subsegment in batch:
                         byte_count = sum(len(span.payload) for span in subsegment)
 
-                        try:
-                            if self._debug_trace_logger is None:
-                                self._debug_trace_logger = DebugTraceLogger(self.client)
-                            self._debug_trace_logger.log_subsegment_info(
-                                project_and_trace, parent_span_id, subsegment
-                            )
-                        except Exception:
-                            logger.exception("process_spans: Failed to log debug trace info")
+                        SubsegmentDebugLog(
+                            project_and_trace=project_and_trace,
+                            parent_span_id=parent_span_id,
+                            subsegment=subsegment,
+                        ).emit(self._get_debug_trace_logger)
 
                         span_ids = [span.span_id for span in subsegment]
                         is_segment_span = (
@@ -378,29 +392,15 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
-            latency_entries: list[tuple[str, int]] = []
-            latency_metrics = []
-            gauge_metrics = []
-            longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
-                -1.0,
-                [],
-                [],
-            )
+            observability = ProcessSpansObservability()
 
             assert len(result_meta) == len(results)
 
             for (project_and_trace, parent_span_id, partition, salt), result in zip(
                 result_meta, results
             ):
-                (
-                    segment_key,
-                    has_root_span,
-                    evalsha_latency_ms,
-                    _,
-                    _,
-                ) = result
-
-                latency_entries.append((project_and_trace, evalsha_latency_ms))
+                evalsha_result = EvalshaResult.from_redis_result(result)
+                observability.record_evalsha_result(project_and_trace, evalsha_result)
 
                 # The Kafka partition is used directly as the queue shard
                 # so that routing is stable across rebalances.
@@ -410,7 +410,7 @@ class SpansBuffer:
                 # if the currently processed span is a root span, OR the buffer
                 # already had a root span inside, use a different timeout than
                 # usual.
-                if has_root_span:
+                if evalsha_result.has_root_span:
                     offset = root_timeout
                 else:
                     offset = timeout
@@ -418,57 +418,27 @@ class SpansBuffer:
                 zadd_items = queue_adds.setdefault(queue_key, {})
 
                 new_deadline = now + offset
-                zadd_items[segment_key] = new_deadline
+                zadd_items[evalsha_result.segment_key] = new_deadline
 
-                # Debug logging
-                try:
-                    old_deadline = None
-                    if self._debug_trace_logger is None:
-                        self._debug_trace_logger = DebugTraceLogger(self.client)
-                    if self._debug_trace_logger._should_log_trace(project_and_trace):
-                        old_deadline_score = self.client.zscore(queue_key, segment_key)
-                        old_deadline = (
-                            int(old_deadline_score) if old_deadline_score is not None else None
-                        )
-
-                    self._debug_trace_logger.log_deadline_update(
-                        segment_key=segment_key,
-                        project_and_trace=project_and_trace,
-                        old_deadline=old_deadline,
-                        new_deadline=new_deadline,
-                        message_timestamp=now,
-                        has_root_span=has_root_span,
-                    )
-                except Exception:
-                    logger.exception("process_spans: Failed to log deadline update")
+                DeadlineUpdateLog(
+                    segment_key=evalsha_result.segment_key,
+                    project_and_trace=project_and_trace,
+                    queue_key=queue_key,
+                    new_deadline=new_deadline,
+                    message_timestamp=now,
+                    has_root_span=evalsha_result.has_root_span,
+                ).emit(self.client, self._get_debug_trace_logger)
 
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
-                if not segment_key.endswith(salt.encode("ascii")):
+                if not evalsha_result.segment_key.endswith(salt.encode("ascii")):
                     delete_set.update(
                         self._get_span_key(project_and_trace, span.span_id)
                         for span in subsegment_spans
                     )
-                delete_set.discard(segment_key)
+                delete_set.discard(evalsha_result.segment_key)
 
-            for result in results:
-                (
-                    _,
-                    _,
-                    evalsha_latency_ms,
-                    evalsha_latency_metrics,
-                    evalsha_gauge_metrics,
-                ) = result
-                latency_metrics.append(evalsha_latency_metrics)
-                gauge_metrics.append(evalsha_gauge_metrics)
-                if evalsha_latency_ms > longest_evalsha_data[0]:
-                    longest_evalsha_data = (
-                        evalsha_latency_ms,
-                        evalsha_latency_metrics,
-                        evalsha_gauge_metrics,
-                    )
-
-            self._buffer_logger.log(latency_entries)
+            self._buffer_logger.log(observability.evalsha_latency_entries)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
@@ -488,11 +458,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
         metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
-
-        try:
-            emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
-        except Exception as e:
-            logger.exception("Error emitting observability metrics: %s", e)
+        observability.emit_metrics()
 
     def _ensure_script(self) -> str:
         """
@@ -632,8 +598,10 @@ class SpansBuffer:
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
         max_flush_segments = options.get("spans.buffer.max-flush-segments")
+        flusher_logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
         max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
+        ids_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
@@ -644,6 +612,7 @@ class SpansBuffer:
                     queue_keys.append(key)
 
                 result = p.execute()
+        load_ids_latency_ms = int((time.monotonic() - ids_start) * 1000)
 
         segment_keys: list[tuple[int, QueueKey, SegmentKey, float]] = []
         for shard, queue_key, keys_with_scores in zip(self.assigned_shards, queue_keys, result):
@@ -653,6 +622,7 @@ class SpansBuffer:
         acquired_locks = self._acquire_flush_locks([k for _, _, k, _ in segment_keys])
         segment_keys = [entry for entry in segment_keys if entry[2] in acquired_locks]
 
+        data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             # Pass queue mapping to enable TTL expiration detection
             segment_to_queue = {
@@ -663,10 +633,12 @@ class SpansBuffer:
                 segment_to_queue,
                 now,
             )
+        load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
         num_has_root_spans = 0
         any_shard_at_limit = False
+        flusher_log_entries: list[FlusherLogEntry] = []
 
         for shard, queue_key, segment_key, score in segment_keys:
             segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
@@ -710,20 +682,34 @@ class SpansBuffer:
             )
             num_has_root_spans += int(has_root_span)
 
-            try:
-                if self._debug_trace_logger is None:
-                    self._debug_trace_logger = DebugTraceLogger(self.client)
-                self._debug_trace_logger.log_flush_info(
-                    segment_key,
-                    segment_span_id,
-                    has_root_span,
-                    len(segment),
-                    shard,
-                    queue_key,
-                    now,
+            FlushSegmentLog(
+                segment_key=segment_key,
+                segment_span_id=segment_span_id,
+                has_root_span=has_root_span,
+                num_spans=len(segment),
+                shard=shard,
+                queue_key=queue_key,
+                timestamp=now,
+            ).emit(self._get_debug_trace_logger)
+
+            if flusher_logger_enabled and segment:
+                project_id, trace_id, _ = parse_segment_key(segment_key)
+                project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                flusher_log_entries.append(
+                    FlusherLogEntry(
+                        project_and_trace,
+                        len(segment),
+                        sum(len(s) for s in segment),
+                    )
                 )
-            except Exception:
-                logger.exception("flush_segments: Failed to log debug trace flush info")
+
+        if flusher_logger_enabled and flusher_log_entries:
+            self._flusher_logger.log(
+                flusher_log_entries,
+                load_ids_latency_ms,
+                load_data_latency_ms,
+                self._last_decompress_latency_ms,
+            )
 
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
@@ -750,6 +736,8 @@ class SpansBuffer:
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         payload_keys_map: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
+        self._last_decompress_latency_ms = 0
+        decompress_latency_ms = 0.0
 
         # Maps each payload key back to the segment it belongs to.
         # Multiple distributed payload keys map to one segment.
@@ -778,7 +766,11 @@ class SpansBuffer:
             """
             Decompress and add spans to the segment.
             """
+            nonlocal decompress_latency_ms
+
+            decompress_start = time.monotonic()
             decompressed = self._decompress_batch(raw_data)
+            decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
             payloads[key].extend(decompressed)
 
         while cursors:
@@ -880,6 +872,8 @@ class SpansBuffer:
                 # over each other. The consequence is duplicated segments,
                 # worst-case.
                 metrics.incr("spans.buffer.empty_segments")
+
+        self._last_decompress_latency_ms = int(decompress_latency_ms)
 
         return payloads, payload_keys_map
 

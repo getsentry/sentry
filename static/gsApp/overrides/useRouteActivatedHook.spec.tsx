@@ -52,7 +52,7 @@ describe('useRouteActivatedHook', () => {
   });
 
   afterEach(() => {
-    (rawTrackAnalyticsEvent as jest.Mock).mockClear();
+    jest.mocked(rawTrackAnalyticsEvent).mockClear();
   });
 
   it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {

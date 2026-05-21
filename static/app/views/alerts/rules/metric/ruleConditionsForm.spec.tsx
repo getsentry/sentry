@@ -1,3 +1,5 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,11 +14,12 @@ import {
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 describe('RuleConditionsForm', () => {
-  const {organization, projects, router} = initializeOrg({
+  const {organization, projects} = initializeOrg({
     organization: {
       features: ['search-query-builder-alerts', 'visibility-explore-view'],
     },
   });
+  const router = RouterFixture();
   ProjectsStore.loadInitialData(projects);
 
   const mockSearch = jest.fn();

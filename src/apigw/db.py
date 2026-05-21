@@ -26,6 +26,7 @@ class AsyncPG(Extension):
             port=DB_CONF["PORT"],
             min_size=self.config.pool_size,
             max_size=self.config.pool_size,
+            statement_cache_size=0,
         )
 
     @listen_signal(Signals.after_loop)

@@ -36,6 +36,8 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
     "spans.buffer.flusher.flush-lock-ttl": 0,
+    "spans.buffer.flusher-cumulative-logger-enabled": False,
+    "spans.buffer.flusher.log-flushed-segments": False,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
     "spans.buffer.max-spans-per-evalsha": 0,
@@ -245,7 +247,7 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert_clean(buffer.client)
 
 
-@mock.patch("sentry.spans.buffer.emit_observability_metrics")
+@mock.patch("sentry.spans.buffer_logger.emit_observability_metrics")
 def test_observability_metrics(
     emit_observability_metrics: mock.MagicMock, buffer: SpansBuffer
 ) -> None:

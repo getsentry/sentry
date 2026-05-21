@@ -74,6 +74,26 @@ export function getRegionChoices(exclude: RegionData[] = []): Array<[string, str
     });
 }
 
+export function getRegionNameChoices(): Array<[string, string]> {
+  const regions = getRegions();
+
+  return regions.map(region => {
+    return [
+      region.name,
+      `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
+    ];
+  });
+}
+
+export function getRegionUrl(name: string): string | null {
+  const regions = getRegions();
+  const found = regions.find(item => item.name === name);
+  if (found) {
+    return found.url;
+  }
+  return null;
+}
+
 export function shouldDisplayRegions(): boolean {
   return getRegions().length > 1;
 }

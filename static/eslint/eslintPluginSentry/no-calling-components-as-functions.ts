@@ -17,7 +17,7 @@ import type {RuleFix, RuleFixer} from '@typescript-eslint/utils/ts-eslint';
 const IGNORED_NAMES = new Set(['OverrideOrDefault']);
 
 // Matches names that are clearly not PascalCase components:
-// - SCREAMING_SNAKE prefix: DO_NOT_USE_foo, DANGEROUS_SET_REACT_ROUTER_6_HISTORY
+// - SCREAMING_SNAKE prefix: DO_NOT_USE_foo, DANGEROUS_SET_FOO
 // - All-caps constants: BREAKPOINTS, MOBILE
 const NOT_PASCAL_CASE_RE = /^[A-Z][A-Z0-9]*_|^[A-Z][A-Z0-9_]*$/;
 

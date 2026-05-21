@@ -234,6 +234,7 @@ from sentry.integrations.api.endpoints.external_user_details import ExternalUser
 from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.integrations.api.endpoints.integration_proxy2 import InternalIntegrationProxy2Endpoint
 from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -359,9 +360,6 @@ from sentry.issues.endpoints.organization_codeowners_associations import (
 from sentry.issues.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
-)
-from sentry.issues.endpoints.organization_group_suspect_tags import (
-    OrganizationGroupSuspectTagsEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.issues.endpoints.organization_issue_timeseries import (
@@ -550,7 +548,10 @@ from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeer
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
-from sentry.seer.endpoints.project_seer_settings import ProjectSeerSettingsEndpoint
+from sentry.seer.endpoints.project_seer_settings import (
+    OrganizationSeerProjectSettingsEndpoint,
+    ProjectSeerSettingsEndpoint,
+)
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -729,7 +730,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 from .endpoints.organization_attribute_mappings import OrganizationAttributeMappingsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
@@ -802,7 +802,6 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
 )
-from .endpoints.organization_spans_fields_stats import OrganizationSpansFieldsStatsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -829,7 +828,7 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
 )
-from .endpoints.project_repo_link import ProjectRepoLinkEndpoint
+from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
@@ -940,11 +939,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/tags/(?P<key>[^/]+)/values/$",
             GroupTagKeyValuesEndpoint.as_view(),
             name=f"{name_prefix}-group-tag-key-values",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/suspect/tags/$",
-            OrganizationGroupSuspectTagsEndpoint.as_view(),
-            name=f"{name_prefix}-suspect-tags",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/(?:user-feedback|user-reports)/$",
@@ -1685,11 +1679,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-config-integrations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/config/repos/$",
-        OrganizationConfigRepositoriesEndpoint.as_view(),
-        name="sentry-api-0-organization-config-repositories",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-rates/$",
         OrganizationSamplingProjectRatesEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-project-rates",
@@ -1808,11 +1797,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/spans/fields/(?P<key>[^/]+)/values/$",
         OrganizationSpansFieldValuesEndpoint.as_view(),
         name="sentry-api-0-organization-spans-fields-values",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/spans/fields/stats/$",
-        OrganizationSpansFieldsStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-fields-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics-estimation-stats/$",
@@ -2470,6 +2454,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
         OrganizationAutofixAutomationSettingsEndpoint.as_view(),
         name="sentry-api-0-organization-autofix-automation-settings",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/$",
+        OrganizationSeerProjectSettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-project-settings",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
@@ -3279,9 +3268,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-stacktrace-source-context",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-link/$",
-        ProjectRepoLinkEndpoint.as_view(),
-        name="sentry-api-0-project-repo-link",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo/$",
+        ProjectRepoEndpoint.as_view(),
+        name="sentry-api-0-project-repo",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-path-parsing/$",
@@ -3620,6 +3609,12 @@ INTERNAL_URLS = [
         r"^integration-proxy/$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
+    ),
+    re_path(
+        # If modifying, ensure PROXY_BASE_PATH is updated as well
+        r"^integration-proxy2/$",
+        InternalIntegrationProxy2Endpoint.as_view(),
+        name="sentry-api-0-internal-integration-proxy2",
     ),
     re_path(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",

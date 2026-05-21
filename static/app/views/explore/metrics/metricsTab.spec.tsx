@@ -654,7 +654,7 @@ describe('MetricsTabContent', () => {
                   metric: {name: 'bar', type: 'distribution'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('p50(value,bar,distribution,-)').serialize(),
+                    new VisualizeFunction('p50(value,bar,distribution,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
