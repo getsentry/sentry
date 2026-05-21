@@ -476,7 +476,8 @@ class RPCBase:
                 result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
             if max_string_length is not None and isinstance(result_value, str):
-                result_value = result_value[:max_string_length]
+                if len(result_value) > max_string_length:
+                    result_value = result_value[:max_string_length] + "..."
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     @classmethod

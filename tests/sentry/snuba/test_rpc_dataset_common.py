@@ -44,7 +44,7 @@ class TestProcessColumnValuesTruncation(TestCase):
             _identity_column(),
             max_string_length=10,
         )
-        assert final_data[0]["attr"] == "x" * 10
+        assert final_data[0]["attr"] == "x" * 10 + "..."
 
     def test_no_truncation_without_param(self) -> None:
         long_str = "x" * 100

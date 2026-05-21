@@ -381,7 +381,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["data"][0]["log.body"] == "hello"
+        assert response.data["data"][0]["log.body"] == "hello..."
 
     def test_truncate_param_invalid_type(self) -> None:
         response = self.do_request(
