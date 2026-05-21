@@ -1092,8 +1092,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "delete-old-notification-messages": {
         "task": "deletions:sentry.notifications.tasks.delete_old_notification_messages",
-        # Daily at 04:00 UTC
-        "schedule": crontab("0", "4", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",

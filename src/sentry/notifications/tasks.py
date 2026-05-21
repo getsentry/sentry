@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta
 
 from django.utils import timezone
@@ -8,9 +7,6 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
-from sentry.utils import metrics
-
-logger = logging.getLogger(__name__)
 
 RETENTION_DAYS = 90
 BATCH_SIZE = 1000
@@ -31,7 +27,6 @@ def delete_old_notification_messages() -> None:
     we can stop cleanly when the per-run budget is exhausted.
     """
     cutoff = timezone.now() - timedelta(days=RETENTION_DAYS)
-    total_deleted = 0
 
     for _ in range(MAX_BATCHES):
         ids = list(
@@ -42,15 +37,4 @@ def delete_old_notification_messages() -> None:
         if not ids:
             break
 
-        _, deleted_by_model = NotificationMessage.objects.filter(id__in=ids).delete()
-        total_deleted += deleted_by_model.get("notifications.NotificationMessage", 0)
-
-    metrics.incr(
-        "notifications.delete_old_notification_messages.deleted",
-        amount=total_deleted,
-        sample_rate=1.0,
-    )
-    logger.info(
-        "delete_old_notification_messages.completed",
-        extra={"deleted": total_deleted, "cutoff": cutoff.isoformat()},
-    )
+        NotificationMessage.objects.filter(id__in=ids).delete()
