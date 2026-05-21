@@ -18,6 +18,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -248,8 +249,19 @@ export function ConversationSummary({
 
   return (
     <Flex direction="column" gap="md" flex={1}>
-      <Flex align="center" gap="sm">
-        <Heading as="h2">{t('Conversation #%s', conversationId.slice(0, 8))}</Heading>
+      <Flex align="center" gap="sm" minWidth={0}>
+        <Tooltip
+          title={conversationId}
+          showOnlyOnOverflow
+          skipWrapper
+          disabled={isUUID(conversationId)}
+        >
+          <ConversationHeading as="h2">
+            {isUUID(conversationId)
+              ? t('Conversation #%s', conversationId.slice(0, 8))
+              : t('Conversation #%s', conversationId)}
+          </ConversationHeading>
+        </Tooltip>
         <Tooltip title={t('Copy conversation ID')}>
           <Button
             size="zero"
@@ -366,6 +378,14 @@ function AggregateItem({
 
   return content;
 }
+
+const ConversationHeading = styled(Heading)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
+`;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>
