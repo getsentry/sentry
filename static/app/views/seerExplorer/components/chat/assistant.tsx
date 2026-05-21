@@ -82,8 +82,8 @@ function BlockActionBar() {
     <ButtonBar
       size="xs"
       position="absolute"
-      bottom="2xs"
-      right="md"
+      bottom="2px"
+      right="8px"
       visibility="hidden"
       css={css`
         ${BLOCK_WRAPPER_SELECTOR}:hover &,
