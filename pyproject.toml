@@ -1641,7 +1641,6 @@ module = [
     "sentry.web.frontend.debug.debug_error_embed",
     "sentry.web.frontend.debug.debug_feedback_issue",
     "sentry.web.frontend.debug.debug_generic_issue",
-    "sentry.web.frontend.debug.debug_incident_trigger_email",
     "sentry.web.frontend.debug.debug_invalid_identity_email",
     "sentry.web.frontend.debug.debug_mfa_added_email",
     "sentry.web.frontend.debug.debug_mfa_removed_email",

@@ -1,24 +1,18 @@
 import datetime
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.incidents.charts import (
     build_metric_alert_chart,
     fetch_metric_issue_open_periods,
     incident_date_range,
 )
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-)
-from sentry.incidents.endpoints.serializers.incident import (
-    DetailedIncidentSerializer,
-    DetailedIncidentSerializerResponse,
-)
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.incident import Incident, IncidentActivityType, IncidentStatus
@@ -111,12 +105,8 @@ class BuildMetricAlertChartTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-            alert_rule, None, AlertRuleSerializer()
-        )
-        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-            incident, None, DetailedIncidentSerializer()
-        )
+        alert_rule_serialized_response = cast(AlertRuleSerializerResponse, {})
+        incident_serialized_response = cast(DetailedIncidentSerializerResponse, {})
 
         url = build_metric_alert_chart(
             self.organization,
@@ -157,12 +147,8 @@ class BuildMetricAlertChartTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-            alert_rule, None, AlertRuleSerializer()
-        )
-        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-            incident, None, DetailedIncidentSerializer()
-        )
+        alert_rule_serialized_response = cast(AlertRuleSerializerResponse, {})
+        incident_serialized_response = cast(DetailedIncidentSerializerResponse, {})
 
         url = build_metric_alert_chart(
             self.organization,
@@ -202,12 +188,8 @@ class BuildMetricAlertChartTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-            alert_rule, None, AlertRuleSerializer()
-        )
-        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-            incident, None, DetailedIncidentSerializer()
-        )
+        alert_rule_serialized_response = cast(AlertRuleSerializerResponse, {})
+        incident_serialized_response = cast(DetailedIncidentSerializerResponse, {})
 
         url = build_metric_alert_chart(
             self.organization,
