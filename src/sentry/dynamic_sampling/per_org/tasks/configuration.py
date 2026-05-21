@@ -46,6 +46,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    projects: QuerySet[Project]
 
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
@@ -110,6 +111,7 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
         self.measure = self._get_sampling_measure()
+        self.projects = self._get_projects()
 
         self.sample_rate = float(
             self.organization.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
