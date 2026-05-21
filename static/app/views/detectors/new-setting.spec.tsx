@@ -786,14 +786,13 @@ describe('DetectorEdit', () => {
   });
 
   describe('Metric Detector with Metrics dataset', () => {
-    it('shows metrics dataset option when tracemetrics-alerts feature flag is enabled', async () => {
+    it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
         features: [
           'workflow-engine-ui',
           'visibility-explore-view',
           'performance-view',
           'tracemetrics-enabled',
-          'tracemetrics-alerts',
         ],
       });
 
@@ -829,7 +828,6 @@ describe('DetectorEdit', () => {
           'visibility-explore-view',
           'performance-view',
           'tracemetrics-enabled',
-          'tracemetrics-alerts',
         ],
       });
 
@@ -894,28 +892,6 @@ describe('DetectorEdit', () => {
           `/organizations/${metricsOrganization.slug}/monitors/999/`
         );
       });
-    });
-
-    it('does not show metrics dataset option without tracemetrics-alerts feature flag', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {detectorType: 'metric_issue', project: project.id},
-          },
-        },
-      });
-
-      await screen.findByText('New Monitor');
-
-      // Open dataset dropdown
-      await userEvent.click(screen.getByText('Errors'));
-
-      expect(
-        screen.queryByRole('menuitemradio', {name: /Metrics/})
-      ).not.toBeInTheDocument();
     });
   });
 
