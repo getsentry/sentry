@@ -201,7 +201,7 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
 };
 
 function useContextBridges(): ContextBridge[] {
-  const values = KNOWN_BRIDGED_CONTEXTS.map(ctx => use(ctx));
+  const values: unknown[] = KNOWN_BRIDGED_CONTEXTS.map(ctx => use(ctx));
   const [prev, setPrev] = useState<ContextBridge[]>([]);
 
   const changed =

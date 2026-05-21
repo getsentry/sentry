@@ -64,10 +64,6 @@ export const Layer = styled(
   isolation: isolate;
 `;
 
-export function useLayerContext(): LayerContextValue {
-  return useContext(LayerContext);
-}
-
 export function usePortalContainer(): HTMLElement | null {
   return useLayerContext().portalOutlet;
 }
