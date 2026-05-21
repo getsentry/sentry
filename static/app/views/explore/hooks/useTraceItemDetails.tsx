@@ -185,17 +185,23 @@ export function usePrefetchTraceItemDetailsOnHover({
         clearTimeout(sharedHoverTimeoutRef.current);
       }
       sharedHoverTimeoutRef.current = setTimeout(() => {
+        if (!project?.slug) {
+          return;
+        }
         const options = traceItemDetailsApiOptions({
           organizationSlug: organization.slug,
-          projectSlug: project?.slug ?? '',
+          projectSlug: project.slug,
           traceItemId,
           traceItemType,
           referrer,
           traceId,
         });
-        queryClient.fetchQuery(options).then(response => {
-          setTraceItemMeta(response?.json?.meta);
-        });
+        queryClient.fetchQuery(options).then(
+          response => {
+            setTraceItemMeta(response?.json?.meta);
+          },
+          () => {}
+        );
       }, timeout);
     },
     onHoverEnd: () => {
