@@ -301,9 +301,7 @@ export function TransactionHeader({
                 referrer="performance"
                 alertType="trans_duration"
                 aria-label={t('Create Alert')}
-                disableMetricDataset={
-                  metricsCardinality?.outcome?.forceTransactionsOnly
-                }
+                disableMetricDataset={metricsCardinality?.outcome?.forceTransactionsOnly}
               />
             ) : null
           }
@@ -313,10 +311,7 @@ export function TransactionHeader({
           eventView={eventView}
           organization={organization}
         />
-        <GuideAnchor
-          target="project_transaction_threshold_override"
-          position="bottom"
-        >
+        <GuideAnchor target="project_transaction_threshold_override" position="bottom">
           <TransactionThresholdButton
             organization={organization}
             transactionName={transactionName}

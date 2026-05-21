@@ -57,9 +57,7 @@ export function GroupDetailsLayout({
     <IssueDetailsContextProvider>
       <Container
         display="contents"
-        style={
-          {'--issue-details-inset': theme.space.xl} as React.CSSProperties
-        }
+        style={{'--issue-details-inset': theme.space.xl} as React.CSSProperties}
       >
         <StreamlinedGroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>
