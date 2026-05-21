@@ -1,21 +1,24 @@
 import 'echarts/lib/chart/heatmap';
 
-import {useRef} from 'react';
+import {Fragment, useRef, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type {LocationDescriptor} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {getFormatter, getSeriesValue} from 'sentry/components/charts/components/tooltip';
-import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
+import {isChartHovered} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
@@ -48,6 +51,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   const {plottables} = props;
   const theme = useTheme();
   const organization = useOrganization();
+  const renderToString = useRenderToString();
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
@@ -77,92 +81,158 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   const Zmax =
     scale === 'log' ? Math.log1p(heatMapPlottable.Zend) : heatMapPlottable.Zend;
 
+  /** Extract the numeric value from ECharts tooltip param.value. */
+  function extractValue(data: unknown): number | null {
+    // param.value can be either:
+    // 1. The numeric value directly (for heatmap charts with axis trigger)
+    // 2. An object {name, value} (depends on series config)
+    if (typeof data === 'number') {
+      return data;
+    }
+    if (typeof data === 'string') {
+      return parseFloat(data);
+    }
+
+    const value = (data as {value?: unknown} | null | undefined)?.value;
+    return typeof value === 'number' ? value : null;
+  }
+
   // Create tooltip formatter
-  const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
-    params,
-    asyncTicket
-  ) => {
+  const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
     // Only show the tooltip of the current chart. Otherwise, all tooltips
     // in the chart group appear.
     if (!isChartHovered(chartRef?.current)) {
       return '';
     }
 
-    return getFormatter({
-      isGroupedByDate: true,
-      showTimeInTooltip: true,
-      nameFormatter: function (seriesName, _nameFormatterParams) {
-        return truncationFormatter(seriesName, true, false);
-      },
-      valueFormatter: function (value, _field, _valueFormatterParams) {
-        const bucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
-        const fieldType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
+    const seriesParams = Array.isArray(params) ? params : [params];
 
-        const yAxisMinValueFormatted = formatTooltipValue(
-          value,
-          fieldType,
-          heatMapPlottable.yAxisValueUnit ?? undefined
-        );
+    // Filter null values from tooltip
+    const filteredParams = seriesParams.filter(param => {
+      // @ts-expect-error ECharts types param.value as unknown, but we know it's [xAxis, yAxis, zAxis] from our HeatMap plottable
+      const value = extractValue(param.value[2]);
+      return value !== null;
+    });
 
-        if (bucketSize === 0) {
-          return yAxisMinValueFormatted;
-        }
+    let formattedXValue = ECHARTS_MISSING_DATA_VALUE;
 
-        const yAxisMaxValueFormatted = formatTooltipValue(
-          value + bucketSize,
-          fieldType,
-          heatMapPlottable.yAxisValueUnit ?? undefined
-        );
-
-        return `${yAxisMinValueFormatted} – ${yAxisMaxValueFormatted}`;
-      },
-      extraContent: props.tooltipExploreUrlArgs
-        ? function (contentParams) {
-            // TODO(nikki): the y axis values might have to be changed if it's on a log scale :(
-            const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
-            const yAxisMinValue = getSeriesValue(contentParams, 1) as number;
-            const yAxisMaxValue = yAxisMinValue + yAxisBucketSize;
-
+    return renderToString(
+      <Fragment>
+        <div className="tooltip-series">
+          {filteredParams.map(param => {
             const xAxisBucketSize = heatMapPlottable.heatMapSeries.meta.xAxis.bucketSize;
-            const xAxisMinValue = getSeriesValue(contentParams, 0) as number;
-            const xAxisMaxValue = xAxisMinValue + xAxisBucketSize * 1000;
+            const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
+            const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
+            const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
-            const exploreUrlProps: GetExploreUrlArgs = {
-              selection: {
-                ...pageFilters.selection,
-                datetime: {
-                  ...pageFilters.selection.datetime,
-                  start: new Date(xAxisMinValue),
-                  end: new Date(xAxisMaxValue),
-                  period: null,
-                },
-              },
-              organization,
-              // TODO(nikki): we're only handling metrics for now but if we're looking to support other explore
-              // surfaces then we'll need to add more logic here
-              ...props.tooltipExploreUrlArgs,
-              crossEvents: props.tooltipExploreUrlArgs?.crossEvents?.map(crossEvent => {
-                if (crossEvent.type === 'metrics') {
-                  return {
-                    ...crossEvent,
-                    query:
-                      yAxisBucketSize === 0
-                        ? `value:<=${yAxisMinValue}`
-                        : `value:>=${yAxisMinValue} value:<${yAxisMaxValue}`,
-                  };
+            let rawXValue: number | undefined;
+            let rawYValue: number | undefined;
+
+            let formattedYValue = ECHARTS_MISSING_DATA_VALUE;
+            let formattedZValue = ECHARTS_MISSING_DATA_VALUE;
+            if (Array.isArray(param.value) && param.value.length === 3) {
+              const [xValue, yValue, zValue] = param.value;
+
+              if (defined(xValue) && typeof xValue === 'number') {
+                rawXValue = xValue;
+                // bucket size seems to be in seconds but we need to convert to milliseconds
+                formattedXValue = defaultFormatAxisLabel(
+                  xValue,
+                  true,
+                  utc ?? false,
+                  true,
+                  false,
+                  xAxisBucketSize * 1000
+                ).toString();
+              }
+
+              if (defined(yValue) && typeof yValue === 'number') {
+                rawYValue = yValue;
+                const yAxisMinValueFormatted = formatTooltipValue(
+                  yValue,
+                  yAxisValueType,
+                  yAxisUnit ?? undefined
+                );
+
+                if (yAxisBucketSize === 0) {
+                  formattedYValue = yAxisMinValueFormatted;
+                } else {
+                  const yAxisMaxValueFormatted = formatTooltipValue(
+                    yValue + yAxisBucketSize,
+                    yAxisValueType,
+                    yAxisUnit ?? undefined
+                  );
+
+                  formattedYValue = `${yAxisMinValueFormatted} – ${yAxisMaxValueFormatted}`;
                 }
-                return crossEvent;
-              }),
-            };
+              }
 
-            const tracesLink = getExploreUrl(exploreUrlProps);
+              if (defined(zValue) && typeof zValue === 'number') {
+                formattedZValue = formatAbbreviatedNumber(zValue, 4, false);
+              }
+            }
 
-            return `<a href="${toHref(tracesLink)}">${t('View related traces')}</a>`;
-          }
-        : undefined,
-      truncate: false,
-      utc: utc ?? false,
-    })(params, asyncTicket);
+            let exploreLink: ReactNode;
+
+            if (defined(rawXValue) && defined(rawYValue)) {
+              const xAxisMaxValue = rawXValue + xAxisBucketSize * 1000;
+              const yAxisMaxValue = rawYValue + yAxisBucketSize;
+
+              const exploreUrlProps: GetExploreUrlArgs = {
+                selection: {
+                  ...pageFilters.selection,
+                  datetime: {
+                    ...pageFilters.selection.datetime,
+                    start: new Date(rawXValue),
+                    end: new Date(xAxisMaxValue),
+                    period: null,
+                  },
+                },
+                organization,
+                // TODO(nikki): we're only handling metrics for now but if we're looking to support other explore
+                // surfaces then we'll need to add more logic here
+                ...props.tooltipExploreUrlArgs,
+                crossEvents: props.tooltipExploreUrlArgs?.crossEvents?.map(crossEvent => {
+                  if (crossEvent.type === 'metrics') {
+                    return {
+                      ...crossEvent,
+                      query:
+                        yAxisBucketSize === 0
+                          ? `value:<=${rawYValue}`
+                          : `value:>=${rawYValue} value:<${yAxisMaxValue}`,
+                    };
+                  }
+                  return crossEvent;
+                }),
+              };
+
+              const tracesLink = getExploreUrl(exploreUrlProps);
+              exploreLink = <a href={tracesLink}>{t('View related traces')}</a>;
+            }
+
+            return (
+              <Fragment key={param.seriesIndex}>
+                <div>
+                  <span className="tooltip-label">
+                    <strong>{formattedYValue}</strong>
+                  </span>{' '}
+                  {formattedZValue}
+                </div>
+                {exploreLink && (
+                  <div>
+                    <span className="tooltip-label tooltip-label-centered">
+                      {exploreLink}
+                    </span>
+                  </div>
+                )}
+              </Fragment>
+            );
+          })}
+        </div>
+        <div className="tooltip-footer tooltip-footer-centered">{formattedXValue}</div>
+        <div className="tooltip-arrow" />
+      </Fragment>
+    );
   };
 
   return (
@@ -256,12 +326,4 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       />
     </Flex>
   );
-}
-
-function toHref(to: LocationDescriptor): string {
-  if (typeof to === 'string') {
-    return to;
-  }
-  const {pathname = '', search = '', hash = ''} = to;
-  return `${pathname}${search}${hash}`;
 }
