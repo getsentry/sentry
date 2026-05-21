@@ -165,7 +165,7 @@ class SafeRolloutComparator:
         use_experimental: bool,
         is_exact_match: bool,
         is_reasonable_match: bool | None,
-        is_experimental_data_a_null_result: bool | None,
+        is_experimental_data_nullish: bool | None,
         control_data: TData,
         experimental_data: TData,
         debug_context: dict[str, Any] | None,
@@ -184,7 +184,7 @@ class SafeRolloutComparator:
                 "source_of_truth": ("experimental" if use_experimental else "control"),
                 "exact_match": is_exact_match,
                 "reasonable_match": is_reasonable_match,
-                "is_null_result": is_experimental_data_a_null_result,
+                "is_null_result": is_experimental_data_nullish,
                 "debug_context": trim(cls._default_serialize_for_log(debug_context)),
                 "control_data_raw": trim(serialize(control_data)),
                 "experimental_data_raw": trim(serialize(experimental_data)),
@@ -238,7 +238,7 @@ class SafeRolloutComparator:
         control_data: TData,
         experimental_data: TData,
         callsite: str,
-        is_experimental_data_a_null_result: bool | None = None,
+        is_experimental_data_nullish: bool | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
@@ -276,8 +276,8 @@ class SafeRolloutComparator:
             "source_of_truth": ("experimental" if use_experimental else "control"),
         }
 
-        if is_experimental_data_a_null_result is not None:
-            tags["is_null_result"] = str(is_experimental_data_a_null_result)
+        if is_experimental_data_nullish is not None:
+            tags["is_null_result"] = str(is_experimental_data_nullish)
 
         if reasonable_match_comparator is not None:
             try:
@@ -303,7 +303,7 @@ class SafeRolloutComparator:
                     use_experimental=use_experimental,
                     is_exact_match=is_exact_match,
                     is_reasonable_match=is_reasonable_match,
-                    is_experimental_data_a_null_result=is_experimental_data_a_null_result,
+                    is_experimental_data_nullish=is_experimental_data_nullish,
                     control_data=control_data,
                     experimental_data=experimental_data,
                     debug_context=debug_context,
@@ -365,15 +365,15 @@ class SafeRolloutComparator:
         ):
             experimental_data = experimental_thunk()
 
-        is_experimental_data_a_null_result = None
+        is_experimental_data_nullish = None
         if null_result_determiner is not None:
-            is_experimental_data_a_null_result = null_result_determiner(experimental_data)
+            is_experimental_data_nullish = null_result_determiner(experimental_data)
 
         return cls.check_and_choose(
             control_data=control_data,
             experimental_data=experimental_data,
             callsite=callsite,
-            is_experimental_data_a_null_result=is_experimental_data_a_null_result,
+            is_experimental_data_nullish=is_experimental_data_nullish,
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,
