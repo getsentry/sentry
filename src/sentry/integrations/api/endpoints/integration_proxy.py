@@ -281,7 +281,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                     yield from r.iter_content(16 * 1024)
                 except (RequestException, ConnectionError, OSError) as e:
                     logger.warning(
-                        "integrations.proxy2.stream_interrupted",
+                        "integrations.proxy.stream_interrupted",
                         extra={"error": str(e), "url": full_url},
                     )
                     return
