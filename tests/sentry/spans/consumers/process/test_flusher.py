@@ -30,7 +30,7 @@ def _blocking_main_for_join_test(
         sleep(0.1)
 
 
-@override_options({"spans.buffer.flusher.log-flushed-segments": True})
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.log-flushed-segments": True})
 def test_flusher_logs_flushed_segments() -> None:
     segment_key = f"span-buf:s:{{1:{'a' * 32}}}:{'b' * 16}".encode()
     flushed_segment = FlushedSegment(
