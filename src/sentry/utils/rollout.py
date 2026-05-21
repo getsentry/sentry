@@ -4,19 +4,19 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from sentry import options
-from sentry.utils import metrics
-from sentry.utils.safe import trim
-
-TData = TypeVar("TData")
-logger = logging.getLogger(__name__)
-
+from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
 )
+from sentry.utils import metrics
+from sentry.utils.safe import trim
 from sentry.utils.types import Bool, Float, Sequence
+
+TData = TypeVar("TData")
+logger = logging.getLogger(__name__)
 
 
 class SafeRolloutComparator:
@@ -122,7 +122,6 @@ class SafeRolloutComparator:
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        from sentry.options import register
 
         register(
             cls._should_run_experiment_option(),
