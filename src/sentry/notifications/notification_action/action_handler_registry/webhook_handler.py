@@ -3,13 +3,41 @@ from typing import override
 
 from sentry import features
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
-from sentry.sentry_apps.services.legacy_webhook.service import send_legacy_webhooks_for_invocation
+from sentry.sentry_apps.services.legacy_webhook.service import (
+    build_legacy_webhook_payload,
+    send_legacy_webhooks_for_invocation,
+)
+from sentry.sentry_apps.services.legacy_webhook.validation import validate_payload_equivalence
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_webhook_payloads(invocation: ActionInvocation) -> None:
+    from sentry.notifications.notification_action.types import BaseIssueAlertHandler
+    from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
+
+    rule = BaseIssueAlertHandler.create_rule_instance_from_action(
+        action=invocation.action,
+        detector=invocation.detector,
+        event_data=invocation.event_data,
+        workflow_id=invocation.workflow_id,
+    )
+    group = invocation.event_data.group
+    event = invocation.event_data.event
+
+    old_payload = WebHooksPlugin().get_group_data(group, event, [rule.label])
+    new_payload = build_legacy_webhook_payload(invocation)
+
+    validate_payload_equivalence(
+        old_payload,
+        new_payload,
+        organization_id=invocation.detector.project.organization_id,
+        project_id=invocation.detector.project.id,
+    )
 
 
 @action_handler_registry.register(Action.Type.WEBHOOK)
@@ -57,3 +85,9 @@ class WebhookActionHandler(ActionHandler):
 
         if new_path and isinstance(invocation.event_data.event, GroupEvent):
             send_legacy_webhooks_for_invocation(invocation)
+
+        if new_path and not disable_old and isinstance(invocation.event_data.event, GroupEvent):
+            try:
+                _validate_webhook_payloads(invocation)
+            except Exception:
+                logger.exception("webhook_action_handler.validation_error")
