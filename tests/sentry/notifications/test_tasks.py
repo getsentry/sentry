@@ -11,8 +11,15 @@ from sentry.testutils.cases import TestCase
 
 
 class DeleteOldNotificationMessagesTest(TestCase):
-    def _create_message(self, days_old: int) -> NotificationMessage:
-        message = NotificationMessage.objects.create()
+    def setUp(self) -> None:
+        super().setUp()
+        self.action = self.create_action()
+        self.group = self.create_group()
+
+    def _create_message(self, days_old: int, **kwargs) -> NotificationMessage:
+        kwargs.setdefault("action", self.action)
+        kwargs.setdefault("group", self.group)
+        message = NotificationMessage.objects.create(**kwargs)
         NotificationMessage.objects.filter(id=message.id).update(
             date_added=timezone.now() - timedelta(days=days_old)
         )
@@ -41,9 +48,8 @@ class DeleteOldNotificationMessagesTest(TestCase):
 
     def test_cascades_self_reference(self) -> None:
         parent = self._create_message(days_old=RETENTION_DAYS + 5)
-        child = NotificationMessage.objects.create(parent_notification_message=parent)
-        NotificationMessage.objects.filter(id=child.id).update(
-            date_added=timezone.now() - timedelta(days=RETENTION_DAYS + 5)
+        child = self._create_message(
+            days_old=RETENTION_DAYS + 5, parent_notification_message=parent
         )
 
         delete_old_notification_messages()
@@ -52,7 +58,9 @@ class DeleteOldNotificationMessagesTest(TestCase):
 
     def test_respects_per_run_cap(self) -> None:
         cutoff_time = timezone.now() - timedelta(days=RETENTION_DAYS + 1)
-        NotificationMessage.objects.bulk_create([NotificationMessage() for _ in range(5)])
+        NotificationMessage.objects.bulk_create(
+            [NotificationMessage(action=self.action, group=self.group) for _ in range(5)]
+        )
         NotificationMessage.objects.all().update(date_added=cutoff_time)
 
         with (
