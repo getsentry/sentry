@@ -8,7 +8,7 @@ import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 import type {DistributedOmit} from 'type-fest';
 
-import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
+import {type FeatureBadgeProps} from '@sentry/scraps/badge';
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {
@@ -27,13 +27,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
-import {Override} from 'sentry/components/override';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {getOverride} from 'sentry/overrideRegistry';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
@@ -45,7 +41,6 @@ import {
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface PrimaryNavigationSidebarProps {
   children: React.ReactNode;
@@ -54,14 +49,13 @@ interface PrimaryNavigationSidebarProps {
 
 function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
-  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Flex
       as="nav"
       aria-label={t('Primary Navigation')}
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-      padding={hasPageFrame ? '0' : 'lg 0 md 0'}
+      padding="0"
       borderRight="primary"
       background="primary"
       direction="column"
@@ -77,57 +71,30 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
 interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 'as'> {}
 
 function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
-  const theme = useTheme();
   const {layout} = usePrimaryNavigation();
-  const organization = useOrganization({allowNull: true});
-  const showSuperuserWarning =
-    isActiveSuperuser() &&
-    !ConfigStore.get('isSelfHosted') &&
-    !getOverride('component:superuser-warning-excluded')?.(organization);
-
-  const hasPageFrame = useHasPageFrameFeature();
 
   return (
-    <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
+    <SizeProvider size="sm">
       <Flex
         as="header"
         direction="column"
         align="center"
         justify="center"
-        borderBottom={hasPageFrame ? 'primary' : undefined}
-        width={hasPageFrame ? '100%' : undefined}
+        borderBottom="primary"
+        width="100%"
         minHeight={
-          hasPageFrame
-            ? layout === 'mobile'
-              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-              : `${PRIMARY_HEADER_HEIGHT}px`
-            : undefined
+          layout === 'mobile'
+            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+            : `${PRIMARY_HEADER_HEIGHT}px`
         }
         height={
-          hasPageFrame
-            ? layout === 'mobile'
-              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-              : `${PRIMARY_HEADER_HEIGHT}px`
-            : undefined
+          layout === 'mobile'
+            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+            : `${PRIMARY_HEADER_HEIGHT}px`
         }
         {...props}
       >
         {props.children}
-        {/* page-frame renders a marquee for the visual superuser indicator */}
-        {!hasPageFrame && showSuperuserWarning && (
-          <Container
-            position="absolute"
-            top={0}
-            left={0}
-            width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-            style={{
-              zIndex: theme.zIndex.initial,
-              background: theme.tokens.background.danger.vibrant,
-            }}
-          >
-            <Override name="component:superuser-warning" organization={organization} />
-          </Container>
-        )}
       </Flex>
     </SizeProvider>
   );
@@ -137,18 +104,16 @@ interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
 function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps) {
   const {layout} = usePrimaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Stack
       as="ul"
       position="relative"
       margin="0"
-      padding={hasPageFrame ? 'xs' : '0'}
+      padding="xs"
       width="100%"
-      gap={hasPageFrame ? '0' : 'xs'}
+      gap="0"
       align={layout === 'mobile' ? 'stretch' : 'center'}
-      paddingTop={hasPageFrame ? undefined : 'md'}
       {...props}
     >
       {children}
@@ -182,8 +147,7 @@ interface PrimaryNavigationLinkProps
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
   const {layout, features} = usePrimaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobilePageFrame = layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
@@ -211,15 +175,6 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
   };
 
-  if (layout === 'mobile' && !isMobilePageFrame) {
-    return (
-      <MobileNavigationLink {...sharedLinkProps}>
-        {props.children}
-        {props.label}
-      </MobileNavigationLink>
-    );
-  }
-
   const desktopChildren = (
     <Fragment>
       <Flex
@@ -227,9 +182,9 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
         align="center"
         justify="center"
         radius="md"
-        padding={hasPageFrame ? 'xs' : 'sm'}
-        width={hasPageFrame ? theme.form.sm.height : undefined}
-        height={hasPageFrame ? theme.form.sm.height : undefined}
+        padding="xs"
+        width={theme.form.sm.height}
+        height={theme.form.sm.height}
         data-icon-container
         aria-hidden="true"
       >
@@ -241,16 +196,10 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     </Fragment>
   );
 
-  if (hasPageFrame) {
-    return (
-      <DesktopPageFrameNavigationLink {...sharedLinkProps}>
-        {desktopChildren}
-      </DesktopPageFrameNavigationLink>
-    );
-  }
-
   return (
-    <DesktopNavigationLink {...sharedLinkProps}>{desktopChildren}</DesktopNavigationLink>
+    <DesktopPageFrameNavigationLink {...sharedLinkProps}>
+      {desktopChildren}
+    </DesktopPageFrameNavigationLink>
   );
 }
 
@@ -264,8 +213,7 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
-  const hasPageFrame = useHasPageFrameFeature();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobilePageFrame = layout === 'mobile';
 
   const ariaLabel =
     layout === 'mobile'
@@ -307,7 +255,6 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
           )
         }
       >
-        {layout === 'mobile' && !isMobilePageFrame ? props.label : null}
         {props.children}
       </NavigationButton>
     </Tooltip>
@@ -322,16 +269,7 @@ function PrimaryNavigationUnreadIndicator({
   variant,
   ...props
 }: PrimaryNavigationUnreadIndicatorProps) {
-  const theme = useTheme();
-  const {layout} = usePrimaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
-  const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = hasPageFrame
-    ? layout === 'mobile'
-      ? {top: '0', right: '0'}
-      : {top: '0', right: '0'}
-    : layout === 'mobile'
-      ? {left: '11px', top: `-${theme.space['2xs']}`}
-      : {top: '0', right: '0'};
+  const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = {top: '0', right: '0'};
 
   return (
     <Container position="absolute" {...indicatorPosition}>
@@ -361,8 +299,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobilePageFrame = layout === 'mobile';
 
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -416,14 +353,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   )
                 }
               >
-                {layout === 'mobile' && !isMobilePageFrame ? (
-                  <Fragment>
-                    {props.label}
-                    {props.children}
-                  </Fragment>
-                ) : layout === 'mobile' ? null : (
-                  props.children
-                )}
+                {layout === 'mobile' ? null : props.children}
               </NavigationButton>
             </Tooltip>
           </TriggerWrap>
@@ -436,24 +366,19 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
 
 function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const {layout} = usePrimaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Flex
       align="center"
-      height={layout === 'mobile' && !hasPageFrame ? 'auto' : undefined}
-      width={layout === 'mobile' && !hasPageFrame ? '100%' : undefined}
-      padding={layout === 'mobile' && !hasPageFrame ? 'md lg' : 'xs'}
-      justify={layout === 'mobile' && !hasPageFrame ? 'start' : 'center'}
+      padding="xs"
+      justify="center"
     >
       {p => (
         <ButtonWithOverflowVisible
           {...p}
           {...props}
           {...(layout === 'mobile'
-            ? hasPageFrame
-              ? {variant: 'secondary'}
-              : {size: 'zero' as const, variant: 'transparent'}
+            ? {variant: 'secondary'}
             : {variant: props.variant})}
         />
       )}
@@ -508,169 +433,7 @@ function PrimaryNavigationSeparator() {
   return <Stack.Separator border="muted" style={{width: '100%'}} />;
 }
 
-const MobileNavigationLink = styled((props: LinkProps) => (
-  <Flex
-    position="relative"
-    width="100%"
-    align="center"
-    direction="row"
-    justify="start"
-    gap="md"
-    padding="md lg"
-  >
-    {p => <Link {...mergeProps(p, props)} />}
-  </Flex>
-))`
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  outline: none;
-  box-shadow: none;
-  transition: none;
-
-  &:active,
-  &:focus-visible {
-    outline: none;
-    box-shadow: none;
-    color: currentColor;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    left: 0px;
-    width: 4px;
-    height: 20px;
-    border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
-    opacity: 0;
-  }
-
-  &:focus-visible {
-    [data-icon-container] {
-      outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
-    }
-  }
-
-  &:hover,
-  &[data-active-group='true'] {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-
-    [data-icon-container] {
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.neutral.background.hover};
-    }
-  }
-
-  &[aria-current='location'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest};
-
-    &::before {
-      opacity: 1;
-    }
-
-    [data-icon-container] {
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-    }
-
-    &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover};
-
-      [data-icon-container] {
-        background-color: ${p =>
-          p.theme.tokens.interactive.transparent.accent.selected.background.hover};
-      }
-    }
-  }
-`;
-
-const DesktopNavigationLink = styled((props: LinkProps) => (
-  <Flex
-    position="relative"
-    width="100%"
-    align="center"
-    direction="column"
-    justify="center"
-    gap="xs"
-    padding="sm lg"
-  >
-    {p => <Link {...mergeProps(p, props)} />}
-  </Flex>
-))`
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  outline: none;
-  box-shadow: none;
-  transition: none;
-
-  &:active,
-  &:focus-visible {
-    outline: none;
-    box-shadow: none;
-    color: currentColor;
-  }
-
-  /* Active state indicator bar */
-  &::before {
-    content: '';
-    position: absolute;
-    /* We align the active state indicator to the top of the icon container, not to the center of the button */
-    top: 12px;
-    left: 0px;
-    width: 4px;
-    height: 20px;
-    border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
-    opacity: 0;
-  }
-
-  &:focus-visible {
-    [data-icon-container] {
-      outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
-    }
-  }
-
-  &:hover,
-  &[data-active-group='true'] {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-
-    [data-icon-container] {
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.neutral.background.hover};
-    }
-  }
-
-  &[aria-current='location'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest};
-
-    &::before {
-      opacity: 1;
-    }
-
-    [data-icon-container] {
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-    }
-
-    &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover};
-
-      [data-icon-container] {
-        background-color: ${p =>
-          p.theme.tokens.interactive.transparent.accent.selected.background.hover};
-      }
-    }
-  }
-`;
-
 const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
-  const hasPageFrame = useHasPageFrameFeature();
-
   return (
     <Flex
       position="relative"
@@ -679,7 +442,7 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
       direction="column"
       justify="center"
       gap="xs"
-      padding={hasPageFrame ? 'xs xs md xs' : 'xs'}
+      padding="xs xs md xs"
     >
       {p => <Link {...mergeProps(p, props)} />}
     </Flex>
@@ -780,32 +543,8 @@ function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayPro
   );
 }
 
-function PrimaryNavigationButtonFeatureBadge(props: FeatureBadgeProps) {
-  const hasPageFrame = useHasPageFrameFeature();
-
-  if (hasPageFrame) {
-    return null;
-  }
-
-  return (
-    <Container
-      right="6px"
-      top="0px"
-      position="absolute"
-      padding="0 xs"
-      height="16px"
-      pointerEvents="none"
-    >
-      {p => (
-        <FeatureBadge
-          {...mergeProps(p, props)}
-          type="alpha"
-          aria-hidden="true"
-          style={{fontSize: '11px'}}
-        />
-      )}
-    </Container>
-  );
+function PrimaryNavigationButtonFeatureBadge(_props: FeatureBadgeProps) {
+  return null;
 }
 
 function ScrollableOverlay(props: OverlayProps) {

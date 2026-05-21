@@ -54,19 +54,17 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
   const {view} = useSecondaryNavigation();
 
   const ref = useRef<HTMLUListElement | null>(null);
 
   const {layout} = usePrimaryNavigation();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobilePageFrame = layout === 'mobile';
 
   useNavigationTourModal();
 
@@ -97,22 +95,20 @@ export function Navigation() {
           <PrimaryNavigationItems listRef={ref} />
         </PrimaryNavigation.List>
 
-        {!isMobilePageFrame && layout === 'mobile' ? null : (
-          <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
-            <Stack
-              gap={layout === 'mobile' ? undefined : 'md'}
-              marginTop="auto"
-              paddingBottom="md"
-            >
-              <PrimaryNavigation.FooterItems>
-                <PrimaryNavigationFooterItems />
-              </PrimaryNavigation.FooterItems>
-              <PrimaryNavigation.FooterItems>
-                <PrimaryNavigationFooterItemsUserDropdown />
-              </PrimaryNavigation.FooterItems>
-            </Stack>
-          </SizeProvider>
-        )}
+        <SizeProvider size="sm">
+          <Stack
+            gap={layout === 'mobile' ? undefined : 'md'}
+            marginTop="auto"
+            paddingBottom="md"
+          >
+            <PrimaryNavigation.FooterItems>
+              <PrimaryNavigationFooterItems />
+            </PrimaryNavigation.FooterItems>
+            <PrimaryNavigation.FooterItems>
+              <PrimaryNavigationFooterItemsUserDropdown />
+            </PrimaryNavigation.FooterItems>
+          </Stack>
+        </SizeProvider>
       </PrimaryNavigation.Sidebar>
 
       {isCollapsed ? (
@@ -148,7 +144,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const prefix = `organizations/${organization.slug}`;
 
   const fallbackRef = useRef<HTMLUListElement>(null);
-  const hasPageFrame = useHasPageFrameFeature();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({
     ref: listRef ?? fallbackRef,
@@ -258,12 +253,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </Feature>
       )}
 
-      {hasPageFrame ? null : (
-        <PrimaryNavigation.ListItem padding="0 md">
-          <PrimaryNavigation.Separator />
-        </PrimaryNavigation.ListItem>
-      )}
-
       <Feature features={['workflow-engine-ui']}>
         <PrimaryNavigation.ListItem>
           <PrimaryNavigation.Link
@@ -307,7 +296,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
  */
 export function PrimaryNavigationFooterItems() {
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
 
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
@@ -315,30 +303,28 @@ export function PrimaryNavigationFooterItems() {
 
   return (
     <Fragment>
-      {hasPageFrame ? (
-        <PrimaryNavigation.Button
-          label={
-            <Flex gap="xs" align="center">
-              {t('Open command palette')}
-              <Hotkey value="mod+k" variant="debossed" />
-            </Flex>
-          }
-          analyticsKey="search"
-          buttonProps={{
-            icon: <IconSearch />,
-            onClick: () => {
-              toggleCommandPalette(
-                {},
-                organization,
-                state,
-                dispatch,
-                'button',
-                isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
-              );
-            },
-          }}
-        />
-      ) : null}
+      <PrimaryNavigation.Button
+        label={
+          <Flex gap="xs" align="center">
+            {t('Open command palette')}
+            <Hotkey value="mod+k" variant="debossed" />
+          </Flex>
+        }
+        analyticsKey="search"
+        buttonProps={{
+          icon: <IconSearch />,
+          onClick: () => {
+            toggleCommandPalette(
+              {},
+              organization,
+              state,
+              dispatch,
+              'button',
+              isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+            );
+          },
+        }}
+      />
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationOnboarding />
       </ErrorBoundary>
