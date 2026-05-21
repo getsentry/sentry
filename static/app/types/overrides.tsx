@@ -1,3 +1,6 @@
+import type {UIMatch} from 'react-router-dom';
+import type {Location} from 'history';
+
 import type {ButtonProps} from '@sentry/scraps/button';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
@@ -25,7 +28,6 @@ import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProv
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 import type {Integration, IntegrationProvider} from './integrations';
-import type {RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
 import type {User} from './user';
 
@@ -332,9 +334,10 @@ type SpendVisibilityOverrides = {
  * Overrides that are actually React overrides as well
  */
 type ReactHookOverrides = {
-  'react-hook:route-activated': (
-    props: Pick<RouteContextInterface, 'location' | 'matches'>
-  ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:route-activated': (props: {
+    location: Location;
+    matches: UIMatch[];
+  }) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-billing-navigation-config': () => NavigationSection | null;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {

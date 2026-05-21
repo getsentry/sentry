@@ -6,12 +6,17 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+jest.mock('sentry/actionCreators/modal', () => ({
+  openNavigateToExternalLinkModal: jest.fn(),
+}));
 
 const theme = ThemeFixture();
 
@@ -97,6 +102,22 @@ describe('getFieldRenderer', () => {
     expect(screen.getByText(data.url)).toBeInTheDocument();
   });
 
+  it('propagates URL clicks to parent cell actions without opening the modal', () => {
+    const onClick = jest.fn();
+    const value = 'https://example.com';
+
+    render(
+      <div role="button" onClick={onClick} tabIndex={0}>
+        {renderUrlCellValue(value)}
+      </div>
+    );
+
+    screen.getByRole('link', {name: value}).click();
+
+    expect(onClick).toHaveBeenCalled();
+    expect(openNavigateToExternalLinkModal).not.toHaveBeenCalled();
+  });
+
   it('can render empty string fields', () => {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = '';
@@ -110,6 +131,54 @@ describe('getFieldRenderer', () => {
     );
 
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
+  });
+
+  it('can render numeric values with the string renderer', () => {
+    const renderer = getFieldRenderer('numeric', {numeric: 'string'});
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText(data.numeric)).toBeInTheDocument();
+  });
+
+  it('renders the last element when string fields are stored as arrays', () => {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = ['https://example.com/old', 'https://example.com/new'];
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('https://example.com/new')).toBeInTheDocument();
+  });
+
+  it('renders the last non-url element when string fields are stored as arrays', () => {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = ['old-value', 'latest-value'];
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('latest-value')).toBeInTheDocument();
+    expect(document.querySelector('a')).not.toBeInTheDocument();
   });
 
   it('renders gen_ai.output.messages assistant content', () => {
