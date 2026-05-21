@@ -542,14 +542,14 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
-from sentry.seer.endpoints.organization_seer_project_repos import (
-    OrganizationSeerProjectRepoDetailsEndpoint,
-)
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
+from sentry.seer.endpoints.project_seer_repos import (
+    ProjectSeerReposEndpoint,
+)
 from sentry.seer.endpoints.project_seer_settings import (
     OrganizationSeerProjectSettingsEndpoint,
     ProjectSeerSettingsEndpoint,
@@ -2453,11 +2453,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-onboarding-check",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/(?P<project_id>\d+)/repos/(?P<repo_id>\d+)/$",
-        OrganizationSeerProjectRepoDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-project-repo-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
         OrganizationAutofixAutomationSettingsEndpoint.as_view(),
         name="sentry-api-0-organization-autofix-automation-settings",
@@ -3386,6 +3381,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/preferences/$",
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/repos/(?P<repo_id>\d+)/$",
+        ProjectSeerReposEndpoint.as_view(),
+        name="sentry-api-0-project-seer-repos",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/night-shift/$",

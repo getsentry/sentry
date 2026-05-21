@@ -8,15 +8,15 @@ from sentry.seer.models.project_repository import (
 from sentry.testutils.cases import APITestCase
 
 
-class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repo-details"
+class ProjectSeerReposGetTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repos"
 
     def detail_url(self, repo_id):
         return reverse(
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
                 "repo_id": repo_id,
             },
         )
@@ -76,8 +76,8 @@ class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
         self.get_error_response(status_code=404)
 
 
-class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repo-details"
+class ProjectSeerReposPutTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repos"
     method = "put"
 
     def reverse_url(self):
@@ -85,7 +85,7 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
                 "repo_id": self.repo1.id,
             },
         )
@@ -235,8 +235,8 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         assert project_repo.date_updated == original_date_updated
 
 
-class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repo-details"
+class ProjectSeerReposDeleteTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repos"
     method = "delete"
 
     def reverse_url(self):
@@ -244,7 +244,7 @@ class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
                 "repo_id": self.repo1.id,
             },
         )

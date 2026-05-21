@@ -10,10 +10,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.utils import replace_all_branch_overrides
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -70,12 +69,13 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
     )
 
 
-def _valid_project_repos_queryset(project: Project, organization: Organization):
-    """Get a project's base SeerProjectRepository queryset for active repos with providers supported by Seer."""
+def _valid_project_repos_queryset(project: Project):
     return SeerProjectRepository.objects.filter(
         project_repository__project=project,
         project_repository__repository__status=ObjectStatus.ACTIVE,
-        project_repository__repository__provider__in=get_supported_scm_providers(organization),
+        project_repository__repository__provider__in=get_supported_scm_providers(
+            project.organization
+        ),
     ).select_related("project_repository", "project_repository__repository")
 
 
@@ -114,22 +114,17 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
 
 
 @cell_silo_endpoint
-class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
+class ProjectSeerReposEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (OrganizationPermission,)
 
-    def get(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def get(self, request: Request, project: Project, repo_id: int) -> Response:
         project_repo = (
-            _valid_project_repos_queryset(project, organization)
+            _valid_project_repos_queryset(project)
             .prefetch_related("branch_overrides")
             .filter(project_repository__repository_id=repo_id)
             .first()
@@ -139,11 +134,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         return Response(_serialize_project_repo(project_repo))
 
-    def put(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def put(self, request: Request, project: Project, repo_id: int) -> Response:
         serializer = SeerProjectRepoUpdateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -152,7 +143,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             project_repo = (
-                _valid_project_repos_queryset(project, organization)
+                _valid_project_repos_queryset(project)
                 .select_for_update()
                 .filter(project_repository__repository_id=repo_id)
                 .first()
@@ -172,14 +163,10 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         return Response(_serialize_project_repo(project_repo))
 
-    def delete(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def delete(self, request: Request, project: Project, repo_id: int) -> Response:
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             deleted_count, _ = (
-                _valid_project_repos_queryset(project, organization)
+                _valid_project_repos_queryset(project)
                 .filter(project_repository__repository_id=repo_id)
                 .delete()
             )
