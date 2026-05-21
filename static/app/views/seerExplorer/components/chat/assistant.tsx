@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -84,7 +85,7 @@ function BlockActionBar() {
       bottom="2xs"
       right="md"
       visibility="hidden"
-      css={`
+      css={css`
         ${BLOCK_WRAPPER_SELECTOR}:hover &,
         ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
           visibility: visible;
