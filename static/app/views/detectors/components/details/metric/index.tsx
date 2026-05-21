@@ -25,7 +25,6 @@ import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/deta
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorStatsPeriods';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
@@ -34,7 +33,6 @@ type MetricDetectorDetailsProps = {
 
 export function MetricDetectorDetails({detector, project}: MetricDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
   const snubaDataset = snubaQuery?.dataset ?? Dataset.ERRORS;
@@ -65,12 +63,10 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
           {showExtrapolationModeWarning && <MigratedAlertWarning detector={detector} />}
           <Flex align="center" gap="sm" justify="between" wrap="wrap">
             <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
-            {hasPageFrameFeature ? (
-              <Flex align="center" gap="sm" marginLeft="auto">
-                <DisableDetectorAction detector={detector} />
-                <EditDetectorAction detector={detector} />
-              </Flex>
-            ) : null}
+            <Flex align="center" gap="sm" marginLeft="auto">
+              <DisableDetectorAction detector={detector} />
+              <EditDetectorAction detector={detector} />
+            </Flex>
           </Flex>
           {snubaQuery && (
             <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />

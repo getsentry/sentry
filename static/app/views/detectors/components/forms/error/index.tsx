@@ -29,7 +29,6 @@ import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeCon
 import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function StaticSections({project}: {project: Project}) {
   const organization = useOrganization();
@@ -123,7 +122,6 @@ export function EditExistingErrorDetectorForm({
   const organization = useOrganization();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const submitEditDetector = useSubmitEditDetector();
 
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
@@ -153,46 +151,22 @@ export function EditExistingErrorDetectorForm({
   return (
     <EditLayout>
       <form.AppForm form={form}>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Monitors'),
-                    to: makeMonitorBasePathname(organization.slug),
-                  },
-                  {
-                    label: getDetectorTypeLabel(detector.type),
-                    to: makeMonitorTypePathname(organization.slug, detector.type),
-                  },
-                  {label: detector.name},
-                ]}
-              />
-            </TopBar.Slot>
-            <AutomationFeedbackButton />
-          </Fragment>
-        ) : (
-          <EditLayout.Header>
-            <EditLayout.HeaderContent>
-              <Fragment>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      label: t('Monitors'),
-                      to: makeMonitorBasePathname(organization.slug),
-                    },
-                    {label: detector.name},
-                  ]}
-                />
-                <EditLayout.Title title={detector.name} project={project} />
-              </Fragment>
-            </EditLayout.HeaderContent>
-            <EditLayout.Actions>
-              <AutomationFeedbackButton />
-            </EditLayout.Actions>
-          </EditLayout.Header>
-        )}
+        <TopBar.Slot name="title">
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: t('Monitors'),
+                to: makeMonitorBasePathname(organization.slug),
+              },
+              {
+                label: getDetectorTypeLabel(detector.type),
+                to: makeMonitorTypePathname(organization.slug, detector.type),
+              },
+              {label: detector.name},
+            ]}
+          />
+        </TopBar.Slot>
+        <AutomationFeedbackButton />
 
         <EditLayout.Body>
           <Stack gap="2xl" maxWidth={maxWidth}>

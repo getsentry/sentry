@@ -14,7 +14,6 @@ import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/deta
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type FallbackDetectorDetailsProps = {
   detector: Detector;
@@ -25,26 +24,22 @@ export function FallbackDetectorDetails({
   detector,
   project,
 }: FallbackDetectorDetailsProps) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   return (
     <DetailLayout>
       <DetectorDetailsHeader
         detector={detector}
         project={project}
-        useLocalDetailActions={hasPageFrameFeature}
+        useLocalDetailActions
       />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          {hasPageFrameFeature ? (
-            <Flex align="center" justify="between" gap="md">
-              <DatePageFilter />
-              <Flex flex={1} justify="end" gap="md">
-                <DisableDetectorAction detector={detector} />
-                <EditDetectorAction detector={detector} />
-              </Flex>
+          <Flex align="center" justify="between" gap="md">
+            <DatePageFilter />
+            <Flex flex={1} justify="end" gap="md">
+              <DisableDetectorAction detector={detector} />
+              <EditDetectorAction detector={detector} />
             </Flex>
-          ) : null}
+          </Flex>
           <ErrorBoundary mini>
             <DetectorDetailsOpenPeriodIssues detector={detector} />
           </ErrorBoundary>
