@@ -3,7 +3,6 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -27,7 +26,6 @@ import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/
 import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
@@ -211,7 +209,6 @@ export function IssueViewsHeader({
   headerActions,
 }: IssueViewsHeaderProps) {
   const {viewId} = useParams<{viewId?: string}>();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const realtimeLabel = realtimeActive
     ? t('Pause real-time updates')
@@ -228,36 +225,17 @@ export function IssueViewsHeader({
     </DisableInDemoMode>
   );
 
-  if (hasPageFrameFeature) {
-    return (
-      <Layout.Header noActionWrap unified>
-        <Layout.HeaderContent unified>
-          <PageTitle title={title} description={description} />
-        </Layout.HeaderContent>
-        <TopBar.Slot name="actions">
-          {headerActions}
-          {realtimeButton}
-          <IssueViewStarButton />
-          <IssueViewEditMenu />
-        </TopBar.Slot>
-      </Layout.Header>
-    );
-  }
-
   return (
     <Layout.Header noActionWrap unified>
       <Layout.HeaderContent unified>
-        <Flex justify="between">
-          <PageTitle title={title} description={description} />
-          <Flex align="center" gap="md">
-            {headerActions}
-            {realtimeButton}
-            <IssueViewStarButton />
-            <IssueViewEditMenu />
-          </Flex>
-        </Flex>
+        <PageTitle title={title} description={description} />
       </Layout.HeaderContent>
-      <Layout.HeaderActions />
+      <TopBar.Slot name="actions">
+        {headerActions}
+        {realtimeButton}
+        <IssueViewStarButton />
+        <IssueViewEditMenu />
+      </TopBar.Slot>
     </Layout.Header>
   );
 }

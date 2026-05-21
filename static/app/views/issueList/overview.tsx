@@ -57,7 +57,6 @@ import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergr
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -886,8 +885,6 @@ function IssueListOverviewInner({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
-  const hasPageFrame = useHasPageFrameFeature();
-
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
@@ -949,7 +946,7 @@ function IssueListOverviewInner({
           <Grid
             area="content"
             padding={
-              hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}
+              {sm: 'md lg', md: 'md xl'}
             }
           >
             <IssuesDataConsentBanner source="issues" />

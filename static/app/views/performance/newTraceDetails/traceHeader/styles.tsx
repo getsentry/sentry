@@ -8,15 +8,12 @@ import {
 } from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const HeaderLayout = styled((props: ContainerProps) => {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Container
       as="div"
-      padding={hasPageFrame ? 'lg xl' : 'md 2xl'}
-      background={hasPageFrame ? undefined : 'primary'}
+      padding="lg xl"
       borderBottom="primary"
       flexShrink={0}
       minHeight="150px"

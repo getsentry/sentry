@@ -26,7 +26,6 @@ import {AutomationSearch} from 'sentry/views/automations/components/automationLi
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function AutomationsList() {
   const organization = useOrganization();
@@ -130,7 +129,6 @@ function TableHeader() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const initialQuery =
     typeof location.query.query === 'string' ? location.query.query : '';
 
@@ -156,29 +154,6 @@ function TableHeader() {
         <div style={{flexGrow: 1}}>
           <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
         </div>
-        {hasPageFrameFeature ? (
-          <LinkButton
-            to={makeAutomationCreatePathname(organization.slug)}
-            variant="primary"
-            icon={<IconAdd />}
-            size="sm"
-          >
-            {t('Create Alert')}
-          </LinkButton>
-        ) : null}
-      </Flex>
-    </Flex>
-  );
-}
-
-function Actions() {
-  const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  return (
-    <Flex gap="sm">
-      <AlertsMonitorsShowcaseButton />
-      <AutomationFeedbackButton />
-      {hasPageFrameFeature ? null : (
         <LinkButton
           to={makeAutomationCreatePathname(organization.slug)}
           variant="primary"
@@ -187,7 +162,16 @@ function Actions() {
         >
           {t('Create Alert')}
         </LinkButton>
-      )}
+      </Flex>
+    </Flex>
+  );
+}
+
+function Actions() {
+  return (
+    <Flex gap="sm">
+      <AlertsMonitorsShowcaseButton />
+      <AutomationFeedbackButton />
     </Flex>
   );
 }
