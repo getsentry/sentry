@@ -15,7 +15,6 @@ from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
-from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
@@ -116,7 +115,7 @@ def get_eap_transaction_volumes(
     config: BaseDynamicSamplingConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     order_by_volume: Literal["asc", "desc"] | None = None,
-    max_transactions: int | None = None,
+    max_transactions: int = 100,
 ) -> list[ProjectTransactions]:
     projects = list(
         Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
@@ -137,32 +136,27 @@ def get_eap_transaction_volumes(
         orderby = ["-count()", "sentry.dsc.project_id", "sentry.dsc.transaction"]
 
     root_project_filter = ",".join(str(project.id) for project in projects)
-    rows = run_eap_spans_table_query_in_chunks(
-        {
-            # TODO: Snuba requires a non-empty `project_ids`, so we still pass
-            # the active projects here. As a side effect, spans owned by a
-            # non-active project but rooted at an active project are excluded.
-            "params": SnubaParams(
-                start=start_time,
-                end=end_time,
-                projects=projects,
-                organization=config.organization,
-            ),
-            "query_string": f"is_transaction:true sentry.dsc.project_id:[{root_project_filter}]",
-            "selected_columns": ["sentry.dsc.project_id", "sentry.dsc.transaction", "count()"],
-            "orderby": orderby,
-            "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
-            "config": SearchResolverConfig(
-                auto_fields=True,
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
-            ),
-            "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
-        },
-        max_transactions,
-        CHUNK_SIZE,
+    result = Spans.run_table_query(
+        params=SnubaParams(
+            start=start_time,
+            end=end_time,
+            projects=projects,
+            organization=config.organization,
+        ),
+        query_string=f"is_transaction:true sentry.dsc.project_id:[{root_project_filter}]",
+        selected_columns=["sentry.dsc.project_id", "sentry.dsc.transaction", "count()"],
+        orderby=orderby,
+        offset=0,
+        limit=max_transactions,
+        referrer=Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
+        config=SearchResolverConfig(
+            auto_fields=True,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+        ),
+        sampling_mode=SAMPLING_MODE_HIGHEST_ACCURACY,
     )
 
-    for row in rows:
+    for row in result.get("data", []):
         if (transaction := row.get("sentry.dsc.transaction")) is None:
             continue
 
