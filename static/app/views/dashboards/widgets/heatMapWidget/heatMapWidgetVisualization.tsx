@@ -179,6 +179,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               const yAxisMaxValue = rawYValue + yAxisBucketSize;
 
               const exploreUrlProps: GetExploreUrlArgs = {
+                organization,
+                ...props.tooltipExploreUrlArgs,
                 selection: {
                   ...pageFilters.selection,
                   datetime: {
@@ -188,10 +190,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                     period: null,
                   },
                 },
-                organization,
                 // TODO(nikki): we're only handling metrics for now but if we're looking to support other explore
                 // surfaces then we'll need to add more logic here
-                ...props.tooltipExploreUrlArgs,
                 crossEvents: props.tooltipExploreUrlArgs?.crossEvents?.map(crossEvent => {
                   if (crossEvent.type === 'metrics') {
                     return {
@@ -247,7 +247,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         tooltip={{
           show: true,
           enterable: true,
-          extraCssText: 'pointer-events: auto !important;',
+          extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}; z-index: ${theme.zIndex.tooltip} !important; pointer-events: auto !important;`,
           axisPointer: {
             show: false,
           },

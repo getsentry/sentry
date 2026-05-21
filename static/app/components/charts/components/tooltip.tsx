@@ -74,7 +74,7 @@ function defaultMarkerFormatter(value: string) {
   return value;
 }
 
-export function getSeriesValue(series: any, offset: number) {
+function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
     return;
   }
