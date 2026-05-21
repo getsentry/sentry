@@ -194,6 +194,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                         "is_segment": True,
                         "sentry_tags": {
                             "transaction": "checkout",
+                            "dsc.transaction": "checkout",
                             "dsc.project_id": str(project.id),
                         },
                     },
@@ -207,6 +208,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                         "is_segment": True,
                         "sentry_tags": {
                             "transaction": "checkout",
+                            "dsc.transaction": "checkout",
                             "dsc.project_id": str(project.id),
                         },
                         "measurements": {"server_sample_rate": {"value": 0.5}},
@@ -221,6 +223,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                         "is_segment": True,
                         "sentry_tags": {
                             "transaction": "product",
+                            "dsc.transaction": "product",
                             "dsc.project_id": str(project.id),
                         },
                     },
@@ -234,6 +237,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                         "is_segment": True,
                         "sentry_tags": {
                             "transaction": "checkout",
+                            "dsc.transaction": "checkout",
                             "dsc.project_id": str(other_project.id),
                         },
                     },
@@ -247,6 +251,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                         "is_segment": False,
                         "sentry_tags": {
                             "transaction": "ignored-span",
+                            "dsc.transaction": "ignored-span",
                             "dsc.project_id": str(project.id),
                         },
                     },
@@ -256,7 +261,13 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 ),
                 # missing dsc.project_id — excluded by the root_project filter
                 self.create_span(
-                    {"is_segment": True, "sentry_tags": {"transaction": "no-root"}},
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "no-root",
+                            "dsc.transaction": "no-root",
+                        },
+                    },
                     organization=organization,
                     project=project,
                     start_ts=timestamp + timedelta(seconds=5),
@@ -267,6 +278,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                         "is_segment": True,
                         "sentry_tags": {
                             "transaction": "other-org",
+                            "dsc.transaction": "other-org",
                             "dsc.project_id": str(other_organization_project.id),
                         },
                     },
@@ -321,6 +333,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                         "is_segment": True,
                         "sentry_tags": {
                             "transaction": "checkout",
+                            "dsc.transaction": "checkout",
                             "dsc.project_id": str(originating_project.id),
                         },
                     },
@@ -357,6 +370,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                     "is_segment": True,
                     "sentry_tags": {
                         "transaction": transaction,
+                        "dsc.transaction": transaction,
                         "dsc.project_id": str(root_project_id),
                     },
                 },

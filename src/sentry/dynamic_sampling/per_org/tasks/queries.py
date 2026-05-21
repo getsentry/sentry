@@ -130,11 +130,11 @@ def get_eap_transaction_volumes(
         _EAPProjectTransactionVolumesAccumulator
     )
 
-    orderby = ["sentry.dsc.project_id", "transaction"]
+    orderby = ["sentry.dsc.project_id", "sentry.dsc.transaction"]
     if order_by_volume == "asc":
-        orderby = ["count()", "sentry.dsc.project_id", "transaction"]
+        orderby = ["count()", "sentry.dsc.project_id", "sentry.dsc.transaction"]
     elif order_by_volume == "desc":
-        orderby = ["-count()", "sentry.dsc.project_id", "transaction"]
+        orderby = ["-count()", "sentry.dsc.project_id", "sentry.dsc.transaction"]
 
     root_project_filter = ",".join(str(project.id) for project in projects)
     rows = run_eap_spans_table_query_in_chunks(
@@ -149,7 +149,7 @@ def get_eap_transaction_volumes(
                 organization=config.organization,
             ),
             "query_string": f"is_transaction:true sentry.dsc.project_id:[{root_project_filter}]",
-            "selected_columns": ["sentry.dsc.project_id", "transaction", "count()"],
+            "selected_columns": ["sentry.dsc.project_id", "sentry.dsc.transaction", "count()"],
             "orderby": orderby,
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
             "config": SearchResolverConfig(
@@ -163,7 +163,7 @@ def get_eap_transaction_volumes(
     )
 
     for row in rows:
-        if (transaction := row.get("transaction")) is None:
+        if (transaction := row.get("sentry.dsc.transaction")) is None:
             continue
 
         total = _get_aggregate_float(row, "count()")
