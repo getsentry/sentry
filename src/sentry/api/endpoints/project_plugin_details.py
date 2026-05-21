@@ -142,6 +142,9 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         return Response(status=204)
 
     def put(self, request: Request, project, plugin: Plugin | Plugin2) -> Response:
+        if not isinstance(request.data, dict):
+            return Response({"detail": "Request body must be a JSON object."}, status=400)
+
         config = [
             serialize_field(project, plugin, c)
             for c in plugin.get_config(project=project, user=request.user, initial=request.data)
