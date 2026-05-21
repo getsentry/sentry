@@ -54,7 +54,7 @@ export const noZIndex = ESLintUtils.RuleCreator.withoutDocs({
           const matches = text.matchAll(Z_INDEX_CSS_RE);
 
           for (const match of matches) {
-            const value = match[1];
+            const value = match[1] ?? '';
             if (isAllowedCssValue(value)) {
               continue;
             }
