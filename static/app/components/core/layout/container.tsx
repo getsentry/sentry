@@ -254,7 +254,7 @@ export const Container = styled(
   },
   {
     shouldForwardProp: prop => {
-      if (omitContainerProps.has(prop as any)) {
+      if (omitContainerProps.has(prop as keyof ContainerLayoutProps | 'as')) {
         return false;
       }
       return isPropValid(prop);

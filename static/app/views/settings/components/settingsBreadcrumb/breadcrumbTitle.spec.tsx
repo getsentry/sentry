@@ -45,8 +45,8 @@ describe('BreadcrumbTitle', () => {
 
     const crumbs = screen.getAllByRole('link');
 
-    expect(crumbs).toHaveLength(3);
-    expect(crumbs[2]).toHaveTextContent('Last Title');
+    expect(crumbs).toHaveLength(2);
+    expect(screen.getByText('Last Title')).toBeInTheDocument();
   });
 
   it('cleans up routes', () => {
@@ -66,8 +66,8 @@ describe('BreadcrumbTitle', () => {
 
     const crumbs = screen.getAllByRole('link');
 
-    expect(crumbs).toHaveLength(3);
-    expect(crumbs[2]).toHaveTextContent('Last Title');
+    expect(crumbs).toHaveLength(2);
+    expect(screen.getByText('Last Title')).toBeInTheDocument();
 
     // Simulate navigating up a level, trimming the last title
     router.navigate('/one/two/');
@@ -80,7 +80,7 @@ describe('BreadcrumbTitle', () => {
 
     const crumbsNext = screen.getAllByRole('link');
 
-    expect(crumbsNext).toHaveLength(2);
-    expect(crumbsNext[1]).toHaveTextContent('Two');
+    expect(crumbsNext).toHaveLength(1);
+    expect(screen.getByText('Two')).toBeInTheDocument();
   });
 });

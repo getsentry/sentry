@@ -102,7 +102,7 @@ function UsageHistory({subscription}: Props) {
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   return (
-    <SubscriptionPageContainer background="primary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Usage History')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Usage History')} />
       {isPending ? (
