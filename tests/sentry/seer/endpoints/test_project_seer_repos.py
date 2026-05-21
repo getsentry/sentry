@@ -8,8 +8,8 @@ from sentry.seer.models.project_repository import (
 from sentry.testutils.cases import APITestCase
 
 
-class ProjectSeerReposGetTest(APITestCase):
-    endpoint = "sentry-api-0-project-seer-repos"
+class ProjectSeerRepoGetTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repo"
 
     def detail_url(self, repo_id):
         return reverse(
@@ -76,8 +76,8 @@ class ProjectSeerReposGetTest(APITestCase):
         self.get_error_response(status_code=404)
 
 
-class ProjectSeerReposPutTest(APITestCase):
-    endpoint = "sentry-api-0-project-seer-repos"
+class ProjectSeerRepoPutTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repo"
     method = "put"
 
     def reverse_url(self):
@@ -235,8 +235,8 @@ class ProjectSeerReposPutTest(APITestCase):
         assert project_repo.date_updated == original_date_updated
 
 
-class ProjectSeerReposDeleteTest(APITestCase):
-    endpoint = "sentry-api-0-project-seer-repos"
+class ProjectSeerRepoDeleteTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repo"
     method = "delete"
 
     def reverse_url(self):

@@ -548,7 +548,7 @@ from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWo
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
-    ProjectSeerReposEndpoint,
+    ProjectSeerRepoEndpoint,
 )
 from sentry.seer.endpoints.project_seer_settings import (
     OrganizationSeerProjectSettingsEndpoint,
@@ -3384,8 +3384,8 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/repos/(?P<repo_id>\d+)/$",
-        ProjectSeerReposEndpoint.as_view(),
-        name="sentry-api-0-project-seer-repos",
+        ProjectSeerRepoEndpoint.as_view(),
+        name="sentry-api-0-project-seer-repo",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/night-shift/$",

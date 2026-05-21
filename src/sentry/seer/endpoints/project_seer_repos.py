@@ -114,7 +114,7 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
 
 
 @cell_silo_endpoint
-class ProjectSeerReposEndpoint(ProjectEndpoint):
+class ProjectSeerRepoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
