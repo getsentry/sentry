@@ -94,19 +94,19 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): []}
         ):
-            assert TestRolloutComparator.should_log_mismatch("callsite") is False
+            assert TestRolloutComparator._should_log_mismatch("callsite") is False
 
         with override_options(
             {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): ["callsite"]}
         ):
-            assert TestRolloutComparator.should_log_mismatch("callsite") is True
-            assert TestRolloutComparator.should_log_mismatch("other") is False
+            assert TestRolloutComparator._should_log_mismatch("callsite") is True
+            assert TestRolloutComparator._should_log_mismatch("other") is False
 
         with override_options(
             {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): ["*"]}
         ):
-            assert TestRolloutComparator.should_log_mismatch("callsite") is True
-            assert TestRolloutComparator.should_log_mismatch("other") is True
+            assert TestRolloutComparator._should_log_mismatch("callsite") is True
+            assert TestRolloutComparator._should_log_mismatch("other") is True
 
     @patch("sentry.utils.rollout.SafeRolloutComparator.check_and_choose")
     def test_check_and_choose_with_timings_forwards_debug_args(

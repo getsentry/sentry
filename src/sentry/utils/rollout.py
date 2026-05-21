@@ -141,7 +141,7 @@ class SafeRolloutComparator:
         )
 
     @classmethod
-    def should_log_mismatch(cls, callsite: str) -> bool:
+    def _should_log_mismatch(cls, callsite: str) -> bool:
         allowlist = set(options.get(cls._mismatch_log_callsite_allowlist_option_name()))
         return "*" in allowlist or callsite in allowlist
 
@@ -171,7 +171,7 @@ class SafeRolloutComparator:
         debug_context: dict[str, Any] | None,
         data_serializer: Callable[[TData], Any] | None,
     ) -> None:
-        if not cls.should_log_mismatch(callsite):
+        if not cls._should_log_mismatch(callsite):
             return
 
         serialize = data_serializer or cls._default_serialize_for_log
