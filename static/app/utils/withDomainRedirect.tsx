@@ -10,7 +10,7 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useOrganization} from './useOrganization';
 
@@ -40,7 +40,7 @@ export function withDomainRedirect(WrappedComponent: RouteComponent) {
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
     const params = useParams();
-    const router = useRouter();
+    const routes = useRoutes();
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
@@ -64,7 +64,7 @@ export function withDomainRedirect(WrappedComponent: RouteComponent) {
       Object.keys(params).forEach(param => {
         newParams[param] = `:${param}`;
       });
-      const fullRoute = recreateRoute('', {routes: router.routes, params: newParams});
+      const fullRoute = recreateRoute('', {routes, params: newParams});
       const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {
@@ -78,7 +78,7 @@ export function withDomainRedirect(WrappedComponent: RouteComponent) {
       }${window.location.hash}`;
 
       // Redirect to a route path with :orgId omitted.
-      return <Redirect to={redirectOrgURL} router={router} />;
+      return <Redirect to={redirectOrgURL} />;
     }
 
     return <WrappedComponent {...props} />;

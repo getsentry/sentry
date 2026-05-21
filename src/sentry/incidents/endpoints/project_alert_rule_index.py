@@ -29,12 +29,11 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectAlertRulePermission,)
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
-    }
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def get(self, request: Request, project: Project) -> HttpResponseBase:
         """
         Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
@@ -42,7 +41,9 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         return self.fetch_metric_alerts(request, project.organization, [project])
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def post(self, request: Request, project: Project) -> HttpResponseBase:
         """
         Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.

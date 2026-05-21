@@ -20,6 +20,7 @@ import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -46,6 +47,7 @@ function TeamMisery({
   period,
   error,
 }: TeamMiseryProps) {
+  const navigate = useNavigate();
   const theme = useTheme();
   const miseryRenderer =
     periodTableData?.meta &&
@@ -118,10 +120,12 @@ function TeamMisery({
               const periodMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                navigate,
                 theme,
               });
               const weekMisery =
-                weekRow && miseryRenderer?.(weekRow, {organization, location, theme});
+                weekRow &&
+                miseryRenderer?.(weekRow, {organization, location, navigate, theme});
               const trendValue = Math.round(Math.abs(trend));
 
               if (idx >= COLLAPSE_COUNT && !isExpanded) {
