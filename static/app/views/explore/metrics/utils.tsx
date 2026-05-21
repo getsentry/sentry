@@ -108,7 +108,9 @@ export function hasDisplayMetricUnit(
 }
 
 export function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? NONE_UNIT}`;
+  // Coerce '-' to NONE_UNIT because we do not want to allow the UI to query '-' as a unit, it's a catch-all
+  // that queries for all metrics with the same name and type regardless of the unit. These should be kept separate for now.
+  return `${metric.name}||${metric.type}||${defined(metric.unit) && metric.unit !== '-' ? metric.unit : NONE_UNIT}`;
 }
 
 export function getMetricsUnit(
