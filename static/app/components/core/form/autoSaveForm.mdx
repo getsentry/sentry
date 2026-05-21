@@ -93,7 +93,7 @@ const schema = z.object({
 `AutoSaveForm` keeps field state typed as the schema input, but submits the schema's parsed output to the mutation. This matches `useScrapsForm` and lets you use transforms or narrower output types without extra parsing in `mutationFn`.
 
 > [!WARNING]
-> The schema is applied to the form value on submit, so unknown keys are stripped per Zod's default behavior. For map-like fields with arbitrary keys, use `z.record(z.string(), …)` — not `z.object({})`, which declares zero keys and will strip everything at submit time. You can also use `.passthrough()` to allow arbitrary values.
+> The schema is applied to the form value on submit, so unknown keys are stripped per Zod's default behavior. For map-like fields with arbitrary keys, use `z.record(z.string(), …)` or `z.looseObject({})` — not `z.object({})`, which declares zero keys and will strip everything at submit time.
 
 ```jsx
 const schema = z.object({
