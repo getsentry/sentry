@@ -5,8 +5,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -20,9 +19,10 @@ import {SPIKE_PROTECTION_DOCS_LINK} from 'getsentry/views/spikeProtection/consta
 import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-type Props = {organization: Organization; subscription: Subscription};
+type Props = {subscription: Subscription};
 
-function SpikeProtectionRoot({organization, subscription}: Props) {
+function SpikeProtectionRoot({subscription}: Props) {
+  const organization = useOrganization();
   useEffect(() => {
     trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_SETTINGS_VIEWED, {
       organization,
@@ -70,4 +70,4 @@ function SpikeProtectionRoot({organization, subscription}: Props) {
   );
 }
 
-export default withOrganization(withSubscription(SpikeProtectionRoot));
+export default withSubscription(SpikeProtectionRoot);
