@@ -653,8 +653,7 @@ function LogRowDetails({
 
   const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
   const message = String(
-    attributes[OurLogKnownFieldKey.MESSAGE] ||
-      String(dataRow[OurLogKnownFieldKey.MESSAGE])
+    attributes[OurLogKnownFieldKey.MESSAGE] ?? dataRow[OurLogKnownFieldKey.MESSAGE] ?? ''
   );
 
   return (
