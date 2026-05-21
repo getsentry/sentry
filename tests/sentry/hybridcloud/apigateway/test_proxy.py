@@ -1,10 +1,13 @@
 from urllib.parse import urlencode
 
 import httpx
+import responses
 from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
+from requests import PreparedRequest
 
+from sentry.hybridcloud.apigateway import proxy as sync_proxy
 from sentry.hybridcloud.apigateway_async.proxy import proxy_request as _proxy_request
 from sentry.silo.util import (
     INVALID_OUTBOUND_HEADERS,
@@ -17,6 +20,7 @@ from sentry.testutils.helpers.apigateway import (
     verify_request_body,
     verify_request_headers,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -27,6 +31,62 @@ url_name = "sentry-api-0-projets"
 
 @control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class ProxyTestCase(ApiGatewayTestCase):
+    @responses.activate
+    def test_sync_pooling_does_not_persist_response_cookies(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/sets-cookie",
+            body=json.dumps({"proxy": True}),
+            content_type="application/json",
+            headers={"Set-Cookie": "cell_session=leaked; Path=/"},
+        )
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert "cell_session=leaked" not in request.headers.get("Cookie", "")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/without-cookie",
+            callback=request_callback,
+        )
+
+        with override_options({"hybridcloud.apigateway.use_pooling.rate": 1.0}):
+            first_request = RequestFactory().get("http://sentry.io/sets-cookie")
+            first_response = sync_proxy.proxy_request(
+                first_request, self.organization.slug, url_name
+            )
+            assert first_response.status_code == 200
+            assert first_response["Set-Cookie"] == "cell_session=leaked; Path=/"
+            close_streaming_response(first_response)
+
+            second_request = RequestFactory().get("http://sentry.io/without-cookie")
+            second_response = sync_proxy.proxy_request(
+                second_request, self.organization.slug, url_name
+            )
+            assert second_response.status_code == 200
+            close_streaming_response(second_response)
+
+    @responses.activate
+    def test_sync_pooling_preserves_incoming_request_cookies(self) -> None:
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert request.headers.get("Cookie") == "original=1"
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/with-cookie",
+            callback=request_callback,
+        )
+
+        with override_options({"hybridcloud.apigateway.use_pooling.rate": 1.0}):
+            request = RequestFactory().get(
+                "http://sentry.io/with-cookie", headers={"Cookie": "original=1"}
+            )
+            response = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+            assert response.status_code == 200
+            close_streaming_response(response)
+
     def test_simple(self) -> None:
         request = RequestFactory().get("http://sentry.io/get")
         resp = proxy_request(request, self.organization.slug, url_name)
