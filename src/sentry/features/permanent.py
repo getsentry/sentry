@@ -144,6 +144,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
 
     # Permanent organization features that are controlled via flagpole
     permanent_flagpole_organization_features: dict[str, FlagpoleFeature] = {
+        # Enable various explore related dev features, may be used by internal branches for testing.
+        "organizations:explore-dev-features": FlagpoleFeature(default=False, api_expose=True),
         # Enable ingestion through trusted relays only
         "organizations:ingest-through-trusted-relays-only": FlagpoleFeature(
             default=False, api_expose=True
