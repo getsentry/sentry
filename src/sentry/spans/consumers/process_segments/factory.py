@@ -27,6 +27,11 @@ from sentry.utils.kafka_config import get_topic_definition
 logger = logging.getLogger(__name__)
 
 
+def get_dedupe_redis_client():
+    cluster = settings.SENTRY_SPAN_DEDUPE_CLUSTER or settings.SENTRY_SPAN_BUFFER_CLUSTER
+    return redis.redis_clusters.get_binary(cluster)
+
+
 def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     """
     Check for and optionally filter duplicate spans using Redis SETNX.
@@ -49,7 +54,7 @@ def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     filter_duplicates = options.get("spans.process-segments.dedupe-filter-enable")
 
     try:
-        client = redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
+        client = get_dedupe_redis_client()
         with client.pipeline(transaction=False) as p:
             for span in spans:
                 dedupe_key = f"segments-consumer:dedupe:{span['project_id']}:{span['trace_id']}:{span['span_id']}"
