@@ -174,7 +174,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
             let exploreLink: ReactNode;
 
-            if (defined(rawXValue) && defined(rawYValue)) {
+            if (defined(rawXValue) && defined(rawYValue) && props.tooltipExploreUrlArgs) {
               const xAxisMaxValue = rawXValue + xAxisBucketSize * 1000;
               const yAxisMaxValue = rawYValue + yAxisBucketSize;
 
