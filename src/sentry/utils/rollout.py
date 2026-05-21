@@ -69,7 +69,7 @@ class SafeRolloutComparator:
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.should_eval_experimental"
 
     @classmethod
-    def _callsite_blocklist_option_name(cls) -> str:
+    def _callsite_experiment_blocklist_option(cls) -> str:
         """
         This is the callsite-level eval rollout option. If the option contains a callsite,
         the should_check_experiment function will return False. (This is useful if you see
@@ -116,7 +116,7 @@ class SafeRolloutComparator:
             flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._callsite_blocklist_option_name(),
+            cls._callsite_experiment_blocklist_option(),
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -205,7 +205,7 @@ class SafeRolloutComparator:
         if not options.get(cls._should_eval_option_name()):
             return False
 
-        if callsite in options.get(cls._callsite_blocklist_option_name()):
+        if callsite in options.get(cls._callsite_experiment_blocklist_option()):
             return False
 
         sample_rate = options.get(cls._sample_rate_option_name())

@@ -20,7 +20,7 @@ class SafeRolloutComparatorTestCase(TestCase):
 
         assert TestRolloutComparator._should_eval_option_name() in option_names
         assert TestRolloutComparator._callsite_allowlist_option_name() in option_names
-        assert TestRolloutComparator._callsite_blocklist_option_name() in option_names
+        assert TestRolloutComparator._callsite_experiment_blocklist_option() in option_names
         assert TestRolloutComparator._sample_rate_option_name() in option_names
         assert TestRolloutComparator._mismatch_log_callsite_allowlist_option_name() in option_names
 
@@ -31,7 +31,7 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TestRolloutComparator._should_eval_option_name(): True,
-                TestRolloutComparator._callsite_blocklist_option_name(): ["test_blocked"],
+                TestRolloutComparator._callsite_experiment_blocklist_option(): ["test_blocked"],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }
         ):
@@ -51,7 +51,7 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TestRolloutComparator._should_eval_option_name(): True,
-                TestRolloutComparator._callsite_blocklist_option_name(): [],
+                TestRolloutComparator._callsite_experiment_blocklist_option(): [],
                 TestRolloutComparator._sample_rate_option_name(): 0.5,
             }
         ):
@@ -71,7 +71,7 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TestRolloutComparator._should_eval_option_name(): True,
-                TestRolloutComparator._callsite_blocklist_option_name(): ["test_blocked"],
+                TestRolloutComparator._callsite_experiment_blocklist_option(): ["test_blocked"],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }
         ):
@@ -84,7 +84,7 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TestRolloutComparator._should_eval_option_name(): False,
-                TestRolloutComparator._callsite_blocklist_option_name(): [],
+                TestRolloutComparator._callsite_experiment_blocklist_option(): [],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }
         ):
@@ -118,7 +118,7 @@ class SafeRolloutComparatorTestCase(TestCase):
         with override_options(
             {
                 TestRolloutComparator._should_eval_option_name(): True,
-                TestRolloutComparator._callsite_blocklist_option_name(): [],
+                TestRolloutComparator._callsite_experiment_blocklist_option(): [],
                 TestRolloutComparator._sample_rate_option_name(): 1.0,
             }
         ):
