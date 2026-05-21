@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -27,11 +28,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
+import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
+import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
-import {getGroupActivityItem} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
-import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -52,7 +53,7 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
-  isDrawer,
+  size,
   inputVariant,
 }: {
   group: Group;
@@ -60,8 +61,8 @@ function TimelineItem({
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
   inputVariant: 'compact' | 'full';
   item: GroupActivity;
+  size: 'sm' | 'md';
   teams: Team[];
-  isDrawer?: boolean;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -70,6 +71,7 @@ function TimelineItem({
     item,
     organization,
     group.project,
+    group.issueCategory,
     <strong>{authorName}</strong>,
     teams
   );
@@ -91,7 +93,7 @@ function TimelineItem({
             {title}
           </TitleTooltip>
           {item.type === GroupActivityType.NOTE && !editing && (
-            <TitleDropdown
+            <CommentActionsDropdown
               onDelete={() => handleDelete(item)}
               onEdit={() => setEditing(true)}
               user={item.user}
@@ -125,11 +127,13 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper isDrawer={isDrawer}>
+        <NoteWrapper size={size}>
           <NoteBody text={message} />
         </NoteWrapper>
       ) : (
-        <MessageWrapper isDrawer={isDrawer}>{message}</MessageWrapper>
+        <Text as="div" size={size}>
+          {message}
+        </Text>
       )}
     </ActivityTimelineItem>
   );
@@ -143,7 +147,7 @@ function ActivityNoteInput(props: React.ComponentProps<typeof NoteInputWithStora
   );
 }
 
-interface StreamlinedActivitySectionProps {
+interface ActivitySectionProps {
   group: Group;
   /**
    * Whether to filter the activity to only show comments.
@@ -153,28 +157,27 @@ interface StreamlinedActivitySectionProps {
   onCreate?: (n: NoteType, me: User) => void;
   onDelete?: (item: GroupActivity) => void;
   onUpdate?: (item: GroupActivity, n: NoteType) => void;
-  placeholder?: string;
   /**
    * Controls layout and input style.
    * - `sidebar` (default): fold section, compact input, collapses at 5 items
-   * - `drawer`: full input, no collapse, larger text
-   * - `inline`: full input, no collapse
-   * TODO: Revisit whether `drawer` and `inline` should be one variant with
-   * an explicit density/text-size option after the feedback activity split.
+   * - `standalone`: full input, no collapse
    */
-  variant?: 'sidebar' | 'drawer' | 'inline';
+  placeholder?: string;
+  size?: 'sm' | 'md';
+  variant?: 'sidebar' | 'standalone';
 }
 
-export function StreamlinedActivitySection({
+export function ActivitySection({
   group,
   filterComments,
   onCreate: onCreateProp,
   onDelete: onDeleteProp,
   onUpdate: onUpdateProp,
   variant = 'sidebar',
+  size = 'sm',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
-}: StreamlinedActivitySectionProps) {
+}: ActivitySectionProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {teams} = useTeamsById();
@@ -298,7 +301,6 @@ export function StreamlinedActivitySection({
   const filteredActivities = visibleActivities.filter(
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
-  const isDrawer = variant === 'drawer';
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
 
   const renderActivityItem = (item: GroupActivity) => (
@@ -309,7 +311,7 @@ export function StreamlinedActivitySection({
       group={group}
       teams={teams}
       key={item.id}
-      isDrawer={isDrawer}
+      size={size}
       inputVariant={inputVariant}
     />
   );
@@ -334,7 +336,7 @@ export function StreamlinedActivitySection({
     </Timeline.Container>
   );
 
-  if (variant !== 'sidebar') {
+  if (variant === 'standalone') {
     return (
       <Grid gap="xl">
         {noteInput}
@@ -394,10 +396,6 @@ const TitleTooltip = styled(Tooltip)`
   white-space: nowrap;
 `;
 
-const TitleDropdown = styled(NoteDropdown)`
-  font-weight: normal;
-`;
-
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: center;
   grid-template-columns: 22px minmax(50px, 1fr) auto;
@@ -412,13 +410,9 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
 `;
 
-const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
+const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
   ${textStyles}
-  font-size: ${p => (p.isDrawer ? p.theme.font.size.md : p.theme.font.size.sm)};
-`;
-
-const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
-  font-size: ${p => (p.isDrawer ? p.theme.font.size.md : p.theme.font.size.sm)};
+  font-size: ${p => (p.size === 'md' ? p.theme.font.size.md : p.theme.font.size.sm)};
 `;
 
 const ActivityInputFrame = styled('div')`

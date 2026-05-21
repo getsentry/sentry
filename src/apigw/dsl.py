@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import urlparse
 
 from sentry.types.cell import Cell as Cell
 from sentry.types.cell import CellResolutionError as CellResolutionError
@@ -21,3 +22,22 @@ async def get_cell_for_organization(db: Any, org_id_or_slug: str) -> Cell:
     if not cell_name:
         raise CellResolutionError(f"Organization {org_id_or_slug} has no associated mapping.")
     return get_cell_by_name(cell_name)
+
+
+def get_cell_from_dsn(dsn: str, fallback: str) -> Cell:
+    try:
+        url = urlparse(dsn)
+    except Exception:
+        raise ValueError
+
+    host_segments = url.netloc.split(".")
+    if (len(host_segments) - 2) < 3:
+        # If we don't have a o123.ingest.{cell}.{app_host} style domain
+        # we fallback to default
+        return get_cell_by_name(fallback)
+
+    try:
+        cell_segment = host_segments[-3]
+        return get_cell_by_name(cell_segment)
+    except Exception:
+        raise CellResolutionError(f"DSN {dsn} has no associated cell.")

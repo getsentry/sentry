@@ -59,7 +59,7 @@ describe('ExplorerDrawerContent', () => {
   });
 
   describe('Empty State', () => {
-    it('renders the drawer root element', () => {
+    it('renders the drawer root element', async () => {
       render(
         <SeerExplorerSessionsProvider>
           <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
@@ -68,6 +68,7 @@ describe('ExplorerDrawerContent', () => {
           organization,
         }
       );
+      await screen.findByTestId('seer-explorer-input');
       expect(document.querySelector('[data-seer-explorer-root]')).toBeInTheDocument();
     });
 

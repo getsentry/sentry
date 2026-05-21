@@ -59,8 +59,8 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             query: '',
             fields: ['id', 'timestamp'],
             orderby: '-value',
-            aggregateOrderby: '-sum(value,test_metric,counter,-)',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateOrderby: '-sum(value,test_metric,counter,none)',
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -91,8 +91,8 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             query: '',
             fields: ['id', 'timestamp'],
             orderby: '-timestamp',
-            aggregateOrderby: '-sum(value,test_metric,counter,-)',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateOrderby: '-sum(value,test_metric,counter,none)',
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -102,7 +102,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
     expect(decoded?.queryParams.aggregateSortBys).toEqual([
-      {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
+      {field: 'sum(value,test_metric,counter,none)', kind: 'desc'},
     ]);
   });
 
@@ -125,8 +125,8 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             mode: Mode.SAMPLES,
             query: '',
             fields: ['id', 'timestamp'],
-            orderby: '-sum(value,test_metric,counter,-)',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            orderby: '-sum(value,test_metric,counter,none)',
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -136,7 +136,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
     expect(decoded?.queryParams.aggregateSortBys).toEqual([
-      {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
+      {field: 'sum(value,test_metric,counter,none)', kind: 'desc'},
     ]);
   });
 
@@ -161,7 +161,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             fields: ['id', 'timestamp'],
             orderby: 'timestamp',
             aggregateField: [
-              {yAxes: ['sum(value,test_metric,counter,-)']},
+              {yAxes: ['sum(value,test_metric,counter,none)']},
               {groupBy: 'timestamp'},
             ],
             metric: {name: 'test_metric', type: 'counter'},
@@ -198,7 +198,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             fields: ['id', 'timestamp'],
             orderby: '-value',
             aggregateOrderby: '',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -208,7 +208,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'value', kind: 'desc'}]);
     expect(decoded?.queryParams.aggregateSortBys).toEqual([
-      {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
+      {field: 'sum(value,test_metric,counter,none)', kind: 'desc'},
     ]);
   });
 
@@ -232,7 +232,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             query: '',
             fields: ['id', 'timestamp'],
             orderby: '',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
