@@ -109,10 +109,7 @@ def get_eap_transaction_volumes(
     order_by_volume: Literal["asc", "desc"] | None = None,
     max_transactions: int = 100,
 ) -> list[ProjectTransactions]:
-    projects = list(
-        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
-    )
-    if not projects:
+    if not config.projects:
         return []
 
     end_time = datetime.now(UTC)
@@ -127,12 +124,12 @@ def get_eap_transaction_volumes(
     elif order_by_volume == "desc":
         orderby = ["-count()", "sentry.dsc.project_id", "sentry.dsc.transaction"]
 
-    root_project_filter = ",".join(str(project.id) for project in projects)
+    root_project_filter = ",".join(str(project.id) for project in config.projects)
     result = Spans.run_table_query(
         params=SnubaParams(
             start=start_time,
             end=end_time,
-            projects=projects,
+            projects=config.projects,
             organization=config.organization,
         ),
         query_string=f"is_transaction:true sentry.dsc.project_id:[{root_project_filter}]",
