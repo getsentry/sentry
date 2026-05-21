@@ -2337,12 +2337,16 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
     {
-      path: '*',
+      path: ':catchAll/',
+      component: make(() => import('sentry/views/explore/indexRedirect')),
+    },
+    {
+      path: ':catchAll/*',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
   ];
   const exploreRoutes: SentryRouteObject = {
-    path: '/explore/*',
+    path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
   };

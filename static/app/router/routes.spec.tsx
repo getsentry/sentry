@@ -123,16 +123,20 @@ describe('buildRoutes()', () => {
 
   describe('explore route catch-all', () => {
     it('catches unknown subpaths under /explore/', () => {
-      const routes = buildRoutes();
+      const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
+      spy.mockReturnValue(true);
+      let routes = buildRoutes();
       let matchedPaths = getMatchedPaths(routes, '/explore/nonexistent-page/');
-      expect(matchedPaths).toContain('*');
+      expect(matchedPaths).toContain(':catchAll/');
 
+      spy.mockReturnValue(false);
+      routes = buildRoutes();
       matchedPaths = getMatchedPaths(
         routes,
         '/organizations/test-org/explore/nonexistent-page/also-nonexistent-page/'
       );
-      expect(matchedPaths).toContain('*');
+      expect(matchedPaths).toContain(':catchAll/*');
     });
   });
 });
