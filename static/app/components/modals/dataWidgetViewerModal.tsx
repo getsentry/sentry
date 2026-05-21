@@ -11,7 +11,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -41,6 +41,7 @@ import {
   isEquationAlias,
   parseFunction,
   prettifyParsedFunction,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
   createOnDemandFilterWarning,
@@ -79,7 +80,6 @@ import {
   dashboardFiltersToString,
   eventViewFromWidget,
   getFieldsFromEquations,
-  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -306,7 +306,6 @@ function DataWidgetViewerModal(props: Props) {
   };
   const {aggregates, columns} = tableWidget.queries[0]!;
   const {orderby} = widget.queries[0]!;
-  const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
   const fields =
@@ -340,14 +339,6 @@ function DataWidgetViewerModal(props: Props) {
         }
       });
     }
-  }
-
-  // Need to set the orderby of the eventsv2 query to equation[index] format
-  // since eventsv2 does not accept the raw equation as a valid sort payload
-  if (isEquation(rawOrderby) && tableWidget.queries[0]!.orderby === orderby) {
-    tableWidget.queries[0]!.orderby = `${order ? '-' : ''}equation[${
-      getNumEquations(fields) - 1
-    }]`;
   }
 
   // Default table columns for visualizations that don't have a group by set
@@ -1075,11 +1066,16 @@ function ViewerTableV2({
     datasetConfig?.getFieldHeaderMap?.(tableWidget.queries[selectedQueryIndex]) ?? {}
   );
 
-  // Inject any prettified function names that aren't currently aliased into the aliases
   for (const column of tableColumns) {
+    // Inject any prettified function names that aren't currently aliased into the aliases
     const parsedFunction = parseFunction(column.key);
     if (!aliases[column.key] && parsedFunction) {
       aliases[column.key] = prettifyParsedFunction(parsedFunction);
+    }
+
+    // Strip the equation prefix if the full equation is used
+    if (isEquation(column.key)) {
+      aliases[column.key] = stripEquationPrefix(column.key);
     }
   }
 

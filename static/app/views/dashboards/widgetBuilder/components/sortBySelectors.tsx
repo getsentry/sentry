@@ -75,6 +75,14 @@ export function SortBySelectors({
   });
   useEffect(() => {
     const isSortingByEquation = isEquation(trimStart(values.sortBy, '-'));
+
+    // Short circuit the custom equation field for trace metrics because we strictly
+    // use the full equation, not the alias (equation[0]), that accidentally trips this.
+    // For now, the user can only sort by what's plotted in the chart, not a custom equation.
+    if (widgetType === WidgetType.TRACEMETRICS) {
+      return;
+    }
+
     if (isSortingByEquation) {
       setCustomEquation({
         sortBy: trimStart(values.sortBy, '-'),
@@ -82,7 +90,7 @@ export function SortBySelectors({
       });
     }
     setShowCustomEquation(isSortingByEquation);
-  }, [values.sortBy, values.sortDirection]);
+  }, [values.sortBy, values.sortDirection, widgetType]);
 
   const timeseriesSortOptions = useMemo(() => {
     let options: Record<string, SelectValue<FieldValue>> = {};
