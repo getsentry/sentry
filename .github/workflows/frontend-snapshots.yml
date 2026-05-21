@@ -87,6 +87,10 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
           BASE_SHA: ${{ steps.merge-base.outputs.sha }}
         run: |
+          if [ ! -d "$SNAPSHOT_OUTPUT_DIR" ]; then
+            echo "Snapshot output directory does not exist, creating it"
+            mkdir -p "$SNAPSHOT_OUTPUT_DIR"
+          fi
           sentry-cli \
             --log-level=debug \
             build snapshots "$SNAPSHOT_OUTPUT_DIR" \

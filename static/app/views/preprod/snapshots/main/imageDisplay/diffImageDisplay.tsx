@@ -41,7 +41,7 @@ export function DiffImageDisplay({
   diffImageBaseUrl,
   overlayColor,
   diffMode,
-  headLabel = t('Head'),
+  headLabel = t('Latest'),
 }: DiffImageDisplayProps) {
   const [onionOpacity, setOnionOpacity] = useState(50);
 
@@ -300,7 +300,7 @@ function OnionView({
           />
         </Flex>
         <Text size="sm" variant="muted">
-          {t('Head')}
+          {headLabel}
         </Text>
       </Flex>
     </Flex>
