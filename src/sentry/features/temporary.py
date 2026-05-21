@@ -415,9 +415,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Use workflow engine exclusively for legacy metric alert rule.put results.
     # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
     manager.add("organizations:workflow-engine-metric-alert-endpoints-put", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Use workflow engine exclusively for legacy issue alert rule.delete
-    # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
-    manager.add("organizations:workflow-engine-issue-alert-endpoints-delete", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable metric detector limits by plan type
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable seer activities to be evaluated in workflow engine
