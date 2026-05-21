@@ -13,6 +13,7 @@ import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
 } from 'sentry/components/replays/replayAccess';
+import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -35,6 +36,7 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
+import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
 import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
@@ -42,6 +44,8 @@ import {ReplayOnboardingPanel} from 'sentry/views/explore/replays/list/replayOnb
 import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 const ReplayListPageHeaderHook = OverrideOrDefault({
   overrideName: 'component:replay-list-page-header',
@@ -93,7 +97,28 @@ function ReplaysHeader() {
   );
 }
 
-export default function ReplaysListContainer() {
+function ReplayListLLMContextData({
+  showDeadRageClickCards,
+  widgetIsOpen,
+}: {
+  showDeadRageClickCards: boolean;
+  widgetIsOpen: boolean;
+}) {
+  const searchQuery = useQueryParamsSearch().formatString();
+  const pageFilters = usePageFilters();
+  const {sortType} = useReplayTableSort();
+  useLLMContext({
+    contextHint:
+      'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details.',
+    searchQuery,
+    sort: `${sortType.kind === 'desc' ? '-' : ''}${sortType.field}`,
+    currentSelectedDateRange: pageFilters.selection.datetime,
+    deadRageClickWidgetsVisible: showDeadRageClickCards && widgetIsOpen,
+  });
+  return null;
+}
+
+function ReplaysListContainerInner() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
@@ -132,6 +157,10 @@ export default function ReplaysListContainer() {
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <ReplayQueryParamsProvider>
+            <ReplayListLLMContextData
+              showDeadRageClickCards={showDeadRageClickCards}
+              widgetIsOpen={widgetIsOpen}
+            />
             <Stack flex={1}>
               <ReplaysHeader />
               <PageFiltersContainer>
@@ -167,3 +196,5 @@ export default function ReplaysListContainer() {
     </AnalyticsArea>
   );
 }
+
+export default registerLLMContext('replays-list', ReplaysListContainerInner);
