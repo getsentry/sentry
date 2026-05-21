@@ -541,6 +541,7 @@ export function MetricSelector({
                     borderTop={
                       isOverlayAboveTrigger ? {xs: 'primary', md: undefined} : undefined
                     }
+                    width="100%"
                   >
                     <Flex align="center" justify="between" padding="sm lg">
                       <Text size="sm" bold wrap="nowrap">
