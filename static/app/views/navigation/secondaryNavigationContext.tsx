@@ -16,7 +16,7 @@ interface SecondaryNavigationContext {
   view: SecondaryNavState;
 }
 
-export const SecondaryNavigationContext =
+const SecondaryNavigationContext =
   createContext<SecondaryNavigationContext | null>(null);
 
 export function useSecondaryNavigation(): SecondaryNavigationContext {
