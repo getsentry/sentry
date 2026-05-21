@@ -6,12 +6,17 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+jest.mock('sentry/actionCreators/modal', () => ({
+  openNavigateToExternalLinkModal: jest.fn(),
+}));
 
 const theme = ThemeFixture();
 
@@ -95,6 +100,22 @@ describe('getFieldRenderer', () => {
     );
 
     expect(screen.getByText(data.url)).toBeInTheDocument();
+  });
+
+  it('propagates URL clicks to parent cell actions without opening the modal', () => {
+    const onClick = jest.fn();
+    const value = 'https://example.com';
+
+    render(
+      <div role="button" onClick={onClick} tabIndex={0}>
+        {renderUrlCellValue(value)}
+      </div>
+    );
+
+    screen.getByRole('link', {name: value}).click();
+
+    expect(onClick).toHaveBeenCalled();
+    expect(openNavigateToExternalLinkModal).not.toHaveBeenCalled();
   });
 
   it('can render empty string fields', () => {

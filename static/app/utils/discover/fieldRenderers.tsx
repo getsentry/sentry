@@ -9,7 +9,6 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Count} from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -196,7 +195,7 @@ export function nullableValue(value: string | null): string | React.ReactElement
 }
 
 /**
- * Renders navigable URLs as external links that open the external-link modal.
+ * Renders navigable URLs as external links.
  * Invalid/template URLs render as plain text without an anchor tag.
  */
 export function renderUrlCellValue(value: unknown): React.ReactNode {
@@ -212,17 +211,7 @@ export function renderUrlCellValue(value: unknown): React.ReactNode {
     return nullableValue(value);
   }
 
-  return (
-    <ExternalLink
-      href={value}
-      onClick={e => {
-        e.preventDefault();
-        openNavigateToExternalLinkModal({linkText: value});
-      }}
-    >
-      {value}
-    </ExternalLink>
-  );
+  return <ExternalLink href={value}>{value}</ExternalLink>;
 }
 
 // TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
