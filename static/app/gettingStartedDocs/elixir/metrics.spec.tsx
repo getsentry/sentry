@@ -1,29 +1,26 @@
-import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
-import {screen} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
-
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-
-import {docs} from '.';
+const {metrics} = jest.requireActual('sentry/gettingStartedDocs/elixir/metrics');
 
 describe('metrics', () => {
-  it('elixir metrics onboarding docs', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+  const mockParams = {
+    dsn: {
+      public: 'https://test@example.com/123',
+    },
+  };
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.Metrics\.count/))
-    ).toBeInTheDocument();
-  });
+  it('generates metrics onboarding config', () => {
+    const installSteps = metrics.install();
+    expect(installSteps).toHaveLength(1);
+    expect(installSteps[0].type).toBe('install');
 
-  it('does not render metrics configuration when metrics is not enabled', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    const verifySteps = metrics.verify(mockParams);
+    expect(verifySteps).toHaveLength(1);
+    expect(verifySteps[0].type).toBe('verify');
 
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/Sentry\.Metrics\.count/))
-    ).not.toBeInTheDocument();
+    const codeSnippet = verifySteps[0].content[1].code;
+    expect(codeSnippet).toContain('Sentry.init');
+    expect(codeSnippet).toContain(mockParams.dsn.public);
+    expect(codeSnippet).toContain('Sentry.Metrics.count');
+    expect(codeSnippet).toContain('Sentry.Metrics.gauge');
+    expect(codeSnippet).toContain('Sentry.Metrics.distribution');
   });
 });
