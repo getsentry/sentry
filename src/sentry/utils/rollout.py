@@ -212,7 +212,7 @@ class SafeRolloutComparator:
         return random.random() < sample_rate
 
     @classmethod
-    def should_use_experiment(cls, callsite: str) -> bool:
+    def should_use_experimental_data(cls, callsite: str) -> bool:
         """
         This function should control whether you use the result of your experimental
         data. Useful for allowlisting known-safe callsites.
@@ -264,7 +264,7 @@ class SafeRolloutComparator:
         * data_serializer: Optional serializer for control/experimental payloads in
             logs. Defaults to `_default_serialize_for_log`.
         """
-        use_experimental = cls.should_use_experiment(callsite)
+        use_experimental = cls.should_use_experimental_data(callsite)
         is_exact_match = control_data == experimental_data
         is_reasonable_match: bool | None = None
 
