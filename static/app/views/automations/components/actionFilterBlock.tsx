@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
@@ -88,91 +89,98 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   const numActionFilters = state.actionFilters.length;
 
   return (
-    <IfThenWrapper>
-      <Step>
-        <Flex direction="column" gap="md">
-          <StepLead data-test-id="action-filter-logic-type">
-            {tct('[if: If] [selector] of these filters match', {
-              if: <ConditionBadge />,
-              selector: (
-                <Container width="80px">
-                  <EmbeddedSelectField
-                    styles={{
-                      control: (provided: any) => ({
-                        ...provided,
-                        minHeight: '21px',
-                        height: '21px',
-                      }),
-                    }}
-                    isSearchable={false}
-                    isClearable={false}
-                    name={`actionFilters.${actionFilter.id}.logicType`}
-                    options={FILTER_MATCH_OPTIONS}
-                    size="xs"
-                    value={
-                      FILTER_MATCH_OPTIONS.find(
-                        choice =>
-                          choice.value === actionFilter.logicType ||
-                          choice.alias === actionFilter.logicType
-                      )?.value || actionFilter.logicType
-                    }
-                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                      actions.updateIfLogicType(actionFilter.id, option.value)
-                    }
+    <RevealOnHover>
+      {({className}) => (
+        <IfThenWrapper className={className}>
+          <Step>
+            <Flex direction="column" gap="md">
+              <StepLead data-test-id="action-filter-logic-type">
+                {tct('[if: If] [selector] of these filters match', {
+                  if: <ConditionBadge />,
+                  selector: (
+                    <Container width="80px">
+                      <EmbeddedSelectField
+                        styles={{
+                          control: (provided: any) => ({
+                            ...provided,
+                            minHeight: '21px',
+                            height: '21px',
+                          }),
+                        }}
+                        isSearchable={false}
+                        isClearable={false}
+                        name={`actionFilters.${actionFilter.id}.logicType`}
+                        options={FILTER_MATCH_OPTIONS}
+                        size="xs"
+                        value={
+                          FILTER_MATCH_OPTIONS.find(
+                            choice =>
+                              choice.value === actionFilter.logicType ||
+                              choice.alias === actionFilter.logicType
+                          )?.value || actionFilter.logicType
+                        }
+                        onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                          actions.updateIfLogicType(actionFilter.id, option.value)
+                        }
+                      />
+                    </Container>
+                  ),
+                })}
+              </StepLead>
+              {numActionFilters > 1 && (
+                <RevealOnHover.Action>
+                  <DeleteButton
+                    aria-label={t('Delete If/Then Block')}
+                    size="sm"
+                    icon={<IconDelete />}
+                    variant="transparent"
+                    onClick={() => actions.removeIf(actionFilter.id)}
                   />
-                </Container>
-              ),
-            })}
-          </StepLead>
-          {numActionFilters > 1 && (
-            <DeleteButton
-              aria-label={t('Delete If/Then Block')}
-              size="sm"
-              icon={<IconDelete />}
-              variant="transparent"
-              onClick={() => actions.removeIf(actionFilter.id)}
-              className="delete-condition-group"
+                </RevealOnHover.Action>
+              )}
+              <DataConditionNodeList
+                handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
+                label={t('Add filter')}
+                placeholder={t('Any event')}
+                groupId={actionFilter.id}
+                conditions={actionFilter?.conditions || []}
+                onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
+                onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
+                updateCondition={(id, params) =>
+                  actions.updateIfCondition(actionFilter.id, id, params)
+                }
+              />
+            </Flex>
+          </Step>
+          <Step>
+            <StepLead>
+              {tct('[then:Then] perform these actions', {
+                then: <ConditionBadge />,
+              })}
+            </StepLead>
+            <ActionNodeList
+              placeholder={t('Select an action')}
+              conditionGroupId={actionFilter.id}
+              actions={actionFilter?.actions || []}
+              onAddRow={handler => actions.addIfAction(actionFilter.id, handler)}
+              onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
+              updateAction={(id, data) =>
+                actions.updateIfAction(actionFilter.id, id, data)
+              }
             />
-          )}
-          <DataConditionNodeList
-            handlerGroup={DataConditionHandlerGroupType.ACTION_FILTER}
-            label={t('Add filter')}
-            placeholder={t('Any event')}
-            groupId={actionFilter.id}
-            conditions={actionFilter?.conditions || []}
-            onAddRow={type => actions.addIfCondition(actionFilter.id, type)}
-            onDeleteRow={id => actions.removeIfCondition(actionFilter.id, id)}
-            updateCondition={(id, params) =>
-              actions.updateIfCondition(actionFilter.id, id, params)
-            }
-          />
-        </Flex>
-      </Step>
-      <Step>
-        <StepLead>
-          {tct('[then:Then] perform these actions', {
-            then: <ConditionBadge />,
-          })}
-        </StepLead>
-        <ActionNodeList
-          placeholder={t('Select an action')}
-          conditionGroupId={actionFilter.id}
-          actions={actionFilter?.actions || []}
-          onAddRow={handler => actions.addIfAction(actionFilter.id, handler)}
-          onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
-          updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
-        />
-      </Step>
-      <span>
-        <Button
-          icon={<IconMail />}
-          onClick={sendTestNotification}
-          disabled={!actionFilter.actions?.length || isPending}
-        >
-          {t('Send Test Notification')}
-        </Button>
-      </span>
-    </IfThenWrapper>
+          </Step>
+          <span>
+            <Button
+              icon={<IconMail />}
+              onClick={sendTestNotification}
+              disabled={!actionFilter.actions?.length || isPending}
+            >
+              {t('Send Test Notification')}
+            </Button>
+          </span>
+        </IfThenWrapper>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -184,15 +192,6 @@ const IfThenWrapper = styled(Flex)`
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   margin-top: ${p => p.theme.space.md};
-
-  /* Only hide delete button when hover is supported */
-  @media (hover: hover) {
-    &:not(:hover):not(:focus-within) {
-      .delete-condition-group {
-        ${p => p.theme.visuallyHidden}
-      }
-    }
-  }
 `;
 
 const DeleteButton = styled(Button)`

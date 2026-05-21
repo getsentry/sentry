@@ -5,6 +5,7 @@ import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -150,63 +151,70 @@ export function CodeBlock({
         ? t('Copied')
         : t('Unable to copy');
 
+  const isAlwaysVisible = !hasFloatingHeader || (!!icon && hasFloatingHeader);
+
   const snippet = (
-    <Wrapper
-      isRounded={isRounded}
-      className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
-      data-render-inline={dataRenderInline}
-    >
-      <Header isFloating={hasFloatingHeader}>
-        {hasTabs && (
-          <Fragment>
-            <TabsWrapper>
-              {tabs.map(({label, value}) => (
-                <Tab
-                  type="button"
-                  isSelected={selectedTab === value}
-                  onClick={() => onTabClick?.(value)}
-                  key={value}
-                >
-                  {label}
-                </Tab>
-              ))}
-            </TabsWrapper>
-            <Container flexGrow={1} />
-          </Fragment>
-        )}
-        {icon}
-        {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <Container flexGrow={1} />}
-        {!hideCopyButton && (
-          <CopyButton
-            type="button"
-            size="xs"
-            variant="transparent"
-            onClick={handleCopy}
-            tooltipProps={{position: 'left', title: tooltipTitle}}
-            onMouseLeave={() => setTooltipState('copy')}
-            isAlwaysVisible={!hasFloatingHeader || (!!icon && hasFloatingHeader)}
-            aria-label={t('Copy snippet')}
-            icon={<IconCopy />}
-          />
-        )}
-      </Header>
-      <ScrollWrapper>
-        <pre
-          className={`language-${String(language)}`}
-          data-line={linesToHighlight?.join(',')}
+    <RevealOnHover>
+      {({className: revealClassName}) => (
+        <Wrapper
+          isRounded={isRounded}
+          className={`${dark ? 'prism-dark ' : ''}${className ?? ''} ${revealClassName}`}
+          data-render-inline={dataRenderInline}
         >
-          <Code
-            ref={ref}
-            className={`language-${String(language)}`}
-            onCopy={onSelectAndCopy}
-            disableUserSelection={disableUserSelection}
-          >
-            {children}
-          </Code>
-        </pre>
-      </ScrollWrapper>
-    </Wrapper>
+          <Header isFloating={hasFloatingHeader}>
+            {hasTabs && (
+              <Fragment>
+                <TabsWrapper>
+                  {tabs.map(({label, value}) => (
+                    <Tab
+                      type="button"
+                      isSelected={selectedTab === value}
+                      onClick={() => onTabClick?.(value)}
+                      key={value}
+                    >
+                      {label}
+                    </Tab>
+                  ))}
+                </TabsWrapper>
+                <Container flexGrow={1} />
+              </Fragment>
+            )}
+            {icon}
+            {filename && <FileName>{filename}</FileName>}
+            {!hasTabs && <Container flexGrow={1} />}
+            {!hideCopyButton && (
+              <RevealOnHover.Action alwaysVisible={isAlwaysVisible}>
+                <CopyButton
+                  type="button"
+                  size="xs"
+                  variant="transparent"
+                  onClick={handleCopy}
+                  tooltipProps={{position: 'left', title: tooltipTitle}}
+                  onMouseLeave={() => setTooltipState('copy')}
+                  aria-label={t('Copy snippet')}
+                  icon={<IconCopy />}
+                />
+              </RevealOnHover.Action>
+            )}
+          </Header>
+          <ScrollWrapper>
+            <pre
+              className={`language-${String(language)}`}
+              data-line={linesToHighlight?.join(',')}
+            >
+              <Code
+                ref={ref}
+                className={`language-${String(language)}`}
+                onCopy={onSelectAndCopy}
+                disableUserSelection={disableUserSelection}
+              >
+                {children}
+              </Code>
+            </pre>
+          </ScrollWrapper>
+        </Wrapper>
+      )}
+    </RevealOnHover>
   );
 
   // Override theme provider when in dark mode to provider dark theme to
@@ -293,19 +301,11 @@ const Tab = styled('button')<{isSelected: boolean}>`
       : ''}
 `;
 
-const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
+const CopyButton = styled(Button)`
   color: var(--prism-comment);
-  transition: opacity 0.1s ease-out;
-  opacity: 0;
-
-  div:hover > div > &, /* if Wrapper is hovered */
-  &:focus-visible {
-    opacity: 1;
-  }
   &:hover {
     color: var(--prism-base);
   }
-  ${p => (p.isAlwaysVisible ? 'opacity: 1;' : '')}
 `;
 
 const ScrollWrapper = styled('div')`

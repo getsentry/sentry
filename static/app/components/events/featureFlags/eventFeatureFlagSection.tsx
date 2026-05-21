@@ -6,6 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -152,17 +153,21 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           key: f.flag,
           subject: f.flag,
           value: (
-            <ValueWrapper>
-              {f.result.toString()}
-              {suspectFlagNames.has(f.flag) && (
-                <SuspectLabel>{t('Suspect')}</SuspectLabel>
+            <RevealOnHover>
+              {({className}) => (
+                <ValueWrapper className={className}>
+                  {f.result.toString()}
+                  {suspectFlagNames.has(f.flag) && (
+                    <SuspectLabel>{t('Suspect')}</SuspectLabel>
+                  )}
+                  <FlagActionDropdown
+                    flag={f.flag}
+                    result={f.result.toString()}
+                    generateAction={generateAction}
+                  />
+                </ValueWrapper>
               )}
-              <FlagActionDropdown
-                flag={f.flag}
-                result={f.result.toString()}
-                generateAction={generateAction}
-              />
-            </ValueWrapper>
+            </RevealOnHover>
           ),
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
@@ -327,16 +332,6 @@ const ValueWrapper = styled('div')`
     ${SuspectLabel} {
       grid-column: 1 / -1;
       grid-row: 2;
-    }
-  }
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible .flag-button {
-      visibility: visible;
     }
   }
 `;
