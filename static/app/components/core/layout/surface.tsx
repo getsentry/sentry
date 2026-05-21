@@ -27,13 +27,13 @@ interface OverlaySurfaceProps<T extends ContainerElement = 'div'> extends Omit<
 }
 
 interface FlatSurfacePropsWithRenderFunction {
-  children: (props: {className: string | undefined}) => React.ReactNode;
+  children: (props: {className: string}) => React.ReactNode;
   elevation?: never;
   variant?: SurfaceVariant;
 }
 
 interface OverlaySurfacePropsWithRenderFunction {
-  children: (props: {className: string | undefined}) => React.ReactNode;
+  children: (props: {className: string}) => React.ReactNode;
   variant: 'overlay';
   elevation?: 'low' | 'medium' | 'high';
 }
