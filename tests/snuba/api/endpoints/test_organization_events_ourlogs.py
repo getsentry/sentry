@@ -367,8 +367,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
     @pytest.mark.querybuilder
     def test_truncate_param(self) -> None:
+        long_body = "a" * 100
         log = self.create_ourlog(
-            {"body": "hello world"},
+            {"body": long_body},
             timestamp=self.ten_mins_ago,
         )
         self.store_eap_items([log])
@@ -381,7 +382,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["data"][0]["log.body"] == "hello..."
+        assert response.data["data"][0]["log.body"] == "a" * 64 + "..."
 
     def test_truncate_param_invalid_type(self) -> None:
         response = self.do_request(
