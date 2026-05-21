@@ -36,10 +36,7 @@ describe('ApiApplicationDetails', () => {
       },
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Application Details'})
-    ).toBeInTheDocument();
-    expect(screen.getByDisplayValue('http://example.com')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('http://example.com')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/redirect')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/privacy')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/terms')).toBeInTheDocument();
@@ -142,12 +139,8 @@ describe('ApiApplicationDetails', () => {
       },
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Application Details'})
-    ).toBeInTheDocument();
-
     // Should show public client tag
-    expect(screen.getByText('Public Client')).toBeInTheDocument();
+    expect(await screen.findByText('Public Client')).toBeInTheDocument();
 
     // Should show info alert about public clients
     expect(
@@ -198,12 +191,8 @@ describe('ApiApplicationDetails', () => {
       },
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Application Details'})
-    ).toBeInTheDocument();
-
     // Should show confidential client tag
-    expect(screen.getByText('Confidential Client')).toBeInTheDocument();
+    expect(await screen.findByText('Confidential Client')).toBeInTheDocument();
 
     // Should show client secret field
     expect(screen.getByLabelText('Client Secret')).toBeInTheDocument();

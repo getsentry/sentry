@@ -1,4 +1,5 @@
 import type {DataUnit} from 'sentry/utils/discover/fields';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 
 type TraceMetricAggregation = 'avg' | 'sum' | 'max';
@@ -10,5 +11,5 @@ export function traceMetricField(
   metricType: TraceMetricTypeValue,
   unit: DataUnit
 ) {
-  return `${aggregation}(value,${name},${metricType},${unit ?? '-'})`;
+  return `${aggregation}(value,${name},${metricType},${unit ?? NONE_UNIT})`;
 }

@@ -6,8 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {PERMISSIONS_MAP} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
@@ -18,21 +17,19 @@ type Props = {
   disabledFromPermissions: boolean;
   isNew: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
-  organization: Organization;
   resource: Resource;
   webhookDisabled?: boolean;
 };
 
-function SubscriptionBox({
+export function SubscriptionBox({
   checked,
   disabledFromPermissions,
   isNew,
   onChange,
-  organization,
   resource,
   webhookDisabled = false,
 }: Props) {
-  const {features} = organization;
+  const {features} = useOrganization();
 
   if (
     resource === 'preprod_artifact' &&
@@ -89,8 +86,6 @@ function SubscriptionBox({
     </Tooltip>
   );
 }
-
-export default withOrganization(SubscriptionBox);
 
 const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;

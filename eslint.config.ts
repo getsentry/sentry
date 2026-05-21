@@ -141,11 +141,6 @@ const restrictedImportPaths = [
     message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
   },
   {
-    name: 'sentry/utils/withSentryRouter',
-    message:
-      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-  },
-  {
     name: 'qs',
     message: 'Please use query-string instead of qs',
   },
@@ -1409,6 +1404,8 @@ export default typescript.config([
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'error',
       ...(enableTypeAwareLinting && {
+        '@typescript-eslint/no-unsafe-argument': 'error',
+        '@typescript-eslint/no-unsafe-call': 'error',
         '@typescript-eslint/no-unsafe-return': 'error',
       }),
     },

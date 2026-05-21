@@ -277,7 +277,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return organization.features.includes('ourlogs-enabled');
       }
       if ([DataCategory.LOG_ITEM].includes(opt.value)) {
-        return organization.features.includes('ourlogs-stats');
+        return organization.features.includes('explore-dev-features');
       }
       if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
         return canUseMetricsStatsUI(organization);

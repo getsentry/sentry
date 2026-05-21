@@ -1,7 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ThemeFixture} from 'sentry-fixture/theme';
-
-import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {
   generateReleaseMarkLines,
@@ -13,24 +12,19 @@ const theme = ThemeFixture();
 describe('releases/detail/utils', () => {
   describe('generateReleaseMarkLines', () => {
     const {created, adopted, unadopted} = releaseMarkLinesLabels;
-    const {router} = initializeOrg();
+    const location = LocationFixture();
     const release = ReleaseFixture();
     const project = release.projects[0]!;
 
     it('generates "Created" markline', () => {
-      const marklines = generateReleaseMarkLines(
-        release,
-        project,
-        theme,
-        router.location
-      );
+      const marklines = generateReleaseMarkLines(release, project, theme, location);
 
       expect(marklines.map(markline => markline.seriesName)).toEqual([created]);
     });
 
     it('generates also Adoption marklines if exactly one env is selected', () => {
       const marklines = generateReleaseMarkLines(release, project, theme, {
-        ...router.location,
+        ...location,
         query: {environment: 'prod'},
       });
 
@@ -71,7 +65,7 @@ describe('releases/detail/utils', () => {
         {...project, platform: 'javascript'},
         theme,
         {
-          ...router.location,
+          ...location,
           query: {environment: 'prod'},
         }
       );
@@ -81,7 +75,7 @@ describe('releases/detail/utils', () => {
 
     it('shows only marklines that are in current time window', () => {
       const marklines = generateReleaseMarkLines(release, project, theme, {
-        ...router.location,
+        ...location,
         query: {
           environment: 'prod',
           pageStart: '2020-03-24T01:00:30Z',
@@ -97,7 +91,7 @@ describe('releases/detail/utils', () => {
         {...release, dateCreated: '2010-03-24T01:00:30Z'},
         project,
         theme,
-        router.location
+        location
       );
 
       expect(marklines).toEqual([]);

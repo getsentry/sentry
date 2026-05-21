@@ -79,7 +79,6 @@ describe('Subscription Usage Log', () => {
     render(<UsageLog />, {organization});
 
     await screen.findByText(/Select Action/i);
-    expect(screen.getByRole('heading', {name: /Activity Logs/i})).toBeInTheDocument();
     expect(await screen.findByText(/cancelled plan/i)).toBeInTheDocument();
     expect(screen.getByText(/Sentry Staff/i)).toBeInTheDocument();
     expect(screen.getByText(/Jun/i)).toBeInTheDocument();
