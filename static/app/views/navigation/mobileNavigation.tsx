@@ -32,7 +32,7 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-export function MobileNavigation() {
+function MobileNavigation() {
   const location = useLocation();
   const organization = useOrganization();
   const closeButtonRef = useRef<HTMLButtonElement>(null);

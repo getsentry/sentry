@@ -213,7 +213,6 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
-  const isMobilePageFrame = layout === 'mobile';
 
   const ariaLabel =
     layout === 'mobile'
@@ -269,7 +268,10 @@ function PrimaryNavigationUnreadIndicator({
   variant,
   ...props
 }: PrimaryNavigationUnreadIndicatorProps) {
-  const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = {top: '0', right: '0'};
+  const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = {
+    top: '0',
+    right: '0',
+  };
 
   return (
     <Container position="absolute" {...indicatorPosition}>
@@ -299,7 +301,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
-  const isMobilePageFrame = layout === 'mobile';
 
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -368,18 +369,12 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const {layout} = usePrimaryNavigation();
 
   return (
-    <Flex
-      align="center"
-      padding="xs"
-      justify="center"
-    >
+    <Flex align="center" padding="xs" justify="center">
       {p => (
         <ButtonWithOverflowVisible
           {...p}
           {...props}
-          {...(layout === 'mobile'
-            ? {variant: 'secondary'}
-            : {variant: props.variant})}
+          {...(layout === 'mobile' ? {variant: 'secondary'} : {variant: props.variant})}
         />
       )}
     </Flex>

@@ -118,11 +118,7 @@ describe('mobile navigation', () => {
         navigationContext()
       );
 
-      // Mobile nav opens to secondary by default; navigate back to see primary
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Back to primary navigation'})
-      );
 
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
       const links = within(primaryNav).getAllByRole('link');
@@ -175,7 +171,7 @@ describe('mobile navigation', () => {
       ).toBeInTheDocument();
     });
 
-    it('clicking back navigates to primary navigation', async () => {
+    it('shows primary and secondary navigation together', async () => {
       render(
         <PrimaryNavigationContextProvider>
           <Navigation />
@@ -186,19 +182,11 @@ describe('mobile navigation', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
 
       expect(
-        screen.getByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Back to primary navigation'})
-      );
-
-      expect(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('navigation', {name: 'Secondary Navigation'})
-      ).not.toBeInTheDocument();
+        screen.getByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
     });
   });
 });

@@ -64,7 +64,6 @@ export function Navigation() {
   const ref = useRef<HTMLUListElement | null>(null);
 
   const {layout} = usePrimaryNavigation();
-  const isMobilePageFrame = layout === 'mobile';
 
   useNavigationTourModal();
 
