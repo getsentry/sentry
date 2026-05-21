@@ -19,7 +19,7 @@ import {GridListOption, type GridListOptionProps} from './option';
 interface GridListSectionProps<T extends ListItemBase> {
   listState: ListState<T>;
   node: Node<T>;
-  size: GridListOptionProps['size'];
+  size: GridListOptionProps<T>['size'];
 }
 
 /**

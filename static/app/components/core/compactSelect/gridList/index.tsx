@@ -50,7 +50,7 @@ interface GridListProps<T extends ListItemBase>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  size?: GridListOptionProps['size'];
+  size?: GridListOptionProps<ListItemBase>['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */

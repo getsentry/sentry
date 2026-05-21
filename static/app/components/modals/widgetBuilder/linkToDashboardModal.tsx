@@ -149,24 +149,27 @@ export function LinkToDashboardModal({
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
           tooltipOptions: {position: 'right', isHoverable: true},
-        },
+        } satisfies SelectValue<string>,
         ...dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true
           )
-          .map(({title, id, widgetDisplay}) => ({
-            label: title,
-            value: id,
-            disabled: widgetDisplay.length >= MAX_WIDGETS,
-            tooltip:
-              widgetDisplay.length >= MAX_WIDGETS &&
-              tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                maxWidgets: MAX_WIDGETS,
-              }),
-            tooltipOptions: {position: 'right'},
-          })),
-      ].filter(Boolean) as Array<SelectValue<string>>;
+          .map(
+            ({title, id, widgetDisplay}) =>
+              ({
+                label: title,
+                value: id,
+                disabled: widgetDisplay.length >= MAX_WIDGETS,
+                tooltip:
+                  widgetDisplay.length >= MAX_WIDGETS &&
+                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  }),
+                tooltipOptions: {position: 'right'},
+              }) satisfies SelectValue<string>
+          ),
+      ].filter(Boolean);
     },
     [currentDashboardId, dashboards]
   );

@@ -79,7 +79,7 @@ const getStylesConfig = ({
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
   const indicatorStyles: StylesConfig['clearIndicator'] &
-    StylesConfig['loadingIndicator'] = (provided, state: any) => ({
+    StylesConfig['loadingIndicator'] = (provided, state: {isDisabled?: boolean}) => ({
     ...provided,
     padding: '0 4px 0 4px',
     alignItems: 'center',
@@ -639,13 +639,16 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       isClearable={clearable}
       backspaceRemovesValue={clearable}
       value={mappedValue}
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       isMulti={props.multiple || anyProps.multi}
       isDisabled={props.isDisabled || props.disabled}
       isOptionDisabled={opt => !!opt.disabled}
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus}
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       blurInputOnSelect={!props.multiple && !anyProps.multi}
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       closeMenuOnSelect={!(props.multiple || anyProps.multi)}
       hideSelectedOptions={false}
       tabSelectsValue={false}
