@@ -246,6 +246,19 @@ describe('TimeRangeSelector', () => {
     });
   });
 
+  it('selects the only visible arbitrary relative time range with Enter', async () => {
+    renderComponent();
+
+    await userEvent.click(screen.getByRole('button', {expanded: false}));
+    await userEvent.type(screen.getByRole('textbox'), '24h{Enter}');
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: '24h',
+      start: undefined,
+      end: undefined,
+    });
+  });
+
   it('respects maxPickableDays for defaults', async () => {
     renderComponent({maxPickableDays: 30});
 

@@ -42,6 +42,8 @@ import type {
 } from './types';
 import {getSearchConfig} from './utils';
 
+type SearchEnterHandler = () => boolean;
+
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
 // will defer the focus call until the next frame, after the browser and react
@@ -72,6 +74,7 @@ interface ControlContextValue {
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  registerSearchEnterHandler?: (handler: SearchEnterHandler) => () => void;
   /**
    * Custom function to determine whether an option matches the search query.
    */
@@ -260,6 +263,15 @@ export function Control({
   const [search, setSearch] = useState('');
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchEnterHandlerRef = useRef<SearchEnterHandler | null>(null);
+  const registerSearchEnterHandler = useCallback((handler: SearchEnterHandler) => {
+    searchEnterHandlerRef.current = handler;
+    return () => {
+      if (searchEnterHandlerRef.current === handler) {
+        searchEnterHandlerRef.current = null;
+      }
+    };
+  }, []);
   const updateSearch = (newValue: string) => {
     normalizedSearch?.onChange?.(newValue);
     setSearchInputValue(newValue);
@@ -282,6 +294,9 @@ export function Control({
       // Prevent form submissions on Enter key press in search box
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (searchEnterHandlerRef.current?.()) {
+          return;
+        }
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -475,8 +490,18 @@ export function Control({
       size,
       disabled,
       searchMatcher: searchFilter,
+      registerSearchEnterHandler,
     };
-  }, [overlayState, overlayIsOpen, search, searchEnabled, size, disabled, searchFilter]);
+  }, [
+    overlayState,
+    overlayIsOpen,
+    search,
+    searchEnabled,
+    size,
+    disabled,
+    searchFilter,
+    registerSearchEnterHandler,
+  ]);
 
   const theme = useTheme();
 

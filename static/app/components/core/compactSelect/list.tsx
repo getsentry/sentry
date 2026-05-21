@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useId, useMemo} from 'react';
+import {createContext, Fragment, useContext, useEffect, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -168,8 +168,14 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
-    useContext(ControlContext);
+  const {
+    overlayState,
+    search,
+    searchable,
+    overlayIsOpen,
+    searchMatcher,
+    registerSearchEnterHandler,
+  } = useContext(ControlContext);
 
   const {hidden: hiddenOptions, scores} = useMemo(
     () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
@@ -252,6 +258,42 @@ export function List<Value extends SelectKey>({
     ...listStateProps,
     items: sortedItems,
   });
+
+  const visibleOptionKeys = useMemo<SelectKey[]>(() => {
+    return [...listState.collection]
+      .flatMap(item => (item.type === 'section' ? [...item.childNodes] : [item]))
+      .map(item => item.key)
+      .filter(
+        key => !hiddenOptions.has(key) && !listState.selectionManager.isDisabled(key)
+      );
+  }, [hiddenOptions, listState.collection, listState.selectionManager]);
+
+  useEffect(() => {
+    return registerSearchEnterHandler?.(() => {
+      if (!searchable || !overlayIsOpen || visibleOptionKeys.length !== 1) {
+        return false;
+      }
+
+      const key = visibleOptionKeys[0];
+      if (key === undefined) {
+        return false;
+      }
+
+      if (multiple) {
+        listState.selectionManager.toggleSelection(key);
+      } else {
+        listState.selectionManager.replaceSelection(key);
+      }
+      return true;
+    });
+  }, [
+    listState.selectionManager,
+    multiple,
+    overlayIsOpen,
+    registerSearchEnterHandler,
+    searchable,
+    visibleOptionKeys,
+  ]);
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
