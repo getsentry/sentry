@@ -1,5 +1,5 @@
-import {lazy, useEffect, useMemo, useRef} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {lazy, useEffect, useRef} from 'react';
+import {skipToken, useQueries, useQueryClient} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,6 +65,7 @@ export function IssueDiff({
 }: IssueDiffProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const hasTrackedAnalytics = useRef(false);
 
   const hasSimilarityEmbeddingsFeature =
@@ -71,99 +73,115 @@ export function IssueDiff({
 
   const newestFirst = isStacktraceNewestFirst();
 
-  const baseLatestQuery = useQuery({
-    ...apiOptions.as<{eventID: string}>()(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          issueId: baseIssueId,
-          eventId: 'latest',
-        },
-        staleTime: 60_000,
-      }
-    ),
-    enabled: baseEventId === 'latest',
-  });
+  // Build "latest" query options to resolve event IDs when 'latest' is passed
+  const baseLatestQueryOptions = apiOptions.as<{eventID: string}>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+    {
+      path:
+        baseEventId === 'latest'
+          ? {
+              organizationIdOrSlug: organization.slug,
+              issueId: baseIssueId,
+              eventId: 'latest',
+            }
+          : skipToken,
+      staleTime: 60_000,
+    }
+  );
 
-  const targetLatestQuery = useQuery({
-    ...apiOptions.as<{eventID: string}>()(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          issueId: targetIssueId,
-          eventId: 'latest',
-        },
-        staleTime: 60_000,
-      }
-    ),
-    enabled: targetEventId === 'latest',
-  });
+  const targetLatestQueryOptions = apiOptions.as<{eventID: string}>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+    {
+      path:
+        targetEventId === 'latest'
+          ? {
+              organizationIdOrSlug: organization.slug,
+              issueId: targetIssueId,
+              eventId: 'latest',
+            }
+          : skipToken,
+      staleTime: 60_000,
+    }
+  );
+
+  // Read resolved event IDs from cache (populated after the "latest" queries resolve)
+  const cachedBaseLatest = queryClient.getQueryData<ApiResponse<{eventID: string}>>(
+    baseLatestQueryOptions.queryKey
+  );
+  const cachedTargetLatest = queryClient.getQueryData<ApiResponse<{eventID: string}>>(
+    targetLatestQueryOptions.queryKey
+  );
 
   const resolvedBaseEventId =
-    baseEventId === 'latest' ? baseLatestQuery.data?.eventID : baseEventId;
+    baseEventId !== 'latest' ? baseEventId : cachedBaseLatest?.json?.eventID;
   const resolvedTargetEventId =
-    targetEventId === 'latest' ? targetLatestQuery.data?.eventID : targetEventId;
+    targetEventId !== 'latest' ? targetEventId : cachedTargetLatest?.json?.eventID;
 
-  const baseEventQuery = useQuery({
-    ...apiOptions.as<Event>()(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          issueId: baseIssueId,
-          eventId: resolvedBaseEventId ?? '',
-        },
-        staleTime: 60_000,
-      }
-    ),
-    enabled: Boolean(resolvedBaseEventId),
-  });
-
-  const targetEventQuery = useQuery({
-    ...apiOptions.as<Event>()(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          issueId: targetIssueId,
-          eventId: resolvedTargetEventId ?? '',
-        },
-        staleTime: 60_000,
-      }
-    ),
-    enabled: Boolean(resolvedTargetEventId),
-  });
-
-  const {combinedBase, combinedTarget} = useMemo(
-    () => ({
-      combinedBase: getCombinedStacktrace({
-        event: baseEventQuery.data,
-        hasSimilarityEmbeddingsFeature,
-        newestFirst,
+  const {combinedBase, combinedTarget, isLoading, hasError, baseEventData, targetEventData} =
+    useQueries({
+      queries: [
+        // Query 0: resolve "latest" base event ID (skipped if a concrete ID was passed)
+        baseLatestQueryOptions,
+        // Query 1: resolve "latest" target event ID (skipped if a concrete ID was passed)
+        targetLatestQueryOptions,
+        // Query 2: fetch actual base event data (skipped until ID is available)
+        apiOptions.as<Event>()(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+          {
+            path: resolvedBaseEventId
+              ? {
+                  organizationIdOrSlug: organization.slug,
+                  issueId: baseIssueId,
+                  eventId: resolvedBaseEventId,
+                }
+              : skipToken,
+            staleTime: 60_000,
+          }
+        ),
+        // Query 3: fetch actual target event data (skipped until ID is available)
+        apiOptions.as<Event>()(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+          {
+            path: resolvedTargetEventId
+              ? {
+                  organizationIdOrSlug: organization.slug,
+                  issueId: targetIssueId,
+                  eventId: resolvedTargetEventId,
+                }
+              : skipToken,
+            staleTime: 60_000,
+          }
+        ),
+      ],
+      combine: ([baseLatest, targetLatest, baseEvent, targetEvent]) => ({
+        isLoading: baseEvent.isPending || targetEvent.isPending,
+        hasError:
+          baseLatest.isError ||
+          targetLatest.isError ||
+          baseEvent.isError ||
+          targetEvent.isError,
+        baseEventData: baseEvent.data,
+        targetEventData: targetEvent.data,
+        combinedBase: getCombinedStacktrace({
+          event: baseEvent.data,
+          hasSimilarityEmbeddingsFeature,
+          newestFirst,
+        }),
+        combinedTarget: getCombinedStacktrace({
+          event: targetEvent.data,
+          hasSimilarityEmbeddingsFeature,
+          newestFirst,
+        }),
       }),
-      combinedTarget: getCombinedStacktrace({
-        event: targetEventQuery.data,
-        hasSimilarityEmbeddingsFeature,
-        newestFirst,
-      }),
-    }),
-    [
-      baseEventQuery.data,
-      targetEventQuery.data,
-      hasSimilarityEmbeddingsFeature,
-      newestFirst,
-    ]
-  );
+    });
 
   useEffect(() => {
     if (
       hasTrackedAnalytics.current ||
       !organization ||
       !hasSimilarityEmbeddingsFeature ||
-      !baseEventQuery.data ||
-      !targetEventQuery.data
+      !baseEventData ||
+      !targetEventData
     ) {
       return;
     }
@@ -171,26 +189,18 @@ export function IssueDiff({
     hasTrackedAnalytics.current = true;
     trackAnalytics('issue_details.similar_issues.diff_clicked', {
       organization,
-      project_id: baseEventQuery.data?.projectID,
-      group_id: baseEventQuery.data?.groupID,
-      parent_group_id: targetEventQuery.data?.groupID,
+      project_id: baseEventData?.projectID,
+      group_id: baseEventData?.groupID,
+      parent_group_id: targetEventData?.groupID,
       shouldBeGrouped,
     });
   }, [
-    baseEventQuery.data,
+    baseEventData,
     hasSimilarityEmbeddingsFeature,
     organization,
     shouldBeGrouped,
-    targetEventQuery.data,
+    targetEventData,
   ]);
-
-  const hasError =
-    baseLatestQuery.isError ||
-    targetLatestQuery.isError ||
-    baseEventQuery.isError ||
-    targetEventQuery.isError;
-
-  const isLoading = baseEventQuery.isPending || targetEventQuery.isPending;
 
   if (hasError) {
     return (
