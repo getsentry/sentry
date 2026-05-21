@@ -73,11 +73,6 @@ export function RadioGroup<C extends string>({
         const disabledChoiceReason = disabledChoice?.[1];
         const disabled = !!disabledChoice || groupDisabled;
 
-        // TODO(epurkhiser): There should be a `name` and `label` attribute in
-        // the options type to allow for the aria label to work correctly. For
-        // now we slap a `toString` on there, but it may sometimes return
-        // [object Object] if the name is a react node.
-
         return (
           <Tooltip
             key={index}
@@ -89,7 +84,6 @@ export function RadioGroup<C extends string>({
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
                 name={groupName}
-                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
                 disabled={disabled}
                 checked={value === id}
                 onChange={e => !disabled && onChange(id, e)}
