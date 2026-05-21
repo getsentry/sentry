@@ -395,10 +395,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate_display_type(self, display_type):
         display_type_id = DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
-        # Reject display types that aren't in the dataset's config. widget_type
-        # is stashed on context by ``to_internal_value`` since field-level
-        # validators don't otherwise see other fields. TEXT widgets don't have
-        # a widget_type and are validated separately.
         widget_type_name = self.context.get("widget_type")
         if widget_type_name is not None and display_type_id is not None:
             widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
@@ -450,8 +446,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             additional_context["display_type"] = data.get("display_type")
         if data.get("widget_type"):
             additional_context["widget_type"] = data.get("widget_type")
-            # Field-level validators (validate_display_type) need widget_type
-            # too, but they only receive the single field value.
+            # Also expose to this serializer's field-level validators.
             self.context["widget_type"] = data.get("widget_type")
         if self.context.get("request") and self.context["request"].user:
             additional_context["user"] = self.context["request"].user
