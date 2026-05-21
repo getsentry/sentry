@@ -14,14 +14,13 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.event_search import QueryToken, SearchConfig, SearchFilter
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.autofix.utils import (
@@ -95,17 +94,19 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
     )
 
 
-def _valid_project_repos_queryset(project: Project, organization: Organization):
-    """Get a project's base SeerProjectRepository queryset for active repos with providers supported by Seer."""
+def _valid_project_repos_queryset(project: Project):
     return SeerProjectRepository.objects.filter(
         project_repository__project=project,
         project_repository__repository__status=ObjectStatus.ACTIVE,
-        project_repository__repository__provider__in=get_supported_scm_providers(organization),
+        project_repository__repository__provider__in=get_supported_scm_providers(
+            project.organization
+        ),
     ).select_related("project_repository", "project_repository__repository")
 
 
-def _validate_repo_ids(organization: Organization, repo_ids: list[int]) -> None:
+def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
     """Raise ValueError if any repo IDs are invalid, inactive, or have providers not supported by Seer."""
+    organization = project.organization
     valid_ids = set(
         Repository.objects.filter(
             id__in=repo_ids,
@@ -211,22 +212,17 @@ class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
 
 
 @cell_silo_endpoint
-class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
+class ProjectSeerRepoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (OrganizationPermission,)
 
-    def get(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def get(self, request: Request, project: Project, repo_id: int) -> Response:
         project_repo = (
-            _valid_project_repos_queryset(project, organization)
+            _valid_project_repos_queryset(project)
             .prefetch_related("branch_overrides")
             .filter(project_repository__repository_id=repo_id)
             .first()
@@ -236,11 +232,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         return Response(_serialize_project_repo(project_repo))
 
-    def put(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def put(self, request: Request, project: Project, repo_id: int) -> Response:
         serializer = SeerProjectRepoUpdateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -249,7 +241,7 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             project_repo = (
-                _valid_project_repos_queryset(project, organization)
+                _valid_project_repos_queryset(project)
                 .select_for_update()
                 .filter(project_repository__repository_id=repo_id)
                 .first()
@@ -269,14 +261,10 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
         return Response(_serialize_project_repo(project_repo))
 
-    def delete(
-        self, request: Request, organization: Organization, project_id: int, repo_id: int
-    ) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def delete(self, request: Request, project: Project, repo_id: int) -> Response:
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             deleted_count, _ = (
-                _valid_project_repos_queryset(project, organization)
+                _valid_project_repos_queryset(project)
                 .filter(project_repository__repository_id=repo_id)
                 .delete()
             )
@@ -288,22 +276,18 @@ class OrganizationSeerProjectRepoDetailsEndpoint(OrganizationEndpoint):
 
 
 @cell_silo_endpoint
-class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
+class ProjectSeerReposEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (OrganizationPermission,)
 
-    def get(self, request: Request, organization: Organization, project_id: int) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def get(self, request: Request, project: Project) -> Response:
         queryset = (
-            _valid_project_repos_queryset(project, organization)
+            _valid_project_repos_queryset(project)
             .prefetch_related("branch_overrides")
-            # Normalize provider by stripping the "integrations:" prefix.
             .annotate(
                 provider_normalized=Replace(
                     "project_repository__repository__provider", Value("integrations:"), Value("")
@@ -332,9 +316,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization: Organization, project_id: int) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def post(self, request: Request, project: Project) -> Response:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -344,7 +326,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
             return Response({"detail": "repos must not be empty."}, status=400)
 
         try:
-            _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
+            _validate_repo_ids(project, [d["repository_id"] for d in repos_data])
         except ValueError as e:
             return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
@@ -352,9 +334,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
 
         return Response(status=204)
 
-    def put(self, request: Request, organization: Organization, project_id: int) -> Response:
-        project = self.get_projects(request, organization, project_ids={int(project_id)})[0]
-
+    def put(self, request: Request, project: Project) -> Response:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -363,7 +343,7 @@ class OrganizationSeerProjectReposEndpoint(OrganizationEndpoint):
 
         if repos_data:
             try:
-                _validate_repo_ids(organization, [d["repository_id"] for d in repos_data])
+                _validate_repo_ids(project, [d["repository_id"] for d in repos_data])
             except ValueError as e:
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 

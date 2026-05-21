@@ -9,15 +9,15 @@ from sentry.seer.models.project_repository import (
 from sentry.testutils.cases import APITestCase
 
 
-class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repo-details"
+class ProjectSeerRepoGetTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repo"
 
     def detail_url(self, repo_id):
         return reverse(
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
                 "repo_id": repo_id,
             },
         )
@@ -77,8 +77,8 @@ class OrganizationSeerProjectRepoDetailsGetTest(APITestCase):
         self.get_error_response(status_code=404)
 
 
-class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repo-details"
+class ProjectSeerRepoPutTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repo"
     method = "put"
 
     def reverse_url(self):
@@ -86,7 +86,7 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
                 "repo_id": self.repo1.id,
             },
         )
@@ -236,8 +236,8 @@ class OrganizationSeerProjectRepoDetailsPutTest(APITestCase):
         assert project_repo.date_updated == original_date_updated
 
 
-class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repo-details"
+class ProjectSeerRepoDeleteTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repo"
     method = "delete"
 
     def reverse_url(self):
@@ -245,7 +245,7 @@ class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
                 "repo_id": self.repo1.id,
             },
         )
@@ -299,15 +299,15 @@ class OrganizationSeerProjectRepoDetailsDeleteTest(APITestCase):
         self.get_error_response(status_code=404)
 
 
-class OrganizationSeerProjectReposGetTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repos"
+class ProjectSeerReposGetTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repos"
 
     def reverse_url(self):
         return reverse(
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -451,8 +451,8 @@ class OrganizationSeerProjectReposGetTest(APITestCase):
         assert response.data[0]["name"] == "sentry"
 
 
-class OrganizationSeerProjectReposPostTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repos"
+class ProjectSeerReposPostTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repos"
     method = "post"
 
     def reverse_url(self):
@@ -460,7 +460,7 @@ class OrganizationSeerProjectReposPostTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -610,8 +610,8 @@ class OrganizationSeerProjectReposPostTest(APITestCase):
         )
 
 
-class OrganizationSeerProjectReposPutTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-project-repos"
+class ProjectSeerReposPutTest(APITestCase):
+    endpoint = "sentry-api-0-project-seer-repos"
     method = "put"
 
     def reverse_url(self):
@@ -619,7 +619,7 @@ class OrganizationSeerProjectReposPutTest(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "project_id": self.project.id,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
