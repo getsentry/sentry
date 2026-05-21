@@ -440,7 +440,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             audit_log_entry = AuditLogEntry.objects.filter(
@@ -532,30 +533,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "upsampled_count() is not allowed as user input" in str(resp.data)
         assert "Use count() instead" in str(resp.data)
 
-    def test_workflow_engine_serializer(self) -> None:
-        team = self.create_team(organization=self.organization, members=[self.user])
-        ProjectTeam.objects.create(project=self.project, team=team)
-        self.login_as(self.user)
-
-        with (
-            outbox_runner(),
-            self.feature(
-                [
-                    "organizations:incidents",
-                    "organizations:performance-view",
-                    "organizations:workflow-engine-metric-alert-endpoints-post",
-                ]
-            ),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **self.alert_rule_dict,
-            )
-
-        detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
-        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
-
     def test_create_alert_rule_aci(self) -> None:
         with (
             outbox_runner(),
@@ -573,7 +550,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         actions = AlertRuleTriggerAction.objects.filter(
             alert_rule_trigger__in=[trigger.id for trigger in triggers]
         )
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert_alert_rule_migrated(alert_rule, self.project.id)
         assert_alert_rule_trigger_migrated(triggers[0])
         assert_alert_rule_trigger_migrated(triggers[1])
@@ -647,7 +625,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
@@ -678,7 +657,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
@@ -712,7 +692,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
@@ -748,7 +729,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
@@ -794,7 +776,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
             assert "id" in resp.data
             alert_rule = AlertRule.objects.get(id=resp.data["id"])
-            assert resp.data == serialize(alert_rule, self.user)
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+            assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     @patch(
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
@@ -834,7 +817,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert (
             SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)
             .order_by("id")[0]
@@ -964,7 +948,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         assert "id" in resp1.data
         alert_rule1 = AlertRule.objects.get(id=resp1.data["id"])
-        assert resp1.data == serialize(alert_rule1, self.user)
+        detector1 = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule1.id)
+        assert resp1.data == serialize(detector1, self.user, WorkflowEngineDetectorSerializer())
         assert resp1.data["aggregate"] == "per_second(value,metric_name_one,counter,-)"
         assert (
             SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule1.snuba_query_id)
@@ -975,7 +960,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         assert "id" in resp2.data
         alert_rule2 = AlertRule.objects.get(id=resp2.data["id"])
-        assert resp2.data == serialize(alert_rule2, self.user)
+        detector2 = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule2.id)
+        assert resp2.data == serialize(detector2, self.user, WorkflowEngineDetectorSerializer())
         assert resp2.data["aggregate"] == "count(metric.name,metric_name_two,distribution,-)"
         assert (
             SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule2.snuba_query_id)
@@ -1091,7 +1077,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert alert_rule.snuba_query.query == "is:unresolved"
 
     def test_performance_score_function(self) -> None:
@@ -1145,7 +1132,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert alert_rule.snuba_query.query == "transaction.op:pageload"
         assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.fcp)"
 
@@ -1156,7 +1144,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 self.organization.slug, status_code=201, **self.alert_rule_dict
             )
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
         with self.feature("organizations:incidents"):
             resp = self.get_error_response(self.organization.slug, **self.alert_rule_dict)
@@ -1175,7 +1164,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     self.organization.slug, status_code=201, **self.alert_rule_dict
                 )
             alert_rule = AlertRule.objects.get(id=resp.data["id"])
-            assert resp.data == serialize(alert_rule, self.user)
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+            assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
             alert_rule_dict_2 = self.alert_rule_dict.copy()
             alert_rule_dict_2["name"] = "Test Rule 2"
@@ -1184,7 +1174,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     self.organization.slug, status_code=201, **alert_rule_dict_2
                 )
             alert_rule_2 = AlertRule.objects.get(id=resp.data["id"])
-            assert resp.data == serialize(alert_rule_2, self.user)
+            detector_2 = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule_2.id)
+            assert resp.data == serialize(detector_2, self.user, WorkflowEngineDetectorSerializer())
 
             alert_rule_dict_3 = self.alert_rule_dict.copy()
             alert_rule_dict_3["name"] = "Test Rule 3"
@@ -1193,7 +1184,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     self.organization.slug, status_code=201, **alert_rule_dict_3
                 )
             alert_rule_3 = AlertRule.objects.get(id=resp.data["id"])
-            assert resp.data == serialize(alert_rule_3, self.user)
+            detector_3 = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule_3.id)
+            assert resp.data == serialize(detector_3, self.user, WorkflowEngineDetectorSerializer())
 
             alert_rule_dict_4 = self.alert_rule_dict.copy()
             alert_rule_dict_4["name"] = "Test Rule 4"
@@ -1225,7 +1217,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_missing_sentry_app(self) -> None:
         # install it on another org
@@ -1508,7 +1501,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_no_triggers(self) -> None:
         rule_no_triggers = {
@@ -1757,7 +1751,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_success_response(self.organization.slug, status_code=201, **rule_data)
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -1911,7 +1906,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
             assert "id" in resp.data
             alert_rule = AlertRule.objects.get(id=resp.data["id"])
-            assert resp.data == serialize(alert_rule, self.user)
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+            assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
             test_params = {**self.alert_rule_dict, "dataset": "transactions"}
 
@@ -1952,7 +1948,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
                 assert "id" in resp.data
                 alert_rule = AlertRule.objects.get(id=resp.data["id"])
-                assert resp.data == serialize(alert_rule, self.user)
+                detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+                assert resp.data == serialize(
+                    detector, self.user, WorkflowEngineDetectorSerializer()
+                )
 
     def test_post_rule_256_char_name(self) -> None:
         char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"
@@ -2162,7 +2161,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert alert_rule.snuba_query.dataset == "transactions"
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert resp.data["aggregate"] == "count()"
         assert resp.data["dataset"] == "transactions"
         assert (
@@ -2387,7 +2387,8 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_simple_crash_rate_alerts_for_users(self) -> None:
         self.valid_alert_rule.update(
@@ -2401,7 +2402,8 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_simple_crash_rate_alerts_for_sessions_drops_event_types(self) -> None:
         self.valid_alert_rule["eventTypes"] = ["error"]
@@ -2411,7 +2413,8 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_simple_crash_rate_alerts_for_sessions_with_invalid_time_window(self) -> None:
         self.valid_alert_rule["timeWindow"] = "90"
