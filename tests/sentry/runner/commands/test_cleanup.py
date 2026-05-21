@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from io import BytesIO
+from typing import Any
 from unittest.mock import patch
 
 import click
@@ -11,6 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.runner.commands.cleanup import (
     _cleanup,
     generate_bulk_query_deletes,
@@ -397,14 +399,12 @@ class ExpiryDeletionsCodePathTest(TestCase):
 class RemoveOldNotificationMessagesTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        from sentry.notifications.models.notificationmessage import NotificationMessage
-
         self.NOTIFICATION_MESSAGE_TTL_IN_DAYS = 90
         self.NotificationMessage = NotificationMessage
         self.action = self.create_action()
         self.group = self.create_group()
 
-    def _create_message(self, days_old: int, **kwargs):
+    def _create_message(self, days_old: int, **kwargs: Any) -> NotificationMessage:
         from django.utils import timezone
 
         kwargs.setdefault("action", self.action)
