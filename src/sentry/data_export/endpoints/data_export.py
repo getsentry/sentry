@@ -50,7 +50,7 @@ SUPPORTED_DATASETS = {
 }
 
 logger = logging.getLogger(__name__)
-MAX_SYNC_LIMIT = 10_000
+MAX_EXPORT_LIMIT = 10_000
 
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
@@ -274,7 +274,7 @@ class DataExportEndpoint(OrganizationEndpoint):
             project_id = query_info["project"]
         return project_id
 
-    def _parse_limit(self, data: dict[str, Any]) -> tuple[int | None, bool]:
+    def _parse_limit(self, data: dict[str, Any]) -> tuple[int, bool]:
         limit = data.get("limit")
 
         if limit is not None:
@@ -282,10 +282,12 @@ class DataExportEndpoint(OrganizationEndpoint):
                 limit = int(limit)
             except (TypeError, ValueError):
                 limit = None
+
+        if limit is None or limit > MAX_EXPORT_LIMIT:
+            limit = MAX_EXPORT_LIMIT
+
         run_sync = (
-            limit is not None
-            and limit <= MAX_SYNC_LIMIT
-            and data["query_type"] == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
+            data["query_type"] == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
             and data["query_info"].get("dataset") == "logs"
         )
         return limit, run_sync
@@ -381,7 +383,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         self,
         data_export: ExportedData,
         environment_id: int | None,
-        limit: int | None,
+        limit: int,
         validated_data: dict[str, Any],
         run_sync: bool = False,
     ) -> None:
@@ -391,7 +393,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         if run_sync:
             export_data_to_stored_blobs_sync(
                 data_export=data_export,
-                export_limit=limit or MAX_SYNC_LIMIT,
+                export_limit=limit,
                 environment_id=environment_id,
             )
         else:
