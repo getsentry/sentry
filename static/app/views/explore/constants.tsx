@@ -99,6 +99,7 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'build_version',
   'git_base_ref',
   'git_head_ref',
+  'install_groups',
   'platform_name',
   'snapshot_status',
 ];
