@@ -216,10 +216,10 @@ export default function FeedbackListPage() {
   const pageContent = isMediumOrSmaller ? smallerScreenView : largeScreenView;
   const titleContent = (
     <Fragment>
-      {t(‘User Feedback’)}
+      {t('User Feedback')}
       <PageHeadingQuestionTooltip
         title={t(
-          ‘The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.’
+          'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
         )}
         docsUrl="https://docs.sentry.io/product/user-feedback/"
       />

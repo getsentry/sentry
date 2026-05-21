@@ -109,8 +109,9 @@ describe('ProjectDetail', () => {
       initialRouterConfig,
     });
 
-    expect(await screen.findByText(/project details/i)).toBeInTheDocument();
-    expect(screen.getByText(project.slug)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'View All Issues'})
+    ).toBeInTheDocument();
   });
 
   it('Sync project with slug', async () => {

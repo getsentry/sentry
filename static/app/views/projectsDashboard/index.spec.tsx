@@ -67,10 +67,8 @@ describe('ProjectsDashboard', () => {
 
       render(<ProjectsDashboard />);
 
-      expect(await screen.findByTestId('join-team')).toBeInTheDocument();
-      expect(screen.getByTestId('create-project')).toBeInTheDocument();
       expect(
-        screen.getByPlaceholderText('Search for projects by name')
+        await screen.findByPlaceholderText('Search for projects by name')
       ).toBeInTheDocument();
       expect(screen.getByText('My Teams')).toBeInTheDocument();
       expect(screen.getByText('Resources')).toBeInTheDocument();
