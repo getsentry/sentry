@@ -1,5 +1,6 @@
 import {DetailedEventsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -36,14 +37,18 @@ describe('Issues -> Merged View', () => {
   });
 
   it('renders merged groups', async () => {
-    const {organization, project, router} = initializeOrg({
+    const {organization, project} = initializeOrg({
       router: {
         params: {groupId: 'groupId'},
       },
     });
 
     render(
-      <GroupMergedView project={project} groupId={group.id} location={router.location} />,
+      <GroupMergedView
+        project={project}
+        groupId={group.id}
+        location={LocationFixture()}
+      />,
       {
         organization,
       }

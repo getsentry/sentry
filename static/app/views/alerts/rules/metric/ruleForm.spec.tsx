@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -67,7 +68,7 @@ describe('Incident Rules Form', () => {
     });
     organization = initialData.organization;
     project = initialData.project;
-    location = initialData.router.location;
+    location = LocationFixture();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
