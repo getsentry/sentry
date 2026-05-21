@@ -36,9 +36,7 @@ export function GridListSection<T extends ListItemBase>({
 
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
-    !!node.value &&
-    'showToggleAllButton' in node.value &&
-    !!node.value.showToggleAllButton;
+    node.value?.showToggleAllButton;
 
   const hiddenOptions = useContext(SelectFilterContext);
   const childNodes = useMemo(

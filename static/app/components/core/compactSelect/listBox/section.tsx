@@ -52,9 +52,7 @@ export function ListBoxSection<T extends ListItemBase>({
 
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
-    !!item.value &&
-    'showToggleAllButton' in item.value &&
-    !!item.value.showToggleAllButton;
+    item.value?.showToggleAllButton;
 
   const childItems = useMemo(
     () => [...item.childNodes].filter(child => !hiddenOptions.has(child.key)),
