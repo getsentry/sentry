@@ -260,11 +260,17 @@ export function GlobalModal({onClose}: Props) {
                   role="dialog"
                   aria-modal
                   css={options.modalCss}
-                  initial={hasPageFrame ? {opacity: 0, scale: 0.98} : {opacity: 0, y: -10}}
+                  initial={
+                    hasPageFrame ? {opacity: 0, scale: 0.98} : {opacity: 0, y: -10}
+                  }
                   animate={hasPageFrame ? {opacity: 1, scale: 1} : {opacity: 1, y: 0}}
                   exit={
                     hasPageFrame
-                      ? {opacity: 0, scale: 0.99, transition: theme.motion.framer.exit.fast}
+                      ? {
+                          opacity: 0,
+                          scale: 0.99,
+                          transition: theme.motion.framer.exit.fast,
+                        }
                       : {opacity: 0, y: 15}
                   }
                   transition={
