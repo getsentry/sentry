@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, NotRequired, TypedDict, cast
 
 from django.db.models import Count, Max, OuterRef, Subquery
+from rest_framework.exceptions import ParseError
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
@@ -105,12 +106,36 @@ class WorkflowGroupHistorySerializer(Serializer):
         return result
 
 
+_SORT_FIELD_MAP = {
+    "lastTriggered": "last_triggered",
+    "count": "count",
+}
+_DEFAULT_ORDER_BY = ("-last_triggered", "-count")
+
+
+def _parse_sort(sort: Sequence[str]) -> Sequence[str]:
+    if not sort:
+        return _DEFAULT_ORDER_BY
+
+    order_by: list[str] = []
+    for s in sort:
+        if s.startswith("-"):
+            prefix, field = "-", s[1:]
+        else:
+            prefix, field = "", s
+        if field not in _SORT_FIELD_MAP:
+            raise ParseError(detail=f"Invalid sort field: {field}")
+        order_by.append(f"{prefix}{_SORT_FIELD_MAP[field]}")
+    return order_by
+
+
 def fetch_workflow_groups_paginated(
     workflow: Workflow,
     start: datetime,
     end: datetime,
     cursor: Cursor | None = None,
     per_page: int = 25,
+    sort: Sequence[str] = (),
 ) -> CursorResult[WorkflowGroupHistory]:
     filtered_history = WorkflowFireHistory.objects.filter(
         workflow=workflow,
@@ -138,12 +163,13 @@ def fetch_workflow_groups_paginated(
 
     # Count distinct groups for pagination
     group_count = qs.count()
+    order_by = _parse_sort(sort)
 
     return cast(
         CursorResult[WorkflowGroupHistory],
         OffsetPaginator(
             qs,
-            order_by=("-count", "-last_triggered"),
+            order_by=order_by,
             on_results=convert_results,
         ).get_result(per_page, cursor, known_hits=group_count),
     )
