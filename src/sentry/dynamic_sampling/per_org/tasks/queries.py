@@ -6,13 +6,11 @@ from typing import Any
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
-from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
-from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -51,19 +49,13 @@ def get_eap_organization_volume(
     config: BaseDynamicSamplingConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> OrganizationDataVolume | None:
-    projects = list(
-        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
-    )
-    if not projects:
-        return None
-
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
     result = Spans.run_table_query(
         params=SnubaParams(
             start=start_time,
             end=end_time,
-            projects=projects,
+            projects=config.project_ids,
             organization=config.organization,
         ),
         query_string="is_transaction:true",
