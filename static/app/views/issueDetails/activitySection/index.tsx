@@ -149,11 +149,12 @@ function TimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const useComponentFunction =
-    iconMapping?.componentFunction &&
-    !(useTwoColumnLayout && item.type === GroupActivityType.NOTE);
-  const Icon = useComponentFunction
-    ? iconMapping.componentFunction({
+  const componentFunction =
+    useTwoColumnLayout && item.type === GroupActivityType.NOTE
+      ? undefined
+      : iconMapping?.componentFunction;
+  const Icon = componentFunction
+    ? componentFunction({
         data: item.data,
         user: item.user,
         sentry_app: item.sentry_app,
