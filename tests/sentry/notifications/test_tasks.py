@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -16,7 +17,7 @@ class DeleteOldNotificationMessagesTest(TestCase):
         self.action = self.create_action()
         self.group = self.create_group()
 
-    def _create_message(self, days_old: int, **kwargs) -> NotificationMessage:
+    def _create_message(self, days_old: int, **kwargs: Any) -> NotificationMessage:
         kwargs.setdefault("action", self.action)
         kwargs.setdefault("group", self.group)
         message = NotificationMessage.objects.create(**kwargs)
