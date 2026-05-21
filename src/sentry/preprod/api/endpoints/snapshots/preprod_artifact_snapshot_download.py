@@ -4,6 +4,7 @@ import logging
 import zipfile
 from collections import defaultdict
 from collections.abc import Generator
+from concurrent.futures import as_completed
 from io import BytesIO
 
 import orjson
@@ -32,7 +33,6 @@ from sentry.utils.zip import is_unsafe_path
 
 logger = logging.getLogger(__name__)
 
-FETCH_BATCH_SIZE = 200
 FETCH_MAX_WORKERS = 32
 
 
@@ -151,19 +151,20 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                     return (image_hash, None)
 
             try:
+                # as_completed() streams results as they finish rather than in
+                # submission order, so zip bytes flow to the client progressively
+                # instead of waiting for the slowest image in each batch.
                 with ContextPropagatingThreadPoolExecutor(
                     max_workers=FETCH_MAX_WORKERS
                 ) as executor:
-                    for batch_start in range(0, len(unique_hashes), FETCH_BATCH_SIZE):
-                        batch = unique_hashes[batch_start : batch_start + FETCH_BATCH_SIZE]
-
-                        for image_hash, data in executor.map(fetch_image, batch):
-                            if data is None:
-                                failed_count += 1
-                                continue
-                            for filename in hash_to_filenames[image_hash]:
-                                zf.writestr(filename, data)
-
+                    futures = [executor.submit(fetch_image, h) for h in unique_hashes]
+                    for future in as_completed(futures):
+                        image_hash, data = future.result()
+                        if data is None:
+                            failed_count += 1
+                            continue
+                        for filename in hash_to_filenames[image_hash]:
+                            zf.writestr(filename, data)
                         chunk = buf.drain()
                         if chunk:
                             yield chunk
