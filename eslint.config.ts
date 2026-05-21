@@ -141,11 +141,6 @@ const restrictedImportPaths = [
     message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
   },
   {
-    name: 'sentry/utils/withSentryRouter',
-    message:
-      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-  },
-  {
     name: 'qs',
     message: 'Please use query-string instead of qs',
   },
@@ -358,6 +353,14 @@ export default typescript.config([
             "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
           message:
             'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+        {
+          selector: "MemberExpression[object.name='React'][property.name='Fragment']",
+          message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+        },
+        {
+          selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
+          message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
         },
         {
           selector:
@@ -1401,6 +1404,7 @@ export default typescript.config([
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'error',
       ...(enableTypeAwareLinting && {
+        '@typescript-eslint/no-unsafe-argument': 'error',
         '@typescript-eslint/no-unsafe-return': 'error',
       }),
     },

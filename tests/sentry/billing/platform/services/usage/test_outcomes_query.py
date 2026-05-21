@@ -11,6 +11,7 @@ from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
 )
 from snuba_sdk import Column, Function, Op
 
+from sentry.billing.platform.services.category_mapping import sentry_to_proto_category
 from sentry.billing.platform.services.usage._outcomes_query import (
     _BILLABLE_OUTCOMES,
     _build_query,
@@ -115,13 +116,11 @@ class TestBuildResponse:
         assert len(response.days) == 1
         day = response.days[0]
         assert len(day.usage) == 3
-        assert day.usage[0].category == 1
-        assert day.usage[1].category == 2
-        assert day.usage[2].category == 9
 
-        assert day.usage[0].data.accepted == 100
-        assert day.usage[1].data.accepted == 50
-        assert day.usage[2].data.accepted == 25
+        usage_by_cat = {u.category: u.data.accepted for u in day.usage}
+        assert usage_by_cat[sentry_to_proto_category(1)] == 100
+        assert usage_by_cat[sentry_to_proto_category(2)] == 50
+        assert usage_by_cat[sentry_to_proto_category(9)] == 25
 
     def test_build_response_preserves_overlapping_semantics(self):
         """dropped >= over_quota + spike_protection — all values preserved as-is from query."""
