@@ -25,7 +25,6 @@ import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
@@ -37,8 +36,6 @@ type ProjectListItem = Project & {stats?: ProjectStats};
 
 function OrganizationProjects() {
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
-
   const navigate = useNavigate();
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
@@ -89,7 +86,7 @@ function OrganizationProjects() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Projects'), organization.slug, false)}
       />
-      <SettingsPageHeader title="Projects" action={hasPageFrame ? undefined : action} />
+      <SettingsPageHeader title="Projects" />
       <SearchWrapper>
         <Flex align="center" gap="md">
           <Container flex={1}>
@@ -102,7 +99,7 @@ function OrganizationProjects() {
               />
             )}
           </Container>
-          {hasPageFrame && action}
+          {action}
         </Flex>
       </SearchWrapper>
       <Panel>

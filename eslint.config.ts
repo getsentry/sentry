@@ -1404,6 +1404,8 @@ export default typescript.config([
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'error',
       ...(enableTypeAwareLinting && {
+        '@typescript-eslint/no-unsafe-argument': 'error',
+        '@typescript-eslint/no-unsafe-call': 'error',
         '@typescript-eslint/no-unsafe-return': 'error',
       }),
     },

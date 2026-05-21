@@ -6,71 +6,81 @@ import {SettingsBreadcrumb} from '.';
 
 jest.unmock('sentry/utils/recreateRoute');
 
-describe('BreadcrumbTitle', () => {
-  const testRoutes = [
-    {name: 'One', path: '/one/'},
-    {name: 'Two', path: '/two/'},
-    {name: 'Three', path: '/three/'},
-  ];
-
-  const routerConfig = {
-    location: {pathname: '/one/two/three'},
-    route: '/one',
+const routeChildren = [
+  {
+    path: 'one',
+    handle: {name: 'One', path: '/one/'},
     children: [
       {
         path: 'two',
-        handle: {path: '/two/', name: 'Two'},
+        handle: {name: 'Two', path: '/two/'},
+        element: <div />,
         children: [
           {
             path: 'three',
-            handle: {path: '/three/', name: 'Three'},
+            handle: {name: 'Three', path: '/three/'},
+            element: <div />,
           },
         ],
       },
     ],
-  };
+  },
+];
 
+describe('BreadcrumbTitle', () => {
   it('renders settings breadcrumbs and replaces title', () => {
     render(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={testRoutes} params={{}} />
+        <SettingsBreadcrumb params={{}} />
         <BreadcrumbTitle title="Last Title" />
       </BreadcrumbProvider>,
-      {initialRouterConfig: routerConfig}
+      {
+        initialRouterConfig: {
+          route: '/',
+          location: {pathname: '/one/two/three/'},
+          children: routeChildren,
+        },
+      }
     );
 
     const crumbs = screen.getAllByRole('link');
 
-    expect(crumbs).toHaveLength(3);
-    expect(crumbs[2]).toHaveTextContent('Last Title');
+    expect(crumbs).toHaveLength(2);
+    expect(screen.getByText('Last Title')).toBeInTheDocument();
   });
 
   it('cleans up routes', () => {
-    const upOneRoutes = testRoutes.slice(0, -1);
-
-    const {rerender} = render(
+    const {rerender, router} = render(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={testRoutes} params={{}} />
+        <SettingsBreadcrumb params={{}} />
         <BreadcrumbTitle title="Last Title" />
       </BreadcrumbProvider>,
-      {initialRouterConfig: routerConfig}
+      {
+        initialRouterConfig: {
+          route: '/',
+          location: {pathname: '/one/two/three/'},
+          children: routeChildren,
+        },
+      }
     );
 
     const crumbs = screen.getAllByRole('link');
 
-    expect(crumbs).toHaveLength(3);
-    expect(crumbs[2]).toHaveTextContent('Last Title');
+    expect(crumbs).toHaveLength(2);
+    expect(screen.getByText('Last Title')).toBeInTheDocument();
 
     // Simulate navigating up a level, trimming the last title
+    router.navigate('/one/two/');
+
     rerender(
       <BreadcrumbProvider>
-        <SettingsBreadcrumb routes={upOneRoutes} params={{}} />
+        <SettingsBreadcrumb params={{}} />
       </BreadcrumbProvider>
     );
 
     const crumbsNext = screen.getAllByRole('link');
 
-    expect(crumbsNext).toHaveLength(2);
-    expect(crumbsNext[1]).toHaveTextContent('Two');
+    expect(crumbsNext).toHaveLength(1);
+    expect(screen.getByText('Two')).toBeInTheDocument();
   });
 });

@@ -126,6 +126,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
         org = self.create_organization()
+        self.create_project(organization=org)
 
         with (
             patch(
@@ -145,6 +146,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_continues_with_traffic(self) -> None:
         org = self.create_organization()
+        self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
         with (
@@ -178,6 +180,24 @@ class SchedulePerOrgCalculationsTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
+        get_volume.assert_not_called()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_run_calculations_per_org_skips_org_without_projects(self) -> None:
+        org = self.create_organization()
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+            ) as get_volume,
+        ):
+            result = run_calculations_per_org_task(org.id)
+
+        assert result == DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
         get_volume.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})

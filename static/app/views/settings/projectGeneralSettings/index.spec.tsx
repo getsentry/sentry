@@ -283,11 +283,10 @@ describe('projectGeneralSettings', () => {
       initialRouterConfig,
     });
 
-    // Wait for the component to load
-    await screen.findByRole('heading', {name: 'Project Settings'});
-
     expect(
-      screen.getByText('You do not have the required permission to remove this project.')
+      await screen.findByText(
+        'You do not have the required permission to remove this project.'
+      )
     ).toBeInTheDocument();
     expect(
       screen.getByText(

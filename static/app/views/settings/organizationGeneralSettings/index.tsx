@@ -23,12 +23,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
-import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import {OrganizationSettingsForm} from './organizationSettingsForm';
 
@@ -37,8 +35,6 @@ export default function OrganizationGeneralSettings() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const removeConfirmMessage = (
     <Fragment>
       <TextBlock>
@@ -109,14 +105,7 @@ export default function OrganizationGeneralSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader
-          title={t('Organization Settings')}
-          action={
-            hasPageFrameFeature ? undefined : (
-              <OrganizationRegionAction organization={organization} />
-            )
-          }
-        />
+        <SettingsPageHeader title={t('Organization Settings')} />
         <OrganizationPermissionAlert />
 
         <OrganizationSettingsForm
