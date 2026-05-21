@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -143,7 +143,7 @@ export function MetricDetails({
           ) : null}
           <LogAttributeTreeWrapper>
             <Stack gap="md">
-              <Text bold>Attributes</Text>
+              <Text bold>{t('Attributes')}</Text>
               {visibleAttributes.length > 0 ? (
                 <AttributesTree
                   attributes={visibleAttributes}
@@ -186,7 +186,7 @@ function MetricDetailsTraceSummary({
   return (
     <Fragment>
       <Stack paddingLeft="md" paddingRight="md" paddingTop="sm">
-        <Text bold>Trace Summary</Text>
+        <Text bold>{t('Trace Summary')}</Text>
         <Flex radius="md" paddingRight="lg" paddingTop="sm" gap="lg">
           <MetricDetailsTraceSummaryContent
             traceMeta={traceMeta}
@@ -229,7 +229,12 @@ function MetricDetailsTraceSummaryContent({
 
   return (
     <Text size="sm" monospace variant="secondary">
-      Errors: {errors}, Logs: {logs}, Spans: {spans}, Metrics: {metrics}
+      {tct('Errors: [errors], Logs: [logs], Spans: [spans], Metrics: [metrics]', {
+        errors,
+        logs,
+        spans,
+        metrics,
+      })}
     </Text>
   );
 }
