@@ -786,8 +786,9 @@ function LogRowDetailsActions({
   const organization = useOrganization();
   const showFilterButtons = !isFrozen;
   const message = String(
-    data?.attributes?.find(attr => attr.name === OurLogKnownFieldKey.MESSAGE)?.value ||
-      tableDataRow[OurLogKnownFieldKey.MESSAGE]
+    data?.attributes?.find(attr => attr.name === OurLogKnownFieldKey.MESSAGE)?.value ??
+      tableDataRow[OurLogKnownFieldKey.MESSAGE] ??
+      ''
   );
 
   const {copy} = useCopyToClipboard();
