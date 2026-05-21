@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import jsonschema
@@ -105,6 +106,8 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
 }
 
 _SENTRY_CLI_UA_PREFIX = "sentry-cli/"
+_GRADLE_PLUGIN_UA_PREFIX = "sentry-gradle-plugin/"
+_FASTLANE_PLUGIN_UA_PREFIX = "sentry-fastlane-plugin/"
 
 _COMPACT_FIELDS = {"display_name", "image_file_name", "group", "description"}
 _COMPACT_IMAGE_LIST_KEYS = ("images", "added", "removed", "unchanged", "skipped")
@@ -136,13 +139,30 @@ def build_snapshot_image_response(
     )
 
 
-def _parse_cli_version(user_agent: str) -> str | None:
-    """Extract version from a ``sentry-cli/X.Y.Z`` user-agent string."""
-    if not user_agent.startswith(_SENTRY_CLI_UA_PREFIX):
-        return None
-    version_part = user_agent[len(_SENTRY_CLI_UA_PREFIX) :]
-    version = version_part.split(" ", 1)[0]
-    return version or None
+@dataclass
+class _ToolVersions:
+    cli_version: str | None = None
+    gradle_plugin_version: str | None = None
+    fastlane_plugin_version: str | None = None
+
+
+def _parse_tool_versions(user_agent: str) -> _ToolVersions:
+    """Extract tool versions from a user-agent string.
+
+    Formats:
+      ``sentry-cli/X.Y.Z``
+      ``sentry-cli/X.Y.Z sentry-gradle-plugin/A.B.C``
+      ``sentry-cli/X.Y.Z sentry-fastlane-plugin/A.B.C``
+    """
+    versions = _ToolVersions()
+    for part in user_agent.split():
+        if part.startswith(_SENTRY_CLI_UA_PREFIX):
+            versions.cli_version = part[len(_SENTRY_CLI_UA_PREFIX) :] or None
+        elif part.startswith(_GRADLE_PLUGIN_UA_PREFIX):
+            versions.gradle_plugin_version = part[len(_GRADLE_PLUGIN_UA_PREFIX) :] or None
+        elif part.startswith(_FASTLANE_PLUGIN_UA_PREFIX):
+            versions.fastlane_plugin_version = part[len(_FASTLANE_PLUGIN_UA_PREFIX) :] or None
+    return versions
 
 
 def validate_preprod_snapshot_post_schema(
@@ -624,14 +644,16 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     },
                 )
 
-            cli_version = _parse_cli_version(request.META.get("HTTP_USER_AGENT", ""))
+            tool_versions = _parse_tool_versions(request.META.get("HTTP_USER_AGENT", ""))
 
             artifact = PreprodArtifact.objects.create(
                 project=project,
                 state=PreprodArtifact.ArtifactState.UPLOADED,
                 app_id=app_id,
                 commit_comparison=commit_comparison,
-                cli_version=cli_version,
+                cli_version=tool_versions.cli_version,
+                gradle_plugin_version=tool_versions.gradle_plugin_version,
+                fastlane_plugin_version=tool_versions.fastlane_plugin_version,
             )
 
             manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"

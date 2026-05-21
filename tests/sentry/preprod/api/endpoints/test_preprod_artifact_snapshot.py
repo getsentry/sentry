@@ -85,7 +85,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
         assert artifact.cli_version == "2.40.0"
 
-    def test_snapshot_upload_stores_cli_version_with_pipeline_env(self) -> None:
+    def test_snapshot_upload_stores_gradle_plugin_version(self) -> None:
         url = self._get_create_url()
         data = {
             "app_id": "com.example.app",
@@ -105,12 +105,43 @@ class ProjectPreprodSnapshotTest(APITestCase):
                 url,
                 data,
                 format="json",
-                HTTP_USER_AGENT="sentry-cli/2.40.0 GitHub-Actions",
+                HTTP_USER_AGENT="sentry-cli/2.40.0 sentry-gradle-plugin/5.0.0",
             )
 
         assert response.status_code == 200
         artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
         assert artifact.cli_version == "2.40.0"
+        assert artifact.gradle_plugin_version == "5.0.0"
+        assert artifact.fastlane_plugin_version is None
+
+    def test_snapshot_upload_stores_fastlane_plugin_version(self) -> None:
+        url = self._get_create_url()
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "abc123": {
+                    "content_hash": "abc123",
+                    "display_name": "Screen",
+                    "image_file_name": "screen.png",
+                    "width": 100,
+                    "height": 200,
+                },
+            },
+        }
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(
+                url,
+                data,
+                format="json",
+                HTTP_USER_AGENT="sentry-cli/2.40.0 sentry-fastlane-plugin/2.5.1",
+            )
+
+        assert response.status_code == 200
+        artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        assert artifact.cli_version == "2.40.0"
+        assert artifact.fastlane_plugin_version == "2.5.1"
+        assert artifact.gradle_plugin_version is None
 
     def test_snapshot_upload_no_cli_version_for_unknown_user_agent(self) -> None:
         url = self._get_create_url()
