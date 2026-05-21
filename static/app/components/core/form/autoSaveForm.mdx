@@ -26,14 +26,14 @@ For traditional submit-based forms, see [Form](./form.mdx).
 </Storybook.Demo>
 
 ```jsx
-import { z } from "zod";
+import {z} from 'zod';
 
-import { AutoSaveForm } from "@sentry/scraps/form";
+import {AutoSaveForm} from '@sentry/scraps/form';
 
-import { fetchMutation } from "sentry/utils/queryClient";
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 const schema = z.object({
-  displayName: z.string().min(1, "Display name is required"),
+  displayName: z.string().min(1, 'Display name is required'),
 });
 
 <AutoSaveForm
@@ -41,14 +41,13 @@ const schema = z.object({
   schema={schema}
   initialValue={user.displayName}
   mutationOptions={{
-    mutationFn: (data: Partial<User>) =>
-      fetchMutation({ url: "/user/", method: "PUT", data }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["user"], (old) => ({ ...old, ...data }));
+    mutationFn: (data: Partial<User>) => fetchMutation({url: '/user/', method: 'PUT', data}),
+    onSuccess: data => {
+      queryClient.setQueryData(['user'], old => ({...old, ...data}));
     },
   }}
 >
-  {(field) => (
+  {field => (
     <field.Layout.Row label="Display Name">
       <field.Input value={field.state.value} onChange={field.handleChange} />
     </field.Layout.Row>
@@ -98,7 +97,7 @@ const schema = z.object({
 
 ```jsx
 const schema = z.object({
-  highlightContext: z.string().transform((value) => JSON.parse(value)),
+  highlightContext: z.string().transform(value => JSON.parse(value)),
 });
 
 <AutoSaveForm
@@ -106,16 +105,16 @@ const schema = z.object({
   schema={schema}
   initialValue="{}"
   mutationOptions={{
-    mutationFn: (data: { highlightContext: Record<string, string[]> }) =>
-      fetchMutation({ url: "/project/", method: "PUT", data }),
+    mutationFn: (data: {highlightContext: Record<string, string[]>}) =>
+      fetchMutation({url: '/project/', method: 'PUT', data}),
   }}
 >
-  {(field) => (
+  {field => (
     <field.Layout.Row label="Highlight Context">
       <field.TextArea value={field.state.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
-</AutoSaveForm>;
+</AutoSaveForm>
 ```
 
 ## Confirmation Dialogs
@@ -156,11 +155,11 @@ Type the `mutationFn` with the API's data type, **not** the zod schema type. The
 ```jsx
 // ❌ Don't tie mutation type to the zod schema
 mutationFn: (data: Partial<z.infer<typeof schema>>) =>
-  fetchMutation({ url: "/user/", method: "PUT", data });
+  fetchMutation({url: '/user/', method: 'PUT', data})
 
 // ✅ Use the API's data type
 mutationFn: (data: Partial<UserDetails>) =>
-  fetchMutation({ url: "/user/", method: "PUT", data });
+  fetchMutation({url: '/user/', method: 'PUT', data})
 ```
 
 Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
