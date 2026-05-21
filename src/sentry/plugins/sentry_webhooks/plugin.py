@@ -138,7 +138,14 @@ class WebHooksPlugin(notify.NotificationPlugin):
                     tags={"outcome": LegacyWebhookOutcome.SENT},
                     sample_rate=1.0,
                 )
-            except (RestrictedIPAddress, ConnectionError, ReadTimeout, ApiError):
+            except (RestrictedIPAddress, ApiError):
+                metrics.incr(
+                    "legacy_webhook.plugin.send",
+                    tags={"outcome": LegacyWebhookOutcome.ERROR},
+                    sample_rate=1.0,
+                )
+                raise
+            except (ConnectionError, ReadTimeout):
                 metrics.incr(
                     "legacy_webhook.plugin.send",
                     tags={"outcome": LegacyWebhookOutcome.ERROR},
