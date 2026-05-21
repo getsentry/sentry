@@ -20,6 +20,7 @@ figma.connect(
         beta: 'beta',
         new: 'new',
         experimental: 'experimental',
+        // No figma for 'debug'.
       }),
     },
     example: props => <FeatureBadge type={props.type} />,
