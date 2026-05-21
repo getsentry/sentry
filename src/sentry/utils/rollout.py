@@ -327,7 +327,7 @@ class SafeRolloutComparator:
     def check_and_choose_with_timings(
         cls,
         control_data_func: Callable[[], TData],
-        experimental_thunk: Callable[[], TData],
+        experimental_data_func: Callable[[], TData],
         callsite: str,
         null_result_determiner: Callable[[TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
@@ -363,7 +363,7 @@ class SafeRolloutComparator:
                 "branch": "experimental",
             },
         ):
-            experimental_data = experimental_thunk()
+            experimental_data = experimental_data_func()
 
         is_experimental_data_nullish = None
         if null_result_determiner is not None:

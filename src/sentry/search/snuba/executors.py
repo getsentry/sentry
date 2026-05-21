@@ -564,7 +564,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             try:
                 return EAPOccurrencesComparator.check_and_choose_with_timings(
                     control_data_func=_run_snuba_query,
-                    experimental_thunk=_run_eap_query,
+                    experimental_data_func=_run_eap_query,
                     callsite=callsite,
                     null_result_determiner=lambda r: len(r[0]) == 0,
                     reasonable_match_comparator=_reasonable_search_result_match,
