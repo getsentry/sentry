@@ -193,9 +193,10 @@ export function ExplorerDrawerHeader({
           <CompactSelect
             options={sessionOptions}
             value={undefined}
+            disabled={false}
             onChange={option => onChangeSession(option.value)}
             onOpenChange={onHistoryOpenChange}
-            loading={isFetching}
+            loading={isFetching || search !== debouncedSearch}
             emptyMessage={
               isError
                 ? t('Error loading session history.')
