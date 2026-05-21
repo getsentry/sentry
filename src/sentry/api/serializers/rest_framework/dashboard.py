@@ -150,6 +150,7 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
         | frozenset(
             {
                 DashboardWidgetDisplayTypes.DETAILS,
+                DashboardWidgetDisplayTypes.SERVER_TREE,
                 # WHEEL is used by built-in performance-score widgets.
                 DashboardWidgetDisplayTypes.WHEEL,
             }
@@ -442,12 +443,15 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         queries_serializer = self.fields["queries"]
         additional_context = {}
 
+        # Always reset; with ``many=True`` DRF reuses one child serializer
+        # instance across items, so stale values would otherwise leak between
+        # widgets in the same request.
+        self.context["widget_type"] = data.get("widget_type")
+
         if data.get("display_type"):
             additional_context["display_type"] = data.get("display_type")
         if data.get("widget_type"):
             additional_context["widget_type"] = data.get("widget_type")
-            # Also expose to this serializer's field-level validators.
-            self.context["widget_type"] = data.get("widget_type")
         if self.context.get("request") and self.context["request"].user:
             additional_context["user"] = self.context["request"].user
 
