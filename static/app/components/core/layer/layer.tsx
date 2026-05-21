@@ -5,7 +5,7 @@ import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 
 type LayerVariant = 'content' | 'nav' | 'overlay';
 
-export interface LayerContextValue {
+interface LayerContextValue {
   depth: number;
   portalOutlet: HTMLElement | null;
   variant: LayerVariant | null;
