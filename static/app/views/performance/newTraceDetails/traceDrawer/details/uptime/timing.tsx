@@ -5,6 +5,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -38,6 +39,7 @@ export function UptimeTimingDetails(
   const {op, description, duration, start_timestamp, end_timestamp} = node.value;
 
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const theme = useTheme();
 
@@ -85,6 +87,7 @@ export function UptimeTimingDetails(
           attributes={attributes}
           rendererExtra={{
             location,
+            navigate,
             organization,
             theme,
           }}

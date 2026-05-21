@@ -1171,6 +1171,7 @@ function ViewerTableV2({
 
           return {
             location,
+            navigate,
             organization,
             theme,
             unit,
