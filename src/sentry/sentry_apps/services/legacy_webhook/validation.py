@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from typing import Any
 
 from sentry.utils.payload_comparison import ParityChecker, describe_value
@@ -9,15 +8,15 @@ from sentry.utils.payload_comparison import ParityChecker, describe_value
 logger = logging.getLogger("sentry.legacy_webhook")
 
 
-def compare_payloads(old_payload: Mapping[str, Any], new_payload: Mapping[str, Any]) -> list[str]:
+def compare_payloads(old_payload: dict[str, Any], new_payload: dict[str, Any]) -> list[str]:
     comparator = ParityChecker(format_value=describe_value)
     comparator.compare(old_payload, new_payload, frozenset())
     return comparator.mismatches
 
 
 def validate_payload_equivalence(
-    old_payload: Mapping[str, Any],
-    new_payload: Mapping[str, Any],
+    old_payload: dict[str, Any],
+    new_payload: dict[str, Any],
     organization_id: int,
     project_id: int,
 ) -> None:

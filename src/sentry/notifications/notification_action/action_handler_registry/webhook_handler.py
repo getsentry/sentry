@@ -3,7 +3,9 @@ from typing import override
 
 from sentry import features
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.sentry_apps.services.legacy_webhook.service import (
+    _get_triggering_rule_name,
     build_legacy_webhook_payload,
     send_legacy_webhooks_for_invocation,
 )
@@ -17,9 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_webhook_payloads(invocation: ActionInvocation) -> None:
-    from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
-    from sentry.sentry_apps.services.legacy_webhook.service import _get_triggering_rule_name
-
     group = invocation.event_data.group
     event = invocation.event_data.event
     rule_name = _get_triggering_rule_name(invocation)
