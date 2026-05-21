@@ -182,20 +182,20 @@ export function ConversationAggregatesBar({
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map((name, index) => {
-              const isLast =
-                index === Math.min(VISIBLE_TOOL_COUNT, aggregates.toolNames.length) - 1;
-              return (
-                <Tooltip key={name} title={name} showOnlyOnOverflow skipWrapper>
-                  <Tag
-                    variant="info"
-                    style={isLast ? {flexShrink: 1, minWidth: 0} : {flexShrink: 0}}
-                  >
-                    {name}
-                  </Tag>
-                </Tooltip>
-              );
-            })}
+            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map((name, index, arr) => (
+              <Tooltip key={name} title={name} showOnlyOnOverflow skipWrapper>
+                <Tag
+                  variant="info"
+                  style={
+                    index === arr.length - 1
+                      ? {flexShrink: 1, minWidth: 0}
+                      : {flexShrink: 0}
+                  }
+                >
+                  {name}
+                </Tag>
+              </Tooltip>
+            ))}
             {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
               <Tooltip
                 title={
