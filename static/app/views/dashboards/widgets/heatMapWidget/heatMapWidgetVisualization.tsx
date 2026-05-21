@@ -89,9 +89,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     if (typeof data === 'number') {
       return data;
     }
-    if (typeof data === 'string') {
-      return parseFloat(data);
-    }
 
     const value = (data as {value?: unknown} | null | undefined)?.value;
     return typeof value === 'number' ? value : null;
