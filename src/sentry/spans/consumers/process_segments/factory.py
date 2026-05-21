@@ -13,6 +13,8 @@ from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 from django.conf import settings
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -27,7 +29,7 @@ from sentry.utils.kafka_config import get_topic_definition
 logger = logging.getLogger(__name__)
 
 
-def get_dedupe_redis_client():
+def get_dedupe_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     cluster = settings.SENTRY_SPAN_DEDUPE_CLUSTER or settings.SENTRY_SPAN_BUFFER_CLUSTER
     return redis.redis_clusters.get_binary(cluster)
 
