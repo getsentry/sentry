@@ -116,7 +116,12 @@ describe('getFieldRenderer', () => {
     const renderer = getFieldRenderer('numeric', {numeric: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
@@ -127,7 +132,12 @@ describe('getFieldRenderer', () => {
     data.url = ['https://example.com/old', 'https://example.com/new'];
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('https://example.com/new')).toBeInTheDocument();
@@ -138,7 +148,12 @@ describe('getFieldRenderer', () => {
     data.url = ['old-value', 'latest-value'];
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('latest-value')).toBeInTheDocument();
