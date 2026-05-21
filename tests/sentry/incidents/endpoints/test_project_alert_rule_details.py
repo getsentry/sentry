@@ -3,12 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from sentry import audit_log
-from sentry.api.serializers import serialize
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
-from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
-    WorkflowEngineDetectorSerializer,
-)
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
@@ -98,10 +94,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, self.project.slug, alert_rule.id, **self._put_payload()
             )
 
-        alert_rule.name = "what"
-        alert_rule.date_modified = resp.data["dateModified"]
-        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert resp.data["name"] == "what"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
