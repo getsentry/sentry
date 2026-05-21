@@ -15,17 +15,20 @@ type Props = {
   replayId?: string;
 };
 
+const REPLAY_LOGS_PLACEHOLDER = t('Search on log levels, messages, and more');
+
 export function OurLogFilters({replayId, searchQueryBuilderProps}: Props) {
-  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
-    searchQueryBuilderProps
-  );
+  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
+    ...searchQueryBuilderProps,
+    placeholder: REPLAY_LOGS_PLACEHOLDER,
+  });
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <StyledFiltersGrid>
         <TraceItemSearchQueryBuilder
           {...searchQueryBuilderProps}
-          placeholder={t('Search on log levels, messages, and more')}
+          placeholder={REPLAY_LOGS_PLACEHOLDER}
         />
         <OpenInLogsButton replayId={replayId} />
       </StyledFiltersGrid>

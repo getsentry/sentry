@@ -280,6 +280,30 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
   });
 
+  it('uses a custom placeholder when provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        placeholder: 'Custom placeholder text',
+      },
+      organization,
+    });
+
+    expect(result.current.placeholder).toBe('Custom placeholder text');
+  });
+
+  it('falls back to the default placeholder for logs when no placeholder is provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.LOGS,
+      },
+      organization,
+    });
+
+    expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
+  });
+
   it('calls validateQuery when a new filter key is added', async () => {
     const validateMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/validate/',
