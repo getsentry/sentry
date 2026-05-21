@@ -40,11 +40,19 @@ export function ArtifactLoadingDetails({
           }
 
           if (block.message.content && block.message.content !== 'Thinking...') {
-            return <Markdown key={index} raw={block.message.content} />;
+            return (
+              <Markdown key={index} raw={block.message.content} variant="streaming" />
+            );
           }
 
           if (block.message.thinking_content) {
-            return <Markdown key={index} raw={block.message.thinking_content} />;
+            return (
+              <Markdown
+                key={index}
+                raw={block.message.thinking_content}
+                variant="streaming"
+              />
+            );
           }
 
           return null;
