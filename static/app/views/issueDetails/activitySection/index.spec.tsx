@@ -226,6 +226,57 @@ describe('ActivitySection', () => {
     expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
   });
 
+  it('does not render user avatar as icon for notes in two-column layout', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'User note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('User note')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
+    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+  });
+
+  it('renders provider-specific icon for create issue in two-column layout', async () => {
+    const createIssueGroup = GroupFixture({
+      id: '1345',
+      activity: [
+        {
+          type: GroupActivityType.CREATE_ISSUE,
+          id: 'create-issue-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            provider: 'GitHub',
+            location: 'https://github.com/org/repo/issues/1',
+            title: 'Test Issue',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={createIssueGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('Test Issue')).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-add')).not.toBeInTheDocument();
+  });
+
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 

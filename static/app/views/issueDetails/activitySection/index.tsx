@@ -82,6 +82,7 @@ function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
     case GroupActivityType.SET_RESOLVED_BY_AGE:
     case GroupActivityType.SET_RESOLVED_IN_RELEASE:
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
+    case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST:
     case GroupActivityType.MARK_REVIEWED:
     case GroupActivityType.SEER_RCA_COMPLETED:
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
@@ -148,14 +149,16 @@ function TimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const Icon =
-    !useTwoColumnLayout && iconMapping?.componentFunction
-      ? iconMapping.componentFunction({
-          data: item.data,
-          user: item.user,
-          sentry_app: item.sentry_app,
-        })
-      : (iconMapping?.Component ?? null);
+  const useComponentFunction =
+    iconMapping?.componentFunction &&
+    !(useTwoColumnLayout && item.type === GroupActivityType.NOTE);
+  const Icon = useComponentFunction
+    ? iconMapping.componentFunction({
+        data: item.data,
+        user: item.user,
+        sentry_app: item.sentry_app,
+      })
+    : (iconMapping?.Component ?? null);
 
   return (
     <ActivityTimelineItem
@@ -376,6 +379,7 @@ export function ActivitySection({
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
+  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem
@@ -453,6 +457,7 @@ export function ActivitySection({
                     {t('View %s more', filteredActivities.length - 3)}
                   </LinkButton>
                 }
+                marker={useTwoColumnLayout ? <span /> : undefined}
                 icon={<RotatedEllipsisIcon direction="up" />}
               />
             </Fragment>
