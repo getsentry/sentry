@@ -148,7 +148,7 @@ function SpecialPermissionField({
         onChange: formOnChange,
       }: {
         id: string;
-        onChange: (...args: any[]) => void;
+        onChange: (value: boolean, event: ChangeEvent<HTMLInputElement>) => void;
       }) => {
         const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
           formOnChange(event.target.checked, event);
