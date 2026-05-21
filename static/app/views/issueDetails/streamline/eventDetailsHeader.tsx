@@ -38,10 +38,7 @@ import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/iss
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
-import {
-  shortenRelativeDate,
-  useGroupDefaultStatsPeriod,
-} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
+import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -190,9 +187,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             !defaultStatsPeriod.isMaxRetention &&
                             shouldShowSinceFirstSeenOption
                               ? tct('Since First Seen ([period])', {
-                                  period: shortenRelativeDate(
-                                    getRelativeDate(group.firstSeen)
-                                  ),
+                                  period: getRelativeDate(group.firstSeen)
+                                    .replace(/^a (?=\w+$)/, '1 ')
+                                    .replace(/^an (?=\w+$)/, '1 '),
                                 })
                               : triggerProps.children}
                           </TimeRangeSelectTrigger>
