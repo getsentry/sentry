@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -97,6 +97,12 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
     () => setLogsSearch(new MutableSearch('')),
     [setLogsSearch]
   );
+  const [hasAnyLogs, setHasAnyLogs] = useState(!!logItems?.length);
+  useEffect(() => {
+    if (logItems?.length) {
+      setHasAnyLogs(true);
+    }
+  }, [logItems]);
 
   const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
     stringAttributes,
@@ -163,7 +169,11 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             }}
             embeddedStyling={{disableBodyPadding: true, showVerticalScrollbar: false}}
             emptyRenderer={() => (
-              <NoRowRenderer unfilteredItems={logItems} clearSearchTerm={clearSearch}>
+              <NoRowRenderer
+                unfilteredItems={logItems}
+                hasUnfilteredItems={hasAnyLogs}
+                clearSearchTerm={clearSearch}
+              >
                 {t('No logs recorded')}
               </NoRowRenderer>
             )}
