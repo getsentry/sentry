@@ -97,12 +97,16 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
     () => setLogsSearch(new MutableSearch('')),
     [setLogsSearch]
   );
+
   const [hasAnyLogs, setHasAnyLogs] = useState(!!logItems?.length);
   useEffect(() => {
     if (logItems?.length) {
       setHasAnyLogs(true);
     }
   }, [logItems]);
+  useEffect(() => {
+    setHasAnyLogs(false);
+  }, [replayId]);
 
   const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
     stringAttributes,
