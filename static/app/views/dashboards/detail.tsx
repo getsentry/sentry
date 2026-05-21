@@ -78,7 +78,6 @@ import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getD
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -141,7 +140,6 @@ type Props = {
   projects: Project[];
   queryClient: QueryClient;
   theme: Theme;
-  hasPageFrameFeature?: boolean;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   pageAlerts?: React.ReactNode;
   storageNamespace?: string;
@@ -1162,18 +1160,6 @@ class DashboardDetail extends Component<Props, State> {
     );
   }
 
-  getBreadcrumbLabel() {
-    const {dashboardState} = this.state;
-
-    let label = this.dashboardTitle;
-    if (dashboardState === DashboardState.CREATE) {
-      label = t('Create Dashboard');
-    } else if (this.isPreview) {
-      label = t('Preview Dashboard');
-    }
-    return label;
-  }
-
   renderDashboardDetail() {
     const {
       api,
@@ -1206,85 +1192,43 @@ class DashboardDetail extends Component<Props, State> {
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
-                <Layout.Header unified={this.props.hasPageFrameFeature}>
-                  {this.props.hasPageFrameFeature ? (
-                    <TopBar.Slot name="title">
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
-                            label: (
-                              <DashboardTitle
-                                dashboard={modifiedDashboard ?? dashboard}
-                                onUpdate={this.setModifiedDashboard}
-                                isEditingDashboard={this.isEditingDashboard}
-                              />
-                            ),
-                          },
-                        ]}
-                      />
-                    </TopBar.Slot>
-                  ) : (
-                    <Layout.HeaderContent>
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
-                            label: this.getBreadcrumbLabel(),
-                          },
-                        ]}
-                      />
-                      <Layout.Title>
-                        <DashboardTitle
-                          dashboard={modifiedDashboard ?? dashboard}
-                          onUpdate={this.setModifiedDashboard}
-                          isEditingDashboard={this.isEditingDashboard}
-                        />
-                      </Layout.Title>
-                    </Layout.HeaderContent>
-                  )}
-                  {this.props.hasPageFrameFeature ? (
-                    <TopBar.Slot name="actions">
-                      <Controls
-                        organization={organization}
-                        dashboard={dashboard}
-                        hideAddWidget
-                        hasUnsavedFilters={hasUnsavedFilters}
-                        onEdit={this.onEdit}
-                        onCancel={this.onCancel}
-                        onCommit={this.onCommit}
-                        onAddWidget={this.onAddWidget}
-                        onDelete={this.onDelete(dashboard)}
-                        onChangeEditAccess={this.onChangeEditAccess}
-                        dashboardState={dashboardState}
-                        widgetLimitReached={widgetLimitReached}
-                        isSaving={isCommittingChanges}
-                      />
-                    </TopBar.Slot>
-                  ) : (
-                    <Layout.HeaderActions>
-                      <Controls
-                        organization={organization}
-                        dashboard={dashboard}
-                        hasUnsavedFilters={hasUnsavedFilters}
-                        onEdit={this.onEdit}
-                        onCancel={this.onCancel}
-                        onCommit={this.onCommit}
-                        onAddWidget={this.onAddWidget}
-                        onDelete={this.onDelete(dashboard)}
-                        onChangeEditAccess={this.onChangeEditAccess}
-                        dashboardState={dashboardState}
-                        widgetLimitReached={widgetLimitReached}
-                        isSaving={isCommittingChanges}
-                      />
-                    </Layout.HeaderActions>
-                  )}
+                <Layout.Header unified>
+                  <TopBar.Slot name="title">
+                    <Breadcrumbs
+                      crumbs={[
+                        {
+                          label: t('Dashboards'),
+                          to: `/organizations/${organization.slug}/dashboards/`,
+                        },
+                        {
+                          label: (
+                            <DashboardTitle
+                              dashboard={modifiedDashboard ?? dashboard}
+                              onUpdate={this.setModifiedDashboard}
+                              isEditingDashboard={this.isEditingDashboard}
+                            />
+                          ),
+                        },
+                      ]}
+                    />
+                  </TopBar.Slot>
+                  <TopBar.Slot name="actions">
+                    <Controls
+                      organization={organization}
+                      dashboard={dashboard}
+                      hideAddWidget
+                      hasUnsavedFilters={hasUnsavedFilters}
+                      onEdit={this.onEdit}
+                      onCancel={this.onCancel}
+                      onCommit={this.onCommit}
+                      onAddWidget={this.onAddWidget}
+                      onDelete={this.onDelete(dashboard)}
+                      onChangeEditAccess={this.onChangeEditAccess}
+                      dashboardState={dashboardState}
+                      widgetLimitReached={widgetLimitReached}
+                      isSaving={isCommittingChanges}
+                    />
+                  </TopBar.Slot>
                 </Layout.Header>
               )}
               <Layout.Body>
@@ -1579,7 +1523,6 @@ export function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1597,7 +1540,6 @@ export function DashboardDetailWithInjectedProps(
       params={params}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
-      hasPageFrameFeature={hasPageFrameFeature}
     />
   );
 }
