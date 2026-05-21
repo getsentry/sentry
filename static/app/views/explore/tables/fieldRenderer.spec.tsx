@@ -337,4 +337,32 @@ describe('FieldRenderer tests', () => {
       ).not.toBeInTheDocument();
     }
   );
+
+  it.each([
+    ['span.name', 6],
+    ['span.description', 5],
+  ])('uses the full URL for %s external link actions', async (field, columnIndex) => {
+    const fullUrl = 'https://example.com/v1/api/auth/register';
+    render(
+      <Wrapper>
+        <FieldRenderer
+          column={eventView.getColumns()[columnIndex]}
+          data={{
+            ...mockedEventData,
+            [field]: fullUrl,
+          }}
+          meta={{}}
+        />
+      </Wrapper>,
+      {organization}
+    );
+
+    expect(screen.getByRole('link', {name: fullUrl})).toHaveAttribute('href', fullUrl);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Open external link'})
+    ).toHaveAttribute('href', fullUrl);
+  });
 });

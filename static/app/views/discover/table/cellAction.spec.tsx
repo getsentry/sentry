@@ -252,6 +252,34 @@ describe('Discover -> CellAction', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('uses the full anchor href for external link actions', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+      const fullUrl = 'https://example.com/v1/api/auth/register';
+
+      render(
+        <CellAction
+          dataRow={{id: '1', url: '/v1/api/auth/register'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <a href={fullUrl}>/v1/api/auth/register</a>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Open external link'})
+      ).toHaveAttribute('href', fullUrl);
+    });
+
     it('error.handled with null adds condition', async () => {
       renderComponent({
         eventView: view,

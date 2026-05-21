@@ -235,6 +235,8 @@ function makeCellActions({
   }
 
   let value = dataRow[column.key];
+  const externalLinkTarget =
+    to && !isInternalNavigationTarget(to) && isValidUrl(to) ? to : undefined;
 
   // error.handled is a strange field where null = true.
   if (
@@ -260,7 +262,9 @@ function makeCellActions({
         onAction: () => handleCellAction(action, value!),
         to: action === Actions.OPEN_INTERNAL_LINK && to ? stripURLOrigin(to) : undefined,
         externalHref:
-          action === Actions.OPEN_EXTERNAL_LINK ? (value as string) : undefined,
+          action === Actions.OPEN_EXTERNAL_LINK
+            ? (externalLinkTarget ?? (value as string))
+            : undefined,
       });
     }
   }
@@ -323,7 +327,7 @@ function makeCellActions({
     );
   }
 
-  if (isValidUrl(value)) {
+  if (externalLinkTarget || isValidUrl(value)) {
     addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
   }
 
