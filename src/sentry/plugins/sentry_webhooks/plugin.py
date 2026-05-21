@@ -12,6 +12,7 @@ from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.net.socket import is_valid_url
 from sentry.plugins.bases import notify
+from sentry.utils import metrics
 
 from .client import WebhookApiClient
 
@@ -130,5 +131,14 @@ class WebHooksPlugin(notify.NotificationPlugin):
         for url in self.get_webhook_urls(group.project):
             try:
                 client.request(url)
+                metrics.incr(
+                    "legacy_webhook.plugin.send",
+                    tags={"outcome": "sent"},
+                    sample_rate=1.0,
+                )
             except (ReadTimeout, ConnectionError):
-                pass
+                metrics.incr(
+                    "legacy_webhook.plugin.send",
+                    tags={"outcome": "error"},
+                    sample_rate=1.0,
+                )

@@ -15,6 +15,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_tasks
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.legacy_webhook")
 
@@ -39,6 +40,11 @@ def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: 
             "legacy_webhook.group_not_found",
             extra={"group_id": payload["id"], "url": url},
         )
+        metrics.incr(
+            "legacy_webhook.task.result",
+            tags={"outcome": "group_not_found"},
+            sample_rate=1.0,
+        )
         return
     organization = group.project.organization
 
@@ -50,7 +56,17 @@ def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: 
                 "payload": payload,
             },
         )
+        metrics.incr(
+            "legacy_webhook.task.result",
+            tags={"outcome": "dry_run"},
+            sample_rate=1.0,
+        )
         return
 
     client = LegacyWebhookClient(payload)
     client.request(url)
+    metrics.incr(
+        "legacy_webhook.task.result",
+        tags={"outcome": "sent"},
+        sample_rate=1.0,
+    )
