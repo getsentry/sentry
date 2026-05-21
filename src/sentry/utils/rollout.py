@@ -326,7 +326,7 @@ class SafeRolloutComparator:
     @classmethod
     def check_and_choose_with_timings(
         cls,
-        control_thunk: Callable[[], TData],
+        control_data_func: Callable[[], TData],
         experimental_thunk: Callable[[], TData],
         callsite: str,
         null_result_determiner: Callable[[TData], bool] | None = None,
@@ -343,7 +343,7 @@ class SafeRolloutComparator:
         if not cls.should_check_experiment(callsite):
             # Don't bother collecting data in the case where we're only evaluating the
             # control branch.
-            return control_thunk()
+            return control_data_func()
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",
@@ -353,7 +353,7 @@ class SafeRolloutComparator:
                 "branch": "control",
             },
         ):
-            control_data = control_thunk()
+            control_data = control_data_func()
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",

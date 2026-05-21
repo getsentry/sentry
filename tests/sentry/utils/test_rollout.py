@@ -123,7 +123,7 @@ class SafeRolloutComparatorTestCase(TestCase):
             }
         ):
             TestRolloutComparator.check_and_choose_with_timings(
-                control_thunk=lambda: "control",
+                control_data_func=lambda: "control",
                 experimental_thunk=lambda: "experimental",
                 callsite="test_callsite",
                 debug_context={"x": "y"},
