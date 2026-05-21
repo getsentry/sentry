@@ -46,8 +46,6 @@ import {
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
 const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
-const NULL_METRIC_UNIT_SELECT_VALUE = '__null__';
-
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
 }
@@ -118,8 +116,7 @@ export function MetricSelector({
   const traceMetricSelectValue = makeMetricSelectValue({
     name: traceMetric.name,
     type: traceMetric.type,
-    unit:
-      traceMetric.unit === null ? NULL_METRIC_UNIT_SELECT_VALUE : traceMetricDisplayUnit,
+    unit: traceMetricDisplayUnit,
   });
   const traceMetricType = isTraceMetricTypeValue(traceMetric.type)
     ? traceMetric.type
@@ -160,25 +157,35 @@ export function MetricSelector({
   // find when the dropdown is reopened. Filter it out of the API results to
   // avoid duplication.
   const metricOptions = useMemo((): MetricSelectorOption[] => {
+    const seenValues = new Set<string>();
     const apiOptions =
-      metricOptionsData?.data?.map(option => {
+      metricOptionsData?.data?.flatMap(option => {
         const metricName = option[TraceMetricKnownFieldKey.METRIC_NAME];
 
         const metricType = option[TraceMetricKnownFieldKey.METRIC_TYPE];
         const rawMetricUnit: unknown = option[TraceMetricKnownFieldKey.METRIC_UNIT];
         const metricUnit =
-          typeof rawMetricUnit === 'string' || rawMetricUnit === null
-            ? rawMetricUnit
-            : undefined;
+          rawMetricUnit === null || rawMetricUnit === NONE_UNIT
+            ? null
+            : typeof rawMetricUnit === 'string'
+              ? rawMetricUnit
+              : undefined;
         const metricDisplayUnit =
           metricUnit && metricUnit !== '-' ? metricUnit : NONE_UNIT;
-        const metricSelectValueUnit =
-          metricUnit === null ? NULL_METRIC_UNIT_SELECT_VALUE : metricDisplayUnit;
         const value = makeMetricSelectValue({
           name: metricName,
           type: metricType,
-          unit: metricSelectValueUnit,
+          unit: metricDisplayUnit,
         });
+
+        // Skip duplicate options. This can happen specifically for the edge case where
+        // the API returns both null and "none" units for the same metric name and type
+        // Since we treat them the same, we need to deduplicate them.
+        if (seenValues.has(value)) {
+          return [];
+        }
+        seenValues.add(value);
+
         const countField = option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`];
         const count =
           typeof countField === 'number'
@@ -192,23 +199,26 @@ export function MetricSelector({
             : Number(option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]) /
               1_000_000;
 
-        return {
-          label: metricName,
-          value,
-          metricType,
-          metricName,
-          metricUnit,
-          count,
-          lastSeen,
-          trailingItems: () => (
-            <MetricOptionTrailingItems
-              hasMetricUnitsUI={hasMetricUnitsUI}
-              metricType={metricType}
-              metricUnit={metricDisplayUnit}
-            />
-          ),
-        };
+        return [
+          {
+            label: metricName,
+            value,
+            metricType,
+            metricName,
+            metricUnit,
+            count,
+            lastSeen,
+            trailingItems: () => (
+              <MetricOptionTrailingItems
+                hasMetricUnitsUI={hasMetricUnitsUI}
+                metricType={metricType}
+                metricUnit={metricDisplayUnit}
+              />
+            ),
+          },
+        ];
       }) ?? [];
+
     let hasMatchedSelectedMetric = false;
     const hasExactSelectedMetric = apiOptions.some(
       option => option.value === traceMetricSelectValue

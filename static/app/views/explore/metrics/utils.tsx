@@ -108,7 +108,7 @@ export function hasDisplayMetricUnit(
 }
 
 export function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+  return `${metric.name}||${metric.type}||${metric.unit ?? NONE_UNIT}`;
 }
 
 export function getMetricsUnit(
@@ -263,7 +263,7 @@ export function makeMetricsAggregate({
     attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
     traceMetric.name,
     traceMetric.type,
-    traceMetric.unit ?? '-',
+    traceMetric.unit ?? NONE_UNIT,
   ];
   return `${aggregate}(${args.join(',')})`;
 }

@@ -7,6 +7,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export function buildTraceMetricAggregate(
@@ -20,7 +21,7 @@ export function buildTraceMetricAggregate(
       'value',
       traceMetric.name,
       traceMetric.type,
-      traceMetric.unit ?? '-',
+      traceMetric.unit ?? NONE_UNIT,
     ],
   };
 }
