@@ -422,7 +422,7 @@ describe('MetricSelector', () => {
       );
     });
 
-    it('preserves null units when selecting between same-name metrics', async () => {
+    it('deduplicates null and none units into a single option', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
@@ -469,11 +469,10 @@ describe('MetricSelector', () => {
         ],
       });
 
-      const onChange = jest.fn();
       render(
         <MetricSelector
           traceMetric={{name: 'lighthouse.cls', type: 'distribution', unit: 'none'}}
-          onChange={onChange}
+          onChange={jest.fn()}
         />,
         {organization}
       );
@@ -482,18 +481,7 @@ describe('MetricSelector', () => {
 
       const options = await screen.findAllByRole('option', {name: 'lighthouse.cls'});
 
-      expect(options).toHaveLength(2);
-      expect(
-        options.filter(option => option.getAttribute('aria-selected') === 'true')
-      ).toHaveLength(1);
-
-      await userEvent.click(options[1]!);
-
-      expect(onChange).toHaveBeenCalledWith({
-        name: 'lighthouse.cls',
-        type: 'distribution',
-        unit: null,
-      });
+      expect(options).toHaveLength(1);
     });
 
     it('shows unselected metrics as aria-selected="false"', async () => {

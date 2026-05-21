@@ -509,7 +509,7 @@ describe('Incident Rules Form', () => {
           ...rule,
           id: undefined,
           eventTypes: [EventTypes.TRACE_ITEM_METRIC],
-          aggregate: 'sum(value,my_metric,counter,-)',
+          aggregate: 'sum(value,my_metric,counter,none)',
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
         },
       });
