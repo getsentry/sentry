@@ -76,12 +76,15 @@ interface OurLogsContentProps {
 }
 
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
+  const replayAttributeFilter = MutableSearch.fromQueryObject({
+    [`sentry._internal.cooccuring.replay_id.${replayId}`]: ['true'],
+  }).formatString();
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes({}, 'string');
+    useLogItemAttributes({query: replayAttributeFilter}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes({}, 'number');
+    useLogItemAttributes({query: replayAttributeFilter}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes({}, 'boolean');
+    useLogItemAttributes({query: replayAttributeFilter}, 'boolean');
 
   const {currentTime, setCurrentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -109,6 +112,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   }, [replayId]);
 
   const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
+    attributeQuery: replayAttributeFilter,
     stringAttributes,
     numberAttributes,
     booleanAttributes,
