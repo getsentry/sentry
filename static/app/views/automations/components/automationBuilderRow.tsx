@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
@@ -25,17 +26,22 @@ export function AutomationBuilderRow({
 }: RowProps) {
   return (
     <Flex direction="column" gap="xs">
-      <RowContainer incompatible={hasError}>
-        <RowLine>{children}</RowLine>
-        <DeleteButton
-          aria-label={t('Delete row')}
-          size="sm"
-          icon={<IconDelete />}
-          variant="transparent"
-          onClick={onDelete}
-          className="delete-row"
-        />
-      </RowContainer>
+      <RevealOnHover>
+        {({className}) => (
+          <RowContainer incompatible={hasError} className={className}>
+            <RowLine>{children}</RowLine>
+            <RevealOnHover.Action>
+              <DeleteButton
+                aria-label={t('Delete row')}
+                size="sm"
+                icon={<IconDelete />}
+                variant="transparent"
+                onClick={onDelete}
+              />
+            </RevealOnHover.Action>
+          </RowContainer>
+        )}
+      </RevealOnHover>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       {warningMessage && <Alert variant="warning">{warningMessage}</Alert>}
     </Flex>
@@ -52,15 +58,6 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   min-height: 46px;
   align-items: center;
-
-  /* Only hide delete button when hover is supported */
-  @media (hover: hover) {
-    &:not(:hover):not(:focus-within) {
-      .delete-row {
-        ${p => p.theme.visuallyHidden}
-      }
-    }
-  }
 `;
 
 const DeleteButton = styled(Button)`

@@ -4,6 +4,7 @@ import {mergeRefs} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEdit} from 'sentry/icons';
@@ -68,16 +69,22 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
             stopEditing={() => setIsEditing(false)}
           />
         ) : (
-          <PageFrameViewTitleWrapper>
-            <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
-            <Button
-              icon={<IconEdit />}
-              onClick={handleBeginEditing}
-              aria-label={t('Edit view name')}
-              size="sm"
-              variant="transparent"
-            />
-          </PageFrameViewTitleWrapper>
+          <RevealOnHover>
+            {({className}) => (
+              <PageFrameViewTitleWrapper className={className}>
+                <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
+                <RevealOnHover.Action>
+                  <Button
+                    icon={<IconEdit />}
+                    onClick={handleBeginEditing}
+                    aria-label={t('Edit view name')}
+                    size="sm"
+                    variant="transparent"
+                  />
+                </RevealOnHover.Action>
+              </PageFrameViewTitleWrapper>
+            )}
+          </RevealOnHover>
         )}
       </TopBar.Slot>
     );
@@ -92,16 +99,22 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
       }}
     />
   ) : (
-    <ViewTitleWrapper>
-      <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
-      <Button
-        icon={<IconEdit />}
-        onClick={handleBeginEditing}
-        aria-label={t('Edit view name')}
-        size="sm"
-        variant="transparent"
-      />
-    </ViewTitleWrapper>
+    <RevealOnHover>
+      {({className}) => (
+        <ViewTitleWrapper className={className}>
+          <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
+          <RevealOnHover.Action>
+            <Button
+              icon={<IconEdit />}
+              onClick={handleBeginEditing}
+              aria-label={t('Edit view name')}
+              size="sm"
+              variant="transparent"
+            />
+          </RevealOnHover.Action>
+        </ViewTitleWrapper>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -164,32 +177,12 @@ const PageFrameViewTitleWrapper = styled('div')`
     height: auto;
     border-bottom: none;
   }
-
-  :not(:hover, :focus-within) {
-    button {
-      opacity: 0;
-    }
-
-    div {
-      border-bottom-color: transparent;
-    }
-  }
 `;
 
 const ViewTitleWrapper = styled(Layout.Title)`
   display: flex;
   align-items: center;
   width: min-content;
-
-  :not(:hover, :focus-within) {
-    button {
-      opacity: 0;
-    }
-
-    div {
-      border-bottom-color: transparent;
-    }
-  }
 `;
 
 const ViewTitle = styled('div')`
