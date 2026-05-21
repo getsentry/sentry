@@ -15,8 +15,9 @@ from sentry.utils import metrics
 from sentry.utils.safe import trim
 from sentry.utils.types import Bool, Float, Sequence
 
-TData = TypeVar("TData")
 logger = logging.getLogger(__name__)
+
+TData = TypeVar("TData")
 
 
 class SafeRolloutComparator:
