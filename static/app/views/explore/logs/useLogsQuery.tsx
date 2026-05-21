@@ -43,6 +43,7 @@ import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
 } from 'sentry/views/explore/logs/types';
+import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
@@ -98,6 +99,7 @@ function useLogsApiOptions({
   const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
   const [caseInsensitive] = useCaseInsensitivity();
+  const truncate = useLogsQueryTruncate();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -139,6 +141,7 @@ function useLogsApiOptions({
     referrer,
     sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
     caseInsensitive: caseInsensitive ? '1' : undefined,
+    truncate,
   };
 
   const path = {organizationIdOrSlug: organization.slug};
