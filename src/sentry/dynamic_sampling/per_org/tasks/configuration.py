@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import QuerySet
 
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
@@ -46,7 +45,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
-    projects: QuerySet[Project]
+    projects: list[Project]
 
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
@@ -71,9 +70,9 @@ class BaseDynamicSamplingConfiguration(ABC):
             return SamplingMeasure.SPANS
         return SamplingMeasure.SEGMENTS
 
-    def _get_projects(self) -> QuerySet[Project]:
-        return Project.objects.filter(
-            organization_id=self.organization.id, status=ObjectStatus.ACTIVE
+    def _get_projects(self) -> list[Project]:
+        return list(
+            Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
         )
 
 
@@ -138,9 +137,8 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
         )
 
     def _get_project_target_sample_rates(self) -> ProjectTargetSampleRates:
-        projects = list(self.projects)
         project_sample_rates = ProjectOption.objects.get_value_bulk(
-            projects, "sentry:target_sample_rate"
+            self.projects, "sentry:target_sample_rate"
         )
 
         sample_rates: ProjectTargetSampleRates = {
