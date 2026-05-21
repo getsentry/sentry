@@ -201,6 +201,7 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
 };
 
 function useContextBridges(): ContextBridge[] {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   const values: unknown[] = KNOWN_BRIDGED_CONTEXTS.map(ctx => use(ctx));
   const [prev, setPrev] = useState<ContextBridge[]>([]);
 

@@ -1,1 +1,1 @@
-export {Layer, LayerContext, usePortalContainer} from './layer';
+export {Layer, LayerContext, useLayerContext, usePortalContainer} from './layer';
