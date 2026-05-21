@@ -88,7 +88,7 @@ class SafeRolloutComparator:
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.use_experimental_data_callsite_allowlist"
 
     @classmethod
-    def _sample_rate_option_name(cls) -> str:
+    def _experiment_sample_rate_option(cls) -> str:
         """
         This is the sample rate for evaluating the experimental branch. When set to a value
         less than 1.0, only that percentage of requests will actually perform the double-read.
@@ -128,7 +128,7 @@ class SafeRolloutComparator:
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._sample_rate_option_name(),
+            cls._experiment_sample_rate_option(),
             type=Float,
             default=1.0,
             flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -208,7 +208,7 @@ class SafeRolloutComparator:
         if callsite in options.get(cls._callsite_experiment_blocklist_option()):
             return False
 
-        sample_rate = options.get(cls._sample_rate_option_name())
+        sample_rate = options.get(cls._experiment_sample_rate_option())
         return random.random() < sample_rate
 
     @classmethod

@@ -23,7 +23,7 @@ class SafeRolloutComparatorTestCase(TestCase):
             TestRolloutComparator._callsite_use_experimental_data_allowlist_option() in option_names
         )
         assert TestRolloutComparator._callsite_experiment_blocklist_option() in option_names
-        assert TestRolloutComparator._sample_rate_option_name() in option_names
+        assert TestRolloutComparator._experiment_sample_rate_option() in option_names
         assert TestRolloutComparator._mismatch_log_callsite_allowlist_option_name() in option_names
 
     def test_return_as_expected(self) -> None:
@@ -34,7 +34,7 @@ class SafeRolloutComparatorTestCase(TestCase):
             {
                 TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): ["test_blocked"],
-                TestRolloutComparator._sample_rate_option_name(): 1.0,
+                TestRolloutComparator._experiment_sample_rate_option(): 1.0,
             }
         ):
             assert TestRolloutComparator.should_check_experiment("test_2") is True
@@ -56,7 +56,7 @@ class SafeRolloutComparatorTestCase(TestCase):
             {
                 TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): [],
-                TestRolloutComparator._sample_rate_option_name(): 0.5,
+                TestRolloutComparator._experiment_sample_rate_option(): 0.5,
             }
         ):
             with patch("sentry.utils.rollout.random.random", return_value=0.3):
@@ -76,7 +76,7 @@ class SafeRolloutComparatorTestCase(TestCase):
             {
                 TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): ["test_blocked"],
-                TestRolloutComparator._sample_rate_option_name(): 1.0,
+                TestRolloutComparator._experiment_sample_rate_option(): 1.0,
             }
         ):
             # Even with 100% sample rate, blocklisted callsites should be blocked
@@ -89,7 +89,7 @@ class SafeRolloutComparatorTestCase(TestCase):
             {
                 TestRolloutComparator._should_run_experiment_option(): False,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): [],
-                TestRolloutComparator._sample_rate_option_name(): 1.0,
+                TestRolloutComparator._experiment_sample_rate_option(): 1.0,
             }
         ):
             assert TestRolloutComparator.should_check_experiment("test_disabled") is False
@@ -123,7 +123,7 @@ class SafeRolloutComparatorTestCase(TestCase):
             {
                 TestRolloutComparator._should_run_experiment_option(): True,
                 TestRolloutComparator._callsite_experiment_blocklist_option(): [],
-                TestRolloutComparator._sample_rate_option_name(): 1.0,
+                TestRolloutComparator._experiment_sample_rate_option(): 1.0,
             }
         ):
             TestRolloutComparator.check_and_choose_with_timings(
