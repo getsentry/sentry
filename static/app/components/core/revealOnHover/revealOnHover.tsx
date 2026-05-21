@@ -26,7 +26,7 @@ function RevealOnHoverRoot(props: RevealOnHoverProps) {
   );
 }
 
-const revealStyles = (p: {theme: any}) => `
+const revealStyles = (p: {theme: import('@emotion/react').Theme}) => `
   @media (hover: hover) {
     [data-reveal-on-hover] {
       opacity: 0;
