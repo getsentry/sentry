@@ -3,10 +3,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
 
-describe('StreamlinedNoteInput', () => {
+describe('CompactNoteInput', () => {
   beforeEach(() => {
     TeamStore.reset();
     MockApiClient.addMockResponse({
@@ -17,7 +17,7 @@ describe('StreamlinedNoteInput', () => {
 
   it('can mention a member', async () => {
     const onCreate = jest.fn();
-    render(<StreamlinedNoteInput onCreate={onCreate} />);
+    render(<CompactNoteInput onCreate={onCreate} />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@foo');
     await userEvent.click(screen.getByRole('option', {name: 'Foo Bar'}));
     expect(screen.getByRole('textbox')).toHaveTextContent('@Foo Bar');
@@ -42,7 +42,7 @@ describe('StreamlinedNoteInput', () => {
     });
 
     const onCreate = jest.fn();
-    render(<StreamlinedNoteInput onCreate={onCreate} />);
+    render(<CompactNoteInput onCreate={onCreate} />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@nick');
     await userEvent.click(await screen.findByRole('option', {name: 'Nick Search'}));
 
@@ -56,7 +56,7 @@ describe('StreamlinedNoteInput', () => {
   it('can mention a team', async () => {
     TeamStore.loadInitialData([TeamFixture()]);
     const onCreate = jest.fn();
-    render(<StreamlinedNoteInput onCreate={onCreate} />);
+    render(<CompactNoteInput onCreate={onCreate} />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '#team');
     await userEvent.click(screen.getByRole('option', {name: '# team -slug'}));
     expect(screen.getByRole('textbox')).toHaveTextContent('#team-slug');
