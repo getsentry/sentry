@@ -68,6 +68,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
 
     def _create_issue_alert_invocation(self) -> ActionInvocation:
@@ -91,6 +92,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=action,
             detector=detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
 
     def _assert_integration_target(
@@ -109,7 +111,9 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
 
     @mock.patch.object(NotificationService, "has_access", return_value=True)
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
-    def test_dispatch(self, mock_notify_sync, mock_has_access) -> None:
+    def test_dispatch(
+        self, mock_notify_sync: mock.MagicMock, mock_has_access: mock.MagicMock
+    ) -> None:
         invocation = self._create_metric_alert_invocation()
         dispatcher = IssueNotificationDispatcher(invocation)
         dispatcher.dispatch()
@@ -130,13 +134,16 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=pagerduty_action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
         dispatcher = IssueNotificationDispatcher(invocation)
         with pytest.raises(NotificationDispatcherError):
             dispatcher.dispatch()
 
     @mock.patch.object(NotificationService, "has_access", return_value=False)
-    def test_rejects_notification_when_has_access_returns_false(self, mock_has_access) -> None:
+    def test_rejects_notification_when_has_access_returns_false(
+        self, mock_has_access: mock.MagicMock
+    ) -> None:
         invocation = self._create_metric_alert_invocation()
         dispatcher = IssueNotificationDispatcher(invocation)
         with pytest.raises(NotificationDispatcherError):
@@ -150,6 +157,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
         dispatcher = IssueNotificationDispatcher(invocation)
         assert dispatcher.should_send_via_notification_platform() is False
@@ -172,6 +180,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
         dispatcher = IssueNotificationDispatcher(invocation)
         assert dispatcher._is_metric_issue_action_invocation() is False
@@ -194,6 +203,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,  # MetricIssue.slug type
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
         dispatcher = IssueNotificationDispatcher(invocation)
         assert dispatcher._is_metric_issue_action_invocation() is False
@@ -221,6 +231,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=self.action,
             detector=error_detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
         dispatcher = IssueNotificationDispatcher(invocation)
         assert dispatcher._is_metric_issue_action_invocation() is False
@@ -228,7 +239,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
     @mock.patch.object(NotificationService, "has_access", return_value=True)
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
     def test_correctly_dispatches_metric_alert_notification(
-        self, mock_notify_sync, mock_has_access
+        self, mock_notify_sync: mock.MagicMock, mock_has_access: mock.MagicMock
     ) -> None:
         invocation = self._create_metric_alert_invocation()
         dispatcher = IssueNotificationDispatcher(invocation)
@@ -253,7 +264,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
     @mock.patch.object(NotificationService, "has_access", return_value=True)
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
     def test_correctly_dispatches_issue_alert_notification(
-        self, mock_notify_sync, mock_has_access
+        self, mock_notify_sync: mock.MagicMock, mock_has_access: mock.MagicMock
     ) -> None:
         invocation = self._create_issue_alert_invocation()
         dispatcher = IssueNotificationDispatcher(invocation)
@@ -306,7 +317,9 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
 
     @mock.patch.object(NotificationService, "has_access", return_value=True)
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
-    def test_dispatch_with_discord_provider(self, mock_notify_sync, mock_has_access) -> None:
+    def test_dispatch_with_discord_provider(
+        self, mock_notify_sync: mock.MagicMock, mock_has_access: mock.MagicMock
+    ) -> None:
         discord_integration = self.create_integration(
             organization=self.organization,
             provider="discord",
@@ -337,6 +350,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             action=discord_action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
         dispatcher = IssueNotificationDispatcher(invocation)
         dispatcher.dispatch()
