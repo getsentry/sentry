@@ -75,6 +75,12 @@ class ProjectSeerRepoGetTest(APITestCase):
 
         self.get_error_response(status_code=404)
 
+    def test_other_project_repo_returns_404(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(other_project, repository=self.repo1)
+
+        self.get_error_response(status_code=404)
+
 
 class ProjectSeerRepoPutTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repo"
@@ -234,6 +240,12 @@ class ProjectSeerRepoPutTest(APITestCase):
         project_repo.refresh_from_db()
         assert project_repo.date_updated == original_date_updated
 
+    def test_other_project_repo_returns_404(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(other_project, repository=self.repo1)
+
+        self.get_error_response(branchName="develop", status_code=404)
+
 
 class ProjectSeerRepoDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repo"
@@ -294,5 +306,11 @@ class ProjectSeerRepoDeleteTest(APITestCase):
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.repo1.provider = "integrations:bitbucket"
         self.repo1.save()
+
+        self.get_error_response(status_code=404)
+
+    def test_other_project_repo_returns_404(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(other_project, repository=self.repo1)
 
         self.get_error_response(status_code=404)
