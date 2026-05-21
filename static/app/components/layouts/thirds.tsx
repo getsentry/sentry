@@ -11,23 +11,14 @@ import {
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
  * Main container for a page.
  */
 export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
-  const hasPageFrame = useHasPageFrameFeature();
+  const {withPadding: _withPadding, ...rest} = props;
 
-  const {withPadding, ...rest} = props;
-
-  if (hasPageFrame) {
-    return <Stack as="main" flex="1" background="primary" {...rest} />;
-  }
-
-  return (
-    <Stack flex="1" padding={withPadding ? '2xl 3xl' : undefined} as="main" {...rest} />
-  );
+  return <Stack as="main" flex="1" background="primary" {...rest} />;
 }
 
 /**
@@ -40,17 +31,10 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
 export const Header = styled((props: ContainerProps<'header'>) => {
-  const hasPageFrame = useHasPageFrameFeature();
-
   return (
     <Container
       as="header"
-      background={hasPageFrame ? undefined : 'primary'}
-      padding={
-        hasPageFrame
-          ? {sm: 'md lg 0 lg', md: 'lg xl 0 xl'}
-          : {sm: 'xl xl 0 xl', md: 'xl 3xl 0 3xl'}
-      }
+      padding={{sm: 'md lg 0 lg', md: 'lg xl 0 xl'}}
       {...props}
     />
   );
@@ -120,33 +104,9 @@ export const HeaderActions = styled('div')`
  * Includes flex gap for additional items placed with the text (such as feature
  * badges or ID badges)
  */
-export function Title(props: React.ComponentProps<typeof LegacyTitle>) {
-  const hasPageFrame = useHasPageFrameFeature();
-
-  if (hasPageFrame) {
-    return <TopBar.Slot name="title">{props.children}</TopBar.Slot>;
-  }
-
-  return <LegacyTitle {...props} />;
+export function Title(props: {children?: React.ReactNode}) {
+  return <TopBar.Slot name="title">{props.children}</TopBar.Slot>;
 }
-const LegacyTitle = styled('h1')<{withMargins?: boolean}>`
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 1.625rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin: 0;
-  color: ${p => p.theme.tokens.content.primary};
-  margin-bottom: ${p => (p.withMargins ? p.theme.space['2xl'] : undefined)};
-  margin-top: ${p => (p.withMargins ? p.theme.space.md : undefined)};
-  line-height: 40px;
-
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 /**
  * Styled Tabs for use inside a Layout.Header component
@@ -159,15 +119,12 @@ export const HeaderTabs = styled(Tabs)`
  * Base container for 66/33 containers.
  */
 export const Body = styled((props: ContainerProps & {noRowGap?: boolean}) => {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Container
       as="div"
       margin="0"
       background="primary"
-      padding={
-        hasPageFrame ? 'lg xl' : {sm: 'xl', md: props.noRowGap ? 'xl 3xl' : '2xl 3xl'}
-      }
+      padding="lg xl"
       {...props}
     />
   );

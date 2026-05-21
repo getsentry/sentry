@@ -12,7 +12,6 @@ import {
 } from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface EditLayoutProps {
   /**
@@ -23,11 +22,9 @@ interface EditLayoutProps {
 }
 
 function EditLayoutComponent({children}: EditLayoutProps) {
-  // TODO(JonasBadalic): Remove this once the page-frame feature is GA'd
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <FullHeightForm>
-      <Stack flex="unset" background={hasPageFrame ? undefined : 'primary'}>
+      <Stack flex="unset">
         {children}
       </Stack>
     </FullHeightForm>
@@ -42,11 +39,9 @@ interface EditLayoutDeprecatedProps {
 // Wraps the children in the legacy form component.
 // Remove once all detector forms have migrated to the new form system.
 function EditLayoutDeprecatedComponent({children, formProps}: EditLayoutDeprecatedProps) {
-  // TODO(JonasBadalic): Remove this once the page-frame feature is GA'd
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <FullHeightFormDeprecated hideFooter {...formProps}>
-      <Stack flex="unset" background={hasPageFrame ? undefined : 'primary'}>
+      <Stack flex="unset">
         {children}
       </Stack>
     </FullHeightFormDeprecated>
