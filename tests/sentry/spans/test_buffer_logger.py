@@ -9,11 +9,11 @@ from sentry.spans.buffer_logger import (
     FlusherLogEntry,
     FlusherLogger,
     FlushSegmentLog,
-    ProcessSpansObservability,
+    InsertSpansMetrics,
     SubsegmentDebugLog,
     emit_observability_metrics,
 )
-from sentry.spans.buffer_types import EvalshaResult, Span
+from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -44,13 +44,13 @@ def test_subsegment_debug_log_emits_debug_log() -> None:
     )
 
 
-def test_process_spans_observability_emits_evalsha_data() -> None:
-    observability = ProcessSpansObservability()
+def test_insert_spans_metrics_emits_evalsha_data() -> None:
+    insert_spans_metrics = InsertSpansMetrics()
     buffer_logger = mock.Mock()
     latency_metrics = [(b"step", 20.0)]
     gauge_metrics = [(b"gauge", 2.0)]
 
-    observability.record_evalsha_result(
+    insert_spans_metrics.record_evalsha_result(
         "1:" + "a" * 32,
         EvalshaResult(
             segment_key=_segment_id(1, "a" * 32, "a" * 16),
@@ -60,7 +60,7 @@ def test_process_spans_observability_emits_evalsha_data() -> None:
             gauge_metrics=[(b"gauge", 1.0)],
         ),
     )
-    observability.record_evalsha_result(
+    insert_spans_metrics.record_evalsha_result(
         "1:" + "b" * 32,
         EvalshaResult(
             segment_key=_segment_id(1, "b" * 32, "b" * 16),
@@ -72,8 +72,8 @@ def test_process_spans_observability_emits_evalsha_data() -> None:
     )
 
     with mock.patch("sentry.spans.buffer_logger.emit_observability_metrics") as emit_metrics:
-        buffer_logger.log(observability.evalsha_latency_entries)
-        observability.emit_evalsha_metrics()
+        buffer_logger.log(insert_spans_metrics.evalsha_latency_entries)
+        insert_spans_metrics.emit_metrics()
 
     buffer_logger.log.assert_called_once_with([("1:" + "a" * 32, 5), ("1:" + "b" * 32, 20)])
     emit_metrics.assert_called_once_with(
@@ -81,6 +81,44 @@ def test_process_spans_observability_emits_evalsha_data() -> None:
         [[(b"gauge", 1.0)], gauge_metrics],
         (20, latency_metrics, gauge_metrics),
     )
+
+
+def test_insert_spans_metrics_from_inserted_subsegments() -> None:
+    trace_id = "a" * 32
+    parent_span_id = "b" * 16
+    project_and_trace = f"1:{trace_id}"
+    subsegment = Subsegment(
+        project_and_trace=project_and_trace,
+        parent_span_id=parent_span_id,
+        salt="salted",
+        spans=[
+            Span(
+                trace_id=trace_id,
+                span_id="c" * 16,
+                parent_span_id=parent_span_id,
+                segment_id=None,
+                project_id=1,
+                payload=b"{}",
+            )
+        ],
+    )
+
+    insert_spans_metrics = InsertSpansMetrics.from_inserted_subsegments(
+        [
+            InsertedSubsegment(
+                subsegment,
+                EvalshaResult(
+                    segment_key=_segment_id(1, trace_id, parent_span_id),
+                    has_root_span=True,
+                    latency_ms=12,
+                    latency_metrics=[(b"step", 12.0)],
+                    gauge_metrics=[(b"gauge", 1.0)],
+                ),
+            )
+        ]
+    )
+
+    assert insert_spans_metrics.evalsha_latency_entries == [(project_and_trace, 12)]
 
 
 def test_deadline_update_log_reads_old_deadline_when_trace_is_enabled() -> None:

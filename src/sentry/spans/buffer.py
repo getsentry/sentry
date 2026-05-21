@@ -123,7 +123,7 @@ from sentry.spans.buffer_logger import (
     FlusherLogEntry,
     FlusherLogger,
     FlushSegmentLog,
-    ProcessSpansObservability,
+    InsertSpansMetrics,
     SubsegmentDebugLog,
 )
 from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
@@ -295,7 +295,7 @@ class SpansBuffer:
             flush_lock_ttl=flush_lock_ttl,
         )
 
-        observability = self._update_queue(
+        self._update_queue(
             trees,
             inserted_subsegments,
             now=now,
@@ -305,7 +305,6 @@ class SpansBuffer:
         )
 
         self._emit_process_spans_count_metrics(spans, trees, inserted_subsegments)
-        observability.emit_evalsha_metrics()
 
     def _build_subsegments(
         self,
@@ -434,7 +433,14 @@ class SpansBuffer:
                 for subsegment, result in zip(result_subsegments, results)
             ]
 
-            return inserted_subsegments
+        # Emit metrics for insert spans / EVALSHA Lua script
+        insert_spans_metrics = InsertSpansMetrics.from_inserted_subsegments(inserted_subsegments)
+        insert_spans_metrics.emit_metrics()
+
+        # Record cumulative latency per trace slow-operation logger
+        self._buffer_logger.log(insert_spans_metrics.evalsha_latency_entries)
+
+        return inserted_subsegments
 
     def _emit_process_spans_count_metrics(
         self,
@@ -464,16 +470,14 @@ class SpansBuffer:
         redis_ttl: int,
         timeout: int,
         root_timeout: int,
-    ) -> ProcessSpansObservability:
+    ) -> None:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
-            observability = ProcessSpansObservability()
 
             for inserted_subsegment in inserted_subsegments:
                 subsegment = inserted_subsegment.subsegment
                 result = inserted_subsegment.result
-                observability.record_evalsha_result(inserted_subsegment.project_and_trace, result)
 
                 queue_key = self._get_queue_key(inserted_subsegment.queue_shard)
 
@@ -503,8 +507,6 @@ class SpansBuffer:
                     )
                 delete_set.discard(result.segment_key)
 
-            self._buffer_logger.log(observability.evalsha_latency_entries)
-
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
                     if adds:
@@ -516,8 +518,6 @@ class SpansBuffer:
                         p.zrem(queue_key, *deletes)
 
                 p.execute()
-
-            return observability
 
     def _ensure_script(self) -> str:
         """

@@ -296,6 +296,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
     client.pipeline.return_value.__enter__.return_value = pipeline
     buffer.__dict__["client"] = client
     buffer._debug_trace_logger = mock.Mock()
+    buffer._buffer_logger = mock.Mock()
 
     trace_id = "a" * 32
     project_and_trace = f"1:{trace_id}"
@@ -330,7 +331,10 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
     ]
     pipeline.execute.return_value = [root_result, child_result]
 
-    with mock.patch.object(buffer, "_ensure_script", return_value="add-buffer-sha"):
+    with (
+        mock.patch.object(buffer, "_ensure_script", return_value="add-buffer-sha"),
+        mock.patch("sentry.spans.buffer_logger.emit_observability_metrics") as emit_metrics,
+    ):
         inserted_subsegments = buffer._insert_spans(
             [[root_subsegment, child_subsegment]],
             redis_ttl=3600,
@@ -377,6 +381,14 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
         ]
     )
     pipeline.execute.assert_called_once_with()
+    buffer._buffer_logger.log.assert_called_once_with(
+        [(project_and_trace, 15), (project_and_trace, 5)]
+    )
+    emit_metrics.assert_called_once_with(
+        [[(b"latency", 1.0)], []],
+        [[(b"gauge", 2.0)], []],
+        (15, [(b"latency", 1.0)], [(b"gauge", 2.0)]),
+    )
 
 
 def test_emit_process_spans_count_metrics() -> None:
@@ -433,7 +445,6 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
     pipeline = mock.MagicMock()
     client.pipeline.return_value.__enter__.return_value = pipeline
     buffer.__dict__["client"] = client
-    buffer._buffer_logger = mock.Mock()
     debug_trace_logger = mock.Mock()
     debug_trace_logger._should_log_trace.return_value = False
     buffer._debug_trace_logger = debug_trace_logger
@@ -458,7 +469,7 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
         gauge_metrics=[],
     )
 
-    observability = buffer._update_queue(
+    buffer._update_queue(
         {subsegment.key: [first_span, second_span]},
         [InsertedSubsegment(subsegment, result)],
         now=100,
@@ -477,8 +488,6 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
         buffer._get_span_key(project_and_trace, second_span.span_id),
     }
     pipeline.execute.assert_called_once_with()
-    buffer._buffer_logger.log.assert_called_once_with([(project_and_trace, 15)])
-    assert observability.evalsha_latency_entries == [(project_and_trace, 15)]
     client.zscore.assert_not_called()
     debug_trace_logger.log_deadline_update.assert_called_once_with(
         segment_key=result.segment_key,
