@@ -1,4 +1,6 @@
-const {metrics} = jest.requireActual('sentry/gettingStartedDocs/ruby/metrics');
+const {metrics: rubyMetrics} = jest.requireActual(
+  'sentry/gettingStartedDocs/ruby/metrics'
+);
 
 describe('metrics', () => {
   const mockParams = {
@@ -8,7 +10,7 @@ describe('metrics', () => {
   };
 
   it('generates metrics onboarding config', () => {
-    const config = metrics({docsPlatform: 'ruby'});
+    const config = rubyMetrics({docsPlatform: 'ruby'});
 
     const installSteps = config.install();
     expect(installSteps).toHaveLength(1);

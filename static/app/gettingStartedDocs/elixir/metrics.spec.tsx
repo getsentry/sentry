@@ -1,4 +1,6 @@
-const {metrics} = jest.requireActual('sentry/gettingStartedDocs/elixir/metrics');
+const {metrics: elixirMetrics} = jest.requireActual(
+  'sentry/gettingStartedDocs/elixir/metrics'
+);
 
 describe('metrics', () => {
   const mockParams = {
@@ -8,11 +10,11 @@ describe('metrics', () => {
   };
 
   it('generates metrics onboarding config', () => {
-    const installSteps = metrics.install();
+    const installSteps = elixirMetrics.install();
     expect(installSteps).toHaveLength(1);
     expect(installSteps[0].type).toBe('install');
 
-    const verifySteps = metrics.verify(mockParams);
+    const verifySteps = elixirMetrics.verify(mockParams);
     expect(verifySteps).toHaveLength(1);
     expect(verifySteps[0].type).toBe('verify');
 

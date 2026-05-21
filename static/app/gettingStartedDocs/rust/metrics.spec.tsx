@@ -1,4 +1,6 @@
-const {metrics} = jest.requireActual('sentry/gettingStartedDocs/rust/metrics');
+const {metrics: rustMetrics} = jest.requireActual(
+  'sentry/gettingStartedDocs/rust/metrics'
+);
 
 describe('metrics', () => {
   const mockParams = {
@@ -8,11 +10,11 @@ describe('metrics', () => {
   };
 
   it('generates metrics onboarding config', () => {
-    const installSteps = metrics.install();
+    const installSteps = rustMetrics.install();
     expect(installSteps).toHaveLength(1);
     expect(installSteps[0].type).toBe('install');
 
-    const verifySteps = metrics.verify(mockParams);
+    const verifySteps = rustMetrics.verify(mockParams);
     expect(verifySteps).toHaveLength(1);
     expect(verifySteps[0].type).toBe('verify');
 
