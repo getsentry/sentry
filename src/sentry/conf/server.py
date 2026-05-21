@@ -972,7 +972,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
-    "sentry.notifications.tasks",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.organization_contributors",
@@ -1089,10 +1088,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "deletions:sentry.tasks.delete_pending_groups",
         # Runs every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
         "schedule": crontab("0", "*/6", "*", "*", "*"),
-    },
-    "delete-old-notification-messages": {
-        "task": "deletions:sentry.notifications.tasks.delete_old_notification_messages",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",

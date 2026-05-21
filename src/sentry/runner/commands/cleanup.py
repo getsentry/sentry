@@ -15,7 +15,7 @@ import click
 import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
@@ -526,6 +526,7 @@ def _run_specialized_cleanups(
     remove_expired_values_for_org_members(is_filtered, days, models_attempted)
     delete_api_models(is_filtered, models_attempted)
     exported_data(is_filtered, models_attempted)
+    remove_old_notification_messages(is_filtered, models_attempted)
 
 
 def _handle_project_organization_cleanup(
@@ -1163,3 +1164,38 @@ def cleanup_unused_files() -> None:
         if File.objects.filter(blob=blob).exists():
             continue
         blob.delete()
+
+
+@continue_on_error("cleanup_notification_messages")
+def remove_old_notification_messages(
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
+) -> None:
+    from sentry.notifications.models.notificationmessage import NotificationMessage
+
+    NOTIFICATION_MESSAGE_TTL_IN_DAYS = 90
+    NOTIFICATION_MESSAGE_BATCH_SIZE = 1000
+
+    if is_filtered(NotificationMessage):
+        debug_output(">> Skipping NotificationMessage")
+        return
+
+    debug_output("Removing expired values for NotificationMessage")
+    models_attempted.add(NotificationMessage.__name__.lower())
+
+    cutoff = timezone.now() - timedelta(days=NOTIFICATION_MESSAGE_TTL_IN_DAYS)
+
+    # only delete rows with no child instance
+    has_child = NotificationMessage.objects.filter(parent_notification_message_id=OuterRef("id"))
+
+    while True:
+        ids = list(
+            NotificationMessage.objects.filter(date_added__lt=cutoff)
+            .annotate(has_child=Exists(has_child))
+            .filter(has_child=False)
+            .values_list("id", flat=True)
+            .order_by("id")[:NOTIFICATION_MESSAGE_BATCH_SIZE]
+        )
+        if not ids:
+            break
+
+        NotificationMessage.objects.filter(id__in=ids).delete()
