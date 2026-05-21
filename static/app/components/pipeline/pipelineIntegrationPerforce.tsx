@@ -16,8 +16,14 @@ const AUTH_TYPE_CHOICES = [
   {value: 'ticket', label: t('P4 Ticket')},
 ];
 
+const CHARSET_CHOICES = [
+  {value: 'none', label: t('Non-Unicode server (default)')},
+  {value: 'utf8', label: t('Unicode server (UTF-8)')},
+];
+
 interface InstallationConfigAdvanceData {
   authType: string;
+  charset: string;
   p4port: string;
   password: string;
   user: string;
@@ -35,6 +41,7 @@ const installationConfigSchema = z
     client: z.string(),
     sslFingerprint: z.string(),
     webUrl: z.string(),
+    charset: z.string().min(1, t('Server encoding is required')),
   })
   .superRefine((data, ctx) => {
     if (data.p4port.startsWith('ssl:') && !data.sslFingerprint) {
@@ -62,6 +69,7 @@ function PerforceInstallationConfigStep({
       client: '',
       sslFingerprint: '',
       webUrl: '',
+      charset: 'none',
     },
     validators: {onDynamic: installationConfigSchema},
     onSubmit: ({value}) => {
@@ -73,6 +81,7 @@ function PerforceInstallationConfigStep({
         client: value.client || undefined,
         sslFingerprint: value.sslFingerprint || undefined,
         webUrl: value.webUrl || undefined,
+        charset: value.charset,
       });
     },
   });
@@ -126,6 +135,23 @@ function PerforceInstallationConfigStep({
                 value={field.state.value}
                 onChange={field.handleChange}
                 options={AUTH_TYPE_CHOICES}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="charset">
+          {field => (
+            <field.Layout.Stack
+              label={t('Server Encoding')}
+              hintText={t(
+                "Select 'Unicode server (UTF-8)' if your Perforce server was initialized in Unicode mode (p4d -xi). Unicode servers reject clients that do not declare a charset on connect."
+              )}
+              required
+            >
+              <field.Select
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={CHARSET_CHOICES}
               />
             </field.Layout.Stack>
           )}
