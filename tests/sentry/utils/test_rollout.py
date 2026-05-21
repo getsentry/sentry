@@ -26,7 +26,8 @@ TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION = (
 class SafeRolloutComparatorTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.comp = TestRolloutComparator()
+        # We need to instantiate the comparator class in order for the options to be registered
+        TestRolloutComparator()
 
     def test_options_registered(self) -> None:
         option_names = [o.name for o in all_options()]
