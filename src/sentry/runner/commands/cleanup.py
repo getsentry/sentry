@@ -1166,7 +1166,7 @@ def cleanup_unused_files() -> None:
         blob.delete()
 
 
-@continue_on_error("cleanup_notification_messages")
+@continue_on_error("specialized_cleanup_notification_messages")
 def remove_old_notification_messages(
     is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
