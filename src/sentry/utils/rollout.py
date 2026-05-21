@@ -163,7 +163,7 @@ class SafeRolloutComparator:
         *,
         callsite: str,
         use_experimental: bool,
-        exact_match: bool,
+        is_exact_match: bool,
         is_reasonable_match: bool | None,
         is_experimental_data_a_null_result: bool | None,
         control_data: TData,
@@ -182,7 +182,7 @@ class SafeRolloutComparator:
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
                 "source_of_truth": ("experimental" if use_experimental else "control"),
-                "exact_match": exact_match,
+                "exact_match": is_exact_match,
                 "reasonable_match": is_reasonable_match,
                 "is_null_result": is_experimental_data_a_null_result,
                 "debug_context": trim(cls._default_serialize_for_log(debug_context)),
@@ -265,14 +265,14 @@ class SafeRolloutComparator:
             logs. Defaults to `_default_serialize_for_log`.
         """
         use_experimental = cls.should_use_experiment(callsite)
-        exact_match = control_data == experimental_data
+        is_exact_match = control_data == experimental_data
         is_reasonable_match: bool | None = None
 
         # Part 1: Compare results, log debug info, and emit metrics
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
-            "exact_match": str(exact_match),
+            "exact_match": str(is_exact_match),
             "source_of_truth": ("experimental" if use_experimental else "control"),
         }
 
@@ -294,14 +294,14 @@ class SafeRolloutComparator:
         # Log mismatch only for true mismatches: when a reasonable comparator
         # exists, only log if it returned False; otherwise log on exact mismatch.
         has_mismatch = is_reasonable_match is False or (
-            is_reasonable_match is None and exact_match is False
+            is_reasonable_match is None and is_exact_match is False
         )
         if has_mismatch:
             try:
                 cls._maybe_log_mismatch(
                     callsite=callsite,
                     use_experimental=use_experimental,
-                    exact_match=exact_match,
+                    is_exact_match=is_exact_match,
                     is_reasonable_match=is_reasonable_match,
                     is_experimental_data_a_null_result=is_experimental_data_a_null_result,
                     control_data=control_data,
