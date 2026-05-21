@@ -31,8 +31,13 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationFormError,
 )
-from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
+from sentry.workflow_engine.handlers.workflow.workflow_activity_handler import (
+    SUPPORTED_WORKFLOW_ACTIVITIES,
+)
+from sentry.workflow_engine.handlers.workflow.workflow_status_update_handler import (
+    SUPPORTED_ACTIVITIES,
+)
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
 from sentry.workflow_engine.types import (
     ActionInvocation,
@@ -425,7 +430,7 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
 
 
 class BaseMetricAlertHandler(ABC):
-    ACTIVITIES_TO_INVOKE_ON = [ActivityType.SET_RESOLVED.value]
+    ACTIVITIES_TO_INVOKE_ON = [*SUPPORTED_ACTIVITIES, *SUPPORTED_WORKFLOW_ACTIVITIES]
 
     @classmethod
     def send_alert(

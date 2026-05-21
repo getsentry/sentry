@@ -34,6 +34,7 @@ export enum DataConditionType {
   REAPPEARED_EVENT = 'reappeared_event',
   ISSUE_RESOLVED_TRIGGER = 'issue_resolved_trigger',
   TAGGED_EVENT = 'tagged_event',
+  SEER_ACTIVITY_TRIGGER = 'seer_activity_trigger',
   ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
   ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',
   ISSUE_PRIORITY_DEESCALATING = 'issue_priority_deescalating',

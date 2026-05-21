@@ -56,6 +56,7 @@ class Condition(StrEnum):
     REAPPEARED_EVENT = "reappeared_event"
     REGRESSION_EVENT = "regression_event"
     TAGGED_EVENT = "tagged_event"
+    SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
 
     # Event frequency conditions
     EVENT_FREQUENCY_COUNT = "event_frequency_count"
@@ -74,6 +75,7 @@ TRIGGER_CONDITIONS = [
     Condition.ISSUE_RESOLVED_TRIGGER,
     Condition.REAPPEARED_EVENT,
     Condition.REGRESSION_EVENT,
+    Condition.SEER_ACTIVITY_TRIGGER,
 ]
 
 CONDITION_OPS = {
