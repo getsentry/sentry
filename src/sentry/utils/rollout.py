@@ -32,7 +32,7 @@ class SafeRolloutComparator:
       1. Set up your SafeRolloutComparator class & options.
       2. Add your first callsite. (Further callsites can be added at any time.)
       3. Start rolling out the "evaluate experimental branch" option.
-      4. Monitor correctness through standard dashboard. (TODO @cpaul: build dashboard)
+      4. Monitor correctness through standard dashboard.
       5. Start adding known-good callsites to the "use experimental branch" allowlist.
       6. Complete your migration, secure in your knowledge that it's safe to do so.
       7. Clean up your control branch & SafeRolloutComparator when you're done. Success!
@@ -57,7 +57,6 @@ class SafeRolloutComparator:
 
     # This is your rollout, which determines your option names and which you can filter
     # the DataDog dashboards to show.
-    # TODO @cpaul: construct DataDog dashboards once you have a rollout using this.
     ROLLOUT_NAME: str
 
     @classmethod
