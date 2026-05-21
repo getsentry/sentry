@@ -4,9 +4,8 @@ import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
@@ -17,17 +16,12 @@ const BUTTON_SIZE: ButtonProps['size'] = 'sm';
 
 interface Props {
   description: string;
-  organization: Organization;
   source: string;
   subscription: Subscription;
 }
 
-function DateRangeQueryLimitFooter({
-  description,
-  organization,
-  source,
-  subscription,
-}: Props) {
+function DateRangeQueryLimitFooter({description, source, subscription}: Props) {
+  const organization = useOrganization();
   const checkoutUrl = normalizeUrl(
     `/checkout/${organization.slug}/?referrer=checkout-${source}`
   );
@@ -71,9 +65,7 @@ function DateRangeQueryLimitFooter({
   );
 }
 
-export default withOrganization(
-  withSubscription(DateRangeQueryLimitFooter, {noLoader: true})
-);
+export default withSubscription(DateRangeQueryLimitFooter, {noLoader: true});
 
 const DescriptionContainer = styled('div')`
   font-size: 12px;

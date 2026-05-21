@@ -59,7 +59,7 @@ describe('ProjectPluginDetails', () => {
       outletContext: {project},
       initialRouterConfig,
     });
-    expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
+    expect(await screen.findByText('Plugin Information')).toBeInTheDocument();
   });
 
   it('resets plugin', async () => {

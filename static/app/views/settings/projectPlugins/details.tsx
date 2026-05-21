@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -149,12 +150,12 @@ export default function ProjectPluginDetails() {
     const toggleEnable = enabled ? disable : enable;
 
     return (
-      <div className="pull-right">
+      <Flex gap="md">
         {pluginDetails.canDisable && toggleEnable}
         <Button size="sm" onClick={() => resetMutation.mutate()}>
           {t('Reset Configuration')}
         </Button>
-      </div>
+      </Flex>
     );
   };
 

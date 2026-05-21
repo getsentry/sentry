@@ -105,6 +105,7 @@ export type KnownSentryApiUrls =
   | '/internal/frontend-version/'
   | '/internal/health/'
   | '/internal/integration-proxy/'
+  | '/internal/integration-proxy2/'
   | '/internal/mail/'
   | '/internal/notifications/registered-templates/'
   | '/internal/options/'

@@ -1,4 +1,5 @@
 import {EventsStatsFixture} from 'sentry-fixture/events';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -42,13 +43,13 @@ describe('Incident Rules Create', () => {
   const api = new MockApiClient();
 
   it('renders a metric', async () => {
-    const {organization, project, router} = initializeOrg();
+    const {organization, project} = initializeOrg();
 
     render(
       <TriggersChart
         api={api}
         anomalies={[]}
-        location={router.location}
+        location={LocationFixture()}
         organization={organization}
         theme={theme}
         projects={[project]}
@@ -101,13 +102,13 @@ describe('Incident Rules Create', () => {
   });
 
   it('does not show & query total count if showTotalCount === false', async () => {
-    const {organization, project, router} = initializeOrg();
+    const {organization, project} = initializeOrg();
 
     render(
       <TriggersChart
         theme={theme}
         api={api}
-        location={router.location}
+        location={LocationFixture()}
         organization={organization}
         projects={[project]}
         query="event.type:error"
@@ -158,13 +159,13 @@ describe('Incident Rules Create', () => {
   });
 
   it('queries the errors dataset if dataset is errors', async () => {
-    const {organization, project, router} = initializeOrg();
+    const {organization, project} = initializeOrg();
 
     render(
       <TriggersChart
         theme={theme}
         api={api}
-        location={router.location}
+        location={LocationFixture()}
         organization={organization}
         projects={[project]}
         query="event.type:error"
@@ -216,13 +217,13 @@ describe('Incident Rules Create', () => {
   });
 
   it('uses normal sampling for span alerts', async () => {
-    const {organization, project, router} = initializeOrg();
+    const {organization, project} = initializeOrg();
 
     render(
       <TriggersChart
         theme={theme}
         api={api}
-        location={router.location}
+        location={LocationFixture()}
         organization={organization}
         projects={[project]}
         query=""
@@ -263,13 +264,13 @@ describe('Incident Rules Create', () => {
   });
 
   it('uses sample weighted extrapolation mode for editing a migrated alert', async () => {
-    const {organization, project, router} = initializeOrg();
+    const {organization, project} = initializeOrg();
 
     render(
       <TriggersChart
         theme={theme}
         api={api}
-        location={router.location}
+        location={LocationFixture()}
         organization={organization}
         projects={[project]}
         query=""

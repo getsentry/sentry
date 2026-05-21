@@ -4,6 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Form} from 'sentry/components/forms/form';
 import type {Data} from 'sentry/components/forms/types';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -16,7 +17,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 type TransferDetails = {
   organizations: Organization[];
@@ -109,7 +109,7 @@ function AcceptProjectTransfer() {
   return (
     <NarrowLayout>
       <SentryDocumentTitle title={t('Accept Project Transfer')} />
-      <SettingsPageHeader title={t('Approve Transfer Project Request')} />
+      <Layout.Title>{t('Approve Transfer Project Request')}</Layout.Title>
       <p>
         {tct(
           'Projects must be transferred to a specific [organization]. You can grant specific teams access to the project later under the [projectSettings]. (Note that granting access to at least one team is necessary for the project to appear in all parts of the UI.)',

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -13,7 +13,6 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
-from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -59,7 +58,7 @@ from sentry.utils.snuba import get_snuba_column_name
 def issue_search_query_to_conditions(
     query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
 ) -> tuple[list[Condition], list[Any]]:
-    from sentry.utils.snuba import resolve_column, resolve_conditions
+    from sentry.utils.snuba import resolve_conditions
 
     dataset = (
         Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
@@ -101,11 +100,7 @@ def issue_search_query_to_conditions(
 
     # the transformed conditions is generic and isn't 'dataset aware', we need to map the generic columns
     # being queried to the appropriate dataset column
-    column_resolver: Callable[[str], str]
-    if options.get("issues.search.use-tag-aware-condition-resolver"):
-        column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
-    else:
-        column_resolver = resolve_column(dataset)
+    column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
 
     resolved_legacy_conditions = resolve_conditions(legacy_conditions, column_resolver) or []
 
