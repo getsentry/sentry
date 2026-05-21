@@ -1,4 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
+import {createPortal} from 'react-dom';
 import {
   Outlet,
   RouterProvider,
@@ -110,6 +111,33 @@ interface InitialRouterOptions {
   outletContext?: Record<string, unknown>;
 }
 
+function TopBarSlotOutlets() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  if (!containerRef.current) {
+    containerRef.current = document.createElement('div');
+    containerRef.current.setAttribute('data-test-id', 'topbar-slot-outlets');
+    document.body.appendChild(containerRef.current);
+  }
+  useEffect(() => {
+    return () => {
+      containerRef.current?.remove();
+    };
+  }, []);
+  return createPortal(
+    <Fragment>
+      <TopBar.Slot.Outlet name="title">{props => <div {...props} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="search">{props => <div {...props} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="actions">
+        {props => <div {...props} />}
+      </TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="feedback">
+        {props => <div {...props} />}
+      </TopBar.Slot.Outlet>
+    </Fragment>,
+    containerRef.current
+  );
+}
+
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
@@ -123,18 +151,7 @@ function makeAllTheProviders(options: ProviderOptions) {
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
       <TopBar.Slot.Provider>
-        <TopBar.Slot.Outlet name="title">
-          {props => <div {...props} />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="search">
-          {props => <div {...props} />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="actions">
-          {props => <div {...props} />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="feedback">
-          {props => <div {...props} />}
-        </TopBar.Slot.Outlet>
+        <TopBarSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
             <GlobalAlertProvider>
