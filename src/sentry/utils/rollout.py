@@ -162,7 +162,7 @@ class SafeRolloutComparator:
         cls,
         *,
         callsite: str,
-        use_experimental: bool,
+        use_experimental_data: bool,
         is_exact_match: bool,
         is_reasonable_match: bool | None,
         is_experimental_data_nullish: bool | None,
@@ -181,7 +181,7 @@ class SafeRolloutComparator:
             extra={
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
-                "source_of_truth": ("experimental" if use_experimental else "control"),
+                "source_of_truth": ("experimental" if use_experimental_data else "control"),
                 "exact_match": is_exact_match,
                 "reasonable_match": is_reasonable_match,
                 "is_null_result": is_experimental_data_nullish,
@@ -220,17 +220,17 @@ class SafeRolloutComparator:
         you should instead use check_and_choose (which standardizes the choice logic
         and has better logging).
         """
-        use_experimental = callsite in options.get(cls._callsite_allowlist_option_name())
+        use_experimental_data = callsite in options.get(cls._callsite_allowlist_option_name())
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
-            "use_experimental": ("true" if use_experimental else "false"),
+            "use_experimental": ("true" if use_experimental_data else "false"),
         }
         metrics.incr(
             "SafeRolloutComparator.should_use_experiment",
             tags=tags,
         )
-        return use_experimental
+        return use_experimental_data
 
     @classmethod
     def check_and_choose(
@@ -264,7 +264,7 @@ class SafeRolloutComparator:
         * data_serializer: Optional serializer for control/experimental payloads in
             logs. Defaults to `_default_serialize_for_log`.
         """
-        use_experimental = cls.should_use_experimental_data(callsite)
+        use_experimental_data = cls.should_use_experimental_data(callsite)
         is_exact_match = control_data == experimental_data
         is_reasonable_match: bool | None = None
 
@@ -273,7 +273,7 @@ class SafeRolloutComparator:
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
             "exact_match": str(is_exact_match),
-            "source_of_truth": ("experimental" if use_experimental else "control"),
+            "source_of_truth": ("experimental" if use_experimental_data else "control"),
         }
 
         if is_experimental_data_nullish is not None:
@@ -300,7 +300,7 @@ class SafeRolloutComparator:
             try:
                 cls._maybe_log_mismatch(
                     callsite=callsite,
-                    use_experimental=use_experimental,
+                    use_experimental_data=use_experimental_data,
                     is_exact_match=is_exact_match,
                     is_reasonable_match=is_reasonable_match,
                     is_experimental_data_nullish=is_experimental_data_nullish,
@@ -321,7 +321,7 @@ class SafeRolloutComparator:
         )
 
         # Part 2: determine which data to return
-        return experimental_data if use_experimental else control_data
+        return experimental_data if use_experimental_data else control_data
 
     @classmethod
     def check_and_choose_with_timings(
