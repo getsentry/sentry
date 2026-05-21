@@ -17,19 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_webhook_payloads(invocation: ActionInvocation) -> None:
-    from sentry.notifications.notification_action.types import BaseIssueAlertHandler
     from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
+    from sentry.sentry_apps.services.legacy_webhook.service import _get_triggering_rule_name
 
-    rule = BaseIssueAlertHandler.create_rule_instance_from_action(
-        action=invocation.action,
-        detector=invocation.detector,
-        event_data=invocation.event_data,
-        workflow_id=invocation.workflow_id,
-    )
     group = invocation.event_data.group
     event = invocation.event_data.event
+    rule_name = _get_triggering_rule_name(invocation)
 
-    old_payload = WebHooksPlugin().get_group_data(group, event, [rule.label])
+    old_payload = WebHooksPlugin().get_group_data(group, event, [rule_name])
     new_payload = build_legacy_webhook_payload(invocation)
 
     validate_payload_equivalence(

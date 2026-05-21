@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 from unittest import mock
 
-from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
-from sentry.sentry_apps.services.legacy_webhook.service import build_legacy_webhook_payload
+from sentry.sentry_apps.services.legacy_webhook.service import (
+    _get_triggering_rule_name,
+    build_legacy_webhook_payload,
+)
 from sentry.sentry_apps.services.legacy_webhook.validation import (
     compare_payloads,
     validate_payload_equivalence,
@@ -36,16 +39,11 @@ class TestWebhookPayloadValidation(BaseWorkflowTest):
             workflow_id=self.workflow.id,
         )
 
-    def _build_old_payload(self) -> dict:
-        rule = BaseIssueAlertHandler.create_rule_instance_from_action(
-            action=self.invocation.action,
-            detector=self.invocation.detector,
-            event_data=self.invocation.event_data,
-            workflow_id=self.invocation.workflow_id,
-        )
-        return WebHooksPlugin().get_group_data(self.group, self.group_event, [rule.label])
+    def _build_old_payload(self) -> dict[str, Any]:
+        rule_name = _get_triggering_rule_name(self.invocation)
+        return WebHooksPlugin().get_group_data(self.group, self.group_event, [rule_name])
 
-    def _build_new_payload(self) -> dict:
+    def _build_new_payload(self) -> dict[str, Any]:
         return dict(build_legacy_webhook_payload(self.invocation))
 
     def test_old_and_new_payloads_match(self) -> None:
