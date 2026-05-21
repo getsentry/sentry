@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext} from 'react';
 import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -59,14 +59,4 @@ export function SeerExplorerSessionsProvider(props: SeerExplorerSessionsProvider
       {props.children}
     </SeerExplorerSessionsContext.Provider>
   );
-}
-
-export function useSeerExplorerSessions(): SeerExplorerSessionsContextValue {
-  const context = useContext(SeerExplorerSessionsContext);
-  if (!context) {
-    throw new Error(
-      'useSeerExplorerSessionsContext must be used within a SeerExplorerSessionsProvider'
-    );
-  }
-  return context;
 }
