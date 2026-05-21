@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import QuerySet
 
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
@@ -69,12 +70,9 @@ class BaseDynamicSamplingConfiguration(ABC):
             return SamplingMeasure.SPANS
         return SamplingMeasure.SEGMENTS
 
-    def _get_project_ids(self) -> list[ProjectId]:
-        return (
-            Project.objects.filter(
-                organization_id=self.organization.id, status=ObjectStatus.ACTIVE
-            ).values_list("id", flat=True)
-            or []
+    def _get_projects(self) -> QuerySet[Project]:
+        return Project.objects.filter(
+            organization_id=self.organization.id, status=ObjectStatus.ACTIVE
         )
 
 
@@ -99,7 +97,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
             )
         except ObjectDoesNotExist as exc:
             raise DynamicSamplingException(DynamicSamplingStatus.NO_SUBSCRIPTION) from exc
-        self.project_ids = self._get_project_ids()
+        self.projects = self._get_projects()
 
     @property
     def is_enabled(self) -> bool:
@@ -127,7 +125,7 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
-        self.project_ids = self._get_project_ids()
+        self.projects = self._get_projects()
         self.project_target_sample_rates = self._get_project_target_sample_rates()
         self.measure = self._get_sampling_measure()
 
@@ -138,15 +136,13 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
         )
 
     def _get_project_target_sample_rates(self) -> ProjectTargetSampleRates:
-        project_sample_rates = ProjectOption.objects.get_value_bulk_id(
-            self.project_ids, "sentry:target_sample_rate"
+        projects = list(self.projects)
+        project_sample_rates = ProjectOption.objects.get_value_bulk(
+            projects, "sentry:target_sample_rate"
         )
+
         sample_rates: ProjectTargetSampleRates = {
-            project_id: (
-                float(project_sample_rates[project_id])
-                if project_sample_rates[project_id] is not None
-                else None
-            )
-            for project_id in self.project_ids
+            project.id: float(sample_rate) if sample_rate is not None else None
+            for project, sample_rate in project_sample_rates.items()
         }
         return sample_rates

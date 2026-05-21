@@ -55,7 +55,7 @@ def get_eap_organization_volume(
         params=SnubaParams(
             start=start_time,
             end=end_time,
-            projects=config.project_ids,
+            projects=config.projects,
             organization=config.organization,
         ),
         query_string="is_transaction:true",
