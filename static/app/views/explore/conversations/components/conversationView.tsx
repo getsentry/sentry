@@ -96,7 +96,7 @@ function ConversationView({
 
   const handleTabChange = (newTab: ConversationTab) => {
     if (activeTab !== newTab) {
-      trackAnalytics('conversations.drawer.tab-switch', {
+      trackAnalytics('conversations.detail.tab-switch', {
         organization,
         fromTab: activeTab,
         toTab: newTab,

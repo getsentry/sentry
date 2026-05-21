@@ -21,10 +21,10 @@ import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
-import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {EntryDebugMeta, Event} from 'sentry/types/event';
@@ -115,9 +115,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const [filterSelections, setFilterSelections] = useState<FilterSelections>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [lockHeight, setLockHeight] = useState(false);
+  const {searchTerm, setSearchTerm} = useDebugMetaSearch();
 
   const {allImages, filterOptions} = useMemo(() => {
     const relevant = data.images?.filter((image): image is Image => {
@@ -171,13 +171,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     setFilterSelections(defaults);
     setFiltersInitialized(true);
   }, [filterOptions, filtersInitialized]);
-
-  useEffect(() => {
-    const unsubscribe = DebugMetaStore.listen((store: {filter: string}) => {
-      setSearchTerm(store.filter);
-    }, undefined);
-    return () => unsubscribe();
-  }, []);
 
   const filteredImages = useMemo(
     () => filterImages(allImages, filterSelections, searchTerm),
@@ -236,7 +229,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       <Fragment>
         <SearchBarAction
           placeholder={t('Search images')}
-          onChange={v => DebugMetaStore.updateFilter(v)}
+          onChange={setSearchTerm}
           query={searchTerm}
           filterOptions={showFilters ? filterOptions : undefined}
           onFilterChange={setFilterSelections}

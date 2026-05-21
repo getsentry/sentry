@@ -116,8 +116,8 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         self.project.save()
         # Create a code mapping with an inactive repository
         code_mapping = self._create_code_mapping(self.project, "inactive-repo")
-        code_mapping.repository.status = ObjectStatus.PENDING_DELETION
-        code_mapping.repository.save()
+        code_mapping.project_repository.repository.status = ObjectStatus.PENDING_DELETION
+        code_mapping.project_repository.repository.save()
 
         with override_options(
             {"autopilot.missing-sdk-integration.projects-allowlist": [self.project.id]}

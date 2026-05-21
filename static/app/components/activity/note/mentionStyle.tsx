@@ -13,7 +13,7 @@ type Options = {
 export function mentionStyle({theme, minHeight, streamlined}: Options) {
   const inputProps = {
     fontSize: theme.font.size.md,
-    padding: `${theme.space.lg} ${theme.space.xl}`,
+    padding: `${theme.space.lg} ${theme.space.lg}`,
     outline: 0,
     border: 0,
     minHeight,
@@ -32,7 +32,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
 
   return {
     control: {
-      backgroundColor: theme.tokens.background.primary,
+      backgroundColor: 'transparent',
       fontSize: 15,
       fontWeight: 'normal',
     },

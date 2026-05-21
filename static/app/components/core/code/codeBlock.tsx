@@ -191,20 +191,21 @@ export function CodeBlock({
           />
         )}
       </Header>
-
-      <pre
-        className={`language-${String(language)}`}
-        data-line={linesToHighlight?.join(',')}
-      >
-        <Code
-          ref={ref}
+      <ScrollWrapper>
+        <pre
           className={`language-${String(language)}`}
-          onCopy={onSelectAndCopy}
-          disableUserSelection={disableUserSelection}
+          data-line={linesToHighlight?.join(',')}
         >
-          {children}
-        </Code>
-      </pre>
+          <Code
+            ref={ref}
+            className={`language-${String(language)}`}
+            onCopy={onSelectAndCopy}
+            disableUserSelection={disableUserSelection}
+          >
+            {children}
+          </Code>
+        </pre>
+      </ScrollWrapper>
     </Wrapper>
   );
 
@@ -216,12 +217,15 @@ export function CodeBlock({
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   height: 100%;
+  min-width: 0;
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
     height: 100%;
+    width: max-content;
+    min-width: 100%;
   }
 
   &[data-render-inline='true'] pre {
@@ -302,6 +306,11 @@ const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
     color: var(--prism-base);
   }
   ${p => (p.isAlwaysVisible ? 'opacity: 1;' : '')}
+`;
+
+const ScrollWrapper = styled('div')`
+  overflow-x: auto;
+  height: 100%;
 `;
 
 const Code = styled('code')<{disableUserSelection?: boolean}>`

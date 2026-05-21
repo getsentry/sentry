@@ -13,11 +13,10 @@ type InputProps = React.ComponentProps<typeof NoteInput>;
 type Props = {
   itemKey: string;
   storageKey: string;
-  onCancel?: () => void;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
-  source?: string;
   text?: string;
+  variant?: 'compact' | 'full';
 } & InputProps;
 
 function fetchFromStorage(storageKey: string) {
@@ -57,7 +56,7 @@ function NoteInputWithStorage({
   onLoad,
   onSave,
   text,
-  source,
+  variant,
   ...props
 }: Props) {
   const value = useMemo(() => {
@@ -134,8 +133,7 @@ function NoteInputWithStorage({
     [itemKey, onCreate, storageKey]
   );
 
-  // Make sure `this.props` does not override `onChange` and `onCreate`
-  if (source === 'issue-details') {
+  if (variant === 'compact') {
     return (
       <StreamlinedNoteInput
         text={value}

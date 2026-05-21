@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.utils import to_valid_int_id
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.organization import Organization
@@ -30,8 +31,9 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
         """
         Update the last_visited timestamp for a GroupSearchView for the current organization member.
         """
+        view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
         try:
-            view = GroupSearchView.objects.get(id=view_id, organization=organization)
+            view = GroupSearchView.objects.get(id=view_id_int, organization=organization)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

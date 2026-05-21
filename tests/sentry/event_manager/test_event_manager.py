@@ -3756,7 +3756,7 @@ class DSLatestReleaseBoostTest(TestCase):
             f"ds::r:{release_2.id}:e:prod": str(ts),
             f"ds::r:{release_3.id}:e:dev": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,
@@ -3821,7 +3821,7 @@ class DSLatestReleaseBoostTest(TestCase):
         assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
             f"ds::r:{release_2.id}:e:{self.environment1.name}": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_2.id,
                 timestamp=ts,
@@ -3854,7 +3854,7 @@ class DSLatestReleaseBoostTest(TestCase):
         assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
             f"ds::r:{release.id}:e:{self.environment1.name}": str(ts_1)
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release.id,
                 timestamp=ts_1,
@@ -3888,9 +3888,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 f"ds::r:{release.id}:e:{self.environment1.name}": str(ts_1),
                 f"ds::r:{release.id}:e:{self.environment2.name}": str(ts_2),
             }
-            assert ProjectBoostedReleases(
-                project_id=project.id
-            ).get_extended_boosted_releases() == [
+            assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
                 ExtendedBoostedRelease(
                     id=release.id,
                     timestamp=ts_1,
@@ -3928,9 +3926,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 f"ds::r:{release.id}:e:{self.environment2.name}": str(ts_2),
                 f"ds::r:{release.id}": str(ts_3),
             }
-            assert ProjectBoostedReleases(
-                project_id=project.id
-            ).get_extended_boosted_releases() == [
+            assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
                 ExtendedBoostedRelease(
                     id=release.id,
                     timestamp=ts_1,
@@ -3975,7 +3971,7 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
         assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {}
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == []
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == []
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_deleted_release_after_event_received(self) -> None:
@@ -4016,7 +4012,7 @@ class DSLatestReleaseBoostTest(TestCase):
         }
         # We expect to not see the release 2 because it will not be in the database anymore, thus we mark it as
         # expired.
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,
@@ -4061,7 +4057,7 @@ class DSLatestReleaseBoostTest(TestCase):
             ts,
         )
 
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,
@@ -4149,9 +4145,7 @@ class DSLatestReleaseBoostTest(TestCase):
             assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
                 f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)
             }
-            assert ProjectBoostedReleases(
-                project_id=project.id
-            ).get_extended_boosted_releases() == [
+            assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
                 ExtendedBoostedRelease(
                     id=release_3.id,
                     timestamp=ts,
@@ -4231,7 +4225,7 @@ class DSLatestReleaseBoostTest(TestCase):
             f"ds::r:{release_2.id}": str(ts - 1),
             f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_2.id,
                 timestamp=ts - 1,
@@ -4300,7 +4294,7 @@ class DSLatestReleaseBoostTest(TestCase):
             f"ds::r:{release_1.id}:e:{self.environment2.name}": str(ts),
             f"ds::r:{release_1.id}": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,

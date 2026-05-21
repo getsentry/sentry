@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -34,7 +35,6 @@ from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,

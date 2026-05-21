@@ -7,10 +7,10 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.seer.models.night_shift import (
-    NightShiftRunResultKind,
     SeerNightShiftRun,
     SeerNightShiftRunResult,
 )
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 
 
 class SeerNightShiftRunResultResponse(TypedDict):
@@ -57,9 +57,7 @@ class SeerNightShiftRunSerializer(Serializer):
         **kwargs: Any,
     ) -> SeerNightShiftRunResponse:
         all_results = list(obj.results.all())
-        triage_results = [
-            r for r in all_results if r.kind == NightShiftRunResultKind.AGENTIC_TRIAGE
-        ]
+        triage_results = [r for r in all_results if r.kind == SeerWorkflowStrategy.AGENTIC_TRIAGE]
         extras = obj.extras or {}
         return {
             "id": str(obj.id),
@@ -72,7 +70,7 @@ class SeerNightShiftRunSerializer(Serializer):
             # Match the pre-migration column behavior: always "agentic_triage"
             # in this PR. The multi-kind feature PR will refine this once
             # other kinds can produce runs.
-            "triageStrategy": NightShiftRunResultKind.AGENTIC_TRIAGE.value,
+            "triageStrategy": SeerWorkflowStrategy.AGENTIC_TRIAGE.value,
         }
 
 

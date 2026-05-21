@@ -16,7 +16,7 @@ import type {
 } from 'sentry/components/activity/note/types';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import {useMembers} from 'sentry/utils/members/useMembers';
+import {useMemberMentionData} from 'sentry/utils/members/useMemberMentionData';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
@@ -49,13 +49,8 @@ function StreamlinedNoteInput({
 }: Props) {
   const theme = useTheme();
 
-  const {data: members = []} = useMembers();
+  const {getMemberSuggestions} = useMemberMentionData();
   const {teams} = useTeams();
-
-  const suggestMembers = members.map(member => ({
-    id: `user:${member.id}`,
-    display: member.name,
-  }));
 
   const suggestTeams = teams.map(team => ({
     id: `team:${team.id}`,
@@ -160,7 +155,7 @@ function StreamlinedNoteInput({
       >
         <Mention
           trigger="@"
-          data={suggestMembers}
+          data={getMemberSuggestions}
           onAdd={handleAddMember}
           displayTransform={(_id, display) => `@${display}`}
           markup="**[sentry.strip:member]__display__**"

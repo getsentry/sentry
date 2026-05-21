@@ -244,4 +244,51 @@ describe('OrganizationCreate', () => {
       'https://org-slug.sentry.io/projects/new/'
     );
   });
+
+  it('submits to the control URL when create-org-control is active', async () => {
+    ConfigStore.set(
+      'features',
+      new Set(['system:multi-region', 'organizations:create-org-control'])
+    );
+    ConfigStore.set('urlPrefix', 'https://sentry.io');
+    ConfigStore.set('regions', [
+      {url: 'https://us.example.com', name: 'us'},
+      {
+        url: 'https://de.example.com',
+        name: 'de',
+      },
+    ]);
+    const orgCreateMock = MockApiClient.addMockResponse({
+      url: '/organizations/',
+      method: 'POST',
+      body: OrganizationFixture(),
+    });
+
+    render(<OrganizationCreate />);
+    expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
+    const link = screen.getByText<HTMLAnchorElement>('Learn More');
+    expect(link).toBeInTheDocument();
+    expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
+    await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Data Storage Location'}),
+      '🇪🇺 European Union (EU)'
+    );
+    await userEvent.click(screen.getByText('Create Organization'));
+
+    await waitFor(() => {
+      expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
+        success: expect.any(Function),
+        error: expect.any(Function),
+        method: 'POST',
+        host: 'https://sentry.io',
+        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
+      });
+    });
+
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+      'https://org-slug.sentry.io/projects/new/'
+    );
+  });
 });

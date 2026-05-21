@@ -14,9 +14,9 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAu
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 @control_silo_endpoint

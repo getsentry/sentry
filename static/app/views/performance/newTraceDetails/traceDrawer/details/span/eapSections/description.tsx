@@ -171,7 +171,7 @@ export function SpanDescription({
 
   const value =
     resolvedModule === ModuleName.DB ? (
-      <Stack flex="1">
+      <Stack flex="1" minWidth={0}>
         <StyledCodeSnippet
           language={dbSystem === 'mongodb' ? 'json' : 'sql'}
           isRounded={false}

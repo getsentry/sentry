@@ -11,7 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
-import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getExplorerFeedbackOptions,
@@ -41,7 +41,7 @@ function TopBarContent() {
   }, [contentTop]);
 
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
-  const [seerExplorerRunId] = useSeerExplorerRunId();
+  const {runId: seerExplorerRunId} = useSeerExplorerChatState();
 
   const feedbackOptions = useMemo(() => {
     if (isSeerExplorerOpen) {

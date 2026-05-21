@@ -9,7 +9,11 @@ import type {Node} from '@react-types/shared';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {LeadWrap} from '@sentry/scraps/compactSelect';
-import {InnerWrap, MenuListItem} from '@sentry/scraps/menuListItem';
+import {
+  InnerWrap,
+  MenuListItem,
+  type MenuListItemProps,
+} from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
@@ -29,7 +33,6 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
   const {
     label,
     details,
-    leadingItems,
     trailingItems,
     priority,
     hideCheck,
@@ -70,6 +73,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     [label]
   );
 
+  const leadingItems: MenuListItemProps['leadingItems'] = node.props.leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 

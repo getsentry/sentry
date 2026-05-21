@@ -5,6 +5,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -164,9 +165,30 @@ export function ExplorerDrawerContent({
   }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl = runId
-    ? getConversationsUrlForExternalUse('sentry', runId)
-    : undefined;
+  const conversationsUrl = useMemo(() => {
+    if (runId === null) {
+      return;
+    }
+    let minTs = Infinity;
+    let maxTs = -Infinity;
+    for (const block of blocks) {
+      const ts = Date.parse(block.timestamp);
+      if (Number.isNaN(ts)) {
+        continue;
+      }
+      if (ts < minTs) {
+        minTs = ts;
+      }
+      if (ts > maxTs) {
+        maxTs = ts;
+      }
+    }
+    return getConversationsUrlForExternalUse('sentry', runId, {
+      start: minTs === Infinity ? undefined : new Date(minTs).toISOString(),
+      end: maxTs === -Infinity ? undefined : new Date(maxTs).toISOString(),
+      project: SEER_AGENTS_PROJECT_ID,
+    });
+  }, [runId, blocks]);
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees

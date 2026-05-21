@@ -14,7 +14,6 @@ import {
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
-import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
@@ -23,8 +22,6 @@ const DEFAULT_STRUCTURED_DATA_PROPS = {
   withAnnotatedText: true,
   withOnlyFormattedText: true,
 };
-
-const MESSAGE_PREVIEW_CHAR_LIMIT = 200;
 
 interface BreadcrumbItemContentProps {
   breadcrumb: RawCrumb;
@@ -47,20 +44,7 @@ export function BreadcrumbItemContent({
 
   const defaultMessage = defined(bc.message) ? (
     <BreadcrumbText>
-      {fullyExpanded ? (
-        <StructuredData
-          value={bc.message}
-          meta={meta?.message}
-          {...structuredDataProps}
-        />
-      ) : (
-        <StructuredData
-          value={ellipsize(bc.message, MESSAGE_PREVIEW_CHAR_LIMIT)}
-          // Note: Annotations applying to trimmed content will not be applied.
-          meta={meta?.message}
-          {...structuredDataProps}
-        />
-      )}
+      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
     </BreadcrumbText>
   ) : null;
 
@@ -272,6 +256,7 @@ const SQLText = styled('pre')`
 
 const BreadcrumbText = styled(Timeline.Text)`
   white-space: pre-wrap;
+  word-break: break-all;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};

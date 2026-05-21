@@ -43,6 +43,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
+import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
@@ -114,9 +115,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
         mode === Mode.SAMPLES
           ? (key: string) => {
               if (ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)) {
-                return t(
-                  "This key won't affect the results because samples mode does not support aggregate functions"
-                );
+                return <SamplesModeAggregateFilterWarning />;
               }
               return;
             }

@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {
@@ -192,7 +193,9 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                     addToDashboard(
                       metricQueries.filter(
                         metricQuery =>
-                          !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
+                          !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) &&
+                          metricQuery.queryParams.visualizes[0]!.chartType !==
+                            ChartType.HEATMAP
                       )
                     );
                   },
@@ -201,6 +204,8 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
             : []),
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
+            const isUnsupported =
+              isVisualizeEquation(visualize) || visualize.chartType === ChartType.HEATMAP;
             const label = isVisualizeFunction(visualize)
               ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
                   formatTraceMetricsFunction(
@@ -214,15 +219,17 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
               key: `add-to-dashboard-${index}`,
               label,
               onAction: () => {
-                if (isVisualizeEquation(visualize)) {
+                if (isUnsupported) {
                   return;
                 }
                 addToDashboard(metricQuery);
               },
-              disabled: isVisualizeEquation(visualize),
+              disabled: isUnsupported,
               tooltip: isVisualizeEquation(visualize)
                 ? t('Equations cannot currently be added to a dashboard')
-                : undefined,
+                : visualize.chartType === ChartType.HEATMAP
+                  ? t('Heat maps cannot currently be added to a dashboard')
+                  : undefined,
             };
           }),
         ],

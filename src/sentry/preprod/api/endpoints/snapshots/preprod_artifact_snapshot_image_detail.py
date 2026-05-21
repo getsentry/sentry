@@ -28,6 +28,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
     SnapshotManifest,
+    image_metadata_extras,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 
@@ -63,10 +64,9 @@ def _build_image_info(
     org_slug: str,
     project_slug: str,
 ) -> SnapshotImageDetailImageInfo:
-    known_fields = set(ImageMetadata.__fields__.keys()) | set(
-        SnapshotImageDetailImageInfo.__fields__.keys()
+    extra_fields = image_metadata_extras(
+        metadata, exclude=frozenset(SnapshotImageDetailImageInfo.__fields__)
     )
-    extra_fields = {k: v for k, v in metadata.dict().items() if k not in known_fields}
     return SnapshotImageDetailImageInfo(
         content_hash=metadata.content_hash,
         display_name=metadata.display_name,

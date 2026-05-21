@@ -11,6 +11,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
     SnapshotManifest,
+    image_metadata_extras,
 )
 
 
@@ -40,6 +41,7 @@ def _build_base_images(
     result: dict[str, SnapshotImageResponse] = {}
     for key, meta in base_images.items():
         result[key] = SnapshotImageResponse(
+            **image_metadata_extras(meta, exclude={"key", "image_file_name"}),
             key=meta.content_hash,
             display_name=meta.display_name,
             image_file_name=key,

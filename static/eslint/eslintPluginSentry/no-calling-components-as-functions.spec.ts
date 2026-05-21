@@ -56,14 +56,14 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     },
     // Known utility — even if imported, skip
     {
-      code: 'import {HookOrDefault} from "sentry/utils/hook"; const x = HookOrDefault({hookName: "x"});',
+      code: 'import {OverrideOrDefault} from "sentry/components/overrideOrDefault"; const x = OverrideOrDefault({overrideName: "x"});',
     },
     // All-uppercase names — constants, not components
     {
       code: 'import {DO_NOT_USE_getButtonStyles} from "./styles"; const x = DO_NOT_USE_getButtonStyles({size: "md"});',
     },
     {
-      code: 'import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from "./router"; DANGEROUS_SET_REACT_ROUTER_6_HISTORY({history});',
+      code: 'import {DANGEROUS_SET_FOO} from "./foo"; DANGEROUS_SET_FOO({foo: 1});',
     },
     {
       code: 'const BREAKPOINTS = (theme) => ({ mobile: 0 }); const x = BREAKPOINTS(theme);',
