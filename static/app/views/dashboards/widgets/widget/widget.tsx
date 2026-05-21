@@ -105,7 +105,7 @@ function WidgetLayout(props: Widget) {
               </Flex>
             )}
             {props.Actions && (
-              <RevealOnHover.Action alwaysVisible={revealActions !== 'hover'}>
+              <RevealOnHover.Action visible={revealActions !== 'hover'}>
                 <TitleHoverItems>{props.Actions}</TitleHoverItems>
               </RevealOnHover.Action>
             )}
