@@ -167,6 +167,7 @@ export function groupMergedReducer(
         fingerprintState: setFingerprintState(
           state.fingerprintState,
           action.fingerprintIds,
+          // Keep busy until the query refetches and the component remounts
           {checked: false, busy: true}
         ),
         unmergeList,
