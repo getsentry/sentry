@@ -9,10 +9,10 @@ jest.mock('sentry/utils/window/useWindowSize');
 const mockUseWindowSize = jest.mocked(useWindowSize);
 
 describe('useLogsQueryTruncate', () => {
-  it('returns 256 for narrow viewports where the formula yields less', () => {
+  it('returns 64 for narrow viewports where the formula yields less', () => {
     mockUseWindowSize.mockReturnValue({innerWidth: 800, innerHeight: 600});
     const {result} = renderHookWithProviders(() => useLogsQueryTruncate());
-    expect(result.current).toBe(256);
+    expect(result.current).toBe(64);
   });
 
   it('returns the formula result for wide viewports where it exceeds 256', () => {
