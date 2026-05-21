@@ -20,13 +20,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {TodoItem} from 'sentry/views/seerExplorer/types';
+import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
   getToolsStringFromBlock,
   getValidToolLinks,
 } from 'sentry/views/seerExplorer/utils';
 
+import type {ToolUseBlockProps} from './shared';
 import {
   type BlockStatus,
   MessagePlaceholder,
@@ -34,12 +35,14 @@ import {
   Spinner,
   getBlockStatus,
   hasValidContent,
-  useBlockContext,
 } from './shared';
 
-export function ToolUseBlock() {
-  const {block, showThinking} = useBlockContext();
-
+export function ToolUseBlock({
+  block,
+  showThinking,
+  blocks,
+  getPageReferrer,
+}: ToolUseBlockProps) {
   if (block.loading && !block.message.tool_calls) {
     return <MessagePlaceholder />;
   }
@@ -58,15 +61,16 @@ export function ToolUseBlock() {
           </Disclosure.Content>
         </Disclosure>
       )}
-      {block.message.tool_calls ? <ToolCallList /> : null}
+      {block.message.tool_calls ? (
+        <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
+      ) : null}
     </Stack>
   );
 }
 
-function useToolLinks() {
+function useToolLinks(block: Block) {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {block} = useBlockContext();
 
   const {sortedToolLinks, toolCallToLinkIndexMap} = useMemo(() => {
     return getValidToolLinks(
@@ -103,15 +107,20 @@ function useToolLinks() {
   };
 }
 
-function ToolCallList() {
-  const {block, blocks, getPageReferrer} = useBlockContext();
+interface ToolCallListProps {
+  block: Block;
+  blocks?: Block[];
+  getPageReferrer?: () => string;
+}
+
+function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
     organization,
     projects,
-  } = useToolLinks();
+  } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
   const isLoading = blockStatus === 'loading' || blockStatus === 'pending';

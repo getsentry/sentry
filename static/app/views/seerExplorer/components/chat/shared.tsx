@@ -10,25 +10,23 @@ import {Heading} from '@sentry/scraps/text';
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
-interface BlockContextValue {
+interface BlockVariantProps {
   block: Block;
+}
+
+export interface UserBlockProps extends BlockVariantProps {}
+
+export interface AssistantBlockProps extends BlockVariantProps {
   blockIndex: number;
-  blocks?: Block[];
-  getPageReferrer?: () => string;
   interactionPending?: boolean;
   readOnly?: boolean;
   runId?: number;
-  showThinking?: boolean;
 }
 
-export const BlockContext = createContext<BlockContextValue | null>(null);
-
-export function useBlockContext(): BlockContextValue {
-  const ctx = useContext(BlockContext);
-  if (!ctx) {
-    throw new Error('useBlockContext must be used within a BlockComponent');
-  }
-  return ctx;
+export interface ToolUseBlockProps extends BlockVariantProps {
+  blocks?: Block[];
+  getPageReferrer?: () => string;
+  showThinking?: boolean;
 }
 
 export type BlockStatus =

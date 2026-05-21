@@ -14,16 +14,21 @@ import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversati
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
 
+import type {AssistantBlockProps} from './shared';
 import {
   BLOCK_WRAPPER_SELECTOR,
   SeerMarkdown,
   MessagePlaceholder,
   hasValidContent,
-  useBlockContext,
 } from './shared';
 
-export function AssistantBlock() {
-  const {block} = useBlockContext();
+export function AssistantBlock({
+  block,
+  blockIndex,
+  runId,
+  interactionPending,
+  readOnly,
+}: AssistantBlockProps) {
   const content = block.message.content ?? '';
 
   if (block.loading) {
@@ -37,7 +42,13 @@ export function AssistantBlock() {
           <SeerMarkdown raw={content} />
         </Container>
       )}
-      <BlockActionBar />
+      <BlockActionBar
+        block={block}
+        blockIndex={blockIndex}
+        runId={runId}
+        interactionPending={interactionPending}
+        readOnly={readOnly}
+      />
     </Fragment>
   );
 }
@@ -68,9 +79,14 @@ function useBlockFeedback(block: Block, blockIndex: number, runId: number | unde
   return {feedbackSubmitted, trackFeedback};
 }
 
-function BlockActionBar() {
+function BlockActionBar({
+  block,
+  blockIndex,
+  runId,
+  interactionPending,
+  readOnly,
+}: AssistantBlockProps) {
   const organization = useOrganization();
-  const {block, blockIndex, runId, interactionPending, readOnly} = useBlockContext();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
   const showCopy = !!block.message.content?.trim();
 

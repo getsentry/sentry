@@ -2,10 +2,9 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {useBlockContext} from './shared';
+import type {UserBlockProps} from './shared';
 
-export function UserBlock() {
-  const {block} = useBlockContext();
+export function UserBlock({block}: UserBlockProps) {
   return (
     <Flex align="start" justify="end" width="100%" padding="xl">
       <UserBubble>{block.message.content ?? ''}</UserBubble>
