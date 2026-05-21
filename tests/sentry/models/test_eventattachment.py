@@ -68,3 +68,6 @@ class NormalizeContentTypeTest(TestCase):
 
     def test_octet_stream_with_unrecognized_name(self):
         assert normalize_content_type("application/octet-stream", "noext") == "application/octet-stream"
+
+    def test_octet_stream_case_insensitive(self):
+        assert normalize_content_type("Application/Octet-Stream", "screenshot.png") == "image/png"

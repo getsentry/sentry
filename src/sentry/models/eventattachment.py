@@ -248,7 +248,7 @@ class EventAttachment(Model):
 def normalize_content_type(content_type: str | None, name: str) -> str:
     if content_type:
         normalized = content_type.split(";")[0].strip()
-        if normalized != "application/octet-stream":
+        if normalized.lower() != "application/octet-stream":
             return normalized
     return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
