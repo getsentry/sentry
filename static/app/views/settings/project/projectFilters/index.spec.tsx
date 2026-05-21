@@ -4,13 +4,7 @@ import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
@@ -277,8 +271,7 @@ describe('ProjectFilters', () => {
     expect(
       screen.getByText('Changing this filter will apply to all new events.')
     ).toBeInTheDocument();
-    const form = textbox.closest('form')!;
-    await userEvent.click(within(form).getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
@@ -293,9 +286,7 @@ describe('ProjectFilters', () => {
     await userEvent.type(textbox, 'test\ntest2');
     expect(textbox).toHaveValue('test\ntest2');
 
-    await userEvent.click(
-      within(textbox.closest('form')!).getByRole('button', {name: 'Cancel'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(textbox).toHaveValue('');
   });
