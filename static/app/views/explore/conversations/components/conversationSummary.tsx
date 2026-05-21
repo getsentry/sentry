@@ -184,17 +184,9 @@ export function ConversationAggregatesBar({
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map((name, index, arr) => (
-              <Tag
-                key={name}
-                variant="info"
-                style={
-                  index === arr.length - 1
-                    ? {flexShrink: 1, minWidth: 0}
-                    : {flexShrink: 0}
-                }
-              >
-                {index === arr.length - 1 ? <Text ellipsis>{name}</Text> : name}
+            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
+              <Tag key={name} variant="info">
+                {name}
               </Tag>
             ))}
             {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
