@@ -4,13 +4,13 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.utils.payload_comparison import PayloadComparator, describe_value
+from sentry.utils.payload_comparison import ParityChecker, describe_value
 
 logger = logging.getLogger("sentry.legacy_webhook")
 
 
 def compare_payloads(old_payload: Mapping[str, Any], new_payload: Mapping[str, Any]) -> list[str]:
-    comparator = PayloadComparator(format_value=describe_value)
+    comparator = ParityChecker(format_value=describe_value)
     comparator.compare(old_payload, new_payload, frozenset())
     return comparator.mismatches
 
