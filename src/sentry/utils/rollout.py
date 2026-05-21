@@ -164,7 +164,7 @@ class SafeRolloutComparator:
         callsite: str,
         use_experimental: bool,
         exact_match: bool,
-        reasonable_match: bool | None,
+        is_reasonable_match: bool | None,
         is_experimental_data_a_null_result: bool | None,
         control_data: TData,
         experimental_data: TData,
@@ -183,7 +183,7 @@ class SafeRolloutComparator:
                 "callsite": callsite,
                 "source_of_truth": ("experimental" if use_experimental else "control"),
                 "exact_match": exact_match,
-                "reasonable_match": reasonable_match,
+                "reasonable_match": is_reasonable_match,
                 "is_null_result": is_experimental_data_a_null_result,
                 "debug_context": trim(cls._default_serialize_for_log(debug_context)),
                 "control_data_raw": trim(serialize(control_data)),
@@ -266,7 +266,7 @@ class SafeRolloutComparator:
         """
         use_experimental = cls.should_use_experiment(callsite)
         exact_match = control_data == experimental_data
-        reasonable_match: bool | None = None
+        is_reasonable_match: bool | None = None
 
         # Part 1: Compare results, log debug info, and emit metrics
         tags: dict[str, str] = {
@@ -281,20 +281,20 @@ class SafeRolloutComparator:
 
         if reasonable_match_comparator is not None:
             try:
-                reasonable_match = reasonable_match_comparator(control_data, experimental_data)
+                is_reasonable_match = reasonable_match_comparator(control_data, experimental_data)
             except Exception:
                 logger.exception(
                     "saferollout.comparator_error",
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
-                reasonable_match = None
+                is_reasonable_match = None
             else:
-                tags["reasonable_match"] = str(reasonable_match)
+                tags["reasonable_match"] = str(is_reasonable_match)
 
         # Log mismatch only for true mismatches: when a reasonable comparator
         # exists, only log if it returned False; otherwise log on exact mismatch.
-        has_mismatch = reasonable_match is False or (
-            reasonable_match is None and exact_match is False
+        has_mismatch = is_reasonable_match is False or (
+            is_reasonable_match is None and exact_match is False
         )
         if has_mismatch:
             try:
@@ -302,7 +302,7 @@ class SafeRolloutComparator:
                     callsite=callsite,
                     use_experimental=use_experimental,
                     exact_match=exact_match,
-                    reasonable_match=reasonable_match,
+                    is_reasonable_match=is_reasonable_match,
                     is_experimental_data_a_null_result=is_experimental_data_a_null_result,
                     control_data=control_data,
                     experimental_data=experimental_data,
