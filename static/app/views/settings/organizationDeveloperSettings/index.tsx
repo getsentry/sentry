@@ -24,7 +24,6 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {SentryApplicationRow} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
@@ -40,7 +39,6 @@ const TAB_LABELS: Record<Tab, string> = {
 function OrganizationDeveloperSettings() {
   const location = useLocation();
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
   const api = useApi({persistInFlight: true});
 
   const value =
@@ -141,13 +139,6 @@ function OrganizationDeveloperSettings() {
     }
   };
 
-  const headerActions = (
-    <Flex gap="md">
-      <ExampleIntegrationButton analyticsView={analyticsView} />
-      <CreateIntegrationButton analyticsView={analyticsView} />
-    </Flex>
-  );
-
   const inlineActions = (
     <Flex gap="md">
       <ExampleIntegrationButton analyticsView={analyticsView} size="md" />
@@ -181,7 +172,6 @@ function OrganizationDeveloperSettings() {
             })}
           </Fragment>
         }
-        action={hasPageFrame ? undefined : headerActions}
       />
       <TabsContainer>
         <Flex align="center" justify="between" gap="md">
@@ -192,7 +182,7 @@ function OrganizationDeveloperSettings() {
               ))}
             </TabList>
           </Tabs>
-          {hasPageFrame && inlineActions}
+          {inlineActions}
         </Flex>
       </TabsContainer>
       {renderTabContent()}
