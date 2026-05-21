@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
@@ -228,12 +228,12 @@ export default function ProjectEnvironments() {
             {isHidden ? t('Hidden') : t('Active Environments')}
           </SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>
-            <Tooltip
-              showUnderline
+            <InfoText
               title={t('Count of all error events from the last 30 days')}
+              variant="muted"
             >
               {t('Recent Error Events')}
-            </Tooltip>
+            </InfoText>
           </SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
