@@ -24,6 +24,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -132,6 +133,7 @@ function BaseExploreFieldRenderer({
   usePortalOnDropdown,
 }: BaseFieldProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const theme = useTheme();
   const {selection} = usePageFilters();
@@ -157,6 +159,7 @@ function BaseExploreFieldRenderer({
 
   let rendered = renderer(data, {
     location,
+    navigate,
     organization,
     theme,
     unit,

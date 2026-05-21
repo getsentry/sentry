@@ -300,7 +300,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
 
         assert result == GITLAB_CODEOWNERS

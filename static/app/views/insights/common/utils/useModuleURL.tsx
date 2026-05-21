@@ -14,7 +14,6 @@ import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/insights/mobile/appS
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/insights/mobile/screenload/settings';
 import {BASE_URL as SCREEN_RENDERING_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {BASE_URL as MOBILE_SCREENS_BASE_URL} from 'sentry/views/insights/mobile/screens/settings';
-import {BASE_URL as MOBILE_UI_BASE_URL} from 'sentry/views/insights/mobile/ui/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {
   useDomainViewFilters,
@@ -39,7 +38,6 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.MCP_TOOLS]: MCP_TOOLS_BASE_URL,
   [ModuleName.MCP_RESOURCES]: MCP_RESOURCES_BASE_URL,
   [ModuleName.MCP_PROMPTS]: MCP_PROMPTS_BASE_URL,
-  [ModuleName.MOBILE_UI]: MOBILE_UI_BASE_URL,
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_BASE_URL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_BASE_URL,
   [ModuleName.SESSIONS]: SESSIONS_BASE_URL,

@@ -37,6 +37,7 @@ class DynamicSamplingStatus(StrEnum):
     NO_PROJECT_VOLUMES = "no_project_volumes"
     NOT_IN_ROLLOUT = "not_in_rollout"
     ORG_HAS_NO_DYNAMIC_SAMPLING = "org_has_no_dynamic_sampling"
+    ORG_HAS_NO_PROJECTS = "org_has_no_projects"
     ORG_NOT_FOUND = "org_not_found"
     ROLLOUT_DISABLED = "rollout_disabled"
     ROLLOUT_EXCLUDED = "rollout_excluded"

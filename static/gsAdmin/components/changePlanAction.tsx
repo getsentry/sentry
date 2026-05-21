@@ -1,4 +1,4 @@
-import React, {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import classNames from 'classnames';
 
 import {Container} from '@sentry/scraps/layout';
@@ -240,7 +240,7 @@ function ChangePlanAction({
   ];
 
   const header = partnerPlanId ? null : (
-    <React.Fragment>
+    <Fragment>
       <Container marginBottom="xl">
         <Tabs
           value={activeTier}
@@ -290,7 +290,7 @@ function ChangePlanAction({
           </a>
         </li>
       </ul>
-    </React.Fragment>
+    </Fragment>
   );
 
   return (

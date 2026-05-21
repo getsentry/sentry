@@ -1,5 +1,7 @@
 import {useState} from 'react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import type {ActivityAuthorType} from 'sentry/components/activity/item';
 import {ActivityItem} from 'sentry/components/activity/item';
 import type {NoteType} from 'sentry/types/alerts';
@@ -20,7 +22,9 @@ type Props = {
   authorName: string;
   dateCreated: Date | string;
   /**
-   * min-height for NoteInput textarea
+   * Minimum height for the comment editor, in pixels.
+   *
+   * Passed through to NoteInput.
    */
   minHeight: number;
   /**
@@ -89,15 +93,17 @@ function Note(props: Props) {
   if (editing) {
     return (
       <ActivityItem noPadding {...activityItemProps}>
-        <NoteInput
-          {...{noteId, minHeight, text, projectSlugs}}
-          onEditFinish={() => setEditing(false)}
-          onUpdate={note => {
-            onUpdate(note, props);
-            setEditing(false);
-          }}
-          onCreate={note => onCreate?.(note)}
-        />
+        <Container padding="lg">
+          <NoteInput
+            {...{noteId, minHeight, text, projectSlugs}}
+            onCancel={() => setEditing(false)}
+            onUpdate={note => {
+              onUpdate(note, props);
+              setEditing(false);
+            }}
+            onCreate={note => onCreate?.(note)}
+          />
+        </Container>
       </ActivityItem>
     );
   }

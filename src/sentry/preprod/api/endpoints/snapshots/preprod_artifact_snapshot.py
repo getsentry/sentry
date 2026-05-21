@@ -5,6 +5,7 @@ from typing import Any
 
 import jsonschema
 import orjson
+import pydantic
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
@@ -65,10 +66,7 @@ from sentry.preprod.snapshots.utils import (
     find_head_snapshot_artifacts_awaiting_base,
 )
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
-from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    create_preprod_snapshot_status_check_task,
-)
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -82,7 +80,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "app_id": {"type": "string", "maxLength": 255},
         "images": {
             "type": "object",
-            "additionalProperties": ImageMetadata.schema(),
+            "additionalProperties": True,
             "maxProperties": 50000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
@@ -467,6 +465,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             state=artifact.state,
             vcs_info=vcs_info,
             app_id=artifact.app_id,
+            is_selective=snapshot_metrics.is_selective,
             images=image_list,
             image_count=snapshot_metrics.image_count,
             changed=categorized.changed,
@@ -570,6 +569,21 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     status=400,
                 )
 
+        # Validate before entering the transaction so invalid data never creates
+        # orphaned DB records.
+        try:
+            manifest = SnapshotManifest(
+                images=images,
+                diff_threshold=diff_threshold,
+                selective=selective,
+                all_image_file_names=all_image_file_names,
+            )
+        except pydantic.ValidationError as e:
+            return Response(
+                {"detail": f"Invalid image metadata: {e.errors()[0]['msg']}"},
+                status=400,
+            )
+
         # has_vcs tag differentiates transactions that include a CommitComparison
         # lookup from those that skip it, so we can isolate their latency on dashboards.
         with (
@@ -618,12 +632,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest = SnapshotManifest(
-                images=images,
-                diff_threshold=diff_threshold,
-                selective=selective,
-                all_image_file_names=all_image_file_names,
-            )
             manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 
@@ -672,19 +680,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             except Exception:
                 logger.exception("Failed to record bundles_per_commit metric")
 
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "upload_completion",
-            },
-        )
-        create_preprod_snapshot_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "upload_completion",
-            },
-        )
-
+        comparison_starting = False
         if base_sha and base_repo_name:
             try:
                 base_artifact = find_base_snapshot_artifact(
@@ -727,6 +723,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                             "base_artifact_id": base_artifact.id,
                         },
                     )
+                    comparison_starting = True
 
                 else:
                     logger.info(
@@ -746,6 +743,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         "base_sha": base_sha,
                     },
                 )
+
+        # When a comparison starts, compare_snapshots owns the status-check
+        # lifecycle; posting one here too would race with it.
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=artifact.id,
+            caller="upload_completion",
+            update_status_check=not comparison_starting,
+        )
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.

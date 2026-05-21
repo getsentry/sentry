@@ -73,6 +73,7 @@ export function TraceSpanLinks({
   const renderBaggage = {
     organization,
     location,
+    navigate,
     theme,
   };
 
@@ -178,6 +179,7 @@ export function TraceSpanLinks({
         rendererExtra={{
           theme,
           location,
+          navigate,
           organization,
         }}
         renderers={customRenderers}

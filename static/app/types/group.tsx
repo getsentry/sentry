@@ -212,6 +212,7 @@ export enum IssueType {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
+  LOW_VALUE_SPAN_CONFIGURATION = 'low_value_span_configuration',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
@@ -297,6 +298,7 @@ export enum IssueTitle {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
+  LOW_VALUE_SPAN_CONFIGURATION = 'AI Detected Low-Value Span',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -349,6 +351,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
 
   sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
+  low_value_span_configuration: IssueTitle.LOW_VALUE_SPAN_CONFIGURATION,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -626,7 +629,6 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_SOLUTION_COMPLETED,
   GroupActivityType.SEER_CODING_STARTED,
   GroupActivityType.SEER_CODING_COMPLETED,
-  GroupActivityType.SEER_PR_CREATED,
 ]);
 
 interface GroupActivityBase {
@@ -915,8 +917,8 @@ interface GroupActivitySeerRcaStarted extends GroupActivityBase {
 
 interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
   data: {
-    root_cause?: Record<string, any>;
     run_id?: number;
+    summary?: string;
   };
   type: GroupActivityType.SEER_RCA_COMPLETED;
 }
@@ -931,7 +933,7 @@ interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
 interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
   data: {
     run_id?: number;
-    solution?: Record<string, any>;
+    summary?: string;
   };
   type: GroupActivityType.SEER_SOLUTION_COMPLETED;
 }
@@ -945,7 +947,6 @@ interface GroupActivitySeerCodingStarted extends GroupActivityBase {
 
 interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
   data: {
-    changes?: Array<Record<string, any>>;
     run_id?: number;
   };
   type: GroupActivityType.SEER_CODING_COMPLETED;

@@ -59,6 +59,14 @@ class TestImageMetadataTagsCoercion:
         )
         assert manifest.images["screen.png"].tags == {"dark": "dark", "mobile": "mobile"}
 
+    def test_tags_boolean_values_coerced_to_strings(self) -> None:
+        meta = ImageMetadata(**_meta(tags={"dark_mode": True, "rtl": False}))
+        assert meta.tags == {"dark_mode": "True", "rtl": "False"}
+
+    def test_tags_numeric_values_coerced_to_strings(self) -> None:
+        meta = ImageMetadata(**_meta(tags={"count": 42, "ratio": 1.5}))
+        assert meta.tags == {"count": "42", "ratio": "1.5"}
+
 
 class TestImageMetadataJsonSchema:
     def test_schema_accepts_dict_tags(self) -> None:
@@ -76,3 +84,11 @@ class TestImageMetadataJsonSchema:
     def test_schema_accepts_no_tags(self) -> None:
         schema = ImageMetadata.schema()
         jsonschema.validate(_meta(), schema)
+
+    def test_schema_accepts_boolean_tag_values(self) -> None:
+        schema = ImageMetadata.schema()
+        jsonschema.validate(_meta(tags={"dark_mode": True}), schema)
+
+    def test_schema_accepts_numeric_tag_values(self) -> None:
+        schema = ImageMetadata.schema()
+        jsonschema.validate(_meta(tags={"count": 42}), schema)

@@ -686,7 +686,7 @@ describe('OrganizationMembersList', () => {
     });
 
     it('renders only current user in demo mode', async () => {
-      (isDemoModeActive as jest.Mock).mockReturnValue(true);
+      jest.mocked(isDemoModeActive).mockReturnValue(true);
 
       render(<OrganizationMembersList />, {
         organization,
@@ -697,7 +697,7 @@ describe('OrganizationMembersList', () => {
       expect(await screen.findByText(currentUser.name)).toBeInTheDocument();
       expect(screen.queryByText(member.name)).not.toBeInTheDocument();
 
-      (isDemoModeActive as jest.Mock).mockReset();
+      jest.mocked(isDemoModeActive).mockReset();
     });
 
     it('allows you to leave as a member after searching', async () => {

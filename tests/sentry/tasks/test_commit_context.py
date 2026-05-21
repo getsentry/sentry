@@ -559,7 +559,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                     lineno=39,
                     path="bar/models/release.py",
                     ref="master",
-                    repo=code_mapping_defined_stack_root.repository,
+                    repo=code_mapping_defined_stack_root.project_repository.repository,
                     code_mapping=code_mapping_defined_stack_root,
                 )
             ],

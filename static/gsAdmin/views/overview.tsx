@@ -19,7 +19,7 @@ import type {DocIntegration} from 'sentry/types/integrations';
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {PercentChange} from 'admin/components/percentChange';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 /**
  * DEPRECATION WARNING

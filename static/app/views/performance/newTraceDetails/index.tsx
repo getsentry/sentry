@@ -10,7 +10,9 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -35,6 +37,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {useTrace} from './traceApi/useTrace';
 import {
   getTraceMetaErrorCount,
+  getTraceMetaMetricsCount,
   getTraceMetaPerformanceIssueCount,
   getTraceMetaSpanCount,
   useTraceMeta,
@@ -112,17 +115,22 @@ function useInitialLogsData(): OurLogsResponseItem[] | undefined {
 
 function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
+  const logsEnabled = isLogsEnabled(organization);
+  const metricsEnabled = canUseMetricsUI(organization);
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsData = useInitialLogsData();
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
+  const metaMetricsCount = getTraceMetaMetricsCount(meta.data);
   const {metricsData} = useInitialTraceMetricData({
     traceId: traceSlug,
     queryParams,
-    enabled: true,
+    enabled: meta.status !== 'pending' && metaMetricsCount === undefined,
   });
+  const traceMetricsData =
+    metaMetricsCount === undefined ? metricsData : {count: metaMetricsCount};
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -149,9 +157,13 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   });
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
+    isLoading: meta.status === 'pending' || tree.type === 'loading',
     tree,
     logs: logsData,
-    metrics: metricsData,
+    meta: meta.data,
+    metrics: traceMetricsData,
+    logsEnabled,
+    metricsEnabled,
   });
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
@@ -193,7 +205,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             traceSlug={traceSlug}
             traceEventView={traceEventView}
             logs={logsData}
-            metrics={metricsData}
+            metrics={traceMetricsData}
           />
           <TraceInnerLayout>
             <ErrorsOnlyWarnings

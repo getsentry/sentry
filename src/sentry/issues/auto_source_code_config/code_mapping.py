@@ -377,17 +377,15 @@ def create_code_mapping(
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
-            project=project,
+            project_repository=project_repo,
             stack_root=code_mapping.stacktrace_root,
             source_root=code_mapping.source_path,
             defaults={
-                "repository": repository,
                 "organization_id": organization.id,
                 "integration_id": installation.model.id,
                 "organization_integration_id": installation.org_integration.id,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": False,
-                "project_repository": project_repo,
             },
         )
 

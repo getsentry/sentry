@@ -509,7 +509,7 @@ function SlowDBQueryEvidence({
 
   const queryValue = (
     <QueryCard>
-      <Stack>
+      <Stack minWidth={0}>
         <NoPaddingClippedBox clipHeight={200}>
           <StyledCodeSnippet language="sql">
             {formatter.toString(span.description ?? '')}
