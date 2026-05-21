@@ -98,7 +98,7 @@ class SafeRolloutComparator:
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
 
     @classmethod
-    def _mismatch_log_callsite_allowlist_option_name(cls) -> str:
+    def _callsite_mismatch_log_allowlist_option(cls) -> str:
         """
         Controls which callsites emit structured mismatch logs. Add a callsite
         string to enable logging for it, or ``"*"`` to enable for all callsites.
@@ -134,7 +134,7 @@ class SafeRolloutComparator:
             flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._mismatch_log_callsite_allowlist_option_name(),
+            cls._callsite_mismatch_log_allowlist_option(),
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -142,7 +142,7 @@ class SafeRolloutComparator:
 
     @classmethod
     def _should_log_mismatch(cls, callsite: str) -> bool:
-        allowlist = set(options.get(cls._mismatch_log_callsite_allowlist_option_name()))
+        allowlist = set(options.get(cls._callsite_mismatch_log_allowlist_option()))
         return "*" in allowlist or callsite in allowlist
 
     @classmethod

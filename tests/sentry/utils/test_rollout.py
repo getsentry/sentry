@@ -24,7 +24,7 @@ class SafeRolloutComparatorTestCase(TestCase):
         )
         assert TestRolloutComparator._callsite_experiment_blocklist_option() in option_names
         assert TestRolloutComparator._experiment_sample_rate_option() in option_names
-        assert TestRolloutComparator._mismatch_log_callsite_allowlist_option_name() in option_names
+        assert TestRolloutComparator._callsite_mismatch_log_allowlist_option() in option_names
 
     def test_return_as_expected(self) -> None:
         with override_options({TestRolloutComparator._should_run_experiment_option(): False}):
@@ -45,7 +45,7 @@ class SafeRolloutComparatorTestCase(TestCase):
                 TestRolloutComparator._callsite_use_experimental_data_allowlist_option(): [
                     "test_allowed"
                 ],
-                TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): [],
+                TestRolloutComparator._callsite_mismatch_log_allowlist_option(): [],
             }
         ):
             assert TestRolloutComparator.check_and_choose("ctl", "exp", "test_3") == "ctl"
@@ -96,18 +96,18 @@ class SafeRolloutComparatorTestCase(TestCase):
 
     def test_should_log_mismatch_allowlist(self) -> None:
         with override_options(
-            {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): []}
+            {TestRolloutComparator._callsite_mismatch_log_allowlist_option(): []}
         ):
             assert TestRolloutComparator._should_log_mismatch("callsite") is False
 
         with override_options(
-            {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): ["callsite"]}
+            {TestRolloutComparator._callsite_mismatch_log_allowlist_option(): ["callsite"]}
         ):
             assert TestRolloutComparator._should_log_mismatch("callsite") is True
             assert TestRolloutComparator._should_log_mismatch("other") is False
 
         with override_options(
-            {TestRolloutComparator._mismatch_log_callsite_allowlist_option_name(): ["*"]}
+            {TestRolloutComparator._callsite_mismatch_log_allowlist_option(): ["*"]}
         ):
             assert TestRolloutComparator._should_log_mismatch("callsite") is True
             assert TestRolloutComparator._should_log_mismatch("other") is True
