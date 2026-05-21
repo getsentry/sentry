@@ -107,7 +107,9 @@ class WorkflowEventData:
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
-    _cache: _WorkflowCache = field(default_factory=dict, repr=False, compare=False, hash=False)
+    _cache: _WorkflowCache = field(
+        default_factory=lambda: _WorkflowCache(), repr=False, compare=False, hash=False
+    )
 
 
 @dataclass(frozen=True)
