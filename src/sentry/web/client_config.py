@@ -225,6 +225,10 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
+        if self.last_org and features.has(
+            "organizations:create-org-control", self.last_org, actor=self.user
+        ):
+            yield "organizations:create-org-control"
         # TODO @athena: remove this feature flag after development is done
         # this is a temporary hack to be able to used flagpole in a case where there's no organization
         # availble on the frontend

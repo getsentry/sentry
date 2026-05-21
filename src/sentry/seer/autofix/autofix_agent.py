@@ -500,6 +500,7 @@ def trigger_coding_agent_handoff(
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
+    auto_create_pr: bool | None = None,
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing agent-based autofix run.
@@ -513,6 +514,7 @@ def trigger_coding_agent_handoff(
         integration_id: The coding agent integration ID (e.g., Cursor)
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+        auto_create_pr: Optional override for whether the coding agent should create a PR
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -522,11 +524,12 @@ def trigger_coding_agent_handoff(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    auto_create_pr = False
     preference = read_preference_from_sentry_db(group.project)
     repo_definitions: list[SeerRepoDefinition] = preference.repositories
-    if preference.automation_handoff:
-        auto_create_pr = preference.automation_handoff.auto_create_pr
+    if auto_create_pr is None:
+        auto_create_pr = False
+        if preference.automation_handoff:
+            auto_create_pr = preference.automation_handoff.auto_create_pr
 
     if not repo_definitions:
         return {
@@ -573,6 +576,7 @@ def trigger_coding_agent_handoff(
         repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
+        issue_short_id=short_id,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)

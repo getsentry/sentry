@@ -60,12 +60,13 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
 from sentry.workflow_engine.models import Action, DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -186,13 +187,14 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
     def test_simple(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
-        alert_rule = self.create_alert_rule()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug)
 
-        assert resp.data == serialize([self.alert_rule, alert_rule])
+        assert resp.data[0] == serialize(
+            self.detector, self.user, WorkflowEngineDetectorSerializer()
+        )
 
     def test_workflow_engine_serializer(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -252,17 +254,15 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
 
-        # Create rule and manually set it to upsampled_count() (simulating what happens after conversion)
-        alert_rule = self.create_alert_rule()
-        alert_rule.snuba_query.aggregate = "upsampled_count()"
-        alert_rule.snuba_query.save()
+        # Manually set self.alert_rule to upsampled_count() (simulating what happens after conversion)
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug)
 
-        # Find our rule in the response (should be the second one, first is self.alert_rule)
-        rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
+        rule = next(rule for rule in resp.data if rule["id"] == str(self.alert_rule.id))
 
         assert rule["aggregate"] == "count()", (
             "LIST should return count() to user, hiding internal upsampled_count() storage"
@@ -369,39 +369,50 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         assert len(resp.data) == 1
         assert resp.data[0]["name"] == self.detector.name
 
-
-@freeze_time("2024-12-11 03:21:34")
-class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
-    """Delta tests comparing old vs new serializer output for the list endpoint."""
-
-    @with_feature("organizations:incidents")
-    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
-        """New serializer output on the list endpoint must match old serializer output."""
+    def test_workflow_engine_serializer_gte_lte_condition_types(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
-        self.login_as(self.user)
 
-        old_resp = self.get_success_response(self.organization.slug)
-        old_data = old_resp.data
-        assert len(old_data) > 0
+        query_subscription = QuerySubscription.objects.get(snuba_query=self.alert_rule.snuba_query)
+        data_source, _ = DataSource.objects.get_or_create(
+            type="snuba_query_subscription",
+            source_id=str(query_subscription.id),
+            defaults={"organization_id": self.organization.id},
+        )
 
-        with self.feature("organizations:workflow-engine-rule-serializers"):
-            new_resp = self.get_success_response(self.organization.slug)
-        new_data = new_resp.data
-        assert len(new_data) == len(old_data)
-
-        for old_rule, new_rule in zip(old_data, new_data):
-            assert_serializer_parity(
-                old=old_rule,
-                new=new_rule,
-                known_differences={
-                    # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
-                    # but workflow engine always creates a resolve condition during migration.
-                    # Cannot distinguish between explicit None vs migrated value without AlertRule.
-                    "resolveThreshold",
-                    "triggers.resolveThreshold",  # same reason as above
-                },
+        for condition_type, expected_threshold_type, name in (
+            (Condition.GREATER_OR_EQUAL, AlertRuleThresholdType.ABOVE, "GTE Detector"),
+            (Condition.LESS_OR_EQUAL, AlertRuleThresholdType.BELOW, "LTE Detector"),
+        ):
+            dcg = self.create_data_condition_group()
+            detector = self.create_detector(
+                project=self.project,
+                type=MetricIssue.slug,
+                name=name,
+                config={"detection_type": "percent", "comparison_delta": 604800},
+                workflow_condition_group=dcg,
             )
+            data_source.detectors.add(detector)
+            self.create_data_condition(
+                type=condition_type,
+                comparison=150,
+                condition_result=DetectorPriorityLevel.HIGH,
+                condition_group=dcg,
+            )
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        results_by_name = {item["name"]: item for item in resp.data}
+        assert (
+            results_by_name["GTE Detector"]["thresholdType"] == AlertRuleThresholdType.ABOVE.value
+        )
+        assert (
+            results_by_name["LTE Detector"]["thresholdType"] == AlertRuleThresholdType.BELOW.value
+        )
 
 
 @freeze_time()

@@ -12,7 +12,6 @@ import {
   SectionWrap,
   SelectFilterContext,
 } from '@sentry/scraps/compactSelect';
-import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
 
 import {GridListOption, type GridListOptionProps} from './option';
 
@@ -20,14 +19,13 @@ interface GridListSectionProps {
   listState: ListState<any>;
   node: Node<any>;
   size: GridListOptionProps['size'];
-  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**
  * A <li /> element that functions as a grid list section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListSection({node, listState, onToggle, size}: GridListSectionProps) {
+export function GridListSection({node, listState, size}: GridListSectionProps) {
   const titleId = useId();
   const {separatorProps} = useSeparator({elementType: 'li'});
 
@@ -57,9 +55,7 @@ export function GridListSection({node, listState, onToggle, size}: GridListSecti
                 {node.rendered}
               </SectionTitle>
             )}
-            {showToggleAllButton && (
-              <SectionToggle item={node} listState={listState} onToggle={onToggle} />
-            )}
+            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
         <SectionGroup role="presentation">

@@ -28,7 +28,6 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import type {Organization} from 'sentry/types/organization';
-import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -335,8 +334,6 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
-
   const renderResult = rtl.render(
     <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
     options
@@ -390,8 +387,6 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       config,
       outletContext,
     });
-
-    DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
 
     return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
   }

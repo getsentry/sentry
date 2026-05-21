@@ -188,7 +188,12 @@ SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
+# Redis cluster for span buffer data and flush locks. Flush locks must remain
+# on this cluster because add-buffer.lua checks lock existence atomically.
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
+# Redis cluster for span deduplication keys in process_segments consumer.
+# Falls back to SENTRY_SPAN_BUFFER_CLUSTER if not set.
+SENTRY_SPAN_DEDUPE_CLUSTER: str | None = None
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
@@ -977,7 +982,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.relay",
     "sentry.tasks.ai_agent_monitoring",
     "sentry.tasks.release_registry",
-    "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scim.privilege_sync",
     "sentry.tasks.statistical_detectors",
@@ -3196,7 +3200,7 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
-    "sentry-organization-avatar-url",
+    "sentry-organization-avatar-url-deprecated",
     "sentry-chartcuterie-config",
     "sentry-robots-txt",
 }
@@ -3326,3 +3330,12 @@ if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:
 
 if SILO_DEVSERVER or IS_DEV:
     SYNAPSE_HMAC_SECRET = ["synapse-dev-secret"]
+
+if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
+    # Pair with `devservices --mode cell-routing`. Cell-scoped API XHRs cross
+    # to Synapse on :13000; UI HTML and control API stay on the devserver.
+    SENTRY_OPTIONS["system.region-api-url-template"] = "http://dev.getsentry.net:13000"
+    SENTRY_OPTIONS["system.organization-base-hostname"] = "{slug}.dev.getsentry.net:8000"
+    SENTRY_OPTIONS["system.organization-url-template"] = "http://{hostname}"
+    SENTRY_FEATURES["system:multi-region"] = True
+    SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"

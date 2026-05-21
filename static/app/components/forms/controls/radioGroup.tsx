@@ -89,7 +89,7 @@ export function RadioGroup<C extends string>({
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
                 name={groupName}
-                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
+                aria-label={typeof name === 'string' ? name : undefined}
                 disabled={disabled}
                 checked={value === id}
                 onChange={e => !disabled && onChange(id, e)}

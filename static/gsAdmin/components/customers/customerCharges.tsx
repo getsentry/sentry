@@ -3,7 +3,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;

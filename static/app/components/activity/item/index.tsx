@@ -12,7 +12,7 @@ import {ActivityAvatar} from './avatar';
 import type {ActivityBubbleProps} from './bubble';
 import {ActivityBubble} from './bubble';
 
-export type ActivityAuthorType = 'user' | 'system';
+type ActivityAuthorType = 'user' | 'system';
 
 interface ActivityItemProps {
   /**
