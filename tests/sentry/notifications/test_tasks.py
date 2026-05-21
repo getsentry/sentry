@@ -56,6 +56,17 @@ class DeleteOldNotificationMessagesTest(TestCase):
 
         assert not NotificationMessage.objects.filter(id__in=[parent.id, child.id]).exists()
 
+    def test_keeps_old_parent_with_in_retention_child(self) -> None:
+        parent = self._create_message(days_old=RETENTION_DAYS + 5)
+        child = self._create_message(
+            days_old=RETENTION_DAYS - 1, parent_notification_message=parent
+        )
+
+        delete_old_notification_messages()
+
+        remaining_ids = set(NotificationMessage.objects.values_list("id", flat=True))
+        assert remaining_ids == {parent.id, child.id}
+
     def test_respects_per_run_cap(self) -> None:
         cutoff_time = timezone.now() - timedelta(days=RETENTION_DAYS + 1)
         NotificationMessage.objects.bulk_create(
