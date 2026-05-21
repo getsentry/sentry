@@ -178,7 +178,7 @@ export default function ProjectServiceHooks() {
               data-test-id="new-service-hook"
               to={`/settings/${organization.slug}/projects/${projectId}/hooks/new/`}
               size="sm"
-              priority="primary"
+              variant="primary"
               icon={<IconAdd />}
             >
               {t('Create New Hook')}

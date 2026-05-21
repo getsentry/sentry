@@ -77,7 +77,7 @@ export function WidgetBuilderNameAndDescription({
       />
       {!isTextWidget && !isDescSelected && (
         <Button
-          priority="link"
+          variant="link"
           aria-label={t('Add Description')}
           onClick={() => {
             setIsDescSelected(true);

@@ -1,19 +1,15 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -268,8 +264,12 @@ export function useTraceMetricsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map(query => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
 
       const requestParams: DiscoverQueryRequestParams = {
@@ -289,63 +289,45 @@ export function useTraceMetricsTableQuery(
         ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
-      const baseQueryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<TraceMetricsTableResponse>()(
+          '/organizations/$organizationIdOrSlug/events/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<TraceMetricsTableResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<TraceMetricsTableResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<TraceMetricsTableResponse>(context);
         },
-      ];
-
-      return baseQueryKey;
-    });
-  }, [filteredWidget, organization, pageFilters, samplingMode, cursor, limit]);
-
-  const createQueryFnTable = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<TraceMetricsTableResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<TraceMetricsTableResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-        return fetchDataQuery<TraceMetricsTableResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFnTable(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -362,12 +344,11 @@ export function useTraceMetricsTableQuery(
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = q.data.json;
       rawData[i] = responseData;
 
       const transformedDataItem = {
@@ -382,7 +363,7 @@ export function useTraceMetricsTableQuery(
 
       tableResults.push(transformedDataItem);
 
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
+      responsePageLinks = q.data.headers.Link;
     });
 
     // Check if rawData is the same as before to prevent unnecessary rerenders

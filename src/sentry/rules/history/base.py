@@ -9,10 +9,7 @@ from sentry.utils.services import Service
 from sentry.workflow_engine.models.workflow import Workflow
 
 if TYPE_CHECKING:
-    from typing import Any
-
     from sentry.models.group import Group
-    from sentry.models.rule import Rule
     from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -35,23 +32,11 @@ class RuleHistoryBackend(Service):
     This backend is an interface for storing and retrieving issue alert fire history.
     """
 
-    __all__ = ("record", "fetch_rule_groups_paginated", "fetch_rule_hourly_stats")
-
-    def record(
-        self,
-        rule: Rule,
-        group: Group,
-        event_id: str | None = None,
-        notification_uuid: str | None = None,
-    ) -> Any | None:
-        """
-        Records an instance of an issue alert being fired for a given group.
-        """
-        raise NotImplementedError
+    __all__ = ("fetch_rule_groups_paginated", "fetch_rule_hourly_stats")
 
     def fetch_rule_groups_paginated(
         self,
-        target: Rule | Workflow,
+        target: Workflow,
         start: datetime,
         end: datetime,
         cursor: Cursor,
@@ -65,7 +50,7 @@ class RuleHistoryBackend(Service):
         raise NotImplementedError
 
     def fetch_rule_hourly_stats(
-        self, target: Rule | Workflow, start: datetime, end: datetime, project_id: int | None = None
+        self, target: Workflow, start: datetime, end: datetime, project_id: int | None = None
     ) -> Sequence[TimeSeriesValue]:
         """
         Fetches counts of how often a rule has fired withing a given datetime range, bucketed by

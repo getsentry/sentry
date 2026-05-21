@@ -218,7 +218,7 @@ export function DisabledImages(props: {
         <Link
           to={`/settings/${organization.slug}/projects/${firstProjectSelected?.slug}/performance/`}
         >
-          <Button priority="primary" data-test-id="enable-sample-images-button">
+          <Button variant="primary" data-test-id="enable-sample-images-button">
             {t(' Enable in Settings')}
           </Button>
         </Link>

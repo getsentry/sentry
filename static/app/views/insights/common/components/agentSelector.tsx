@@ -79,7 +79,7 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
     return urlAgents ?? [];
   }, [urlAgents, projectKey]);
 
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(

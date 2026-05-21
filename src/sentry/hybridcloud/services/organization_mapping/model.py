@@ -33,6 +33,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     status: int = 0
     slug: str = ""
     cell_name: str = ""
+    date_created: datetime = Field(default_factory=timezone.now)
 
     # When not set, no change to customer id performed,
     # when set with a CustomerId, the customer_id set to either None or string
@@ -44,6 +45,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     allow_joinleave: bool = False
     disable_new_visibility_features: bool = False
     enhanced_privacy: bool = False
+    # Deprecated: the require_email_verification feature has been removed.
     require_email_verification: bool = False
     disable_member_project_creation: bool = False
     prevent_superuser_access: bool = False

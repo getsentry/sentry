@@ -1,303 +1,241 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
 import {Access} from 'sentry/components/acl/access';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Environment, Project} from 'sentry/types/project';
-import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
-import {recreateRoute} from 'sentry/utils/recreateRoute';
-import {useApi} from 'sentry/utils/useApi';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDisplayName} from 'sentry/utils/environment';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  project: Project;
-} & RouteComponentProps<{projectId: string}>;
-
-type State = {
-  environments: null | Environment[];
-  isLoading: boolean;
-};
-
-class ProjectEnvironments extends Component<Props, State> {
-  state: State = {
-    environments: null,
-    isLoading: true,
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (
-      this.props.location.pathname.endsWith('hidden/') !==
-      prevProps.location.pathname.endsWith('hidden/')
-    ) {
-      this.fetchData();
-    }
-  }
-
-  fetchData() {
-    const isHidden = this.props.location.pathname.endsWith('hidden/');
-
-    if (!this.state.isLoading) {
-      this.setState({isLoading: true});
-    }
-
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    this.props.api.request(`/projects/${organization.slug}/${projectId}/environments/`, {
-      query: {
-        visibility: isHidden ? 'hidden' : 'visible',
-      },
-      success: environments => {
-        this.setState({environments, isLoading: false});
-      },
-    });
-  }
-
-  // Toggle visibility of environment
-  toggleEnv = (env: Environment, shouldHide: boolean) => {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-
-    this.props.api.request(
-      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(env)}/`,
-      {
-        method: 'PUT',
-        data: {
-          isHidden: shouldHide,
-        },
-        success: () => {
-          addSuccessMessage(
-            tct('Updated [environment]', {
-              environment: getDisplayName(env),
-            })
-          );
-        },
-        error: () => {
-          addErrorMessage(
-            tct('Unable to update [environment]', {
-              environment: getDisplayName(env),
-            })
-          );
-        },
-        complete: this.fetchData.bind(this),
-      }
-    );
-  };
-
-  renderEmpty() {
-    const isHidden = this.props.location.pathname.endsWith('hidden/');
-    const message = isHidden
-      ? t("You don't have any hidden environments.")
-      : t("You don't have any environments yet.");
-    return <EmptyMessage>{message}</EmptyMessage>;
-  }
-
-  /**
-   * Renders rows for "system" environments:
-   * - "All Environments"
-   * - "No Environment"
-   *
-   */
-  renderAllEnvironmentsSystemRow() {
-    // Not available in "Hidden" tab
-    const isHidden = this.props.location.pathname.endsWith('hidden/');
-    if (isHidden) {
-      return null;
-    }
-
-    const {project} = this.props;
-    return (
-      <EnvironmentRow
-        project={project}
-        name={ALL_ENVIRONMENTS_KEY}
-        environment={{
-          id: ALL_ENVIRONMENTS_KEY,
-          name: ALL_ENVIRONMENTS_KEY,
-          displayName: ALL_ENVIRONMENTS_KEY,
-        }}
-        isSystemRow
-      />
-    );
-  }
-
-  renderEnvironmentList(envs: Environment[]) {
-    const {project} = this.props;
-    const isHidden = this.props.location.pathname.endsWith('hidden/');
-    const buttonText = isHidden ? t('Show') : t('Hide');
-
-    return (
-      <Fragment>
-        {this.renderAllEnvironmentsSystemRow()}
-        {envs.map(env => (
-          <EnvironmentRow
-            project={project}
-            key={env.id}
-            name={env.name}
-            environment={env}
-            isHidden={isHidden}
-            onHide={this.toggleEnv}
-            actionText={buttonText}
-            shouldShowAction
-          />
-        ))}
-      </Fragment>
-    );
-  }
-
-  renderBody() {
-    const {environments, isLoading} = this.state;
-
-    if (isLoading) {
-      return <LoadingIndicator />;
-    }
-
-    return (
-      <PanelBody>
-        {environments?.length
-          ? this.renderEnvironmentList(environments)
-          : this.renderEmpty()}
-      </PanelBody>
-    );
-  }
-
-  render() {
-    const {routes, params, location, project} = this.props;
-    const isHidden = location.pathname.endsWith('hidden/');
-
-    const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
-    return (
-      <div>
-        <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
-        <SettingsPageHeader
-          title={t('Manage Environments')}
-          tabs={
-            <TabsContainer>
-              <Tabs value={isHidden ? 'hidden' : 'environments'}>
-                <TabList>
-                  <TabList.Item key="environments" to={baseUrl}>
-                    {t('Environments')}
-                  </TabList.Item>
-                  <TabList.Item key="hidden" to={`${baseUrl}hidden/`}>
-                    {t('Hidden')}
-                  </TabList.Item>
-                </TabList>
-              </Tabs>
-            </TabsContainer>
-          }
-        />
-        <ProjectPermissionAlert project={project} />
-
-        <Panel>
-          <PanelHeader>{isHidden ? t('Hidden') : t('Active Environments')}</PanelHeader>
-          {this.renderBody()}
-        </Panel>
-      </div>
-    );
-  }
+interface EnvironmentRowProps {
+  name: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-type RowProps = {
-  environment: Environment;
+interface ProjectEnvironment {
+  id: string;
+  isHidden: boolean;
   name: string;
-  project: Project;
-  actionText?: string;
-  isHidden?: boolean;
-  isSystemRow?: boolean;
-  onHide?: (env: Environment, isHidden: boolean) => void;
-  shouldShowAction?: boolean;
-};
+}
 
-function EnvironmentRow({
-  project,
-  environment,
-  name,
-  onHide,
-  shouldShowAction = false,
-  isSystemRow = false,
-  isHidden = false,
-  actionText = '',
-}: RowProps) {
+interface ToggleEnvironmentVariables {
+  environment: ProjectEnvironment;
+  shouldHide: boolean;
+}
+
+function EnvironmentRow({children, name}: EnvironmentRowProps) {
   return (
-    <EnvironmentItem>
-      <Flex align="center">{isSystemRow ? t('All Environments') : name}</Flex>
-      <Access access={['project:write']} project={project}>
-        {({hasAccess}) => (
-          <Fragment>
-            {shouldShowAction && onHide && (
-              <EnvironmentButton
-                size="xs"
-                disabled={!hasAccess}
-                onClick={() => onHide(environment, !isHidden)}
-              >
-                {actionText}
-              </EnvironmentButton>
-            )}
-          </Fragment>
-        )}
-      </Access>
-    </EnvironmentItem>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell minHeight="45px" padding="md xl">
+        {name}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" minHeight="45px" padding="md xl">
+        {children}
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
-const EnvironmentItem = styled(PanelItem)`
-  align-items: center;
-  justify-content: space-between;
-`;
+function EnvironmentTableSkeleton({isHidden}: {isHidden: boolean}) {
+  return (
+    <Fragment>
+      {!isHidden && <EnvironmentRow name={t('All Environments')} />}
+      {['35%', '28%', '42%', '24%'].map(width => (
+        <SimpleTable.Row key={width}>
+          <SimpleTable.RowCell minHeight="40px" padding="md xl">
+            <Placeholder height="16px" width={width} />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" minHeight="40px" padding="md xl">
+            <Placeholder height="24px" width="44px" />
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      ))}
+    </Fragment>
+  );
+}
+
+export default function ProjectEnvironments() {
+  const location = useLocation();
+  const params = useParams<{projectId: string}>();
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const queryClient = useQueryClient();
+
+  const isHidden = location.pathname.endsWith('hidden/');
+  const environmentsQueryOptions = apiOptions.as<ProjectEnvironment[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: params.projectId,
+      },
+      query: {visibility: isHidden ? 'hidden' : 'visible'},
+      staleTime: 0,
+    }
+  );
+  const {
+    data: environments,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery(environmentsQueryOptions);
+
+  const toggleEnvironment = useMutation({
+    mutationFn: ({environment, shouldHide}: ToggleEnvironmentVariables) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/$environment/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: params.projectId,
+              // Django decodes route params before the endpoint calls
+              // `Environment.get_name_from_path_segment()`, which unquotes the value again.
+              // Pre-encode here so `getApiUrl`'s normal path-param encoding produces the
+              // double-encoded URL needed to preserve literal percent sequences in names.
+              environment: encodeURIComponent(environment.name),
+            },
+          }
+        ),
+        method: 'PUT',
+        data: {isHidden: shouldHide},
+      }),
+    onMutate: async ({environment}) => {
+      await queryClient.cancelQueries({queryKey: environmentsQueryOptions.queryKey});
+
+      const previousData = queryClient.getQueryData(environmentsQueryOptions.queryKey);
+
+      queryClient.setQueryData(environmentsQueryOptions.queryKey, previous =>
+        previous
+          ? {
+              ...previous,
+              json: previous.json.filter(env => env.id !== environment.id),
+            }
+          : previous
+      );
+
+      return {previousData};
+    },
+    onSuccess: (_data, {environment, shouldHide}) => {
+      addSuccessMessage(
+        shouldHide
+          ? t('Hidden %s', getDisplayName(environment))
+          : t('Unhidden %s', getDisplayName(environment))
+      );
+    },
+    onError: (_error, {environment, shouldHide}, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(environmentsQueryOptions.queryKey, context.previousData);
+      }
+
+      addErrorMessage(
+        shouldHide
+          ? t('Unable to hide %s', getDisplayName(environment))
+          : t('Unable to unhide %s', getDisplayName(environment))
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: environmentsQueryOptions.queryKey});
+    },
+  });
+
+  return (
+    <div>
+      <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
+      <SettingsPageHeader
+        title={t('Manage Environments')}
+        tabs={
+          <TabsContainer>
+            <Tabs value={isHidden ? 'hidden' : 'environments'}>
+              <TabList>
+                <TabList.Item
+                  key="environments"
+                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
+                >
+                  {t('Environments')}
+                </TabList.Item>
+                <TabList.Item
+                  key="hidden"
+                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
+                >
+                  {t('Hidden')}
+                </TabList.Item>
+              </TabList>
+            </Tabs>
+          </TabsContainer>
+        }
+      />
+      <ProjectPermissionAlert project={project} />
+
+      <EnvironmentTable>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell>
+            {isHidden ? t('Hidden') : t('Active Environments')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell />
+        </SimpleTable.Header>
+        {isPending ? (
+          <EnvironmentTableSkeleton isHidden={isHidden} />
+        ) : isError ? (
+          <SimpleTable.Empty>
+            <LoadingError onRetry={refetch} />
+          </SimpleTable.Empty>
+        ) : environments?.length ? (
+          <Fragment>
+            {!isHidden && <EnvironmentRow name={t('All Environments')} />}
+            {environments.map(env => (
+              <EnvironmentRow key={env.id} name={env.name}>
+                <Access access={['project:write']} project={project}>
+                  {({hasAccess}) => (
+                    <Button
+                      size="xs"
+                      disabled={!hasAccess}
+                      onClick={() =>
+                        toggleEnvironment.mutate({
+                          environment: env,
+                          shouldHide: !isHidden,
+                        })
+                      }
+                    >
+                      {isHidden ? t('Show') : t('Hide')}
+                    </Button>
+                  )}
+                </Access>
+              </EnvironmentRow>
+            ))}
+          </Fragment>
+        ) : (
+          <SimpleTable.Empty>
+            {isHidden
+              ? t("You don't have any hidden environments.")
+              : t("You don't have any environments yet.")}
+          </SimpleTable.Empty>
+        )}
+      </EnvironmentTable>
+    </div>
+  );
+}
 
 const TabsContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const EnvironmentButton = styled(Button)`
-  margin-left: ${p => p.theme.space.xs};
+const EnvironmentTable = styled(SimpleTable)`
+  grid-template-columns: minmax(0, 1fr) max-content;
 `;
-
-export default function ProjectEnvironmentsWrapper() {
-  const api = useApi();
-  const location = useLocation();
-  const params = useParams<{projectId: string}>();
-  const routes = useRoutes();
-  const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
-
-  return (
-    <ProjectEnvironments
-      api={api}
-      location={location}
-      params={params}
-      routes={routes}
-      organization={organization}
-      project={project}
-      router={undefined as any}
-      route={undefined as any}
-      routeParams={undefined as any}
-    />
-  );
-}

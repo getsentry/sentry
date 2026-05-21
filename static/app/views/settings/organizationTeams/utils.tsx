@@ -7,5 +7,5 @@ export function getButtonHelpText(isIdpProvisioned = false) {
     );
   }
 
-  return undefined;
+  return;
 }

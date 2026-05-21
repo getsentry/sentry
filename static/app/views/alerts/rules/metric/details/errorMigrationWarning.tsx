@@ -117,7 +117,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
               {t('Exclude archived issues')}
             </LinkButton>
             <DismissButton
-              priority="link"
+              variant="link"
               icon={<IconClose />}
               onClick={dismissPrompt}
               aria-label={t('Dismiss Alert')}

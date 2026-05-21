@@ -351,8 +351,7 @@ class MetricIssue(GroupType):
     type_id = 8001
     slug = "metric_issue"
     description = "Metric issue triggered"
-    category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.METRIC.value
+    category = GroupCategory.METRIC.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
     released = True

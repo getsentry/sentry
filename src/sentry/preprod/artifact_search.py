@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import operator
 from collections.abc import Sequence
+from functools import reduce
 
 from django.db.models import Exists, OuterRef, Q
 
@@ -21,6 +23,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodComparisonApproval,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 
 search_config = SearchConfig.create_from(
     SearchConfig(),
@@ -62,6 +65,7 @@ search_config = SearchConfig.create_from(
     allowed_keys={
         "app_id",
         "app_name",
+        "snapshot_status",
         "build_configuration_name",
         "build_number",
         "build_version",
@@ -159,6 +163,29 @@ def _translate_size_state(value: object) -> int:
             f"Valid values: {', '.join(sorted(SIZE_STATE_VALUES))}"
         )
     return SIZE_STATE_VALUES[raw]
+
+
+SNAPSHOT_STATUS_VALUES = frozenset(
+    {
+        "approved",
+        "auto_approved",
+        "base",
+        "failed",
+        "no_base",
+        "pending",
+        "processing",
+        "requires_approval",
+    }
+)
+
+
+def _validate_snapshot_status(value: object) -> str:
+    raw = str(value).lower()
+    if raw not in SNAPSHOT_STATUS_VALUES:
+        raise InvalidSearchQuery(
+            f"Invalid status value: {value}. Valid values: {', '.join(sorted(SNAPSHOT_STATUS_VALUES))}"
+        )
+    return raw
 
 
 def _base_searchable_queryset() -> PreprodArtifactQuerySet:
@@ -319,6 +346,92 @@ def apply_filters(
                 queryset = queryset.filter(Exists(approved_exists))
             else:
                 queryset = queryset.filter(~Exists(approved_exists))
+            continue
+
+        if name == "snapshot_status":
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            validated = [_validate_snapshot_status(v) for v in values]
+
+            approval_base_qs = PreprodComparisonApproval.objects.filter(
+                preprod_artifact=OuterRef("pk"),
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            )
+            comparison_exists = PreprodSnapshotComparison.objects.filter(
+                head_snapshot_metrics__preprod_artifact=OuterRef("pk"),
+            )
+
+            subqueries: list[Q] = []
+            for val in validated:
+                if val == "base":
+                    subqueries.append(
+                        Q(preprodsnapshotmetrics__isnull=False)
+                        & (
+                            Q(commit_comparison__isnull=True)
+                            | Q(commit_comparison__base_sha__isnull=True)
+                        )
+                    )
+                elif val == "no_base":
+                    subqueries.append(
+                        Q(preprodsnapshotmetrics__isnull=False)
+                        & Q(commit_comparison__base_sha__isnull=False)
+                        & ~Q(Exists(comparison_exists))
+                    )
+                elif val == "pending":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.PENDING
+                        )
+                    )
+                elif val == "processing":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.PROCESSING
+                        )
+                    )
+                elif val == "failed":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.FAILED
+                        )
+                    )
+                elif val == "approved":
+                    subqueries.append(
+                        Q(
+                            Exists(
+                                approval_base_qs.filter(
+                                    approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+                                ).exclude(extras__auto_approval=True)
+                            )
+                        )
+                    )
+                elif val == "auto_approved":
+                    subqueries.append(
+                        Q(
+                            Exists(
+                                approval_base_qs.filter(
+                                    approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+                                    extras__auto_approval=True,
+                                )
+                            )
+                        )
+                    )
+                elif val == "requires_approval":
+                    subqueries.append(
+                        Q(
+                            Exists(
+                                approval_base_qs.exclude(
+                                    approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+                                )
+                            )
+                        )
+                    )
+
+            combined = reduce(operator.or_, subqueries)
+
+            if token.is_negation:
+                queryset = queryset.filter(~combined)
+            else:
+                queryset = queryset.filter(combined)
             continue
 
         # We don't have to handle boolean operators or parens here

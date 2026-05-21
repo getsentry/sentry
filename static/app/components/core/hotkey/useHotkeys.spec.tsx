@@ -336,6 +336,32 @@ describe('useHotkeys', () => {
     expect(callback).toHaveBeenCalled();
   });
 
+  it('does not match mod+/ on AZERTY when user presses Cmd++ (physical Slash key)', () => {
+    // On AZERTY, the physical key in the Slash position produces '+'.
+    // event.key is '+', event.code is 'Slash'.
+    // mod+/ should NOT fire because the user typed Cmd++ (zoom in),
+    // not Cmd+/. The event.code fallback must not treat '+' as '/'.
+    isMac.mockReturnValue(true);
+    const callback = jest.fn();
+
+    renderHook(p => useHotkeys(p), {
+      initialProps: [{match: 'mod+/', callback, includeInputs: true}],
+    });
+
+    const evt = {
+      key: '+',
+      code: 'Slash',
+      metaKey: true,
+      preventDefault: jest.fn(),
+    };
+    events.keydown!(evt);
+
+    expect(callback).not.toHaveBeenCalled();
+    expect(evt.preventDefault).not.toHaveBeenCalled();
+
+    isMac.mockReturnValue(false);
+  });
+
   describe('mod modifier', () => {
     afterEach(() => {
       isMac.mockReturnValue(false);

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -414,7 +414,9 @@ export function TraceEventDataSection({
   const minified = displayOptions.includes('minified');
 
   // Apple crash report endpoint
-  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
+  const threadIdQuery =
+    activeThreadId === undefined ? '' : `&thread_id=${activeThreadId}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}${threadIdQuery}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
   const sortByTooltip = hasNewestFirst
@@ -423,106 +425,111 @@ export function TraceEventDataSection({
       : undefined
     : t('Not available on stack trace with single frame');
 
-  const SectionComponent = isNestedSection ? InlineThreadSection : InterimSection;
-
   const optionsToShow = getDisplayOptions();
   const displayValues = displayOptions.filter(value =>
     optionsToShow.some(opt => opt.value === value && !opt.disabled)
   );
 
+  const actions = !stackTraceNotFound && (
+    <Grid flow="column" align="center" gap="md">
+      {!displayOptions.includes('raw-stack-trace') && (
+        <SegmentedControl
+          size="xs"
+          aria-label={t('Filter frames')}
+          value={isFullStackTrace ? 'full' : 'relevant'}
+          onChange={handleFilterFramesChange}
+        >
+          <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
+            {t('Most Relevant')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="full">
+            {t('Full Stack Trace')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      )}
+      {displayOptions.includes('raw-stack-trace') && nativePlatform && (
+        <LinkButton
+          size="xs"
+          href={rawStackTraceDownloadLink}
+          tooltipProps={{title: t('Download raw stack trace file')}}
+          onClick={() => {
+            trackAnalytics('stack-trace.download_clicked', {
+              organization,
+              project_slug: projectSlug,
+              platform,
+              is_mobile: isMobile,
+            });
+          }}
+        >
+          {t('Download')}
+        </LinkButton>
+      )}
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            icon={<IconSort />}
+            size="xs"
+            tooltipProps={{title: sortByTooltip}}
+          />
+        )}
+        disabled={!!sortByTooltip}
+        position="bottom-end"
+        onChange={selectedOption => {
+          handleSortByChange(selectedOption.value);
+        }}
+        value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
+        options={Object.entries(sortByOptions).map(([value, label]) => ({
+          label,
+          value: value as keyof typeof sortByOptions,
+        }))}
+      />
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            size="xs"
+            icon={<IconEllipsis />}
+            aria-label={t('Display as')}
+          >
+            {t('Display as')}
+          </OverlayTrigger.IconButton>
+        )}
+        multiple
+        position="bottom-end"
+        value={displayValues}
+        onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
+        options={[{label: t('Display'), options: optionsToShow}]}
+      />
+
+      <CopyAsDropdown
+        size="xs"
+        items={CopyAsDropdown.makeDefaultCopyAsOptions({
+          text: handleCopyRawStacktrace,
+          json: undefined,
+          markdown: undefined,
+        })}
+      />
+    </Grid>
+  );
+
+  if (isNestedSection) {
+    return (
+      <InlineThreadSection title={title} actions={actions}>
+        {children}
+      </InlineThreadSection>
+    );
+  }
+
   return (
-    <SectionComponent
-      type={type}
-      showPermalink={false}
+    <FoldSection
+      sectionKey={type}
       title={title}
       disableCollapsePersistence
-      actions={
-        !stackTraceNotFound && (
-          <Grid flow="column" align="center" gap="md">
-            {!displayOptions.includes('raw-stack-trace') && (
-              <SegmentedControl
-                size="xs"
-                aria-label={t('Filter frames')}
-                value={isFullStackTrace ? 'full' : 'relevant'}
-                onChange={handleFilterFramesChange}
-              >
-                <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
-                  {t('Most Relevant')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="full">
-                  {t('Full Stack Trace')}
-                </SegmentedControl.Item>
-              </SegmentedControl>
-            )}
-            {displayOptions.includes('raw-stack-trace') && nativePlatform && (
-              <LinkButton
-                size="xs"
-                href={rawStackTraceDownloadLink}
-                tooltipProps={{title: t('Download raw stack trace file')}}
-                onClick={() => {
-                  trackAnalytics('stack-trace.download_clicked', {
-                    organization,
-                    project_slug: projectSlug,
-                    platform,
-                    is_mobile: isMobile,
-                  });
-                }}
-              >
-                {t('Download')}
-              </LinkButton>
-            )}
-            <CompactSelect
-              trigger={triggerProps => (
-                <OverlayTrigger.Button
-                  {...triggerProps}
-                  icon={<IconSort />}
-                  size="xs"
-                  tooltipProps={{title: sortByTooltip}}
-                />
-              )}
-              disabled={!!sortByTooltip}
-              position="bottom-end"
-              onChange={selectedOption => {
-                handleSortByChange(selectedOption.value);
-              }}
-              value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
-              options={Object.entries(sortByOptions).map(([value, label]) => ({
-                label,
-                value: value as keyof typeof sortByOptions,
-              }))}
-            />
-            <CompactSelect
-              trigger={triggerProps => (
-                <OverlayTrigger.IconButton
-                  {...triggerProps}
-                  size="xs"
-                  icon={<IconEllipsis />}
-                  aria-label={t('Display as')}
-                >
-                  {t('Display as')}
-                </OverlayTrigger.IconButton>
-              )}
-              multiple
-              position="bottom-end"
-              value={displayValues}
-              onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
-              options={[{label: t('Display'), options: optionsToShow}]}
-            />
-
-            <CopyAsDropdown
-              size="xs"
-              items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                text: handleCopyRawStacktrace,
-                json: undefined,
-                markdown: undefined,
-              })}
-            />
-          </Grid>
-        )
-      }
+      actions={actions}
     >
       {children}
-    </SectionComponent>
+    </FoldSection>
   );
 }
 
@@ -536,17 +543,15 @@ function InlineThreadSection({
   title: React.ReactNode;
 }) {
   return (
-    <Wrapper>
+    <Container>
       <Flex justify="between" align="center" marginBottom="md">
         <ThreadHeading>{title}</ThreadHeading>
         {actions}
       </Flex>
       {children}
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};

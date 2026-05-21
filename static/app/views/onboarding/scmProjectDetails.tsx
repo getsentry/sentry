@@ -14,6 +14,7 @@ import {IconGroup, IconProject, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -36,6 +37,7 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
   const {
     selectedPlatform,
     selectedFeatures,
+    selectedRepository,
     createdProjectSlug,
     setCreatedProjectSlug,
     projectDetailsForm,
@@ -53,17 +55,13 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
 
   // State tracks user edits. When the user navigates back from setup-docs
   // the persisted projectDetailsForm restores their previous inputs.
-  const [projectName, setProjectName] = useState<string | null>(
-    projectDetailsForm?.projectName ?? null
-  );
-  const [teamSlug, setTeamSlug] = useState<string | null>(
-    projectDetailsForm?.teamSlug ?? null
-  );
+  const [projectName, setProjectName] = useState(projectDetailsForm?.projectName ?? null);
+  const [teamSlug, setTeamSlug] = useState(projectDetailsForm?.teamSlug ?? null);
 
   const projectNameResolved = projectName ?? defaultName;
   const teamSlugResolved = teamSlug ?? firstAdminTeam?.slug ?? '';
 
-  const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>(
+  const [alertRuleConfig, setAlertRuleConfig] = useState(
     projectDetailsForm?.alertRuleConfig ?? DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
   );
 
@@ -156,13 +154,26 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
         platform: selectedPlatform,
         team: teamSlugResolved,
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction: () => undefined,
+        createNotificationAction: () => {},
       });
 
       // Store the project slug separately so onboarding.tsx can find
       // the project via useRecentCreatedProject without corrupting
       // selectedPlatform.key (which the platform features step needs).
       setCreatedProjectSlug(project.slug);
+
+      if (selectedRepository?.id) {
+        try {
+          await fetchMutation({
+            url: `/projects/${organization.slug}/${project.slug}/repo/`,
+            method: 'POST',
+            data: {repositoryId: selectedRepository.id},
+          });
+        } catch (error) {
+          Sentry.captureException(error);
+        }
+      }
+
       setProjectDetailsForm({
         projectName: projectNameResolved,
         teamSlug: teamSlugResolved,
@@ -253,7 +264,7 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
         <Flex align="center">{genBackButton?.()}</Flex>
         <Flex align="center" gap="md">
           <Button
-            priority="primary"
+            variant="primary"
             onClick={handleCreateProject}
             disabled={!canSubmit}
             busy={createProjectAndRules.isPending}

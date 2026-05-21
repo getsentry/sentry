@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
@@ -10,8 +11,12 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {
+  sentryAppApiOptions,
+  sentryAppsApiOptions,
+} from 'sentry/actionCreators/sentryApps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -52,8 +57,8 @@ import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegra
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
-const FirstPartyIntegrationAlert = HookOrDefault({
-  hookName: 'component:first-party-integration-alert',
+const FirstPartyIntegrationAlert = OverrideOrDefault({
+  overrideName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
@@ -110,14 +115,7 @@ function useIntegrationList() {
     data: orgOwnedApps = [],
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
-  } = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
-  );
+  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
   const {
     data: publishedApps = [],
     isPending: isPublishedAppsPending,
@@ -157,17 +155,7 @@ function useIntegrationList() {
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
-  const extraAppQuery = useApiQuery<SentryApp>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-        path: {sentryAppIdOrSlug: extraAppSlug ?? ''},
-      }),
-    ],
-    {
-      ...queryOptions,
-      enabled: isExtraAppEnabled,
-    }
-  );
+  const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
   const {data: extraApp} = extraAppQuery;
   const isExtraAppPending = isExtraAppEnabled && extraAppQuery.isPending;
   const isExtraAppError = isExtraAppEnabled && extraAppQuery.isError;

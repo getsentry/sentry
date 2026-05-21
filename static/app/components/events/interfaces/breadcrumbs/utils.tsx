@@ -52,7 +52,7 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
 
 function moduleToCategory(module: string | null | undefined) {
   if (!module) {
-    return undefined;
+    return;
   }
   const match = module.match(/^.*\/(.*?)(:\d+)/);
   if (!match) {

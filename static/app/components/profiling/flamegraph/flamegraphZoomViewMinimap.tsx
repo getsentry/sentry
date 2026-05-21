@@ -115,7 +115,7 @@ function FlamegraphZoomViewMinimap({
       !positionIndicatorRenderer ||
       !flamegraphMiniMapRenderer
     ) {
-      return undefined;
+      return;
     }
 
     const clearOverlayCanvas = () => {

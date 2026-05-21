@@ -24,12 +24,12 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';
-import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
+import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -90,7 +90,7 @@ export interface RouterConfig {
   routes?: string[];
 }
 
-interface RenderOptions extends rtl.RenderOptions, ProviderOptions {
+export interface RenderOptions extends rtl.RenderOptions, ProviderOptions {
   initialRouterConfig?: RouterConfig;
   outletContext?: Record<string, unknown>;
 }
@@ -125,9 +125,11 @@ function makeAllTheProviders(options: ProviderOptions) {
       <TopBar.Slot.Provider>
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
-            <GlobalDrawer>
-              <AdditionalWrapper>{children}</AdditionalWrapper>
-            </GlobalDrawer>
+            <GlobalAlertProvider>
+              <GlobalDrawer>
+                <AdditionalWrapper>{children}</AdditionalWrapper>
+              </GlobalDrawer>
+            </GlobalAlertProvider>
           </OrganizationContext>
         </LLMContextProvider>
       </TopBar.Slot.Provider>
@@ -332,8 +334,6 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
-
   const renderResult = rtl.render(
     <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
     options
@@ -387,8 +387,6 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       config,
       outletContext,
     });
-
-    DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
 
     return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
   }

@@ -10,6 +10,8 @@ type Props = InputField['props'] & {
 /**
  * @deprecated Do not use this
  */
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 class TextField extends InputField<Props> {
   getAttributes() {
     return {

@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
@@ -410,7 +410,7 @@ describe('useInfiniteLogsQuery', () => {
         }
       );
 
-      // Within the default 10s budget the loop drains through all pages that
+      // Within the default 15s budget the loop drains through all pages that
       // advertise a next link, including the one whose response flips
       // hasNext=false.
       await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
@@ -422,14 +422,35 @@ describe('useInfiniteLogsQuery', () => {
       await waitFor(() => expect(mockFlextTimeRequests[3]).not.toHaveBeenCalled());
     });
 
-    it('stops auto-fetching once the wall-clock budget expires', async () => {
+    function mockNowAdvancingBy(ms: number) {
       let now = 0;
       mockNow.mockImplementation(() => {
         const current = now;
-        now += 15_000;
+        now += ms;
         return current;
       });
+    }
 
+    function mockEmptyFlexTimePages() {
+      return [
+        makeMockEventsResponse({cursor: '', nextCursor: 'page2'}),
+        makeMockEventsResponse({cursor: 'page2', nextCursor: 'page3'}),
+        makeMockEventsResponse({cursor: 'page3', nextCursor: 'page4', hasNext: false}),
+      ].map(response => MockApiClient.addMockResponse(response));
+    }
+
+    async function waitForRequestToSettle(result: {
+      current: ReturnType<typeof useInfiniteLogsQuery>;
+    }) {
+      await waitFor(() => {
+        if (result.current.isPending) {
+          throw new Error('Waiting for request to settle');
+        }
+      });
+    }
+
+    it('stops auto-fetching once the initial wall-clock budget expires at 15000ms', async () => {
+      mockNowAdvancingBy(15_000);
       const mockFlextTimeRequests = [
         makeMockEventsResponse({cursor: '', nextCursor: 'page2'}),
         makeMockEventsResponse({cursor: 'page2', nextCursor: 'page3'}),
@@ -443,12 +464,89 @@ describe('useInfiniteLogsQuery', () => {
         }
       );
 
-      await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(result.current.isPending).toBe(false));
+      await waitForRequestToSettle(result);
 
       expect(mockFlextTimeRequests[1]).not.toHaveBeenCalled();
 
       // allowed to resume autofetching because the row limit has not been reached
+      expect(result.current.canResumeAutoFetch).toBe(true);
+    });
+
+    it('stops auto-fetching once the one-click resumed wall-clock budget expires at 30000ms', async () => {
+      mockNowAdvancingBy(15_000);
+      const mockFlextTimeRequests = mockEmptyFlexTimePages();
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      await waitForRequestToSettle(result);
+
+      mockNowAdvancingBy(30_000);
+      act(() => result.current.resumeAutoFetch());
+
+      await waitForRequestToSettle(result);
+      expect(mockFlextTimeRequests[1]).not.toHaveBeenCalled();
+      expect(result.current.canResumeAutoFetch).toBe(true);
+    });
+
+    it('stops auto-fetching once the two-click resumed wall-clock budget expires at 60000ms', async () => {
+      mockNowAdvancingBy(15_000);
+      const mockFlextTimeRequests = mockEmptyFlexTimePages();
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      await waitForRequestToSettle(result);
+
+      mockNowAdvancingBy(30_000);
+      act(() => result.current.resumeAutoFetch());
+
+      await waitForRequestToSettle(result);
+
+      mockNowAdvancingBy(60_000);
+      act(() => result.current.resumeAutoFetch());
+
+      await waitForRequestToSettle(result);
+      expect(mockFlextTimeRequests[1]).not.toHaveBeenCalled();
+      expect(result.current.canResumeAutoFetch).toBe(true);
+    });
+
+    it('stops auto-fetching once the three-click resumed wall-clock budget expires at 90000ms', async () => {
+      mockNowAdvancingBy(15_000);
+      const mockFlextTimeRequests = mockEmptyFlexTimePages();
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      await waitForRequestToSettle(result);
+
+      mockNowAdvancingBy(30_000);
+      act(() => result.current.resumeAutoFetch());
+
+      await waitForRequestToSettle(result);
+
+      mockNowAdvancingBy(60_000);
+      act(() => result.current.resumeAutoFetch());
+
+      await waitForRequestToSettle(result);
+
+      mockNowAdvancingBy(90_000);
+      act(() => result.current.resumeAutoFetch());
+
+      await waitForRequestToSettle(result);
+      expect(mockFlextTimeRequests[1]).not.toHaveBeenCalled();
       expect(result.current.canResumeAutoFetch).toBe(true);
     });
 
@@ -704,8 +802,14 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     };
   }
 
+  let mockNowInner: jest.SpyInstance;
+
   beforeEach(() => {
     jest.resetAllMocks();
+    // jest.resetAllMocks() clears any outer Date.now spy, so we need to re-mock it here
+    // with a realistic timestamp so that initializeVirtualTimestamp computes a sane
+    // targetTimestamp and correctly filters far-future log rows.
+    mockNowInner = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
     mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
@@ -716,6 +820,10 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       shouldPersist: true,
       selection: PageFiltersFixture(),
     });
+  });
+
+  afterEach(() => {
+    mockNowInner.mockRestore();
   });
 
   it('should integrate with virtual streaming when auto refresh is enabled', async () => {
@@ -743,7 +851,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
     // With auto refresh enabled, virtual streaming should be active
     // All data should be visible initially since all the mocked timestamps are well behind `now()`
-    expect(result.current.data).toHaveLength(3);
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(3);
+    });
   });
 
   it('should not apply virtual streaming when auto refresh is disabled', async () => {
@@ -790,7 +900,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
         (_, options) => {
           const query = options?.query || {};
           // TODO: Fix space in query
-          return query.query === ' timestamp_precise:<=1508208040000000000';
+          return query.query === ' timestamp_precise:<=1699999960000000000';
         },
       ],
       headers: linkHeaders,
@@ -826,7 +936,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       expect(result.current.isPending).toBe(false);
     });
 
-    expect(result.current.data).toHaveLength(3);
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(3);
+    });
     expect(initialMock).toHaveBeenCalled();
 
     // Fetch next page

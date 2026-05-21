@@ -80,7 +80,7 @@ function WaitingIndicator({
 
   return profileId ? (
     <LinkButton
-      priority="primary"
+      variant="primary"
       to={generateProfileFlamechartRoute({
         organization,
         projectSlug: project.slug,

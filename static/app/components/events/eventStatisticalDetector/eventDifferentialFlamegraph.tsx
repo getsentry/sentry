@@ -128,7 +128,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         ? systemFrameOnly
         : undefined;
 
-  const [negated, setNegated] = useState<boolean>(false);
+  const [negated, setNegated] = useState(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -308,14 +308,14 @@ function DifferentialFlamegraphChangedFunctions(
 
   const onPreviousPaginationClick = useMemo(() => {
     if (state.page === 0) {
-      return undefined;
+      return;
     }
     return () => dispatch({type: 'previous'});
   }, [state.page]);
 
   const onNextPaginationClick = useMemo(() => {
     if (state.page + 1 === state.pageCount) {
-      return undefined;
+      return;
     }
     return () => dispatch({type: 'next'});
   }, [state.page, state.pageCount]);

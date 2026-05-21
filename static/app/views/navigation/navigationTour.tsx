@@ -10,7 +10,8 @@ import {
 
 import NavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   TourAction,
   TourContextProvider,
@@ -301,6 +302,8 @@ export function NavigationTourReminder(props: NavigationTourReminderProps) {
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useNavigationTourModal() {
+  const {openModal} = useModal();
+
   const user = useUser();
   const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
@@ -371,6 +374,7 @@ export function useNavigationTourModal() {
     endTour,
     organization,
     dismissTour,
+    openModal,
   ]);
 }
 

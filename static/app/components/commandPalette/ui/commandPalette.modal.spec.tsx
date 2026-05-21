@@ -21,6 +21,13 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
+
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
@@ -28,12 +35,6 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette as CommandPaletteModal} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {
-  makeCloseButton,
-  makeClosableHeader,
-  ModalBody,
-  ModalFooter,
-} from 'sentry/components/globalModal/components';
 
 /**
  * Returns a minimal but valid ModalRenderProps with a jest.fn() as closeModal.

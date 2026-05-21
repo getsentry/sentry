@@ -63,7 +63,7 @@ function LoadingButton(props: {
   return (
     <Button
       autoFocus
-      priority="primary"
+      variant="primary"
       busy={busy}
       onClick={async () => {
         setBusy(true);

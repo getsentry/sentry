@@ -137,7 +137,7 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
             collapsed ? t('Show %s fingerprints', id) : t('Collapse %s fingerprints', id)
           }
           size="zero"
-          priority="transparent"
+          variant="transparent"
           icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
           onClick={handleToggleEvents}
         />
@@ -152,7 +152,7 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
                 icon={<IconLink variant="accent" />}
                 tooltipProps={{title: t('View latest event')}}
                 aria-label={t('View latest event')}
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 style={{marginLeft: theme.space.md}}
               />

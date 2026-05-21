@@ -677,7 +677,7 @@ def validate_outbox_config() -> None:
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)
 
-    for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
+    for outbox_name in settings.SENTRY_OUTBOX_MODELS["CELL"]:
         CellOutboxBase.from_outbox_name(outbox_name)
 
 

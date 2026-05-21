@@ -203,23 +203,40 @@ class UserSerializer(BaseUserSerializer):
 
 class SuperuserUserSerializer(BaseUserSerializer):
     is_active = serializers.BooleanField()
+    is_suspended = serializers.BooleanField(required=False)
 
     class Meta:
         model = User
-        fields = ("name", "username", "is_active")
+        fields = ("name", "username", "is_active", "is_suspended")
+
+    def validate_is_suspended(self, value: bool) -> bool:
+        if value and self.instance:
+            request = self.context.get("request")
+            if request and request.user.id == self.instance.id:
+                raise serializers.ValidationError("You cannot suspend your own account.")
+            if self.instance.is_sentry_app:
+                raise serializers.ValidationError("Cannot suspend Sentry App proxy users.")
+        return value
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         request = self.context.get("request")
         should_audit = False
+        suspension_changed = (
+            "is_suspended" in validated_data
+            and instance.is_suspended != validated_data["is_suspended"]
+        )
 
         if request:
-            privileged_fields = {"is_active", "is_staff", "is_superuser"}
+            privileged_fields = {"is_active", "is_staff", "is_superuser", "is_suspended"}
             changed_fields = {
                 field
                 for field in privileged_fields
                 if field in validated_data and getattr(instance, field) != validated_data[field]
             }
             should_audit = bool(changed_fields)
+
+        if suspension_changed and validated_data["is_suspended"]:
+            instance.refresh_session_nonce()
 
         user = super().update(instance, validated_data)
 
@@ -229,9 +246,20 @@ class SuperuserUserSerializer(BaseUserSerializer):
                 extra={
                     "user_id": user.id,
                     "actor_id": getattr(request.user, "id", None),
+                    "ip_address": request.META.get("REMOTE_ADDR"),
                     "form_data": getattr(request, "data", None),
                     "changed_fields": changed_fields,
                 },
+            )
+
+        if suspension_changed and request:
+            capture_security_activity(
+                account=user,
+                type="user.suspended" if user.is_suspended else "user.unsuspended",
+                actor=request.user,
+                ip_address=request.META.get("REMOTE_ADDR", ""),
+                context={"actor_id": getattr(request.user, "id", None)},
+                send_email=False,
             )
 
         return user
@@ -243,7 +271,7 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
 
     class Meta:
         model = User
-        fields = ("name", "username", "is_active", "is_staff", "is_superuser")
+        fields = ("name", "username", "is_active", "is_suspended", "is_staff", "is_superuser")
 
 
 class DeleteUserSerializer(serializers.Serializer[User]):

@@ -79,7 +79,7 @@ describe('FeatureFlagDrawer', () => {
   it('allows search to affect displayed flags', async () => {
     const drawerScreen = await renderFlagDrawer();
 
-    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
+    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
     expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
     expect(within(drawerScreen).getByText(enableReplay!.flag)).toBeInTheDocument();
 
@@ -95,7 +95,7 @@ describe('FeatureFlagDrawer', () => {
   it('allows sort dropdown to affect displayed flags', async () => {
     const drawerScreen = await renderFlagDrawer();
 
-    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
+    const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
 
     // the flags are reversed by default, so webVitalsFlag should be following enableReplay
     expect(

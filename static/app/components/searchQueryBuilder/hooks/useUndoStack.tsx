@@ -34,12 +34,12 @@ function getPreviousUndoItem(undoStack: UndoItem[], query: string) {
     }
     // Prevent last item from being removed
     if (undoStack.length === 1) {
-      return undefined;
+      return;
     }
     undoStack.pop();
   }
 
-  return undefined;
+  return;
 }
 
 function updateUndoStack({

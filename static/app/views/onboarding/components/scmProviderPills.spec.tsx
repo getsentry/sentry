@@ -45,6 +45,21 @@ describe('ScmProviderPills', () => {
     expect(screen.queryByText('More')).not.toBeInTheDocument();
   });
 
+  it('renders primary providers in GitHub, GitLab, Bitbucket order regardless of API order', () => {
+    const providers = [
+      bitbucketProvider,
+      GitLabIntegrationProviderFixture(),
+      GitHubIntegrationProviderFixture(),
+    ];
+
+    render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
+
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0]).toHaveTextContent('GitHub');
+    expect(buttons[1]).toHaveTextContent('GitLab');
+    expect(buttons[2]).toHaveTextContent('Bitbucket');
+  });
+
   it('shows secondary providers in a "More" dropdown', async () => {
     const providers = [
       GitHubIntegrationProviderFixture(),

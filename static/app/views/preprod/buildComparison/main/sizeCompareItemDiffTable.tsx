@@ -164,7 +164,7 @@ export function SizeCompareItemDiffTable({
                 {t('No results found')}
               </Text>
               {originalItemCount > 0 && (
-                <Button priority="primary" onClick={disableHideSmallChanges}>
+                <Button variant="primary" onClick={disableHideSmallChanges}>
                   {t('Show all changes')}
                 </Button>
               )}
@@ -209,7 +209,7 @@ export function SizeCompareItemDiffTable({
                           {diffItem.path}
                         </Text>
                         <CopyToClipboardButton
-                          priority="transparent"
+                          variant="transparent"
                           size="zero"
                           text={diffItem.path}
                           style={{flexShrink: 0}}

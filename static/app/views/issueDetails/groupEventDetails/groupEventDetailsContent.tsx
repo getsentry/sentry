@@ -36,6 +36,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
@@ -69,6 +70,7 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
@@ -78,9 +80,8 @@ import {
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
-import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/instrumentationFixSection';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
@@ -100,7 +101,6 @@ export function EventDetailsContent({
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const shouldUseNewStackTrace =
-    organization.features.includes('issue-details-new-stack-trace') &&
     // New stack trace is currently only non-native platforms.
     !isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);
@@ -133,8 +133,12 @@ export function EventDetailsContent({
     return <SourceMapIssueDetails group={group} event={event} project={project} />;
   }
 
+  if (group.issueType === IssueType.LOW_VALUE_SPAN_CONFIGURATION) {
+    return <LowValueSpanIssueDetails group={group} event={event} project={project} />;
+  }
+
   return (
-    <Fragment>
+    <DebugMetaSearchProvider key={event.id}>
       <ErrorBoundary mini>
         <HighlightsIconSummary event={event} group={group} />
       </ErrorBoundary>
@@ -145,14 +149,14 @@ export function EventDetailsContent({
         <ProfilePreviewSection event={event} project={project} />
       )}
       {event.userReport && (
-        <InterimSection title={t('User Feedback')} type={SectionKey.USER_FEEDBACK}>
+        <FoldSection title={t('User Feedback')} sectionKey={SectionKey.USER_FEEDBACK}>
           <EventUserFeedback
             report={event.userReport}
             orgSlug={organization.slug}
             issueId={group.id}
             showEventLink={false}
           />
-        </InterimSection>
+        </FoldSection>
       )}
       {(event.contexts?.metric_alert?.alert_rule_id ||
         event?.occurrence?.evidenceData?.alertId) && (
@@ -165,11 +169,6 @@ export function EventDetailsContent({
       <EventEvidence event={event} group={group} project={project} />
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
-      )}
-      {issueTypeConfig.instrumentationFixSection.enabled && (
-        <ErrorBoundary mini>
-          <InstrumentationFixSection event={event} group={group} />
-        </ErrorBoundary>
       )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -293,8 +292,8 @@ export function EventDetailsContent({
             <EventFunctionBreakpointChart event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
-            <InterimSection
-              type={SectionKey.REGRESSION_FLAMEGRAPH}
+            <FoldSection
+              sectionKey={SectionKey.REGRESSION_FLAMEGRAPH}
               title={t('Regression Flamegraph')}
             >
               <b>{t('Largest Changes in Call Stack Frequency')}</b>
@@ -304,7 +303,7 @@ export function EventDetailsContent({
             contributed to the cause for the duration regression.`)}
               </p>
               <EventDifferentialFlamegraph event={event} />
-            </InterimSection>
+            </FoldSection>
           </ErrorBoundary>
         </Fragment>
       )}
@@ -418,7 +417,7 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
-    </Fragment>
+    </DebugMetaSearchProvider>
   );
 }
 

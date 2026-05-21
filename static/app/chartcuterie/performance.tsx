@@ -48,7 +48,6 @@ export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<Char
     return {
       ...options,
       grid: performanceChartDefaults.grid,
-      visualMap: options.options?.visualMap,
       backgroundColor: theme.tokens.background.primary,
     };
   }

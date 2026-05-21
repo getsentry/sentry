@@ -1,12 +1,13 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -16,7 +17,7 @@ import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -30,6 +31,8 @@ import {UserOverview} from 'admin/components/users/userOverview';
 import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
 export function UserDetails() {
+  const {openModal} = useModal();
+
   const api = useApi({persistInFlight: true});
   const {userId} = useParams<{userId: string}>();
   const queryClient = useQueryClient();
@@ -115,6 +118,28 @@ export function UserDetails() {
     },
     onError: () => {
       addErrorMessage('Unable to revoke token.');
+    },
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: `/_admin/users/${userId}/suspend/`,
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => {
+      addLoadingMessage('Saving changes...');
+    },
+    onSuccess: (_data, params) => {
+      clearIndicators();
+      const action = params.action === 'suspend' ? 'suspended' : 'unsuspended';
+      addSuccessMessage(`User account has been ${action}.`);
+      queryClient.invalidateQueries({queryKey: makeFetchUserQueryKey()});
+    },
+    onError: () => {
+      clearIndicators();
+      addErrorMessage('Failed to update user suspension status.');
     },
   });
 
@@ -227,7 +252,10 @@ export function UserDetails() {
     <DetailsPage
       rootName="Users"
       name={user.name === user.email ? user.email : `${user.name} (${user.email})`}
-      badges={[{name: 'Inactive', level: 'warning', visible: !user.isActive}]}
+      badges={[
+        {name: 'Inactive', level: 'warning', visible: !user.isActive},
+        {name: 'Suspended', level: 'danger', visible: user.isSuspended},
+      ]}
       actions={[
         {
           key: 'edit-permissions',
@@ -262,8 +290,26 @@ export function UserDetails() {
           key: 'reactivate',
           name: 'Reactivate Account',
           help: 'Restores this account allowing the user to login.',
-          visible: !user.isActive,
+          visible: !user.isActive && !user.isSuspended,
           onAction: () => onUpdateMutation.mutate({isActive: 1}),
+        },
+        {
+          key: 'suspend',
+          name: 'Suspend Account',
+          help: 'Prevent this user from logging in. Account and data are preserved.',
+          visible: user.isActive && !user.isSuspended,
+          confirmModalOpts: {
+            priority: 'danger',
+            confirmText: 'Suspend Account',
+          },
+          onAction: params => suspendMutation.mutate({...params, action: 'suspend'}),
+        },
+        {
+          key: 'unsuspend',
+          name: 'Unsuspend Account',
+          help: 'Allow this user to log in again.',
+          visible: user.isSuspended,
+          onAction: params => suspendMutation.mutate({...params, action: 'unsuspend'}),
         },
       ]}
       sections={[

@@ -28,7 +28,7 @@ import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -256,9 +256,9 @@ function TagDetailsValue({
   return (
     <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
-      {isUrl(tagValue.value) && (
+      {isValidUrl(tagValue.value) && (
         <ExternalLinkbutton
-          priority="link"
+          variant="link"
           icon={<IconOpen />}
           aria-label="Open link"
           data-test-id="group-tag-url"

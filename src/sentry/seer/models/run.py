@@ -77,7 +77,7 @@ class SeerRun(DefaultFieldsModel):
 @cell_silo_model
 class SeerAgentRun(DefaultFieldsModel):
     """
-    Sibling of SeerRun for runs that appear in the Explorer session-history UI.
+    Sibling of SeerRun for runs that appear in the agent session-history UI.
     Mirrors Seer's DbExplorerRun table.
     """
 

@@ -87,7 +87,7 @@ class OrganizationMemberRequestSerializerTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
-            invite_state = get_invite_state(member.id, org.slug, user.id, request)
+            invite_state = get_invite_state(member.id, org.slug, user.id)
             assert invite_state, "Expected invite state, logic bug?"
             invite_helper = ApiInviteHelper(
                 request=request, invite_context=invite_state, token=None

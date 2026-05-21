@@ -10,7 +10,6 @@ class IssueStreamGroupType(GroupType):
     slug = "issue_stream"
     description = "Issue Stream"
     category = GroupCategory.ERROR.value
-    category_v2 = GroupCategory.ERROR.value
     released = False
     in_default_search = False
     enable_auto_resolve = False

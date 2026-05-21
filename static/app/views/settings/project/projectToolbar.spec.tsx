@@ -1,10 +1,13 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectToolbarSettings from 'sentry/views/settings/project/projectToolbar';
 
 describe('ProjectToolbarSettings', () => {
-  const {organization, project} = initializeOrg();
+  const organization = OrganizationFixture();
+  const project = DetailedProjectFixture();
   const initialRouterConfig = {
     location: {
       pathname: `/settings/projects/${project.slug}/toolbar/`,

@@ -443,6 +443,10 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_conversations_replies.assert_called_once_with(
             channel=self.channel_id,
             ts=self.thread_ts,
+            latest=None,
+            oldest=None,
+            inclusive=None,
+            limit=None,
         )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")

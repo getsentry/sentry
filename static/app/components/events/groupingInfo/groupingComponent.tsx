@@ -33,7 +33,7 @@ export function GroupingComponent({component, showNonContributing}: Props) {
         <CollapseButton
           folded={folded}
           className="collapse-button"
-          priority="link"
+          variant="link"
           icon={<IconChevron direction={folded ? 'right' : 'down'} legacySize="10px" />}
           onClick={() => setFolded(!folded)}
           aria-label={folded ? t('expand') : t('collapse')}

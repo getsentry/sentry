@@ -36,7 +36,7 @@ export function ReplayTextDiff() {
           <CopyToClipboardButton
             text={leftBody ?? ''}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy Before')}
           />
         </Before>
@@ -44,7 +44,7 @@ export function ReplayTextDiff() {
           <CopyToClipboardButton
             text={rightBody ?? ''}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             aria-label={t('Copy After')}
           />
         </After>

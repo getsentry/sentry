@@ -3,7 +3,6 @@ import {memo, useCallback, useMemo} from 'react';
 import {Grid} from '@sentry/scraps/layout';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {t} from 'sentry/locale';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -13,16 +12,17 @@ import {
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsMode,
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
+import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface SpansTabCrossEventMetricsSearchBarProps {
@@ -96,11 +96,9 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
                 if (
                   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
                 ) {
-                  return t(
-                    "This key won't affect the results because samples mode does not support aggregate functions"
-                  );
+                  return <SamplesModeAggregateFilterWarning />;
                 }
-                return undefined;
+                return;
               }
             : undefined,
         supportedAggregates:

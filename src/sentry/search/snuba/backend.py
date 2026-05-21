@@ -587,7 +587,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
-            "detector": QCallbackCondition(_make_detector_filter),
+            "detector": QCallbackCondition(
+                _make_detector_filter
+            ),  # TODO - delete this once the UI has been updated
+            "monitor": QCallbackCondition(_make_detector_filter),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),

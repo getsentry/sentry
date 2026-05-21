@@ -29,12 +29,12 @@ describe('Discover > ChartFooter', () => {
         total={100}
         yAxisValue={yAxisValue}
         yAxisOptions={yAxisOptions}
-        onAxisChange={() => undefined}
+        onAxisChange={() => {}}
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        onIntervalChange={() => undefined}
+        onDisplayChange={() => {}}
+        onTopEventsChange={() => {}}
+        onIntervalChange={() => {}}
         topEvents="5"
         eventView={eventView}
       />
@@ -59,12 +59,12 @@ describe('Discover > ChartFooter', () => {
         total={100}
         yAxisValue={yAxisValue}
         yAxisOptions={yAxisOptions}
-        onAxisChange={() => undefined}
+        onAxisChange={() => {}}
         displayMode={DisplayModes.TOP5}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        onIntervalChange={() => undefined}
+        onDisplayChange={() => {}}
+        onTopEventsChange={() => {}}
+        onIntervalChange={() => {}}
         topEvents={limit}
         eventView={eventView}
       />
@@ -88,9 +88,9 @@ describe('Discover > ChartFooter', () => {
         onAxisChange={newYAxis => (yAxis = newYAxis)}
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        onIntervalChange={() => undefined}
+        onDisplayChange={() => {}}
+        onTopEventsChange={() => {}}
+        onIntervalChange={() => {}}
         topEvents="5"
         eventView={eventView}
       />

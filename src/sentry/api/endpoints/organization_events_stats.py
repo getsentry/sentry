@@ -169,7 +169,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
             batch_features = self.get_features(organization, request)
 
-            dataset = self.get_dataset(request)
+            dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 dataset = (
@@ -232,6 +232,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     raise NotImplementedError
 
                 extrapolation_mode = self.get_extrapolation_mode(request)
+                disable_array_attributes = not features.has(
+                    "organizations:trace-item-details-array-fields",
+                    organization,
+                    actor=request.user,
+                )
 
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -246,6 +251,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         )
                         == "1",
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
                 if scoped_dataset == PreprodSize:
@@ -257,6 +263,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         )
                         == "1",
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
                 return SearchResolverConfig(
@@ -267,6 +274,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     )
                     == "1",
                     extrapolation_mode=extrapolation_mode,
+                    disable_array_attributes=disable_array_attributes,
                 )
 
             if top_events > 0:

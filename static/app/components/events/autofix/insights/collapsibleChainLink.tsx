@@ -104,7 +104,7 @@ export function CollapsibleChainLink({
                     </Button>
                     <Button
                       type="submit"
-                      priority="primary"
+                      variant="primary"
                       size="sm"
                       tooltipProps={{title: t('Redo work from here')}}
                       aria-label={t('Redo work from here')}
@@ -118,7 +118,7 @@ export function CollapsibleChainLink({
           ) : (
             <AddButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               onClick={() => setIsAdding(true)}
               tooltipProps={{title: t('Give feedback and rethink the answer')}}
               aria-label={t('Give feedback and rethink the answer')}

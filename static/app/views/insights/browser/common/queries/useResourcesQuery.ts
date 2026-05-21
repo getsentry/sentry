@@ -64,7 +64,7 @@ const SPAN_OP_FILTER = {
   ],
 };
 
-export const getResourceTypeFilter = (
+const getResourceTypeFilter = (
   selectedSpanOp: string | undefined,
   defaultResourceTypes: string[] | undefined
 ) => {

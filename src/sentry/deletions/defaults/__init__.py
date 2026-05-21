@@ -22,13 +22,13 @@ from .organizationmember import *  # noqa: F401,F403
 from .platform_external_issue import *  # noqa: F401,F403
 from .preprod_artifact import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
+from .projectrepository import *  # noqa: F401,F403
 from .pullrequest import *  # noqa: F401,F403
 from .querysubscription import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repositoryprojectpathconfig import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403
-from .rulefirehistory import *  # noqa: F401,F403
 from .sentry_app import *  # noqa: F401,F403
 from .sentry_app_installation import *  # noqa: F401,F403
 from .sentry_app_installation_token import *  # noqa: F401,F403

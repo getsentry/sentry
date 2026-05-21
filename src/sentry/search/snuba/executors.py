@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum, auto
@@ -14,7 +14,6 @@ from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 
 from sentry import features, options
@@ -41,8 +40,6 @@ from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import (
@@ -159,9 +156,7 @@ def get_search_filter(
     return found_val
 
 
-def group_categories_from_search_filters(
-    search_filters: Sequence[SearchFilter], organization: Organization, actor: User | RpcUser
-) -> set[int]:
+def group_categories_from_search_filters(search_filters: Sequence[SearchFilter]) -> set[int]:
     group_categories = group_categories_from(search_filters)
 
     if not group_categories:
@@ -170,9 +165,6 @@ def group_categories_from_search_filters(
         group_categories.discard(GroupCategory.FEEDBACK.value)
         group_categories.discard(GroupCategory.INSTRUMENTATION.value)
         group_categories.discard(GroupCategory.CONFIGURATION.value)
-
-    if not features.has("organizations:performance-issues-search", organization):
-        group_categories.discard(GroupCategory.PERFORMANCE.value)
 
     return group_categories
 
@@ -187,7 +179,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def aggregation_defs(self) -> Sequence[str] | Expression:
+    def aggregation_defs(self) -> Mapping[str, Sequence[str] | Callable]:
         """This method should return a dict of key:value
         where key is a field name for your aggregation
         and value is the aggregation function"""
@@ -310,7 +302,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
                     aggregation = aggregation(start, end, DEFAULT_TRENDS_WEIGHTS)
-            aggregations.append(aggregation + [alias])
+            aggregations.append(list(aggregation) + [alias])
 
         return aggregations
 
@@ -390,7 +382,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             selected_columns,
             aggregations,
             organization,
-            project_ids,
+            list(project_ids),
             environments,
             group_ids,
             filters,
@@ -463,7 +455,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        group_categories = group_categories_from_search_filters(search_filters, organization, actor)
+        group_categories = group_categories_from_search_filters(search_filters or ())
 
         query_params_for_categories = {}
 
@@ -1097,7 +1089,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
                 cursor=cursor,
@@ -1255,24 +1249,23 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            kwargs = {}
-            if not too_many_candidates:
-                kwargs["group_ids"] = group_ids
 
             snuba_groups, snuba_total = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
+                group_ids=group_ids if not too_many_candidates else None,
                 limit=sample_size,
                 offset=0,
                 get_sample=True,
                 search_filters=search_filters,
                 actor=actor,
                 referrer=referrer,
-                **kwargs,
             )
             snuba_count = len(snuba_groups)
 

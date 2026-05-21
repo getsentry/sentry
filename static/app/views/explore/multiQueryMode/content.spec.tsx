@@ -985,7 +985,7 @@ describe('MultiQueryModeContent', () => {
             sampling: 'NORMAL',
             sort: '-count_span_duration',
             statsPeriod: '7d',
-            topEvents: 5,
+            topEvents: 9,
             yAxis: ['count(span.duration)'],
           }),
         })

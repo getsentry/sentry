@@ -89,8 +89,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
       if (!query.state.data) {
         return false;
       }
-      const [cronDetector] = query.state.data;
-      const monitor = cronDetector.dataSources[0].queryObj;
+      const monitor = query.state.data.json.dataSources[0].queryObj;
       return getMonitorRefetchInterval(monitor, new Date());
     },
   });
@@ -282,7 +281,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       text={dataSource.queryObj.slug}
                       aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
-                      priority="transparent"
+                      variant="transparent"
                     />
                   </Flex>
                 }

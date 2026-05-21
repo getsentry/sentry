@@ -119,7 +119,7 @@ export type OpenConfirmOptions = {
   /**
    * Button priority
    */
-  priority?: ButtonProps['priority'];
+  priority?: ButtonProps['variant'];
   /**
    * Custom function to render the cancel button
    */
@@ -351,7 +351,7 @@ function ConfirmModal({
             <Button
               data-test-id="confirm-button"
               disabled={shouldDisableConfirmButton}
-              priority={priority}
+              variant={priority}
               onClick={handleConfirm}
               autoFocus={!isDangerous}
               aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}

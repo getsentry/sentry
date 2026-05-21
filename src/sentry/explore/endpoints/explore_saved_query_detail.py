@@ -180,6 +180,8 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        self.check_object_permissions(request, query)
+
         query.visits = F("visits") + 1
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])

@@ -73,7 +73,7 @@ export abstract class FormField<
     if (defined(props.value)) {
       return props.value;
     }
-    if (form?.data.hasOwnProperty(props.name)) {
+    if (form && Object.hasOwn(form.data, props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
     return defined(props.defaultValue) ? props.defaultValue : '';

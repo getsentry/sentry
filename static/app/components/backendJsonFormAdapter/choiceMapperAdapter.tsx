@@ -124,7 +124,7 @@ export function ChoiceMapperDropdown({
 
   const asyncUrl = config.addDropdown?.url;
   const selectableValues =
-    config.addDropdown?.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
+    config.addDropdown?.items?.filter(i => !Object.hasOwn(value, i.value)) ?? [];
 
   const addRow = (item: SelectOption<string>) => {
     const emptyValue = Object.keys(columnLabels).reduce<Record<string, null>>(

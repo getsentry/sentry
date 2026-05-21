@@ -1,7 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
-import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -9,7 +8,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Dashboard} from 'sentry/views/dashboards/dashboard';
@@ -145,6 +143,11 @@ describe('Dashboards > Dashboard', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      method: 'GET',
+      body: [],
+    });
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
@@ -160,9 +163,9 @@ describe('Dashboards > Dashboard', () => {
     render(
       <Dashboard
         dashboard={mockDashboard}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
-        handleAddCustomWidget={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
+        handleAddCustomWidget={() => {}}
         widgetLimitReached={false}
         isEditingDashboard={false}
         widgetLegendState={widgetLegendState}
@@ -178,8 +181,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         newWidget={newWidget}
         widgetLimitReached={false}
@@ -198,8 +201,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -214,8 +217,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -234,8 +237,8 @@ describe('Dashboards > Dashboard', () => {
       <Dashboard
         dashboard={mockDashboard}
         isEditingDashboard={false}
-        onUpdate={() => undefined}
-        handleUpdateWidgetList={() => undefined}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
@@ -273,9 +276,9 @@ describe('Dashboards > Dashboard', () => {
           isEditingDashboard={false}
           onUpdate={mockOnUpdate}
           handleUpdateWidgetList={mockHandleUpdateWidgetList}
-          handleAddCustomWidget={() => undefined}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
-          onSetNewWidget={() => undefined}
+          onSetNewWidget={() => {}}
           widgetLegendState={widgetLegendState}
         />
       </MEPSettingProvider>,
@@ -330,9 +333,9 @@ describe('Dashboards > Dashboard', () => {
         <Dashboard
           dashboard={dashboardWithOneWidget}
           isEditingDashboard={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           isEmbedded
           widgetLegendState={widgetLegendState}
@@ -347,7 +350,6 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Issue Widgets', () => {
     beforeEach(() => {
-      MemberListStore.init();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/1/',
         method: 'GET',
@@ -374,9 +376,9 @@ describe('Dashboards > Dashboard', () => {
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
           />
@@ -397,16 +399,6 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('renders assignee', async () => {
-      MemberListStore.loadInitialData([
-        UserFixture({
-          name: 'Test User',
-          email: 'test@sentry.io',
-          avatar: {
-            avatarType: 'letter_avatar',
-            avatarUuid: null,
-          },
-        }),
-      ]);
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [{...issueWidget}],
@@ -507,14 +499,14 @@ describe('Dashboards > Dashboard', () => {
             isEditingDashboard={false}
             isPreview={false}
             location={location}
-            onDashboardFilterChange={() => undefined}
+            onDashboardFilterChange={() => {}}
           />
           <Dashboard
             dashboard={dashboard}
             isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
             widgetInterval={widgetInterval}
@@ -723,8 +715,8 @@ describe('Dashboards > Dashboard', () => {
             onUpdate={newWidgets => {
               widgets.splice(0, widgets.length, ...newWidgets);
             }}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
             widgetLimitReached={false}
             isPreview={isPreview}
             onEditWidget={onEditWidget}
@@ -856,9 +848,9 @@ describe('Dashboards > Dashboard', () => {
         <Dashboard
           dashboard={dashboardWithGlobalFilters}
           isEditingDashboard={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
         />
@@ -892,9 +884,9 @@ describe('Dashboards > Dashboard', () => {
       <div>
         <Dashboard
           dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
           widgetLimitReached={false}
           isEditingDashboard={false}
           widgetLegendState={widgetLegendState}

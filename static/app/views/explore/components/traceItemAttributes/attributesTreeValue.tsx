@@ -5,7 +5,7 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import {InlineJsonHighlight} from 'sentry/views/explore/components/traceItemAttributes/inlineJsonHighlight';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -19,13 +19,13 @@ import type {
 
 function tryParseJson(value: unknown) {
   if (typeof value !== 'string') {
-    return undefined;
+    return;
   }
 
   try {
     return JSON.parse(value) as unknown;
   } catch {
-    return undefined;
+    return;
   }
 }
 
@@ -95,7 +95,7 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
     );
   }
 
-  if (isUrl(value)) {
+  if (isValidUrl(value)) {
     return (
       <AttributeLinkText>
         <ExternalLink

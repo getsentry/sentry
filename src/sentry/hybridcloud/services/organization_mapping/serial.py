@@ -19,6 +19,7 @@ def update_organization_mapping_from_instance(
         status=organization.status,
         slug=organization.slug,
         cell_name=cell.name,
+        date_created=organization.date_added,
         requires_2fa=bool(organization.flags.require_2fa),
         early_adopter=bool(organization.flags.early_adopter),
         codecov_access=bool(organization.flags.codecov_access),

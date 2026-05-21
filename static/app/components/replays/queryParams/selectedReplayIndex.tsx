@@ -5,7 +5,7 @@ import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-const SelectedReplayIndexContext = createContext<number>(0);
+const SelectedReplayIndexContext = createContext(0);
 
 export function SelectedReplayIndexProvider({children}: {children: React.ReactNode}) {
   const {selected_replay_index: selectedReplayIndex} = useLocationQuery({

@@ -75,13 +75,17 @@ function SelectionInitializer() {
 describe('IssueListBulkCommandPaletteActions', () => {
   beforeEach(() => {
     GroupStore.reset();
-    (addLoadingMessage as jest.Mock).mockClear();
+    jest.mocked(addLoadingMessage).mockClear();
     ConfigStore.loadInitialData({
       user: UserFixture({id: '1', name: 'Test User'}),
     } as any);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
       body: [],
     });
     MockApiClient.addMockResponse({

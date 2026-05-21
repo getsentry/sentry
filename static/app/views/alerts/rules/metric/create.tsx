@@ -16,12 +16,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/constants';
 import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
-import RuleForm from './ruleForm';
-
-type RouteParams = {
-  projectId?: string;
-  ruleId?: string;
-};
+import {RuleForm} from './ruleForm';
 
 type Props = {
   eventView: EventView | undefined;
@@ -30,7 +25,7 @@ type Props = {
   userTeamIds: string[];
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
-} & RouteComponentProps<RouteParams>;
+} & RouteComponentProps;
 
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.

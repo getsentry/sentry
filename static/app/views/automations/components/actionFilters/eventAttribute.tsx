@@ -6,23 +6,45 @@ import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   Attribute,
   MATCH_CHOICES,
-  type MatchType,
+  MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
+function matchRequiresValue(match: MatchType): boolean {
+  return match !== MatchType.IS_SET && match !== MatchType.NOT_SET;
+}
+
 export function EventAttributeDetails({condition}: {condition: DataCondition}) {
+  const matchLabel =
+    MATCH_CHOICES.find(choice => choice.value === condition.comparison.match)?.label ||
+    condition.comparison.match;
+
+  if (!matchRequiresValue(condition.comparison.match)) {
+    return tct("The event's [attribute] attribute [match]", {
+      attribute: condition.comparison.attribute,
+      match: matchLabel,
+    });
+  }
+
   return tct("The event's [attribute] attribute [match] [value]", {
     attribute: condition.comparison.attribute,
-    match:
-      MATCH_CHOICES.find(choice => choice.value === condition.comparison.match)?.label ||
-      condition.comparison.match,
+    match: matchLabel,
     value: condition.comparison.value,
   });
 }
 
 export function EventAttributeNode() {
+  const {condition} = useDataConditionNodeContext();
+
+  if (!matchRequiresValue(condition.comparison.match)) {
+    return tct("The event's [attribute] attribute [match]", {
+      attribute: <AttributeField />,
+      match: <MatchField />,
+    });
+  }
+
   return tct("The event's [attribute] attribute [match] [value]", {
     attribute: <AttributeField />,
     match: <MatchField />,
@@ -58,7 +80,12 @@ function MatchField() {
       value={condition.comparison.match}
       options={MATCH_CHOICES}
       onChange={(option: SelectValue<MatchType>) => {
-        onUpdate({comparison: {...condition.comparison, match: option.value}});
+        const {value: _value, ...rest} = condition.comparison;
+        if (matchRequiresValue(option.value)) {
+          onUpdate({comparison: {...condition.comparison, match: option.value}});
+        } else {
+          onUpdate({comparison: {...rest, match: option.value}});
+        }
       }}
     />
   );
@@ -85,11 +112,10 @@ function ValueField() {
 export function validateEventAttributeCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
-  if (
-    !condition.comparison.attribute ||
-    !condition.comparison.match ||
-    !condition.comparison.value
-  ) {
+  if (!condition.comparison.attribute || !condition.comparison.match) {
+    return t('Ensure all fields are filled in.');
+  }
+  if (matchRequiresValue(condition.comparison.match) && !condition.comparison.value) {
     return t('Ensure all fields are filled in.');
   }
   return undefined;

@@ -1,8 +1,8 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 import omit from 'lodash/omit';
+import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -17,10 +17,9 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -31,14 +30,14 @@ import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/featu
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
@@ -88,10 +87,9 @@ export const SESSION_DURATION_ALERT = (
   <PanelAlert variant="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
-type Props = WithRouterProps & {
+type Props = {
   api: Client;
   isEditingDashboard: boolean;
-  location: Location;
   organization: Organization;
   selection: PageFilters;
   widget: TWidget;
@@ -148,6 +146,7 @@ function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -200,7 +199,6 @@ function WidgetCard(props: Props) {
     windowWidth,
     dashboardFilters,
     isWidgetInvalid,
-    location,
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
@@ -259,6 +257,26 @@ function WidgetCard(props: Props) {
       }
     };
   }, [timeoutRef]);
+
+  const onCopyUrlClick =
+    currentDashboardId && props.index !== undefined
+      ? () => {
+          const pathname = normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`
+          );
+          const params = qs.parse(location.search);
+          if (!params.interval && widgetInterval) {
+            params.interval = widgetInterval;
+          }
+          const query = qs.stringify(params);
+          const widgetUrl = `${window.location.origin}${pathname}${
+            query ? `?${query}` : ''
+          }`;
+          copyToClipboard(widgetUrl, {
+            successMessage: t('Widget URL copied to clipboard'),
+          });
+        }
+      : undefined;
 
   const onFullScreenViewClick = () => {
     if (isWidgetViewerPath(location.pathname)) {
@@ -391,6 +409,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             noVisualizationPadding={canUseTimeseriesVisualization}
+            onCopyUrlClick={onCopyUrlClick}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
@@ -435,6 +454,7 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
+          onCopyUrlClick={onCopyUrlClick}
           onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
@@ -472,7 +492,7 @@ function WidgetCard(props: Props) {
 
 export default registerLLMContext(
   'widget',
-  withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))))
+  withApi(withOrganization(withPageFilters(WidgetCard)))
 );
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {
@@ -516,7 +536,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     selection: {datetime},
   } = usePageFilters();
   const useRetentionLimit =
-    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ?? (() => null);
+    getOverride('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });

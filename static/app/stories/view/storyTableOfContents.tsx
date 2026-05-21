@@ -39,7 +39,7 @@ function useStoryIndex(): Entry[] {
   const location = useLocation();
 
   const hash = useMemo(() => location.hash.slice(1), [location.hash]);
-  const scrolled = useRef<string>('');
+  const scrolled = useRef('');
 
   // automatically scroll to hash
   useEffect(() => {
@@ -84,7 +84,7 @@ function useStoryIndex(): Entry[] {
 }
 
 function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
-  const [activeId, setActiveId] = useState<string>('');
+  const [activeId, setActiveId] = useState('');
 
   useLayoutEffect(() => {
     if (entries.length === 0) return void 0;

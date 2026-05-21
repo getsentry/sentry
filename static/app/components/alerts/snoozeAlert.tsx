@@ -1,10 +1,11 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
@@ -124,11 +125,39 @@ export function SnoozeAlert({
 
   const primaryMuteAction = 'everyone';
 
+  const hasPrompted = useRef(false);
+
   useEffect(() => {
-    if (location.query.mute === '1' && !isSnoozed) {
-      handleMute(primaryMuteAction, true);
+    if (location.query.mute !== '1' || isSnoozed || hasPrompted.current) {
+      return;
     }
-  }, [location.query, isSnoozed, handleMute, primaryMuteAction]);
+    hasPrompted.current = true;
+
+    const stripMuteParam = () => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, mute: undefined},
+        },
+        {replace: true}
+      );
+    };
+
+    openConfirmModal({
+      header: t('Mute Alert'),
+      message: t('Are you sure you want to mute this alert for everyone?'),
+      confirmText: t('Mute'),
+      onConfirm: () => handleMute(primaryMuteAction, true),
+      onClose: stripMuteParam,
+    });
+  }, [
+    location.query,
+    location.pathname,
+    isSnoozed,
+    navigate,
+    handleMute,
+    primaryMuteAction,
+  ]);
 
   if (isSnoozed) {
     return (

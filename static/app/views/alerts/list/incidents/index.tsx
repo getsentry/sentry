@@ -193,7 +193,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
           organization={organization}
           iconProps={{size: 'xs'}}
           size="sm"
-          priority="primary"
+          variant="primary"
           referrer="alert_stream"
         >
           {t('Create Alert')}
@@ -322,7 +322,7 @@ export default function IncidentsListContainer() {
   return (
     <Feature
       features="incidents"
-      hookName="feature-disabled:alerts-page"
+      overrideName="feature-disabled:alerts-page"
       renderDisabled={renderDisabled}
     >
       <IncidentsList

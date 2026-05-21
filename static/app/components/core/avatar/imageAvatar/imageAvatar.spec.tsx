@@ -12,7 +12,7 @@ describe('ImageAvatar', () => {
         configuration={{
           src: 'https://example.com/avatar.jpg' as Tagged<string, '__avatar'>,
           alt: 'Jane Bloggs' as Tagged<string, '__avatar'>,
-          ref: () => undefined,
+          ref: () => {},
         }}
       />
     );

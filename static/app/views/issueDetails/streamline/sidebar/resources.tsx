@@ -39,7 +39,7 @@ export function Resources({configResources, eventPlatform, group}: Props) {
             key={link}
             href={link}
             external
-            priority="link"
+            variant="link"
           >
             {text}
           </LinkButton>

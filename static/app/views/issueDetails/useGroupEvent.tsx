@@ -24,12 +24,7 @@ export function useGroupEvent({
   options,
 }: UseGroupEventOptions) {
   const organization = useOrganization();
-  const location = useLocation<{
-    end?: string;
-    query?: string;
-    start?: string;
-    statsPeriod?: string;
-  }>();
+  const location = useLocation();
   const defaultIssueEvent = useDefaultIssueEvent();
   const environments = useEnvironmentsFromUrl();
   const eventQuery = useEventQuery();

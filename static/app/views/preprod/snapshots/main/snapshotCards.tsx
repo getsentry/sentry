@@ -14,6 +14,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import type {ContentVariant} from 'sentry/utils/theme/types';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -28,6 +29,7 @@ import {
   SplitPairBody,
   WipeCardBody,
 } from './snapshotDiffBodies';
+import {SnapshotCanvasWrapper, SnapshotVariantFrame} from './snapshotFrames';
 
 export function DarkAware({
   isDark,
@@ -47,7 +49,6 @@ export function DarkAware({
 
 export const PairCard = memo(function PairCard({
   pair,
-  cardType,
   imageBaseUrl,
   headBranch,
   isSelected,
@@ -58,8 +59,9 @@ export const PairCard = memo(function PairCard({
   snapshotKey,
   onSelectSnapshot,
   onOpenSnapshot,
+  onCopyLink,
+  onCopyMetadata,
 }: {
-  cardType: 'changed' | 'renamed';
   copyUrl: string;
   diffMode: DiffMode;
   imageBaseUrl: string;
@@ -68,6 +70,8 @@ export const PairCard = memo(function PairCard({
   snapshotKey: string;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
+  onCopyLink?: () => void;
+  onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
@@ -77,29 +81,32 @@ export const PairCard = memo(function PairCard({
   const baseUrl = `${imageBaseUrl}${pair.base_image.key}/`;
   const headUrl = `${imageBaseUrl}${image.key}/`;
 
-  // Renamed cards always show split — wipe/onion don't make sense for file renames
-  const effectiveMode = cardType === 'renamed' ? ('split' as const) : diffMode;
   const handleSelect = onSelectSnapshot
-    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelectSnapshot(isSelected ? null : snapshotKey);
+      }
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
   let body: React.ReactNode;
-  if (effectiveMode === 'split') {
+  if (diffMode === 'split') {
     body = (
-      <SplitPairBody
-        baseUrl={baseUrl}
-        headUrl={headUrl}
-        baseImage={pair.base_image}
-        headImage={image}
-        headLabel={headBranch ?? t('Head')}
-        altPrefix={getImageName(image)}
-        overlayColor={cardType === 'changed' ? overlayColor : undefined}
-        diffImageKey={cardType === 'changed' ? pair.diff_image_key : null}
-        diffImageBaseUrl={diffImageBaseUrl}
-      />
+      <SnapshotCanvasWrapper>
+        <SplitPairBody
+          baseUrl={baseUrl}
+          headUrl={headUrl}
+          baseImage={pair.base_image}
+          headImage={image}
+          headLabel={headBranch ?? t('Head')}
+          altPrefix={getImageName(image)}
+          overlayColor={overlayColor}
+          diffImageKey={pair.diff_image_key}
+          diffImageBaseUrl={diffImageBaseUrl}
+        />
+      </SnapshotCanvasWrapper>
     );
-  } else if (effectiveMode === 'wipe') {
+  } else if (diffMode === 'wipe') {
     body = (
       <WipeCardBody
         baseUrl={baseUrl}
@@ -121,27 +128,27 @@ export const PairCard = memo(function PairCard({
 
   return (
     <DarkAware isDark={isDark}>
-      <Card
-        isDark={isDark}
+      <SnapshotVariantFrame
         isSelected={isSelected}
         data-snapshot-key={snapshotKey}
-        onClick={e => e.stopPropagation()}
+        onClick={handleSelect}
       >
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
-          status={cardType === 'changed' ? DiffStatus.CHANGED : DiffStatus.RENAMED}
-          diffPercent={cardType === 'changed' ? pair.diff : null}
+          status={DiffStatus.CHANGED}
+          diffPercent={pair.diff}
           isDark={isDark}
           onToggleDark={() => setIsDark(v => !v)}
           copyData={pair}
           copyUrl={copyUrl}
-          onSelect={handleSelect}
           onDoubleClick={handleOpen}
-          isSelected={isSelected}
+          showBottomBorder={false}
+          onCopyLink={onCopyLink}
+          onCopyMetadata={onCopyMetadata}
         />
-        {body}
-      </Card>
+        <Container padding="0 xl xl">{body}</Container>
+      </SnapshotVariantFrame>
     </DarkAware>
   );
 });
@@ -149,21 +156,25 @@ export const PairCard = memo(function PairCard({
 export const ImageCard = memo(function ImageCard({
   image,
   cardType,
+  copyData,
   imageBaseUrl,
-  headBranch,
   isSelected,
   copyUrl,
   snapshotKey,
   onSelectSnapshot,
   onOpenSnapshot,
+  onCopyLink,
+  onCopyMetadata,
 }: {
-  cardType: 'added' | 'removed' | 'unchanged' | 'solo';
+  cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
   copyUrl: string;
   image: SnapshotImage;
   imageBaseUrl: string;
   isSelected: boolean;
   snapshotKey: string;
-  headBranch?: string | null;
+  copyData?: unknown;
+  onCopyLink?: () => void;
+  onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
@@ -176,23 +187,26 @@ export const ImageCard = memo(function ImageCard({
     status = DiffStatus.ADDED;
   } else if (cardType === 'removed') {
     status = DiffStatus.REMOVED;
+  } else if (cardType === 'renamed') {
+    status = DiffStatus.RENAMED;
   } else {
     status = DiffStatus.UNCHANGED;
   }
 
-  const label = headBranch ? (cardType === 'removed' ? t('Base') : headBranch) : null;
   const handleSelect = onSelectSnapshot
-    ? () => onSelectSnapshot(isSelected ? null : snapshotKey)
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onSelectSnapshot(isSelected ? null : snapshotKey);
+      }
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
   return (
     <DarkAware isDark={isDark}>
-      <Card
-        isDark={isDark}
+      <SnapshotVariantFrame
         isSelected={isSelected}
         data-snapshot-key={snapshotKey}
-        onClick={e => e.stopPropagation()}
+        onClick={handleSelect}
       >
         <CardHeader
           displayName={image.display_name}
@@ -200,19 +214,17 @@ export const ImageCard = memo(function ImageCard({
           status={status}
           isDark={isDark}
           onToggleDark={() => setIsDark(v => !v)}
-          copyData={image}
+          copyData={copyData ?? image}
           copyUrl={copyUrl}
-          onSelect={handleSelect}
           onDoubleClick={handleOpen}
-          isSelected={isSelected}
+          showBottomBorder={false}
+          onCopyLink={onCopyLink}
+          onCopyMetadata={onCopyMetadata}
         />
-        <ImageColumn
-          label={label}
-          src={imageUrl}
-          alt={getImageName(image)}
-          image={image}
-        />
-      </Card>
+        <Container padding="0 xl xl">
+          <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
+        </Container>
+      </SnapshotVariantFrame>
     </DarkAware>
   );
 });
@@ -226,9 +238,10 @@ export const CardHeader = memo(function CardHeader({
   onToggleDark,
   copyData,
   copyUrl,
-  onSelect,
   onDoubleClick,
-  isSelected,
+  showBottomBorder = true,
+  onCopyLink,
+  onCopyMetadata,
 }: {
   copyData: unknown;
   copyUrl: string;
@@ -237,32 +250,15 @@ export const CardHeader = memo(function CardHeader({
   onToggleDark: () => void;
   diffPercent?: number | null;
   displayName?: string | null;
-  isSelected?: boolean;
+  onCopyLink?: () => void;
+  onCopyMetadata?: () => void;
   onDoubleClick?: () => void;
-  onSelect?: () => void;
+  showBottomBorder?: boolean;
   status?: DiffStatus | null;
 }) {
   const {copy} = useCopyToClipboard();
-  const handleRowKeyDown = onSelect
-    ? (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          onSelect();
-        } else if (e.key === ' ') {
-          e.preventDefault();
-        }
-      }
-    : undefined;
   return (
-    <CardHeaderRow
-      onClick={onSelect}
-      onDoubleClick={onDoubleClick}
-      onKeyDown={handleRowKeyDown}
-      role={onSelect ? 'button' : undefined}
-      tabIndex={onSelect ? 0 : undefined}
-      aria-pressed={onSelect ? isSelected : undefined}
-      isInteractive={!!onSelect}
-    >
+    <CardHeaderRow onDoubleClick={onDoubleClick} $showBottomBorder={showBottomBorder}>
       <Stack gap="xs" minWidth="0" flex="1">
         {displayName ? (
           <Fragment>
@@ -291,11 +287,12 @@ export const CardHeader = memo(function CardHeader({
           aria-label={t('Copy link to this snapshot')}
           tooltip={t('Copy link')}
           icon={<IconLink size="sm" />}
-          onClick={() =>
-            copy(copyUrl, {successMessage: t('Copied link to this snapshot')})
-          }
+          onClick={() => {
+            copy(copyUrl, {successMessage: t('Copied link to this snapshot')});
+            onCopyLink?.();
+          }}
         />
-        <MetadataInfoButton copyData={copyData} />
+        <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
       </Flex>
     </CardHeaderRow>
   );
@@ -312,22 +309,45 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
-function MetadataInfoButton({copyData}: {copyData: unknown}) {
+const METADATA_BLOCKLIST = new Set(['key', 'diff_image_key']);
+
+function MetadataInfoButton({
+  copyData,
+  onCopy,
+}: {
+  copyData: unknown;
+  onCopy?: () => void;
+}) {
   const {copy} = useCopyToClipboard();
-  const json = JSON.stringify(copyData, null, 2);
+  const json = JSON.stringify(
+    copyData,
+    (k, v) => (METADATA_BLOCKLIST.has(k) || v === null ? undefined : v),
+    2
+  );
 
   return (
     <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
       <InfoIconButton
         type="button"
         aria-label={t('Copy metadata as JSON')}
-        onClick={() => copy(json, {successMessage: t('Copied metadata as JSON')})}
+        onClick={() => {
+          copy(json, {successMessage: t('Copied metadata as JSON')});
+          onCopy?.();
+        }}
       >
         <IconInfo size="sm" />
       </InfoIconButton>
     </Tooltip>
   );
 }
+
+const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'> = {
+  [DiffStatus.CHANGED]: 'accent',
+  [DiffStatus.ADDED]: 'success',
+  [DiffStatus.REMOVED]: 'danger',
+  [DiffStatus.RENAMED]: 'warning',
+  [DiffStatus.UNCHANGED]: 'secondary',
+};
 
 const StatusBadge = memo(function StatusBadge({
   status,
@@ -341,11 +361,8 @@ const StatusBadge = memo(function StatusBadge({
     case DiffStatus.CHANGED:
       label =
         diffPercent === null || diffPercent === undefined
-          ? t('Modified')
-          : t(
-              'Modified - %s',
-              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 4)
-            );
+          ? t('Changed')
+          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3));
       break;
     case DiffStatus.ADDED:
       label = t('Added');
@@ -360,7 +377,11 @@ const StatusBadge = memo(function StatusBadge({
       label = t('Unchanged');
   }
 
-  return <StatusBadgeContainer status={status}>{label}</StatusBadgeContainer>;
+  return (
+    <Text size="sm" bold variant={STATUS_VARIANT[status]}>
+      {label}
+    </Text>
+  );
 });
 
 function IconButton({
@@ -377,7 +398,7 @@ function IconButton({
   const button = (
     <Button
       size="xs"
-      priority="transparent"
+      variant="transparent"
       icon={icon}
       aria-label={ariaLabel}
       onClick={onClick}
@@ -393,40 +414,16 @@ function IconButton({
   );
 }
 
-export const Card = styled(Container)<{isDark: boolean; isSelected: boolean}>`
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-  border: 1px solid
-    ${p =>
-      p.isSelected
-        ? p.theme.tokens.border.accent.vibrant
-        : p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  overflow: hidden;
-  ${p => p.isDark && `color-scheme: dark;`}
-`;
-
-const CardHeaderRow = styled('div')<{isInteractive?: boolean}>`
+const CardHeaderRow = styled('div')<{
+  $showBottomBorder?: boolean;
+}>`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  ${p =>
-    p.isInteractive &&
-    `
-      cursor: pointer;
-      user-select: none;
-
-      &:hover {
-        background: ${p.theme.tokens.background.secondary};
-      }
-
-      &:focus {
-        outline: none;
-      }
-    `}
+  border-bottom: ${p =>
+    p.$showBottomBorder ? `1px solid ${p.theme.tokens.border.secondary}` : 0};
 `;
 
 const InfoIconButton = styled('button')`
@@ -458,43 +455,4 @@ const MetadataHint = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   padding-bottom: ${p => p.theme.space.xs};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const StatusBadgeContainer = styled('span')<{status: DiffStatus}>`
-  display: inline-flex;
-  align-items: center;
-  padding: 2px ${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.font.size.xs};
-  white-space: nowrap;
-  background: ${p => {
-    switch (p.status) {
-      case DiffStatus.CHANGED:
-        return p.theme.tokens.background.transparent.accent.muted;
-      case DiffStatus.ADDED:
-        return p.theme.tokens.background.transparent.success.muted;
-      case DiffStatus.REMOVED:
-        return p.theme.tokens.background.transparent.danger.muted;
-      case DiffStatus.RENAMED:
-        return p.theme.tokens.background.transparent.warning.muted;
-      case DiffStatus.UNCHANGED:
-      default:
-        return p.theme.tokens.background.secondary;
-    }
-  }};
-  color: ${p => {
-    switch (p.status) {
-      case DiffStatus.CHANGED:
-        return p.theme.tokens.content.accent;
-      case DiffStatus.ADDED:
-        return p.theme.tokens.content.success;
-      case DiffStatus.REMOVED:
-        return p.theme.tokens.content.danger;
-      case DiffStatus.RENAMED:
-        return p.theme.tokens.content.warning;
-      case DiffStatus.UNCHANGED:
-      default:
-        return p.theme.tokens.content.secondary;
-    }
-  }};
 `;

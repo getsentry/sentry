@@ -206,7 +206,7 @@ function MonitoringAndDataFeatures({
     Record<FeatureKey | DataCategory, Omit<FeatureInfo, 'key'>>
   > = {
     alerts: {
-      displayStringSuffix: t(' metric alerts'),
+      displayStringSuffix: t(' Metric Monitors'),
       displayStringMap: {},
     },
     dashboards: {
@@ -264,7 +264,7 @@ function MonitoringAndDataFeatures({
     const {metricDetectorLimit, dashboardLimit} = plan;
     const formattedMetricDetectorLimit =
       metricDetectorLimit === UNLIMITED_RESERVED
-        ? t('Unlimited')
+        ? t('1,000')
         : metricDetectorLimit.toString();
     const formattedDashboardLimit =
       dashboardLimit === UNLIMITED_RESERVED ? t('Unlimited') : dashboardLimit.toString();
@@ -539,7 +539,7 @@ export function PlanFeatures({
             <Container paddingTop="xs">
               <IconLightning size="sm" variant="accent" />
             </Container>
-            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40444678490651-How-can-I-update-to-an-account-with-Logs">
+            <ExternalLink href="https://www.sentry.help/en/articles/13965029-how-to-upgrade-a-legacy-plan-to-include-logs">
               {t('Want the latest features? Learn more here')}
             </ExternalLink>
           </Flex>

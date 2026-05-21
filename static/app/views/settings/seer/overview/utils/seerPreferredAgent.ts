@@ -9,7 +9,7 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {processInChunks} from 'sentry/utils/array/procesInChunks';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -68,7 +68,7 @@ export function useBulkMutateSelectedAgent() {
           ProjectsStore.onUpdateSuccess({
             id: projects[i]!.id,
             autofixAutomationTuning: 'medium',
-          });
+          } as Partial<DetailedProject>);
         }
       });
 

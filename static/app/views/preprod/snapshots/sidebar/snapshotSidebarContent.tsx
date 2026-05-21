@@ -1,6 +1,8 @@
-import {useEffect, useRef} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -9,16 +11,21 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
-export interface SidebarGroup {
+interface SidebarGroup {
   count: number;
+  displayName: string;
   key: string;
-  name: string;
+}
+
+export interface SidebarSection {
+  groups: SidebarGroup[];
+  type?: DiffStatus;
 }
 
 export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.CHANGED]: 0,
-  [DiffStatus.ADDED]: 1,
-  [DiffStatus.REMOVED]: 2,
+  [DiffStatus.REMOVED]: 1,
+  [DiffStatus.ADDED]: 2,
   [DiffStatus.RENAMED]: 3,
   [DiffStatus.UNCHANGED]: 4,
 };
@@ -32,34 +39,45 @@ const STATUS_PILLS: ReadonlyArray<{
   label: string;
   status: DiffStatus;
 }> = [
-  {status: DiffStatus.CHANGED, color: 'accent', label: t('modified')},
-  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
+  {status: DiffStatus.CHANGED, color: 'accent', label: t('changed')},
   {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
+  {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
   {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
 ];
 
+const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
+  [DiffStatus.CHANGED]: {color: 'accent', label: t('Changed')},
+  [DiffStatus.ADDED]: {color: 'success', label: t('Added')},
+  [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
+  [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
+  [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+};
+
+type VirtualRow =
+  | {meta: {color: PillColor; label: string}; sectionType: DiffStatus; type: 'header'}
+  | {group: SidebarGroup; indented: boolean; type: 'item'};
+
+const ITEM_HEIGHT = 36;
+const SECTION_HEADER_HEIGHT = 28;
+
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
-  currentItemKey: string | null;
-  groups: SidebarGroup[];
-  isAllSelected: boolean;
   onSearchChange: (query: string) => void;
-  onSelectAll: () => void;
-  onSelectItem: (key: string) => void;
+  onSelectItem: (itemKey: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
   searchQuery: string;
+  sections: SidebarSection[];
+  activeItemKey?: string | null;
   statusCounts?: StatusCounts | null;
 }
 
-export function SnapshotSidebarContent({
-  groups,
-  currentItemKey,
-  isAllSelected,
+export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
+  sections,
+  activeItemKey,
   searchQuery,
   onSearchChange,
   onSelectItem,
-  onSelectAll,
   statusCounts,
   activeStatuses,
   onToggleStatus,
@@ -67,52 +85,77 @@ export function SnapshotSidebarContent({
   const hasActiveFilter = activeStatuses.size > 0;
   const isStatusActive = (status: DiffStatus) =>
     !hasActiveFilter || activeStatuses.has(status);
-  const listRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [collapsed, setCollapsed] = useState<Set<DiffStatus>>(() => new Set());
+  const toggleSection = useCallback((type: DiffStatus) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  }, []);
+
+  const showSectionHeaders = useMemo(
+    () => sections.filter(s => s.groups.length > 0).length > 1,
+    [sections]
+  );
+
+  const virtualRows = useMemo(() => {
+    const rows: VirtualRow[] = [];
+    for (const section of sections) {
+      if (section.groups.length === 0) {
+        continue;
+      }
+      const sectionType = section.type;
+      const meta = sectionType ? STATUS_META[sectionType] : null;
+      const showHeader = !!sectionType && !!meta && showSectionHeaders;
+      if (showHeader) {
+        rows.push({type: 'header', sectionType, meta});
+        if (!collapsed.has(sectionType)) {
+          for (const group of section.groups) {
+            rows.push({type: 'item', group, indented: true});
+          }
+        }
+      } else {
+        for (const group of section.groups) {
+          rows.push({type: 'item', group, indented: false});
+        }
+      }
+    }
+    return rows;
+  }, [sections, collapsed, showSectionHeaders]);
+
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: i =>
+      virtualRows[i]!.type === 'header' ? SECTION_HEADER_HEIGHT : ITEM_HEIGHT,
+    overscan: 25,
+    initialRect: {width: 0, height: 500},
+  });
+
+  const prevActiveItemKeyRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    if (!listRef.current || !currentItemKey || isAllSelected) {
+    if (!activeItemKey || activeItemKey === prevActiveItemKeyRef.current) {
+      prevActiveItemKeyRef.current = activeItemKey;
       return;
     }
-    const el = listRef.current.querySelector(
-      `[data-item-name="${CSS.escape(currentItemKey)}"]`
+    prevActiveItemKeyRef.current = activeItemKey;
+    const idx = virtualRows.findIndex(
+      r => r.type === 'item' && r.group.key === activeItemKey
     );
-    el?.scrollIntoView({block: 'nearest'});
-  }, [currentItemKey, groups, isAllSelected]);
+    if (idx !== -1) {
+      virtualizer.scrollToIndex(idx, {align: 'auto'});
+    }
+  }, [activeItemKey, virtualRows, virtualizer]);
 
-  const renderGroup = (group: SidebarGroup) => {
-    const isSelected = !isAllSelected && group.key === currentItemKey;
-    return (
-      <SidebarItemRow
-        key={group.key}
-        data-item-name={group.key}
-        isSelected={isSelected}
-        onClick={e => {
-          e.stopPropagation();
-          if (isSelected) {
-            onSelectAll();
-          } else {
-            onSelectItem(group.key);
-          }
-        }}
-      >
-        <Flex align="center" gap="sm" flex="1" minWidth="0">
-          <Text
-            size="md"
-            variant={isSelected ? 'accent' : 'muted'}
-            bold={isSelected}
-            ellipsis
-          >
-            {group.name}
-          </Text>
-        </Flex>
-        <CountBadge>
-          <Text variant="muted" size="xs">
-            {group.count}
-          </Text>
-        </CountBadge>
-      </SidebarItemRow>
-    );
-  };
+  const hasGroups = sections.some(s => s.groups.length > 0);
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <Stack height="100%" width="100%">
@@ -128,18 +171,7 @@ export function SnapshotSidebarContent({
           </InputGroup.LeadingItems>
           <InputGroup.Input
             size="sm"
-            placeholder={
-              currentItemKey
-                ? t(
-                    'Search %s %s components...',
-                    groups.find(g => g.key === currentItemKey)?.count ?? '',
-                    currentItemKey
-                  )
-                : t(
-                    'Search %s components...',
-                    groups.reduce((sum, g) => sum + g.count, 0)
-                  )
-            }
+            placeholder={t('Search components...')}
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
           />
@@ -165,27 +197,43 @@ export function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
-      <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        <SidebarItemRow
-          isSelected={isAllSelected}
-          onClick={e => {
-            e.stopPropagation();
-            onSelectAll();
-          }}
-        >
-          <Flex align="center" gap="sm" flex="1" minWidth="0">
-            <Text
-              size="md"
-              variant={isAllSelected ? 'accent' : 'primary'}
-              bold={isAllSelected}
-              ellipsis
-            >
-              {t('All')}
-            </Text>
-          </Flex>
-        </SidebarItemRow>
-        {groups.map(renderGroup)}
-        {groups.length === 0 && (
+      <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
+        {hasGroups ? (
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              position: 'relative',
+              width: '100%',
+            }}
+          >
+            {virtualItems.map(vi => {
+              const row = virtualRows[vi.index]!;
+              return (
+                <VirtualRowPositioner
+                  key={vi.key}
+                  ref={virtualizer.measureElement}
+                  data-index={vi.index}
+                  style={{transform: `translateY(${vi.start}px)`}}
+                >
+                  {row.type === 'header' ? (
+                    <SectionHeaderRow
+                      row={row}
+                      expanded={!collapsed.has(row.sectionType)}
+                      onToggle={toggleSection}
+                    />
+                  ) : (
+                    <SidebarItem
+                      group={row.group}
+                      indented={row.indented}
+                      isActive={row.group.key === activeItemKey}
+                      onSelect={onSelectItem}
+                    />
+                  )}
+                </VirtualRowPositioner>
+              );
+            })}
+          </div>
+        ) : (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No components found.')}
@@ -195,7 +243,75 @@ export function SnapshotSidebarContent({
       </Stack>
     </Stack>
   );
-}
+});
+
+const SectionHeaderRow = memo(function SectionHeaderRow({
+  row,
+  expanded,
+  onToggle,
+}: {
+  expanded: boolean;
+  onToggle: (type: DiffStatus) => void;
+  row: Extract<VirtualRow, {type: 'header'}>;
+}) {
+  return (
+    <SectionDisclosure
+      size="xs"
+      expanded={expanded}
+      onExpandedChange={() => onToggle(row.sectionType)}
+    >
+      <Disclosure.Title>
+        <Flex align="center" gap="sm">
+          <Dot pillColor={row.meta.color} active />
+          <Text size="sm" bold>
+            {row.meta.label}
+          </Text>
+        </Flex>
+      </Disclosure.Title>
+    </SectionDisclosure>
+  );
+});
+
+const SidebarItem = memo(function SidebarItem({
+  group,
+  indented,
+  isActive,
+  onSelect,
+}: {
+  group: SidebarGroup;
+  indented: boolean;
+  isActive: boolean;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <SidebarItemRow
+      data-item-key={group.key}
+      isSelected={isActive}
+      indented={indented}
+      onClick={e => {
+        e.stopPropagation();
+        onSelect(group.key);
+      }}
+    >
+      <Flex align="center" gap="sm" flex="1" minWidth="0">
+        <Text
+          size="md"
+          variant={isActive ? 'accent' : 'muted'}
+          bold={isActive}
+          ellipsis
+          onPointerEnter={setTitleOnOverflow}
+        >
+          {group.displayName}
+        </Text>
+      </Flex>
+      <CountBadge>
+        <Text variant="muted" size="xs">
+          {group.count}
+        </Text>
+      </CountBadge>
+    </SidebarItemRow>
+  );
+});
 
 function StatusPill({
   color,
@@ -220,6 +336,11 @@ function StatusPill({
   );
 }
 
+function setTitleOnOverflow(e: React.PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  el.title = el.scrollWidth > el.clientWidth ? (el.textContent ?? '') : '';
+}
+
 const PillButton = styled('button')<{active: boolean}>`
   display: inline-flex;
   align-items: center;
@@ -235,10 +356,10 @@ const PillButton = styled('button')<{active: boolean}>`
   }
 `;
 
-const Dot = styled('span')<{active: boolean; pillColor: PillColor}>`
+const Dot = styled('span')<{active: boolean; pillColor: PillColor; dotSize?: number}>`
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: ${p => p.dotSize ?? 6}px;
+  height: ${p => p.dotSize ?? 6}px;
   border-radius: 50%;
   background: ${p => {
     if (!p.active) {
@@ -270,23 +391,43 @@ const CountBadge = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
-const SidebarItemRow = styled('div')<{isSelected: boolean}>`
+const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  padding-left: ${p =>
+    p.indented
+      ? `calc(${p.theme.space.xl} + 8px + ${p.theme.space.sm})`
+      : p.theme.space.xl};
   gap: ${p => p.theme.space.sm};
   cursor: pointer;
   border-right: 3px solid
     ${p => (p.isSelected ? p.theme.tokens.border.accent.vibrant : 'transparent')};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   background: ${p =>
     p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
 
-  &:last-child {
-    border-bottom: none;
+const SectionDisclosure = styled(Disclosure)`
+  width: 100%;
+  align-items: stretch;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
   }
+`;
+
+const VirtualRowPositioner = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
 `;

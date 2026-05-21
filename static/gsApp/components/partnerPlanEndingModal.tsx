@@ -151,7 +151,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         </Flex>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
-            <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
+            <Button data-test-id="maybe-later" variant="secondary" onClick={closeModal}>
               {t('Remind Me Later')}
             </Button>
             {hasBillingAccess ? (
@@ -159,7 +159,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
                 size="md"
                 to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
-                priority="primary"
+                variant="primary"
                 onClick={() =>
                   trackGetsentryAnalytics('partner_billing_migration.modal.clicked_cta', {
                     subscription,
@@ -175,7 +175,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               <Button
                 size="md"
                 aria-label="Request to Upgrade"
-                priority="primary"
+                variant="primary"
                 onClick={handleRequest}
               >
                 {t('Request to Upgrade')}

@@ -27,7 +27,7 @@ export function useD3Zoom({
   wheelRequiresModifier = false,
 }: UseD3ZoomOptions = {}): UseD3ZoomReturn {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
+  const [transform, setTransform] = useState(zoomIdentity);
   const zoomBehaviorRef = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
   const onTransformChangeRef = useRef(onTransformChange);
   onTransformChangeRef.current = onTransformChange;
@@ -35,7 +35,7 @@ export function useD3Zoom({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
-      return undefined;
+      return;
     }
 
     const zoomBehavior = zoom<HTMLDivElement, unknown>()

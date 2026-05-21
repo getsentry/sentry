@@ -148,7 +148,7 @@ export const TagFilterData = {
  * Combines all of the above into a single set to determine if a tag is custom
  */
 export function getSentryDefaultTags() {
-  return Object.values(TagFilterData).reduce<Set<string>>((acc, set) => {
+  return Object.values(TagFilterData).reduce((acc, set) => {
     for (const tag of set) {
       acc.add(tag);
     }

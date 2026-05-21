@@ -18,19 +18,29 @@ export function ToolTags({toolNames}: ToolTagsProps) {
   const [expanded, setExpanded] = useState(false);
   const [hiddenCount, setHiddenCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const tagRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const tagRefs = useRef(new Map<number, HTMLElement>());
+  const toggleButtonRef = useRef<HTMLDivElement>(null);
 
-  // Calculate how many tags are hidden (overflow beyond 2 rows)
+  // Calculate how many tags are hidden (overflow beyond 2 rows, or overlapped by the "+N more" button)
   useEffect(() => {
     const container = containerRef.current;
     if (expanded || !container) {
-      return undefined;
+      return;
     }
 
     const calculateHidden = () => {
+      const buttonWidth = toggleButtonRef.current?.offsetWidth ?? 0;
+      const containerWidth = container.offsetWidth;
+
       let hidden = 0;
       tagRefs.current.forEach(tagEl => {
         if (tagEl.offsetTop >= TWO_ROW_HEIGHT) {
+          hidden++;
+        } else if (
+          buttonWidth > 0 &&
+          tagEl.offsetLeft + tagEl.offsetWidth > containerWidth - buttonWidth
+        ) {
+          // Tag on the last visible row is partially covered by the "+N more" button
           hidden++;
         }
       });
@@ -45,7 +55,8 @@ export function ToolTags({toolNames}: ToolTagsProps) {
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [toolNames, expanded]);
+    // hiddenCount is included so we re-check after the button appears (it only renders when hiddenCount > 0)
+  }, [toolNames, expanded, hiddenCount]);
 
   return (
     <ToolTagsContainer ref={containerRef} expanded={expanded}>
@@ -60,14 +71,15 @@ export function ToolTags({toolNames}: ToolTagsProps) {
             }
           }}
           variant="info"
+          style={{maxWidth: '100%', minWidth: 0}}
         >
           {toolName}
         </Tag>
       ))}
       {hiddenCount > 0 && !expanded && (
-        <ToggleButtonWrapper>
+        <ToggleButtonWrapper ref={toggleButtonRef}>
           <ToggleButton
-            priority="link"
+            variant="link"
             size="xs"
             onClick={() => setExpanded(prev => !prev)}
           >
@@ -76,11 +88,7 @@ export function ToolTags({toolNames}: ToolTagsProps) {
         </ToggleButtonWrapper>
       )}
       {expanded && (
-        <ToggleButton
-          priority="link"
-          size="xs"
-          onClick={() => setExpanded(prev => !prev)}
-        >
+        <ToggleButton variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
           {t('Show less')}
         </ToggleButton>
       )}

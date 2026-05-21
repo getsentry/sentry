@@ -32,7 +32,7 @@ export function OpenInLogsButton({searchTerm, replayId}: Props) {
   });
 
   return (
-    <LinkButton size="sm" href={url} target="_blank">
+    <LinkButton size="sm" to={url} openInNewTab>
       {t('Open in Logs')}
     </LinkButton>
   );

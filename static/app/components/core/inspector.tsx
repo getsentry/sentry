@@ -41,7 +41,7 @@ export function SentryComponentInspector() {
   const theme = useTheme();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
-  const skipShowingTooltipRef = useRef<boolean>(false);
+  const skipShowingTooltipRef = useRef(false);
 
   const organization = useOrganization({allowNull: true});
   const [state, setState] = useState<{
@@ -530,7 +530,9 @@ function MenuItem(props: {
     <Fragment>
       <ProfilingContextMenuItemButton
         {...props.contextMenu.getMenuItemProps({
-          ref: el => (triggerRef.current = el),
+          ref: el => {
+            triggerRef.current = el;
+          },
           onClick: () => {
             setIsOpen(true);
           },

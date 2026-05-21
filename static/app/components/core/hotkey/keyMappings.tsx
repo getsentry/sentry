@@ -123,7 +123,20 @@ export function matchesKey(name: string, event: KeyboardEvent): boolean {
     }
     const code = codeForChar(key);
     if (code && event.code === code) {
-      return true;
+      const eventKey = event.key;
+      // Non-Latin script (e.g. Cyrillic 'к' on KeyK) or no key reported:
+      // trust the physical position.
+      if (eventKey?.length !== 1 || eventKey.charCodeAt(0) > 0x7f) {
+        return true;
+      }
+      // Shift can transform a key into a different symbol on the same layout
+      // (e.g. Shift+1 → '!' on QWERTY). Allow the code fallback in that case.
+      // Without shift, a differing ASCII event.key means a different layout
+      // maps this physical key to another character (e.g. AZERTY '+' on
+      // physical Slash) and we must NOT match.
+      if (event.shiftKey) {
+        return true;
+      }
     }
   }
 

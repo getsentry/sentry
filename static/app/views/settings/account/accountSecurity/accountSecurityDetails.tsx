@@ -175,7 +175,7 @@ export default function AccountSecurityDetails() {
                         )
                       : undefined,
                   }}
-                  priority="danger"
+                  variant="danger"
                 >
                   {authenticator.removeButton}
                 </Button>

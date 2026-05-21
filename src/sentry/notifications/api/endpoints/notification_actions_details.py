@@ -13,6 +13,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams
@@ -32,9 +33,9 @@ logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
-@extend_schema(tags=["Alerts"])
+@extend_schema(tags=["Spike Protection"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.NOTIFICATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -50,13 +51,16 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
 
     permission_classes = (NotificationActionsPermission,)
 
-    def convert_args(self, request: Request, action_id: int, *args, **kwargs):
+    def convert_args(self, request: Request, action_id: str, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
 
         # Get the relevant action associated with the organization and request
         try:
-            action = NotificationAction.objects.get(id=action_id, organization_id=organization.id)
+            action = NotificationAction.objects.get(
+                id=to_valid_int_id("action_id", action_id, raise_404=True),
+                organization_id=organization.id,
+            )
         except NotificationAction.DoesNotExist:
             raise ResourceDoesNotExist
 

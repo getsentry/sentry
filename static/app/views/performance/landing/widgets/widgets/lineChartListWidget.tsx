@@ -108,7 +108,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {organization, InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(

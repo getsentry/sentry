@@ -17,9 +17,8 @@ class NotificationThread(DefaultFieldsModel):
     the original values for debugging and auditing purposes.
 
     key_type uses NotificationSource values. Example key_data for different sources:
-    - error-alert-service: {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
     - slow-load-metric-alert: {"alert_rule_id": 456, "incident_id": 789, "trigger_action_id": 101}
-    - issue_alert: {"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"}
+    - issue_alert: {"action_id": 123, "group_id": 456, "open_period_start": "2025-01-01T00:00:00Z"}
     """
 
     __relocation_scope__ = RelocationScope.Excluded

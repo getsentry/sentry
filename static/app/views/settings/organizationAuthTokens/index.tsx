@@ -66,7 +66,10 @@ function TokenList({
   const {data: projects, isPending: isLoadingProjects} = useQuery({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {query: idQueryParams},
+      query: {
+        query: idQueryParams,
+        collapse: ['latestDeploys', 'unusedFeatures'],
+      },
       staleTime: 0,
     }),
     enabled: hasProjects,
@@ -152,7 +155,7 @@ export function OrganizationAuthTokensIndex({
 
   const createNewToken = (
     <LinkButton
-      priority="primary"
+      variant="primary"
       size={hasPageFrame ? 'md' : 'sm'}
       icon={<IconAdd />}
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}

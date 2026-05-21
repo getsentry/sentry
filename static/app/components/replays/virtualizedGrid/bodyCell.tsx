@@ -62,7 +62,7 @@ export const Text = styled('div')`
   gap: ${p => p.theme.space.xs};
 `;
 
-export function AvatarWrapper(props: ContainerProps<'div'>) {
+export function AvatarWrapper(props: ContainerProps) {
   return <Container alignSelf="center" {...props} />;
 }
 

@@ -16,7 +16,7 @@ export default Storybook.story('PageBanner', story => {
     <LinkButton
       external
       href="https://sentry.io/orgredirect/organizations/:orgslug/stories"
-      priority="primary"
+      variant="primary"
     >
       View Stories
     </LinkButton>

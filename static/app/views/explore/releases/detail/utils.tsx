@@ -36,11 +36,11 @@ export function getFilesByRepository(fileList: CommitFile[]) {
   return fileList.reduce<FilesByRepository>((filesByRepository, file) => {
     const {filename, repoName, author, type} = file;
 
-    if (!filesByRepository.hasOwnProperty(repoName)) {
+    if (!Object.hasOwn(filesByRepository, repoName)) {
       filesByRepository[repoName] = {};
     }
 
-    if (!filesByRepository[repoName]!.hasOwnProperty(filename)) {
+    if (!Object.hasOwn(filesByRepository[repoName]!, filename)) {
       filesByRepository[repoName]![filename] = {
         authors: {},
         types: new Set(),
@@ -64,7 +64,7 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
   return commitList.reduce<CommitsByRepository>((commitsByRepository, commit) => {
     const repositoryName = commit.repository?.name ?? t('unknown');
 
-    if (!commitsByRepository.hasOwnProperty(repositoryName)) {
+    if (!Object.hasOwn(commitsByRepository, repositoryName)) {
       commitsByRepository[repositoryName] = [];
     }
 

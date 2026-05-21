@@ -6,7 +6,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
@@ -18,8 +17,6 @@ describe('SentryMemberTeamSelectorField', () => {
   const mockTeams = [TeamFixture()];
 
   beforeEach(() => {
-    MemberListStore.init();
-    MemberListStore.loadInitialData(mockUsers);
     TeamStore.init();
     TeamStore.loadInitialData(mockTeams);
     OrganizationStore.onUpdate(org, {replace: true});
@@ -34,7 +31,7 @@ describe('SentryMemberTeamSelectorField', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [],
+      body: mockUsers.map(user => ({user})),
     });
   });
 

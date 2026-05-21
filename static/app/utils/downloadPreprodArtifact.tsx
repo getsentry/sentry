@@ -1,5 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 
 type ErrorDetail = {
   code?: string;
@@ -60,13 +61,7 @@ export async function downloadPreprodArtifact({
       return;
     }
 
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `preprod_artifact_${artifactId}.zip`;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadFromHref(`preprod_artifact_${artifactId}.zip`, downloadUrl);
 
     addSuccessMessage(t('Build download started'));
   } catch (error) {

@@ -272,7 +272,7 @@ function getMobileVitalsFromRootEventResults(
           score: undefined,
         };
       }
-      return undefined;
+      return;
     })
     .filter(defined);
 }

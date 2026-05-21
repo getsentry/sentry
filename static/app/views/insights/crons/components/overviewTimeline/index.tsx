@@ -57,7 +57,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
     queryClient.setQueryData(monitorListOptions.queryKey, old => {
       if (!old) {
-        return undefined;
+        return;
       }
       const oldMonitorList = old.json;
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
@@ -143,7 +143,7 @@ export function OverviewTimeline({monitorList}: Props) {
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
@@ -152,7 +152,7 @@ export function OverviewTimeline({monitorList}: Props) {
             dateNavigation={dateNavigation}
             direction="forward"
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </HeaderControlsRight>
       </Header>

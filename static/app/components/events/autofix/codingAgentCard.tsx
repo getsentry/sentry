@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
@@ -73,7 +73,7 @@ export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCa
   );
 
   return (
-    <React.Fragment>
+    <Fragment>
       <VerticalLine />
       <StepCard>
         <ContentWrapper>
@@ -139,7 +139,7 @@ export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCa
                   </Stack>
                 </Content>
                 {hasButtons && (
-                  <React.Fragment>
+                  <Fragment>
                     <BottomDivider />
                     <BottomButtonContainer>
                       <Grid flow="column" align="center" gap="md">
@@ -172,7 +172,7 @@ export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCa
                                 analyticsEventName="Autofix: Open Coding Agent PR"
                                 analyticsEventKey="autofix.coding_agent.open_pr"
                                 analyticsParams={{group_id: groupId}}
-                                priority="primary"
+                                variant="primary"
                               >
                                 {getResultButtonLabel(pr_url)}
                               </Button>
@@ -180,14 +180,14 @@ export function CodingAgentCard({codingAgentState, groupId, repo}: CodingAgentCa
                           ))}
                       </Grid>
                     </BottomButtonContainer>
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </StyledCard>
             </motion.div>
           </AnimatePresence>
         </ContentWrapper>
       </StepCard>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

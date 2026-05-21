@@ -22,6 +22,7 @@ export function EditableAutomationName() {
         form?.setValue('name', newValue);
       }}
       placeholder={t('New Alert')}
+      variant="compact"
     />
   );
 }

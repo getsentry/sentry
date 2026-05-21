@@ -98,7 +98,7 @@ export default function ProjectUserFeedback() {
                     }
                   )}
                 </span>
-                <Button priority="primary" size="md" onClick={handleClick}>
+                <Button variant="primary" size="md" onClick={handleClick}>
                   {t('Open the Crash Report Modal')}
                 </Button>
               </Flex>
@@ -117,7 +117,7 @@ export default function ProjectUserFeedback() {
           }
           action={
             hasPageFrame ? undefined : (
-              <Button priority="primary" size="sm" onClick={handleClick}>
+              <Button variant="primary" size="sm" onClick={handleClick}>
                 {t('Open the Crash Report Modal')}
               </Button>
             )

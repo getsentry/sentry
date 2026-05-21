@@ -15,7 +15,7 @@ import type {AddIntegrationButton} from './addIntegrationButton';
 interface DirectEnableButtonProps {
   buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
   >;
   providerSlug: string;
   userHasAccess: boolean;

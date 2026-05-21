@@ -60,7 +60,7 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
             </Text>
           </Flex>
           <Flex justify="end">
-            <LinkButton priority="primary" href={newPath}>
+            <LinkButton variant="primary" href={newPath}>
               {t('Continue to %s', slug)}
             </LinkButton>
           </Flex>

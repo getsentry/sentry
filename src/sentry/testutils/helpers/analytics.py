@@ -28,7 +28,11 @@ def assert_event_equal(
     for field in fields(expected_event):
         if exclude_fields and field.name in exclude_fields:
             continue
-        assert getattr(expected_event, field.name) == getattr(recorded_event, field.name)
+        expected_field = getattr(expected_event, field.name)
+        recorded_field = getattr(recorded_event, field.name)
+        assert expected_field == recorded_field, (
+            f"Expected event differed for {field.name}. Expected: {expected_field}. Got: {recorded_field}"
+        )
 
 
 def assert_analytics_events_recorded(
@@ -60,14 +64,18 @@ def assert_any_analytics_event(
     exclude_fields: list[str] | None = None,
 ) -> None:
     recorded_events = get_all_analytics_events(mock_record)
+    field_error = ""
     for recorded_event in recorded_events:
+        if type(expected_event) is not type(recorded_event):
+            continue
         try:
             assert_event_equal(expected_event, recorded_event, exclude_fields)
             return
-        except AssertionError:
-            pass
+        except AssertionError as err:
+            # Store the last failing match to include in the final output
+            field_error = str(err)
 
-    raise AssertionError(f"Event {expected_event} not found")
+    raise AssertionError(f"Event {expected_event} not found. {field_error}.")
 
 
 def assert_not_analytics_event(

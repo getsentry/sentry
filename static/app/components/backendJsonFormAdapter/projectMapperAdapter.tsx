@@ -133,7 +133,7 @@ export function ProjectMapperAddRow({
       </Container>
       <Button
         size="sm"
-        priority="primary"
+        variant="primary"
         onClick={handleAdd}
         icon={<IconAdd />}
         disabled={disabled || !selectedSentryProjectId || !selectedMappedValue}
@@ -263,7 +263,7 @@ export function ProjectMapperNextButton({config, value}: ProjectMapperNextButton
       <Text>{nextButton.description}</Text>
       <LinkButton
         size="sm"
-        priority="primary"
+        variant="primary"
         icon={<IconOpen />}
         disabled={!hasLinkedProjects}
         href={nextUrl}

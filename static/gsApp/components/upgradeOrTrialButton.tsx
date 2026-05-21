@@ -33,11 +33,11 @@ interface BaseButtonProps {
   /**
    * Default button priority to use when the button triggers an upgrade
    */
-  trialPriority?: ButtonProps['priority'];
+  trialPriority?: ButtonProps['variant'];
   /**
    * Default button priority to use when the button will start a trial
    */
-  upgradePriority?: ButtonProps['priority'];
+  upgradePriority?: ButtonProps['variant'];
 }
 
 /**
@@ -74,7 +74,7 @@ function UpgradeOrTrialButton({
       : children;
 
   // The button color depends on the priority, and that is determined by the action
-  const buttonPriority: ButtonProps['priority'] =
+  const buttonPriority: ButtonProps['variant'] =
     action === 'trial' ? trialPriority : upgradePriority;
 
   const recordAnalytics = () => {
@@ -129,7 +129,7 @@ function UpgradeOrTrialButton({
           source={source}
           onTrialStarted={handleSuccess}
           requestData={requestData}
-          priority={buttonPriority}
+          variant={buttonPriority}
           {...(props as LinkButtonProps)}
         >
           {childComponent || t('Start %s-Day Trial', getTrialLength(organization))}
@@ -141,7 +141,7 @@ function UpgradeOrTrialButton({
       <Button
         onClick={handleRequest}
         busy={busy}
-        priority={buttonPriority}
+        variant={buttonPriority}
         {...(props as ButtonProps)}
       >
         {childComponent || t('Request Trial')}
@@ -159,7 +159,7 @@ function UpgradeOrTrialButton({
       <LinkButton
         onClick={handleSuccess}
         href={`${baseUrl}?referrer=upgrade-${source}`}
-        priority={buttonPriority}
+        variant={buttonPriority}
         {...(props as LinkButtonProps)}
       >
         {childComponent || t('Upgrade now')}
@@ -170,7 +170,7 @@ function UpgradeOrTrialButton({
     <Button
       onClick={handleRequest}
       busy={busy}
-      priority={buttonPriority}
+      variant={buttonPriority}
       {...(props as ButtonProps)}
     >
       {childComponent || t('Request Upgrade')}

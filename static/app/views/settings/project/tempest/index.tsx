@@ -142,7 +142,7 @@ export default function TempestSettings() {
               variant="warning"
               trailingItems={
                 <Button
-                  priority="link"
+                  variant="link"
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}

@@ -253,5 +253,5 @@ export function searchReleaseVersion(version: string): string {
 export function isVersionInfoSemver(
   versionInfo: VersionInfo['version']
 ): versionInfo is SemverVersion {
-  return versionInfo.hasOwnProperty('components');
+  return Object.hasOwn(versionInfo, 'components');
 }

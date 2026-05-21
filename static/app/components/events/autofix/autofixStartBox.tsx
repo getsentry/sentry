@@ -81,11 +81,10 @@ function getStoppingPointOptions(organization: Organization) {
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const organization = useOrganization();
   const [message, setMessage] = useState('');
-  const [selectedStoppingPoint, setSelectedStoppingPoint] =
-    useLocalStorageState<AutofixStoppingPoint>(
-      'autofix:selected-stopping-point',
-      AutofixStoppingPoint.ROOT_CAUSE
-    );
+  const [selectedStoppingPoint, setSelectedStoppingPoint] = useLocalStorageState(
+    'autofix:selected-stopping-point',
+    AutofixStoppingPoint.ROOT_CAUSE
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent, stoppingPoint?: AutofixStoppingPoint) => {
@@ -178,7 +177,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               >
                 <StyledButton
                   type="submit"
-                  priority="primary"
+                  variant="primary"
                   disabled={primaryOption.disabled}
                   analyticsEventKey={
                     message
@@ -200,7 +199,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 trigger={(triggerProps, isOpen) => (
                   <DropdownTrigger
                     {...triggerProps}
-                    priority="primary"
+                    variant="primary"
                     aria-label={t('Choose stopping point')}
                     icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   />

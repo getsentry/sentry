@@ -36,7 +36,7 @@ export function RangeField({
               }
             }}
           />
-          {indicator ?? <Flex width="14px" flexShrink={0} />}
+          {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
         </Fragment>
       )}
     </BaseField>

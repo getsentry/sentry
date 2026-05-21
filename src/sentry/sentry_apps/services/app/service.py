@@ -245,7 +245,9 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def disable_sentryapp(self, *, id: int) -> None:
+    def get_notification_emails_for_sentry_app(
+        self, *, organization_id: int, creator_label: str | None
+    ) -> list[str]:
         pass
 
 

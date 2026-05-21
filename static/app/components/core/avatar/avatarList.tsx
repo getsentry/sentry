@@ -66,8 +66,10 @@ export function AvatarList({
 
   if (numCollapsedAvatars === 1) {
     if (visibleTeamAvatars.length < teams.length) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       visibleTeamAvatars.unshift(teams[teams.length - 1]!);
     } else if (visibleUserAvatars.length < users.length) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       visibleUserAvatars.unshift(users[users.length - 1]!);
     }
     numCollapsedAvatars = 0;

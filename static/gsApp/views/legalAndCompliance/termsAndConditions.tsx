@@ -141,7 +141,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
               <div>
                 <Button
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   icon={<IconBusiness />}
                   onClick={() =>
                     openUpsellModal({organization, source: 'legal_and_compliance.baa'})

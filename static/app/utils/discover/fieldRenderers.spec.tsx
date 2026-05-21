@@ -6,11 +6,17 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
+import {SpanFields} from 'sentry/views/insights/types';
+
+jest.mock('sentry/actionCreators/modal', () => ({
+  openNavigateToExternalLinkModal: jest.fn(),
+}));
 
 const theme = ThemeFixture();
 
@@ -85,26 +91,147 @@ describe('getFieldRenderer', () => {
   it('can render string fields', () => {
     const renderer = getFieldRenderer('url', {url: 'string'});
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText(data.url)).toBeInTheDocument();
+  });
+
+  it('propagates URL clicks to parent cell actions without opening the modal', () => {
+    const onClick = jest.fn();
+    const value = 'https://example.com';
+
+    render(
+      <div role="button" onClick={onClick} tabIndex={0}>
+        {renderUrlCellValue(value)}
+      </div>
+    );
+
+    screen.getByRole('link', {name: value}).click();
+
+    expect(onClick).toHaveBeenCalled();
+    expect(openNavigateToExternalLinkModal).not.toHaveBeenCalled();
   });
 
   it('can render empty string fields', () => {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = '';
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
+  it('can render numeric values with the string renderer', () => {
+    const renderer = getFieldRenderer('numeric', {numeric: 'string'});
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText(data.numeric)).toBeInTheDocument();
+  });
+
+  it('renders the last element when string fields are stored as arrays', () => {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = ['https://example.com/old', 'https://example.com/new'];
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('https://example.com/new')).toBeInTheDocument();
+  });
+
+  it('renders the last non-url element when string fields are stored as arrays', () => {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = ['old-value', 'latest-value'];
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('latest-value')).toBeInTheDocument();
+    expect(document.querySelector('a')).not.toBeInTheDocument();
+  });
+
+  it('renders gen_ai.output.messages assistant content', () => {
+    const renderer = getFieldRenderer(
+      SpanFields.GEN_AI_OUTPUT_MESSAGES,
+      {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'string'},
+      false
+    );
+    data[SpanFields.GEN_AI_OUTPUT_MESSAGES] = JSON.stringify([
+      {role: 'assistant', content: 'Output response'},
+    ]);
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('Output response')).toBeInTheDocument();
+  });
+
+  it('renders empty gen_ai.output.messages values as no value', () => {
+    const renderer = getFieldRenderer(
+      SpanFields.GEN_AI_OUTPUT_MESSAGES,
+      {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'string'},
+      false
+    );
+    data[SpanFields.GEN_AI_OUTPUT_MESSAGES] = '';
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+  });
+
   it('can render boolean fields', () => {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('true')).toBeInTheDocument();
@@ -113,7 +240,12 @@ describe('getFieldRenderer', () => {
   it('can render integer fields', () => {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
@@ -146,6 +278,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(data, {
         location,
+        navigate: jest.fn(),
         organization,
         theme,
       }) as React.ReactElement<any, any>
@@ -190,6 +323,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(data, {
         location,
+        navigate: jest.fn(),
         organization,
         theme,
       }) as React.ReactElement<any, any>
@@ -213,7 +347,7 @@ describe('getFieldRenderer', () => {
       render(
         renderer(
           {'per_second(value)': null},
-          {location, organization, theme}
+          {location, navigate: jest.fn(), organization, theme}
         ) as React.ReactElement<any, any>
       );
       expect(screen.getByText('(no value)')).toBeInTheDocument();
@@ -231,7 +365,7 @@ describe('getFieldRenderer', () => {
       render(
         renderer(
           {'per_second(value)': 0.0001},
-          {location, organization, theme}
+          {location, navigate: jest.fn(), organization, theme}
         ) as React.ReactElement<any, any>
       );
       expect(screen.getByText('<0.01/s')).toBeInTheDocument();
@@ -249,7 +383,7 @@ describe('getFieldRenderer', () => {
       render(
         renderer(
           {'per_second(value)': 10},
-          {location, organization, theme}
+          {location, navigate: jest.fn(), organization, theme}
         ) as React.ReactElement<any, any>
       );
       expect(screen.getByText('10.0/s')).toBeInTheDocument();
@@ -267,7 +401,12 @@ describe('getFieldRenderer', () => {
       );
 
       render(
-        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement<any, any>
       );
       expect(screen.getByText('1.2%')).toBeInTheDocument();
     });
@@ -282,7 +421,12 @@ describe('getFieldRenderer', () => {
       );
 
       render(
-        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement<any, any>
       );
       expect(screen.getByText('<0.01%')).toBeInTheDocument();
     });
@@ -292,7 +436,12 @@ describe('getFieldRenderer', () => {
     it('can render date fields', async () => {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
-        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement<any, any>
       );
 
       await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
@@ -303,6 +452,7 @@ describe('getFieldRenderer', () => {
       render(
         renderer(data, {
           location: {...location, query: {utc: 'true'}},
+          navigate: jest.fn(),
           organization,
           theme,
         }) as React.ReactElement<any, any>
@@ -315,7 +465,12 @@ describe('getFieldRenderer', () => {
   it('can render null date fields', () => {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
@@ -324,7 +479,12 @@ describe('getFieldRenderer', () => {
   it('can render timestamp.to_day', () => {
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('Sep 5, 2021')).toBeInTheDocument();
@@ -337,7 +497,7 @@ describe('getFieldRenderer', () => {
       const {unmount} = render(
         renderer(
           {'error.handled': value},
-          {location, organization, theme}
+          {location, navigate: jest.fn(), organization, theme}
         ) as React.ReactElement<any, any>
       );
       expect(screen.getByText(expectText)).toBeInTheDocument();
@@ -367,7 +527,12 @@ describe('getFieldRenderer', () => {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
@@ -379,7 +544,12 @@ describe('getFieldRenderer', () => {
 
     delete data.user;
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -391,7 +561,12 @@ describe('getFieldRenderer', () => {
 
     delete data.release;
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
@@ -401,7 +576,12 @@ describe('getFieldRenderer', () => {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByRole('link')).toHaveAttribute(
@@ -415,7 +595,12 @@ describe('getFieldRenderer', () => {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByRole('link')).toHaveAttribute(
@@ -429,7 +614,12 @@ describe('getFieldRenderer', () => {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -442,7 +632,12 @@ describe('getFieldRenderer', () => {
     data = {...data, project: parseInt(project.id, 10)};
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -455,7 +650,12 @@ describe('getFieldRenderer', () => {
     });
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
@@ -472,7 +672,12 @@ describe('getFieldRenderer', () => {
     delete data.project;
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
@@ -493,7 +698,12 @@ describe('getFieldRenderer', () => {
       });
 
       render(
-        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement<any, any>
       );
 
       expect(getWidths()).toEqual(['13.333%', '40%', '20%', '26.667%', '0%']);
@@ -507,6 +717,7 @@ describe('getFieldRenderer', () => {
       render(
         renderer(data, {
           location,
+          navigate: jest.fn(),
           organization,
           theme,
           eventView: new EventView({
@@ -543,7 +754,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(
         {...data, 'replay.id': 'abc123def456'},
-        {location, organization, theme}
+        {location, navigate: jest.fn(), organization, theme}
       ) as React.ReactElement<any, any>
     );
 
@@ -561,7 +772,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(
         {...data, 'replay.id': 'abc123def456'},
-        {location, organization, theme}
+        {location, navigate: jest.fn(), organization, theme}
       ) as React.ReactElement<any, any>
     );
 
@@ -575,7 +786,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(
         {...data, 'replay.id': ''},
-        {location, organization, theme}
+        {location, navigate: jest.fn(), organization, theme}
       ) as React.ReactElement<any, any>
     );
 
@@ -588,7 +799,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(
         {...data, 'profile.id': 'abc123def456'},
-        {location, organization, theme, projects: [project]}
+        {location, navigate: jest.fn(), organization, theme, projects: [project]}
       ) as React.ReactElement<any, any>
     );
 
@@ -605,7 +816,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(
         {...data, project: 'unknown-project', 'profile.id': 'abc123def456'},
-        {location, organization, theme, projects: [project]}
+        {location, navigate: jest.fn(), organization, theme, projects: [project]}
       ) as React.ReactElement<any, any>
     );
 
@@ -619,7 +830,7 @@ describe('getFieldRenderer', () => {
     render(
       renderer(
         {...data, 'profile.id': ''},
-        {location, organization, theme, projects: [project]}
+        {location, navigate: jest.fn(), organization, theme, projects: [project]}
       ) as React.ReactElement<any, any>
     );
 
@@ -633,7 +844,12 @@ describe('getFieldRenderer', () => {
     });
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
     );
 
     expect(screen.getByText('3.45')).toBeInTheDocument();

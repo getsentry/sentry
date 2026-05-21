@@ -118,8 +118,10 @@ describe('FilesChanged', () => {
       body: [CommitFileFixture()],
     });
     renderComponent();
-    expect(await screen.findByText('1 file changed')).toBeInTheDocument();
-    expect(screen.getByText('static/app/components/alert.tsx')).toBeInTheDocument();
+    expect(
+      await screen.findByText('static/app/components/alert.tsx')
+    ).toBeInTheDocument();
+    expect(screen.getByText(/1 file changed/)).toBeInTheDocument();
   });
 
   it('should render repo picker', async () => {

@@ -7,7 +7,7 @@ import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 import {extractDashboardFromSession, statusIsTerminal} from './createFromSeerUtils';
@@ -95,7 +95,7 @@ export function useSeerDashboardSession({
       retry: false,
       enabled: !!seerRunId && enabled,
       refetchInterval: query => {
-        const status = query.state.data?.[0]?.session?.status;
+        const status = query.state.data?.json?.session?.status;
         if (statusIsTerminal(status)) {
           if (completedAtRef.current === null) {
             completedAtRef.current = Date.now();

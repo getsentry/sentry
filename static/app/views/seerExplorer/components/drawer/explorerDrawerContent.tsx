@@ -5,12 +5,13 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
@@ -48,7 +49,7 @@ export function ExplorerDrawerContent({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const userScrolledUpRef = useRef<boolean>(false);
+  const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
@@ -61,17 +62,24 @@ export function ExplorerDrawerContent({
     sessionData,
     isPolling,
     isError,
+    errorStatusCode,
+    isTimedOut,
     sendMessage,
-    startNewSession,
-    switchToRun,
+    startNewSession: startNewSessionBase,
+    switchToRun: switchToRunBase,
     respondToUserInput,
     createPR,
     interruptRun,
-    waitingForInterrupt,
+    hasSentInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
+
+  const clearInput = () => setInputValue('');
+  const startNewSession = () => startNewSessionBase({onSuccess: clearInput});
+  const switchToRun = (newRunId: number | null) =>
+    switchToRunBase(newRunId, {onSuccess: clearInput});
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -94,8 +102,8 @@ export function ExplorerDrawerContent({
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
-    sendMessage(query);
-  }, [initialQuery, isEmptyState, sendMessage]);
+    sendMessage(query, blocks.length);
+  }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -157,7 +165,30 @@ export function ExplorerDrawerContent({
   }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
+  const conversationsUrl = useMemo(() => {
+    if (runId === null) {
+      return;
+    }
+    let minTs = Infinity;
+    let maxTs = -Infinity;
+    for (const block of blocks) {
+      const ts = Date.parse(block.timestamp);
+      if (Number.isNaN(ts)) {
+        continue;
+      }
+      if (ts < minTs) {
+        minTs = ts;
+      }
+      if (ts > maxTs) {
+        maxTs = ts;
+      }
+    }
+    return getConversationsUrlForExternalUse('sentry', runId, {
+      start: minTs === Infinity ? undefined : new Date(minTs).toISOString(),
+      end: maxTs === -Infinity ? undefined : new Date(maxTs).toISOString(),
+      project: SEER_AGENTS_PROJECT_ID,
+    });
+  }, [runId, blocks]);
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -198,7 +229,7 @@ export function ExplorerDrawerContent({
 
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
-    clearInput: () => setInputValue(''),
+    clearInput,
     inputValue,
     focusInput,
     textAreaRef: textareaRef,
@@ -223,23 +254,21 @@ export function ExplorerDrawerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
+  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
   const handleSend = useCallback(() => {
-    if (readOnly || isPolling || !inputValue.trim()) {
+    if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim());
+    sendMessage(inputValue.trim(), blocks.length);
     setInputValue('');
     userScrolledUpRef.current = false;
-  }, [readOnly, inputValue, isPolling, sendMessage]);
-
-  const canInterrupt = sessionData?.status === 'processing';
+  }, [canSendMessage, inputValue, sendMessage, blocks.length]);
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (readOnly || e.nativeEvent.isComposing) {
+      if (e.nativeEvent.isComposing) {
         return;
       }
-
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
@@ -248,7 +277,7 @@ export function ExplorerDrawerContent({
         closeDrawer();
       }
     },
-    [readOnly, handleSend, closeDrawer]
+    [handleSend, closeDrawer]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -306,28 +335,45 @@ export function ExplorerDrawerContent({
         container.removeEventListener('scroll', handleScroll);
       };
     }
-    return undefined;
+    return;
   }, []);
-
-  // - Keyboard listeners -----------------------------------------------------
 
   // Update block refs array when blocks change
   useEffect(() => {
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  // - Deep link effect -------------------------------------------------------
+  // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
+
+  // Track when a session times out
+  const prevIsTimedOutRef = useRef(false);
+  useEffect(() => {
+    if (isTimedOut && !prevIsTimedOutRef.current) {
+      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
+    }
+    prevIsTimedOutRef.current = isTimedOut;
+  }, [isTimedOut, organization, runId]);
+
+  // Interrupt button and placeholder state
+  const interruptState =
+    isPolling && hasSentInterrupt
+      ? 'requested'
+      : isPolling
+        ? 'can-interrupt'
+        : hasSentInterrupt
+          ? 'completed'
+          : 'disabled';
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
       <ExplorerDrawerHeader
+        disableNewChatButton={runId === null}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
         onChangeSession={switchToRun}
-        isEmptyState={isEmptyState}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
@@ -349,29 +395,34 @@ export function ExplorerDrawerContent({
           <EmptyState
             isLoading={isPolling}
             isError={isError}
+            errorStatusCode={errorStatusCode}
             runId={runId}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
         ) : (
           <Fragment>
-            {blocks.map((block: Block, index: number) => (
-              <BlockComponent
-                key={index} // For slide-in animation - run/mount once per new index
-                ref={el => {
-                  blockRefs.current[index] = el;
-                }}
-                block={block}
-                blockIndex={index}
-                runId={runId ?? undefined}
-                getPageReferrer={getPageReferrer}
-                isAwaitingFileApproval={isFileApprovalPending}
-                isAwaitingQuestion={isQuestionPending}
-                isLatestTodoBlock={index === latestTodoBlockIndex}
-                readOnly={readOnly}
-                showThinking={showThinking}
-                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
-              />
-            ))}
+            {blocks.map((block: Block, index: number) => {
+              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
+              const key = block.message.role === 'user' ? `user-${index}` : block.id;
+
+              return (
+                <BlockComponent
+                  key={key}
+                  ref={el => {
+                    blockRefs.current[index] = el;
+                  }}
+                  block={block}
+                  blockIndex={index}
+                  runId={runId ?? undefined}
+                  getPageReferrer={getPageReferrer}
+                  isAwaitingFileApproval={isFileApprovalPending}
+                  isAwaitingQuestion={isQuestionPending}
+                  isLatestTodoBlock={index === latestTodoBlockIndex}
+                  readOnly={readOnly}
+                  showThinking={showThinking}
+                />
+              );
+            })}
             {!readOnly &&
               isFileApprovalPending &&
               fileApprovalIndex < fileApprovalTotalPatches && (
@@ -398,10 +449,9 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        canInterrupt={canInterrupt} // TODO: update when adding timeouts
-        waitingForInterrupt={waitingForInterrupt}
-        isMinimized={false} // Drawer doesn't have a minimized state
-        isVisible // Drawer content is always visible when rendered
+        canSendMessage={canSendMessage}
+        interruptState={interruptState}
+        isTimedOut={isTimedOut}
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
         onInputChange={handleInputChange}

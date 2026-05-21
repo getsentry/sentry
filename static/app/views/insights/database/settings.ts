@@ -8,12 +8,6 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {
-  ModuleName,
-  SpanFunction,
-  type Aggregate,
-  type SpanProperty,
-} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
@@ -21,12 +15,6 @@ export const DATA_TYPE_PLURAL = t('Queries');
 export const BASE_URL = 'database';
 
 export const EXCLUDED_DB_OPS = ['db.sql.room', 'db.redis'];
-
-export const BASE_FILTERS = {
-  'span.category': ModuleName.DB,
-  '!span.op': `[${EXCLUDED_DB_OPS.join(',')}]`,
-  has: 'sentry.normalized_description',
-};
 
 export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
   'sentry.python': '1.29.2',
@@ -39,8 +27,6 @@ export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
   'sentry.symfony': '4.11.0',
   'sentry.android': '6.30.0',
 };
-
-export const DEFAULT_DURATION_AGGREGATE: Aggregate = SpanFunction.AVG;
 
 // Note: all these options should come from static/app/views/explore/hooks/useChartInterval.tsx ALL_INTERVAL_OPTIONS
 export const COUNTER_GRANULARITIES = new GranularityLadder([
@@ -64,7 +50,3 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/queries/';
 
 export const MODULE_FEATURES = ['insight-modules'];
-
-export const FIELD_ALIASES = {
-  'epm()': t('Queries Per Minute'),
-} satisfies Partial<Record<SpanProperty, string>>;

@@ -39,6 +39,7 @@ import type {
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
@@ -423,7 +424,7 @@ function VisualizationWidgetContent({
   // Check for empty plottables before rendering the visualization
   // This prevents TimeSeriesWidgetVisualization from throwing an error
   // that would get caught by ErrorBoundary and persist across filter changes
-  const hasNoPlottableData = plottables.every(plottable => plottable.isEmpty);
+  const hasNoPlottableData = !plottablesCanBeVisualized(plottables);
 
   if (hasNoPlottableData) {
     return <Widget.WidgetError error={MISSING_DATA_MESSAGE} />;

@@ -1,8 +1,9 @@
+import type {ModalTypes} from '@sentry/scraps/modal';
+
 import type {
   CommandPaletteState,
   CommandPaletteDispatch,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';
@@ -146,13 +147,6 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   });
 }
 
-export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/deprecatedCommandPalette');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
-
 export async function toggleCommandPalette(
   options: ModalOptions = {},
   organization: Organization,
@@ -204,18 +198,6 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
     await import('sentry/components/modals/teamAccessRequestModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
-}
-
-type HelpSearchModalOptions = {
-  organization?: Organization;
-  placeholder?: string;
-};
-
-export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/helpSearchModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type DebugFileSourceModalOptions = {

@@ -31,7 +31,7 @@ import {
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
 import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {
   LocalMultiMetricsQueryParamsProvider,
@@ -412,7 +412,11 @@ function MetricToolbar({
             />
           </Flex>
           <AggregateDropdown traceMetric={traceMetric} singleSelect />
-          <Filter traceMetric={traceMetric} />
+          <Filter
+            traceMetric={traceMetric}
+            projectIds={projectIds}
+            environments={environments}
+          />
           <DeleteMetricButton disabledReason={deleteDisabledReason} />
         </Fragment>
       ) : isVisualizeEquation(visualize) ? (
@@ -422,7 +426,12 @@ function MetricToolbar({
             referenceMap={referenceMap}
             handleExpressionChange={handleExpressionChange}
           />
-          <Filter traceMetric={traceMetric} skipTraceMetricFilter />
+          <Filter
+            traceMetric={traceMetric}
+            skipTraceMetricFilter
+            projectIds={projectIds}
+            environments={environments}
+          />
           <DeleteMetricButton />
         </Fragment>
       ) : null}

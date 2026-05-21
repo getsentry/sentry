@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ExportQueryType} from 'sentry/components/dataExport';
+import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload';
 
 describe('DataDownload', () => {

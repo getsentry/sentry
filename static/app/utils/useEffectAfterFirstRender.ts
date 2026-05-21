@@ -4,7 +4,7 @@ const useEffectAfterFirstRender = (
   cb: React.EffectCallback,
   deps: React.DependencyList
 ): void => {
-  const firstRender = useRef<boolean>(true);
+  const firstRender = useRef(true);
 
   useEffect(() => {
     if (firstRender.current) {

@@ -90,9 +90,8 @@ function useNativeOperatorFilter(
   const globalFilterOperator = operatorInfo?.operator ?? TermOperator.EQUAL;
 
   // Staged values of the filter
-  const [stagedFilterOperator, setStagedFilterOperator] =
-    useState<TermOperator>(globalFilterOperator);
-  const [stagedFilterValue, setStagedFilterValue] = useState<string>(globalFilterValue);
+  const [stagedFilterOperator, setStagedFilterOperator] = useState(globalFilterOperator);
+  const [stagedFilterValue, setStagedFilterValue] = useState(globalFilterValue);
 
   const hasStagedChanges =
     stagedFilterOperator !== globalFilterOperator ||
@@ -306,7 +305,7 @@ export function NumericFilterSelector({
               <StyledButton
                 aria-label={t('Remove Filter')}
                 size="xs"
-                priority="transparent"
+                variant="transparent"
                 onClick={() => onRemoveFilter(globalFilter)}
               >
                 {t('Remove Filter')}

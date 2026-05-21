@@ -224,7 +224,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
 
         # Group timeseries by their groupby attributes, then merge aggregates
         # This handles multiple y_axes correctly by merging them into the same rows
-        results_by_key: dict[tuple, dict[int, dict[str, Any]]] = {}
+        results_by_key: dict[tuple[tuple[str, Any], ...], dict[int, dict[str, Any]]] = {}
 
         for timeseries in rpc_response.result_timeseries:
             # Extract groupby values using public aliases

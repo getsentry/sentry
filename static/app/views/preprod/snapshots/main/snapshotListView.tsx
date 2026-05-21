@@ -1,11 +1,23 @@
-import {memo, useEffect, useMemo, useRef} from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -15,6 +27,7 @@ import type {
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 import {ImageCard, PairCard} from './snapshotCards';
 import {MAX_IMAGE_HEIGHT} from './snapshotDiffBodies';
+import {SnapshotCardFrame, SnapshotGroupHeader} from './snapshotFrames';
 
 interface SnapshotListViewProps {
   imageBaseUrl: string;
@@ -23,8 +36,11 @@ interface SnapshotListViewProps {
   diffMode?: DiffMode;
   headBranch?: string | null;
   onOpenSnapshot?: (key: string) => void;
+  onScrollProgress?: (progress: number, firstVisibleIndex: number) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onVisibleGroupChange?: (name: string | null) => void;
   overlayColor?: string;
+  ref?: React.Ref<SnapshotListViewHandle>;
   selectedSnapshotKey?: string | null;
 }
 
@@ -42,18 +58,18 @@ export function buildSnapshotLink(snapshotKey: string): string {
 
 type GroupCard =
   | {
-      cardType: 'changed' | 'renamed';
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
       type: 'pair-card';
     }
   | {
-      cardType: 'added' | 'removed' | 'unchanged' | 'solo';
+      cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
       estimatedHeight: number;
       id: string;
       image: SnapshotImage;
       type: 'image-card';
+      copyData?: unknown;
     };
 
 interface GroupRow {
@@ -61,23 +77,26 @@ interface GroupRow {
   estimatedHeight: number;
   id: string;
   isUngrouped: boolean;
+  itemKey: string;
   name: string;
 }
 
-const HEADER_HEIGHT = 44;
+// Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
+const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
-const CARD_GAP = 16;
-const GROUP_PADDING = 32;
+const CARD_GAP = 0;
+const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
-const LIST_CONTENT_WIDTH_ASSUMPTION = 900;
+const DEFAULT_CONTENT_WIDTH = 900;
+const SNAPSHOT_FRAME_BORDER_WIDTH = 1;
+const STICKY_HEADER_BOTTOM_OVERLAP = SNAPSHOT_FRAME_BORDER_WIDTH * 2;
 
-function estimateCardHeight(image: SnapshotImage, splitColumns: boolean) {
-  const columnWidth = splitColumns
-    ? LIST_CONTENT_WIDTH_ASSUMPTION / 2
-    : LIST_CONTENT_WIDTH_ASSUMPTION;
-  // The <img> uses width: auto + max-width: 100%, so it never scales up past
-  // its natural size. Mirror that here: only scale down when natural width
-  // exceeds the column.
+function estimateCardHeight(
+  image: SnapshotImage,
+  splitColumns: boolean,
+  contentWidth: number
+) {
+  const columnWidth = splitColumns ? contentWidth / 2 : contentWidth;
   const aspectHeight =
     image.width > 0 && image.height > 0
       ? image.width <= columnWidth
@@ -95,31 +114,41 @@ export function isItemUngrouped(item: SidebarItem): boolean {
   return !item.images[0]?.group;
 }
 
-function buildGroups(items: SidebarItem[]): GroupRow[] {
+function buildGroups(items: SidebarItem[], contentWidth: number): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
     const cards: GroupCard[] = [];
-    if (item.type === 'changed' || item.type === 'renamed') {
+    if (item.type === 'changed') {
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
-          id: `c:${item.key}:${pair.head_image.key}`,
+          id: `c:${item.key}:${pair.head_image.image_file_name}`,
           pair,
-          cardType: item.type,
           estimatedHeight: Math.max(
-            estimateCardHeight(pair.head_image, true),
-            estimateCardHeight(pair.base_image, true)
+            estimateCardHeight(pair.head_image, true, contentWidth),
+            estimateCardHeight(pair.base_image, true, contentWidth)
           ),
+        });
+      }
+    } else if (item.type === 'renamed') {
+      for (const pair of item.pairs) {
+        cards.push({
+          type: 'image-card',
+          id: `c:${item.key}:${pair.head_image.image_file_name}`,
+          image: pair.head_image,
+          copyData: pair,
+          cardType: item.type,
+          estimatedHeight: estimateCardHeight(pair.head_image, false, contentWidth),
         });
       }
     } else {
       for (const image of item.images) {
         cards.push({
           type: 'image-card',
-          id: `c:${item.key}:${image.key}`,
+          id: `c:${item.key}:${image.image_file_name}`,
           image,
           cardType: item.type,
-          estimatedHeight: estimateCardHeight(image, false),
+          estimatedHeight: estimateCardHeight(image, false, contentWidth),
         });
       }
     }
@@ -131,37 +160,78 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
     groups.push({
       id: `g:${item.key}`,
       name: item.name,
+      itemKey: item.key,
       cards,
       isUngrouped: ungrouped,
       estimatedHeight:
-        (ungrouped ? cardsHeight : HEADER_HEIGHT + cardsHeight + GROUP_PADDING) +
+        (ungrouped
+          ? cardsHeight
+          : SNAPSHOT_GROUP_HEADER_HEIGHT + cardsHeight + GROUP_PADDING) +
         ROW_PADDING_BOTTOM,
     });
   }
   return groups;
 }
 
-export function SnapshotListView({
+export interface SnapshotListViewHandle {
+  scrollToGroup: (itemKey: string) => void;
+}
+
+export const SnapshotListView = memo(function SnapshotListView({
   items,
   imageBaseUrl,
   headBranch,
   selectedSnapshotKey,
   onSelectSnapshot,
   onOpenSnapshot,
+  onScrollProgress,
   diffMode = 'split',
   overlayColor,
   diffImageBaseUrl,
+  ref,
+  onVisibleGroupChange,
 }: SnapshotListViewProps) {
-  const groups = useMemo(() => buildGroups(items), [items]);
+  const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+
+  const [contentWidth, setContentWidth] = useState(DEFAULT_CONTENT_WIDTH);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const style = getComputedStyle(el);
+    setContentWidth(
+      el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    );
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContentWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const groups = useMemo(() => buildGroups(items, contentWidth), [items, contentWidth]);
 
   const virtualizer = useVirtualizer({
     count: groups.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i => groups[i]!.estimatedHeight,
     getItemKey: i => groups[i]!.id,
-    overscan: 2,
-    // Breathing margin between the target card and the chrome when scrollToIndex aligns to either edge
+    overscan: 5,
     scrollPaddingEnd: 8,
   });
 
@@ -171,7 +241,8 @@ export function SnapshotListView({
     const groupIdxByKey = new Map<string, number>();
     const positionByKey = new Map<string, number>();
     for (let gi = 0; gi < groups.length; gi++) {
-      for (const card of groups[gi]!.cards) {
+      const group = groups[gi]!;
+      for (const card of group.cards) {
         const key = snapshotKeyFor(card);
         positionByKey.set(key, order.length);
         order.push(key);
@@ -180,6 +251,110 @@ export function SnapshotListView({
     }
     return {order, groupIdxByKey, positionByKey};
   }, [groups]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToGroup(itemKey: string) {
+        const groupIdx = groups.findIndex(g => g.itemKey === itemKey);
+        if (groupIdx === -1) {
+          return;
+        }
+        virtualizer.scrollToIndex(groupIdx, {align: 'start'});
+      },
+    }),
+    [groups, virtualizer]
+  );
+
+  const rafId = useRef(0);
+  const onVisibleGroupChangeRef = useRef(onVisibleGroupChange);
+  onVisibleGroupChangeRef.current = onVisibleGroupChange;
+  const onScrollProgressRef = useRef(onScrollProgress);
+  onScrollProgressRef.current = onScrollProgress;
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
+  const flatIndexRef = useRef(flatIndex);
+  flatIndexRef.current = flatIndex;
+  const visibleGroupIdxRef = useRef(0);
+  const handleScroll = useCallback(() => {
+    cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) {
+        return;
+      }
+      setScrollTop(el.scrollTop);
+      const containerTop = el.getBoundingClientRect().top;
+
+      const rows = el.querySelectorAll<HTMLElement>('[data-index]');
+      const ROW_THRESHOLD = 100;
+      let visibleItemKey = groupsRef.current[0]?.itemKey ?? null;
+      let visibleGroupIdx = 0;
+      for (const row of rows) {
+        const idx = parseInt(row.dataset.index ?? '', 10);
+        if (isNaN(idx)) {
+          continue;
+        }
+        const rowTop = row.getBoundingClientRect().top - containerTop;
+        if (rowTop <= ROW_THRESHOLD) {
+          visibleItemKey = groupsRef.current[idx]?.itemKey ?? null;
+          visibleGroupIdx = idx;
+        }
+      }
+      visibleGroupIdxRef.current = visibleGroupIdx;
+      onVisibleGroupChangeRef.current?.(visibleItemKey);
+
+      if (onScrollProgressRef.current) {
+        const maxScroll = el.scrollHeight - el.clientHeight;
+        const progress = maxScroll > 0 ? (el.scrollTop / maxScroll) * 100 : 0;
+        const cards = el.querySelectorAll<HTMLElement>('[data-snapshot-key]');
+        const SNAP_THRESHOLD = 9;
+        let topCard = 0;
+        for (const card of cards) {
+          const key = card.dataset.snapshotKey;
+          if (!key) {
+            continue;
+          }
+          const pos = flatIndexRef.current.positionByKey.get(key);
+          if (pos === undefined) {
+            continue;
+          }
+          const cardTop = card.getBoundingClientRect().top - containerTop;
+          if (cardTop <= SNAP_THRESHOLD) {
+            topCard = pos;
+          }
+        }
+        onScrollProgressRef.current(progress, topCard);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || groups.length === 0) {
+      return;
+    }
+    el.addEventListener('scroll', handleScroll, {passive: true});
+    handleScroll();
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      cancelAnimationFrame(rafId.current);
+    };
+  }, [groups, handleScroll]);
+
+  const prevDiffModeRef = useRef(diffMode);
+  useEffect(() => {
+    if (prevDiffModeRef.current === diffMode) {
+      return;
+    }
+    prevDiffModeRef.current = diffMode;
+    const idx = visibleGroupIdxRef.current;
+    if (idx >= 0 && idx < groups.length) {
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(idx, {align: 'start'});
+      });
+    }
+  }, [diffMode, groups, virtualizer]);
 
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
   const didInitialScroll = useRef(false);
@@ -193,14 +368,27 @@ export function SnapshotListView({
     }
     didInitialScroll.current = true;
     virtualizer.scrollToIndex(targetIdx, {align: 'start'});
-    requestAnimationFrame(() => {
+
+    const isUngrouped =
+      groups[flatIndex.groupIdxByKey.get(initialSnapshotKey) ?? -1]?.isUngrouped ?? true;
+
+    let retries = 3;
+    const adjustScroll = () => {
       const el = scrollRef.current?.querySelector<HTMLElement>(
         `[data-snapshot-key="${CSS.escape(initialSnapshotKey)}"]`
       );
-      if (el) {
-        el.scrollIntoView({block: 'start'});
+      if (!el || !scrollRef.current) {
+        if (retries-- > 0) {
+          requestAnimationFrame(adjustScroll);
+        }
+        return;
       }
-    });
+      el.scrollIntoView({block: 'start'});
+      if (!isUngrouped) {
+        scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+      }
+    };
+    requestAnimationFrame(adjustScroll);
   }, [groups, initialSnapshotKey, flatIndex, virtualizer]);
 
   const keyNavRef = useRef({
@@ -226,6 +414,16 @@ export function SnapshotListView({
         return false;
       }
       cardEl.scrollIntoView({block});
+      if (block === 'start') {
+        const groupIdx = keyNavRef.current.flatIndex.groupIdxByKey.get(key);
+        if (
+          groupIdx !== undefined &&
+          !groupsRef.current[groupIdx]?.isUngrouped &&
+          scrollRef.current
+        ) {
+          scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+        }
+      }
       return true;
     }
 
@@ -287,6 +485,15 @@ export function SnapshotListView({
         return;
       }
 
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        const isUp = e.key === 'ArrowUp';
+        const targetKey = isUp ? idx.order[0]! : idx.order[idx.order.length - 1]!;
+        onSelect(targetKey);
+        revealCard(targetKey, isUp ? 'start' : 'end');
+        return;
+      }
+
       const lastPos = idx.order.length - 1;
       const currentPos = currentKey ? (idx.positionByKey.get(currentKey) ?? -1) : -1;
       const isDown = e.key === 'ArrowDown';
@@ -309,6 +516,48 @@ export function SnapshotListView({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const scrollContainerPaddingTop = Number.parseFloat(theme.space.xl);
+  const activeGroupThreshold = scrollTop - scrollContainerPaddingTop;
+  const activeVirtualItem = virtualItems.find(virtualItem => {
+    return scrollTop > 0 && activeGroupThreshold < virtualItem.end - ROW_PADDING_BOTTOM;
+  });
+  const activeGroupBounds =
+    activeVirtualItem === undefined
+      ? null
+      : {
+          bottom:
+            scrollContainerPaddingTop +
+            activeVirtualItem.end -
+            ROW_PADDING_BOTTOM -
+            scrollTop,
+          group: groups[activeVirtualItem.index]!,
+          top: scrollContainerPaddingTop + activeVirtualItem.start - scrollTop,
+        };
+  const activeGroupName =
+    activeGroupBounds && !activeGroupBounds.group.isUngrouped
+      ? activeGroupBounds.group.name
+      : null;
+  const stickyHeaderTop = Math.max(scrollContainerPaddingTop - scrollTop, 0);
+  const stickyHeaderTranslateY =
+    activeGroupBounds === null
+      ? 0
+      : Math.min(
+          Math.max(0, activeGroupBounds.top - stickyHeaderTop),
+          activeGroupBounds.bottom -
+            (stickyHeaderTop + SNAPSHOT_GROUP_HEADER_HEIGHT) +
+            STICKY_HEADER_BOTTOM_OVERLAP
+        );
+  // detached frame is to detect when the top of the active group has not yet hit the control container and needs top border styling
+  const stickyHeaderHasDetachedFrame =
+    scrollTop < scrollContainerPaddingTop || stickyHeaderTranslateY > 0;
+  // bottom frame is to detect when the sticky header is near the bottom of the group container
+  const stickyHeaderHasBottomFrame = stickyHeaderTranslateY < 0;
+  const stickyHeaderStyle = {
+    '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
+  } as React.CSSProperties;
+
   if (items.length === 0) {
     return (
       <Flex align="center" justify="center" padding="3xl" width="100%">
@@ -317,11 +566,17 @@ export function SnapshotListView({
     );
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
-  const totalSize = virtualizer.getTotalSize();
-
   return (
     <ScrollContainer ref={scrollRef}>
+      {activeGroupName ? (
+        <StickyGroupHeader
+          data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
+          data-detached-frame={stickyHeaderHasDetachedFrame ? '' : undefined}
+          style={stickyHeaderStyle}
+        >
+          <SnapshotGroupHeader name={activeGroupName} />
+        </StickyGroupHeader>
+      ) : null}
       <Container position="relative" width="100%" style={{height: totalSize}}>
         {virtualItems.map(vi => {
           const group = groups[vi.index]!;
@@ -349,7 +604,7 @@ export function SnapshotListView({
       </Container>
     </ScrollContainer>
   );
-}
+});
 
 const GroupContainer = memo(function GroupContainer({
   group,
@@ -372,17 +627,28 @@ const GroupContainer = memo(function GroupContainer({
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
 }) {
+  const organization = useOrganization();
   const cards = group.cards.map(card => {
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
+    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const onCopyLink = () =>
+      trackAnalytics('preprod.snapshots.details.image_link_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
+    const onCopyMetadata = () =>
+      trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
+        organization,
+        diff_status: diffStatus === 'solo' ? null : diffStatus,
+      });
     return card.type === 'pair-card' ? (
       <PairCard
         key={card.id}
         pair={card.pair}
-        cardType={card.cardType}
         imageBaseUrl={imageBaseUrl}
-        headBranch={card.cardType === 'changed' ? headBranch : undefined}
+        headBranch={headBranch}
         isSelected={isSelected}
         copyUrl={copyUrl}
         diffMode={diffMode}
@@ -391,56 +657,83 @@ const GroupContainer = memo(function GroupContainer({
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     ) : (
       <ImageCard
         key={card.id}
         image={card.image}
         cardType={card.cardType}
+        copyData={card.copyData}
         imageBaseUrl={imageBaseUrl}
         isSelected={isSelected}
         copyUrl={copyUrl}
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
         onOpenSnapshot={onOpenSnapshot}
+        onCopyLink={onCopyLink}
+        onCopyMetadata={onCopyMetadata}
       />
     );
   });
 
-  if (group.isUngrouped) {
-    return <Stack gap="md">{cards}</Stack>;
-  }
-
   return (
-    <Stack background="primary" border="primary" radius="md" padding="lg" gap="md">
-      <GroupHeader name={group.name} />
-      <Stack gap="md">{cards}</Stack>
-    </Stack>
-  );
-});
-
-export const GroupHeader = memo(function GroupHeader({name}: {name: string}) {
-  return (
-    <Container padding="0 xs">
-      <Heading as="h3" size="md">
-        {name}
-      </Heading>
-    </Container>
+    <SnapshotCardFrame groupName={group.isUngrouped ? null : group.name}>
+      {cards}
+    </SnapshotCardFrame>
   );
 });
 
 const ScrollContainer = styled('div')`
+  position: relative;
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
+      p.theme.breakpoints.md}) {
+    padding-left: ${p => p.theme.space.xl};
+  }
   background: ${p => p.theme.tokens.background.secondary};
   contain: layout;
   overscroll-behavior: contain;
   scroll-padding-top: ${p => p.theme.space.md};
   scroll-padding-bottom: ${p => p.theme.space.md};
+`;
+
+const StickyGroupHeader = styled('div')`
+  position: sticky;
+  top: -${p => p.theme.space.xl};
+  z-index: 1;
+  height: 0;
+  pointer-events: none;
+
+  > * {
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
+    transform: translateY(var(--sticky-header-translate-y, 0px));
+  }
+
+  &[data-detached-frame] > * {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+    border-top-left-radius: ${p => p.theme.radius.md};
+    border-top-right-radius: ${p => p.theme.radius.md};
+  }
+
+  &[data-bottom-frame] > * {
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
+    border-bottom: 0;
+  }
 `;
 
 const RowPositioner = styled('div')`

@@ -1,5 +1,3 @@
-import './components/visualMap';
-
 import type {HeatmapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
@@ -24,9 +22,7 @@ export function HeatMapChart({ref, ...props}: HeatmapProps) {
   return (
     <BaseChart
       ref={ref}
-      options={{
-        visualMap: visualMaps,
-      }}
+      visualMap={visualMaps}
       {...otherProps}
       series={series.map(({seriesName, data, dataArray, ...options}) =>
         HeatMapSeries({

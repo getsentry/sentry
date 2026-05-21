@@ -28,6 +28,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -281,6 +282,14 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     def error_message_from_json(self, data):
         return data.get("error", {}).get("message", "unknown error")
 
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiError):
+            if exc.code == 403:
+                return "unauthorized"
+            if exc.code == 404:
+                return "configuration_error"
+        return super().is_broken_integration_error(exc)
+
     # RepositoryIntegration methods
 
     def get_repositories(
@@ -324,18 +333,6 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         """
 
         return True
-
-    def get_unmigratable_repositories(self):
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id,
-            providers=[
-                IntegrationProviderSlug.BITBUCKET_SERVER.value,
-            ],
-        )
-
-        accessible_repos = [r["identifier"] for r in self.get_repositories()]
-
-        return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(self.model.metadata["base_url"])

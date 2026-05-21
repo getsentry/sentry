@@ -25,8 +25,8 @@ type Props = {
  * lets the user attach an optional message to be included in the email.
  */
 export function RequestIntegrationModal(props: Props) {
-  const [isSending, setIsSending] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>('');
+  const [isSending, setIsSending] = useState(false);
+  const [message, setMessage] = useState('');
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 

@@ -35,7 +35,7 @@ export function useTransactionAsSpans({
     } else if (transactionEventId) {
       s.setFilterValues(SpanFields.TRANSACTION_EVENT_ID, [transactionEventId]);
     } else {
-      return undefined;
+      return;
     }
     if (traceId) {
       s.setFilterValues(SpanFields.TRACE, [traceId]);

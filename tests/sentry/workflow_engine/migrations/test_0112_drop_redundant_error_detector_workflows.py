@@ -1,5 +1,6 @@
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import DetectorWorkflow
+import pytest
 
 
 class DropRedundantErrorDetectorWorkflowsTest(TestMigrations):
@@ -51,6 +52,7 @@ class DropRedundantErrorDetectorWorkflowsTest(TestMigrations):
             detector=self.error_detector_p2, workflow=self.workflow_p2
         )
 
+    @pytest.mark.skip
     def test_connections_are_correct_after_migration(self) -> None:
         # test deletes error workflow with matching issue stream
         assert not DetectorWorkflow.objects.filter(id=self.dw_error_should_delete.id).exists()

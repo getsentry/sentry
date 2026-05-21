@@ -115,7 +115,7 @@ export function EventList({group}: EventListProps) {
                 <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    priority="transparent"
+                    variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -129,7 +129,7 @@ export function EventList({group}: EventListProps) {
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    priority="transparent"
+                    variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{

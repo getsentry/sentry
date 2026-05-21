@@ -207,7 +207,7 @@ function TraceRow({
           aria-label={t('Toggle trace details')}
           aria-expanded={expanded}
           size="zero"
-          priority="transparent"
+          variant="transparent"
           onClick={() =>
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,

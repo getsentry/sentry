@@ -46,6 +46,7 @@ function renderMockRequests({
     url: '/users/me/organization-integrations/',
     method: 'GET',
     body: organizationIntegrations,
+    match: [MockApiClient.matchQuery({provider: ['slack', 'slack_staging']})],
   });
 
   MockApiClient.addMockResponse({

@@ -175,13 +175,13 @@ export default function AccountSecurity() {
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                       >
                         {t('Add')}
                       </LinkButton>
                     )}
                     {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
-                      <Button onClick={handleAdd2FAClicked} size="sm" priority="primary">
+                      <Button onClick={handleAdd2FAClicked} size="sm" variant="primary">
                         {t('Add')}
                       </Button>
                     )}

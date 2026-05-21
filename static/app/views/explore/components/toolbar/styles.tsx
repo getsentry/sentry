@@ -8,7 +8,7 @@ export const ToolbarSection = styled('div')`
   margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
-export function ToolbarHeader(props: FlexProps<'div'>) {
+export function ToolbarHeader(props: FlexProps) {
   return <Flex justify="between" align="baseline" marginBottom="sm" {...props} />;
 }
 
@@ -22,10 +22,10 @@ export const ToolbarLabel = styled('h6')<{disabled?: boolean}>`
 
 export const ToolbarFooterButton = styled(Button)<{
   disabled?: boolean;
-  priority?: ButtonProps['priority'];
+  variant?: ButtonProps['variant'];
 }>`
   ${p =>
-    p.priority === 'link'
+    p.variant === 'link'
       ? css`
           color: ${p.disabled
             ? p.theme.tokens.content.disabled

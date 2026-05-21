@@ -2,7 +2,6 @@ from django.utils import timezone
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.subscriptions.subscriptions import update_uptime_detector
@@ -547,7 +546,6 @@ class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
 class UptimeDetectorUpdateCacheInvalidationTest(UptimeDetectorBaseTest):
     """Tests that updating detectors correctly invalidates the cache."""
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     def test_update_detector_invalidates_cache(self) -> None:
         data_source = self.detector.data_sources.first()
         assert data_source is not None

@@ -6,6 +6,7 @@ interface BackdropProps extends Omit<
   'style' | 'className' | `on${string}`
 > {
   zIndex: 'widgetBuilderDrawer' | 'drawer' | 'modal';
+  'data-drawer-backdrop'?: string;
   'data-test-id'?: string;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }

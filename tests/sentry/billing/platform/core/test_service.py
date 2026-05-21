@@ -69,10 +69,12 @@ class TestBillingService:
         mock_metrics.incr.assert_any_call(
             "billing.service.method.called",
             tags={"service": "TestService", "method": "test_method"},
+            sample_rate=1.0,
         )
         mock_metrics.incr.assert_any_call(
             "billing.service.method.success",
             tags={"service": "TestService", "method": "test_method"},
+            sample_rate=1.0,
         )
         mock_metrics.timing.assert_called()
 
@@ -101,6 +103,7 @@ class TestBillingService:
                 "method": "failing_method",
                 "error_type": "ValueError",
             },
+            sample_rate=1.0,
         )
 
     def test_multiple_methods_on_same_service(self) -> None:

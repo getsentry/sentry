@@ -1,16 +1,35 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {useConversation} from './useConversation';
+
+const BASE_SPAN = {
+  'gen_ai.conversation.id': 'conv-123',
+  parent_span: 'parent-1',
+  'precise.finish_ts': 1000.5,
+  'precise.start_ts': 1000,
+  project: 'test-project',
+  'project.id': 1,
+  'span.name': 'gen_ai.generate',
+  'span.status': 'ok',
+  span_id: 'span-1',
+  trace: 'trace-1',
+  'gen_ai.operation.type': 'ai_client',
+};
 
 describe('useConversation', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
   });
 
   it('returns empty nodes when conversationId is empty', () => {
@@ -33,7 +52,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-123',
           parent_span: 'parent-1',
           'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000.0,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'gen_ai.generate',
@@ -77,7 +96,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-output',
           parent_span: 'parent-1',
           'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000.0,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'gen_ai.generate',
@@ -118,7 +137,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-456',
           parent_span: 'parent-1',
           'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000.0,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'gen_ai.generate',
@@ -155,7 +174,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-789',
           parent_span: 'parent-1',
           'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000.0,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'gen_ai.generate',
@@ -194,7 +213,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-timestamps',
           parent_span: 'parent-1',
           'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000.0,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'gen_ai.generate',
@@ -223,9 +242,8 @@ describe('useConversation', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Verify the API was called with correct timestamps (with 1-hour padding),
-    // ALL_ACCESS_PROJECTS (-1) so it searches across all projects,
-    // and no environment filter so it searches across all environments
+    // Verify the API was called with correct timestamps (with 1-hour padding)
+    // and ALL_ACCESS_PROJECTS (-1) when no project is selected in page filters
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/ai-conversations/conv-timestamps/'),
       expect.objectContaining({
@@ -250,7 +268,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-name',
           parent_span: 'parent-1',
           'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000.0,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'My AI Agent',
@@ -285,8 +303,8 @@ describe('useConversation', () => {
         {
           'gen_ai.conversation.id': 'conv-sort',
           parent_span: 'parent-1',
-          'precise.finish_ts': 1002.0,
-          'precise.start_ts': 1001.0,
+          'precise.finish_ts': 1002,
+          'precise.start_ts': 1001,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'Second by start, first by end',
@@ -298,8 +316,8 @@ describe('useConversation', () => {
         {
           'gen_ai.conversation.id': 'conv-sort',
           parent_span: 'parent-1',
-          'precise.finish_ts': 1003.0,
-          'precise.start_ts': 1000.0,
+          'precise.finish_ts': 1003,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'First by start, second by end',
@@ -326,6 +344,124 @@ describe('useConversation', () => {
     expect(result.current.nodes[1]?.id).toBe('span-b');
   });
 
+  it('uses project from page filters, not hardcoded -1', async () => {
+    act(() => PageFiltersStore.updateProjects([456], []));
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: [BASE_SPAN],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.objectContaining({
+        query: expect.objectContaining({project: [456]}),
+      })
+    );
+  });
+
+  it('uses page filter datetime when no conversation timestamps are provided', async () => {
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: null,
+        start: '2026-04-01T00:00:00',
+        end: '2026-04-07T00:00:00',
+        utc: null,
+      })
+    );
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: [BASE_SPAN],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: expect.stringContaining('2026-04-01'),
+          end: expect.stringContaining('2026-04-07'),
+        }),
+      })
+    );
+    // statsPeriod must not be present when explicit dates are set
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('statsPeriod');
+  });
+
+  it('falls back to ALL_ACCESS_PROJECTS and 30d when no filters are set', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: [BASE_SPAN],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-1],
+          statsPeriod: '30d',
+        }),
+      })
+    );
+  });
+
+  it('uses relative period from page filters when explicitly set', async () => {
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: [BASE_SPAN],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('start');
+    expect(queryArg).not.toHaveProperty('end');
+  });
+
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
@@ -334,7 +470,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-filter',
           parent_span: 'parent-1',
           'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000.0,
+          'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'gen_ai.generate',
@@ -347,7 +483,7 @@ describe('useConversation', () => {
           'gen_ai.conversation.id': 'conv-filter',
           parent_span: 'parent-1',
           'precise.finish_ts': 1001.5,
-          'precise.start_ts': 1001.0,
+          'precise.start_ts': 1001,
           project: 'test-project',
           'project.id': 1,
           'span.name': 'http.client',

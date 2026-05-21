@@ -11,7 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {Project, SeerNightshiftTweaks} from 'sentry/types/project';
+import type {DetailedProject, SeerNightshiftTweaks} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -42,7 +42,7 @@ function levelOptions(defaultValue: Level) {
 const INTELLIGENCE_LEVEL_OPTIONS = levelOptions(DEFAULT_INTELLIGENCE_LEVEL);
 const REASONING_EFFORT_OPTIONS = levelOptions(DEFAULT_REASONING_EFFORT);
 
-function getTweaks(project: Project): SeerNightshiftTweaks {
+function getTweaks(project: DetailedProject): SeerNightshiftTweaks {
   return project.seerNightshiftTweaks ?? {};
 }
 
@@ -70,7 +70,7 @@ function Row({
 
 interface Props {
   canWrite: boolean;
-  project: Project;
+  project: DetailedProject;
 }
 
 export function NightShift({canWrite, project}: Props) {
@@ -108,7 +108,7 @@ export function NightShift({canWrite, project}: Props) {
         </Flex>
       }
     >
-      <Alert variant="warning">
+      <Alert variant="warning" system>
         {t(
           "Night Shift runs Seer Autofix on a nightly schedule. Instead of reacting to issues one occurrence at a time, it looks at your project's open issues holistically, prioritizes the ones most likely to benefit from a fix, and drafts pull requests overnight so they're ready for review when you start the next day. This is debug UI for experimenting with Night Shift by triggering manual runs. It is not intended to ever be user facing."
         )}
@@ -245,7 +245,7 @@ export function NightShift({canWrite, project}: Props) {
         label={t('Runs')}
         hintText={t('View past Night Shift runs for this organization.')}
       >
-        <Link to={`/organizations/${organization.slug}/seer/workflows/`}>
+        <Link to={`/organizations/${organization.slug}/issues/autofix/`}>
           {t('View organization runs')}
         </Link>
       </Row>
@@ -257,7 +257,7 @@ export function NightShift({canWrite, project}: Props) {
       >
         <Flex gap="sm">
           <Button
-            priority="primary"
+            variant="primary"
             disabled={!canWrite || isTriggering}
             busy={isTriggering}
             onClick={() => triggerRun({dryRun: false})}

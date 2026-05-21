@@ -9,7 +9,7 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
-import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -64,7 +64,7 @@ function MobileBuildDetectorForm() {
       </Container>
       <IssueOwnershipSection step={5} />
       <MobileBuildPreviewSection step={6} />
-      <AutomateSection step={7} />
+      <AutomateSectionDeprecated step={7} />
     </Stack>
   );
 }

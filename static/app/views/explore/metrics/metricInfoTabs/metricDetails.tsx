@@ -6,6 +6,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -16,7 +17,6 @@ import {
   LogAttributeTreeWrapper,
   LogDetailTableBodyCell,
 } from 'sentry/views/explore/logs/styles';
-import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 import {HiddenTraceMetricDetailFields} from 'sentry/views/explore/metrics/constants';
 import {useMetricTraceDetail} from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
@@ -25,6 +25,7 @@ import {
   MetricsDetailsWrapper,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
 
 export function MetricDetails({
   dataRow,
@@ -35,8 +36,9 @@ export function MetricDetails({
 }) {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
-  const getActions = useLogAttributesTreeActions({embedded: false});
+  const getActions = useMetricAttributesTreeActions();
   const project = useProjectFromId({
     project_id: String(dataRow[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
   });
@@ -95,6 +97,7 @@ export function MetricDetails({
                     highlightTerms: [],
                     logColors: getLogColors(SeverityLevel.INFO, theme),
                     location,
+                    navigate,
                     organization,
                     projectSlug,
                     project,

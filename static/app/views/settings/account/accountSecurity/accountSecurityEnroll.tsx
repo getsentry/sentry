@@ -100,7 +100,7 @@ const getFields = ({
       ...form,
       () => (
         <Actions key="confirm">
-          <Button priority="primary" type="submit">
+          <Button variant="primary" type="submit">
             {t('Confirm')}
           </Button>
         </Actions>
@@ -119,7 +119,7 @@ const getFields = ({
         <Actions key="sms-footer">
           <Grid flow="column" align="center" gap="md">
             {hasSentCode && <Button onClick={onSmsReset}>{t('Start Over')}</Button>}
-            <Button priority="primary" type="submit">
+            <Button variant="primary" type="submit">
               {hasSentCode ? t('Confirm') : t('Send Code')}
             </Button>
           </Grid>
@@ -136,7 +136,7 @@ const getFields = ({
       deviceNameField,
       () => (
         <Actions key="confirm">
-          <Button priority="primary" type="submit">
+          <Button variant="primary" type="submit">
             {t('Confirm')}
           </Button>
         </Actions>
@@ -444,7 +444,7 @@ export default function AccountSecurityEnroll() {
           authenticator.isEnrolled &&
           authenticator.removeButton && (
             <RemoveConfirm onConfirm={handleRemove}>
-              <Button priority="danger">{authenticator.removeButton}</Button>
+              <Button variant="danger">{authenticator.removeButton}</Button>
             </RemoveConfirm>
           )
         }

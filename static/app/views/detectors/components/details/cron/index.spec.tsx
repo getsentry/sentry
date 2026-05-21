@@ -40,6 +40,10 @@ describe('CronDetectorDetails - check-ins', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
       body: [],
     });

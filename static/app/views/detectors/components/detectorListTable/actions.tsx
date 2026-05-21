@@ -193,7 +193,7 @@ export function DetectorsTableActions({
           >
             <Button
               size="xs"
-              priority="danger"
+              variant="danger"
               onClick={handleDelete}
               disabled={isDeleting || !canDelete}
             >
@@ -216,7 +216,7 @@ export function DetectorsTableActions({
                   '%s monitors on this page selected.',
                   selected.size
                 )}
-                <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
+                <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
                   {tct('Select all [count] monitors that match this search query.', {
                     count: queryCount,
                   })}

@@ -122,6 +122,73 @@ describe('diffWidgets', () => {
     expect(result.find(r => r.status === 'added')).toBeDefined();
   });
 
+  it('matches widgets by content fingerprint when IDs differ and titles are non-unique (restore case)', () => {
+    // Simulates a dashboard restore where IDs are reassigned but widget content is identical.
+    // Both widgets share the same default title but have distinct queries.
+    const q1 = {
+      conditions: 'level:error',
+      aggregates: ['count()'],
+      columns: [],
+      orderby: '',
+      name: '',
+    } as any;
+    const q2 = {
+      conditions: 'level:warning',
+      aggregates: ['count()'],
+      columns: [],
+      orderby: '',
+      name: '',
+    } as any;
+    const base1 = makeWidget({id: '1', title: 'Custom Widget', queries: [q1]});
+    const base2 = makeWidget({id: '2', title: 'Custom Widget', queries: [q2]});
+    // After restore: new IDs, same titles, same queries
+    const snap1 = makeWidget({id: '10', title: 'Custom Widget', queries: [q1]});
+    const snap2 = makeWidget({id: '20', title: 'Custom Widget', queries: [q2]});
+    const result = diffWidgets(
+      makeDashboard([base1, base2]),
+      makeDashboard([snap1, snap2])
+    );
+    expect(result.find(r => r.status === 'added')).toBeUndefined();
+    expect(result.find(r => r.status === 'removed')).toBeUndefined();
+  });
+
+  it('matches text widgets by description fingerprint when IDs differ after restore', () => {
+    const base1 = makeWidget({
+      id: '1',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Hello world',
+      queries: [],
+    });
+    const base2 = makeWidget({
+      id: '2',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Another widget',
+      queries: [],
+    });
+    const snap1 = makeWidget({
+      id: '10',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Hello world',
+      queries: [],
+    });
+    const snap2 = makeWidget({
+      id: '20',
+      title: 'Custom Widget',
+      displayType: DisplayType.TEXT,
+      description: 'Another widget',
+      queries: [],
+    });
+    const result = diffWidgets(
+      makeDashboard([base1, base2]),
+      makeDashboard([snap1, snap2])
+    );
+    expect(result.find(r => r.status === 'added')).toBeUndefined();
+    expect(result.find(r => r.status === 'removed')).toBeUndefined();
+  });
+
   it('treats a snapshot widget as added when its title matches a base already claimed by id', () => {
     const base = makeWidget({id: '1', title: 'Widget A'});
     const snap1 = makeWidget({id: '1', title: 'Widget B'}); // claims base by id (rename)
@@ -140,6 +207,135 @@ describe('diffWidgets', () => {
       status: 'modified',
       fields: [{field: 'query 2 filter'}],
     });
+  });
+
+  it('distinguishes widgets with identical queries but different thresholds in fingerprint matching', () => {
+    const q = {
+      conditions: '',
+      aggregates: ['count()'],
+      columns: [],
+      orderby: '',
+      name: '',
+    } as any;
+    const base1 = makeWidget({
+      id: '1',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 100}, unit: 'ms'},
+    });
+    const base2 = makeWidget({
+      id: '2',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 200}, unit: 'ms'},
+    });
+    const snap1 = makeWidget({
+      id: '10',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 100}, unit: 'ms'},
+    });
+    const snap2 = makeWidget({
+      id: '20',
+      title: 'Custom Widget',
+      queries: [q],
+      thresholds: {max_values: {max1: 200}, unit: 'ms'},
+    });
+    const result = diffWidgets(
+      makeDashboard([base1, base2]),
+      makeDashboard([snap1, snap2])
+    );
+    expect(result.find(r => r.status === 'added')).toBeUndefined();
+    expect(result.find(r => r.status === 'removed')).toBeUndefined();
+  });
+
+  it('detects a threshold change', () => {
+    const base = makeWidget({
+      id: '1',
+      thresholds: {max_values: {max1: 100}, unit: 'ms'},
+    });
+    const snap = makeWidget({
+      id: '1',
+      thresholds: {max_values: {max1: 200}, unit: 'ms'},
+    });
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'thresholds'}],
+    });
+  });
+
+  it('detects a threshold being added', () => {
+    const base = makeWidget({id: '1'});
+    const snap = makeWidget({id: '1', thresholds: {max_values: {max1: 100}, unit: 'ms'}});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'thresholds', before: '(none)'}],
+    });
+  });
+
+  it('detects a threshold being removed', () => {
+    const base = makeWidget({id: '1', thresholds: {max_values: {max1: 100}, unit: 'ms'}});
+    const snap = makeWidget({id: '1'});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'thresholds', after: '(none)'}],
+    });
+  });
+
+  it('does not flag a change when thresholds are identical', () => {
+    const thresholds = {max_values: {max1: 100}, unit: 'ms'};
+    const base = makeWidget({id: '1', thresholds});
+    const snap = makeWidget({id: '1', thresholds});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result).toEqual([]);
+  });
+
+  it('does not flag a change when one widget has null description and the other has empty string', () => {
+    const base = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: null as any,
+    });
+    const snap = makeWidget({id: '1', displayType: DisplayType.TEXT, description: ''});
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result).toEqual([]);
+  });
+
+  it('detects a text widget content change', () => {
+    const base = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: '# Hello',
+    });
+    const snap = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: '# Hello World',
+    });
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({
+      status: 'modified',
+      fields: [{field: 'content', before: '# Hello', after: '# Hello World'}],
+    });
+  });
+
+  it('truncates text widget content longer than 150 characters', () => {
+    const long = 'x'.repeat(200);
+    const base = makeWidget({id: '1', displayType: DisplayType.TEXT, description: long});
+    const snap = makeWidget({
+      id: '1',
+      displayType: DisplayType.TEXT,
+      description: long + 'y',
+    });
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
+    expect(result[0]).toMatchObject({status: 'modified'});
+    const field = (result[0] as any).fields[0];
+    expect(field.before).toHaveLength(151); // 150 chars + ellipsis char
+    expect(field.before.endsWith('…')).toBe(true);
+    expect(field.after.endsWith('…')).toBe(true);
   });
 
   it('handles a query being added to a widget', () => {

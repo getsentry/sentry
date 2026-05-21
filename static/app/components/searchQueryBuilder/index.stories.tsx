@@ -580,8 +580,8 @@ export default Storybook.story('SearchQueryBuilder', story => {
   });
 
   story('Callbacks', () => {
-    const [onChangeValue, setOnChangeValue] = useState<string>('');
-    const [onSearchValue, setOnSearchValue] = useState<string>('');
+    const [onChangeValue, setOnChangeValue] = useState('');
+    const [onSearchValue, setOnSearchValue] = useState('');
 
     return (
       <Fragment>
@@ -630,7 +630,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       'disallowUnsupportedFilters',
     ];
 
-    const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
+    const [enabledConfigs, setEnabledConfigs] = useState([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[config] = true;

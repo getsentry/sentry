@@ -39,7 +39,6 @@ export type ModulesWithOnboarding = Exclude<
   | ModuleName.MCP_TOOLS
   | ModuleName.MCP_RESOURCES
   | ModuleName.MCP_PROMPTS
-  | ModuleName.MOBILE_UI
   | ModuleName.OTHER
 >;
 
@@ -81,7 +80,7 @@ export function ModulesOnboardingPanel({
             <PerfImage src={emptyStateImg} />
           </Sidebar>
         </Flex>
-        <LinkButton priority="primary" external href={docLink}>
+        <LinkButton variant="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
       </Container>

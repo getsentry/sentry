@@ -165,7 +165,7 @@ const storeConfig: GroupStoreDefinition = {
       }
     });
 
-    return items.filter(item => itemsById.hasOwnProperty(item.id));
+    return items.filter(item => Object.hasOwn(itemsById, item.id));
   },
 
   /**

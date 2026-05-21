@@ -140,7 +140,7 @@ export function SearchQueryBuilderProvider({
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
   const [reopenDropdownOnQueryClear, setReopenDropdownOnQueryClear] = useState(false);
-  const currentInputValueRef = useRef<string>('');
+  const currentInputValueRef = useRef('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
 

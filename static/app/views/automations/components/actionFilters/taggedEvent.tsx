@@ -11,23 +11,45 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   MATCH_CHOICES,
-  type MatchType,
+  MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
+function matchRequiresValue(match: MatchType): boolean {
+  return match !== MatchType.IS_SET && match !== MatchType.NOT_SET;
+}
+
 export function TaggedEventDetails({condition}: {condition: DataCondition}) {
+  const matchLabel =
+    MATCH_CHOICES.find(choice => choice.value === condition.comparison.match)?.label ||
+    condition.comparison.match;
+
+  if (!matchRequiresValue(condition.comparison.match)) {
+    return tct("The event's [key] tag [match]", {
+      key: condition.comparison.key,
+      match: matchLabel,
+    });
+  }
+
   return tct("The event's [key] tag [match] [value]", {
     key: condition.comparison.key,
-    match:
-      MATCH_CHOICES.find(choice => choice.value === condition.comparison.match)?.label ||
-      condition.comparison.match,
+    match: matchLabel,
     value: condition.comparison.value,
   });
 }
 
 export function TaggedEventNode() {
+  const {condition} = useDataConditionNodeContext();
+
+  if (!matchRequiresValue(condition.comparison.match)) {
+    return tct("The event's [key] tag [match]", {
+      key: <KeyField />,
+      match: <MatchField />,
+    });
+  }
+
   return tct("The event's [key] tag [match] [value]", {
     key: <KeyField />,
     match: <MatchField />,
@@ -99,8 +121,13 @@ function MatchField() {
       aria-label={t('Match type')}
       value={condition.comparison.match ?? ''}
       options={MATCH_CHOICES}
-      onChange={(value: SelectValue<MatchType>) => {
-        onUpdate({comparison: {...condition.comparison, match: value.value}});
+      onChange={(option: SelectValue<MatchType>) => {
+        const {value: _value, ...rest} = condition.comparison;
+        if (matchRequiresValue(option.value)) {
+          onUpdate({comparison: {...condition.comparison, match: option.value}});
+        } else {
+          onUpdate({comparison: {...rest, match: option.value}});
+        }
       }}
     />
   );
@@ -127,11 +154,10 @@ function ValueField() {
 export function validateTaggedEventCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
-  if (
-    !condition.comparison.key ||
-    !condition.comparison.match ||
-    !condition.comparison.value
-  ) {
+  if (!condition.comparison.key || !condition.comparison.match) {
+    return t('Ensure all fields are filled in.');
+  }
+  if (matchRequiresValue(condition.comparison.match) && !condition.comparison.value) {
     return t('Ensure all fields are filled in.');
   }
   return undefined;

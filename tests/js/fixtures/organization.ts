@@ -62,9 +62,6 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     defaultRole: '',
     enhancedPrivacy: false,
     eventsMemberAdmin: false,
-    githubNudgeInvite: false,
-    githubPRBot: false,
-    gitlabPRBot: false,
     hideAiFeatures: false,
     isDefault: false,
     isDynamicallySampled: true,
@@ -73,7 +70,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     metricAlertsThreadFlag: false,
     openMembership: false,
     pendingAccessRequests: 0,
-    targetSampleRate: 1.0,
+    targetSampleRate: 1,
     quota: {
       accountLimit: null,
       maxRate: null,

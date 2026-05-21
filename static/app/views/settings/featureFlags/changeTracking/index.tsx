@@ -131,7 +131,7 @@ function OrganizationFeatureFlagsChangeTracking() {
       disabled={hasAccess}
     >
       <LinkButton
-        priority="primary"
+        variant="primary"
         size="sm"
         to={`/settings/${organization.slug}/feature-flags/change-tracking/new-provider/`}
         data-test-id="create-new-provider"

@@ -1,5 +1,6 @@
+import {isValidElement} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
@@ -15,7 +16,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import ProjectContextProvider from 'sentry/views/projects/projectContext';
+import {ProjectRouteProvider} from 'sentry/views/projects/projectRouteContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -27,7 +28,7 @@ function getField(role: string, name: string) {
 
 describe('projectGeneralSettings', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({
+  const project = DetailedProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
     allowedDomains: ['example.com', 'https://example.com'],
@@ -129,9 +130,7 @@ describe('projectGeneralSettings', () => {
       })
     );
 
-    const addSuccessMessageMock = addSuccessMessage as jest.MockedFunction<
-      typeof addSuccessMessage
-    >;
+    const addSuccessMessageMock = jest.mocked(addSuccessMessage);
     const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
 
     expect(undo).toBeInstanceOf(Function);
@@ -264,7 +263,11 @@ describe('projectGeneralSettings', () => {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
+    const errorMessage = jest.mocked(addErrorMessage).mock.calls[0]![0];
+    if (!isValidElement(errorMessage)) {
+      throw new Error('Expected addErrorMessage to be called with a React element');
+    }
+    const {container} = render(errorMessage);
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );
@@ -320,9 +323,9 @@ describe('projectGeneralSettings', () => {
     });
 
     render(
-      <ProjectContextProvider projectSlug={project.slug}>
+      <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-      </ProjectContextProvider>,
+      </ProjectRouteProvider>,
       {
         organization,
         initialRouterConfig,
@@ -350,9 +353,9 @@ describe('projectGeneralSettings', () => {
     });
 
     render(
-      <ProjectContextProvider projectSlug={project.slug}>
+      <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-      </ProjectContextProvider>,
+      </ProjectRouteProvider>,
       {
         organization,
         initialRouterConfig,
@@ -393,9 +396,9 @@ describe('projectGeneralSettings', () => {
 
     function renderProjectGeneralSettings() {
       render(
-        <ProjectContextProvider projectSlug={project.slug}>
+        <ProjectRouteProvider projectSlug={project.slug}>
           <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
-        </ProjectContextProvider>,
+        </ProjectRouteProvider>,
         {
           organization,
           initialRouterConfig,
@@ -484,7 +487,7 @@ describe('projectGeneralSettings', () => {
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
       });
 
-      const projectWithPlatform = ProjectFixture();
+      const projectWithPlatform = DetailedProjectFixture();
 
       // Add project API mock for this specific org
       MockApiClient.addMockResponse({
@@ -527,7 +530,7 @@ describe('projectGeneralSettings', () => {
       const orgWithoutGamingFeature = OrganizationFixture({
         enabledConsolePlatforms: ['nintendo-switch'], // only has nintendo access
       });
-      const baseProject = ProjectFixture();
+      const baseProject = DetailedProjectFixture();
 
       MockApiClient.addMockResponse({
         url: `/projects/${orgWithoutGamingFeature.slug}/${baseProject.slug}/`,

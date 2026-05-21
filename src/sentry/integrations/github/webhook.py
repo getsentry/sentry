@@ -1005,7 +1005,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

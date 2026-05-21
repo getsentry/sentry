@@ -155,6 +155,14 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
 
+  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
+    autofix,
+    runId,
+    group,
+    step: 'solution',
+    referrer,
+  });
+
   const handleYesClick = useCallback(() => {
     startStep('code_changes', {runId});
     trackAnalytics('autofix.solution.code', {
@@ -196,6 +204,8 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
       rethinkPrompt={t('How can this plan be improved?')}
       labelNevermind={t('Nevermind, write a code fix')}
       labelRethink={t('Rethink plan')}
+      codingAgentIntegrations={codingAgentIntegrations}
+      onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
 }
@@ -320,8 +330,8 @@ function NextStepTemplate({
             {labelNevermind}
           </Button>
           <Button
-            priority="primary"
-            disabled={isProcessing}
+            variant="primary"
+            disabled={isProcessing || !userContext.trim()}
             onClick={() => onClickNo(userContext)}
           >
             {labelRethink}
@@ -339,7 +349,7 @@ function NextStepTemplate({
           {labelNo}
         </Button>
         <ButtonBar>
-          <Button priority="primary" disabled={isProcessing} onClick={onClickYes}>
+          <Button variant="primary" disabled={isProcessing} onClick={onClickYes}>
             {labelYes}
           </Button>
           {codingAgentIntegrations === undefined ? null : (
@@ -350,7 +360,7 @@ function NextStepTemplate({
                 <Button
                   {...triggerProps}
                   disabled={isProcessing}
-                  priority="primary"
+                  variant="primary"
                   icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   aria-label={t('More code fix options')}
                 />

@@ -208,7 +208,7 @@ function CloudFormationStep({
         <Flex>
           <LinkButton
             size="sm"
-            priority="link"
+            variant="link"
             href={cloudFormationUrl}
             external
             icon={<IconOpen />}
@@ -286,7 +286,7 @@ function CloudFormationStep({
           </form.AppField>
         ) : (
           <div>
-            <Button size="xs" priority="link" onClick={() => setShowExternalId(true)}>
+            <Button size="xs" variant="link" onClick={() => setShowExternalId(true)}>
               {t('Using an existing CloudFormation stack?')}
             </Button>
           </div>
@@ -419,7 +419,7 @@ function InstrumentationStep({
         <Text>{tn('%s function selected', '%s functions selected', enabledCount)}</Text>
         <Button
           size="xs"
-          priority="link"
+          variant="link"
           onClick={() => {
             const newState = !allEnabled;
             setEnabled(Object.fromEntries(functions.map(fn => [fn.name, newState])));
@@ -434,7 +434,7 @@ function InstrumentationStep({
       {results}
       <Flex justify="between" align="center">
         <Button
-          priority="primary"
+          variant="primary"
           size="sm"
           disabled={isAdvancing || enabledCount === 0}
           onClick={() => {
@@ -480,7 +480,7 @@ function CompletionView({finish}: PipelineCompletionProps<IntegrationWithConfig>
           )}
         </Text>
       </Stack>
-      <Button priority="primary" size="sm" onClick={finish}>
+      <Button variant="primary" size="sm" onClick={finish}>
         {t('Done')}
       </Button>
     </Stack>

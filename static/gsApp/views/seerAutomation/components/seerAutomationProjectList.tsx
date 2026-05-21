@@ -327,7 +327,7 @@ export function SeerAutomationProjectList() {
         </SearchBarWrapper>
         <Button
           size="md"
-          priority="primary"
+          variant="primary"
           onClick={() => navigate(`/settings/${organization.slug}/seer/onboarding`)}
         >
           {t('Open Setup Wizard')}

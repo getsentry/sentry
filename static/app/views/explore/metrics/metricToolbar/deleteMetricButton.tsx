@@ -9,7 +9,7 @@ export function DeleteMetricButton({disabledReason}: {disabledReason?: string}) 
 
   return (
     <Button
-      priority="transparent"
+      variant="transparent"
       icon={<IconDelete />}
       size="zero"
       onClick={removeMetric}

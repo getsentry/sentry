@@ -70,10 +70,10 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def skip_to_setup_docs(self, platform_search: str, platform_label: str) -> None:
         """Drive through the skip flow to setup-docs: skip connect → pick platform → create project."""
-        self.browser.click(xpath='//button[contains(., "Skip for now")]')
+        self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
 
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-        self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+        self.browser.wait_until(xpath='//*[text()="Select a platform"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys(platform_search)
         self.browser.wait_until(
@@ -90,10 +90,10 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def skip_to_setup_docs_control(self, platform_search: str, platform_label: str) -> None:
         """Control-path variant: Continue on platform features auto-creates the project."""
-        self.browser.click(xpath='//button[contains(., "Skip for now")]')
+        self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
 
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-        self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+        self.browser.wait_until(xpath='//*[text()="Select a platform"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys(platform_search)
         self.browser.wait_until(
@@ -195,11 +195,11 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: skip
-            self.browser.click(xpath='//button[contains(., "Skip for now")]')
+            self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
 
             # Platform Features: manual picker
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("React")
             self.browser.wait_until(
@@ -230,7 +230,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: skip for now to advance to platform features
-            self.browser.click(xpath='//button[contains(., "Skip for now")]')
+            self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
 
             # Click the header "Skip setup" button
@@ -443,7 +443,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
             # Platform Features: detection failed, should show manual picker
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("React")
             self.browser.wait_until(
@@ -614,7 +614,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
             self.browser.click('[aria-label="Back"]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("Vue")
             self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
@@ -810,7 +810,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
             self.browser.click('[aria-label="Back"]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("Vue")
             self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')

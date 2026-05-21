@@ -4,7 +4,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 
 import {SentryMemberSelectorField} from './sentryMemberSelectorField';
@@ -14,13 +13,11 @@ describe('SentryMemberSelectorField', () => {
   const mockUsers = [UserFixture({id: '1', name: 'Jane Doe', email: 'jane@example.com'})];
 
   beforeEach(() => {
-    MemberListStore.init();
-    MemberListStore.loadInitialData(mockUsers);
     OrganizationStore.onUpdate(organization, {replace: true});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
-      body: [],
+      body: mockUsers.map(user => ({user})),
     });
   });
 

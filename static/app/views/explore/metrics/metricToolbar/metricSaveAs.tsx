@@ -22,7 +22,7 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
     return (
       <Button
         size={size}
-        priority="primary"
+        variant="primary"
         onClick={item.onAction}
         aria-label={item.textValue}
       >
@@ -38,7 +38,7 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
         <Button
           {...triggerProps}
           size={size}
-          priority="primary"
+          variant="primary"
           aria-label={t('Save as')}
           onClick={e => {
             e.stopPropagation();

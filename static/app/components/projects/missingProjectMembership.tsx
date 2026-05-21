@@ -66,7 +66,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   }
 
   return (
-    <Button priority="primary" onClick={handleJoinTeam}>
+    <Button variant="primary" onClick={handleJoinTeam}>
       {openMembership ? t('Join Team') : t('Request Access')}
     </Button>
   );

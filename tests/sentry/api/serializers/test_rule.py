@@ -4,11 +4,16 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework import serializers
 
+# Explicit imports so selective testing can detect when these handlers change.
+# They register via @action_handler_registry.register at import time (startup
+# side-effect), so without these the static scanner has no edge from handler
+# files to this test file.
+import sentry.integrations.github.handlers  # noqa: F401
+import sentry.integrations.github_enterprise.handlers  # noqa: F401
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.integrations.models import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
@@ -54,43 +59,15 @@ ValidationError = serializers.ValidationError
 
 @freeze_time()
 class RuleSerializerTest(TestCase):
-    def test_last_triggered_rule_only(self) -> None:
+    def test_last_triggered(self) -> None:
         rule = self.create_project_rule()
 
         # Initially no fire history
         result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
         assert result["lastTriggered"] is None
 
-        # Create a RuleFireHistory
-        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
-
-        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
-        assert result["lastTriggered"] == timezone.now()
-
-    def test_last_triggered_with_workflow_only(self) -> None:
-        rule = self.create_project_rule()
-
-        # Create a workflow for the rule
+        # Create a workflow for the rule and record a fire
         workflow = IssueAlertMigrator(rule).run()
-
-        WorkflowFireHistory.objects.create(
-            workflow=workflow, group=self.group, event_id="test-event-id"
-        )
-
-        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
-        assert result["lastTriggered"] == timezone.now()
-
-    def test_last_triggered_with_workflow(self) -> None:
-        rule = self.create_project_rule()
-
-        # Create a workflow for the rule
-        workflow = IssueAlertMigrator(rule).run()
-
-        # Create an older RuleFireHistory
-        rfh = RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
-        rfh.update(date_added=before_now(hours=2))
-
-        # Create a newer WorkflowFireHistory
         WorkflowFireHistory.objects.create(
             workflow=workflow, group=self.group, event_id="test-event-id"
         )
@@ -130,11 +107,6 @@ class WorkflowRuleSerializerTest(TestCase):
         )
 
     def assert_equal_serializers(self, issue_alert):
-        RuleFireHistory.objects.create(project=self.project, rule=issue_alert, group=self.group)
-        serialized_rule = serialize(
-            issue_alert, self.user, RuleSerializer(prepare_component_fields=True)
-        )
-
         arw = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
         workflow = arw.workflow
 
@@ -142,6 +114,10 @@ class WorkflowRuleSerializerTest(TestCase):
             workflow=workflow,
             group=self.group,
             event_id="fc6d8c0c43fc4630ad850ee518f1b9d0",
+        )
+
+        serialized_rule = serialize(
+            issue_alert, self.user, RuleSerializer(prepare_component_fields=True)
         )
 
         serialized_workflow_rule = serialize(

@@ -11,6 +11,11 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_lightweight_rca_cluster_request,
 )
+from sentry.seer.similarity.utils import (
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
+    event_content_has_stacktrace,
+)
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +40,32 @@ def trigger_lightweight_rca_cluster(group: Group) -> None:
         logger.info(
             "lightweight_rca_cluster.event_not_ready",
             extra={"group_id": group.id, "event_id": event.event_id},
+        )
+        return
+
+    if not event_content_has_stacktrace(ready_event):
+        logger.info(
+            "lightweight_rca_cluster.event_not_eligible",
+            extra={
+                "group_id": group.id,
+                "event_id": ready_event.event_id,
+                "reason": "no_stacktrace",
+            },
+        )
+        metrics.incr("seer.lightweight_rca_cluster.skipped", tags={"reason": "no_stacktrace"})
+        return
+
+    if ready_event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
+        logger.info(
+            "lightweight_rca_cluster.event_not_eligible",
+            extra={
+                "group_id": group.id,
+                "event_id": ready_event.event_id,
+                "reason": "unsupported_platform",
+            },
+        )
+        metrics.incr(
+            "seer.lightweight_rca_cluster.skipped", tags={"reason": "unsupported_platform"}
         )
         return
 

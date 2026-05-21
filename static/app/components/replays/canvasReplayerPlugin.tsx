@@ -160,14 +160,14 @@ export function canvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
             return {...c, args};
           })
         );
-        if (status.isUnchanged === false) {
+        if (!status.isUnchanged) {
           canvasEventMap.set(event, {...data, commands});
         }
       } else {
         const args = await Promise.all(
           (data.args as CanvasArg[]).map(deserializeCanvasArg(imageMap, null, status))
         );
-        if (status.isUnchanged === false) {
+        if (!status.isUnchanged) {
           canvasEventMap.set(event, {...data, args});
         }
       }

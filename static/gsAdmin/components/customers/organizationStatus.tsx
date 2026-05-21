@@ -15,7 +15,7 @@ export function OrganizationStatus({orgStatus}: Props) {
     return null;
   }
 
-  let message: string | undefined = undefined;
+  let message: string | undefined;
 
   switch (orgStatus.id) {
     case 'pending_deletion':

@@ -115,7 +115,7 @@ export function getConfirm({
                 'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
                 {
                   link: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23813143627675-When-should-I-delete-events" />
+                    <ExternalLink href="https://www.sentry.help/en/articles/13964890-when-should-i-delete-events" />
                   ),
                 }
               )}

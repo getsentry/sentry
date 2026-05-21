@@ -53,6 +53,18 @@ class ControlReplicaService(RpcService):
     def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_organization_avatar_replica(
+        self, *, organization_id: int, avatar_type: int, avatar_ident: str
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def delete_organization_avatar_replica(self, *, organization_id: int) -> None:
+        pass
+
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from .impl import DatabaseBackedControlReplicaService

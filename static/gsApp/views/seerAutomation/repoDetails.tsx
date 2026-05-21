@@ -1,4 +1,7 @@
+import {useEffect, useRef} from 'react';
+
 import {Alert} from '@sentry/scraps/alert';
+import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -9,20 +12,28 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {useRepositoryWithSettings} from 'sentry/components/repositories/useRepositoryWithSettings';
-import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {t} from 'sentry/locale';
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {RepoDetailsForm} from 'getsentry/views/seerAutomation/components/repoDetails/repoDetailsForm';
-import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerRepoDetails() {
+  const {query} = useLocation();
   const {repoId} = useParams<{repoId: string}>();
+  const navigate = useNavigate();
   const organization = useOrganization();
+  const {openDrawer} = useDrawer();
+
+  const queryRef = useRef(query);
+  queryRef.current = query;
+
   const isSupportedProvider = useIsSeerSupportedProvider();
 
   const hasCodeReviewAccess = orgHasCodeReviewFeature(organization);
@@ -32,79 +43,77 @@ export default function SeerRepoDetails() {
     error,
     isPending,
     refetch,
-  } = useRepositoryWithSettings({
-    repositoryId: repoId,
-    enabled: hasCodeReviewAccess,
-  });
-
-  if (!hasCodeReviewAccess) {
-    return (
-      <AnalyticsArea name="repo-details">
-        <NoAccess />
-      </AnalyticsArea>
-    );
-  }
-
-  if (isPending) {
-    return (
-      <AnalyticsArea name="repo-details">
-        <LoadingIndicator />
-      </AnalyticsArea>
-    );
-  }
-
-  if (error) {
-    return (
-      <AnalyticsArea name="repo-details">
-        <LoadingError onRetry={refetch} />
-      </AnalyticsArea>
-    );
-  }
-
-  return (
-    <AnalyticsArea name="repo-details">
-      <SeerSettingsPageWrapper>
-        <SentryDocumentTitle title={t('Code Review for %s', repoWithSettings?.name)} />
-        <SettingsPageHeader
-          title={
-            <Flex align="baseline" gap="md">
-              {tct('Code Review for [repoName] [providerLink]', {
-                repoName: (
-                  <Text as="span" monospace>
-                    {repoWithSettings?.name}
-                  </Text>
-                ),
-                providerLink: (
-                  <ExternalLink href={repoWithSettings?.url}>
-                    <RepoProviderIcon
-                      size="md"
-                      provider={repoWithSettings?.provider.id}
-                    />
-                  </ExternalLink>
-                ),
-              })}
-            </Flex>
-          }
-          subtitle={tct(
-            'Choose how Seer automatically reviews your pull requests. [docs:Read the docs] to learn what Seer can do.',
-            {
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
-              ),
-            }
-          )}
-        />
-        {isSupportedProvider(repoWithSettings?.provider) ? (
-          <RepoDetailsForm
-            organization={organization}
-            repoWithSettings={repoWithSettings}
-          />
-        ) : (
-          <Alert variant="warning">
-            {t('Seer is not supported for this repository.')}
-          </Alert>
-        )}
-      </SeerSettingsPageWrapper>
-    </AnalyticsArea>
+  } = useApiQuery<RepositoryWithSettings>(
+    getRepositoryWithSettingsQueryKey(organization, repoId ?? ''),
+    {
+      staleTime: 0,
+      enabled: !!repoId && hasCodeReviewAccess,
+    }
   );
+
+  useEffect(() => {
+    if (!repoId) {
+      return;
+    }
+
+    openDrawer(
+      () => (
+        <AnalyticsArea name="repo-details">
+          <DrawerHeader>
+            {repoWithSettings && (
+              <ExternalLink href={repoWithSettings.url}>
+                <Flex align="center" gap="md" height="100%">
+                  <RepoProviderIcon size="md" provider={repoWithSettings.provider.id} />
+                  <Text monospace>{repoWithSettings.name}</Text>
+                </Flex>
+              </ExternalLink>
+            )}
+          </DrawerHeader>
+          <DrawerBody>
+            {!hasCodeReviewAccess && <NoAccess />}
+            {hasCodeReviewAccess && isPending && <LoadingIndicator />}
+            {hasCodeReviewAccess && error && <LoadingError onRetry={refetch} />}
+            {hasCodeReviewAccess &&
+              repoWithSettings &&
+              (isSupportedProvider(repoWithSettings.provider) ? (
+                <RepoDetailsForm
+                  organization={organization}
+                  repoWithSettings={repoWithSettings}
+                />
+              ) : (
+                <Alert variant="warning">
+                  {t('Seer is not supported for this repository.')}
+                </Alert>
+              ))}
+          </DrawerBody>
+        </AnalyticsArea>
+      ),
+      {
+        ariaLabel: t('Repository Details'),
+        drawerKey: 'repo-details-drawer',
+        resizable: true,
+        onClose: () => {
+          navigate({
+            pathname: `/settings/${organization.slug}/seer/repos/`,
+            query: queryRef.current,
+          });
+        },
+        shouldCloseOnLocationChange: nextLocation =>
+          !nextLocation.pathname.endsWith(`/seer/repos/${repoId}/`),
+      }
+    );
+  }, [
+    error,
+    hasCodeReviewAccess,
+    isPending,
+    isSupportedProvider,
+    navigate,
+    openDrawer,
+    organization,
+    refetch,
+    repoId,
+    repoWithSettings,
+  ]);
+
+  return null;
 }

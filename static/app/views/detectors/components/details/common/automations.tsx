@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -18,17 +18,17 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
-import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
@@ -256,6 +256,25 @@ export function DetectorDetailsAutomations({detector}: Props) {
     );
   };
 
+  const openCreateDrawer = () => {
+    if (isDrawerOpen) {
+      closeDrawer();
+    }
+
+    openDrawer(
+      () => (
+        <AutomationBuilderDrawerForm
+          closeDrawer={closeDrawer}
+          initialData={{detectorIds: [detector.id]}}
+          onSuccess={() => {
+            closeDrawer();
+          }}
+        />
+      ),
+      {ariaLabel: t('Create New Alert')}
+    );
+  };
+
   const permissionTooltipText = canEditWorkflowConnections
     ? undefined
     : t(
@@ -276,14 +295,26 @@ export function DetectorDetailsAutomations({detector}: Props) {
     <DetailSection
       title={t('Connected Alerts')}
       trailingItems={
-        <Button
-          size="xs"
-          onClick={toggleDrawer}
-          disabled={!canEditWorkflowConnections}
-          tooltipProps={{title: permissionTooltipText}}
-        >
-          {t('Edit Connected Alerts')}
-        </Button>
+        <Flex gap="sm">
+          <Button
+            size="xs"
+            icon={<IconAdd />}
+            onClick={openCreateDrawer}
+            disabled={!canEditWorkflowConnections}
+            tooltipProps={{title: permissionTooltipText}}
+          >
+            {t('New Alert')}
+          </Button>
+          <Button
+            size="xs"
+            onClick={toggleDrawer}
+            disabled={!canEditWorkflowConnections}
+            tooltipProps={{title: permissionTooltipText}}
+            icon={<IconEdit />}
+          >
+            {t('Edit Alerts')}
+          </Button>
+        </Flex>
       }
     >
       <ErrorBoundary mini>
@@ -301,18 +332,15 @@ export function DetectorDetailsAutomations({detector}: Props) {
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
-                <LinkButton
-                  href={makeAutomationCreatePathname(organization.slug, {
-                    connectedIds: [detector.id],
-                  })}
-                  external
+                <Button
                   size="sm"
                   icon={<IconAdd />}
+                  onClick={openCreateDrawer}
                   disabled={!canEditWorkflowConnections}
                   tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Create a New Alert')}
-                </LinkButton>
+                </Button>
               </ConnectedAlertsEmptyState>
             ) : (
               t('No alerts connected')

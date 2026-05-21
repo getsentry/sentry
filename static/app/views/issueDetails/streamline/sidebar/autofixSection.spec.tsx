@@ -3,7 +3,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +25,7 @@ describe('AutofixSection', () => {
       },
     ],
   });
-  const mockProject = ProjectFixture();
+  const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
     features: ['gen-ai-features'],
@@ -160,11 +160,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('seerDrawer=true')
-    );
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('renders solution artifact', async () => {
@@ -206,7 +202,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('renders code changes preview from merged file patches', async () => {
@@ -266,7 +262,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('2 files changed in 1 repo')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('renders pull request previews from repo_pr_states', async () => {
@@ -326,7 +322,7 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Pull Requests')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'org/repo#42'});
     expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('shows loading placeholder while event is pending', async () => {
@@ -488,7 +484,7 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
   it('shows org setup UI when SCM integration is missing', async () => {
@@ -568,9 +564,5 @@ describe('AutofixSection', () => {
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Start Analysis'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('seerDrawer=true')
-    );
   });
 });

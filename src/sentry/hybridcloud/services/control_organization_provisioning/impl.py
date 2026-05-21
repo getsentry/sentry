@@ -156,7 +156,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
             org_slug_res = OrganizationSlugReservation(
                 slug=slug,
                 organization_id=org_id,
-                user_id=org_provision_args.provision_options.owning_user_id,
+                user_id=org_provision_args.provision_options.owner.id,
                 cell_name=cell_name,
             )
 

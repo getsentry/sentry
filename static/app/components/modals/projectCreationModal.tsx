@@ -6,7 +6,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -193,7 +193,7 @@ export default function ProjectCreationModal({
           <Flex gap="md">
             <div>
               <Label>{t('Project slug')}</Label>
-              <ProjectNameInputWrap>
+              <Container position="relative">
                 <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
                 <ProjectNameInput
                   type="text"
@@ -203,7 +203,7 @@ export default function ProjectCreationModal({
                   value={projectName}
                   onChange={e => setProjectName(slugify(e.target.value))}
                 />
-              </ProjectNameInputWrap>
+              </Container>
             </div>
             <div>
               <Label>{t('Team')}</Label>
@@ -225,7 +225,7 @@ export default function ProjectCreationModal({
         {step === 1 && <Button onClick={() => setStep(step - 1)}>{t('Back')}</Button>}
         {step === 0 && (
           <Button
-            priority="primary"
+            variant="primary"
             disabled={!platform}
             onClick={() => setStep(step + 1)}
           >
@@ -234,7 +234,7 @@ export default function ProjectCreationModal({
         )}
         {step === 1 && (
           <Button
-            priority="primary"
+            variant="primary"
             onClick={() => {
               setCreating(true);
               createProject();
@@ -256,9 +256,6 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   transform: translateY(-50%);
 `;
 
-const ProjectNameInputWrap = styled('div')`
-  position: relative;
-`;
 const ProjectNameInput = styled(Input)`
   padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;

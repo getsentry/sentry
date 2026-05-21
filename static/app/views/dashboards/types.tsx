@@ -17,6 +17,7 @@ export enum DashboardFilter {
   SHARED = 'shared',
   EXCLUDE_PREBUILT = 'excludePrebuilt',
   ONLY_PREBUILT = 'onlyPrebuilt',
+  ALL = 'all',
   SHOW_HIDDEN = 'showHidden',
 }
 

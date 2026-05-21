@@ -143,7 +143,9 @@ pnpm run dev-ui
 
 #### Typechecking
 
-Typechecking only works on the entire project. Individual files cannot be checked.
+To typecheck frontend code, run `pnpm typecheck` script.
+It checks the whole project and does not accept file paths.
+DO NOT use `tsc` directly.
 
 ```bash
 pnpm run typecheck
@@ -165,11 +167,11 @@ pnpm run fix
 #### Testing
 
 ```bash
-# Run JavaScript tests (always use CI flag)
-CI=true pnpm test <file_path>
+# Run JavaScript tests
+pnpm test-ci <file_path>
 
 # Run specific test file(s)
-CI=true pnpm test components/avatar.spec.tsx
+pnpm test-ci components/avatar.spec.tsx
 ```
 
 ### Git worktrees

@@ -15,8 +15,7 @@ class MonitorIncidentType(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
     description = "Crons Monitor Failed"
-    category = GroupCategory.CRON.value
-    category_v2 = GroupCategory.OUTAGE.value
+    category = GroupCategory.OUTAGE.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH

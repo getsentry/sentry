@@ -158,7 +158,7 @@ export function EmailAddresses() {
     api
       .requestPromise(endpoint, requestParams)
       .catch(err => {
-        if (err?.responseJSON?.email) {
+        if (err instanceof RequestError && typeof err?.responseJSON?.email === 'string') {
           addErrorMessage(err.responseJSON.email);
         }
       })
@@ -262,7 +262,7 @@ function EmailRow({
             <Button
               aria-label={t('Remove email')}
               data-test-id="remove"
-              priority="danger"
+              variant="danger"
               size="sm"
               icon={<IconDelete />}
             />

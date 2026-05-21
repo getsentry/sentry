@@ -8,8 +8,8 @@ from sentry.integrations.models.repository_project_path_config import (
 )
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.explorer.custom_tool_utils import ExplorerTool
-from sentry.seer.explorer.tools import get_event_details, get_issue_details
+from sentry.seer.agent.custom_tool_utils import AgentTool
+from sentry.seer.agent.tools import get_event_details, get_issue_details
 from sentry.tasks.seer.night_shift.event_formatter import format_event_output
 from sentry.tasks.seer.night_shift.issue_formatter import format_issue_output
 
@@ -44,13 +44,13 @@ class GetEventDetailsAgenticTriageParams(BaseModel):
     )
 
 
-# Class name intentionally snake_case — the Explorer custom-tool machinery
+# Class name intentionally snake_case — the agent custom-tool machinery
 # uses `__name__` as the tool name the agent sees, and we want this to read
 # like a tool identifier (`get_event_details_agentic_triage`).
 class get_event_details_agentic_triage(  # noqa: N801
-    ExplorerTool[GetEventDetailsAgenticTriageParams]
+    AgentTool[GetEventDetailsAgenticTriageParams]
 ):
-    """Custom Explorer tool for Night Shift agentic triage.
+    """Custom agent tool for Night Shift agentic triage.
 
     Returns the same underlying event data as Seer's built-in `get_event_details`,
     but renders it in the markdown format used by sentry-mcp (`formatEventOutput`)
@@ -135,9 +135,9 @@ class GetIssueDetailsAgenticTriageParams(BaseModel):
 
 # Class name intentionally snake_case — see comment on `get_event_details_agentic_triage`.
 class get_issue_details_agentic_triage(  # noqa: N801
-    ExplorerTool[GetIssueDetailsAgenticTriageParams]
+    AgentTool[GetIssueDetailsAgenticTriageParams]
 ):
-    """Custom Explorer tool for Night Shift agentic triage.
+    """Custom agent tool for Night Shift agentic triage.
 
     Returns the same underlying issue metadata as Seer's built-in `get_issue_details`,
     but reformats it as triage-tuned markdown: header (title/culprit/priority/counts/
@@ -181,7 +181,7 @@ class get_issue_details_agentic_triage(  # noqa: N801
             return "Issue not found. Check the issue_id and time range."
 
         project_id = result.get("project_id")
-        linked_repos = _format_linked_repos(project_id) if project_id else ""
+        linked_repos = _format_linked_repos(project_id, organization) if project_id else ""
         body = format_issue_output(result)
         return (
             f"Issue ID: {params.issue_id}\n"
@@ -192,7 +192,7 @@ class get_issue_details_agentic_triage(  # noqa: N801
         )
 
 
-def _format_linked_repos(project_id: int) -> str:
+def _format_linked_repos(project_id: int, organization: Organization) -> str:
     """Render the project's linked GitHub repos + source-root mappings.
 
     Surfaces the actual repo name (e.g. `getsentry/seer-test-sandbox`) so the
@@ -200,13 +200,13 @@ def _format_linked_repos(project_id: int) -> str:
     because many repos place app code under a subdirectory (e.g. `python/`).
     """
     configs = (
-        RepositoryProjectPathConfig.objects.filter(project_id=project_id)
-        .select_related("repository")
+        RepositoryProjectPathConfig.objects.filter(project_repository__project_id=project_id)
+        .select_related("project_repository__repository")
         .order_by("id")
     )
     lines: list[str] = []
     for cfg in configs:
-        repo_name = cfg.repository.name
+        repo_name = cfg.project_repository.repository.name
         source_root = cfg.source_root or ""
         stack_root = cfg.stack_root or ""
         parts = [f"- {repo_name}"]

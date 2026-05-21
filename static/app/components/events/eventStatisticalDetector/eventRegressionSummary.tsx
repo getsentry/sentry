@@ -15,7 +15,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -39,9 +39,12 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   }
 
   return (
-    <InterimSection type={SectionKey.REGRESSION_SUMMARY} title={t('Regression Summary')}>
+    <FoldSection
+      sectionKey={SectionKey.REGRESSION_SUMMARY}
+      title={t('Regression Summary')}
+    >
       <StyledKeyValueList data={data} shouldSort={false} />
-    </InterimSection>
+    </FoldSection>
   );
 }
 

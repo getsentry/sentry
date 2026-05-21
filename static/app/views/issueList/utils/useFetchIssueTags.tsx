@@ -377,6 +377,13 @@ function builtInIssuesFields({
       values: [],
       predefined: true,
     },
+    [FieldKey.USER_COUNT]: {
+      ...PREDEFINED_FIELDS[FieldKey.USER_COUNT]!,
+      name: 'User Count',
+      isInput: true,
+      values: [],
+      predefined: true,
+    },
     [FieldKey.ISSUE_PRIORITY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY]!,
       name: 'Issue Priority',

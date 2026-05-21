@@ -34,7 +34,7 @@ export function LogsDownSamplingAlert({
       .flat()
       .map(series => series.meta.dataScanned);
     if (!dataScannedList.length) {
-      return undefined;
+      return;
     }
     return dataScannedList.includes('partial') ? ('partial' as const) : ('full' as const);
   }, [timeseriesResult.data]);

@@ -8,6 +8,7 @@ from django.db import router, transaction
 from django.utils import timezone
 from taskbroker_client.retry import LastAction, Retry
 from taskbroker_client.task import Task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
@@ -17,7 +18,7 @@ from sentry.deletions.models.scheduleddeletion import (
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils.env import in_test_environment
 
@@ -102,10 +103,12 @@ def _run_scheduled_deletions(
         times=MAX_RETRIES,
         times_exceeded=LastAction.Discard,
         delay=60 * 5,
+        on=(Exception, ProcessingDeadlineExceeded),
+        ignore=(DeleteAborted,),
     ),
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(DeleteAborted,),
 )
-@retry(exclude=(DeleteAborted,), timeouts=True)
 def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
@@ -123,10 +126,12 @@ def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: An
         times=MAX_RETRIES,
         times_exceeded=LastAction.Discard,
         delay=60 * 5,
+        on=(Exception, ProcessingDeadlineExceeded),
+        ignore=(DeleteAborted,),
     ),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(DeleteAborted,),
 )
-@retry(exclude=(DeleteAborted,), timeouts=True)
 def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,

@@ -38,7 +38,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
       <Divider />
       <AttachmentButton
         type="button"
-        priority="link"
+        variant="link"
         icon={<IconAttachment size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,

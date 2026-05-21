@@ -51,7 +51,7 @@ export default function AdminRelays() {
             message={t('Are you sure you wish to delete this relay?')}
             onConfirm={() => onDelete(row.id)}
           >
-            <Button priority="danger" size="sm" icon={<IconDelete />}>
+            <Button variant="danger" size="sm" icon={<IconDelete />}>
               {t('Remove Relay')}
             </Button>
           </Confirm>

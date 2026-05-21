@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import unittest.mock
+
 import requests
 import responses
 from django.test import override_settings
 from django.urls import reverse
 from scm.actions import create_branch
-from scm.rpc.client import SourceCodeManager
+from scm.manager import SourceCodeManager
 from scm.rpc.helpers import sign_get, sign_post
 
 from sentry.constants import ObjectStatus
@@ -79,13 +81,15 @@ class TestScmRpc(APITestCase):
             status=ObjectStatus.ACTIVE,
             integration_id=self.integration.id,
         )
-        self.rpc_client = SourceCodeManager.make_from_repository_id(
-            self.organization.id,
-            self.repo.id,
-            base_url="",
-            signing_secret="a-long-value-that-is-hard-to-guess",
-            session=lambda: DjangoTestClientSessionAdapter(self.client),
-        )
+        with unittest.mock.patch(
+            "scm.manager.RequestsSession", lambda: DjangoTestClientSessionAdapter(self.client)
+        ):
+            self.rpc_client = SourceCodeManager.make_proxy_client(
+                self.organization.id,
+                self.repo.id,
+                base_url="",
+                signing_secret="a-long-value-that-is-hard-to-guess",
+            )
 
         self.default_headers = {
             "Authorization": f"rpcsignature {sign_get('a-long-value-that-is-hard-to-guess', self.organization.id, self.repo.id)}",

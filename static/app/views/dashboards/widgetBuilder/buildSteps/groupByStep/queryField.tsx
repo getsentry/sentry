@@ -69,7 +69,7 @@ export function QueryField({
           {canDelete && (
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               onClick={onDelete}
               icon={<IconDelete />}
               tooltipProps={{title: t('Remove group')}}

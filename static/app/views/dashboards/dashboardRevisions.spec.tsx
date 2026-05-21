@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {DashboardRevisionsButton} from './dashboardRevisions';
@@ -90,13 +91,6 @@ describe('DashboardRevisionsButton', () => {
     expect(screen.getByRole('button', {name: 'Dashboard Revisions'})).toBeInTheDocument();
   });
 
-  it('renders nothing for the default-overview dashboard', () => {
-    renderButton({id: 'default-overview'});
-    expect(
-      screen.queryByRole('button', {name: 'Dashboard Revisions'})
-    ).not.toBeInTheDocument();
-  });
-
   it('renders nothing for a prebuilt dashboard', () => {
     renderButton({prebuiltId: 'default-overview'});
     expect(
@@ -156,14 +150,16 @@ describe('DashboardRevisionsButton', () => {
     expect(screen.getAllByText('Edit')).toHaveLength(2);
   });
 
-  it('shows the empty state when no revisions exist', async () => {
+  it('shows Current Version and no-previous-revisions message when no revisions exist', async () => {
     MockApiClient.addMockResponse({url: REVISIONS_URL, body: []});
 
     renderButton();
     renderGlobalModal();
     await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
 
-    expect(await screen.findByText('No revisions found.')).toBeInTheDocument();
+    expect(await screen.findByText('Current Version')).toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(1);
+    expect(screen.getByText('Dashboard Owner')).toBeInTheDocument();
   });
 
   it('shows an error state when the revisions API request fails', async () => {
@@ -255,6 +251,52 @@ describe('DashboardRevisionsButton', () => {
     expect(
       await screen.findByText('Failed to restore this revision.')
     ).toBeInTheDocument();
+  });
+
+  it('shows the author of the most recent revision in the current version entry', async () => {
+    MockApiClient.addMockResponse({url: REVISIONS_URL, body: [makeRevision()]});
+    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
+
+    renderButton();
+    renderGlobalModal();
+    await openModal();
+
+    await screen.findAllByRole('radio');
+
+    const currentVersionItem = screen.getByText('Current Version').closest('div');
+    expect(within(currentVersionItem!).getByText('Alice')).toBeInTheDocument();
+  });
+
+  it('shows the author from the following revision for each historical entry', async () => {
+    MockApiClient.addMockResponse({
+      url: REVISIONS_URL,
+      body: [
+        makeRevision({
+          id: '1',
+          source: 'edit-with-agent' as const,
+          createdBy: {id: '99', name: 'Recent Editor', email: 'recent@example.com'},
+        }),
+        makeRevision({
+          id: '2',
+          source: 'pre-restore' as const,
+          createdBy: {id: '42', name: 'Alice', email: 'alice@example.com'},
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
+    MockApiClient.addMockResponse({url: BASE_REVISION_DETAILS_URL, body: makeSnapshot()});
+
+    renderButton();
+    renderGlobalModal();
+    await openModal();
+
+    await screen.findAllByRole('radio');
+
+    // The first historical entry's label and author both come from revisions[1]:
+    // label = revisions[1].source = 'pre-restore' → "Revert Dashboard"
+    // author = revisions[1].createdBy = Alice
+    const revertEntry = screen.getByText('Revert Dashboard').closest('div');
+    expect(within(revertEntry!).getByText('Alice')).toBeInTheDocument();
   });
 
   it('limits displayed revisions to 10', async () => {

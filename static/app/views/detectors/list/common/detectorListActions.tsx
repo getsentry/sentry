@@ -38,7 +38,7 @@ export function DetectorListActions({children, detectorType}: DetectorListAction
             pathname: makeMonitorCreatePathname(organization.slug),
             query: {project, detectorType},
           }}
-          priority="primary"
+          variant="primary"
           icon={<IconAdd />}
           size="sm"
           disabled={!canCreateDetector}

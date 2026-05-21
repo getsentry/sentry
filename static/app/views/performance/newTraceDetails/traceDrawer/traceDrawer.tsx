@@ -476,7 +476,7 @@ function TraceLayoutMinimizeButton(props: {
 }) {
   return (
     <CloseButton
-      priority="link"
+      variant="link"
       size="xs"
       aria-label={t('Close Drawer')}
       icon={<StyledIconClose />}
@@ -697,7 +697,7 @@ function TabPinButton(props: {
       data-test-id="trace-drawer-tab-pin-button"
       size="zero"
       onClick={props.onClick}
-      priority="transparent"
+      variant="transparent"
       aria-label={props.pinned ? t('Unpin Tab') : t('Pin Tab')}
       icon={<StyledIconPin size="xs" isSolid={props.pinned} />}
     />

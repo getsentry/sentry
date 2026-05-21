@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -88,7 +88,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           },
         }}
         aria-label={t('Start trial')}
-        priority="primary"
+        variant="primary"
         handleClick={() => setIsStartingTrial(true)}
         onTrialStarted={() => setIsStartingTrial(true)}
         onTrialFailed={() => setIsStartingTrial(false)}
@@ -132,7 +132,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
             hasBillingRole ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS
           }
           buttonProps={{
-            priority: 'default',
+            variant: 'secondary',
             size: 'xs',
             style: {marginBlock: '-2px'},
           }}
@@ -165,7 +165,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           </Button>
         ) : (
           <Button
-            priority="primary"
+            variant="primary"
             onClick={() => {
               navigate(normalizeUrl(`/checkout/${organization.slug}/`));
             }}
@@ -208,7 +208,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
         </Button>
       ) : (
         <Button
-          priority="primary"
+          variant="primary"
           onClick={() => {
             navigate(normalizeUrl(`/checkout/${organization.slug}/`));
           }}
@@ -234,7 +234,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           onDismiss?.();
         }}
         size="zero"
-        priority="transparent"
+        variant="transparent"
         tooltipProps={{title: t('Dismiss')}}
         aria-label={t('Dismiss trial notice')}
       />
@@ -243,7 +243,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
 
   return (
     <TrialAlert system variant="muted" trailingItems={actions}>
-      <React.Fragment>
+      <Fragment>
         {alertHeader && (
           <Heading>
             <h4>{alertHeader}</h4>
@@ -251,7 +251,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           </Heading>
         )}
         {alertText && <div>{alertText}</div>}
-      </React.Fragment>
+      </Fragment>
     </TrialAlert>
   );
 }

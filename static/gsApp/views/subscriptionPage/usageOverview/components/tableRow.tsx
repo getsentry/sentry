@@ -342,7 +342,7 @@ export function UsageOverviewTableRow({
                   }}
                   size="xs"
                   icon={<IconPlay />}
-                  priority="primary"
+                  variant="primary"
                 />
               </Flex>
             </td>
@@ -434,7 +434,7 @@ function DisabledProductRow({
                   }}
                   size="xs"
                   icon={<IconPlay />}
-                  priority="primary"
+                  variant="primary"
                 />
               </Flex>
             </td>

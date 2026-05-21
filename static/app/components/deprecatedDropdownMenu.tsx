@@ -140,7 +140,7 @@ export function DropdownMenu({
 
   // Closes dropdown menu
   const handleClose = useCallback(
-    (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element>) => {
+    (e?: React.KeyboardEvent | React.MouseEvent) => {
       const isControlled = isOpenProp !== undefined;
 
       if (!isControlled) {
@@ -212,7 +212,7 @@ export function DropdownMenu({
 
   // Opens dropdown menu
   const handleOpen = useCallback(
-    (e?: React.MouseEvent<Element>) => {
+    (e?: React.MouseEvent) => {
       const isControlled = isOpenProp !== undefined;
       if (!isControlled) {
         setIsOpenState(true);
@@ -236,7 +236,7 @@ export function DropdownMenu({
   // Decide whether dropdown should be closed when mouse leaves element
   // Only for nested dropdowns
   const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<Element>) => {
+    (e: React.MouseEvent) => {
       if (!isNestedDropdown) {
         return;
       }
@@ -265,7 +265,7 @@ export function DropdownMenu({
   );
 
   const handleToggle = useCallback(
-    (e: React.MouseEvent<Element>) => {
+    (e: React.MouseEvent) => {
       if (isOpen) {
         handleClose(e);
       } else {
@@ -277,7 +277,7 @@ export function DropdownMenu({
 
   // Control whether we should hide dropdown menu when it is clicked
   const handleDropdownMenuClick = useCallback(
-    (e: React.MouseEvent<Element>) => {
+    (e: React.MouseEvent) => {
       handleClose(e);
     },
     [handleClose]

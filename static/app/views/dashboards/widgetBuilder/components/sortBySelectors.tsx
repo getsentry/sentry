@@ -69,7 +69,7 @@ export function SortBySelectors({
   const organization = useOrganization();
   const columnSet = new Set(widgetQuery.columns);
   const [showCustomEquation, setShowCustomEquation] = useState(false);
-  const [customEquation, setCustomEquation] = useState<Values>({
+  const [customEquation, setCustomEquation] = useState({
     sortBy: EQUATION_PREFIX,
     sortDirection: values.sortDirection,
   });

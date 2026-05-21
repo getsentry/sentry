@@ -81,7 +81,7 @@ export function WidgetBuilderV2({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
+  const [queryConditionsValid, setQueryConditionsValid] = useState(true);
   const theme = useTheme();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
@@ -89,9 +89,7 @@ export function WidgetBuilderV2({
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
-  const [translate, setTranslate] = useState<WidgetDragPositioning>(
-    DEFAULT_WIDGET_DRAG_POSITIONING
-  );
+  const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);
 
   const navigationElementRef = useRef<HTMLDivElement>(null);
 

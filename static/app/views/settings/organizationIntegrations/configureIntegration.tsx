@@ -42,7 +42,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -52,10 +51,9 @@ import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
 import {IntegrationItem} from './integrationItem';
-import {IntegrationRepos} from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-const TABS = ['repos', 'codeMappings', 'userMappings', 'teamMappings'] as const;
+const TABS = ['settings', 'codeMappings', 'userMappings', 'teamMappings'] as const;
 type Tab = (typeof TABS)[number];
 
 const makeIntegrationQuery = (
@@ -78,7 +76,6 @@ const makePluginQuery = (organization: Organization): ApiQueryKey => {
 };
 
 function ConfigureIntegration() {
-  const routes = useRoutes();
   const location = useLocation();
   const navigate = useNavigate();
   const api = useApi();
@@ -86,7 +83,7 @@ function ConfigureIntegration() {
   const organization = useOrganization();
   const hasPageFrame = useHasPageFrameFeature();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
+  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'settings';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;
@@ -246,7 +243,7 @@ function ConfigureIntegration() {
       p =>
         p.id === 'opsgenie' &&
         p.projectList.length >= 1 &&
-        p.projectList.some(({enabled}) => enabled === true)
+        p.projectList.some(({enabled}) => enabled)
     );
   };
 
@@ -307,7 +304,7 @@ function ConfigureIntegration() {
                 handleJiraMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button variant="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -348,7 +345,7 @@ function ConfigureIntegration() {
                 handleOpsgenieMigration();
               }}
             >
-              <Button priority="primary" disabled={!hasAccess}>
+              <Button variant="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -436,10 +433,6 @@ function ConfigureIntegration() {
 
         {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
 
-        {provider.features.includes('commits') && (
-          <IntegrationRepos integration={integration} />
-        )}
-
         {provider.features.includes('serverless') && (
           <IntegrationServerlessFunctions integration={integration} />
         )}
@@ -454,7 +447,7 @@ function ConfigureIntegration() {
     switch (tab) {
       case 'codeMappings':
         return <IntegrationCodeMappings integration={integration} />;
-      case 'repos':
+      case 'settings':
         return renderMainTab();
       case 'userMappings':
         return <IntegrationExternalUserMappings integration={integration} />;
@@ -476,7 +469,7 @@ function ConfigureIntegration() {
     const tabs: Array<[Tab, string]> = [];
     const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
       ? [
-          ['repos', t('Repositories')],
+          ['settings', t('Settings')],
           ['codeMappings', t('Code Mappings')],
         ]
       : [];
@@ -492,7 +485,7 @@ function ConfigureIntegration() {
     // and code owners, so only render the main settings tab and user mappings.
     const userMappingTabs: Array<[Tab, string]> = hasUserMapping
       ? [
-          ['repos', t('Settings')],
+          ['settings', t('Settings')],
           ['userMappings', t('User Mappings')],
         ]
       : [];
@@ -533,10 +526,7 @@ function ConfigureIntegration() {
         action={getAction()}
       />
       {renderMainContent()}
-      <BreadcrumbTitle
-        routes={routes}
-        title={t('Configure %s', integration.provider.name)}
-      />
+      <BreadcrumbTitle title={t('Configure %s', integration.provider.name)} />
     </Fragment>
   );
 }
@@ -556,7 +546,7 @@ function PagerdutyAddServicesButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       icon={<IconAdd />}
       onClick={() => startFlow({provider, onInstall, account, organization})}

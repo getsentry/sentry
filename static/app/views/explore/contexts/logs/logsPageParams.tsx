@@ -31,13 +31,10 @@ export function usePersistedLogsPageParams() {
     }
   });
 
-  return useLocalStorageState<PersistedLogsPageParams>(
-    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
-    {
-      fields: defaultLogFields() as string[],
-      sortBys: [logsTimestampDescendingSortBy],
-    }
-  );
+  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
+    fields: defaultLogFields() as string[],
+    sortBys: [logsTimestampDescendingSortBy],
+  });
 }
 
 export function stripLogParamsFromLocation(location: Location): Location {

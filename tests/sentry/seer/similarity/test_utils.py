@@ -1042,9 +1042,6 @@ class StacktraceExceedsLimitsTest(TestCase):
                     is True
                 )
 
-    def test_bypassed_platforms_are_checked_for_v2(self) -> None:
-        self._assert_bypassed_platforms_are_checked(GroupingVersion.V2)
-
     def test_bypassed_platforms_are_checked_for_v2_1(self) -> None:
         self._assert_bypassed_platforms_are_checked(GroupingVersion.V2_1)
 

@@ -76,7 +76,7 @@ const renderComponent = ({
 };
 
 describe('TransactionReplays', () => {
-  let eventsMockApi: jest.Mock<any, any>;
+  let eventsMockApi: jest.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',

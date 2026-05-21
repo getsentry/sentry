@@ -123,7 +123,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
         >
           <Button
             data-title={t('Trace')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onTransactionTabClick}
           >
@@ -136,7 +136,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
         >
           <Button
             data-title={t('Environment')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onEnvironmentTabClick}
           >

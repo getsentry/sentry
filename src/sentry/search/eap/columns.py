@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypedDict, cast
@@ -60,6 +60,9 @@ class ResolvedColumn:
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
     validator: Callable[[Any], bool] | list[Callable[[Any], bool]] | None = None
+    # Normalizer transforms a search value before sending to Snuba (e.g. stripping dashes from UUIDs).
+    # Called after validation, before building the AttributeValue proto.
+    normalizer: Callable[[Any], Any] | None = None
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
@@ -70,6 +73,20 @@ class ResolvedColumn:
         if self.processor:
             return self.processor(value)
         return value
+
+    def normalize(
+        self, value: str | float | datetime | Sequence[float] | Sequence[str]
+    ) -> str | float | datetime | Sequence[float] | Sequence[str]:
+        """Normalize a search value before building the AttributeValue proto.
+
+        If a normalizer is defined, applies it to each element of a list or to the scalar value.
+        Returns the value unchanged when no normalizer is set.
+        """
+        if self.normalizer is None:
+            return value
+        if isinstance(value, list):
+            return [self.normalizer(item) for item in value]
+        return self.normalizer(value)
 
     def validate(self, value: Any) -> None:
         if callable(self.validator):

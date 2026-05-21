@@ -169,7 +169,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
   };
 
   if (!series[0]?.data) {
-    return undefined;
+    return;
   }
 
   for (const {seriesName, data} of series) {
@@ -194,7 +194,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
     }
   }
   if (range.max === 0 && range.min === Infinity) {
-    return undefined;
+    return;
   }
   return range;
 }

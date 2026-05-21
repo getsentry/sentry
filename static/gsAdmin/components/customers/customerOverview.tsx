@@ -93,7 +93,7 @@ function SoftCapTypeDetail({
       }
       return null;
     })
-    .filter(i => i);
+    .filter(Boolean);
   return <Fragment>{softCapTypes.length ? softCapTypes : <span>None</span>}</Fragment>;
 }
 
@@ -770,7 +770,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                     (active)
                     <br />
                     <Button
-                      priority="link"
+                      variant="link"
                       onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
                     >
                       Deactivate Partner

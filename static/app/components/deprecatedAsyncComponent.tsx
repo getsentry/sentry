@@ -7,12 +7,9 @@ import {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {
-  RouteComponentProps,
-  RouteContextInterface,
-} from 'sentry/types/legacyReactRouter';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {PermissionDenied} from 'sentry/views/permissionDenied';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 
 interface AsyncComponentProps extends Partial<RouteComponentProps> {}
 
@@ -101,8 +98,6 @@ export class DeprecatedAsyncComponent<
     this.api.clear();
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
-
-  declare context: {router: RouteContextInterface};
 
   /**
    * Override this flag to have the component reload its state when the window

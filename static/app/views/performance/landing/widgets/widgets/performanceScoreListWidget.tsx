@@ -45,7 +45,7 @@ type DataType = {
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const location = useLocation();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {InteractiveTitle} = props;
 
   const {data: projectScoresData, isPending: isProjectScoresLoading} =

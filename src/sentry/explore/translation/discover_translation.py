@@ -262,6 +262,11 @@ def _translate_discover_query_field_to_explore_query_schema(
 def translate_discover_query_to_explore_query(
     discover_query: DiscoverSavedQuery,
 ) -> ExploreSavedQuery:
+    if discover_query.is_homepage:
+        raise Exception(
+            "this query is a homepage query and will not be translated to an explore query"
+        )
+
     translated_query_field, dropped_fields_from_translation = (
         _translate_discover_query_field_to_explore_query_schema(discover_query.query)
     )

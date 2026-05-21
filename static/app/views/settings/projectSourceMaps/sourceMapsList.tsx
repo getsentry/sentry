@@ -302,7 +302,7 @@ function SourceMapsEmptyState({
               {
                 clear: (
                   <Button
-                    priority="link"
+                    variant="link"
                     aria-label={t('Clear Search')}
                     onClick={onClearSearch}
                   />

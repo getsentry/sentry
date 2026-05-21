@@ -235,7 +235,7 @@ export function generateProfileLink() {
   };
 }
 
-export function generateReplayLink(matches: Array<UIMatch<unknown, unknown>>) {
+export function generateReplayLink(matches: UIMatch[]) {
   const referrer = getRouteStringFromRoutes({matches});
 
   return (

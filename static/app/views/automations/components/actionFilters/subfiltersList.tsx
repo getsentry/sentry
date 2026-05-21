@@ -109,7 +109,7 @@ export function SubfiltersList() {
         })}
       </div>
       <PurpleTextButton
-        priority="transparent"
+        variant="transparent"
         icon={<IconAdd />}
         size="xs"
         onClick={addSubfilter}
@@ -137,7 +137,7 @@ function SubfilterRow({onRemove, isFirstRow, isLastRow}: SubfilterRowProps) {
           aria-label={t('Delete Subfilter')}
           size="sm"
           icon={<IconDelete />}
-          priority="transparent"
+          variant="transparent"
           onClick={onRemove}
         />
       </StyledRowLine>

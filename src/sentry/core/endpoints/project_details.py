@@ -123,7 +123,16 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False, allow_null=True
     )
     preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
-    preprodSnapshotPrCommentsOnlyIfDiff = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsPostOnAdded = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsPostOnRemoved = serializers.BooleanField(
+        required=False, allow_null=True
+    )
+    preprodSnapshotPrCommentsPostOnChanged = serializers.BooleanField(
+        required=False, allow_null=True
+    )
+    preprodSnapshotPrCommentsPostOnRenamed = serializers.BooleanField(
+        required=False, allow_null=True
+    )
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -176,7 +185,10 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSnapshotStatusChecksFailOnRenamed",
         "preprodDistributionPrCommentsEnabledByCustomer",
         "preprodSnapshotPrCommentsEnabled",
-        "preprodSnapshotPrCommentsOnlyIfDiff",
+        "preprodSnapshotPrCommentsPostOnAdded",
+        "preprodSnapshotPrCommentsPostOnRemoved",
+        "preprodSnapshotPrCommentsPostOnChanged",
+        "preprodSnapshotPrCommentsPostOnRenamed",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -332,18 +344,6 @@ E.g. `['release', 'environment']`""",
         return validate_pii_config_update(organization, value)
 
     def validate_builtinSymbolSources(self, value):
-        if not value:
-            return value
-
-        from sentry import features
-
-        organization = self.context["project"].organization
-        request = self.context["request"]
-        has_sources = features.has("organizations:symbol-sources", organization, actor=request.user)
-
-        if not has_sources:
-            raise serializers.ValidationError("Organization is not allowed to set symbol sources")
-
         return value
 
     def validate_symbolSources(self, sources_json) -> str:
@@ -922,14 +922,38 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_snapshot_pr_comments_enabled"] = result[
                     "preprodSnapshotPrCommentsEnabled"
                 ]
-        if "preprodSnapshotPrCommentsOnlyIfDiff" in result:
+        if "preprodSnapshotPrCommentsPostOnAdded" in result:
             if project.update_option(
-                "sentry:preprod_snapshot_pr_comments_only_if_diff",
-                result["preprodSnapshotPrCommentsOnlyIfDiff"],
+                "sentry:preprod_snapshot_pr_comments_post_on_added",
+                result["preprodSnapshotPrCommentsPostOnAdded"],
             ):
-                changed_proj_settings["sentry:preprod_snapshot_pr_comments_only_if_diff"] = result[
-                    "preprodSnapshotPrCommentsOnlyIfDiff"
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_added"] = result[
+                    "preprodSnapshotPrCommentsPostOnAdded"
                 ]
+        if "preprodSnapshotPrCommentsPostOnRemoved" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_removed",
+                result["preprodSnapshotPrCommentsPostOnRemoved"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_removed"] = (
+                    result["preprodSnapshotPrCommentsPostOnRemoved"]
+                )
+        if "preprodSnapshotPrCommentsPostOnChanged" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_changed",
+                result["preprodSnapshotPrCommentsPostOnChanged"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_changed"] = (
+                    result["preprodSnapshotPrCommentsPostOnChanged"]
+                )
+        if "preprodSnapshotPrCommentsPostOnRenamed" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_post_on_renamed",
+                result["preprodSnapshotPrCommentsPostOnRenamed"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_post_on_renamed"] = (
+                    result["preprodSnapshotPrCommentsPostOnRenamed"]
+                )
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")

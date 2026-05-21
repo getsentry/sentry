@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -11,8 +11,7 @@ import type {
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -23,8 +22,6 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
@@ -317,8 +314,13 @@ export function useTransactionsTableQuery(
     onDemandControlContext
   );
 
-  const queryKeys = useMemo(() => {
-    return filteredWidget.queries.map(query => {
+  // Check if organization has the async queue feature
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
       const modifiedQuery = cloneDeep(query);
 
@@ -367,73 +369,45 @@ export function useTransactionsTableQuery(
         ...requestParams,
       };
 
-      const baseQueryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<TransactionsTableResponse>()(
+          '/organizations/$organizationIdOrSlug/events/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<TransactionsTableResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<TransactionsTableResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<TransactionsTableResponse>(context);
         },
-      ];
-
-      return baseQueryKey;
-    });
-  }, [
-    filteredWidget,
-    organization,
-    pageFilters,
-    cursor,
-    limit,
-    isMEPEnabled,
-    useOnDemandMetrics,
-  ]);
-
-  const createQueryFnTable = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<TransactionsTableResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<TransactionsTableResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-        return fetchDataQuery<TransactionsTableResponse>(context);
-      },
-    [queue]
-  );
-
-  // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFnTable(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      // Retry on 429 status codes up to 10 times, unless queue handles it
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -450,12 +424,11 @@ export function useTransactionsTableQuery(
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
+      const responseData = q.data.json;
       rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
@@ -471,7 +444,7 @@ export function useTransactionsTableQuery(
       tableResults.push(transformedDataItem);
 
       // Get page links from response meta
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
+      responsePageLinks = q.data.headers.Link;
     });
 
     // Check if rawData is the same as before to prevent unnecessary rerenders

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -123,7 +123,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  let versionTitle: string | undefined = undefined;
+  let versionTitle: string | undefined;
   if (version) {
     versionTitle = `v${version}`;
     if (buildNumber) {
@@ -166,7 +166,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Layout.HeaderContent>
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
@@ -182,10 +182,10 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       </Layout.HeaderContent>
 
       {hasPageFrameFeature ? (
-        <React.Fragment>
+        <Fragment>
           <TopBar.Slot name="actions">
             <Button
-              priority="default"
+              variant="secondary"
               icon={<IconTelescope />}
               onClick={handleCompareClick}
               disabled={!areActionsEnabled}
@@ -303,14 +303,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               {null}
             </FeedbackButton>
           </TopBar.Slot>
-        </React.Fragment>
+        </Fragment>
       ) : (
         <Layout.HeaderActions>
           <Flex align="center" gap="sm" flexShrink={0}>
             <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions} />
             <Button
               size="sm"
-              priority="default"
+              variant="secondary"
               icon={<IconTelescope />}
               onClick={handleCompareClick}
               disabled={!areActionsEnabled}
@@ -421,6 +421,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           </Flex>
         </Layout.HeaderActions>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }

@@ -48,7 +48,7 @@ describe('contexts utils', () => {
             };
           }
 
-          return undefined;
+          return;
         },
       });
 
@@ -83,7 +83,7 @@ describe('contexts utils', () => {
             };
           }
 
-          return undefined;
+          return;
         },
       });
 
@@ -113,7 +113,7 @@ describe('contexts utils', () => {
             };
           }
 
-          return undefined;
+          return;
         },
       });
       const errMeta = {

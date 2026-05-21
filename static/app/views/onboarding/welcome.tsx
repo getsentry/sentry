@@ -77,7 +77,7 @@ export function TargetedOnboardingWelcome(props: StepProps) {
                 <Fragment>
                   <ButtonWithFill
                     onClick={handleComplete}
-                    priority="primary"
+                    variant="primary"
                     data-test-id="onboarding-welcome-start"
                   >
                     {t('Start')}

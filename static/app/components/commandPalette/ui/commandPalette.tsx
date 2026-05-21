@@ -298,7 +298,7 @@ export function CommandPalette({
         return item;
       }
     }
-    return undefined;
+    return;
   }, [treeState.collection, sectionKeys]);
 
   const lastFocusableKey = useMemo(() => {
@@ -309,7 +309,7 @@ export function CommandPalette({
         return item;
       }
     }
-    return undefined;
+    return;
   }, [treeState.collection, sectionKeys]);
 
   useLayoutEffect(() => {
@@ -566,7 +566,7 @@ export function CommandPalette({
                         {containerProps => (
                           <MotionButton
                             size="xs"
-                            priority="transparent"
+                            variant="transparent"
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
                               animatePop();
@@ -612,7 +612,7 @@ export function CommandPalette({
                         <Container position="absolute" right="-8px">
                           <MotionButton
                             size="xs"
-                            priority="transparent"
+                            variant="transparent"
                             aria-label={t('Reset')}
                             icon={<IconClose size="xs" aria-hidden />}
                             onClick={() => {
@@ -803,6 +803,10 @@ function flattenActions(
       }
 
       if (isGroup) {
+        if ('prompt' in node && node.prompt) {
+          results.push({...node, listItemType: 'action'});
+          continue;
+        }
         const children = node.children
           .filter(child => !isEmptyResourceNode(child))
           .map(child => ({...child, listItemType: 'action' as const}));
@@ -1197,7 +1201,7 @@ function CommandPaletteNoResults() {
         </Container>
         <Container paddingTop="xl">
           <FeedbackButton
-            priority="primary"
+            variant="primary"
             feedbackOptions={{
               tags: {
                 ['feedback.source']: 'command_palette',

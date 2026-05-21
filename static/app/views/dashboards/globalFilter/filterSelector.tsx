@@ -122,8 +122,8 @@ export function FilterSelector({
     };
   }, [filterToken, fieldDefinition]);
 
-  const [stagedOperator, setStagedOperator] = useState<TermOperator>(initialOperator);
-  const [activeFilterValues, setActiveFilterValues] = useState<string[]>(initialValues);
+  const [stagedOperator, setStagedOperator] = useState(initialOperator);
+  const [activeFilterValues, setActiveFilterValues] = useState(initialValues);
   const [stagedFilterValues, setStagedFilterValues] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -445,7 +445,7 @@ export function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" priority="transparent">
+                  <Button {...triggerProps} size="zero" variant="transparent">
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />

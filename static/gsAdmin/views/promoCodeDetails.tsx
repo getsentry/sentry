@@ -1,13 +1,14 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -25,6 +26,8 @@ import type {PromoCode} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
 
 export function PromoCodeDetails() {
+  const {openModal} = useModal();
+
   const {codeId} = useParams<{codeId: string}>();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -133,6 +136,8 @@ export function PromoCodeDetails() {
                 {...deps}
                 promoCode={promoCode}
                 onSubmit={(newCode: PromoCode) => {
+                  // Will be fixed soon when we get rid of setApiQueryData.
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
                   setApiQueryData<PromoCode>(queryClient, [ENDPOINT], newCode);
                 }}
               />

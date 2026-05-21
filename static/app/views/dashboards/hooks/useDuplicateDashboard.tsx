@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {cloneDashboard} from 'sentry/views/dashboards/utils';
 import {
@@ -133,9 +134,21 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
  * This includes both the DashboardFilters object (globalFilter, release) and
  * the page-level filters (projects, environment, date range) which are stored
  * as top-level fields.
+ *
+ * The target's globalFilter chips (from the prebuilt config) are merged with
+ * the saved globalFilter values so that prebuilt-only filters aren't dropped.
+ * This mirrors how `OrgDashboards` merges these filters for display.
  */
 function copySavedFilters(target: DashboardDetails, source: DashboardDetails): void {
-  target.filters = source.filters;
+  const sourceFilters = source.filters ?? {};
+  const mergedGlobalFilter = mergeGlobalFilters(
+    target.filters?.globalFilter ?? [],
+    sourceFilters.globalFilter ?? []
+  );
+  target.filters = {
+    ...sourceFilters,
+    globalFilter: mergedGlobalFilter,
+  };
   target.projects = source.projects;
   target.environment = source.environment;
   target.period = source.period;

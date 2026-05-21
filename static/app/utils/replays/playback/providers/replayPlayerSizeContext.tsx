@@ -31,7 +31,7 @@ const Context = createContext<[State, Dispatch<SetStateAction<State>>]>([
 ]);
 
 export function ReplayPlayerSizeContextProvider({children}: {children: React.ReactNode}) {
-  const state = useState<State>({width: 0, height: 0, scale: 0});
+  const state = useState({width: 0, height: 0, scale: 0});
   return <Context.Provider value={state}>{children}</Context.Provider>;
 }
 

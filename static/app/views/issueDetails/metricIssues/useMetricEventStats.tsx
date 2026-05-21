@@ -33,7 +33,7 @@ interface MetricEventStatsParams {
   timePeriod: TimePeriodType;
 }
 
-interface EventRequestQueryParams {
+type EventRequestQueryParams = {
   comparisonDelta?: number;
   dataset?: DiscoverDatasets;
   end?: string;
@@ -55,7 +55,7 @@ interface EventRequestQueryParams {
   useOnDemandMetrics?: 'true';
   withoutZerofill?: '1';
   yAxis?: string | string[];
-}
+};
 
 export function useMetricEventStats(
   {

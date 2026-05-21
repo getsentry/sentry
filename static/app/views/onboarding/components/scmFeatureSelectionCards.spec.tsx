@@ -4,6 +4,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
+import {FALLBACK_FEATURE_META} from './useScmFeatureMeta';
 
 const NO_DISABLED: DisabledProducts = {};
 
@@ -24,6 +25,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -45,6 +47,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -60,6 +63,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -84,6 +88,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[ProductSolution.ERROR_MONITORING]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -105,6 +110,7 @@ describe('ScmFeatureSelectionCards', () => {
           },
         }}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -120,6 +126,7 @@ describe('ScmFeatureSelectionCards', () => {
         selectedFeatures={[]}
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
       />
     );
 
@@ -127,5 +134,39 @@ describe('ScmFeatureSelectionCards', () => {
       name: /Error monitoring/,
     });
     expect(errorMonitoringCard).toBeChecked();
+  });
+
+  it('renders volume strings from featureMeta', () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
+      />
+    );
+
+    expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
+    expect(screen.getByText('5M spans / mo')).toBeInTheDocument();
+    expect(screen.getByText('Usage-based')).toBeInTheDocument();
+  });
+
+  it('renders skeletons in place of volume tags while loading', () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
+        isVolumeLoading
+      />
+    );
+
+    expect(screen.queryByText('5,000 errors / mo')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(
+      ALL_FEATURES.length
+    );
   });
 });

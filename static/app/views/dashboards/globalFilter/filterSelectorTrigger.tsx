@@ -19,7 +19,7 @@ type FilterSelectorTriggerProps = {
   globalFilter: GlobalFilter;
   operator: TermOperator;
   options: Array<SelectOption<string>>;
-  queryResult: UseQueryResult<string[], Error>;
+  queryResult: UseQueryResult<string[]>;
 };
 
 export function FilterSelectorTrigger({

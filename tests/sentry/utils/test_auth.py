@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
@@ -52,6 +53,27 @@ class EmailAuthBackendTest(TestCase):
     def test_does_not_authenticate_with_invalid_password(self) -> None:
         result = self.backend.authenticate(HttpRequest(), username="foo", password="pizza")
         self.assertEqual(result, None)
+
+    def test_suspended_user_can_authenticate_but_login_blocked(self) -> None:
+        self.user.update(is_suspended=True)
+        result = self.backend.authenticate(HttpRequest(), username="foo", password="bar")
+        assert result is not None
+        assert result.id == self.user.id
+
+    def test_get_user_returns_none_for_suspended_user(self) -> None:
+        self.user.update(is_suspended=True)
+        with mock.patch("sentry.utils.auth.record_suspended_user_rejection") as mock_metric:
+            result = self.backend.get_user(self.user.id)
+        assert result is None
+        mock_metric.assert_called_once_with("session_get_user")
+
+    def test_get_user_returns_user_for_active_user(self) -> None:
+        result = self.backend.get_user(self.user.id)
+        assert result is not None
+        assert result.id == self.user.id
+
+    def test_user_can_authenticate_allows_active(self) -> None:
+        assert self.backend.user_can_authenticate(self.user) is True
 
 
 @control_silo_test
@@ -163,6 +185,13 @@ class LoginTest(TestCase):
         assert login(request, self.user)
         assert request.user == self.user
         assert request.session["_nonce"] == self.user.session_nonce
+
+    def test_suspended_user_cannot_login(self) -> None:
+        self.user.update(is_suspended=True)
+        request = self._make_request()
+        with mock.patch("sentry.utils.auth.record_suspended_user_rejection") as mock_metric:
+            assert not login(request, self.user)
+        mock_metric.assert_called_once_with("session_login")
 
 
 def test_sso_expiry_default() -> None:

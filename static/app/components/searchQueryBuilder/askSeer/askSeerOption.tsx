@@ -42,11 +42,6 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
   const handleClick = () => {
     if (optionDisableOverride) return;
-
-    trackAnalytics('trace.explorer.ai_query_interface', {
-      organization,
-      action: 'opened',
-    });
     trackAnalytics('ai_query.interface', {
       organization,
       area: analyticsArea,

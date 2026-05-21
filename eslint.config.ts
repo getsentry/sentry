@@ -141,11 +141,6 @@ const restrictedImportPaths = [
     message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
   },
   {
-    name: 'sentry/utils/withSentryRouter',
-    message:
-      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-  },
-  {
     name: 'qs',
     message: 'Please use query-string instead of qs',
   },
@@ -315,7 +310,6 @@ export default typescript.config([
     name: 'eslint/rules',
     // https://eslint.org/docs/latest/rules/
     rules: {
-      'array-callback-return': 'error',
       'block-scoped-var': 'error',
       eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
@@ -359,6 +353,14 @@ export default typescript.config([
             "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
           message:
             'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+        {
+          selector: "MemberExpression[object.name='React'][property.name='Fragment']",
+          message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+        },
+        {
+          selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
+          message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
         },
         {
           selector:
@@ -417,9 +419,7 @@ export default typescript.config([
       'wrap-iife': ['error', 'any'],
       yoda: 'error',
       'no-cond-assign': ['error', 'always'],
-
-      // TODO: Evaluate which rules we could practically fix violations from & enable
-      'no-prototype-builtins': 'off',
+      'no-prototype-builtins': 'error',
     },
   },
   {
@@ -612,9 +612,7 @@ export default typescript.config([
           '@typescript-eslint/no-misused-spread': 'off',
           '@typescript-eslint/no-mixed-enums': 'off',
           '@typescript-eslint/no-redundant-type-constituents': 'off',
-          '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'off',
           '@typescript-eslint/no-unnecessary-condition': 'off',
-          '@typescript-eslint/no-unnecessary-type-arguments': 'off',
           '@typescript-eslint/no-unnecessary-type-conversion': 'off',
           '@typescript-eslint/no-unsafe-argument': 'off',
           '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -794,23 +792,23 @@ export default typescript.config([
     extends: [unicorn.configs.unopinionated],
     rules: {
       'unicorn/custom-error-definition': 'error',
+      'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
 
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-array-push-push': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-zero-fractions': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'error',
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'error',
 
       // TODO: Evaluate which rules we could practically fix violations from & enable
       'unicorn/consistent-date-clone': 'off',
@@ -880,6 +878,7 @@ export default typescript.config([
         'error',
         {additionalTestBlockFunctions: ['it.isKnownFlake']},
       ],
+      'jest/prefer-jest-mocked': 'error',
 
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
@@ -1396,6 +1395,19 @@ export default typescript.config([
     files: ['static/app/components/core/inspector.tsx'],
     rules: {
       'boundaries/dependencies': 'off',
+    },
+  },
+  {
+    name: 'files/scraps',
+    files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+    ignores: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      ...(enableTypeAwareLinting && {
+        '@typescript-eslint/no-unsafe-argument': 'error',
+        '@typescript-eslint/no-unsafe-call': 'error',
+        '@typescript-eslint/no-unsafe-return': 'error',
+      }),
     },
   },
 ]);

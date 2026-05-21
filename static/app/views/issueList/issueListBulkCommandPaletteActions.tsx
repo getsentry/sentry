@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -57,13 +57,11 @@ function useOrgMembers() {
   });
 }
 
-function AssignActions({
+function AssignActionItems({
   onConfirmBulkUpdate,
   onBulkUpdate,
-  label = t('Assign to'),
 }: {
   onBulkUpdate: (data: Record<string, unknown>) => void;
-  label?: string;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   const user = useUser();
@@ -81,11 +79,7 @@ function AssignActions({
   );
 
   return (
-    <CMDKAction
-      display={{label, icon: <IconUser />}}
-      keywords={['assign', 'owner', 'assignee']}
-      prompt={t('Search assignees...')}
-    >
+    <Fragment>
       {user && (
         <CMDKAction
           display={{
@@ -156,6 +150,29 @@ function AssignActions({
           }
         />
       ))}
+    </Fragment>
+  );
+}
+
+function AssignActions({
+  onConfirmBulkUpdate,
+  onBulkUpdate,
+  label = t('Assign to'),
+}: {
+  onBulkUpdate: (data: Record<string, unknown>) => void;
+  label?: string;
+  onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
+}) {
+  return (
+    <CMDKAction
+      display={{label, icon: <IconUser />}}
+      keywords={['assign', 'owner', 'assignee']}
+      prompt={t('Search assignees...')}
+    >
+      <AssignActionItems
+        onBulkUpdate={onBulkUpdate}
+        onConfirmBulkUpdate={onConfirmBulkUpdate}
+      />
     </CMDKAction>
   );
 }
@@ -356,13 +373,18 @@ export function IssueListMarkAllCommandPaletteAction(
       }}
       keywords={['issues', 'all issues', 'bulk', 'resolve', 'archive', 'assign']}
     >
-      <AssignActions
-        label={t('Assigned to')}
-        onBulkUpdate={handleBulkUpdateAll}
-        onConfirmBulkUpdate={(actionLabel, onConfirm) =>
-          confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
-        }
-      />
+      <CMDKAction
+        display={{label: t('Assigned to'), icon: <IconUser />}}
+        keywords={['assign', 'owner', 'assignee']}
+        prompt={t('Search assignees...')}
+      >
+        <AssignActionItems
+          onBulkUpdate={handleBulkUpdateAll}
+          onConfirmBulkUpdate={(actionLabel, onConfirm) =>
+            confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
+          }
+        />
+      </CMDKAction>
       <CMDKAction
         display={{label: t('Resolved'), icon: <IconCheckmark />}}
         keywords={['resolve', 'fix', 'done', 'close']}

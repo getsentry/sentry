@@ -283,7 +283,7 @@ function _getWidgetExploreUrl(
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
   const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
 
-  let sort: string | undefined = undefined;
+  let sort: string | undefined;
   if (sortColumn === SpanFields.IS_STARRED_TRANSACTION) {
     // is_starred_transaction is not supported in explore
     sort = undefined;

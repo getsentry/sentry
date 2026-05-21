@@ -106,7 +106,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
   const mepSetting = useMEPSettingContext();
   const {isLoading: isLoadingReleases, primaryRelease} = useReleaseSelection();
   const location = useLocation();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const dataset = DiscoverDatasets.SPANS;

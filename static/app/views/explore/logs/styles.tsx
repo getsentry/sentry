@@ -23,7 +23,9 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  highlighted?: boolean;
   isClickable?: boolean;
+  pinned?: boolean;
 }
 
 const StyledPanel = styled(Panel)`
@@ -31,6 +33,9 @@ const StyledPanel = styled(Panel)`
 `;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
+  margin-right: -1rem;
+  padding-right: 1rem;
+
   &:not(thead > &) {
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
@@ -57,14 +62,30 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     height: 24px;
   }
 
-  &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
-    color: ${p => p.theme.tokens.content.danger};
+  ${p =>
+    p.highlighted &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      color: ${p.theme.tokens.content.danger};
 
-    &:hover {
-      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+      &:hover {
+        background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      }
     }
-  }
+  `}
+
+  ${p =>
+    p.pinned &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
+
+      &:hover {
+        background-color: ${p.theme.tokens.interactive.transparent.accent.selected.background.active};
+      }
+    }
+  `}
 
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
@@ -122,7 +143,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 2px ${p => p.theme.space.xl};
+    padding: 0 ${p => p.theme.space.md};
   }
 `;
 
@@ -130,13 +151,14 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
   return <Table contentsBody {...props} />;
 }
 
-export const LogTable = styled(ContentsTable)`
+export const LogTable = styled(ContentsTable)<{minWidth: string}>`
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   margin-bottom: 0;
   overflow-x: hidden;
+  min-width: ${p => p.minWidth};
 `;
 
 export const LogTableBody = styled(TableBody)<{
@@ -165,7 +187,8 @@ export const LogTableBody = styled(TableBody)<{
       ? ''
       : `
     overflow-y: auto;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     `}
 `;
 
@@ -214,7 +237,7 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
-export function LogFirstCellContent(props: FlexProps<'div'>) {
+export function LogFirstCellContent(props: FlexProps) {
   return <Flex align="center" {...props} />;
 }
 
@@ -285,6 +308,26 @@ export const LogsFilteredHelperText = styled('span')`
   background-color: ${p => p.theme.colors.gray200};
 `;
 
+export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
+  position: absolute;
+  right: calc(-1 * var(--logsPinButtonArea));
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  ${LogTableRow}:focus-within &,
+  ${LogTableRow}:hover & {
+    background: none;
+    opacity: 1;
+  }
+
+  &:focus-within svg,
+  &:hover svg {
+    fill: ${p => p.theme.tokens.content.accent};
+    transition: fill ${p => p.theme.motion.smooth.fast};
+  }
+`;
+
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
   white-space: ${p => (p.wrapText ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
@@ -312,11 +355,11 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${p => p.theme.space.md};
 `;
 
-export function TableActionsContainer(props: FlexProps<'div'>) {
+export function TableActionsContainer(props: FlexProps) {
   return <Flex justify="end" align="center" gap="md" {...props} />;
 }
 
-export function LogsItemContainer(props: FlexProps<'div'>) {
+export function LogsItemContainer(props: FlexProps) {
   return (
     <Flex
       direction="column"
@@ -328,7 +371,7 @@ export function LogsItemContainer(props: FlexProps<'div'>) {
   );
 }
 
-export function LogsTableActionsContainer(props: FlexProps<'div'>) {
+export function LogsTableActionsContainer(props: FlexProps) {
   return (
     <Flex
       direction="row"
@@ -340,7 +383,7 @@ export function LogsTableActionsContainer(props: FlexProps<'div'>) {
   );
 }
 
-export function LogsGraphContainer(props: FlexProps<'div'>) {
+export function LogsGraphContainer(props: FlexProps) {
   return (
     <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
   );

@@ -1208,7 +1208,7 @@ class WeeklyReportsTest(
             org.id,
             batch_id=batch_id,
             dry_run=False,
-            target_user="dummy",
+            target_user=None,
             email_override="doesntmatter@smad.com",
         )
 
@@ -1217,7 +1217,7 @@ class WeeklyReportsTest(
             extra={
                 "batch_id": str(batch_id),
                 "organization": org.id,
-                "target_user": "dummy",
+                "target_user": None,
                 "email_override": "doesntmatter@smad.com",
             },
         )

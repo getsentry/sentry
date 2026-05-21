@@ -221,6 +221,52 @@ describe('AutomationDetail', () => {
     });
   });
 
+  it('displays no connections warning when detectorIds is empty', async () => {
+    const automationWithNoConnections = AutomationFixture({
+      ...automation,
+      detectorIds: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/',
+      body: automationWithNoConnections,
+    });
+
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await screen.findByRole('heading', {name: 'Test Automation'});
+
+    expect(
+      screen.getByText(
+        'This alert is not connected to a project or monitor and will not trigger.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not display no connections warning when detectorIds exist', async () => {
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await screen.findByRole('heading', {name: 'Test Automation'});
+
+    expect(
+      screen.queryByText(
+        'This alert is not connected to a project or monitor and will not trigger.'
+      )
+    ).not.toBeInTheDocument();
+  });
+
   it('displays connected projects and monitors', async () => {
     const project = ProjectFixture({id: '10', slug: 'my-project', name: 'My Project'});
     ProjectsStore.loadInitialData([project]);

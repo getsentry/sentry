@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import type {HelpProps} from './help';
 import {CSPHelp as Help} from './help';
@@ -68,8 +68,8 @@ export function Csp({data, event}: Props) {
   );
 
   return (
-    <InterimSection title={t('CSP Report')} actions={actions} type={SectionKey.CSP}>
+    <FoldSection title={t('CSP Report')} actions={actions} sectionKey={SectionKey.CSP}>
       {getView(view, cleanData, meta)}
-    </InterimSection>
+    </FoldSection>
   );
 }

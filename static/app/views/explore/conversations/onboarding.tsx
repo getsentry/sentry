@@ -116,7 +116,7 @@ function ConversationWaitingIndicator({
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button priority="primary" onClick={onDismiss}>
+    <Button variant="primary" onClick={onDismiss}>
       {t('View Conversations')}
     </Button>
   ) : (

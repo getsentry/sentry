@@ -99,6 +99,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  onSearchQueryClear?: () => void;
   openOnFocus?: boolean;
   placeholder?: string;
   ref?: React.Ref<HTMLInputElement>;
@@ -364,6 +365,7 @@ export function SearchQueryBuilderCombobox<
   onKeyUp,
   onInputChange,
   onOpenChange,
+  onSearchQueryClear,
   autoFocus,
   openOnFocus,
   onFocus,
@@ -622,6 +624,7 @@ export function SearchQueryBuilderCombobox<
           if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
             e.preventDefault();
             e.stopPropagation();
+            onSearchQueryClear?.();
             state.close();
             clearSearchQuery({reopenDropdown: true});
             return;

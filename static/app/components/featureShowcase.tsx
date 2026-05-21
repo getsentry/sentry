@@ -79,11 +79,11 @@ function StepActions({children}: {children?: ReactNode}) {
       {children}
       {hasPrevious && <Button onClick={back}>{t('Back')}</Button>}
       {hasNext ? (
-        <Button priority="primary" onClick={advance}>
+        <Button variant="primary" onClick={advance}>
           {t('Next')}
         </Button>
       ) : (
-        <Button priority="primary" onClick={close} aria-label={t('Complete tour')}>
+        <Button variant="primary" onClick={close} aria-label={t('Complete tour')}>
           {t('Done')}
         </Button>
       )}
@@ -165,7 +165,7 @@ function FeatureShowcase({closeModal, children, onStepChange}: FeatureShowcasePr
     <Stack data-test-id="feature-showcase" gap="md">
       <Flex justify="end">
         <Button
-          priority="transparent"
+          variant="transparent"
           size="sm"
           onClick={closeModal}
           aria-label={t('Close tour')}

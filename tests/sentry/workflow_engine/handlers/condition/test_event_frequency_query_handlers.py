@@ -3,11 +3,13 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
+from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+    BaseEventFrequencyQueryHandler,
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
     PercentSessionsQueryHandler,
@@ -16,6 +18,51 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import EventFrequ
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+
+
+_TRUTHY_VALUES: list[bool | int | str] = [True, 1, "true", "True", "1", "yes", "Yes"]
+_FALSY_VALUES: list[bool | int | str] = [False, 0, "false", "False", "0", "no", "No"]
+
+
+@pytest.mark.parametrize("attribute", ["error.handled", "error.unhandled"])
+@pytest.mark.parametrize("value", _TRUTHY_VALUES + _FALSY_VALUES)
+def test_error_handled_normalizes_value(attribute: str, value: bool | int | str) -> None:
+    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+        {"attribute": attribute, "match": "eq", "value": value}, TSDBModel.group
+    )
+    assert cond is not None
+    _, _, rhs = cond
+
+    is_truthy = value in _TRUTHY_VALUES
+    if attribute == "error.unhandled":
+        is_truthy = not is_truthy
+    assert rhs == (1 if is_truthy else 0)
+
+
+@pytest.mark.parametrize("attribute", ["error.handled", "error.unhandled"])
+def test_error_handled_unrecognized_value_returns_none(attribute: str) -> None:
+    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+        {"attribute": attribute, "match": "eq", "value": "garbage"}, TSDBModel.group
+    )
+    assert cond is None
+
+
+@pytest.mark.parametrize(
+    ("attribute", "match"),
+    [
+        ("error.handled", "is"),
+        ("error.handled", "ns"),
+        ("error.unhandled", "is"),
+        ("error.unhandled", "ns"),
+    ],
+)
+def test_error_handled_is_set_not_set_skips_normalization(attribute: str, match: str) -> None:
+    # IS_SET / NOT_SET filters omit "value" from the condition dict; the normalization
+    # block must not run for these match types or it will KeyError.
+    cond = BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+        {"attribute": attribute, "match": match}, TSDBModel.group
+    )
+    assert cond is not None
 
 
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
@@ -337,7 +384,10 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         error_group_ids = category_group_ids[GroupCategory.ERROR]
         assert self.event.group_id in error_group_ids
         assert self.event2.group_id in error_group_ids
-        assert self.perf_event.group_id in category_group_ids[GroupCategory.PERFORMANCE]
+        assert (
+            self.perf_event.group_id
+            in category_group_ids[GroupCategory(PerformanceNPlusOneGroupType.category)]
+        )
 
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):

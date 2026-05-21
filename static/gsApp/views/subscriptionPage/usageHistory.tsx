@@ -132,7 +132,7 @@ type RowProps = {
 
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(history.isCurrent);
+  const [expanded, setExpanded] = useState(history.isCurrent);
   const {projects, onSearch: onProjectSearch} = useProjects();
 
   function renderOnDemandUsage({

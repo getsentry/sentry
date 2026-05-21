@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -19,6 +20,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {tryParsePythonDict} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -164,7 +166,9 @@ function getAIInputMessages(
 
   if (systemInstructions) {
     return {
-      messages: [{role: 'system', content: systemInstructions.toString()}],
+      messages: [
+        {role: 'system', content: unwrapStructuredContent(systemInstructions.toString())},
+      ],
       fixedInvalidJson: false,
     };
   }
@@ -182,7 +186,47 @@ function prependSystemInstructions(
   if (messages.length > 0 && messages[0]!.role === 'system') {
     return messages;
   }
-  return [{role: 'system', content: systemInstructions}, ...messages];
+  return [
+    {role: 'system', content: unwrapStructuredContent(systemInstructions)},
+    ...messages,
+  ];
+}
+
+/**
+ * Extracts text from structured content blocks like
+ * `[{type: 'text', content: '...'}]` (Anthropic-style system prompts).
+ * Falls back to the raw string when the format is unrecognized.
+ */
+function unwrapStructuredContent(raw: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = tryParsePythonDict(raw);
+  }
+
+  if (Array.isArray(parsed)) {
+    const texts: string[] = [];
+    for (const item of parsed) {
+      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        const record = item as Record<string, unknown>;
+        const text =
+          typeof record.text === 'string'
+            ? record.text
+            : typeof record.content === 'string'
+              ? record.content
+              : null;
+        if (text) {
+          texts.push(text);
+        }
+      }
+    }
+    if (texts.length > 0) {
+      return texts.join('\n');
+    }
+  }
+
+  return raw;
 }
 
 function getAIToolInput(
@@ -245,18 +289,36 @@ function MessagesArrayRenderer({
     }
   }, [messages.length, previousMessagesLength]);
 
+  const renderMessageContent = (message: AIMessage) =>
+    typeof message.content === 'string' ? (
+      <AIContentRenderer text={message.content} />
+    ) : (
+      <TraceDrawerComponents.MultilineJSON value={message.content} maxDefaultDepth={2} />
+    );
+
+  const renderSystemMessageContent = (message: AIMessage) => (
+    <SystemMessageClippedBox
+      clipHeight={150}
+      buttonProps={{variant: 'secondary', size: 'xs'}}
+    >
+      {renderMessageContent(message)}
+    </SystemMessageClippedBox>
+  );
+
   const renderMessage = (message: AIMessage, index: number) => {
+    if (message.role === 'system') {
+      return (
+        <Fragment key={index}>
+          <RoleLabel>{message.role}</RoleLabel>
+          {renderSystemMessageContent(message)}
+        </Fragment>
+      );
+    }
+
     return (
       <Fragment key={index}>
         <RoleLabel>{message.role}</RoleLabel>
-        {typeof message.content === 'string' ? (
-          <AIContentRenderer text={message.content} />
-        ) : (
-          <TraceDrawerComponents.MultilineJSON
-            value={message.content}
-            maxDefaultDepth={2}
-          />
-        )}
+        {renderMessageContent(message)}
       </Fragment>
     );
   };
@@ -324,6 +386,11 @@ const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
   &::first-letter {
     text-transform: capitalize;
   }
+`;
+
+const SystemMessageClippedBox = styled(ClippedBox)`
+  padding: 0;
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const ButtonDivider = styled('div')`

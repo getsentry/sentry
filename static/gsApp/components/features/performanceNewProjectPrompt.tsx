@@ -24,7 +24,7 @@ export function PerformanceNewProjectPrompt({organization}: Props) {
           )}
           <StyledButton
             size="sm"
-            priority="primary"
+            variant="primary"
             icon={<IconBusiness />}
             onClick={() =>
               openUpsellModal({

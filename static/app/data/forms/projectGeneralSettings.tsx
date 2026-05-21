@@ -146,7 +146,7 @@ export const fields = {
             </CodeBlock>
           }
         >
-          <Button priority="link" size="xs">
+          <Button variant="link" size="xs">
             {t('View Examples')}
           </Button>
         </Hovercard>

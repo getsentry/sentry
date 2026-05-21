@@ -6,9 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {Input, NumberInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {transformChoices} from 'sentry/components/backendJsonFormAdapter/utils';
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
@@ -270,7 +270,7 @@ function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
   const fieldConfig = formFields?.value;
 
   if (fieldConfig?.type !== 'choice') {
-    return undefined;
+    return;
   }
 
   return fieldConfig.choices?.find(
@@ -324,6 +324,8 @@ export function RuleNode({
   incompatibleRule,
   incompatibleBanner,
 }: Props) {
+  const {openModal} = useModal();
+
   const handleDelete = useCallback(() => {
     onDelete(index);
   }, [index, onDelete]);
@@ -606,7 +608,8 @@ export function RuleNode({
           // Overwrite the choices because the user's pick is in this list.
           if (
             field.name in formData &&
-            fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+            fetchedFieldOptionsCache &&
+            Object.hasOwn(fetchedFieldOptionsCache, field.name)
           ) {
             field.choices = fetchedFieldOptionsCache[field.name];
           }

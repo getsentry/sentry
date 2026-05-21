@@ -34,6 +34,11 @@ class SearchResolverConfig:
     extrapolation_mode: ExtrapolationMode.ValueType | None = None
     # Whether to set the timestamp granularities to stable buckets
     stable_timestamp_quantization: bool = True
+    # Whether to 0 when timeseries results have missing data
+    zerofill_timeseries: bool = True
+    # When True, ResolvedAttributes whose internal_type is ARRAY are silently dropped based on
+    # feature flag organizations:trace-item-details-array-fields
+    disable_array_attributes: bool = True
 
     def extra_conditions(
         self,
@@ -76,10 +81,15 @@ class AttributeSource(TypedDict):
     is_transformed_alias: NotRequired[bool]
 
 
+ScalarType = Literal["str", "int", "float", "bool"]
+ColumnType = Literal["string", "number", "boolean", "array"]
+ScalarValueType = float | bool | str
+
+
 class TraceItemAttribute(TypedDict):
     name: str
-    type: Literal["string", "number", "boolean"]
-    value: str | int | float | bool
+    type: ScalarType | Literal["array"]
+    value: str | int | float | bool | list[str | int | float | bool] | None
 
 
 class EAPResponse(EventsResponse):

@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {
   Container,
   Stack,
-  type ContainerProps,
   type FlexProps,
+  type ContainerProps,
 } from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
@@ -158,7 +158,7 @@ export const HeaderTabs = styled(Tabs)`
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled((props: ContainerProps<'div'> & {noRowGap?: boolean}) => {
+export const Body = styled((props: ContainerProps & {noRowGap?: boolean}) => {
   const hasPageFrame = useHasPageFrameFeature();
   return (
     <Container
@@ -219,6 +219,6 @@ export function Main({children, width = 'twothirds', ...props}: MainProps) {
 /**
  * Container for the right column the 66/33 layout
  */
-export const Side = styled('aside')`
-  grid-column: 2/3;
-`;
+export function Side(props: ContainerProps<'aside'>) {
+  return <Container as="aside" column="2/3" {...props} />;
+}

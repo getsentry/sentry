@@ -145,7 +145,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       </Stack>
 
       <Flex gap="md" marginTop="sm">
-        <Button priority="primary" onClick={handleSave} disabled={!isDirty}>
+        <Button variant="primary" onClick={handleSave} disabled={!isDirty}>
           {t('Save Rule')}
         </Button>
         <Button onClick={handleDelete}>{t('Delete Rule')}</Button>

@@ -19,6 +19,8 @@ type State = DefaultSettings['state'] & {
   showOnPremisesConfiguration?: boolean;
 };
 
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 export class Settings extends DefaultSettings<Props, State> {
   REQUIRED_FIELDS = ['account_email', 'api_token', 'website_id'];
   ON_PREMISES_FIELDS = ['api_url', 'player_url'];

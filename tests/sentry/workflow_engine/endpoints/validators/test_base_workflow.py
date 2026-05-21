@@ -102,6 +102,11 @@ class TestWorkflowValidator(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
+    def test_invalid_data__action_filters_with_non_dict_items(self) -> None:
+        self.valid_data["actionFilters"] = ["some_string"]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+
     def test_invalid_data__no_name(self) -> None:
         self.valid_data["name"] = ""
         validator = WorkflowValidator(data=self.valid_data, context=self.context)

@@ -42,7 +42,7 @@ export function BillingInfoCard({
           key="edit-billing-information"
           aria-label={t('Edit billing information')}
           to={`/settings/${organization.slug}/billing/details/`}
-          priority="link"
+          variant="link"
           size="sm"
         >
           <Text size="sm" variant="accent">

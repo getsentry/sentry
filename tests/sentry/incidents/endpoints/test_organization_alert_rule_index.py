@@ -60,7 +60,6 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -186,13 +185,14 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
     def test_simple(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
-        alert_rule = self.create_alert_rule()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug)
 
-        assert resp.data == serialize([self.alert_rule, alert_rule])
+        assert resp.data[0] == serialize(
+            self.detector, self.user, WorkflowEngineDetectorSerializer()
+        )
 
     def test_workflow_engine_serializer(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -252,17 +252,15 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
 
-        # Create rule and manually set it to upsampled_count() (simulating what happens after conversion)
-        alert_rule = self.create_alert_rule()
-        alert_rule.snuba_query.aggregate = "upsampled_count()"
-        alert_rule.snuba_query.save()
+        # Manually set self.alert_rule to upsampled_count() (simulating what happens after conversion)
+        self.alert_rule.snuba_query.aggregate = "upsampled_count()"
+        self.alert_rule.snuba_query.save()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug)
 
-        # Find our rule in the response (should be the second one, first is self.alert_rule)
-        rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
+        rule = next(rule for rule in resp.data if rule["id"] == str(self.alert_rule.id))
 
         assert rule["aggregate"] == "count()", (
             "LIST should return count() to user, hiding internal upsampled_count() storage"
@@ -368,40 +366,6 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
 
         assert len(resp.data) == 1
         assert resp.data[0]["name"] == self.detector.name
-
-
-@freeze_time("2024-12-11 03:21:34")
-class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
-    """Delta tests comparing old vs new serializer output for the list endpoint."""
-
-    @with_feature("organizations:incidents")
-    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
-        """New serializer output on the list endpoint must match old serializer output."""
-        team = self.create_team(organization=self.organization, members=[self.user])
-        ProjectTeam.objects.create(project=self.project, team=team)
-        self.login_as(self.user)
-
-        old_resp = self.get_success_response(self.organization.slug)
-        old_data = old_resp.data
-        assert len(old_data) > 0
-
-        with self.feature("organizations:workflow-engine-rule-serializers"):
-            new_resp = self.get_success_response(self.organization.slug)
-        new_data = new_resp.data
-        assert len(new_data) == len(old_data)
-
-        for old_rule, new_rule in zip(old_data, new_data):
-            assert_serializer_parity(
-                old=old_rule,
-                new=new_rule,
-                known_differences={
-                    # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
-                    # but workflow engine always creates a resolve condition during migration.
-                    # Cannot distinguish between explicit None vs migrated value without AlertRule.
-                    "resolveThreshold",
-                    "triggers.resolveThreshold",  # same reason as above
-                },
-            )
 
 
 @freeze_time()
@@ -1325,6 +1289,71 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             self.get_success_response(self.organization.slug, status_code=201, **alert_rule)
+
+    @responses.activate
+    def test_sentry_app_installation_in_different_org(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=202,
+        )
+
+        # Construct a user in another org, with a sentry app/install
+        other_user = self.create_user()
+        other_org = self.create_organization(owner=other_user)
+        self.login_as(other_user)
+        sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=other_org,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        sentry_app_install = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=other_org, user=other_user
+        )
+
+        # As another user, belonging to a different org, try to use the first user/org's app install
+        # uuid.
+        self.login_as(self.user)
+        other_sentry_app = self.create_sentry_app(
+            name="foo2",
+            organization=self.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.create_sentry_app_installation(
+            slug=other_sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        alert_rule = {
+            **self.alert_rule_dict,
+            "triggers": [
+                {
+                    "actions": [
+                        {
+                            "type": "sentry_app",
+                            "targetType": "sentry_app",
+                            "targetIdentifier": other_sentry_app.id,
+                            "hasSchemaFormConfig": True,
+                            "sentryAppId": other_sentry_app.id,
+                            "sentryAppInstallationUuid": sentry_app_install.uuid,
+                            "settings": [
+                                {"name": "title", "value": "test title"},
+                                {"name": "description", "value": "test description"},
+                            ],
+                        }
+                    ],
+                    "alertThreshold": 300,
+                    "label": "critical",
+                }
+            ],
+        }
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            assert (
+                self.get_error_response(
+                    self.organization.slug, status_code=400, **alert_rule
+                ).json()["sentryApp"][0]
+                == "The installation does not exist."
+            )
 
     @responses.activate
     def test_error_response_from_sentry_app(self) -> None:

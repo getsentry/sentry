@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -87,7 +87,7 @@ export function InsightSourcesFooter({
           >
             <SourceCard
               size="xs"
-              priority={shouldBePrimary ? 'primary' : 'default'}
+              variant={shouldBePrimary ? 'primary' : 'secondary'}
               onClick={sourceCard.onClick}
               icon={sourceCard.icon}
               isHighlighted={shouldBePrimary}
@@ -124,7 +124,7 @@ export function InsightSourcesFooter({
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <BottomDivider />
       <Flex justify="between" paddingTop="xl" paddingBottom="md">
         <Flex justify="start" align="stretch" gap="md" width="100%">
@@ -158,7 +158,7 @@ export function InsightSourcesFooter({
               <FooterSubmitButton
                 type="submit"
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 tooltipProps={{title: t('Give feedback and rethink the answer')}}
                 disabled={!newInsightText.trim()}
               >
@@ -168,7 +168,7 @@ export function InsightSourcesFooter({
           </FooterInputContainer>
         </Flex>
       </Flex>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

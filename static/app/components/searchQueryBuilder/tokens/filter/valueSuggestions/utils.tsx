@@ -28,7 +28,7 @@ export function getValueSuggestions({
     case FieldValueType.NUMBER:
     case FieldValueType.CURRENCY:
     case FieldValueType.INTEGER:
-      return getNumericSuggestions(filterValue);
+      return getNumericSuggestions(filterValue, valueType);
     case FieldValueType.DURATION:
       return getDurationSuggestions(filterValue, token);
     case FieldValueType.SIZE:

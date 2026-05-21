@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -200,7 +201,7 @@ export function PlatformPicker({
   return (
     <Fragment>
       <NavContainer className={navClassName}>
-        <TabsContainer>
+        <Container marginBottom="xl">
           <Tabs
             value={category}
             onChange={val => {
@@ -219,7 +220,7 @@ export function PlatformPicker({
               ))}
             </TabList>
           </Tabs>
-        </TabsContainer>
+        </Container>
         {showFilterBar && (
           <StyledSearchBar
             size="sm"
@@ -271,7 +272,7 @@ export function PlatformPicker({
               linkOther: (
                 <Button
                   aria-label={t("Select 'Other'")}
-                  priority="link"
+                  variant="link"
                   onClick={() => {
                     setFilter(otherPlatform.name);
                     setPlatform({...otherPlatform, category});
@@ -285,10 +286,6 @@ export function PlatformPicker({
     </Fragment>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const NavContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
@@ -354,7 +351,7 @@ const PlatformCard = styled(
       {selected && visibleSelection && (
         <ClearButton
           icon={<IconClose />}
-          priority="transparent"
+          variant="transparent"
           size="xs"
           onClick={onClear}
           aria-label={t('Clear')}

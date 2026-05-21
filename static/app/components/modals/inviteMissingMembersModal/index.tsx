@@ -48,8 +48,7 @@ export function InviteMissingMembersModal({
     externalId: member.externalId,
     selected: true,
   }));
-  const [memberInvites, setMemberInvites] =
-    useState<MissingMemberInvite[]>(initialMemberInvites);
+  const [memberInvites, setMemberInvites] = useState(initialMemberInvites);
   const referrer = 'github_nudge_invite';
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
@@ -198,7 +197,11 @@ export function InviteMissingMembersModal({
     });
   };
 
-  const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
+  const overrideRenderer: InviteModalRenderFunc = ({
+    sendInvites,
+    canSend,
+    headerInfo,
+  }) => (
     <Fragment>
       <h4>{t('Invite Your Dev Team')}</h4>
       {headerInfo}
@@ -290,7 +293,7 @@ export function InviteMissingMembersModal({
           </Button>
           <Button
             size="sm"
-            priority="primary"
+            variant="primary"
             aria-label={t('Send Invites')}
             onClick={sendInvites}
             disabled={!canSend || selectedCount === 0}
@@ -314,7 +317,7 @@ export function InviteMissingMembersModal({
       willInvite
       onSendInvites={sendMemberInvites}
     >
-      {hookRenderer}
+      {overrideRenderer}
     </InviteModalHook>
   );
 }

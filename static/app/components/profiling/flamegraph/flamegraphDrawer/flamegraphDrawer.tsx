@@ -120,7 +120,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ProfilingDetailsListItem className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
             data-title={t('Bottom Up')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onBottomUpClick}
           >
@@ -133,7 +133,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         >
           <Button
             data-title={t('Top Down')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onTopDownClick}
           >
@@ -144,7 +144,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ProfilingDetailsListItem className={treeType === 'all' ? 'active' : undefined}>
           <Button
             data-title={t('All Frames')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onAllApplicationsClick}
           >
@@ -156,7 +156,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         >
           <Button
             data-title={t('Application Frames')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onApplicationsClick}
           >
@@ -169,7 +169,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         >
           <Button
             data-title={t('System Frames')}
-            priority="link"
+            variant="link"
             size="zero"
             onClick={onSystemsClick}
           >
@@ -206,7 +206,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <ProfilingDetailsListItem margin="none">
             <ExportProfileButton
               size="zero"
-              priority="transparent"
+              variant="transparent"
               eventId={params.eventId}
               projectId={params.projectId}
               orgId={orgSlug}
@@ -219,7 +219,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <Flex align="center" gap="2xs" height="100%">
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
-                priority="transparent"
+                variant="transparent"
                 onClick={onTableLeftClick}
                 tooltipProps={{title: t('Table left')}}
                 aria-label={t('Table left')}
@@ -229,7 +229,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
-                priority="transparent"
+                variant="transparent"
                 onClick={onTableBottomClick}
                 tooltipProps={{title: t('Table bottom')}}
                 aria-label={t('Table bottom')}
@@ -239,7 +239,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             </Tooltip>
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
-                priority="transparent"
+                variant="transparent"
                 onClick={onTableRightClick}
                 tooltipProps={{title: t('Table right')}}
                 aria-label={t('Table right')}

@@ -124,11 +124,11 @@ export function formatDuration({
               } else {
                 incr += seconds * PRECISION_FACTORS.sec;
                 const milliseconds = Math.floor(msToPrecision(ms - incr, 'ms'));
-                output.push(seconds || milliseconds ? String(seconds) : '');
                 output.push(
-                  milliseconds ? '.' + milliseconds.toString().padStart(3, '0') : ''
+                  seconds || milliseconds ? String(seconds) : '',
+                  milliseconds ? '.' + milliseconds.toString().padStart(3, '0') : '',
+                  seconds || milliseconds ? 'S' : ''
                 );
-                output.push(seconds || milliseconds ? 'S' : '');
               }
             }
           }

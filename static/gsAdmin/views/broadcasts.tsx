@@ -2,13 +2,13 @@ import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import {getBroadcastSchema} from 'admin/schemas/broadcasts';
 
 const getRow = (row: any) => [
@@ -36,6 +36,8 @@ const getRow = (row: any) => [
 ];
 
 export function Broadcasts() {
+  const {openModal} = useModal();
+
   const hasPermission = ConfigStore.get('user').permissions.has('broadcasts.admin');
   const fields = getBroadcastSchema();
 
@@ -56,7 +58,7 @@ export function Broadcasts() {
               : "You don't have the broadcasts.admin permission",
           }}
           onClick={handleNewBroadcast}
-          priority="primary"
+          variant="primary"
           size="sm"
         >
           New Broadcast

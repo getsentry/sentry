@@ -29,7 +29,7 @@ export function useSortErrors({items}: Opts) {
   const sortConfig = useMemo(
     () =>
       ({
-        asc: sortAsc === true,
+        asc: sortAsc,
         by: sortBy,
         getValue: SortStrategies[sortBy]!,
       }) satisfies SortConfig<ErrorFrame>,

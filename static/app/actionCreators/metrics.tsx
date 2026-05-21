@@ -1,9 +1,9 @@
-import type {ApiResult, Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 type DoReleaseHealthRequestOptions = {
   field: string[];
@@ -25,31 +25,27 @@ type DoReleaseHealthRequestOptions = {
   statsPeriodStart?: string;
 };
 
-export const doReleaseHealthRequest = (
-  api: Client,
-  {
-    field,
-    orgSlug,
-    cursor,
-    environment,
-    groupBy,
-    includeSeries,
-    includeTotals,
-    interval,
-    limit,
-    orderBy,
-    project,
-    query,
-    statsPeriodStart,
-    statsPeriodEnd,
-    ...dateTime
-  }: DoReleaseHealthRequestOptions
-): Promise<ApiResult<SessionApiResponse>> => {
+function buildReleaseHealthUrlQuery({
+  field,
+  cursor,
+  environment,
+  groupBy,
+  includeSeries,
+  includeTotals,
+  interval,
+  limit,
+  orderBy,
+  project,
+  query,
+  statsPeriodStart,
+  statsPeriodEnd,
+  ...dateTime
+}: Omit<DoReleaseHealthRequestOptions, 'orgSlug'>): Record<string, unknown> {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });
 
-  const urlQuery = Object.fromEntries(
+  return Object.fromEntries(
     Object.entries({
       field: field.filter(f => !!f),
       cursor,
@@ -69,8 +65,18 @@ export const doReleaseHealthRequest = (
       statsPeriodEnd,
     }).filter(([, value]) => defined(value) && value !== '')
   );
+}
 
-  const pathname = `/organizations/${orgSlug}/metrics/data/`;
-
-  return api.requestPromise(pathname, {includeAllArgs: true, query: urlQuery});
-};
+export function releaseHealthApiOptions({
+  orgSlug,
+  ...options
+}: DoReleaseHealthRequestOptions) {
+  return apiOptions.as<SessionApiResponse>()(
+    '/organizations/$organizationIdOrSlug/metrics/data/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: buildReleaseHealthUrlQuery(options),
+      staleTime: 0,
+    }
+  );
+}

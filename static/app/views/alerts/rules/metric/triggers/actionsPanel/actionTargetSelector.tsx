@@ -70,6 +70,7 @@ export function ActionTargetSelector(props: Props) {
           disabled={disabled}
           key="member"
           organization={organization}
+          projectIds={project ? [project.id] : undefined}
           value={action.targetIdentifier}
           onChange={handleChangeTargetIdentifier}
         />

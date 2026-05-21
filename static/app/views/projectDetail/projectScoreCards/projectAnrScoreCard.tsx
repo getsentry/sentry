@@ -1,10 +1,11 @@
 import {useEffect, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import {sessionsApiOptions} from 'sentry/actionCreators/sessions';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -16,7 +17,6 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {useApi} from 'sentry/utils/useApi';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {
@@ -50,7 +50,7 @@ export function ProjectAnrScoreCard({
     {shouldDoublePeriod: true}
   ).statsPeriod;
 
-  const api = useApi();
+  const queryClient = useQueryClient();
 
   const [sessionsData, setSessionsData] = useState<SessionApiResponse | null>(null);
   const [previousSessionData, setPreviousSessionsData] =
@@ -68,20 +68,25 @@ export function ProjectAnrScoreCard({
       includeSeries: false,
     };
 
-    doSessionsRequest(api, {
-      ...requestData,
-      ...normalizeDateTimeParams(datetime),
-    }).then(([response]) => {
-      if (unmounted) {
-        return;
-      }
+    queryClient
+      .fetchQuery(
+        sessionsApiOptions({
+          ...requestData,
+          ...normalizeDateTimeParams(datetime),
+        })
+      )
+      .then(response => {
+        if (unmounted) {
+          return;
+        }
 
-      setSessionsData(response);
-    });
+        setSessionsData(response.json);
+      });
+
     return () => {
       unmounted = true;
     };
-  }, [api, datetime, environments, organization.slug, projects, query]);
+  }, [queryClient, datetime, environments, organization.slug, projects, query]);
 
   useEffect(() => {
     let unmounted = false;
@@ -101,17 +106,21 @@ export function ProjectAnrScoreCard({
         includeSeries: false,
       };
 
-      doSessionsRequest(api, {
-        ...requestData,
-        statsPeriodStart: doubledPeriod,
-        statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
-      }).then(([response]) => {
-        if (unmounted) {
-          return;
-        }
+      queryClient
+        .fetchQuery(
+          sessionsApiOptions({
+            ...requestData,
+            statsPeriodStart: doubledPeriod,
+            statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
+          })
+        )
+        .then(response => {
+          if (unmounted) {
+            return;
+          }
 
-        setPreviousSessionsData(response);
-      });
+          setPreviousSessionsData(response.json);
+        });
     } else {
       setPreviousSessionsData(null);
     }
@@ -123,7 +132,7 @@ export function ProjectAnrScoreCard({
     end,
     period,
     doubledPeriod,
-    api,
+    queryClient,
     organization.slug,
     environments,
     projects,

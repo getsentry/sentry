@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 @launchpad_tasks.register(
     name="process_artifact",
     retry=Retry(times=3),
-    processing_deadline_duration=60 * 12,
+    processing_deadline_duration=60 * 15,
 )
 def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
     pass
@@ -719,7 +719,7 @@ def _assemble_preprod_artifact_installable_app(
         logger.exception(
             "PreprodArtifact not found during installable app assembly",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
@@ -888,7 +888,7 @@ def detect_expired_preprod_artifacts() -> None:
                 "PreprodArtifact expired",
                 level="error",
                 extras={
-                    "artifact_id": artifact_id,
+                    "preprod_artifact_id": artifact_id,
                 },
             )
             try:
@@ -898,7 +898,7 @@ def detect_expired_preprod_artifacts() -> None:
             except Exception:
                 logger.exception(
                     "preprod.tasks.detect_expired_preprod_artifacts.failed_to_trigger_status_check",
-                    extra={"artifact_id": artifact_id},
+                    extra={"preprod_artifact_id": artifact_id},
                 )
 
     # Find expired PreprodArtifactSizeMetrics (those in PROCESSING state for more than 30 minutes)

@@ -11,16 +11,6 @@ export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 
 export const SPAN_ID_DISPLAY_LENGTH = 16;
 
-export const FIELD_ALIASES = {
-  'http_response_rate(3)': '3XX',
-  'http_response_rate(4)': '4XX',
-  'http_response_rate(5)': '5XX',
-};
-
-export const BASE_FILTERS = {
-  'span.op': 'http.client',
-};
-
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/backend/requests/';
 

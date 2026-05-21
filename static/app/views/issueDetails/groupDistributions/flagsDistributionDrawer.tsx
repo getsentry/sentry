@@ -34,7 +34,7 @@ export function FlagsDistributionDrawer({group, organization, setTab}: Props) {
   const {tagKey} = useParams<{tagKey: string}>();
 
   const [search, setSearch] = useState('');
-  const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.A_TO_Z);
+  const [orderBy, setOrderBy] = useState(OrderBy.A_TO_Z);
 
   const orderByOptions = [
     {

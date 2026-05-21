@@ -33,7 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -53,12 +53,12 @@ export function BreadcrumbsDataSection({
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
-  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
   // Use the local storage preferences, but allow the drawer to do updates
-  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, _setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
@@ -160,15 +160,12 @@ export function BreadcrumbsDataSection({
     </Grid>
   );
 
-  const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
   const numHiddenCrumbs = enhancedCrumbs.length - summaryCrumbs.length;
 
   return (
-    <InterimSection
-      key="breadcrumbs"
-      type={SectionKey.BREADCRUMBS}
+    <FoldSection
+      sectionKey={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
-      data-test-id="breadcrumbs-data-section"
       actions={actions}
       initialCollapse={initialCollapse}
     >
@@ -178,30 +175,27 @@ export function BreadcrumbsDataSection({
             breadcrumbs={summaryCrumbs}
             startTimeString={startTimeString}
             // We want the timeline to appear connected to the 'View All' button
-            showLastLine={hasViewAll}
+            showLastLine
             fullyExpanded={false}
             containerElement={container}
           />
         </div>
-        {hasViewAll && (
-          <ViewAllContainer>
-            <VerticalEllipsis />
-            <div>
-              <ViewAllButton
-                size="sm"
-                // Since we've disabled the button as an 'outside click' for the drawer we can change
-                // the operation based on the drawer state.
-                onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
-                aria-label={t('View All Breadcrumbs')}
-                ref={viewAllButtonRef}
-              >
-                {t('View %s more', numHiddenCrumbs)}
-              </ViewAllButton>
-            </div>
-          </ViewAllContainer>
-        )}
+        <ViewAllContainer>
+          <VerticalEllipsis />
+          <div>
+            <ViewAllButton
+              size="sm"
+              // Since we've disabled the button as an 'outside click' for the drawer we can change
+              // the operation based on the drawer state.
+              onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
+              ref={viewAllButtonRef}
+            >
+              {numHiddenCrumbs > 0 ? t('View %s more', numHiddenCrumbs) : t('View All')}
+            </ViewAllButton>
+          </div>
+        </ViewAllContainer>
       </ErrorBoundary>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

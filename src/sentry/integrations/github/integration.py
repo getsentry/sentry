@@ -47,6 +47,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -67,6 +68,7 @@ from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiInvalidRequestError,
     ApiPaginationTruncated,
     IntegrationError,
@@ -220,6 +222,15 @@ class GitHubIntegration(
 
         return False
 
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiForbiddenError):
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if "suspended" in str(exc):
+                return "installation_suspended"
+            return "unauthorized"
+        return super().is_broken_integration_error(exc)
+
     def message_from_error(self, exc: Exception) -> str:
         if not isinstance(exc, ApiError):
             return ERR_INTERNAL
@@ -327,16 +338,6 @@ class GitHubIntegration(
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = client.search_repositories(full_query)
         return to_repo_info(response.get("items", []))
-
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        accessible_repos = self.get_repositories()
-        accessible_repo_names = [r["identifier"] for r in accessible_repos]
-
-        existing_repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=[IntegrationProviderSlug.GITHUB.value]
-        )
-
-        return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
@@ -635,7 +636,6 @@ This pull request was merged and Sentry observed the following issues:
 
 
 class GitHubPRCommentWorkflow(PRCommentWorkflow):
-    organization_option_key = "sentry:github_pr_bot"
     referrer = Referrer.GITHUB_PR_COMMENT_BOT
     referrer_id = GITHUB_PR_BOT_REFERRER
 

@@ -447,7 +447,7 @@ export function useChartXRangeSelection({
 
   const toolBox = useMemo<ToolboxComponentOption | undefined>(() => {
     if (disabled) {
-      return undefined;
+      return;
     }
 
     return ToolBox(

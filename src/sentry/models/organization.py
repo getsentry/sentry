@@ -153,7 +153,7 @@ class Organization(ReplicatedCellModel):
     """
 
     category = OutboxCategory.ORGANIZATION_UPDATE
-    replication_version = 4
+    replication_version = 5
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=ORGANIZATION_NAME_MAX_LENGTH)

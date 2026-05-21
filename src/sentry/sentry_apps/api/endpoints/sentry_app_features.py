@@ -15,7 +15,7 @@ from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 
 @control_silo_endpoint
 class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

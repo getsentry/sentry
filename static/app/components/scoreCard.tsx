@@ -98,7 +98,7 @@ export const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export const ScoreWrapper = styled((props: FlexProps<'div'>) => {
+export const ScoreWrapper = styled((props: FlexProps) => {
   return <Flex align="baseline" maxWidth="100%" {...props} />;
 })``;
 

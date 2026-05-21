@@ -7,7 +7,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {selectEvent} from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import {ORG_ROLES} from 'sentry/constants';
 import {TeamStore} from 'sentry/stores/teamStore';

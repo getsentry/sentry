@@ -16,8 +16,8 @@ import {
 } from 'sentry/bootstrap/bootstrapRequests';
 import {SecretField} from 'sentry/components/forms/fields/secretField';
 import {Form} from 'sentry/components/forms/form';
-import Hook from 'sentry/components/hook';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Override} from 'sentry/components/override';
 import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
@@ -301,7 +301,7 @@ function SudoModal({
                       {t('COPS/CSM')}
                     </Button>
                   ) : (
-                    <Button priority="transparent" size="sm" onClick={handleChangeReason}>
+                    <Button variant="transparent" size="sm" onClick={handleChangeReason}>
                       {t('Change reason')}
                     </Button>
                   )}
@@ -310,7 +310,7 @@ function SudoModal({
               resetOnError
             >
               {!isSelfHosted && showAccessForms && (
-                <Hook name="component:superuser-access-category" />
+                <Override name="component:superuser-access-category" />
               )}
               {!isSelfHosted && !showAccessForms && (
                 <WebAuthn
@@ -321,7 +321,7 @@ function SudoModal({
               )}
             </Form>
           ) : (
-            <LinkButton priority="primary" href={getAuthLoginPath()}>
+            <LinkButton variant="primary" href={getAuthLoginPath()}>
               {t('Continue')}
             </LinkButton>
           )}

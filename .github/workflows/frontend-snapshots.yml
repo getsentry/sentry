@@ -67,6 +67,15 @@ jobs:
       - name: Run snapshot tests
         run: pnpm run snapshots
 
+      - name: Compute merge base SHA
+        if: github.event_name == 'pull_request' && !cancelled()
+        id: merge-base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MERGE_BASE=$(gh api repos/${{ github.repository }}/compare/${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} --jq '.merge_base_commit.sha')
+          echo "sha=$MERGE_BASE" >> "$GITHUB_OUTPUT"
+
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
         run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.4.0 sh
@@ -76,12 +85,14 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
-        run: >
-          sentry-cli
-          --log-level=debug
-          build snapshots "${{ env.SNAPSHOT_OUTPUT_DIR }}"
-          --app-id sentry-frontend
-          --project sentry-frontend
+          BASE_SHA: ${{ steps.merge-base.outputs.sha }}
+        run: |
+          sentry-cli \
+            --log-level=debug \
+            build snapshots "$SNAPSHOT_OUTPUT_DIR" \
+            --app-id sentry-frontend \
+            --project sentry-frontend \
+            ${BASE_SHA:+--base-sha "$BASE_SHA"}
 
       - name: Report upload failure to Sentry
         if: ${{ failure() && steps.upload.outcome == 'failure' }}

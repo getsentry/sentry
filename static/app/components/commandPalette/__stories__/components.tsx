@@ -1,15 +1,16 @@
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {
-  makeCloseButton,
-  makeClosableHeader,
-  ModalBody,
-  ModalFooter,
-} from 'sentry/components/globalModal/components';
 
 export function CommandPaletteDemo() {
   return (

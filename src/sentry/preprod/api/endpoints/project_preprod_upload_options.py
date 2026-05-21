@@ -55,7 +55,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 ("org", str(organization.id)),
                 ("project", str(project.id)),
             ],
-            authToken=session.mint_token(),
+            authToken=session.mint_token(expiry_seconds=60 * 60),  # 1H
             expirationPolicy=format_expiration(
                 TimeToLive(timedelta(days=30))
             ),  # Hardcoded for now, check with Objectstore before increasing

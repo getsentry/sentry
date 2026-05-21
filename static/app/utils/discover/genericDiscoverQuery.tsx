@@ -85,7 +85,7 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   options?: Omit<
-    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    UseQueryOptions<[any, string | undefined, ResponseMeta | undefined], QueryError>,
     'queryKey' | 'queryFn'
   > & {additionalQueryKey?: UseQueryOptions['queryKey']};
   /**
@@ -185,7 +185,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
     // or if we've moved from an invalid view state to a valid one,
     const eventViewValidation =
-      prevProps.eventView.isValid() === false && this.props.eventView.isValid();
+      !prevProps.eventView.isValid() && this.props.eventView.isValid();
 
     const shouldRefetchExternal = this.props.shouldRefetchData
       ? this.props.shouldRefetchData(prevProps, this.props)

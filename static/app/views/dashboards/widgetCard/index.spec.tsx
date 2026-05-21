@@ -12,10 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import * as LineChart from 'sentry/components/charts/lineChart';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
-import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
@@ -169,9 +167,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={multipleQueryWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -193,9 +191,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -216,9 +214,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={multipleQueryWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -250,9 +248,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -284,9 +282,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -320,9 +318,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -348,8 +346,8 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
         onDuplicate={mock}
         showContextMenu
         widgetLimitReached={false}
@@ -374,8 +372,8 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
         onDuplicate={mock}
         showContextMenu
         widgetLegendState={widgetLegendState}
@@ -400,9 +398,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
+        onDelete={() => {}}
         onEdit={mock}
-        onDuplicate={() => undefined}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -427,8 +425,8 @@ describe('Dashboards > WidgetCard', () => {
         selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -460,8 +458,8 @@ describe('Dashboards > WidgetCard', () => {
         selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -494,8 +492,8 @@ describe('Dashboards > WidgetCard', () => {
         selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -538,9 +536,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={tableWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -581,9 +579,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={widget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
@@ -618,9 +616,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={widget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         index="10"
@@ -635,181 +633,6 @@ describe('Dashboards > WidgetCard', () => {
     );
   });
 
-  it('renders chart using axis and tooltip formatters from custom measurement meta', async () => {
-    const spy = jest.spyOn(LineChart, 'LineChart');
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [
-            1658262600,
-            [
-              {
-                count: 24,
-              },
-            ],
-          ],
-        ],
-        meta: {
-          fields: {
-            time: 'date',
-            p95_measurements_custom: 'duration',
-          },
-          units: {
-            time: null,
-            p95_measurements_custom: 'millisecond',
-          },
-          isMetricsData: true,
-          tips: {},
-        },
-      },
-    });
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          title: '',
-          interval: '5m',
-          widgetType: WidgetType.DISCOVER,
-          displayType: DisplayType.LINE,
-          queries: [
-            {
-              conditions: '',
-              name: '',
-              fields: [],
-              columns: [],
-              aggregates: ['p95(measurements.custom)'],
-              orderby: '',
-            },
-          ],
-        }}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    await waitFor(() => {
-      expect(eventsStatsMock).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      const mockCall = spy.mock.calls?.at(-1)?.[0];
-      expect(mockCall?.tooltip).toBeDefined();
-    });
-    const mockCall = spy.mock.calls?.at(-1)?.[0];
-    // @ts-expect-error TODO: Fix this type
-    expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toBe(
-      '24ms'
-    );
-  });
-
-  it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async () => {
-    const spy = jest.spyOn(LineChart, 'LineChart');
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [
-            1658262600,
-            [
-              {
-                count: 40 * SECOND,
-              },
-            ],
-          ],
-          [
-            1658262601,
-            [
-              {
-                count: 50 * SECOND,
-              },
-            ],
-          ],
-          [
-            1658262602,
-            [
-              {
-                count: MINUTE,
-              },
-            ],
-          ],
-          [
-            1658262603,
-            [
-              {
-                count: 1.3 * MINUTE,
-              },
-            ],
-          ],
-        ],
-        meta: {
-          fields: {
-            time: 'date',
-            p50_transaction_duration: 'duration',
-          },
-          units: {
-            time: null,
-            p50_transaction_duration: 'millisecond',
-          },
-          isMetricsData: false,
-          tips: {},
-        },
-      },
-    });
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          title: '',
-          interval: '5m',
-          widgetType: WidgetType.DISCOVER,
-          displayType: DisplayType.LINE,
-          queries: [
-            {
-              conditions: '',
-              name: '',
-              fields: [],
-              columns: [],
-              aggregates: ['p50(transaction.duration)'],
-              orderby: '',
-            },
-          ],
-        }}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        widgetLegendState={widgetLegendState}
-      />
-    );
-    await waitFor(() => {
-      expect(eventsStatsMock).toHaveBeenCalled();
-    });
-    await waitFor(() => {
-      const mockCall = spy.mock.calls?.at(-1)?.[0];
-      expect(mockCall?.yAxis).toBeDefined();
-    });
-    const mockCall = spy.mock.calls?.at(-1)?.[0];
-    expect(
-      // @ts-expect-error TODO: Fix this type
-      mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
-    ).toBe('60s');
-    // @ts-expect-error TODO: Fix this type
-    expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
-  });
-
   it('does not render description for text display type widgets', async () => {
     renderWithProviders(
       <WidgetCard
@@ -821,9 +644,9 @@ describe('Dashboards > WidgetCard', () => {
         }}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
@@ -849,9 +672,9 @@ describe('Dashboards > WidgetCard', () => {
         widget={transactionQueryWidget}
         selection={selection}
         isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
         showContextMenu
         widgetLimitReached={false}
         isPreview
@@ -890,9 +713,9 @@ describe('Dashboards > WidgetCard', () => {
           widget={spansWidget}
           selection={selection}
           isEditingDashboard={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
           showContextMenu
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
@@ -910,9 +733,9 @@ describe('Dashboards > WidgetCard', () => {
           widget={spansWidget}
           selection={selection}
           isEditingDashboard={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
           showContextMenu
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
@@ -951,9 +774,9 @@ describe('Dashboards > WidgetCard', () => {
           widget={spanWidget}
           selection={selection}
           isEditingDashboard={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
           showContextMenu
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}

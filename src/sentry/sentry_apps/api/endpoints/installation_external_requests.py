@@ -16,7 +16,7 @@ logger = logging.getLogger("sentry.sentry-apps")
 
 @control_silo_endpoint
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

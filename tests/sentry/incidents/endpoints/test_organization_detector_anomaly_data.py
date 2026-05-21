@@ -123,6 +123,44 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             status_code=403,
         )
 
+    def test_no_project_access(self) -> None:
+        """Test that a user in the org but without access to the detector's project gets 403."""
+        other_project = self.create_project(organization=self.organization)
+        other_snuba_query = self.create_snuba_query()
+        with self.tasks():
+            other_subscription = create_snuba_subscription(
+                project=other_project,
+                subscription_type="metrics_alerts",
+                snuba_query=other_snuba_query,
+            )
+        other_data_source = self.create_data_source(
+            organization=self.organization, source_id=other_subscription.id
+        )
+        other_detector = self.create_detector(
+            project_id=other_project.id,
+            name="Other Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=self.create_data_condition_group(),
+        )
+        self.create_data_source_detector(data_source=other_data_source, detector=other_detector)
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            other_detector.id,
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=403,
+        )
+
     def test_invalid_detector_id(self) -> None:
         """Test that non-numeric detector IDs return 404"""
         self.get_error_response(
@@ -239,6 +277,41 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
         self.get_error_response(
             self.organization.slug,
             self.alert_rule.id,
+            legacy_alert="true",
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=403,
+        )
+
+    def test_legacy_alert_no_project_access(self) -> None:
+        """Test that a user in the org but without access to the alert rule's project gets 403."""
+        other_project = self.create_project(organization=self.organization)
+        with self.feature("organizations:incidents"), self.tasks():
+            other_snuba_query = self.create_snuba_query()
+            create_snuba_subscription(
+                project=other_project,
+                subscription_type="metrics_alerts",
+                snuba_query=other_snuba_query,
+            )
+            other_alert_rule = self.create_alert_rule(
+                organization=self.organization,
+                projects=[other_project],
+            )
+            other_alert_rule.snuba_query = other_snuba_query
+            other_alert_rule.save()
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            other_alert_rule.id,
             legacy_alert="true",
             start="1729178100.0",
             end="1729179000.0",

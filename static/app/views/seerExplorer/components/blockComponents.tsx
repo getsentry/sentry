@@ -1,13 +1,13 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -28,7 +28,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
@@ -49,7 +49,6 @@ interface BlockProps {
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onNavigate?: () => void;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
@@ -145,7 +144,6 @@ export function BlockComponent({
   onClick,
   onMouseEnter,
   onMouseLeave,
-  onNavigate,
   ref,
   showThinking = false,
 }: BlockProps) {
@@ -156,7 +154,7 @@ export function BlockComponent({
 
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
-  const hasContent = hasValidContent(block.message.content);
+  const hasContent = hasValidContent(block.message.content ?? '');
   const hasThinkingContentToShow =
     showThinking && hasValidContent(block.message.thinking_content ?? '');
   const processedContent = useMemo(
@@ -178,14 +176,14 @@ export function BlockComponent({
       block.tool_links || [],
       block.tool_results || [],
       block.message.tool_calls || [],
-      organization.slug,
+      organization,
       projects
     );
   }, [
     block.tool_links,
     block.tool_results,
     block.message.tool_calls,
-    organization.slug,
+    organization,
     projects,
   ]);
 
@@ -198,20 +196,6 @@ export function BlockComponent({
     });
     return map;
   }, [block.tool_links, block.tool_results]);
-
-  // Tool link navigation, with analytics and onNavigate hook.
-  const navigateToToolLink = useCallback(
-    (url: LocationDescriptor, toolKind: string) => {
-      trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-        referrer: getPageReferrer?.() ?? '',
-        organization,
-        tool_kind: toolKind,
-      });
-      navigate(url);
-      onNavigate?.();
-    },
-    [organization, navigate, onNavigate, getPageReferrer]
-  );
 
   // Allow 1 feedback per session. This only writes to session storage on change, not init.
   const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
@@ -228,10 +212,10 @@ export function BlockComponent({
         type,
         run_id: runId,
         block_index: blockIndex,
-        block_message: block.message.content.slice(0, 100),
+        block_message: block.message.content?.slice(0, 100) ?? '',
         langfuse_url: getLangfuseUrl(runId),
         explorer_url: getExplorerUrl(runId),
-        conversations_url: getConversationsUrl('sentry', runId),
+        conversations_url: getConversationsUrlForExternalUse('sentry', runId),
       });
       setFeedbackSubmitted(true); // disable button for rest of the session
     }
@@ -245,7 +229,7 @@ export function BlockComponent({
         aria-label={ariaLabel}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         disabled={feedbackSubmitted}
-        priority="transparent"
+        variant="transparent"
         size="xs"
         tooltipProps={{
           title: feedbackSubmitted
@@ -266,23 +250,8 @@ export function BlockComponent({
 
   const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    copy(block.message.content);
-  };
-
-  const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
-    e.stopPropagation();
-    if (sortedToolLinks.length === 0) {
-      return;
-    }
-
-    // Navigate to the clicked link
-    const selectedLink = sortedToolLinks[linkIndex];
-    if (selectedLink) {
-      const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
-      if (url) {
-        navigateToToolLink(url, selectedLink.kind);
-      }
-    }
+    copy(block.message.content ?? '');
+    trackAnalytics('seer.explorer.block_copied', {organization});
   };
 
   const showActions =
@@ -351,7 +320,6 @@ export function BlockComponent({
 
                       if (href.startsWith('/')) {
                         navigate(href);
-                        onNavigate?.();
                       } else {
                         window.open(href, '_blank', 'noopener,noreferrer');
                       }
@@ -369,7 +337,9 @@ export function BlockComponent({
                     const isLoading =
                       blockStatus === 'loading' || blockStatus === 'pending';
 
-                    const toolLinkParams = toolLinkByCallId.get(toolCall.id);
+                    const toolLinkParams = toolCall.id
+                      ? toolLinkByCallId.get(toolCall.id)
+                      : undefined;
                     const isFailed = Boolean(toolLinkParams?.is_error);
                     const isEmptyResults = Boolean(toolLinkParams?.empty_results);
                     const isTodoWriteCall = toolCall.function === 'todo_write';
@@ -394,6 +364,31 @@ export function BlockComponent({
                       </Tooltip>
                     );
 
+                    const toolUrl = hasLink
+                      ? buildToolLinkUrl(
+                          sortedToolLinks[correspondingLinkIndex],
+                          organization,
+                          projects
+                        )
+                      : null;
+
+                    const handleToolLinkClick = (e: React.MouseEvent) => {
+                      if (hasLink) {
+                        e.stopPropagation();
+                        const selectedLink = sortedToolLinks[correspondingLinkIndex];
+                        if (selectedLink) {
+                          trackAnalytics(
+                            'seer.explorer.global_panel.tool_link_navigation',
+                            {
+                              referrer: getPageReferrer?.() ?? '',
+                              organization,
+                              tool_kind: selectedLink.kind,
+                            }
+                          );
+                        }
+                      }
+                    };
+
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
                         <ToolCallTextContainer>
@@ -402,9 +397,8 @@ export function BlockComponent({
                           </ToolStatusSlot>
                           {hasLink ? (
                             <ToolCallLink
-                              onClick={e =>
-                                handleNavigateClick(e, correspondingLinkIndex)
-                              }
+                              to={toolUrl ?? ''}
+                              onClick={handleToolLinkClick}
                             >
                               {toolCallText}
                               <ToolCallLinkIconWrapper>
@@ -439,7 +433,7 @@ export function BlockComponent({
               <Button
                 aria-label={t('Copy block content')}
                 icon={<IconCopy />}
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 tooltipProps={{title: t('Copy to clipboard')}}
                 onClick={handleCopyClick}
@@ -634,16 +628,14 @@ const ToolCallText = styled(Text)`
   text-decoration-color: transparent;
 `;
 
-const ToolCallLink = styled('button')`
+const ToolCallLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
   max-width: 100%;
-  background: none;
-  border: none;
   padding: 0;
   cursor: pointer;
-  text-align: left;
+  text-decoration: none;
   font-weight: ${p => p.theme.font.weight.sans.medium};
 
   &:hover {

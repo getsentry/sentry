@@ -118,7 +118,7 @@ export function FormPanel({
         <Flex padding="sm 0">
           {title && (
             <Button
-              priority="link"
+              variant="link"
               onClick={handleCollapseToggle}
               aria-label={collapsed ? t('Expand Options') : t('Collapse Options')}
               aria-expanded={!collapsed}

@@ -90,9 +90,7 @@ export function WizardProjectSelection({
 
   const [newProjectName, setNewProjectName] = useState(platformParam || '');
   const [newProjectTeam, setNewProjectTeam] = useState<string | null>(null);
-  const [newProjectPlatform, setNewProjectPlatform] = useState<string | null>(
-    platformParam || null
-  );
+  const [newProjectPlatform, setNewProjectPlatform] = useState(platformParam || null);
 
   const selectedOrg = useMemo(
     () => organizations.find(org => org.id === selectedOrgId),
@@ -448,7 +446,7 @@ export function WizardProjectSelection({
           ))}
         <SubmitButton
           disabled={!isFormValid || isPending}
-          priority="primary"
+          variant="primary"
           type="submit"
         >
           {t('Continue')}

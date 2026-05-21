@@ -717,10 +717,10 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
 
     def _store_explore_logs_jsonl_rich_field_fixture(
-        self,
+        self, n: int = 2
     ) -> tuple[str, str, dict[str, dict[str, object]], frozenset[str]]:
         """
-        Two wide logs rows + Snuba ingest. Returns (start_iso, end_iso, expected_rows_by_user_agent, ignore_keys).
+        Store n wide logs rows via Snuba. Returns (start_iso, end_iso, expected_rows_by_user_agent, ignore_keys).
         """
         shared_attrs = {
             "environment": "prod",
@@ -730,89 +730,59 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             "tags[code.line.number,number]": 148,
             "tags[process.pid,number]": 6639,
         }
+        per_log = [
+            {
+                "body": f"api.access.log{i}",
+                "user_agent": f"agent/{i}",
+                "method": "GET" if i % 2 == 0 else "POST",
+                "path": f"/api/0/log/{i}/",
+                "response": str(200 + i),
+                "payload_size": 1000 + i * 100,
+            }
+            for i in range(n)
+        ]
         logs = [
             self.create_ourlog(
-                {
-                    "body": "api.access.alpha",
-                    "severity_text": "info",
-                    "severity_number": 9,
-                },
-                timestamp=before_now(minutes=10),
+                {"body": p["body"], "severity_text": "info", "severity_number": 9},  # type: ignore[arg-type]
+                timestamp=before_now(minutes=10, seconds=i * 30),
                 organization=self.org,
                 project=self.project,
                 attributes={
                     **shared_attrs,
-                    "method": "GET",
-                    "path": "/api/0/projects/acme/issues/",
-                    "user_agent": "python-requests/2.32.5",
+                    "method": p["method"],
+                    "path": p["path"],
+                    "user_agent": p["user_agent"],
                     "logger.name": "sentry.access.api",
-                    "response": "200",
+                    "response": p["response"],
                     "rate_limited": "False",
-                    "payload_size": 981,
+                    "payload_size": p["payload_size"],
                 },
-            ),
-            self.create_ourlog(
-                {
-                    "body": "api.access.beta",
-                    "severity_text": "info",
-                    "severity_number": 9,
-                },
-                timestamp=before_now(minutes=8),
-                organization=self.org,
-                project=self.project,
-                attributes={
-                    **shared_attrs,
-                    "method": "POST",
-                    "path": "/api/0/internal/rpc/",
-                    "user_agent": "curl/8.0",
-                    "logger.name": "sentry.access.api",
-                    "response": "201",
-                    "rate_limited": "False",
-                    "payload_size": 2048,
-                },
-            ),
+            )
+            for i, p in enumerate(per_log)
         ]
         self.store_eap_items(logs)
 
-        expected_rows: list[dict[str, object]] = [
-            {
+        expected_rows_by_agent = {
+            p["user_agent"]: {
                 "sdk.name": "sentry.python.django",
-                "user_agent": "python-requests/2.32.5",
-                "method": "GET",
-                "path": "/api/0/projects/acme/issues/",
                 "sdk.version": "2.47.0",
-                "tags[code.line.number,number]": 148.0,
-                "logger.name": "sentry.access.api",
                 "origin": "auto.log.stdlib",
-                "message": "api.access.alpha",
+                "environment": "prod",
+                "tags[code.line.number,number]": 148.0,
+                "tags[process.pid,number]": 6639.0,
+                "logger.name": "sentry.access.api",
                 "rate_limited": "False",
                 "severity": "info",
-                "environment": "prod",
                 "severity_number": 9.0,
-                "payload_size": 981.0,
-                "tags[process.pid,number]": 6639.0,
-                "response": "200",
-            },
-            {
-                "sdk.name": "sentry.python.django",
-                "user_agent": "curl/8.0",
-                "method": "POST",
-                "path": "/api/0/internal/rpc/",
-                "sdk.version": "2.47.0",
-                "tags[code.line.number,number]": 148.0,
-                "logger.name": "sentry.access.api",
-                "origin": "auto.log.stdlib",
-                "message": "api.access.beta",
-                "rate_limited": "False",
-                "severity": "info",
-                "environment": "prod",
-                "payload_size": 2048.0,
-                "tags[process.pid,number]": 6639.0,
-                "severity_number": 9.0,
-                "response": "201",
-            },
-        ]
-        expected_rows_by_agent = {str(row["user_agent"]): row for row in expected_rows}
+                "user_agent": p["user_agent"],
+                "method": p["method"],
+                "path": p["path"],
+                "message": p["body"],
+                "response": p["response"],
+                "payload_size": float(p["payload_size"]),
+            }
+            for p in per_log
+        }
         start = before_now(minutes=15).isoformat()
         end = before_now(seconds=30).isoformat()
 
@@ -833,7 +803,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 "downsampled_retention_days",
             }
         )
-        return start, end, expected_rows_by_agent, variable_keys
+        return start, end, expected_rows_by_agent, variable_keys  # type: ignore[return-value]
 
     def _assert_explore_logs_jsonl_rows_match_expected(
         self,
@@ -906,14 +876,14 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert de.query_info["dataset"] == "logs"
         return de
 
-    def _assert_rich_field_ndjson_two_rows_match_expected(
+    def _assert_rich_field_ndjson_rows_match_expected(
         self,
         raw_ndjson: bytes,
         expected_rows_by_agent: dict[str, dict[str, object]],
         ignored_keys: frozenset[str],
     ) -> None:
         lines = [ln for ln in raw_ndjson.split(b"\n") if ln]
-        assert len(lines) == 2
+        assert len(lines) == len(expected_rows_by_agent)
         rows = [json.loads(ln.decode("utf-8")) for ln in lines]
         rows_by_agent = {row["user_agent"]: row for row in rows}
         self._assert_explore_logs_jsonl_rows_match_expected(
@@ -1099,7 +1069,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
 
         """
         start, end, expected_rows_by_agent, ignored_keys = (
-            self._store_explore_logs_jsonl_rich_field_fixture()
+            self._store_explore_logs_jsonl_rich_field_fixture(n=7)
         )
 
         payload = self._post_explore_logs_jsonl_rich_field_export(start, end)
@@ -1116,7 +1086,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
 
         with file.getfile() as f:
             content = f.read().strip()
-        self._assert_rich_field_ndjson_two_rows_match_expected(
+        self._assert_rich_field_ndjson_rows_match_expected(
             content, expected_rows_by_agent, ignored_keys
         )
         assert emailer.called
@@ -1151,7 +1121,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert file.headers == {"Content-Type": "application/x-ndjson"}
 
         raw = self._get_data_export_download_body(de.id)
-        self._assert_rich_field_ndjson_two_rows_match_expected(
+        self._assert_rich_field_ndjson_rows_match_expected(
             raw, expected_rows_by_agent, ignored_keys
         )
         assert not emailer.called

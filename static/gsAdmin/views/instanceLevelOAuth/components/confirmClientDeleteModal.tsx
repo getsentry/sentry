@@ -39,7 +39,7 @@ export function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) 
       <Body>
         <b>WARNING: THIS ACTION WILL PERMANENTLY DELETE CLIENT WITH ID</b> {clientID}
       </Body>
-      <StyledButton size="sm" priority="danger" onClick={deleteClientAndCloseModal}>
+      <StyledButton size="sm" variant="danger" onClick={deleteClientAndCloseModal}>
         Permanently and Irreversibly Delete Client
       </StyledButton>
     </Fragment>

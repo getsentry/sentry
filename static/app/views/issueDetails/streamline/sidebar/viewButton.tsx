@@ -4,7 +4,7 @@ import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 
 export function ViewButton({children, ...props}: LinkButtonProps) {
   return (
-    <TextButton priority="transparent" size="zero" preventScrollReset {...props}>
+    <TextButton variant="transparent" size="zero" preventScrollReset {...props}>
       {children}
     </TextButton>
   );

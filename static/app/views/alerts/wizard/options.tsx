@@ -400,7 +400,7 @@ function datasetSupportedTags(
 function transactionSupportedTags(org: Organization) {
   if (shouldShowOnDemandMetricAlertUI(org)) {
     // on-demand metrics support all tags, except the ones defined in ommited tags
-    return undefined;
+    return;
   }
   return TRANSACTION_SUPPORTED_TAGS;
 }

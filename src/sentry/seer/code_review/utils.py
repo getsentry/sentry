@@ -75,6 +75,7 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/code_review/check/rerun"
     CODE_REVIEW_REVIEW_REQUEST = "/v1/code_review/review-request"
     CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
+    REPOSITORY_OFFBOARD = "/v1/offboarding/repository"
 
 
 def get_seer_path_for_request(github_event: str, github_event_action: str | None = None) -> str:

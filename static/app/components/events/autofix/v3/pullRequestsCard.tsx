@@ -46,7 +46,7 @@ export function PullRequestsCard({section}: PullRequestsCardProps) {
       {artifact?.map(pullRequest => {
         if (pullRequest.pr_creation_status === 'creating') {
           return (
-            <Button key={pullRequest.repo_name} priority="primary" disabled>
+            <Button key={pullRequest.repo_name} variant="primary" disabled>
               {t('Creating PR in %s', pullRequest.repo_name)}
             </Button>
           );
@@ -62,13 +62,13 @@ export function PullRequestsCard({section}: PullRequestsCardProps) {
               <LinkButton
                 external
                 href={pullRequest.pr_url}
-                priority="primary"
+                variant="primary"
                 icon={<IconOpen />}
               >
                 {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
               </LinkButton>
               <Button
-                priority="primary"
+                variant="primary"
                 icon={<IconCopy size="xs" />}
                 aria-label={t('Copy PR URL')}
                 tooltipProps={{title: t('Copy PR URL')}}
@@ -83,7 +83,7 @@ export function PullRequestsCard({section}: PullRequestsCardProps) {
         }
 
         return (
-          <Button key={pullRequest.repo_name} priority="primary" disabled>
+          <Button key={pullRequest.repo_name} variant="primary" disabled>
             {t('Failed to create PR in %s', pullRequest.repo_name)}
           </Button>
         );

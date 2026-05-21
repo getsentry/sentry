@@ -105,9 +105,7 @@ export function useCurrentProjectState({
 
   const defaultCurrentProject = getDefaultCurrentProject();
 
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(
-    defaultCurrentProject
-  );
+  const [currentProject, setCurrentProject] = useState(defaultCurrentProject);
 
   // Update default project if none is set
   useEffect(() => {

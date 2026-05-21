@@ -121,10 +121,10 @@ CompositeSelect.Region = function <Value extends SelectKey>(
 };
 
 CompositeSelect.ClearButton = function CompositeSelectClearButton(
-  props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>
+  props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>
 ) {
   return (
-    <ClearButton size="zero" priority="transparent" {...props}>
+    <ClearButton size="zero" variant="transparent" {...props}>
       {t('Clear')}
     </ClearButton>
   );

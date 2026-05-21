@@ -59,7 +59,7 @@ function Chart() {
               {...triggerProps}
               aria-label={t('Chart type')}
               icon={<IconGraph type="line" />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />
@@ -79,7 +79,7 @@ function Chart() {
               {...triggerProps}
               aria-label={t('Interval')}
               icon={<IconClock />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />

@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from datetime import datetime
-from urllib.parse import urlencode, urlparse
+from typing import Any
+from urllib.parse import quote, unquote, urlencode, urlparse
 
 from sentry.shared_integrations.response.base import BaseApiResponse
 
@@ -138,3 +139,7 @@ def parse_gitlab_blob_url(repo_url: str, source_url: str) -> tuple[str, str]:
 
     branch, _, remainder = after_blob.partition("/")
     return branch, remainder.lstrip("/")
+
+
+def safe_quote(s: Any) -> str:
+    return quote(unquote(str(s)), safe="")

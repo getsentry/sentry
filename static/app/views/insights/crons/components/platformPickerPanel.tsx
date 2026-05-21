@@ -32,7 +32,7 @@ export function PlatformPickerPanel({onSelect}: Props) {
           .map(({platform, label}) => (
             <PlatformOption key={platform}>
               <PlatformButton
-                priority="default"
+                variant="secondary"
                 onClick={() => onSelect(platform)}
                 aria-label={t('Create %s Monitor', platform)}
               >

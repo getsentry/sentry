@@ -41,10 +41,14 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
   QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
+import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
+import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
+import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -55,6 +59,7 @@ import {
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
+import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {
@@ -105,6 +110,8 @@ type LogsTableProps = {
     filteredItems: OurLogsResponseItem[];
   };
   numberAttributes?: TagCollection;
+  showCellActions?: boolean;
+  showExploreSimilarSpansLink?: boolean;
   stringAttributes?: TagCollection;
 };
 
@@ -124,6 +131,8 @@ export function LogsInfiniteTable({
   embeddedStyling,
   embeddedOptions,
   additionalData,
+  showCellActions,
+  showExploreSimilarSpansLink,
 }: LogsTableProps) {
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
@@ -144,6 +153,7 @@ export function LogsInfiniteTable({
     bytesScanned,
     canResumeAutoFetch,
     resumeAutoFetch,
+    totalPayloadBytes,
   } = useLogsPageDataQueryResult();
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
@@ -223,7 +233,7 @@ export function LogsInfiniteTable({
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
-  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
+  const [expandedLogRows, setExpandedLogRows] = useState(
     new Set(embeddedOptions?.openWithExpandedIds)
   );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
@@ -449,6 +459,39 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const renderRow = useCallback(
+    (dataRow: LogTableRowItem) => {
+      const pinnedId = dataRow[OurLogKnownFieldKey.ID];
+      const pinnedExpandKey = `pinned-${pinnedId}`;
+      return (
+        <LogRowContent
+          dataRow={dataRow}
+          meta={meta}
+          highlightTerms={highlightTerms}
+          embedded={false}
+          sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+          expansionKey={pinnedExpandKey}
+          onExpand={handleExpand}
+          onCollapse={handleCollapse}
+          isExpanded={expandedLogRows.has(pinnedExpandKey)}
+          onExpandHeight={handleExpandHeight}
+          logStart={logStart}
+          logEnd={logEnd}
+        />
+      );
+    },
+    [
+      expandedLogRows,
+      handleCollapse,
+      handleExpand,
+      handleExpandHeight,
+      highlightTerms,
+      logEnd,
+      logStart,
+      meta,
+    ]
+  );
+
   // For replay context, render empty states outside the table for proper centering
   if (hasReplay && (isPending || isError || isEmpty)) {
     return (
@@ -476,7 +519,7 @@ export function LogsInfiniteTable({
   }
 
   return (
-    <Fragment>
+    <LogsPinningProvider>
       <LogTable
         ref={tableRef}
         style={initialTableStyles}
@@ -484,6 +527,7 @@ export function LogsInfiniteTable({
         height="100%"
         hideBorder={embedded}
         data-test-id="logs-table"
+        minWidth={calculateLogsTableMinWidth(fields.length)}
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (
@@ -495,6 +539,7 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
+        {!isPending && <PinnedLogs allRows={data} renderRow={renderRow} />}
         <LogTableBody
           showHeader={!embedded}
           ref={tableBodyRef}
@@ -509,7 +554,12 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
+          {!hasReplay && isPending && (
+            <LoadingRenderer
+              bytesScanned={bytesScanned}
+              totalPayloadBytes={totalPayloadBytes}
+            />
+          )}
           {!hasReplay && isError && <ErrorRenderer />}
           {!hasReplay &&
             isEmpty &&
@@ -519,6 +569,7 @@ export function LogsInfiniteTable({
               <LogsEmptyResults
                 analyticsPageSource={analyticsPageSource}
                 bytesScanned={bytesScanned}
+                totalPayloadBytes={totalPayloadBytes}
                 canResumeAutoFetch={canResumeAutoFetch}
                 resumeAutoFetch={resumeAutoFetch}
               />
@@ -535,6 +586,9 @@ export function LogsInfiniteTable({
             if (!dataRow) {
               return null;
             }
+
+            const rowId = dataRow[OurLogKnownFieldKey.ID];
+
             return (
               <Fragment key={virtualRow.key}>
                 <LogRowContent
@@ -544,13 +598,16 @@ export function LogsInfiniteTable({
                   embedded={embedded}
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                  expansionKey={rowId}
                   key={virtualRow.key}
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}
                   logEnd={logEnd}
-                  isExpanded={expandedLogRows.has(dataRow[OurLogKnownFieldKey.ID])}
+                  isExpanded={expandedLogRows.has(rowId)}
                   onExpandHeight={handleExpandHeight}
+                  showCellActions={showCellActions}
+                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                 />
               </Fragment>
             );
@@ -590,7 +647,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
-    </Fragment>
+    </LogsPinningProvider>
   );
 }
 
@@ -641,8 +698,16 @@ function LogsTableHeader({
                   isFrozen
                     ? undefined
                     : () => {
-                        const kind = direction === 'desc' ? 'asc' : 'desc';
-                        setSortBys([{field, kind}]);
+                        switch (direction) {
+                          case 'asc':
+                            setSortBys([logsTimestampDescendingSortBy]);
+                            break;
+                          case 'desc':
+                            setSortBys([{field, kind: 'asc'}]);
+                            break;
+                          default:
+                            setSortBys([{field, kind: 'desc'}]);
+                        }
                       }
                 }
                 isFrozen={isFrozen}
@@ -685,7 +750,18 @@ function ErrorRenderer() {
   );
 }
 
-export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
+export function LoadingRenderer({
+  bytesScanned,
+  totalPayloadBytes,
+}: {
+  bytesScanned?: number;
+  totalPayloadBytes?: number;
+}) {
+  const displayTotalPayloadBytes = getDisplayTotalPayloadBytes(
+    bytesScanned,
+    totalPayloadBytes
+  );
+
   return (
     <TableStatus>
       <Stack align="center">
@@ -696,9 +772,14 @@ export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
               {t('Searching for a needle in a haystack. This could take a while.')}
               <br />
               <span>
-                {tct('[bytesScanned] scanned', {
-                  bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
-                })}
+                {displayTotalPayloadBytes
+                  ? tct('[bytesScanned] of ~[totalBytes] scanned', {
+                      bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                      totalBytes: <FileSize bytes={displayTotalPayloadBytes} base={2} />,
+                    })
+                  : tct('[bytesScanned] scanned', {
+                      bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                    })}
               </span>
             </Fragment>
           )}

@@ -41,7 +41,7 @@ class SentryAppClientSecretJWTSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

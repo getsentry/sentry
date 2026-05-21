@@ -31,7 +31,7 @@ export function CreateIntegrationButton({
       {({hasAccess}) => (
         <Button
           size={size}
-          priority="primary"
+          variant="primary"
           icon={<IconAdd />}
           disabled={!hasAccess}
           tooltipProps={{title: hasAccess ? undefined : permissionTooltipText}}

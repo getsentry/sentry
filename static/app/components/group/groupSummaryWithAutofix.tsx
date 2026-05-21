@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
@@ -286,7 +286,7 @@ export function AutofixSummary({
                           aria-label={t('Copy to clipboard')}
                           size="xs"
                           text={card.copyText}
-                          priority="transparent"
+                          variant="transparent"
                           tooltipProps={{title: card.copyTitle}}
                           onClick={e => {
                             e.stopPropagation();
@@ -307,7 +307,7 @@ export function AutofixSummary({
                         <Placeholder height="1.5rem" />
                       </motion.div>
                     ) : (
-                      <React.Fragment>
+                      <Fragment>
                         {card.insightElement}
                         {card.insight && (
                           <MarkedText
@@ -324,7 +324,7 @@ export function AutofixSummary({
                             }
                           />
                         )}
-                      </React.Fragment>
+                      </Fragment>
                     )}
                   </CardContent>
                 </Stack>

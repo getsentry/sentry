@@ -29,11 +29,15 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {
@@ -46,7 +50,7 @@ type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
 interface HeaderProps {
   columnIndex: number;
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
   replays: ReplayListRecord[];
 }
 
@@ -402,7 +406,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     if (rowIndex === selectedReplayIndex) {
       return (
         <PlayPauseButtonContainer>
-          <ReplayPlayPauseButton key="playPause-play" priority="transparent" size="sm" />
+          <ReplayPlayPauseButton key="playPause-play" variant="transparent" size="sm" />
         </PlayPauseButtonContainer>
       );
     }
@@ -417,7 +421,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
             pathname: location.pathname,
             query: {...location.query, selected_replay_index: rowIndex},
           }}
-          priority="default"
+          variant="secondary"
           size="sm"
           tooltipProps={{title: t('Play')}}
         />
@@ -539,6 +543,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   sortKey: undefined,
   Component: ({replay}) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const organization = useOrganization();
     const theme = useTheme();
 
@@ -555,7 +560,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location, theme},
+          {navigate, organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>

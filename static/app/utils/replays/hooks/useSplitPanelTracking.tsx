@@ -13,7 +13,7 @@ type Options = {
 };
 
 export function useSplitPanelTracking({slideDirection, track}: Options) {
-  const startSizeCSSRef = useRef<number>(0);
+  const startSizeCSSRef = useRef(0);
 
   const setStartPosition = useCallback(
     (startPosition: undefined | CSSValuePct | CSSValueFR) => {

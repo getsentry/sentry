@@ -29,7 +29,7 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export function ExploreContentSection(props: FlexProps<'div'>) {
+export function ExploreContentSection(props: FlexProps) {
   return (
     <Flex
       {...props}

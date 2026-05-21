@@ -7,7 +7,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import OrganizationTeamProjects from 'sentry/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', () => {
-  let getMock!: jest.Mock;
+  let linkedProjectsMock!: jest.Mock;
+  let unlinkedProjectsMock!: jest.Mock;
   let putMock!: jest.Mock;
   let postMock!: jest.Mock;
   let deleteMock!: jest.Mock;
@@ -34,9 +35,25 @@ describe('OrganizationTeamProjects', () => {
   };
 
   beforeEach(() => {
-    getMock = MockApiClient.addMockResponse({
+    linkedProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project, project2],
+      match: [
+        MockApiClient.matchQuery({
+          query: 'team:team-slug',
+          collapse: ['latestDeploys', 'unusedFeatures'],
+        }),
+      ],
+    });
+    unlinkedProjectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project, project2],
+      match: [
+        MockApiClient.matchQuery({
+          query: '!team:team-slug',
+          collapse: ['latestDeploys', 'unusedFeatures'],
+        }),
+      ],
     });
 
     putMock = MockApiClient.addMockResponse({
@@ -73,10 +90,8 @@ describe('OrganizationTeamProjects', () => {
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
-    expect(getMock).toHaveBeenCalledTimes(2);
-
-    expect(getMock.mock.calls[0][1].query.query).toBe('team:team-slug');
-    expect(getMock.mock.calls[1][1].query.query).toBe('!team:team-slug');
+    expect(linkedProjectsMock).toHaveBeenCalledTimes(1);
+    expect(unlinkedProjectsMock).toHaveBeenCalledTimes(1);
   });
 
   it('should allow bookmarking', async () => {
@@ -110,7 +125,8 @@ describe('OrganizationTeamProjects', () => {
       outletContext: {team},
     });
 
-    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(linkedProjectsMock).toHaveBeenCalledTimes(1);
+    expect(unlinkedProjectsMock).toHaveBeenCalledTimes(1);
 
     await userEvent.click(await screen.findByText('Add Project'));
     await userEvent.click(screen.getByRole('option', {name: 'project-slug-2'}));
@@ -125,26 +141,30 @@ describe('OrganizationTeamProjects', () => {
   });
 
   it('handles filtering unlinked projects', async () => {
+    const filteredMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project2],
+      match: [
+        MockApiClient.matchQuery({
+          query: '!team:team-slug a',
+          collapse: ['latestDeploys', 'unusedFeatures'],
+        }),
+      ],
+    });
+
     render(<OrganizationTeamProjects />, {
       organization,
       initialRouterConfig,
       outletContext: {team},
     });
 
-    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(linkedProjectsMock).toHaveBeenCalledTimes(1);
+    expect(unlinkedProjectsMock).toHaveBeenCalledTimes(1);
 
     await userEvent.click(await screen.findByText('Add Project'));
 
     await userEvent.type(screen.getByRole('textbox'), 'a');
 
-    expect(getMock).toHaveBeenCalledTimes(3);
-    expect(getMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/projects/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: '!team:team-slug a',
-        }),
-      })
-    );
+    expect(filteredMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -5,7 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {mergeGroups} from 'sentry/actionCreators/group';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -25,8 +25,8 @@ type Props = {
   project: Project;
 };
 
-const DataConsentBanner = HookOrDefault({
-  hookName: 'component:data-consent-banner',
+const DataConsentBanner = OverrideOrDefault({
+  overrideName: 'component:data-consent-banner',
   defaultComponent: null,
 });
 
@@ -40,7 +40,7 @@ export function SimilarStackTrace({project}: Props) {
   const params = useParams<{groupId: string; orgId: string}>();
   const navigate = useNavigate();
 
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [checkedIds, setCheckedIds] = useState(new Set<string>());
 
   const hasSimilarityFeature = project.features.includes('similarity-view');
   const {data: projectData, isPending: isProjectPending} = useDetailedProject({

@@ -27,7 +27,6 @@ import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -367,7 +366,7 @@ export function FiltersBar({
                     !hasEditAccess &&
                     t('You do not have permission to edit this dashboard'),
                 }}
-                priority="primary"
+                variant="primary"
                 onClick={async () => {
                   await onSave?.();
                   invalidateStarredDashboards();
@@ -396,7 +395,6 @@ export function FiltersBar({
               </Button>
             </Grid>
           )}
-        <ToggleOnDemand />
       </FiltersRow>
       <Grid flow="column" align="center" gap="md">
         <CompactSelect
@@ -425,7 +423,7 @@ export function FiltersBar({
                       size: 'sm',
                       showChevron: true,
                       icon: <IconAdd size="sm" />,
-                      priority: 'primary',
+                      variant: 'primary',
                     }}
                     position="bottom-end"
                   />

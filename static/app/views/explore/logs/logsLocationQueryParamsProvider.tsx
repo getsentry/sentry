@@ -34,7 +34,7 @@ export function LogsLocationQueryParamsProvider({
   const [_, setPersistentParams] = usePersistedLogsPageParams();
 
   const _readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(location),
+    () => getReadableQueryParamsFromLocation(false, location),
     [location]
   );
 

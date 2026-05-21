@@ -8,7 +8,7 @@ import {
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 
 interface TransformedSeries {
   label: string;
@@ -33,8 +33,6 @@ export function transformWidgetSeriesToTimeSeries(
   }
   const aggregates = firstQuery?.aggregates ?? [];
   const columns = firstQuery?.columns ?? [];
-  const fields = firstQuery?.fields ?? [...columns, ...aggregates];
-  const fieldAliases = firstQuery?.fieldAliases ?? [];
 
   const seriesName = series.seriesName ?? aggregates[0] ?? '';
 
@@ -93,30 +91,7 @@ export function transformWidgetSeriesToTimeSeries(
     return null;
   }
 
-  const fieldIndex = fields.indexOf(yAxis);
-  // Only use field aliases for the yAxis if there are multiple yAxis and no group bys
-  const fieldAlias =
-    aggregates.length > 1 && columns.length === 0 && fieldIndex >= 0
-      ? fieldAliases[fieldIndex]
-      : undefined;
-
-  const labelParts = [
-    effectiveQueryName,
-    fieldAlias ?? formatTimeSeriesLabel(timeSeries),
-  ];
-  // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
-  if (aggregates.length > 1 && columns.length > 0) {
-    if (widget.widgetType === WidgetType.TRACEMETRICS) {
-      // TraceMetrics widgets need to format the yAxis for the label
-      labelParts.push(formatTraceMetricsFunction(yAxis) as string);
-    } else {
-      labelParts.push(yAxis);
-    }
-  }
-
-  const label = labelParts
-    .filter((part): part is string => part !== undefined)
-    .join(SERIES_NAME_PART_DELIMITER);
+  const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
 
   return {timeSeries, label, seriesName, widgetQuery};
 }

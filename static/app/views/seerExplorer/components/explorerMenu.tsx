@@ -195,7 +195,7 @@ export function useExplorerMenu({
       document.addEventListener('keydown', handleKeyDown, true);
       return () => document.removeEventListener('keydown', handleKeyDown, true);
     }
-    return undefined;
+    return;
   }, [handleKeyDown, isVisible]);
 
   // Calculate menu position based on anchor element

@@ -4,7 +4,7 @@ import datetime
 import logging
 import sys
 import traceback
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, overload
@@ -14,14 +14,16 @@ from django.conf import settings
 from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
-from rest_framework.exceptions import APIException, ParseError, Throttled
+from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
 from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options, quotas
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.hybridcloud.rpc import extract_id_from
@@ -63,7 +65,11 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCRateLimitExceeded
+from sentry.utils.snuba_rpc import (
+    SnubaRPCError,
+    SnubaRPCRateLimitExceeded,
+    SnubaRPCTooManySimultaneous,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -390,6 +396,9 @@ def handle_query_errors() -> Generator[None]:
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
         raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+    except SnubaRPCTooManySimultaneous:
+        sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+        raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
@@ -411,12 +420,14 @@ def handle_query_errors() -> Generator[None]:
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
             raise
+        if isinstance(error, QueryTooManySimultaneous):
+            sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
             (
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
-                QueryTooManySimultaneous,
             ),
         ) or isinstance(
             arg,
@@ -499,3 +510,36 @@ def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:
     back to isoformat to keep it standardized with other timestamp fields
     """
     return datetime.datetime.fromisoformat(timestamp_ms).astimezone().isoformat()
+
+
+def to_valid_int_id(name: str, val: str | int, raise_404: bool = False) -> int:
+    """
+    Convert a string or integer to a valid integer id.
+    Raises a ValidationError if the value is not a valid integer id.
+    If raise_404 is True, raises ResourceDoesNotExist instead.
+    NOTE: This function is no stricter than int(); if the annotated types
+    aren't honored (eg passing in a float or bool), an int may still be returned.
+    """
+    ival: int
+    if isinstance(val, int):
+        ival = val
+    else:
+        try:
+            ival = int(val)
+        except ValueError:
+            if raise_404:
+                raise ResourceDoesNotExist
+            raise ValidationError({name: f"Value {val} is not a valid integer id"})
+    if ival >= 0 and ival <= BoundedBigAutoField.MAX_VALUE:
+        return ival
+    if raise_404:
+        raise ResourceDoesNotExist
+    raise ValidationError({name: f"Value {val} is not a valid integer id"})
+
+
+def to_valid_int_id_list(name: str, val: Sequence[str | int]) -> list[int]:
+    """
+    Convert a sequence of strings or integers to a list of valid integer ids.
+    Raises a ValidationError if any of the values are not a valid integer id.
+    """
+    return [to_valid_int_id(name, v) for v in val]

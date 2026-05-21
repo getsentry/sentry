@@ -11,6 +11,6 @@ export function feedbackHasLinkedError(item: FeedbackIssueListItem): boolean {
   // Can potentially remove this after all feedbacks have associated_event_id in their metadata (~90 days)
   return (
     CRASH_REPORT_SOURCES.includes(item.metadata.source ?? '') ||
-    item.metadata.hasOwnProperty('associated_event_id')
+    Object.hasOwn(item.metadata, 'associated_event_id')
   );
 }

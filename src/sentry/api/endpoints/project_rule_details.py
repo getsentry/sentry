@@ -18,6 +18,7 @@ from sentry.api.endpoints.project_rules import (
     find_duplicate_rule,
 )
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
@@ -30,7 +31,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.constants import ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
@@ -102,13 +103,12 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 @cell_silo_endpoint
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
         "DELETE": "organizations:workflow-engine-issue-alert-endpoints-delete",
     }
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(
@@ -127,7 +127,11 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-details",
+    )
+    def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
         ## Deprecated
         🚧 Use [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
@@ -140,23 +144,12 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        if isinstance(rule, Workflow):
-            workflow = rule
-            workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
-                expand=request.GET.getlist("expand", []),
-                prepare_component_fields=True,
-                project_slug=project.slug,
-            )
-            serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
-        else:
-            report_used_legacy_models()
-            # Serialize Rule object
-            rule_serializer = RuleSerializer(
-                expand=request.GET.getlist("expand", []),
-                prepare_component_fields=True,
-                project_slug=project.slug,
-            )
-            serialized_rule = serialize(rule, request.user, rule_serializer)
+        workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
+            expand=request.GET.getlist("expand", []),
+            prepare_component_fields=True,
+            project_slug=project.slug,
+        )
+        serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
 
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
@@ -190,6 +183,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-details",
+    )
     def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
         ## Deprecated
@@ -367,6 +364,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         },
     )
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-details",
+    )
     def delete(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated

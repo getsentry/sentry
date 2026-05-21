@@ -27,11 +27,12 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
@@ -74,7 +75,7 @@ const renderDisabled = (p: any) => (
 type SaveAsDropdownProps = {
   disabled: boolean;
   modifiedHandleCreateQuery: (
-    e: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
+    e: React.MouseEvent | React.FormEvent<HTMLFormElement>
   ) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
@@ -96,7 +97,7 @@ export function SaveAsDropdown({
       <Button
         {...triggerProps}
         size="sm"
-        icon={<IconStar />}
+        variant="primary"
         aria-label={t('Save as')}
         disabled={disabled}
       >
@@ -120,7 +121,7 @@ export function SaveAsDropdown({
                     <SaveAsButton
                       type="submit"
                       onClick={modifiedHandleCreateQuery}
-                      priority="primary"
+                      variant="primary"
                       disabled={disabled || !queryName}
                     >
                       {t('Save for Organization')}
@@ -152,6 +153,7 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
   queryDataLoading: boolean;
@@ -257,9 +259,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
    * 1) Creating a query from scratch and saving it
    * 2) Modifying an existing query and saving it
    */
-  handleCreateQuery = (
-    event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
-  ) => {
+  handleCreateQuery = (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -282,16 +282,16 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         Banner.dismiss('discover');
         this.setState({queryName: ''});
-        browserHistory.push(normalizeUrl(view.getResultsViewUrlTarget(organization)));
+        this.props.navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
       }
     );
   };
 
-  handleUpdateQuery = (event: React.MouseEvent<Element>) => {
+  handleUpdateQuery = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView, updateCallback, yAxis, setSavedQuery} =
+    const {api, navigate, organization, eventView, updateCallback, yAxis, setSavedQuery} =
       this.props;
 
     handleUpdateQuery(api, organization, eventView, yAxis).then(
@@ -299,20 +299,20 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
         setSavedQuery(savedQuery);
         this.setState({queryName: ''});
-        browserHistory.push(view.getResultsViewShortUrlTarget(organization));
+        navigate(view.getResultsViewShortUrlTarget(organization));
         updateCallback();
       }
     );
   };
 
-  handleDeleteQuery = (event?: React.MouseEvent<Element>) => {
+  handleDeleteQuery = (event?: React.MouseEvent) => {
     event?.preventDefault();
     event?.stopPropagation();
 
-    const {api, organization, eventView} = this.props;
+    const {api, navigate, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      browserHistory.push(
+      navigate(
         normalizeUrl({
           pathname: getDiscoverQueriesUrl(organization),
           query: {},
@@ -552,7 +552,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
                 DEFAULT_EVENT_VIEW,
                 location
               );
-              browserHistory.push({
+              this.props.navigate({
                 pathname: location.pathname,
                 query: nextEventView.generateQueryStringObject(),
               });
@@ -600,7 +600,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <Feature
         organization={organization}
         features="discover-query"
-        hookName="feature-disabled:discover-saved-query-create"
+        overrideName="feature-disabled:discover-saved-query-create"
         renderDisabled={renderDisabled}
       >
         {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
@@ -738,4 +738,9 @@ export const IconUpdate = styled('div')`
   background-color: ${p => p.theme.colors.yellow400};
 `;
 
-export default withProjects(withApi(SavedQueryButtonGroup));
+function SavedQueryButtonGroupWithNavigate(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <SavedQueryButtonGroup {...props} navigate={navigate} />;
+}
+
+export default withProjects(withApi(SavedQueryButtonGroupWithNavigate));

@@ -110,7 +110,7 @@ export function ProjectPageFilter({
   const dispatchRef = useRef<React.Dispatch<any> | undefined>(undefined);
 
   // We need to backpropagate the staged value to the options so that we can update the UI.
-  const [stagedValue, setStagedValue] = useState<number[]>(committedSelectionIntent.ids);
+  const [stagedValue, setStagedValue] = useState(committedSelectionIntent.ids);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
     const optionSelectionIntent = selectionToIntent({
@@ -169,7 +169,7 @@ export function ProjectPageFilter({
                 <Fragment>
                   <LinkButton
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconOpen variant="muted" />}
                     aria-label={t('Open Project Details')}
                     tooltipProps={{title: t('Open Project Details'), delay: 400}}
@@ -182,7 +182,7 @@ export function ProjectPageFilter({
                   />
                   <LinkButton
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconSettings variant="muted" />}
                     tooltipProps={{title: t('Open Project Settings'), delay: 400}}
                     aria-label={t('Open Project Settings')}

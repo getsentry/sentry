@@ -7,7 +7,6 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
 
 export function OSBrowserDropdownFilter({
   type,
@@ -18,7 +17,7 @@ export function OSBrowserDropdownFilter({
   type: 'browser' | 'os';
   version: string | null;
 }) {
-  const location = useLocation<ReplayListLocationQuery>();
+  const location = useLocation();
   const navigate = useNavigate();
 
   return (

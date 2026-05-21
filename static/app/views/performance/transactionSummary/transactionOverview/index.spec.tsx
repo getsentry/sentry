@@ -22,6 +22,14 @@ import TransactionSummaryLayout from 'sentry/views/performance/transactionSummar
 import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
+// TODO: this suite covers the legacy (non-EAP) component path. The
+// useTransactionSummaryEAP hook now always returns true after the
+// performance-transaction-summary-eap flag was graduated; mock it back
+// to false here until the legacy paths are deleted.
+jest.mock('sentry/views/performance/eap/useTransactionSummaryEAP', () => ({
+  useTransactionSummaryEAP: () => false,
+}));
+
 const teams = [
   TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
   TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),

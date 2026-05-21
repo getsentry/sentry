@@ -27,7 +27,7 @@ function getException(
     return exceptionData as Required<ExceptionType>;
   }
 
-  return undefined;
+  return;
 }
 
 export function getThreadException(

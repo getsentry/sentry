@@ -57,7 +57,11 @@ from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
+from sentry.snuba.utils import (
+    DATASET_LABELS,
+    PUBLIC_DATASET_LABELS,
+    get_dataset,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import snuba
@@ -143,7 +147,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         return [team for team in teams]
 
-    def get_dataset(self, request: Request) -> Any:
+    def get_dataset(self, request: Request, organization: Organization) -> Any:
         dataset_label = request.GET.get("dataset", Dataset.Discover.value)
         # Feature flag the occurrence endpoint
         if (
@@ -151,9 +155,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             and not EAPOccurrencesComparator.should_use_experiment("api.events.endpoints")
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
+        elif dataset_label == SupportedTraceItemType.REPLAYS.value and not features.has(
+            "organizations:events-use-replays-dataset", organization, actor=request.user
+        ):
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)
         if result is None:
-            raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         sentry_sdk.set_tag("query.dataset", dataset_label)
         return result
 

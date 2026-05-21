@@ -74,13 +74,47 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
             assert response.status_code == 400, value
             assert response.data["detail"] == "max_candidates must be >= 1"
 
-    def test_missing_organization_id(self) -> None:
-        response = self.get_response()
-        assert response.status_code == 400
-        assert response.data["detail"] == "organization_id is required"
+    def test_missing_organization_id_triggers_full_schedule(self) -> None:
+        with patch(
+            "sentry.seer.endpoints.admin_night_shift_trigger.schedule_night_shift"
+        ) as mock_schedule:
+            response = self.get_success_response(status_code=200)
+
+        assert response.data["success"] is True
+        assert response.data["organization_id"] is None
+        mock_schedule.apply_async.assert_called_once_with(
+            kwargs={"run_options": {"source": "manual", "dry_run": False}},
+        )
+
+    def test_full_schedule_forwards_overrides(self) -> None:
+        with patch(
+            "sentry.seer.endpoints.admin_night_shift_trigger.schedule_night_shift"
+        ) as mock_schedule:
+            response = self.get_success_response(dry_run=True, max_candidates=5, status_code=200)
+
+        assert response.data["organization_id"] is None
+        assert response.data["dry_run"] is True
+        assert response.data["max_candidates"] == 5
+        mock_schedule.apply_async.assert_called_once_with(
+            kwargs={
+                "run_options": {"source": "manual", "dry_run": True, "max_candidates": 5},
+            },
+        )
 
     def test_invalid_organization_id(self) -> None:
         response = self.get_response(organization_id="not-a-number")
+        assert response.status_code == 400
+        assert response.data["detail"] == "organization_id must be a valid integer"
+
+    def test_rejects_explicit_null_organization_id(self) -> None:
+        # Frontend may serialize NaN to null when a non-numeric value is typed.
+        # Treat that as a 400 rather than silently fanning out to every org.
+        response = self.get_response(organization_id=None)
+        assert response.status_code == 400
+        assert response.data["detail"] == "organization_id must be a valid integer"
+
+    def test_rejects_empty_string_organization_id(self) -> None:
+        response = self.get_response(organization_id="")
         assert response.status_code == 400
         assert response.data["detail"] == "organization_id must be a valid integer"
 

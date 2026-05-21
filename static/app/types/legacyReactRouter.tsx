@@ -1,4 +1,3 @@
-import type {UIMatch} from 'react-router-dom';
 /**
  * These are vendored from react-router v3
  *
@@ -57,23 +56,5 @@ export interface InjectedRouter<P = Record<string, string | undefined>, Q = any>
   params: P;
   push: LocationFunction;
   replace: LocationFunction;
-  routes: PlainRoute[];
-}
-
-/**
- * @deprecated Do not use in new components. use `use{Layout,Props}` instead.
- */
-export interface WithRouterProps<P = Record<string, string | undefined>, Q = any> {
-  location: Location<Q>;
-  params: P;
-  router: InjectedRouter<P, Q>;
-  routes: PlainRoute[];
-}
-
-export interface RouteContextInterface<P = Record<string, string | undefined>, Q = any> {
-  location: Location<Q>;
-  matches: Array<UIMatch<unknown, unknown>>;
-  params: P;
-  router: InjectedRouter<P, Q>;
   routes: PlainRoute[];
 }

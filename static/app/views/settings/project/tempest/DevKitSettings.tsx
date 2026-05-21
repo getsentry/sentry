@@ -35,7 +35,7 @@ interface Props {
 export function DevKitSettings({organization, project}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expandedAccordionIndex, setExpandedAccordionIndex] = useState<number>(-1);
+  const [expandedAccordionIndex, setExpandedAccordionIndex] = useState(-1);
 
   const {data: projectKeys, isPending: isLoadingKeys} = useQuery({
     ...projectKeysApiOptions({
@@ -209,7 +209,7 @@ export function DevKitSettings({organization, project}: Props) {
                     <GuidedSteps.StepButtons>
                       <Button
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                         onClick={() => {
                           navigate({
                             pathname: '/issues/',

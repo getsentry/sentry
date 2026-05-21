@@ -101,7 +101,7 @@ function ProjectSecurityHeaders() {
           {reports.map(({name, url}) => (
             <ReportItem key={url}>
               <HeaderName>{name}</HeaderName>
-              <LinkButton to={url} priority="primary">
+              <LinkButton to={url} variant="primary">
                 {t('Instructions')}
               </LinkButton>
             </ReportItem>

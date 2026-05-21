@@ -179,8 +179,10 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
             return False
 
         if not self.in_cache(organization_id, feature_id):
-            row, created = self.create_or_update(
-                organization_id=organization_id, feature_id=feature_id, complete=True
+            _, created = self.update_or_create(
+                organization_id=organization_id,
+                feature_id=feature_id,
+                defaults={"complete": True},
             )
             self.set_cache(organization_id, feature_id)
             return created

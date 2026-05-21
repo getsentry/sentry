@@ -3,42 +3,52 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import analytics, features
-from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
+from sentry.analytics.events.autofix_events import (
+    AiAutofixIntrospectionEvent,
+    AiAutofixPrCreatedCompletedEvent,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.agent.client_models import Artifact
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
-    trigger_autofix_explorer,
+    trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.introspection import (
+    IntrospectionDecision,
+    introspect_code_changes,
+    introspect_root_cause,
+    introspect_solution,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.explorer.client_models import Artifact
-from sentry.seer.explorer.client_utils import fetch_run_status
-from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
+    SeerRun,
 )
-from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.seer.explorer.client_models import SeerRunState
+    from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +67,9 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 }
 
 
-class AutofixOnCompletionHook(ExplorerOnCompletionHook):
+class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
-    Hook called when an Explorer-based autofix run completes.
+    Hook called when an agent-based autofix run completes.
 
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
@@ -69,7 +79,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         """
-        Execute the hook when the Explorer agent completes a step.
+        Execute the hook when the agent completes a step.
 
         Args:
             organization: The organization context
@@ -89,12 +99,16 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             return
 
         group = Group.objects.get(id=group_id, project__organization_id=organization.id)
-        group.update(seer_explorer_autofix_last_triggered=timezone.now())
+        now = timezone.now()
+        with transaction.atomic(using=router.db_for_write(Group)):
+            group.update(seer_explorer_autofix_last_triggered=now)
+            SeerRun.objects.filter(
+                organization_id=organization.id,
+                seer_run_state_id=run_id,
+            ).update(last_triggered_at=now)
 
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, state, group)
-
-        cls._maybe_trigger_supergroups_embedding(organization, run_id, state, group)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
         cls._maybe_continue_pipeline(organization, run_id, state, group)
@@ -190,10 +204,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     ]
                     for repo, patches in diffs_by_repo.items()
                 }
-        elif current_step == AutofixStep.IMPACT_ASSESSMENT:
-            webhook_action_type = SeerActionType.IMPACT_ASSESSMENT_COMPLETED
-        elif current_step == AutofixStep.TRIAGE:
-            webhook_action_type = SeerActionType.TRIAGE_COMPLETED
 
         if not webhook_action_type:
             return
@@ -255,43 +265,6 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 )
 
     @classmethod
-    def _maybe_trigger_supergroups_embedding(
-        cls,
-        organization: Organization,
-        run_id: int,
-        state: SeerRunState,
-        group: Group,
-    ) -> None:
-        """Trigger supergroups embedding if feature flag is enabled."""
-        current_step, _ = cls._get_current_step(state)
-        if current_step != AutofixStep.ROOT_CAUSE:
-            return
-
-        if not features.has("projects:supergroup-embeddings-explorer", group.project):
-            return
-
-        root_cause_artifact = cls.find_latest_artifact_for_step(state, AutofixStep.ROOT_CAUSE)
-        if not root_cause_artifact or not root_cause_artifact.data:
-            return
-
-        try:
-            trigger_supergroups_embedding(
-                organization_id=organization.id,
-                group_id=group.id,
-                project_id=group.project_id,
-                artifact_data=root_cause_artifact.data,
-            )
-        except Exception:
-            logger.exception(
-                "autofix.on_completion_hook.supergroups_embedding_failed",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group.id,
-                },
-            )
-
-    @classmethod
     def _get_current_step(
         cls, state: SeerRunState
     ) -> tuple[AutofixStep, AutofixReferrer | None] | tuple[None, None]:
@@ -347,15 +320,8 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             run_id: The run ID
             state: The current run state
         """
-        current_step, _ = cls._get_current_step(state)
-
-        # Get pipeline metadata from state
-        metadata = state.metadata
-        if not metadata or "stopping_point" not in metadata:
-            # No stopping point means manual mode - don't auto-continue
-            return
-
-        stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
+        current_step, referrer = cls._get_current_step(state)
+        referrer = referrer or AutofixReferrer.ON_COMPLETION_HOOK
 
         if current_step is None:
             logger.warning(
@@ -364,16 +330,52 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             )
             return
 
-        # Check if we've reached the stopping point
-        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
-        if stopping_step and current_step == stopping_step:
+        # Get pipeline metadata from state
+        metadata = state.metadata
+        if not metadata or "stopping_point" not in metadata:
+            stopping_point = None
+            reached_stopping_point = True
+        else:
+            # Check if we've reached the stopping point
+            stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
+            stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
+            reached_stopping_point = current_step == stopping_step
+
+        if features.has("organizations:seer-autofix-introspection", organization=organization):
+            decision = cls.run_introspection(
+                organization,
+                run_id,
+                state,
+                current_step,
+                group,
+            )
+            if decision is not None:
+                analytics.record(
+                    AiAutofixIntrospectionEvent(
+                        organization_id=organization.id,
+                        project_id=group.project_id,
+                        group_id=group.id,
+                        referrer=referrer.value,
+                        step=current_step.value,
+                        action=decision.action.value,
+                        reached_stopping_point=reached_stopping_point,
+                    )
+                )
+
+        if stopping_point is None or reached_stopping_point:
             # We've reached the stopping point
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
         handoff_config = cls._get_handoff_config_if_applicable(stopping_point, current_step, group)
         if handoff_config:
-            cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config)
+            cls._trigger_coding_agent_handoff(
+                organization,
+                run_id,
+                group,
+                handoff_config,
+                referrer,
+            )
             return
 
         # Special case: if stopping_point is open_pr and we just finished code_changes, push changes
@@ -413,12 +415,30 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "stopping_point": stopping_point,
             },
         )
-        trigger_autofix_explorer(
+        trigger_autofix_agent(
             group=group,
             step=next_step,
-            referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+            referrer=referrer,
             run_id=run_id,
         )
+
+    @classmethod
+    def run_introspection(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        step: AutofixStep,
+        group: Group,
+    ) -> IntrospectionDecision | None:
+        # For now, this method just triggers the introspection
+        # but does not do anything with it just yet.
+        if step == AutofixStep.ROOT_CAUSE:
+            return introspect_root_cause(organization, run_id, state, group)
+        elif step == AutofixStep.SOLUTION:
+            return introspect_solution(organization, run_id, state, group)
+        elif step == AutofixStep.CODE_CHANGES:
+            return introspect_code_changes(organization, run_id, state, group)
 
     @classmethod
     def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
@@ -433,6 +453,27 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "organization_id": group.organization.id,
                     "has_changes": has_changes,
                     "is_synced": is_synced,
+                },
+            )
+            return
+
+        # Errored repos are terminal — re-pushing would re-fire this hook in a loop.
+        diffs_by_repo = state.get_diffs_by_repo()
+        errored_repos = [
+            repo
+            for repo in diffs_by_repo
+            if (pr_state := state.repo_pr_states.get(repo)) is not None
+            and pr_state.pr_creation_status == "error"
+        ]
+        if errored_repos and all(
+            state._is_repo_synced(repo) or repo in errored_repos for repo in diffs_by_repo
+        ):
+            logger.info(
+                "autofix.on_completion_hook.skip_no_pushable_repos",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": group.organization.id,
+                    "errored_repos": errored_repos,
                 },
             )
             return
@@ -504,6 +545,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         run_id: int,
         group: Group,
         handoff_config: SeerAutomationHandoffConfiguration,
+        referrer: AutofixReferrer = AutofixReferrer.ON_COMPLETION_HOOK,
     ) -> None:
         """Trigger coding agent handoff using the configured integration."""
         logger.info(
@@ -521,7 +563,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
-                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+                referrer=referrer,
                 integration_id=handoff_config.integration_id,
             )
             logger.info(

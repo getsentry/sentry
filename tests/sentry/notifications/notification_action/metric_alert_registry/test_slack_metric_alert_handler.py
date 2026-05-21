@@ -163,6 +163,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
 
         self.handler.invoke_legacy_registry(invocation)
@@ -241,6 +242,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
         )
 
         self.handler.invoke_legacy_registry(invocation)

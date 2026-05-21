@@ -102,7 +102,7 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const transactionFromDashboard = useMemo(() => {
     if (!dashboardFilters?.globalFilter) {
-      return undefined;
+      return;
     }
     const transactionFilter = dashboardFilters.globalFilter.find(
       filter => filter.tag.key === 'transaction'
@@ -112,7 +112,7 @@ export function PageOverviewWebVitalsDetailPanel({
       const values = search.getFilterValues('transaction');
       return values?.[0];
     }
-    return undefined;
+    return;
   }, [dashboardFilters]);
 
   // Transaction filter can come from dashboard filters or URL (for insights module)

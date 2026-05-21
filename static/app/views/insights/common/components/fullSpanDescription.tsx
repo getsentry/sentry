@@ -68,7 +68,7 @@ export function FullSpanDescription({
   if (moduleName === ModuleName.DB) {
     if (system === 'mongodb') {
       let stringifiedQuery = '';
-      let result: ReturnType<typeof prettyPrintJsonString> | undefined = undefined;
+      let result: ReturnType<typeof prettyPrintJsonString> | undefined;
 
       if (indexedSpan?.['span.description']) {
         result = prettyPrintJsonString(indexedSpan?.['span.description']);

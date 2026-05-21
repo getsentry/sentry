@@ -8,6 +8,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
@@ -87,20 +88,22 @@ function ExploreContentInner() {
       <SpansCommandPaletteActions />
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <AnalyticsArea name="explore.spans">
-          <Stack flex={1}>
-            <SpansTabWrapper>
-              <SpansTabHeader />
-              {defined(onboardingProject) ? (
-                <SpansTabOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                  datePageFilterProps={datePageFilterProps}
-                />
-              ) : (
-                <SpansTabContent datePageFilterProps={datePageFilterProps} />
-              )}
-            </SpansTabWrapper>
-          </Stack>
+          <AiQueryProvider>
+            <Stack flex={1}>
+              <SpansTabWrapper>
+                <SpansTabHeader />
+                {defined(onboardingProject) ? (
+                  <SpansTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    datePageFilterProps={datePageFilterProps}
+                  />
+                ) : (
+                  <SpansTabContent datePageFilterProps={datePageFilterProps} />
+                )}
+              </SpansTabWrapper>
+            </Stack>
+          </AiQueryProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>

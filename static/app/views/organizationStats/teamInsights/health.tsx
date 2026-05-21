@@ -17,7 +17,6 @@ import {StatsHeader as Header} from 'sentry/views/organizationStats/header';
 
 import {TeamStatsControls} from './controls';
 import {DescriptionCard} from './descriptionCard';
-import {TeamAlertsTriggered} from './teamAlertsTriggered';
 import {TeamMiseryWrapper as TeamMisery} from './teamMisery';
 import {TeamReleases} from './teamReleases';
 import {TeamStability} from './teamStability';
@@ -97,20 +96,6 @@ export default function TeamStatsHealth() {
                 start={start?.toString()}
                 end={end?.toString()}
                 location={location}
-              />
-            </DescriptionCard>
-
-            <DescriptionCard
-              title={t('Metric Alerts Triggered')}
-              description={t('Alerts triggered from the Alert Rules your team created.')}
-            >
-              <TeamAlertsTriggered
-                organization={organization}
-                projects={projects}
-                teamSlug={currentTeam!.slug}
-                period={period}
-                start={start?.toString()}
-                end={end?.toString()}
               />
             </DescriptionCard>
 

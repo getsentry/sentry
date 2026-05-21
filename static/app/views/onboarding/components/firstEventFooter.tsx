@@ -16,7 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useExperiment} from 'sentry/utils/useExperiment';
-import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {CreateSampleEventButton} from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {GridFooter} from './genericFooter';
@@ -132,7 +132,7 @@ export function FirstEventFooter({
             to={`/organizations/${organization.slug}/issues/${
               firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
             }?referrer=onboarding-first-event-footer`}
-            priority="primary"
+            variant="primary"
           >
             {t('Take me to my error')}
           </LinkButton>
@@ -140,7 +140,7 @@ export function FirstEventFooter({
           <CreateSampleEventButton
             project={project}
             source="targeted-onboarding"
-            priority="primary"
+            variant="primary"
             hasScmOnboarding={hasScmOnboarding}
           >
             {t('View Sample Error')}

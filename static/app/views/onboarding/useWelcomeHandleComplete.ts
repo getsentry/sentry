@@ -11,6 +11,7 @@ export function useWelcomeHandleComplete(onComplete: StepProps['onComplete']) {
   const organization = useOrganization();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
+    reportExposure: false,
   });
 
   return useCallback(() => {

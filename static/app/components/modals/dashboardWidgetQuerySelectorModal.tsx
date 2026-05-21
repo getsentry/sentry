@@ -57,7 +57,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
             </Container>
             <Link to={discoverLocation}>
               <OpenInDiscoverButton
-                priority="primary"
+                variant="primary"
                 icon={<IconChevron size="xs" direction="right" />}
                 onClick={() => {
                   trackAnalytics('dashboards_views.query_selector.selected', {

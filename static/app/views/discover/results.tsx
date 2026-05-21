@@ -38,6 +38,11 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  AiQueryProvider,
+  useAiQueryContext,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -48,7 +53,6 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -73,6 +77,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
@@ -108,6 +113,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
+  addAlert: AddAlert;
   api: Client;
   loading: boolean;
   location: Location;
@@ -115,6 +121,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
+  getAiQueryRunId?: () => number | null;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -214,7 +221,7 @@ export class Results extends Component<Props, State> {
         {replace: true}
       );
     }
-    loadOrganizationTags(this.tagsApi, organization.slug, selection);
+    loadOrganizationTags(this.tagsApi, organization.slug, selection, this.props.addAlert);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
@@ -268,7 +275,12 @@ export class Results extends Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime) ||
       !isEqual(prevProps.selection.projects, selection.projects)
     ) {
-      loadOrganizationTags(this.tagsApi, organization.slug, selection);
+      loadOrganizationTags(
+        this.tagsApi,
+        organization.slug,
+        selection,
+        this.props.addAlert
+      );
       addRoutePerformanceContext(selection);
     }
 
@@ -358,12 +370,15 @@ export class Results extends Component<Props, State> {
   };
 
   async fetchTotalCount() {
-    const {api, organization, location} = this.props;
+    const {api, organization, location, getAiQueryRunId} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
-    if (confirmedQuery === false || !eventView.isValid()) {
+    if (!confirmedQuery || !eventView.isValid()) {
       return;
     }
+
+    const aiQueryRunId = getAiQueryRunId?.() ?? null;
+    const mode = eventView.hasAggregateField() ? 'aggregate' : 'samples';
 
     try {
       const totals = await fetchTotalCount(
@@ -372,8 +387,30 @@ export class Results extends Component<Props, State> {
         eventView.getEventsAPIPayload(location)
       );
       this.setState({totalValues: totals});
+
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'errors',
+          mode,
+          referrer: 'errors',
+          resultCount: totals,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+        });
+      }
     } catch (err) {
       Sentry.captureException(err);
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'errors',
+          mode,
+          referrer: 'errors',
+          resultCount: 0,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+          error: err instanceof Error ? err : true,
+        });
+      }
     }
   }
 
@@ -652,7 +689,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -725,7 +762,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
               />
             }
           >
@@ -734,7 +771,7 @@ export class Results extends Component<Props, State> {
               {
                 traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
                 FAQLink: (
-                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
                 ),
               }
             )}
@@ -969,6 +1006,7 @@ function DiscoverContextMenu({
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const homepageQueryKey = useMemo(
@@ -1061,7 +1099,7 @@ function DiscoverContextMenu({
               DEFAULT_EVENT_VIEW,
               location
             );
-            browserHistory.push({
+            navigate({
               pathname: location.pathname,
               query: nextEventView.generateQueryStringObject(),
             });
@@ -1099,7 +1137,7 @@ function DiscoverContextMenu({
       label: t('Delete Saved Query'),
       onAction: () => {
         handleDeleteSavedQuery(api, organization, eventView).then(() => {
-          browserHistory.push(
+          navigate(
             normalizeUrl({pathname: getDiscoverQueriesUrl(organization), query: {}})
           );
         });
@@ -1151,6 +1189,7 @@ function SaveQueryButton({
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
+  const navigate = useNavigate();
   const [queryName, setQueryName] = useState('');
 
   const {isNewQuery, isEditingQuery} = useMemo(() => {
@@ -1187,7 +1226,7 @@ function SaveQueryButton({
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
   const handleCreate = useCallback(
-    (event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>) => {
+    (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       event.stopPropagation();
       if (!queryName) {
@@ -1200,21 +1239,21 @@ function SaveQueryButton({
           const view = EventView.fromSavedQuery(sq);
           Banner.dismiss('discover');
           setQueryName('');
-          browserHistory.push(normalizeUrl(view.getResultsViewUrlTarget(organization)));
+          navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
         }
       );
     },
-    [api, organization, eventView, yAxis, queryName]
+    [api, navigate, organization, eventView, yAxis, queryName]
   );
 
-  const handleUpdate = (event: React.MouseEvent<Element>) => {
+  const handleUpdate = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {
       const view = EventView.fromSavedQuery(sq);
       setSavedQuery(sq);
       setQueryName('');
-      browserHistory.push(view.getResultsViewShortUrlTarget(organization));
+      navigate(view.getResultsViewShortUrlTarget(organization));
     });
   };
 
@@ -1348,15 +1387,6 @@ function DiscoverPageFilters({
       </PageFilterBar>
       {hasPageFrameFeature && (
         <Flex gap="md" align="center">
-          <SaveQueryButton
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-          />
           {!shouldHideCreateAlert && (
             <Feature organization={organization} features="incidents">
               {({hasFeature}) =>
@@ -1391,6 +1421,15 @@ function DiscoverPageFilters({
             isHomepage={isHomepage}
             setSavedQuery={setSavedQuery}
           />
+          <SaveQueryButton
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            savedQuery={savedQuery}
+            yAxis={yAxis}
+            setSavedQuery={setSavedQuery}
+            errorCode={errorCode}
+          />
         </Flex>
       )}
     </Wrapper>
@@ -1422,6 +1461,7 @@ const TipContainer = styled(MarkedText)`
 function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
   const queryClient = useQueryClient();
   const {organization, location} = props;
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
@@ -1461,6 +1501,7 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   return (
     <Results
       {...props}
+      getAiQueryRunId={getRunIdForAnalytics}
       savedQuery={
         hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
       }
@@ -1476,6 +1517,7 @@ export default function ResultsContainer() {
   const {selection} = usePageFilters();
   const location = useLocation();
   const navigate = useNavigate();
+  const {addAlert} = useGlobalAlerts();
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -1498,13 +1540,16 @@ export default function ResultsContainer() {
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <SavedQueryAPI
-        api={api}
-        organization={organization}
-        selection={selection}
-        location={location}
-        navigate={navigate}
-      />
+      <AiQueryProvider>
+        <SavedQueryAPI
+          addAlert={addAlert}
+          api={api}
+          organization={organization}
+          selection={selection}
+          location={location}
+          navigate={navigate}
+        />
+      </AiQueryProvider>
     </PageFiltersContainer>
   );
 }

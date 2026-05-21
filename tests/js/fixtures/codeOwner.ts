@@ -27,6 +27,7 @@ export function CodeOwnerFixture({
     id: '1225',
     raw: '',
     dateCreated: '2022-11-18T15:05:47.450354Z',
+    dateSynced: '2023-05-02T14:01:03.547672Z',
     dateUpdated: '2023-02-24T18:43:08.729490Z',
     codeMappingId: '11',
     provider: 'github',

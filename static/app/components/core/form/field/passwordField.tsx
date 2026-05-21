@@ -19,7 +19,7 @@ export function PasswordField(props: Omit<InputFieldProps, 'type' | 'trailingIte
       trailingItems={
         <Button
           size="xs"
-          priority="transparent"
+          variant="transparent"
           icon={isFieldVisible ? <IconShow size="xs" /> : <IconHide size="xs" />}
           aria-label={isFieldVisible ? t('Hide password') : t('Show password')}
           onClick={() => setisFieldVisible(v => !v)}

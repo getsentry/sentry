@@ -238,7 +238,7 @@ export function InstallDetailsContent({
               <Flex width={{xs: '100%', sm: 'auto'}}>
                 <Button
                   onClick={() => window.open(installDetails.install_url, '_blank')}
-                  priority="primary"
+                  variant="primary"
                   size="md"
                   style={{width: '100%'}}
                 >
@@ -258,7 +258,7 @@ export function InstallDetailsContent({
                         })
                       }
                       size="md"
-                      priority="default"
+                      variant="secondary"
                       style={{width: '100%'}}
                     >
                       {t('Copy Download Link')}

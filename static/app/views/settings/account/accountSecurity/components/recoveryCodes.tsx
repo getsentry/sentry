@@ -72,7 +72,7 @@ export function RecoveryCodes({
               'Are you sure you want to regenerate recovery codes? Your old codes will no longer work.'
             )}
           >
-            <Button priority="danger" size="xs">
+            <Button variant="danger" size="xs">
               {t('Regenerate Codes')}
             </Button>
           </Confirm>

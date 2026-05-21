@@ -1,4 +1,5 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
@@ -27,8 +28,8 @@ export function useGetTraceItemAttributeKeys({
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
-    mutationFn: async (
+  return useCallback(
+    async (
       queryString?: string
     ): Promise<{
       booleanAttributes: TagCollection;
@@ -36,8 +37,8 @@ export function useGetTraceItemAttributeKeys({
       stringAttributes: TagCollection;
     }> => {
       try {
-        const {json} = await queryClient.fetchQuery({
-          ...traceItemAttributeKeysOptions({
+        const {json} = await queryClient.fetchQuery(
+          traceItemAttributeKeysOptions({
             organization,
             selection,
             traceItemType,
@@ -45,14 +46,13 @@ export function useGetTraceItemAttributeKeys({
             search: queryString,
             query,
             staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
-          }),
-        });
+          })
+        );
         return getTraceItemTagCollection(json);
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
     },
-  });
-
-  return getTraceItemAttributeKeys;
+    [organization, projectIds, query, queryClient, selection, traceItemType]
+  );
 }

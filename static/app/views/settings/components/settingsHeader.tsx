@@ -11,7 +11,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 // e.g. app/views/settings/metric/triggers/chart/
 const HEADER_Z_INDEX_OFFSET = 5;
 
-export const SettingsHeader = styled((props: ContainerProps<'div'>) => {
+export const SettingsHeader = styled((props: ContainerProps) => {
   const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
 

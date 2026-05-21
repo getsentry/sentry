@@ -166,6 +166,15 @@ class User(Model, AbstractBaseUser):
         default=False,
         help_text=_("If set to true then the user needs to change the password on next sign in."),
     )
+    is_suspended = models.BooleanField(
+        _("suspended"),
+        default=False,
+        db_default=False,
+        help_text=_(
+            "Designates whether this user account has been suspended by an admin. "
+            "Suspended users cannot log in but their account and data are preserved."
+        ),
+    )
     last_password_change = models.DateTimeField(
         _("date of last password change"),
         null=True,

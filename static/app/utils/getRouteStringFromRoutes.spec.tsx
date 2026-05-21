@@ -3,7 +3,7 @@ import type {UIMatch} from 'react-router-dom';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 describe('getRouteStringFromRoutes', () => {
-  const matches: Array<UIMatch<unknown, unknown>> = [
+  const matches: UIMatch[] = [
     {
       handle: {path: '/'},
       id: '1',

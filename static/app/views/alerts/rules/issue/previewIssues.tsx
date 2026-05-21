@@ -57,12 +57,12 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
   const api = useApi();
   const organization = useOrganization();
   const isMounted = useIsMountedRef();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [previewError, setPreviewError] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
   const [previewGroups, setPreviewGroups] = useState<Group[]>([]);
-  const [previewPage, setPreviewPage] = useState<number>(0);
-  const [pageLinks, setPageLinks] = useState<string>('');
-  const [issueCount, setIssueCount] = useState<number>(0);
+  const [previewPage, setPreviewPage] = useState(0);
+  const [pageLinks, setPageLinks] = useState('');
+  const [issueCount, setIssueCount] = useState(0);
   const endDateRef = useRef<string | null>(null);
 
   /**

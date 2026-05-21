@@ -187,7 +187,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     };
   }
 
-  get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
+  get directVisibleChildren(): BaseNode[] {
     if (this.value.is_transaction && !this.expanded) {
       // For collapsed eap-transactions we render the first nested transaction on each
       // descendant branch while preserving the actual tree parentage.

@@ -8,7 +8,6 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.db.models.query import create_or_update
 from sentry.services.nodestore.base import NodeStorage
 from sentry.utils.strings import compress, decompress
 
@@ -53,7 +52,9 @@ class DjangoNodeStorage(NodeStorage):
         self._delete_cache_items(id_list)
 
     def _set_bytes(self, id: str, data: Any, ttl: timedelta | None = None) -> None:
-        create_or_update(Node, id=id, values={"data": compress(data), "timestamp": timezone.now()})
+        Node.objects.update_or_create(
+            id=id, defaults={"data": compress(data), "timestamp": timezone.now()}
+        )
 
     def cleanup(self, cutoff_timestamp: datetime) -> None:
         from sentry.db.deletion import BulkDeleteQuery

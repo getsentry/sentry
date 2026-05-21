@@ -165,7 +165,7 @@ export function NotificationSettingsByEntity({
             <Button
               aria-label={t('Delete')}
               size="sm"
-              priority="default"
+              variant="secondary"
               icon={<IconDelete />}
               onClick={() => handleRemoveNotificationOption(option.id)}
             />
@@ -275,7 +275,7 @@ export function NotificationSettingsByEntity({
               />
               <Button
                 disabled={!selectedEntityId || !selectedValue}
-                priority="primary"
+                variant="primary"
                 onClick={handleAdd}
                 icon={<IconAdd />}
                 aria-label={t('Add override')}

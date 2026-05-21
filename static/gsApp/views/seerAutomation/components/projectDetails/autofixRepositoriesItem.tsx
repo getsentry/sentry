@@ -56,9 +56,7 @@ export function AutofixRepositoriesItem({
   // We keep state with local overrides so the user can edit things without
   // sending incomplete changes to the server. All fields are required before
   // an override can be saved.
-  const [localOverrides, setLocalOverrides] = useState<BranchOverride[]>(
-    repository.branch_overrides || []
-  );
+  const [localOverrides, setLocalOverrides] = useState(repository.branch_overrides || []);
 
   const handleUpdateOverride = (idx: number, updatedOverride: BranchOverride) => {
     const newLocalOverrides = localOverrides.toSpliced(idx, 1, updatedOverride);
@@ -107,7 +105,7 @@ export function AutofixRepositoriesItem({
           onClick={() => setIsExpanded(!isExpanded)}
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
           size="zero"
-          priority="transparent"
+          variant="transparent"
         >
           <Text size="md">
             {[repository.owner, repository.name].filter(Boolean).join('/')}
@@ -130,7 +128,7 @@ export function AutofixRepositoriesItem({
           onConfirm={onRemoveRepo}
           header={
             <Heading as="h4">
-              {tct('Are you sure you want to remove [repo] from Seer?', {
+              {tct('Are you sure you want to remove [repo] from Autofix?', {
                 repo: <code>{repository.name}</code>,
               })}
             </Heading>
@@ -138,11 +136,11 @@ export function AutofixRepositoriesItem({
           message={
             repositories.length > 1
               ? tn(
-                  'There will still be %s other repository connected to this project for Root Cause Analysis to use.',
-                  'There will still be %s other repositories connected to this project for Root Cause Analysis to use.',
+                  'There will still be %s other repository connected to this project for Autofix to use.',
+                  'There will still be %s other repositories connected to this project for Autofix to use.',
                   repositories.length - 1
                 )
-              : t('You will no longer be able to use Root Cause Analysis on your issue.')
+              : t('Autofix will be disabled for issues in this project.')
           }
           confirmText={
             <Flex align="center" gap="md">
@@ -156,7 +154,7 @@ export function AutofixRepositoriesItem({
             aria-label={t('Disconnect Repository')}
             icon={<IconDelete />}
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </Confirm>
       </Flex>

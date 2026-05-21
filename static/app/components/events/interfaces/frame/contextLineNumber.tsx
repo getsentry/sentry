@@ -13,7 +13,7 @@ interface Props {
   coverage?: Coverage;
 }
 
-export const coverageText: Record<Coverage, string | undefined> = {
+const coverageText: Record<Coverage, string | undefined> = {
   [Coverage.NOT_COVERED]: t('Line uncovered by tests'),
   [Coverage.COVERED]: t('Line covered by tests'),
   [Coverage.PARTIAL]: t('Line partially covered by tests'),

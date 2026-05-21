@@ -517,7 +517,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
-      let timeframe: {end: number; start: number} | undefined = undefined;
+      let timeframe: {end: number; start: number} | undefined;
       const seriesAdditionalInfo: Record<string, AdditionalSeriesInfo> = {};
       const sortedTimeseriesData = Object.keys(timeseriesData)
         .map(

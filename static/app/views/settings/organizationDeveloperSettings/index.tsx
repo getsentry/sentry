@@ -1,11 +1,12 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import {removeSentryApp, sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -19,9 +20,7 @@ import {
   platformEventLinkMap,
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -58,16 +57,7 @@ function OrganizationDeveloperSettings() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
 
   if (isPending) {
     return <LoadingIndicator />;

@@ -55,7 +55,7 @@ export function BookmarkStar({
       busy={isBookmarking}
       onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
       size="zero"
-      priority="transparent"
+      variant="transparent"
       icon={
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       }

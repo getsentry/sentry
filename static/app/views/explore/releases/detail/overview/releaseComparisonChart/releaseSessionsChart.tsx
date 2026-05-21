@@ -26,8 +26,7 @@ import {
   initSessionsChart,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   generateReleaseMarkLines,
   releaseComparisonChartHelp,
@@ -120,7 +119,7 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
-        return undefined;
+        return;
     }
   }
 
@@ -691,4 +690,9 @@ class ReleaseSessionsChart extends Component<Props> {
   }
 }
 
-export default withTheme(withSentryRouter(ReleaseSessionsChart));
+function WithLocation(props: Omit<Props, 'location'>) {
+  const location = useLocation();
+  return <ReleaseSessionsChart {...props} location={location} />;
+}
+
+export default withTheme(WithLocation);

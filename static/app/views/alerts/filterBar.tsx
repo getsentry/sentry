@@ -127,7 +127,7 @@ export function FilterBar({
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
-            priority="primary"
+            variant="primary"
             referrer="alert_stream"
             projectSlug={
               selection.projects.length === 1

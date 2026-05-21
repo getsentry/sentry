@@ -137,7 +137,7 @@ function useHandleReset({
 }) {
   return useMemo(() => {
     if (!aiAutofix.autofixData) {
-      return undefined;
+      return;
     }
     return () => {
       aiAutofix.reset();

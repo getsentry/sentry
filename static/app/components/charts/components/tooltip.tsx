@@ -76,7 +76,7 @@ function defaultMarkerFormatter(value: string) {
 
 function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
-    return undefined;
+    return;
   }
   if (Array.isArray(series.data)) {
     return series.data[offset];
@@ -85,7 +85,7 @@ function getSeriesValue(series: any, offset: number) {
     return series.data.value[offset];
   }
 
-  return undefined;
+  return;
 }
 
 type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';
@@ -242,6 +242,21 @@ export function getFormatter({
           truncationFormatter(serie.seriesName ?? '', truncate),
           serie
         );
+
+        if (serie.seriesType === 'heatmap') {
+          const zAxisCountValue = (getSeriesValue(serie, 2) ?? 0).toString();
+          const yAxisValue = valueFormatter(
+            getSeriesValue(serie, 1),
+            serie.seriesName,
+            serie
+          );
+
+          acc.series.push(
+            `<div><span class="tooltip-label"><strong>${yAxisValue}</strong></span> ${zAxisCountValue}</div>`
+          );
+
+          return acc;
+        }
 
         const value = valueFormatter(getSeriesValue(serie, 1), serie.seriesName, serie);
 

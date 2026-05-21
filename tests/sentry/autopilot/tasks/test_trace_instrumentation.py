@@ -125,7 +125,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin
         self.ten_mins_ago = before_now(minutes=10)
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerAgentClient")
     def test_skips_llm_for_nonexistent_organization(self, mock_seer_client: mock.MagicMock) -> None:
         result = run_trace_instrumentation_detector_for_project_task(
             organization_id=999999,
@@ -135,7 +135,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerAgentClient")
     def test_skips_llm_for_nonexistent_project(self, mock_seer_client: mock.MagicMock) -> None:
         result = run_trace_instrumentation_detector_for_project_task(
             organization_id=self.organization.id,
@@ -145,7 +145,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerAgentClient")
     def test_skips_llm_when_no_trace_sampled(
         self,
         mock_seer_client: mock.MagicMock,
@@ -160,7 +160,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerAgentClient")
     @mock.patch("sentry.autopilot.tasks.trace_instrumentation.get_trace_waterfall")
     def test_skips_llm_when_trace_query_fails(
         self,
@@ -183,7 +183,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerAgentClient")
     def test_handles_missing_seer_access(
         self,
         mock_seer_client: mock.MagicMock,
@@ -204,7 +204,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.trace_instrumentation.create_instrumentation_issue")
-    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerAgentClient")
     def test_creates_issues_for_instrumentation_gaps(
         self,
         mock_seer_client: mock.MagicMock,
@@ -289,7 +289,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin
         assert call_args_list[1]["subtitle"] == "Missing HTTP Spans"
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerExplorerClient")
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.SeerAgentClient")
     def test_handles_seer_explorer_error_gracefully(
         self,
         mock_seer_client: mock.MagicMock,

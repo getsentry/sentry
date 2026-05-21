@@ -19,6 +19,16 @@ def _payload(span_id: str) -> bytes:
     return orjson.dumps({"span_id": span_id})
 
 
+def _blocking_main_for_join_test(
+    buffer, shards, stopped, current_drift, backpressure_since, healthy_since, produce_to_pipe
+):
+    """Module-level function for multiprocessing (must be picklable)."""
+    healthy_since.value = int(time.time())
+    # Block ignoring stopped to simulate stuck I/O (e.g., blocked on Kafka produce)
+    while True:
+        sleep(0.1)
+
+
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})
 def test_backpressure() -> None:
     # Flush very aggressively to make join() faster
@@ -216,3 +226,69 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
             next_step=Noop(),
             produce_to_pipe=lambda project_id, payload, dropped: None,
         )
+
+
+def test_flusher_join_timeout_kills_all_processes() -> None:
+    """Test that all flusher processes are killed even if join times out.
+
+    Reproduces a bug where hitting the join timeout would break out of the loop
+    early, without calling kill() on remaining processes.
+    """
+    import multiprocessing
+    import multiprocessing.process
+
+    buffer = SpansBuffer(assigned_shards=[0, 1, 2])
+
+    # Track which process indices had kill() called
+    kill_called_for: set[int] = set()
+    flusher: SpanFlusher | None = None  # Will be set below, needed for patched_kill closure
+
+    # Patch BaseProcess.kill to track calls (SpawnProcess inherits from this)
+    original_kill = multiprocessing.process.BaseProcess.kill
+
+    def patched_kill(self):
+        # Find which process_index this is
+        if flusher is not None:
+            for idx, proc in flusher.processes.items():
+                if proc is self:
+                    kill_called_for.add(idx)
+                    break
+        return original_kill(self)
+
+    with (
+        mock.patch.object(SpanFlusher, "main", _blocking_main_for_join_test),
+        mock.patch.object(multiprocessing.process.BaseProcess, "kill", patched_kill),
+        override_options(
+            {
+                "spans.buffer.flusher.max-unhealthy-seconds": 10,
+                "spans.buffer.flusher.use-stuck-detector": False,
+            }
+        ),
+    ):
+        # Don't use produce_to_pipe so we get real multiprocessing.Process instances
+        flusher = SpanFlusher(
+            buffer,
+            next_step=Noop(),
+            max_processes=3,
+        )
+
+        try:
+            assert len(flusher.processes) == 3
+            for process in flusher.processes.values():
+                assert process.is_alive()
+
+            # With 0.01s timeout, next_step.join() consumes it, then we should still
+            # iterate through ALL processes and call kill() on each
+            flusher.join(timeout=0.01)
+
+            # EXPECTED: kill() should be called on all 3 processes
+            assert kill_called_for == {0, 1, 2}, (
+                f"kill() should be called on all processes, "
+                f"but was only called on: {kill_called_for}"
+            )
+        finally:
+            # Clean up: forcibly kill any leaked processes
+            for process in flusher.processes.values():
+                assert isinstance(process, multiprocessing.process.BaseProcess)
+                if process.is_alive():
+                    original_kill(process)

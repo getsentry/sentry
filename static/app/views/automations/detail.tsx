@@ -67,6 +67,8 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
     />
   );
 
+  const hasConnections = !!automation.detectorIds.length;
+
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
@@ -90,11 +92,21 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
+
             {automation.enabled && warning && (
               <Alert variant={warning.color === 'warning' ? 'warning' : 'danger'}>
                 {warning.message}
               </Alert>
             )}
+
+            {!hasConnections && (
+              <Alert variant="warning">
+                {t(
+                  'This alert is not connected to a project or monitor and will not trigger.'
+                )}
+              </Alert>
+            )}
+
             <PageFiltersContainer>
               {hasPageFrameFeature ? (
                 <Flex align="center" justify="between" gap="md">
@@ -106,6 +118,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               ) : (
                 <DatePageFilter />
               )}
+
               <ErrorBoundary>
                 <AutomationStatsChart
                   automationId={automation.id}
@@ -115,6 +128,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   utc={utc ?? null}
                 />
               </ErrorBoundary>
+
               <DetailSection title={t('History')}>
                 <ErrorBoundary mini>
                   <AutomationHistoryList
@@ -128,6 +142,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </ErrorBoundary>
               </DetailSection>
+
               <DetailSection
                 title={t('Connected Projects')}
                 description={t(
@@ -138,6 +153,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   <ConnectedProjectsList automationId={automation.id} />
                 </ErrorBoundary>
               </DetailSection>
+
               <DetailSection
                 title={t('Connected Monitors')}
                 description={t(
@@ -155,6 +171,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               </DetailSection>
             </PageFiltersContainer>
           </DetailLayout.Main>
+
           <DetailLayout.Sidebar>
             <DetailSection title={t('Last Triggered')}>
               {automation.lastTriggered ? (
@@ -272,12 +289,12 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
 
   return (
     <Fragment>
-      <Button priority="default" size={size} onClick={toggleDisabled} busy={isUpdating}>
+      <Button variant="secondary" size={size} onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
-        priority="primary"
+        variant="primary"
         icon={<IconEdit />}
         size={size}
       >

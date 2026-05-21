@@ -11,9 +11,9 @@ from sentry.constants import ObjectStatus
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.explorer.client_utils import fetch_run_status
-from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +58,9 @@ def _validate_with_serializer(
     return None
 
 
-class DashboardOnCompletionHook(ExplorerOnCompletionHook):
+class DashboardOnCompletionHook(AgentOnCompletionHook):
     """
-    Hook called when a dashboard generation Explorer run completes.
+    Hook called when a dashboard generation agent run completes.
 
     Validates the generated dashboard artifact first against the
     GeneratedDashboard Pydantic model (schema-level: blocklisted functions,
@@ -163,7 +163,7 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
     @classmethod
     def _request_fix(cls, organization: Organization, run_id: int, error: str) -> None:
         try:
-            client = SeerExplorerClient(organization=organization, user=None)
+            client = SeerAgentClient(organization=organization, user=None)
             client.continue_run(
                 run_id,
                 prompt=(f"{FIX_PROMPT} {FIX_PROMPT_SECONDARY}\n\n{error}"),

@@ -15,7 +15,7 @@ export function HiddenFramesToggleAction() {
   return (
     <Button
       size="zero"
-      priority="transparent"
+      variant="transparent"
       onClick={e => {
         e.stopPropagation();
         toggleHiddenFrames();

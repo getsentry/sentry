@@ -20,7 +20,7 @@ export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
   const displayUrl = useBufferedImageUrl(imageUrl);
 
   return (
-    <Flex align="center" justify="center" flex="1" minHeight="0" padding="3xl">
+    <Flex align="center" justify="center" flex="1" minHeight="0" padding="0 xl xl">
       <ZoomableArea>
         <ZoomContainer ref={containerRef}>
           <Flex
@@ -30,7 +30,14 @@ export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
             height="100%"
             style={zoomTransformStyle(transform)}
           >
-            <ZoomableImage src={displayUrl} alt={alt} loading="eager" decoding="async" />
+            {displayUrl && (
+              <ZoomableImage
+                src={displayUrl}
+                alt={alt}
+                loading="eager"
+                decoding="async"
+              />
+            )}
           </Flex>
         </ZoomContainer>
         <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />

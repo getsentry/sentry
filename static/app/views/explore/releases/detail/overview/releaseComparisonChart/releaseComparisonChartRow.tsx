@@ -100,7 +100,7 @@ export function ReleaseComparisonChartRow({
           {role === 'parent' && (
             <ToggleButton
               onClick={() => onExpanderToggle(type)}
-              priority="transparent"
+              variant="transparent"
               size="zero"
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
               aria-label={t('Toggle chart group')}

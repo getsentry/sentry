@@ -62,7 +62,7 @@ export function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleSave}
       busy={isSaving}
       disabled={disableTransactionWidget}

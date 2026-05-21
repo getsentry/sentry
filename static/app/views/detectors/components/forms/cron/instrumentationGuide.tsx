@@ -201,7 +201,7 @@ export function InstrumentationGuide() {
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
                         {...triggerProps}
-                        priority="transparent"
+                        variant="transparent"
                         size="zero"
                       />
                     )}

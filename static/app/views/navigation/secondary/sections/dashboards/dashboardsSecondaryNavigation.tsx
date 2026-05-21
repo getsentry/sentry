@@ -12,11 +12,12 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
+import {DashboardsTab} from 'sentry/views/dashboards/manage/types';
+import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 
 export function DashboardsSecondaryNavigation() {
   const organization = useOrganization();
@@ -30,7 +31,7 @@ export function DashboardsSecondaryNavigation() {
     'dashboards-prebuilt-insights-dashboards'
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
+  const dashboardsTab = getDashboardsTab(hasPrebuiltDashboards, urlFilter);
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
     `${baseUrl}/`,
     location.pathname,
@@ -45,25 +46,38 @@ export function DashboardsSecondaryNavigation() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">
           <SecondaryNavigation.List>
+            {hasPrebuiltDashboards ? (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/?filter=${DashboardFilter.ALL}`}
+                  isActive={isOnDashboardsList && dashboardsTab === DashboardsTab.ALL}
+                  analyticsItemName="dashboards_all_combined"
+                >
+                  {t('All Dashboards')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            ) : null}
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/`}
                 end
                 isActive={
                   hasPrebuiltDashboards
-                    ? isOnDashboardsList && !isOnlyPrebuilt
+                    ? isOnDashboardsList && dashboardsTab === DashboardsTab.CUSTOM
                     : undefined
                 }
                 analyticsItemName="dashboards_all"
               >
-                {t('All Dashboards')}
+                {hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {hasPrebuiltDashboards ? (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-                  isActive={isOnDashboardsList && isOnlyPrebuilt}
+                  isActive={
+                    isOnDashboardsList && dashboardsTab === DashboardsTab.PREBUILT
+                  }
                   analyticsItemName="dashboards_sentry_built"
                 >
                   {PREBUILT_DASHBOARD_LABEL}
@@ -80,17 +94,13 @@ export function DashboardsSecondaryNavigation() {
               title={t('Starred Dashboards')}
             >
               <ErrorBoundary mini>
-                {organization.features.includes('dashboards-starred-reordering') ? (
-                  <DashboardsNavigationItems initialDashboards={starredDashboards} />
-                ) : (
-                  <StarredDashboardItems
-                    dashboards={starredDashboards}
-                    projects={projects}
-                    organizationSlug={organization.slug}
-                    organizationId={organization.id}
-                    userId={user.id}
-                  />
-                )}
+                <StarredDashboardItems
+                  dashboards={starredDashboards}
+                  projects={projects}
+                  organizationSlug={organization.slug}
+                  organizationId={organization.id}
+                  userId={user.id}
+                />
               </ErrorBoundary>
             </SecondaryNavigation.Section>
           </Fragment>

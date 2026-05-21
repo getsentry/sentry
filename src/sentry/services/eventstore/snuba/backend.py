@@ -752,7 +752,7 @@ class SnubaEventStorage(EventStorage):
         elif event.get_event_type() == "transaction":
             return Dataset.Transactions
         else:
-            return Dataset.Discover
+            return Dataset.Events
 
     def get_adjacent_event_ids_snql(
         self,
@@ -951,9 +951,6 @@ class SnubaEventStorage(EventStorage):
     ) -> list[tuple[str, str] | None]:
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
-            # This query uses the discover dataset to enable
-            # getting events across both errors and transactions, which is
-            # required when doing pagination in discover
             results = snuba.bulk_raw_query(
                 [
                     snuba.SnubaQueryParams(

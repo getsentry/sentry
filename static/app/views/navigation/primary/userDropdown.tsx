@@ -82,7 +82,7 @@ export function UserDropdown() {
                 analyticsKey="user-settings"
                 label={t('User Settings')}
                 buttonProps={{
-                  priority: 'transparent',
+                  variant: 'transparent',
                   onClick: e => {
                     handleTriggerClick();
                     triggerProps.onClick?.(e);

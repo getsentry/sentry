@@ -129,7 +129,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     (element: HTMLUListElement | null) => {
       listBoxRef.current = element;
 
-      if (!element) return undefined;
+      if (!element) return;
 
       const refsToSync = [listBoxRef, popoverRef];
 

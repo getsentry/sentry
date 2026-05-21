@@ -34,7 +34,7 @@ describe('ScreenshotModal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         onDelete={jest.fn()}
         onDownload={jest.fn()}
         projectSlug={project.slug}
@@ -70,7 +70,7 @@ describe('ScreenshotModal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         onDelete={jest.fn()}
         onDownload={jest.fn()}
         projectSlug={project.slug}
@@ -97,7 +97,7 @@ describe('ScreenshotModal', () => {
         Footer={stubEl as ModalRenderProps['Footer']}
         Body={stubEl as ModalRenderProps['Body']}
         CloseButton={stubEl}
-        closeModal={() => undefined}
+        closeModal={() => {}}
         onDelete={jest.fn()}
         onDownload={jest.fn()}
         projectSlug={project.slug}

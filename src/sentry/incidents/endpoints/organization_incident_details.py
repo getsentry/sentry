@@ -13,16 +13,14 @@ from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
+from sentry.api.utils import to_valid_int_id
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineDetailedIncidentSerializer,
 )
-from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
@@ -72,11 +70,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        has_workflow_engine_flags = features.has(
-            "organizations:workflow-engine-metric-alert-endpoints-get", organization
-        ) or features.has("organizations:workflow-engine-rule-serializers", organization)
-
-        if request.method == "GET" and has_workflow_engine_flags:
+        if request.method == "GET":
             gop: GroupOpenPeriod | None = None
 
             # Try the association table first (dual-written data).
@@ -112,7 +106,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
             kwargs["incident"] = gop
             return args, kwargs
 
-        # Legacy path (flag off): replicate IncidentEndpoint.convert_args lookup.
+        # PUT: update_incident_status operates on the legacy Incident model.
         try:
             incident = kwargs["incident"] = Incident.objects.get(
                 organization=organization, identifier=int_id
@@ -137,30 +131,9 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         ``````````````````
         :auth: required
         """
-        if isinstance(incident, GroupOpenPeriod):
-            expand = request.GET.getlist("expand", [])
-            return Response(
-                serialize(
-                    incident, request.user, WorkflowEngineDetailedIncidentSerializer(expand=expand)
-                )
+        expand = request.GET.getlist("expand", [])
+        return Response(
+            serialize(
+                incident, request.user, WorkflowEngineDetailedIncidentSerializer(expand=expand)
             )
-
-        return Response(serialize(incident, request.user, DetailedIncidentSerializer()))
-
-    @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-incident-details")
-    def put(self, request: Request, organization: Organization, incident) -> Response:
-        serializer = IncidentSerializer(data=request.data)
-        if serializer.is_valid():
-            result = serializer.validated_data
-            if result["status"] == IncidentStatus.CLOSED:
-                incident = update_incident_status(
-                    incident=incident,
-                    status=result["status"],
-                    status_method=IncidentStatusMethod.MANUAL,
-                )
-                return Response(
-                    serialize(incident, request.user, DetailedIncidentSerializer()), status=200
-                )
-            else:
-                return Response("Status cannot be changed.", status=400)
-        return Response(serializer.errors, status=400)
+        )
