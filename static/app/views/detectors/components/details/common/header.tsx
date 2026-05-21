@@ -42,7 +42,7 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   );
 }
 
-export function DetectorDetailsDefaultHeaderContent({
+function DetectorDetailsDefaultHeaderContent({
   detector,
 }: {
   detector: Detector;
