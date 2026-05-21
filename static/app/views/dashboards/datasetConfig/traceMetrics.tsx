@@ -8,7 +8,8 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
-  isEquation,
+  getEquationAliasIndex,
+  isEquationAlias,
   parseFunction,
   RateUnit,
   type AggregationOutputType,
@@ -265,12 +266,10 @@ export const TraceMetricsConfig: DatasetConfig<
   // We've forced the sort options to use the table sort options UI because
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
-    getTableSortOptions(organization, widgetQuery, false).map(({value, label}) => {
-      if (isEquation(value)) {
-        const equations = widgetQuery.aggregates.filter(isEquation);
-        const index = equations.indexOf(value);
+    getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
+      if (isEquationAlias(value)) {
         return {
-          label: `ƒ${index + 1}`,
+          label: `ƒ${getEquationAliasIndex(value) + 1}`,
           value,
         };
       }

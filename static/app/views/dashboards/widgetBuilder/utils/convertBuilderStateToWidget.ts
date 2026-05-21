@@ -94,6 +94,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     defaultSort = '';
   } else if (isCategoricalBar) {
     // Categorical bars should sort by the selected aggregate (last by default, matching Big Number).
+    // For equations, use the alias format (equation[N]) that the API expects, not the raw equation|... string
     const selectedIndex = getSelectedAggregateIndex(
       state.selectedAggregate,
       aggregates.length
@@ -101,16 +102,11 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     const selectedAggregate = aggregates[selectedIndex] ?? aggregates[0];
     if (selectedAggregate) {
       if (isEquation(selectedAggregate)) {
-        if (state.dataset === WidgetType.TRACEMETRICS) {
-          // Trace-metrics RPC backend expects the full equation|… format
-          defaultSort = `-${selectedAggregate}`;
-        } else {
-          const equationIndex =
-            aggregates.slice(0, selectedIndex + 1).filter(isEquation).length - 1;
-          // Defensive: equationIndex should always be >= 0 since selectedAggregate
-          // is an equation, but Math.max guards against an empty filter result.
-          defaultSort = `-equation[${Math.max(0, equationIndex)}]`;
-        }
+        const equationIndex =
+          aggregates.slice(0, selectedIndex + 1).filter(isEquation).length - 1;
+        // Defensive: equationIndex should always be >= 0 since selectedAggregate
+        // is an equation, but Math.max guards against an empty filter result.
+        defaultSort = `-equation[${Math.max(0, equationIndex)}]`;
       } else {
         defaultSort = `-${selectedAggregate}`;
       }

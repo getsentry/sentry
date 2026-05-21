@@ -1,5 +1,6 @@
 import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import trimStart from 'lodash/trimStart';
 
 import type {Series} from 'sentry/types/echarts';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -7,7 +8,13 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {
+  getEquationAliasIndex,
+  isEquation,
+  isEquationAlias,
+  type AggregationOutputType,
+  type DataUnit,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -280,7 +287,18 @@ export function useTraceMetricsTableQuery(
       };
 
       if (query.orderby) {
-        requestParams.sort = toArray(query.orderby);
+        if (isEquationAlias(trimStart(query.orderby, '-'))) {
+          const equations = query.fields?.filter(isEquation) ?? [];
+          const equationIndex = getEquationAliasIndex(trimStart(query.orderby, '-'));
+          const equation = equations[equationIndex];
+          if (equation) {
+            requestParams.sort = toArray(
+              query.orderby.startsWith('-') ? `-${equation}` : equation
+            );
+          }
+        } else {
+          requestParams.sort = toArray(query.orderby);
+        }
       }
 
       const queryParams = {

@@ -204,25 +204,16 @@ export interface WidgetBuilderState {
  * Equations use the alias format (equation[N]) where N is the equation's
  * position among all equations in the list (not its overall index).
  * Regular aggregates use generateFieldAsString.
- *
- * When useFullEquationFormat is true the full `equation|…` string is
- * returned instead of the alias — required for datasets (e.g. trace-metrics)
- * whose RPC backend does not resolve alias-style orderby values.
  */
-function generateSortField(
-  aggregates: Column[],
-  aggregateIndex: number,
-  useFullEquationFormat?: boolean
-): string {
+function generateSortField(aggregates: Column[], aggregateIndex: number): string {
   const target = aggregates[aggregateIndex]!;
-  if (target.kind === FieldValueKind.EQUATION && !useFullEquationFormat) {
-    const equationIndex =
-      aggregates
-        .slice(0, aggregateIndex + 1)
-        .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
-    return `equation[${Math.max(0, equationIndex)}]`;
-  }
-  return generateFieldAsString(target);
+  const equationIndex =
+    aggregates
+      .slice(0, aggregateIndex + 1)
+      .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
+  return target.kind === FieldValueKind.EQUATION
+    ? `equation[${Math.max(0, equationIndex)}]`
+    : generateFieldAsString(target);
 }
 
 /**
@@ -236,8 +227,7 @@ function fixupCategoricalBarSort(
   aggregates: Column[],
   sort: Sort[] | undefined,
   fallbackIndex: number | undefined,
-  xAxisFields?: Column[],
-  useFullEquationFormat?: boolean
+  xAxisFields?: Column[]
 ): Sort[] | null {
   if (aggregates.length === 0) {
     return null;
@@ -262,27 +252,18 @@ function fixupCategoricalBarSort(
     ).length;
     const isSortValid =
       hasMatchingSort ||
-      (!useFullEquationFormat &&
-        isEquationAlias(currentSortField) &&
+      (isEquationAlias(currentSortField) &&
         getEquationAliasIndex(currentSortField) < equationCount);
 
     if (!isSortValid) {
       return [
-        {
-          kind: sort[0]?.kind ?? 'desc',
-          field: generateSortField(aggregates, safeIdx, useFullEquationFormat),
-        },
+        {kind: sort[0]?.kind ?? 'desc', field: generateSortField(aggregates, safeIdx)},
       ];
     }
     return null;
   }
   // No sort exists yet — set default to fallback aggregate
-  return [
-    {
-      kind: 'desc',
-      field: generateSortField(aggregates, safeIdx, useFullEquationFormat),
-    },
-  ];
+  return [{kind: 'desc', field: generateSortField(aggregates, safeIdx)}];
 }
 
 /**
@@ -594,8 +575,7 @@ export function useWidgetBuilderState(): {
             if (nextAggregates.length > 0) {
               const sortField = generateSortField(
                 nextAggregates,
-                nextAggregates.length - 1,
-                dataset === WidgetType.TRACEMETRICS
+                nextAggregates.length - 1
               );
               setSort([{kind: 'desc', field: sortField}], options);
             }
@@ -977,11 +957,7 @@ export function useWidgetBuilderState(): {
                 [
                   {
                     kind: sort?.[0]?.kind ?? 'desc',
-                    field: generateSortField(
-                      aggregates,
-                      action.payload,
-                      dataset === WidgetType.TRACEMETRICS
-                    ),
+                    field: generateSortField(aggregates, action.payload),
                   },
                 ],
                 options
@@ -1050,8 +1026,7 @@ export function useWidgetBuilderState(): {
                 existingAggregates,
                 sort,
                 selectedAggregate,
-                [newXAxisField],
-                dataset === WidgetType.TRACEMETRICS
+                [newXAxisField]
               );
               if (fixedSort) {
                 setSort(fixedSort, options);
@@ -1087,8 +1062,7 @@ export function useWidgetBuilderState(): {
               action.payload,
               sort,
               sortedOldIndex >= 0 ? sortedOldIndex : undefined,
-              existingXAxisFields,
-              dataset === WidgetType.TRACEMETRICS
+              existingXAxisFields
             );
             if (fixedSort) {
               setSort(fixedSort, options);
@@ -1118,8 +1092,7 @@ export function useWidgetBuilderState(): {
               newAggregates,
               sort,
               undefined,
-              xAxisFields,
-              dataset === WidgetType.TRACEMETRICS
+              xAxisFields
             );
             if (fixedSort) {
               setSort(fixedSort, options);
