@@ -17,6 +17,7 @@ from sentry.api.event_search import (
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.preprod.build_distribution_utils import build_install_groups_q
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactQuerySet,
@@ -337,10 +338,13 @@ def apply_filters(
             continue
 
         if name == "install_groups":
-            values = token.value.value if token.is_in_filter else [token.value.value]
-            q = Q()
-            for group in values:
-                q |= Q(extras__install_groups__contains=[group])
+            if token.value.value == "":
+                raise InvalidSearchQuery("has:install_groups is not supported")
+            elif token.is_in_filter:
+                q = build_install_groups_q(token.value.value)
+            else:
+                q = build_install_groups_q([token.value.value])
+
             if token.is_negation:
                 queryset = queryset.exclude(q)
             else:

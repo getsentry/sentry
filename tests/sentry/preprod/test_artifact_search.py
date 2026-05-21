@@ -624,6 +624,16 @@ class ArtifactMatchesQueryInstallGroupsFilterTest(TestCase):
 
         assert not artifact_matches_query(artifact, "install_groups:beta", self.organization)
 
+    def test_has_filter_rejected(self) -> None:
+        import pytest
+
+        from sentry.exceptions import InvalidSearchQuery
+
+        artifact = self._create_artifact_with_install_groups(["beta"])
+
+        with pytest.raises(InvalidSearchQuery):
+            artifact_matches_query(artifact, "has:install_groups", self.organization)
+
     def test_multiple_groups_on_artifact(self) -> None:
         artifact = self._create_artifact_with_install_groups(["beta", "internal", "qa"])
 
