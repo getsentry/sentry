@@ -14,7 +14,10 @@ import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/u
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 /**
@@ -49,7 +52,12 @@ export function getWidgetMetricsUrl(
           const parsed = parseAggregateExpression(aggregate, queryString);
           const results: BaseMetricQuery[] = [...parsed.metricQueries];
           if (parsed.equationRow) {
-            results.push(parsed.equationRow);
+            results.push({
+              ...parsed.equationRow,
+              queryParams: parsed.equationRow.queryParams.replace({
+                aggregateFields: [new VisualizeEquation(aggregate, {chartType})],
+              }),
+            });
           }
           return results;
         });
