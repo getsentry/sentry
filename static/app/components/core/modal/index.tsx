@@ -258,7 +258,11 @@ export function GlobalModal({onClose}: Props) {
                 css={options.modalCss}
                 initial={{opacity: 0, scale: 0.98}}
                 animate={{opacity: 1, scale: 1}}
-                exit={{opacity: 0, scale: 0.99, transition: theme.motion.framer.exit.fast}}
+                exit={{
+                  opacity: 0,
+                  scale: 0.99,
+                  transition: theme.motion.framer.exit.fast,
+                }}
                 transition={theme.motion.framer.enter.moderate}
               >
                 <Surface variant="overlay" elevation="high">

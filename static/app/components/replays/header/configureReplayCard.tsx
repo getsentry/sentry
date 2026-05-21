@@ -32,11 +32,7 @@ export function ConfigureReplayCard({
       }}
       items={isMobile ? getMobileItems(replayRecord) : getWebItems()}
       trigger={(triggerProps, isOpen) => (
-        <DropdownButton
-          {...triggerProps}
-          isOpen={isOpen}
-          size="sm"
-        >
+        <DropdownButton {...triggerProps} isOpen={isOpen} size="sm">
           {t('Configure Replay')}
         </DropdownButton>
       )}

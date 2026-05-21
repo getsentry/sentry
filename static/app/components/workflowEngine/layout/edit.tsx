@@ -24,9 +24,7 @@ interface EditLayoutProps {
 function EditLayoutComponent({children}: EditLayoutProps) {
   return (
     <FullHeightForm>
-      <Stack flex="unset">
-        {children}
-      </Stack>
+      <Stack flex="unset">{children}</Stack>
     </FullHeightForm>
   );
 }
@@ -41,9 +39,7 @@ interface EditLayoutDeprecatedProps {
 function EditLayoutDeprecatedComponent({children, formProps}: EditLayoutDeprecatedProps) {
   return (
     <FullHeightFormDeprecated hideFooter {...formProps}>
-      <Stack flex="unset">
-        {children}
-      </Stack>
+      <Stack flex="unset">{children}</Stack>
     </FullHeightFormDeprecated>
   );
 }

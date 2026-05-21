@@ -52,9 +52,7 @@ const EventDrawerContainerRoot = styled('div')`
 `;
 
 export function EventDrawerContainer(props: ComponentPropsWithoutRef<'div'>) {
-  return (
-    <EventDrawerContainerRoot {...props} />
-  );
+  return <EventDrawerContainerRoot {...props} />;
 }
 
 export const EventDrawerHeader = styled(DrawerHeader)`

@@ -20,11 +20,7 @@ interface WorkflowEngineDetailLayoutProps {
  * Precomposed 67/33 layout for Monitors / Alerts detail pages.
  */
 function DetailLayoutComponent({children}: WorkflowEngineDetailLayoutProps) {
-  return (
-    <Stack flex={1}>
-      {children}
-    </Stack>
-  );
+  return <Stack flex={1}>{children}</Stack>;
 }
 
 const StyledBody = styled(Layout.Body)`

@@ -32,11 +32,7 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
  */
 export const Header = styled((props: ContainerProps<'header'>) => {
   return (
-    <Container
-      as="header"
-      padding={{sm: 'md lg 0 lg', md: 'lg xl 0 xl'}}
-      {...props}
-    />
+    <Container as="header" padding={{sm: 'md lg 0 lg', md: 'lg xl 0 xl'}} {...props} />
   );
 })<{
   borderStyle?: 'dashed' | 'solid';
@@ -120,13 +116,7 @@ export const HeaderTabs = styled(Tabs)`
  */
 export const Body = styled((props: ContainerProps & {noRowGap?: boolean}) => {
   return (
-    <Container
-      as="div"
-      margin="0"
-      background="primary"
-      padding="lg xl"
-      {...props}
-    />
+    <Container as="div" margin="0" background="primary" padding="lg xl" {...props} />
   );
 })<{noRowGap?: boolean}>`
   flex-grow: 1;
