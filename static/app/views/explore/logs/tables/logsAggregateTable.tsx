@@ -17,6 +17,7 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -72,6 +73,7 @@ export function LogsAggregateTable({
   const fields = useQueryParamsFields();
   const sorts = useQueryParamsSortBys();
   const location = useLocation();
+  const navigate = useNavigate();
   const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -127,13 +129,21 @@ export function LogsAggregateTable({
                 canSort
                 direction={direction}
                 generateSortLink={() => {
+                  const nextSort = (() => {
+                    switch (direction) {
+                      case 'asc':
+                        return {
+                          field: visualizes[0]?.yAxis ?? allFields[0]!,
+                          kind: 'desc' as const,
+                        };
+                      case 'desc':
+                        return {field: column.key, kind: 'asc' as const};
+                      default:
+                        return {field: column.key, kind: 'desc' as const};
+                    }
+                  })();
                   return getTargetWithReadableQueryParams(location, {
-                    aggregateSortBys: [
-                      {
-                        field: column.key,
-                        kind: direction === 'desc' ? 'asc' : 'desc',
-                      },
-                    ],
+                    aggregateSortBys: [nextSort],
                   });
                 }}
                 title={title}
@@ -157,6 +167,7 @@ export function LogsAggregateTable({
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,
+              navigate,
               organization,
               theme,
               unit: data?.meta?.units?.[column.key],

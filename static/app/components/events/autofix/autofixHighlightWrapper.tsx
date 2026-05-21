@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
@@ -50,7 +50,7 @@ export function AutofixHighlightWrapper({
   }, [selection]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Wrapper
         ref={containerRef}
         className={className}
@@ -76,7 +76,7 @@ export function AutofixHighlightWrapper({
           />
         )}
       </AnimatePresence>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
@@ -36,7 +38,7 @@ export function ActivitySection(props: Props) {
   const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
-    minHeight: 140,
+    minHeight: 112,
     group,
     projectSlugs,
     placeholder: placeholderText,
@@ -44,7 +46,7 @@ export function ActivitySection(props: Props) {
 
   return (
     <Fragment>
-      <ActivityItem noPadding author={{type: 'user', user: me}}>
+      <Container marginBottom="xl">
         <NoteInputWithStorage
           key={inputId}
           storageKey="groupinput:latest"
@@ -58,10 +60,9 @@ export function ActivitySection(props: Props) {
             });
             setInputId(uniqueId());
           }}
-          source="activity"
           {...noteProps}
         />
-      </ActivityItem>
+      </Container>
 
       {visibleActivities.map(item => {
         const authorName = item.user ? item.user.name : 'Sentry';
