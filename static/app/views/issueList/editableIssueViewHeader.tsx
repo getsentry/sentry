@@ -4,6 +4,7 @@ import {mergeRefs} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -64,16 +65,22 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
           stopEditing={() => setIsEditing(false)}
         />
       ) : (
-        <PageFrameViewTitleWrapper>
-          <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
-          <Button
-            icon={<IconEdit />}
-            onClick={handleBeginEditing}
-            aria-label={t('Edit view name')}
-            size="sm"
-            variant="transparent"
-          />
-        </PageFrameViewTitleWrapper>
+        <RevealOnHover>
+          {({className}) => (
+            <PageFrameViewTitleWrapper className={className}>
+              <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
+              <RevealOnHover.Action>
+                <Button
+                  icon={<IconEdit />}
+                  onClick={handleBeginEditing}
+                  aria-label={t('Edit view name')}
+                  size="sm"
+                  variant="transparent"
+                />
+              </RevealOnHover.Action>
+            </PageFrameViewTitleWrapper>
+          )}
+        </RevealOnHover>
       )}
     </TopBar.Slot>
   );
@@ -134,16 +141,6 @@ const PageFrameViewTitleWrapper = styled('div')`
   > div {
     height: auto;
     border-bottom: none;
-  }
-
-  :not(:hover, :focus-within) {
-    button {
-      opacity: 0;
-    }
-
-    div {
-      border-bottom-color: transparent;
-    }
   }
 `;
 

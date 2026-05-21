@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -86,51 +86,60 @@ function WidgetLayout(props: Widget) {
   const {revealActions = 'hover'} = props;
 
   return (
-    <Frame
-      aria-label={props.ariaLabel}
-      height={props.height}
-      borderless={props.borderless}
-      revealActions={revealActions}
-      minHeight={defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT}
-    >
-      <Header noPadding={props.noHeaderPadding}>
-        {props.Title && <Fragment>{props.Title}</Fragment>}
-        {props.TitleBadges && (
-          <Flex align="center" gap="xs">
-            {props.TitleBadges}
-          </Flex>
-        )}
-        {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
-      </Header>
-
-      {props.Visualization && (
-        <VisualizationWrapper noPadding={props.noVisualizationPadding}>
-          <ErrorBoundary
-            // The error itself is reported to Sentry by the ErrorBoundary. We
-            // deliberately don't surface the raw error to the user — it's an
-            // internal code/render error that isn't actionable for them — and
-            // instead show a friendly message with a way to send us feedback.
-            customComponent={() => (
-              <Container position="absolute" inset={0}>
-                <WidgetError error={RENDER_ERROR_MESSAGE} action={<FeedbackAction />} />
-              </Container>
+    <RevealOnHover>
+      {({className}) => (
+        <Frame
+          aria-label={props.ariaLabel}
+          height={props.height}
+          borderless={props.borderless}
+          className={className}
+          minHeight={
+            defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT
+          }
+        >
+          <Header noPadding={props.noHeaderPadding}>
+            {props.Title && <Fragment>{props.Title}</Fragment>}
+            {props.TitleBadges && (
+              <Flex align="center" gap="xs">
+                {props.TitleBadges}
+              </Flex>
             )}
-          >
-            {props.Visualization}
-          </ErrorBoundary>
-        </VisualizationWrapper>
-      )}
+            {props.Actions && (
+              <RevealOnHover.Action alwaysVisible={revealActions !== 'hover'}>
+                <TitleHoverItems>{props.Actions}</TitleHoverItems>
+              </RevealOnHover.Action>
+            )}
+          </Header>
 
-      {props.Footer && (
-        <FooterWrapper noPadding={props.noFooterPadding}>
-          <ErrorBoundary
-            customComponent={() => <WidgetError error={RENDER_ERROR_MESSAGE} />}
-          >
-            {props.Footer}
-          </ErrorBoundary>
-        </FooterWrapper>
+          {props.Visualization && (
+            <VisualizationWrapper noPadding={props.noVisualizationPadding}>
+              <ErrorBoundary
+                customComponent={() => (
+                  <Container position="absolute" inset={0}>
+                    <WidgetError
+                      error={RENDER_ERROR_MESSAGE}
+                      action={<FeedbackAction />}
+                    />
+                  </Container>
+                )}
+              >
+                {props.Visualization}
+              </ErrorBoundary>
+            </VisualizationWrapper>
+          )}
+
+          {props.Footer && (
+            <FooterWrapper noPadding={props.noFooterPadding}>
+              <ErrorBoundary
+                customComponent={() => <WidgetError error={RENDER_ERROR_MESSAGE} />}
+              >
+                {props.Footer}
+              </ErrorBoundary>
+            </FooterWrapper>
+          )}
+        </Frame>
       )}
-    </Frame>
+    </RevealOnHover>
   );
 }
 
@@ -162,7 +171,6 @@ const Frame = styled('div')<{
   borderless?: boolean;
   height?: number;
   minHeight?: number;
-  revealActions?: 'always' | 'hover';
 }>`
   position: relative;
   display: flex;
@@ -177,17 +185,6 @@ const Frame = styled('div')<{
   border: ${p => (p.borderless ? 'none' : `1px solid ${p.theme.tokens.border.primary}`)};
 
   background: ${p => p.theme.tokens.background.primary};
-
-  ${p =>
-    p.revealActions === 'hover' &&
-    css`
-      &:not(:hover):not(:focus-within) {
-        ${TitleHoverItems} {
-          opacity: 0;
-          ${p.theme.visuallyHidden}
-        }
-      }
-    `}
 `;
 
 export const Header = styled('div')<{noPadding?: boolean}>`
