@@ -8,10 +8,12 @@ from django.utils.translation import gettext_lazy as _
 from requests.exceptions import ConnectionError, ReadTimeout
 
 import sentry
-from sentry.exceptions import PluginError
+from sentry.exceptions import PluginError, RestrictedIPAddress
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.net.socket import is_valid_url
 from sentry.plugins.bases import notify
+from sentry.sentry_apps.services.legacy_webhook.tasks import LegacyWebhookOutcome
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
 from .client import WebhookApiClient
@@ -133,12 +135,12 @@ class WebHooksPlugin(notify.NotificationPlugin):
                 client.request(url)
                 metrics.incr(
                     "legacy_webhook.plugin.send",
-                    tags={"outcome": "sent"},
+                    tags={"outcome": LegacyWebhookOutcome.SENT},
                     sample_rate=1.0,
                 )
-            except (ReadTimeout, ConnectionError):
+            except (RestrictedIPAddress, ConnectionError, ReadTimeout, ApiError):
                 metrics.incr(
                     "legacy_webhook.plugin.send",
-                    tags={"outcome": "error"},
+                    tags={"outcome": LegacyWebhookOutcome.ERROR},
                     sample_rate=1.0,
                 )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import logging
 from typing import Any
 
@@ -16,6 +17,14 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_tasks
 from sentry.utils import metrics
+
+
+class LegacyWebhookOutcome(str, enum.Enum):
+    SENT = "sent"
+    ERROR = "error"
+    DRY_RUN = "dry_run"
+    GROUP_NOT_FOUND = "group_not_found"
+
 
 logger = logging.getLogger("sentry.legacy_webhook")
 
@@ -42,7 +51,7 @@ def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: 
         )
         metrics.incr(
             "legacy_webhook.task.result",
-            tags={"outcome": "group_not_found"},
+            tags={"outcome": LegacyWebhookOutcome.GROUP_NOT_FOUND},
             sample_rate=1.0,
         )
         return
@@ -58,15 +67,23 @@ def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: 
         )
         metrics.incr(
             "legacy_webhook.task.result",
-            tags={"outcome": "dry_run"},
+            tags={"outcome": LegacyWebhookOutcome.DRY_RUN},
             sample_rate=1.0,
         )
         return
 
     client = LegacyWebhookClient(payload)
-    client.request(url)
+    try:
+        client.request(url)
+    except (RestrictedIPAddress, ConnectionError, ReadTimeout, ApiError):
+        metrics.incr(
+            "legacy_webhook.task.result",
+            tags={"outcome": LegacyWebhookOutcome.ERROR},
+            sample_rate=1.0,
+        )
+        raise
     metrics.incr(
         "legacy_webhook.task.result",
-        tags={"outcome": "sent"},
+        tags={"outcome": LegacyWebhookOutcome.SENT},
         sample_rate=1.0,
     )
