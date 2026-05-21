@@ -73,8 +73,7 @@ class TestWebhookPayloadValidation(BaseWorkflowTest):
         new = self._build_new_payload()
         new["event"]["event_id"] = "tampered"
         mismatches = compare_payloads(old, new)
-        assert len(mismatches) == 1
-        assert mismatches[0].startswith("event.event_id: ")
+        assert mismatches == ["event.event_id: old=str(len=32), new=str(len=8)"]
 
     @mock.patch("sentry.sentry_apps.services.legacy_webhook.validation.logger")
     def test_validate_logs_match_on_identical_payloads(self, mock_logger: mock.MagicMock) -> None:
@@ -100,4 +99,4 @@ class TestWebhookPayloadValidation(BaseWorkflowTest):
             old, new, organization_id=self.project.organization_id, project_id=self.project.id
         )
         mock_logger.warning.assert_called_once()
-        assert "extra_field" in mock_logger.warning.call_args[1]["extra"]["mismatch"]
+        assert mock_logger.warning.call_args[1]["extra"]["mismatch"] == "Extra in new: extra_field"
