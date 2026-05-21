@@ -62,7 +62,7 @@ from sentry.search.eap.types import (
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
-from sentry.utils import json, snuba_rpc
+from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -481,6 +481,10 @@ class RPCBase:
             if max_string_length is not None and isinstance(result_value, str):
                 if len(result_value) > max_string_length:
                     result_value = result_value[:max_string_length] + "..."
+                    metrics.incr(
+                        "snuba.rpc.process_column_values.truncated",
+                        tags={"field": attribute},
+                    )
 
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
