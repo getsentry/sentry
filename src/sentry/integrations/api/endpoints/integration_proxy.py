@@ -89,7 +89,7 @@ class _PassthroughContentNegotiation(BaseContentNegotiation):
     select_renderer to succeed for the request to proceed past initial().
     """
 
-    def select_renderer(self, request, renderers, format_suffix=None):  # type: ignore[no-untyped-def]
+    def select_renderer(self, request, renderers, format_suffix=None):
         return (JSONRenderer(), JSONRenderer.media_type)
 
 
@@ -259,7 +259,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         return True
 
     @sentry_sdk.trace
-    def _call_third_party_api(  # type: ignore[override]
+    def _call_third_party_api(
         self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
     ) -> StreamingHttpResponse:
         prepared_request = Request(
