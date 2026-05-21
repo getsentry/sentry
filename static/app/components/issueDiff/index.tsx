@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
