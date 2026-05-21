@@ -6,6 +6,8 @@ from typing import Any, TypedDict
 from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.tasks.sentry_apps import send_alert_webhook_v2
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -84,9 +86,6 @@ def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookP
 
 
 def send_sentry_app_webhook_for_invocation(invocation: ActionInvocation) -> None:
-    from sentry.sentry_apps.services.app import app_service
-    from sentry.sentry_apps.tasks.sentry_apps import send_alert_webhook_v2
-
     event = invocation.event_data.event
     assert isinstance(event, GroupEvent)
     sentry_app_slug = invocation.action.config.get("target_identifier")
