@@ -256,11 +256,11 @@ export function ConversationSummary({
           skipWrapper
           disabled={isUUID(conversationId)}
         >
-          <ConversationHeading as="h2">
+          <Heading as="h2" ellipsis style={{minWidth: 0, flexShrink: 1}}>
             {isUUID(conversationId)
               ? t('Conversation #%s', conversationId.slice(0, 8))
               : t('Conversation #%s', conversationId)}
-          </ConversationHeading>
+          </Heading>
         </Tooltip>
         <Tooltip title={t('Copy conversation ID')}>
           <Button
@@ -378,14 +378,6 @@ function AggregateItem({
 
   return content;
 }
-
-const ConversationHeading = styled(Heading)`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex-shrink: 1;
-`;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>
