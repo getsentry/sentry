@@ -65,7 +65,7 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
 
       - name: Run snapshot tests
-        run: pnpm run snapshots -- --testPathPattern="diffImageDisplay"
+        run: pnpm exec jest --config jest.config.snapshots.ts --testPathPattern="diffImageDisplay"
 
       - name: Compute merge base SHA
         if: github.event_name == 'pull_request' && !cancelled()
