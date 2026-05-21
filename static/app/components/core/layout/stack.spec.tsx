@@ -1,4 +1,4 @@
-import React, {createRef} from 'react';
+import {createRef, Fragment} from 'react';
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -108,14 +108,14 @@ describe('Stack', () => {
 
   it('reuses class names for the same props', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         <Stack radius="sm" padding="md">
           First Stack
         </Stack>
         <Stack radius="sm" padding="md">
           Second Stack
         </Stack>
-      </React.Fragment>
+      </Fragment>
     );
 
     const firstStack = screen.getByText('First Stack').className;

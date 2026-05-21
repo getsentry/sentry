@@ -1,4 +1,4 @@
-import React, {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -142,7 +142,7 @@ export function AutofixInsightCard({
   ]);
 
   const renderCardContent = () => (
-    <React.Fragment>
+    <Fragment>
       {isEditing ? (
         <EditContainer>
           <form onSubmit={handleSubmit}>
@@ -290,7 +290,7 @@ export function AutofixInsightCard({
           </motion.div>
         )}
       </AnimatePresence>
-    </React.Fragment>
+    </Fragment>
   );
 
   return (

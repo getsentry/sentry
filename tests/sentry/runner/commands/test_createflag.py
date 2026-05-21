@@ -83,7 +83,7 @@ class TestCreateFlag(CliTestCase):
         assert new_segment.name == "New segment"
         assert new_segment.rollout == 100
 
-        assert len(new_segment.conditions) == 7
+        assert len(new_segment.conditions) == 8
 
         for c_idx in range(len(conditions_tuples)):
             condition_tuple = conditions_tuples[c_idx]

@@ -42,7 +42,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -77,7 +76,6 @@ const makePluginQuery = (organization: Organization): ApiQueryKey => {
 };
 
 function ConfigureIntegration() {
-  const routes = useRoutes();
   const location = useLocation();
   const navigate = useNavigate();
   const api = useApi();
@@ -528,10 +526,7 @@ function ConfigureIntegration() {
         action={getAction()}
       />
       {renderMainContent()}
-      <BreadcrumbTitle
-        routes={routes}
-        title={t('Configure %s', integration.provider.name)}
-      />
+      <BreadcrumbTitle title={t('Configure %s', integration.provider.name)} />
     </Fragment>
   );
 }
