@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -26,17 +27,10 @@ function initialize(query: Record<string, string>, additionalFeatures = []) {
   const organization = OrganizationFixture({
     features,
   });
-  const initialOrgData = {
-    organization,
-    router: {
-      location: {
-        query: {...query},
-      },
-    },
-  };
-  const initialData = initializeOrg(initialOrgData);
+  const initialData = initializeOrg({organization});
+  const location = LocationFixture({query: {...query}});
   ProjectsStore.loadInitialData(initialData.projects);
-  const eventView = EventView.fromLocation(initialData.router.location);
+  const eventView = EventView.fromLocation(location);
 
   const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
   const transactionName = 'example-transaction';
@@ -45,7 +39,7 @@ function initialize(query: Record<string, string>, additionalFeatures = []) {
     ...initialData,
     spanOperationBreakdownFilter,
     transactionName,
-    location: initialData.router.location,
+    location,
     eventView,
   };
 }
