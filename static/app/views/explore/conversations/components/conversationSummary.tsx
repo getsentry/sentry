@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -198,23 +199,22 @@ export function ConversationAggregatesBar({
               </Tooltip>
             ))}
             {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
-              <Tooltip
+              <InfoText
+                size="sm"
+                variant="muted"
+                wrap="nowrap"
                 title={
-                  <MoreToolsTooltip>
+                  <Flex wrap="wrap" gap="xs" paddingTop="xs" paddingBottom="xs">
                     {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
                       <Tag key={name} variant="info">
                         {name}
                       </Tag>
                     ))}
-                  </MoreToolsTooltip>
+                  </Flex>
                 }
-                isHoverable
-                skipWrapper
               >
-                <Text size="sm" variant="muted" wrap="nowrap">
-                  {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
-                </Text>
-              </Tooltip>
+                {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+              </InfoText>
             )}
           </ToolTagsRow>
         )
@@ -413,10 +413,3 @@ function ToolTagsRow({children}: {children: React.ReactNode}) {
     </Flex>
   );
 }
-
-const MoreToolsTooltip = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs} 0;
-`;
