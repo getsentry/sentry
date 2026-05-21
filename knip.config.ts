@@ -23,6 +23,8 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when Layer consumers land (nm/zindex/wire-portals)
+  'static/app/components/core/layer/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [
