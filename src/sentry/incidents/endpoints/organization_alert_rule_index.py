@@ -208,7 +208,11 @@ def create_metric_alert(
         return Response({"uuid": client.uuid}, status=202)
     else:
         alert_rule = validator.save()
-        return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        return Response(
+            serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AlertRuleFetchMixin(Endpoint):

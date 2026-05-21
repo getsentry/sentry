@@ -28,6 +28,7 @@ from sentry.incidents.endpoints.bases import WorkflowEngineOrganizationAlertRule
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     DetailedWorkflowEngineDetectorSerializer,
+    WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.logic import (
     AlreadyDeletedError,
@@ -116,7 +117,11 @@ def update_alert_rule(
             return Response({"uuid": client.uuid}, status=202)
         else:
             updated_rule = validator.save()
-            return Response(serialize(updated_rule, request.user), status=status.HTTP_200_OK)
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=updated_rule.id)
+            return Response(
+                serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
+                status=status.HTTP_200_OK,
+            )
 
     return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
