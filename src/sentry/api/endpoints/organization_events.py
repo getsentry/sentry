@@ -117,6 +117,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:dynamic-sampling",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
+            "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -236,6 +237,16 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+
+        max_string_length: int | None = None
+        truncate_str = request.GET.get("truncate")
+        if truncate_str is not None:
+            try:
+                max_string_length = int(truncate_str)
+                if max_string_length < 1:
+                    raise ValueError
+            except ValueError:
+                return Response({"detail": "truncate must be a positive integer"}, status=400)
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -600,6 +611,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         sampling_mode=snuba_params.sampling_mode,
                         page_token=page_token,
                         additional_queries=additional_queries,
+                        **(
+                            {"max_string_length": max_string_length}
+                            if scoped_dataset == OurLogs
+                            else {}
+                        ),
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
@@ -620,6 +636,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
                         additional_queries=additional_queries,
+                        **(
+                            {"max_string_length": max_string_length}
+                            if scoped_dataset == OurLogs
+                            else {}
+                        ),
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:
