@@ -51,7 +51,9 @@ export function ArtifactLoadingDetails({
         })}
         <Flex direction="row" gap="md">
           <StyledLoadingIndicator size={16} />
-          <Text variant="muted">{loadingMessage}</Text>
+          <Text variant="muted" density="compressed">
+            {loadingMessage}
+          </Text>
         </Flex>
       </Flex>
     </ArtifactDetails>
