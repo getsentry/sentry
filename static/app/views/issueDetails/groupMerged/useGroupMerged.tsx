@@ -11,6 +11,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -260,7 +261,9 @@ export function useGroupMergedState({
     mutationFn: ({fingerprintIds}) =>
       fetchMutation({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/issues/${groupId}/hashes/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/hashes/', {
+          path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+        }),
         options: {query: {id: fingerprintIds}},
       }),
   });
