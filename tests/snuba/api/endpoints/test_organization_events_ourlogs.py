@@ -377,7 +377,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "field": ["log.body"],
                 "project": self.project.id,
                 "dataset": self.dataset,
-                "truncate": 5,
+                "truncate": 64,
             }
         )
         assert response.status_code == 200, response.content
@@ -393,9 +393,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             }
         )
         assert response.status_code == 400
-        assert response.data["detail"] == "truncate must be a positive integer"
+        assert response.data["detail"] == "truncate must be a positive integer >= 64"
 
-    def test_truncate_param_invalid_value(self) -> None:
+    def test_truncate_param_zero_value(self) -> None:
         response = self.do_request(
             {
                 "field": ["log.body"],
@@ -405,7 +405,19 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             }
         )
         assert response.status_code == 400
-        assert response.data["detail"] == "truncate must be a positive integer"
+        assert response.data["detail"] == "truncate must be a positive integer >= 64"
+
+    def test_truncate_param_small_value(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": 63,
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "truncate must be a positive integer >= 64"
 
     def test_homepage_query(self) -> None:
         """This query matches the one made on the logs homepage so that we can be sure everything is working at least

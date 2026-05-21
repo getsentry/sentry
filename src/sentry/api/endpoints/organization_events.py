@@ -242,10 +242,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         if truncate_str is not None:
             try:
                 max_string_length = int(truncate_str)
-                if max_string_length < 1:
+                if max_string_length < 64:
                     raise ValueError
             except ValueError:
-                return Response({"detail": "truncate must be a positive integer"}, status=400)
+                return Response({"detail": "truncate must be a positive integer >= 64"}, status=400)
 
         def _data_fn(
             dataset_query: DatasetQuery,
