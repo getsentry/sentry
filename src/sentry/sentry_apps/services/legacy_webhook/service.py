@@ -83,6 +83,36 @@ def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookP
     return data
 
 
+def send_sentry_app_webhook_for_invocation(invocation: ActionInvocation) -> None:
+    from sentry.sentry_apps.services.app import app_service
+    from sentry.sentry_apps.tasks.sentry_apps import send_alert_webhook_v2
+
+    event = invocation.event_data.event
+    assert isinstance(event, GroupEvent)
+    sentry_app_slug = invocation.action.config.get("target_identifier")
+    if not sentry_app_slug:
+        logger.warning("webhook_action_handler.missing_target_identifier")
+        return
+
+    sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+    if sentry_app is None:
+        logger.warning(
+            "webhook_action_handler.sentry_app_not_found",
+            extra={"sentry_app_slug": sentry_app_slug},
+        )
+        return
+
+    rule_label = _get_triggering_rule_name(invocation)
+
+    send_alert_webhook_v2.delay(
+        rule_label=rule_label,
+        sentry_app_id=sentry_app.id,
+        instance_id=event.event_id,
+        group_id=event.group_id,
+        occurrence_id=getattr(event, "occurrence_id", None),
+    )
+
+
 def send_legacy_webhooks_for_invocation(invocation: ActionInvocation) -> None:
     # Delayed import to avoid circular dependency (tasks imports LegacyWebhookPayload from here)
     from sentry.sentry_apps.services.legacy_webhook.tasks import send_legacy_webhook_task
