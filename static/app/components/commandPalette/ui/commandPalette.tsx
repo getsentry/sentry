@@ -231,16 +231,22 @@ export function CommandPalette({
     prefixMap: computedPrefixMap,
     isSeerFallback: computedIsSeerFallback,
   });
-  if (state.list === 'active') {
-    frozenRef.current = {
-      actions: computedActions,
-      prefixMap: computedPrefixMap,
-      isSeerFallback: computedIsSeerFallback,
-    };
-  }
-  const actions = frozenRef.current.actions;
-  const prefixMap = frozenRef.current.prefixMap;
-  const isSeerFallback = frozenRef.current.isSeerFallback;
+
+  useEffect(() => {
+    if (state.list === 'active') {
+      frozenRef.current = {
+        actions: computedActions,
+        prefixMap: computedPrefixMap,
+        isSeerFallback: computedIsSeerFallback,
+      };
+    }
+  }, [state.list, computedActions, computedPrefixMap, computedIsSeerFallback]);
+
+  const actions = state.list === 'active' ? computedActions : frozenRef.current.actions;
+  const prefixMap =
+    state.list === 'active' ? computedPrefixMap : frozenRef.current.prefixMap;
+  const isSeerFallback =
+    state.list === 'active' ? computedIsSeerFallback : frozenRef.current.isSeerFallback;
 
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
   const mouseLeftResultsRef = useRef(false);
