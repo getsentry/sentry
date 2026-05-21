@@ -15,20 +15,13 @@ interface Props extends ModalRenderProps {
 function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Props) {
   const api = useApi();
 
-  const handleSubmit: React.ComponentProps<typeof CreateTeamForm>['onSubmit'] = async (
-    data,
-    onSuccess,
-    onError
-  ) => {
-    try {
-      const team: Team = await createTeam(api, data, {orgId: organization.slug});
+  const handleSubmit: React.ComponentProps<
+    typeof CreateTeamForm
+  >['onSubmit'] = async data => {
+    const team: Team = await createTeam(api, data, {orgId: organization.slug});
 
-      closeModal();
-      onClose?.(team);
-      onSuccess(team);
-    } catch (err) {
-      onError(err as Team);
-    }
+    closeModal();
+    onClose?.(team);
   };
 
   return (
@@ -37,7 +30,7 @@ function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Prop
         <h5>{t('Create Team')}</h5>
       </Header>
       <Body>
-        <CreateTeamForm organization={organization} onSubmit={handleSubmit} />
+        <CreateTeamForm onSubmit={handleSubmit} />
       </Body>
     </Fragment>
   );

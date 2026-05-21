@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
+import {z} from 'zod';
 
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Team} from 'sentry/types/organization';
 import {slugify} from 'sentry/utils/slugify';
 
 type Payload = {
@@ -11,43 +13,47 @@ type Payload = {
 };
 
 type Props = {
-  onSubmit: (
-    data: Payload,
-    onSuccess: (team: Team) => void,
-    onError: (team: Team) => void
-  ) => void;
-  organization: Organization;
+  onSubmit: (data: Payload) => Promise<Team | void> | Team | void;
 };
 
-export function CreateTeamForm({organization, onSubmit}: Props) {
+const schema = z.object({
+  slug: z.string().min(1, t('Slug is required')),
+});
+
+export function CreateTeamForm({onSubmit}: Props) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {slug: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => Promise.resolve(onSubmit(value)).catch(() => {}),
+  });
+
   return (
     <Fragment>
       <p>
         {t('Teams group members for issue assignment, ownership, and notifications.')}
       </p>
-
-      <Form
-        submitLabel={t('Create Team')}
-        apiEndpoint={`/organizations/${organization.slug}/teams/`}
-        apiMethod="POST"
-        onSubmit={(data, onSuccess, onError) =>
-          onSubmit(data as Payload, onSuccess, onError)
-        }
-        requireChanges
-      >
-        <TextField
-          stacked
-          required
-          name="slug"
-          label={t('Team Slug')}
-          transformInput={slugify}
-          placeholder={t('e.g. operations, web-frontend, mobile-ios')}
-          help={t('Use lowercase letters, numbers, dashes, and underscores.')}
-          flexibleControlStateSize
-          inline={false}
-          autoFocus
-        />
-      </Form>
+      <form.AppForm form={form}>
+        <form.AppField name="slug">
+          {field => (
+            <field.Layout.Stack
+              label={t('Team Slug')}
+              hintText={t('Use lowercase letters, numbers, dashes, and underscores.')}
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={value => field.handleChange(slugify(value))}
+                placeholder={t('e.g. operations, web-frontend, mobile-ios')}
+                autoFocus
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <Flex justify="end" padding="md 0 0 0">
+          <form.SubmitButton>{t('Create Team')}</form.SubmitButton>
+        </Flex>
+      </form.AppForm>
     </Fragment>
   );
 }
