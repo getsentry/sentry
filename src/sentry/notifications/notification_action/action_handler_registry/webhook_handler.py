@@ -1,7 +1,7 @@
 import logging
 from typing import override
 
-from sentry import features
+from sentry import features, options
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.sentry_apps.services.legacy_webhook.service import (
@@ -80,8 +80,8 @@ class WebhookActionHandler(ActionHandler):
         if new_path and isinstance(invocation.event_data.event, GroupEvent):
             send_legacy_webhooks_for_invocation(invocation)
 
-        if new_path and not disable_old and isinstance(invocation.event_data.event, GroupEvent):
-            try:
-                _validate_webhook_payloads(invocation)
-            except Exception:
-                logger.exception("webhook_action_handler.validation_error")
+            if options.get("sentry-apps.legacy-webhook-payload-validation.enabled"):
+                try:
+                    _validate_webhook_payloads(invocation)
+                except Exception:
+                    logger.exception("webhook_action_handler.validation_error")
