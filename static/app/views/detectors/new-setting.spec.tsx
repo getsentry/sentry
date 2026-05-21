@@ -1284,5 +1284,36 @@ describe('DetectorEdit', () => {
         await screen.findByText('The slug "new-test-cron-job" is already in use.')
       ).toBeInTheDocument();
     });
+
+    it('displays schedule config errors on the schedule field and in a toast', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          dataSources: {
+            config: {schedule: ['Invalid schedule for schedule unit count']},
+          },
+        },
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'Invalid schedule for schedule unit count'
+        );
+      });
+
+      expect(
+        await screen.findByText('Invalid schedule for schedule unit count')
+      ).toBeInTheDocument();
+    });
   });
 });
