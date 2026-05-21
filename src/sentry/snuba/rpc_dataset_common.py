@@ -475,9 +475,13 @@ class RPCBase:
             else:
                 result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
+
+            # Note: post-query truncation may not be our preferred method long-term.
+            # We may want to set up a function that filters/truncates at the EAP side.
             if max_string_length is not None and isinstance(result_value, str):
                 if len(result_value) > max_string_length:
                     result_value = result_value[:max_string_length] + "..."
+
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     @classmethod
