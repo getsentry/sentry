@@ -283,7 +283,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [
             'project',
             'trace',
-            SpanFields.LCP_ELEMENT,
+            SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT,
             SpanFields.BROWSER_WEB_VITAL_LCP_VALUE,
             'profile.id',
             'replay.id',
@@ -294,7 +294,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           columns: [
             'project',
             'trace',
-            SpanFields.LCP_ELEMENT,
+            SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT,
             SpanFields.BROWSER_WEB_VITAL_LCP_VALUE,
             'profile.id',
             'replay.id',

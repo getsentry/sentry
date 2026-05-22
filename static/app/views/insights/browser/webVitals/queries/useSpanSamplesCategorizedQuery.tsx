@@ -44,10 +44,9 @@ export function useSpanSamplesCategorizedQuery({
     transaction,
     enabled: enabled && defined(webVital),
     limit: 3,
-    filter:
-      defined(webVital) && vitalField
-        ? `${vitalField}:<${PERFORMANCE_SCORE_P90S[webVital]} ${webVitalFilter}`
-        : undefined,
+    filter: defined(webVital)
+      ? `${vitalField}:<${PERFORMANCE_SCORE_P90S[webVital]} ${webVitalFilter}`
+      : undefined,
     browserTypes,
     subregions,
     webVital: webVital ?? undefined,

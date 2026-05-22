@@ -63,9 +63,9 @@ type SpanSampleRow = {
   [SpanFields.BROWSER_WEB_VITAL_LCP_VALUE]?: number;
   [SpanFields.BROWSER_WEB_VITAL_FCP_VALUE]?: number;
   [SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE]?: number;
-  [SpanFields.LCP_ELEMENT]?: string;
+  [SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT]?: string;
   [SpanFields.SPAN_OP]?: string;
-  [SpanFields.CLS_SOURCE]?: string;
+  [SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1]?: string;
 };
 
 export type SpanSampleRowWithScore = SpanSampleRow & Score;

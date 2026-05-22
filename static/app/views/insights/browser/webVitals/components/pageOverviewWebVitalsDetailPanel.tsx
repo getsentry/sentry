@@ -267,9 +267,9 @@ export function PageOverviewWebVitalsDetailPanel({
     if (key === SpanFields.SPAN_DESCRIPTION) {
       const description =
         webVital === 'lcp' && row[SpanFields.SPAN_OP] === 'pageload'
-          ? row[SpanFields.LCP_ELEMENT]
+          ? row[SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT]
           : webVital === 'cls' && row[SpanFields.SPAN_OP] === 'pageload'
-            ? row[SpanFields.CLS_SOURCE]
+            ? row[SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1]
             : row[key];
 
       if (description) {

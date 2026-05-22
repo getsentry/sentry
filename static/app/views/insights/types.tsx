@@ -192,8 +192,11 @@ export enum SpanFields {
   BROWSER_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value',
   BROWSER_WEB_VITAL_TTFB_VALUE = 'browser.web_vital.ttfb.value',
   BROWSER_WEB_VITAL_INP_VALUE = 'browser.web_vital.inp.value',
-  LCP_ELEMENT = 'lcp.element',
-  CLS_SOURCE = 'cls.source.1',
+
+  // Web vital meta fields
+  BROWSER_WEB_VITAL_LCP_ELEMENT = 'browser.web_vital.lcp.element',
+  BROWSER_WEB_VITAL_CLS_SOURCE_1 = 'browser.web_vital.cls.source.1',
+
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_RATIO = 'measurements.score.ratio.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
@@ -210,13 +213,6 @@ export enum SpanFields {
   FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
   FCP_SCORE_WEIGHT = 'measurements.score.weight.fcp',
   TOTAL_SCORE = 'measurements.score.total',
-
-  // Web vital fields (deprecated, prefer browser.web_vital.* equivalents)
-  INP = 'measurements.inp',
-  LCP = 'measurements.lcp',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
-  FCP = 'measurements.fcp',
 }
 
 type SpanBooleanFields =
@@ -265,23 +261,18 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.TOTAL_SCORE
-  | SpanFields.INP
   | SpanFields.INP_SCORE
   | SpanFields.INP_SCORE_RATIO
   | SpanFields.INP_SCORE_WEIGHT
-  | SpanFields.LCP
   | SpanFields.LCP_SCORE
   | SpanFields.LCP_SCORE_RATIO
   | SpanFields.LCP_SCORE_WEIGHT
-  | SpanFields.CLS
   | SpanFields.CLS_SCORE
   | SpanFields.CLS_SCORE_RATIO
   | SpanFields.CLS_SCORE_WEIGHT
-  | SpanFields.TTFB
   | SpanFields.TTFB_SCORE
   | SpanFields.TTFB_SCORE_RATIO
   | SpanFields.TTFB_SCORE_WEIGHT
-  | SpanFields.FCP
   | SpanFields.FCP_SCORE
   | SpanFields.FCP_SCORE_RATIO
   | SpanFields.FCP_SCORE_WEIGHT
@@ -338,8 +329,8 @@ type NonNullableStringFields =
   | SpanFields.USER_USERNAME
   | SpanFields.USER_ID
   | SpanFields.USER_IP
-  | SpanFields.CLS_SOURCE
-  | SpanFields.LCP_ELEMENT
+  | SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT
+  | SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TRANSACTION_EVENT_ID
   | SpanFields.DB_SYSTEM
