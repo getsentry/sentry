@@ -466,6 +466,7 @@ export default typescript.config([
     rules: {
       '@sentry/scraps/no-core-import': 'error',
       '@sentry/scraps/no-token-import': 'error',
+      '@sentry/scraps/prefer-info-text': 'error',
       '@sentry/scraps/use-semantic-token': [
         'error',
         {enabledCategories: ['background', 'border', 'content']},
