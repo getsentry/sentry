@@ -126,7 +126,13 @@ class DatasetConfig(TypedDict):
 # allowed for a widget_type iff it appears in ``supported_display_types`` here.
 DATASET_CONFIG: dict[int, DatasetConfig] = {
     DashboardWidgetTypes.DISCOVER: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
-    DashboardWidgetTypes.ERROR_EVENTS: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    DashboardWidgetTypes.ERROR_EVENTS: {
+        "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
+        # AGENTS_TRACES_TABLE is the only system display type the backend can
+        # land on ERROR_EVENTS via the create_widget default — the AI Agents
+        # Overview prebuilt config omits widget_type for that widget.
+        | frozenset({DashboardWidgetDisplayTypes.AGENTS_TRACES_TABLE})
+    },
     DashboardWidgetTypes.TRANSACTION_LIKE: {
         "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
     },

@@ -2169,6 +2169,59 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
             assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
 
+    def test_agents_traces_table_dashboard_save_and_update(self) -> None:
+        # Regression: the AI Agents Overview prebuilt config has an
+        # agents_traces_table widget without a widget_type. The backend defaults
+        # it to error-events on create. On the next PUT the frontend round-trips
+        # widget_type=error-events, which would otherwise fail validation.
+        data = {
+            "title": "AI Agents Overview",
+            "widgets": [
+                {
+                    "title": "Traces",
+                    "displayType": "agents_traces_table",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [],
+                            "columns": [],
+                            "aggregates": [],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        create = self.do_request("post", self.url, data=data)
+        assert create.status_code == 201, create.data
+        dashboard_id = create.data["id"]
+        widget_id = create.data["widgets"][0]["id"]
+        widget_type = create.data["widgets"][0].get("widgetType")
+
+        put_url = f"/api/0/organizations/{self.organization.slug}/dashboards/{dashboard_id}/"
+        put_data = {
+            "title": "AI Agents Overview",
+            "widgets": [
+                {
+                    "id": widget_id,
+                    "title": "Traces",
+                    "displayType": "agents_traces_table",
+                    "widgetType": widget_type,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [],
+                            "columns": [],
+                            "aggregates": [],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        update = self.do_request("put", put_url, data=put_data)
+        assert update.status_code == 200, update.data
+
     def test_post_text_widget_after_restrictive_dataset_widget(self) -> None:
         # Regression: DRF reuses a single child serializer for ``many=True``,
         # so a previous widget's widget_type can leak via serializer context
