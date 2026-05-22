@@ -389,8 +389,56 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
 
-    def test_stats_period_overrides_to_30d(self) -> None:
-        """Test that statsPeriod is overridden to 30d so all recent data is returned"""
+    def test_stats_period_is_tried_first_then_widened(self) -> None:
+        """A passed statsPeriod is used as the first attempt; if the conversation
+        falls outside it the endpoint widens to 7d then 30d automatically."""
+        timestamp_15d = before_now(days=15).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp_15d,
+            op="gen_ai.chat",
+            trace_id=trace_id,
+        )
+
+        # statsPeriod=1h is too narrow; widening finds the 15-day-old span via 30d
+        query = {
+            "project": [self.project.id],
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+
+    def test_stats_period_recent_conversation_returned_without_widening(self) -> None:
+        """When the conversation falls within the requested statsPeriod it is
+        returned immediately without trying wider windows."""
+        timestamp_1h = before_now(minutes=30).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp_1h,
+            op="gen_ai.chat",
+            trace_id=trace_id,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+
+    def test_no_time_params_falls_back_to_30d(self) -> None:
+        """Omitting all time params searches the full 30d retention window."""
         timestamp = before_now(days=15).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
@@ -402,12 +450,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
         )
 
-        # statsPeriod=1h would normally restrict to last hour and exclude our 15-day-old span,
-        # but endpoint overrides to 30d
-        query = {
-            "project": [self.project.id],
-            "statsPeriod": "1h",
-        }
+        query = {"project": [self.project.id]}
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200, response.data

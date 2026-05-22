@@ -1,5 +1,7 @@
-from datetime import timedelta
+from dataclasses import replace
+from datetime import datetime, timedelta
 
+import sentry_sdk
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,14 +12,22 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import TimeoutException, handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.dates import parse_stats_period
 
 MAX_RETENTION_DAYS = 30
+
+# Widening steps used when no explicit time range is provided.
+# We try progressively wider windows so that a recent conversation is found
+# quickly, while older ones can still be located without timing out on a
+# full 30-day scan every time.
+_WIDENING_STEPS = [timedelta(days=7), timedelta(days=MAX_RETENTION_DAYS)]
 
 # Base span fields always returned
 AI_CONVERSATION_ATTRIBUTES = [
@@ -58,6 +68,12 @@ AI_CONVERSATION_ATTRIBUTES = [
     "user.ip",
 ]
 
+_TIMEOUT_DETAIL = (
+    "The query timed out before finding this conversation. "
+    "Open the conversation from the Conversations list to get a direct link "
+    "with a precise time range."
+)
+
 
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
@@ -68,7 +84,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
 
-        # Check what date params were passed before calling get_snuba_params
         stats_period = request.GET.get("statsPeriod")
         has_explicit_range = request.GET.get("start") or request.GET.get("end")
 
@@ -77,17 +92,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        # Enforce 30-day retention limit
-        max_retention = timedelta(days=MAX_RETENTION_DAYS)
         now = timezone.now()
-        max_retention_cutoff = now - max_retention
+        max_retention_cutoff = now - timedelta(days=MAX_RETENTION_DAYS)
 
-        if stats_period or not has_explicit_range:
-            # Always use full 30d range when statsPeriod is passed or no date params
-            snuba_params.start = max_retention_cutoff
-            snuba_params.end = now
-        else:
-            # Validate explicit start/end aren't older than retention limit
+        if has_explicit_range:
+            # Caller supplied precise timestamps — validate retention and use as-is.
             if snuba_params.start and snuba_params.start < max_retention_cutoff:
                 return Response(
                     {"detail": f"start time cannot be older than {MAX_RETENTION_DAYS} days"},
@@ -98,38 +107,101 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     {"detail": f"end time cannot be older than {MAX_RETENTION_DAYS} days"},
                     status=400,
                 )
+            data_fn = self._make_direct_data_fn(snuba_params, conversation_id)
+        else:
+            # No explicit range: respect the passed statsPeriod as the first
+            # attempt, then widen to 7d and 30d if the conversation is not found.
+            params_sequence = self._build_widening_sequence(snuba_params, stats_period, now)
+            data_fn = self._make_widening_data_fn(params_sequence, conversation_id)
 
-        selected_columns = AI_CONVERSATION_ATTRIBUTES
-
-        def data_fn(offset: int, limit: int):
-            return self._fetch_conversation_spans(
-                snuba_params=snuba_params,
-                conversation_id=conversation_id,
-                selected_columns=selected_columns,
-                offset=offset,
-                limit=limit,
+        try:
+            with handle_query_errors():
+                return self.paginate(
+                    request=request,
+                    paginator=GenericOffsetPaginator(data_fn=data_fn),
+                    default_per_page=100,
+                    max_per_page=1000,
+                )
+        except TimeoutException:
+            sentry_sdk.set_tag("ai_conversations.detail_timeout", True)
+            return Response(
+                {"detail": _TIMEOUT_DETAIL, "code": "query_timeout"},
+                status=504,
             )
 
-        with handle_query_errors():
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                default_per_page=100,
-                max_per_page=1000,
-            )
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
 
+    def _build_widening_sequence(
+        self, base_params: SnubaParams, stats_period: str | None, now: datetime
+    ) -> list[SnubaParams]:
+        """
+        Return a list of SnubaParams covering progressively wider time windows.
+
+        Starts from the requested statsPeriod (if any), then appends the
+        standard widening steps (7d, 30d) that are wider than the initial period.
+        """
+        requested_delta: timedelta | None = None
+        if stats_period:
+            requested_delta = parse_stats_period(stats_period)
+
+        steps: list[timedelta] = []
+        if requested_delta and requested_delta < timedelta(days=MAX_RETENTION_DAYS):
+            steps.append(requested_delta)
+
+        for step in _WIDENING_STEPS:
+            if not steps or step > steps[-1]:
+                steps.append(step)
+
+        return [replace(base_params, start=now - delta, end=now) for delta in steps]
+
+    def _make_direct_data_fn(self, snuba_params, conversation_id: str):
+        """data_fn for an explicit time range — no widening."""
+
+        def data_fn(offset: int, limit: int) -> list:
+            return self._fetch_conversation_spans(snuba_params, conversation_id, offset, limit)
+
+        return data_fn
+
+    def _make_widening_data_fn(self, params_sequence: list[SnubaParams], conversation_id: str):
+        """
+        data_fn that tries each set of params in order and memoises the first
+        one that returns results.  Subsequent pages reuse the winning params
+        directly, avoiding redundant narrower-window queries.
+        """
+        winning_params: SnubaParams | None = None
+
+        def data_fn(offset: int, limit: int) -> list:
+            nonlocal winning_params
+
+            if winning_params is not None:
+                return self._fetch_conversation_spans(
+                    winning_params, conversation_id, offset, limit
+                )
+
+            for params in params_sequence:
+                result = self._fetch_conversation_spans(params, conversation_id, offset, limit)
+                if result:
+                    winning_params = params
+                    return result
+
+            return []
+
+        return data_fn
+
+    @sentry_sdk.trace
     def _fetch_conversation_spans(
         self,
         snuba_params,
         conversation_id: str,
-        selected_columns: list[str],
         offset: int,
         limit: int,
-    ):
+    ) -> list:
         result = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
-            selected_columns=selected_columns,
+            selected_columns=AI_CONVERSATION_ATTRIBUTES,
             orderby=["precise.start_ts"],
             offset=offset,
             limit=limit,
