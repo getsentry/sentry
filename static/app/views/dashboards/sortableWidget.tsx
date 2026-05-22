@@ -145,6 +145,7 @@ export function SortableWidget(props: Props) {
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     widgetInterval: props.widgetInterval,
+    disableFullscreen: hasSlideout,
   };
 
   return (
