@@ -4,6 +4,7 @@ import logging
 
 import orjson
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,7 +17,7 @@ from sentry.constants import CELL_API_DEPRECATION_DATE, ENABLE_SEER_CODING_DEFAU
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerRun
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -82,6 +83,14 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 
-        group.update(seer_autofix_last_triggered=timezone.now())
+        now = timezone.now()
+        run_id = request.data.get("run_id")
+        with transaction.atomic(using=router.db_for_write(Group)):
+            group.update(seer_autofix_last_triggered=now)
+            if isinstance(run_id, int):
+                SeerRun.objects.filter(
+                    organization_id=group.organization.id,
+                    seer_run_state_id=run_id,
+                ).update(last_triggered_at=now)
 
         return Response(status=202, data=response.json())

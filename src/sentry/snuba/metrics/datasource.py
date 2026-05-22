@@ -644,7 +644,7 @@ def _sort_results_by_group_filters(
     return sorted
 
 
-def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
+def _prune_extra_groups(results: dict[str, Any], filters: GroupLimitFilters) -> None:
     valid_values = set(filters.values)
     for _entity, queries in results.items():
         for key, query_results in queries.items():
@@ -662,7 +662,7 @@ def get_series(
     use_case_id: UseCaseID,
     include_meta: bool = False,
     tenant_ids: dict[str, Any] | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Get time series for the given query"""
 
     organization_id = projects[0].organization_id if projects else None

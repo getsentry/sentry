@@ -1,30 +1,31 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
-  useSetMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  MINIMIZED_GRAPH_HEIGHT,
+  STACKED_GRAPH_HEIGHT,
+} from 'sentry/views/explore/metrics/settings';
 import {
   createTraceMetricEventsFilter,
   getEquationMetricsTotalFilter,
@@ -49,26 +50,32 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 import {WidgetWrapper} from './styles';
 
-const MINIMIZED_GRAPH_HEIGHT = 50;
-const STACKED_GRAPH_HEIGHT = 362;
+export function getMetricsChartTypeOptions(organization: Organization) {
+  if (canUseMetricsHeatMap(organization)) {
+    return [
+      ...EXPLORE_CHART_TYPE_OPTIONS,
+      {value: ChartType.HEATMAP, label: t('Heat Map')},
+    ];
+  }
+  return EXPLORE_CHART_TYPE_OPTIONS;
+}
 
 interface MetricsGraphProps {
+  actions: React.ReactNode;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  additionalActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
 
 export function MetricsGraph({
   timeseriesResult,
-  additionalActions,
+  actions,
   isMetricOptionsEmpty,
   title,
 }: MetricsGraphProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
-  const setVisualizes = useSetMetricVisualizes();
 
   useSynchronizeCharts(
     metricQueries.length,
@@ -76,35 +83,32 @@ export function MetricsGraph({
     METRICS_CHART_GROUP
   );
 
-  function handleChartTypeChange(newChartType: ChartType) {
-    setVisualizes(visualizes.map(v => v.replace({chartType: newChartType})));
-  }
-
   return (
     <Graph
       visualize={visualize}
       visualizes={visualizes}
       timeseriesResult={timeseriesResult}
-      onChartTypeChange={handleChartTypeChange}
-      additionalActions={additionalActions}
+      actions={actions}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
       title={title}
     />
   );
 }
 
-interface GraphProps extends MetricsGraphProps {
-  onChartTypeChange: (chartType: ChartType) => void;
+interface GraphProps {
+  actions: React.ReactNode;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
+  isMetricOptionsEmpty?: boolean;
+  title?: string;
 }
 
 function Graph({
-  onChartTypeChange,
   timeseriesResult,
   visualize,
   visualizes,
-  additionalActions,
+  actions,
   isMetricOptionsEmpty,
   title,
 }: GraphProps) {
@@ -113,7 +117,6 @@ function Graph({
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
   const userQuery = useQueryParamsQuery();
-  const [interval, setInterval, intervalOptions] = useChartInterval();
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
@@ -181,57 +184,6 @@ function Graph({
     return title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length, title]);
 
-  const Title = <Widget.WidgetTitle title={chartTitle} />;
-
-  const chartIcon =
-    visualize.chartType === ChartType.LINE
-      ? 'line'
-      : visualize.chartType === ChartType.AREA
-        ? 'area'
-        : 'bar';
-
-  const Actions = (
-    <Fragment>
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            tooltipProps={{
-              title: t('Type of chart displayed in this visualization (ex. line)'),
-            }}
-            icon={<IconGraph type={chartIcon} />}
-            variant="transparent"
-            showChevron={false}
-            size="xs"
-          />
-        )}
-        value={visualize.chartType}
-        menuTitle="Type"
-        options={EXPLORE_CHART_TYPE_OPTIONS}
-        onChange={option => onChartTypeChange(option.value)}
-      />
-      <CompactSelect
-        value={interval}
-        onChange={({value}) => setInterval(value)}
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            tooltipProps={{
-              title: t('Time interval displayed in this visualization (ex. 5m)'),
-            }}
-            {...triggerProps}
-            icon={<IconClock />}
-            variant="transparent"
-            showChevron={false}
-            size="xs"
-          />
-        )}
-        menuTitle="Interval"
-        options={intervalOptions}
-      />
-      {additionalActions}
-    </Fragment>
-  );
-
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty;
 
@@ -240,8 +192,8 @@ function Graph({
   return (
     <WidgetWrapper hideFooterBorder>
       <Widget
-        Title={Title}
-        Actions={Actions}
+        Title={<Widget.WidgetTitle title={chartTitle} />}
+        Actions={actions}
         Visualization={
           showEmptyState ? (
             <GenericWidgetEmptyStateWarning
@@ -261,14 +213,14 @@ function Graph({
           ) : undefined
         }
         Footer={
-          showChart && (
+          showChart ? (
             <ConfidenceFooter
               chartInfo={chartInfo}
               isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
               hasUserQuery={!!userQuery}
               rawMetricCounts={rawMetricCounts}
             />
-          )
+          ) : undefined
         }
         height={height}
         revealActions="always"

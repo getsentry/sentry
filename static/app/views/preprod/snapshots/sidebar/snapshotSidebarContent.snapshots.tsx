@@ -45,6 +45,7 @@ const statusCounts: Record<DiffStatus, number> = {
   [DiffStatus.REMOVED]: 0,
   [DiffStatus.RENAMED]: 0,
   [DiffStatus.UNCHANGED]: 2,
+  [DiffStatus.SKIPPED]: 0,
 };
 
 describe('SnapshotSidebarContent', () => {

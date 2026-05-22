@@ -222,58 +222,6 @@ const getPollInterval = (
   return false;
 };
 
-/**
- * Extract artifacts from Explorer blocks.
- * Returns the latest artifact for each key (later blocks override earlier ones).
- */
-export function getArtifactsFromBlocks(blocks: Block[]): Record<string, Artifact> {
-  const artifacts: Record<string, Artifact> = {};
-
-  for (const block of blocks) {
-    if (block.artifacts) {
-      for (const artifact of block.artifacts) {
-        artifacts[artifact.key] = artifact;
-      }
-    }
-  }
-
-  return artifacts;
-}
-
-/**
- * Get the ordered list of artifact keys based on their first appearance in blocks.
- * Returns keys sorted by the index of the first block where each artifact appeared.
- */
-export function getOrderedArtifactKeys(
-  blocks: Block[],
-  artifacts: Record<string, Artifact>
-): string[] {
-  // Map artifact key to the index of the first block where it appeared
-  const firstAppearanceIndex: Record<string, number> = {};
-
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    if (block?.artifacts) {
-      for (const artifact of block.artifacts) {
-        // Only record the first appearance
-        if (!(artifact.key in firstAppearanceIndex)) {
-          firstAppearanceIndex[artifact.key] = i;
-        }
-      }
-    }
-  }
-
-  // Get all artifact keys that exist in artifacts
-  const artifactKeys = Object.keys(artifacts).filter(key => key in firstAppearanceIndex);
-
-  // Sort by first appearance index
-  return artifactKeys.sort((a, b) => {
-    const indexA = firstAppearanceIndex[a] ?? Infinity;
-    const indexB = firstAppearanceIndex[b] ?? Infinity;
-    return indexA - indexB;
-  });
-}
-
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
   blocks: Block[];
@@ -469,34 +417,6 @@ function isLastBlockOfSection(block?: Block): boolean {
   );
 }
 
-/**
- * Extract merged file patches from Explorer blocks.
- * Returns the latest merged patch (original → current) for each file.
- */
-export function getMergedFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
-  const mergedByFile = new Map<string, ExplorerFilePatch>();
-
-  for (const block of blocks) {
-    if (block.merged_file_patches) {
-      for (const patch of block.merged_file_patches) {
-        const key = `${patch.repo_name}:${patch.patch.path}`;
-        mergedByFile.set(key, patch);
-      }
-    }
-  }
-
-  return Array.from(mergedByFile.values());
-}
-
-/**
- * Check if there are code changes in the state.
- */
-export function hasCodeChanges(blocks: Block[]): boolean {
-  return blocks.some(
-    block => block.merged_file_patches && block.merged_file_patches.length > 0
-  );
-}
-
 interface UseExplorerAutofixOptions {
   /**
    * Whether to enable the hook and make API calls.
@@ -580,7 +500,7 @@ export function useExplorerAutofix(
       setWaitingForResponse(true);
 
       try {
-        const data: Record<string, any> = {step};
+        const data: Record<string, any> = {step, referrer: 'api.web'};
 
         if (defined(startStepOptions?.insertIndex)) {
           data.insert_index = startStepOptions.insertIndex;
@@ -640,6 +560,7 @@ export function useExplorerAutofix(
         const data: Record<string, any> = {
           step: 'open_pr',
           run_id: runId,
+          referrer: 'api.web',
         };
         if (repoName) {
           data.repo_name = repoName;
@@ -699,6 +620,7 @@ export function useExplorerAutofix(
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
         run_id: runId,
+        referrer: 'api.web',
       };
 
       if (integration.id === null) {

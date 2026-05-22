@@ -176,7 +176,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 
 @all_silo_endpoint  # Only LINK_IDENTITY is handled at control
 class SlackActionEndpoint(Endpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

@@ -16,8 +16,7 @@ import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -39,7 +38,7 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  const [runId] = useSeerExplorerRunId();
+  const {runId, chatStates} = useSeerExplorerChatState();
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
@@ -47,10 +46,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     isOpen,
   } = useSeerExplorerDrawer();
 
-  // Observes the shared session query so the button can reflect activity even
-  // when the drawer is closed. Shares the underlying query with
-  // `useSeerExplorer` via key-dedup, so there's no double polling.
-  const {isPolling} = useSeerExplorerPolling({runId});
+  const pollingState = runId === null ? undefined : chatStates[runId]?.polling;
+  const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
 
   // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
   // runId from sessionStorage flashes polling state before the user engages.

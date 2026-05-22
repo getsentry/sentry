@@ -645,7 +645,12 @@ function setUpMocks(
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/projects/?statsPeriod=30d`,
-    body: [ProjectFixture({})],
+    body: [
+      {
+        ...ProjectFixture({}),
+        stats: [],
+      },
+    ],
   });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/history/`,

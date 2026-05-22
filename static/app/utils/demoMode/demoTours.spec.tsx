@@ -31,7 +31,7 @@ interface MockToursState {
   [DemoTour.PERFORMANCE]: TourState<DemoTourStep>;
 }
 
-const mockUseLocalStorageState = useLocalStorageState as jest.Mock;
+const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
 
 function createWrapper() {
   return function ({children}: {children?: React.ReactNode}) {

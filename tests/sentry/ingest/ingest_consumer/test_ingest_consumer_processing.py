@@ -523,15 +523,15 @@ def test_process_stored_attachment(
 @pytest.mark.parametrize(
     "attachment",
     [
-        ([b"Hello ", b"World!"], "event.attachment", "application/octet-stream"),
-        ([b""], "event.attachment", "application/octet-stream"),
-        ([], "event.attachment", "application/octet-stream"),
+        ([b"Hello ", b"World!"], "event.attachment", "text/plain"),
+        ([b""], "event.attachment", "text/plain"),
+        ([], "event.attachment", "text/plain"),
         (
             [b'{"rendering_system":"flutter","windows":[]}'],
             "event.view_hierarchy",
             "application/json",
         ),
-        (b"inline attachment", "event.attachment", "application/octet-stream"),
+        (b"inline attachment", "event.attachment", "text/plain"),
     ],
     ids=["basic", "zerolen", "nochunks", "view_hierarchy", "inline"],
 )

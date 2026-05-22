@@ -182,6 +182,37 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('rendering search query builder', () => {
+    it('does not show the size-limit prompt after the user searches filter keys', async () => {
+      const manyMatchingFilterKeys = Object.fromEntries(
+        Array.from({length: 20}, (_, index) => [
+          `matching_key_${index}`,
+          {
+            key: `matching_key_${index}`,
+            name: `matching_key_${index}`,
+            kind: FieldKind.TAG,
+          },
+        ])
+      ) as TagCollection;
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={manyMatchingFilterKeys}
+          filterKeySections={[]}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('matching');
+
+      expect(
+        await screen.findByRole('option', {name: 'matching_key_0'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Use search to find more options…')
+      ).not.toBeInTheDocument();
+    });
+
     describe('footer', () => {
       it('displays wildcard footer when canUseWildcard is true', async () => {
         render(

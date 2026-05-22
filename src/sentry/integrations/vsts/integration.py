@@ -379,13 +379,6 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
             )
         return data
 
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=["visualstudio"]
-        )
-        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
-        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
-
     def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:

@@ -20,6 +20,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 
 
@@ -73,6 +74,32 @@ class TestGetRepoFromCodeMappings(TestCase):
         repos = get_autofix_repos_from_project_code_mappings(project)
         assert len(repos) == 1
         assert repos[0]["provider"] == "integrations:github"
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_includes_gitlab_repos_with_feature_flag(self) -> None:
+        project = self.create_project()
+        github_repo = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=234,
+        )
+        self.create_code_mapping(project=project, repo=github_repo)
+
+        gitlab_repo = self.create_repo(
+            name="getsentry/sentry-gitlab",
+            provider="integrations:gitlab",
+            external_id="456",
+            integration_id=345,
+        )
+        self.create_code_mapping(
+            project=project, repo=gitlab_repo, stack_root="gitlab/", source_root="src/gitlab/"
+        )
+
+        repos = get_autofix_repos_from_project_code_mappings(project)
+        assert len(repos) == 2
+        providers = {r["provider"] for r in repos}
+        assert providers == {"integrations:github", "integrations:gitlab"}
 
     def test_filters_out_disabled_repos(self) -> None:
         project = self.create_project()

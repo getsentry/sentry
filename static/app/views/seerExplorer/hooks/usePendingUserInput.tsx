@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {t} from 'sentry/locale';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
 interface PendingFilePatch {
   patch: any;

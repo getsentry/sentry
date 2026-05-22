@@ -1,6 +1,5 @@
 import {Button} from '@sentry/scraps/button';
-
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
 
 import {AddToOrgModal, RemoveFromOrgModal} from 'admin/components/addOrRemoveOrgModal';
 import {CustomerGrid} from 'admin/components/customerGrid';
@@ -10,6 +9,8 @@ type Props = {
 };
 
 export function UserCustomers({userId}: Props) {
+  const {openModal} = useModal();
+
   const openAddToOrgModal = () => {
     openModal(modalProps => <AddToOrgModal {...modalProps} userId={userId} />);
   };

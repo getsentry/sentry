@@ -1,6 +1,6 @@
 """
-Span buffer is a consumer that takes individual spans from snuba-spans (soon
-ingest-spans, anyway, from Relay) and assembles them to segments of this form:
+Span buffer is a consumer that takes individual spans from Relay, in the `ingest-spans` topic,
+and assembles them to segments of this form:
 
     {"spans": <span1>,<span2>,<span3>}
 
@@ -25,10 +25,10 @@ We simplify this set of conditions for the span buffer:
 * Relay writes is_segment based on some other attributes for us, so that we don't have to look at N span-local attributes. This simplifies condition 2.
 * The span buffer is sharded by project. Therefore, condition 4 is handled by the code for condition 3, although with some delay.
 
-Segments are flushed out to `buffered-spans` topic under two conditions:
+Segments are flushed out to `buffered-segments` topic under two conditions:
 
-* If the segment has a root span, it is flushed out after `span_buffer_root_timeout` seconds of inactivity.
-* Otherwise, it is flushed out after `span_buffer_timeout` seconds of inactivity.
+* If the segment has a root span, it is flushed out after `spans.buffer.root-timeout` seconds of inactivity.
+* Otherwise, it is flushed out after `spans.buffer.timeout` seconds of inactivity.
 
 Now how does that look like in Redis? For each incoming span, we:
 
@@ -46,11 +46,15 @@ Now how does that look like in Redis? For each incoming span, we:
       current segment root.
    d. If the segment exceeds max_segment_bytes, detaches the subsegment
       into its own segment keyed by the salt.
+   e. If the target segment is currently locked by a flusher, detaches the
+      subsegment into its own segment so new spans are not written into data
+      that is being produced and cleaned up.
 3. To a "global queue", we write the segment key, sorted by timeout.
 
-Eventually, flushing cronjob looks at that global queue, and removes all timed
-out keys from it. Then fetches the payload keys for each segment via the
-member-keys index, loads their data, and cleans up.
+Eventually, flusher subprocesses read timed-out segment keys from the queue,
+acquire a per-segment flush lock when configured, fetch the payload keys for
+each segment via the member-keys index, load their data, and produce the
+segment.
 
 This happens in two steps: Get the to-be-flushed segments in `flush_segments`,
 then the consumer produces them, then they are deleted from Redis
@@ -68,18 +72,18 @@ Segments can grow unboundedly as spans arrive. To prevent oversized segments fro
 consuming excessive memory during flush, the buffer enforces a maximum byte limit
 per segment (controlled by `spans.buffer.max-segment-bytes`).
 
-Each subsegment is assigned a unique salt (UUID). The Lua script tracks cumulative
+Each subsegment is assigned a unique salt. The Lua script tracks cumulative
 ingested bytes per segment via `span-buf:ibc` keys. If adding a subsegment would
-push the segment over the byte limit, the script detaches it into a new segment
-keyed by the salt instead of merging it into the parent. The detached segment is
-independently tracked and flushed.
+push the segment over the byte limit, or if the target segment is being flushed,
+the script detaches the subsegment into a new segment keyed by the salt instead of
+merging it into the parent. The detached segment is independently tracked and flushed.
 
 During flush, segments that exceed `max-segment-bytes` are chunked into multiple
 Kafka messages to stay within downstream size limits.
 
 Glossary for types of keys:
 
-    * span-buf:s:{project_id:trace_id:span_id}:span_id -- payload keys containing span payloads, distributed across cluster nodes.
+    * span-buf:s:{project_id:trace_id:salt}:salt -- payload keys containing span payloads, distributed across cluster nodes.
     * span-buf:mk:{project_id:trace_id}:root_span_id -- member-keys index, tracks which payload keys belong to a segment.
     * span-buf:q:* -- the priority queue, used to determine which segments are ready to be flushed.
     * span-buf:ssr:{project_id:trace_id} -- redirect mappings so that each incoming span ID can be mapped to the right segment.
@@ -88,6 +92,7 @@ Glossary for types of keys:
     * span-buf:ibc:<segment_key> -- ingested byte count, total bytes originally ingested for a segment.
     * span-buf:fl:<segment_key> -- a per-segment lock (with TTL) to prevent the same segment from being flushed multiple times concurrently.
     <segment_key> -- an internal identifier, see `spans.segment_key` module.
+    <salt> -- a unique identifier for a subsegment, determined by hashing all span IDs in the subsegment.
 """
 
 from __future__ import annotations
@@ -114,11 +119,14 @@ from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.spans.buffer_logger import (
     BufferLogger,
-    EvalshaData,
+    DeadlineUpdateLog,
     FlusherLogEntry,
     FlusherLogger,
-    emit_observability_metrics,
+    FlushSegmentLog,
+    InsertSpansMetrics,
+    SubsegmentDebugLog,
 )
+from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import (
@@ -142,34 +150,7 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 
-# NamedTuples are faster to construct than dataclasses
-class Span(NamedTuple):
-    trace_id: str
-    span_id: str
-    parent_span_id: str | None
-    segment_id: str | None
-    project_id: int
-    payload: bytes
-    is_segment_span: bool = False
-    partition: int = 0
-
-    def effective_parent_id(self):
-        # Note: For the case where the span's parent is in another project, we
-        # will still flush the segment-without-root-span as one unit, just after
-        # `timeout` rather than `root-timeout` seconds.
-        if self.is_segment_span:
-            return self.span_id
-        else:
-            return self.segment_id or self.parent_span_id or self.span_id
-
-
 type SpanPayload = dict[str, Any]
-
-
-class Subsegment(NamedTuple):
-    project_and_trace: tuple[str, str]
-    salt: str
-    subsegment: list[Span]
 
 
 def _compute_salt(spans: Sequence[Span]) -> str:
@@ -271,6 +252,11 @@ class SpansBuffer:
     def _get_flush_lock_key(self, segment_key: SegmentKey) -> bytes:
         return b"span-buf:fl:" + segment_key
 
+    def _get_debug_trace_logger(self) -> DebugTraceLogger:
+        if self._debug_trace_logger is None:
+            self._debug_trace_logger = DebugTraceLogger(self.client)
+        return self._debug_trace_logger
+
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
         """
@@ -288,191 +274,238 @@ class SpansBuffer:
                 self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
 
         redis_ttl = options.get("spans.buffer.redis-ttl")
-        timeout = options.get("spans.buffer.timeout")
-        root_timeout = options.get("spans.buffer.root-timeout")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
+        pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         flush_lock_ttl = options.get("spans.buffer.flusher.flush-lock-ttl")
-        check_flush_lock = "true" if flush_lock_ttl > 0 else "false"
-        result_meta = []
-        is_root_span_count = 0
+        timeout = options.get("spans.buffer.timeout")
+        root_timeout = options.get("spans.buffer.root-timeout")
 
+        trees, subsegment_batches = self._push_payloads(
+            spans,
+            redis_ttl=redis_ttl,
+            max_spans_per_evalsha=max_spans_per_evalsha,
+            pipeline_batch_size=pipeline_batch_size,
+        )
+
+        inserted_subsegments = self._insert_spans(
+            subsegment_batches,
+            redis_ttl=redis_ttl,
+            max_segment_bytes=max_segment_bytes,
+            flush_lock_ttl=flush_lock_ttl,
+        )
+
+        self._update_queue(
+            trees,
+            inserted_subsegments,
+            now=now,
+            redis_ttl=redis_ttl,
+            timeout=timeout,
+            root_timeout=root_timeout,
+        )
+
+        self._emit_process_spans_count_metrics(spans, trees, inserted_subsegments)
+
+    def _build_subsegments(
+        self,
+        trees: dict[tuple[str, str], list[Span]],
+        max_spans_per_evalsha: int,
+    ) -> list[Subsegment]:
+        # Split large subsegments into chunks to avoid Lua unpack() limits.
+        # Chunks share the same parent_span_id but are processed separately.
+        subsegments: list[Subsegment] = []
+        for (project_and_trace, parent_span_id), spans in trees.items():
+            if max_spans_per_evalsha > 0 and len(spans) > max_spans_per_evalsha:
+                for chunk in itertools.batched(spans, max_spans_per_evalsha):
+                    chunk_list = list(chunk)
+                    subsegments.append(
+                        Subsegment(
+                            project_and_trace,
+                            parent_span_id,
+                            _compute_salt(chunk_list),
+                            chunk_list,
+                        )
+                    )
+            else:
+                subsegments.append(
+                    Subsegment(
+                        project_and_trace,
+                        parent_span_id,
+                        _compute_salt(spans),
+                        spans,
+                    )
+                )
+        return subsegments
+
+    def _batch_subsegments(
+        self,
+        subsegments: list[Subsegment],
+        pipeline_batch_size: int,
+    ) -> Sequence[Sequence[Subsegment]]:
+        if pipeline_batch_size > 0:
+            return list(itertools.batched(subsegments, pipeline_batch_size))
+        else:
+            return [subsegments]
+
+    def _push_payloads(
+        self,
+        spans: Sequence[Span],
+        *,
+        redis_ttl: int,
+        max_spans_per_evalsha: int,
+        pipeline_batch_size: int,
+    ) -> tuple[
+        dict[tuple[str, str], list[Span]],
+        Sequence[Sequence[Subsegment]],
+    ]:
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
             trees = self._group_by_parent(spans)
-            pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
+            subsegments = self._build_subsegments(trees, max_spans_per_evalsha)
+            subsegment_batches = self._batch_subsegments(subsegments, pipeline_batch_size)
 
-            # Split large subsegments into chunks to avoid Lua unpack() limits.
-            # Chunks share the same parent_span_id but are processed separately.
-            tree_items: list[Subsegment] = []
-            for key, subsegment in trees.items():
-                if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
-                    for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
-                        chunk_list = list(chunk)
-                        tree_items.append(Subsegment(key, _compute_salt(chunk_list), chunk_list))
-                else:
-                    tree_items.append(Subsegment(key, _compute_salt(subsegment), subsegment))
-
-            tree_batches: Sequence[Sequence[Subsegment]]
-            if pipeline_batch_size > 0:
-                tree_batches = list(itertools.batched(tree_items, pipeline_batch_size))
-            else:
-                tree_batches = [tree_items]
-
-            for batch in tree_batches:
+            for batch in subsegment_batches:
                 with self.client.pipeline(transaction=False) as p:
-                    for (project_and_trace, parent_span_id), salt, subsegment in batch:
-                        set_members = self._prepare_payloads(subsegment)
-                        payload_key = self._get_payload_key(project_and_trace, salt)
+                    for subsegment in batch:
+                        set_members = self._prepare_payloads(subsegment.spans)
+                        payload_key = self._get_payload_key(
+                            subsegment.project_and_trace,
+                            subsegment.salt,
+                        )
                         p.sadd(payload_key, *set_members)
                         p.expire(payload_key, redis_ttl)
 
                     p.execute()
 
+        return trees, subsegment_batches
+
+    def _insert_spans(
+        self,
+        batches: Sequence[Sequence[Subsegment]],
+        *,
+        redis_ttl: int,
+        max_segment_bytes: int,
+        flush_lock_ttl: int,
+    ) -> list[InsertedSubsegment]:
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
-            # Workaround to make `evalsha` work in pipelines. We load ensure the
-            # script is loaded just before calling it below. This calls `SCRIPT
-            # EXISTS` once per batch.
+            check_flush_lock = "true" if flush_lock_ttl > 0 else "false"
+
+            # Workaround to make `evalsha` work in pipelines. We ensure the script
+            # is loaded just before calling it below. This calls `SCRIPT EXISTS`
+            # once per batch.
             add_buffer_sha = self._ensure_script()
 
+            result_subsegments: list[Subsegment] = []
             results: list[Any] = []
-            for batch in tree_batches:
+
+            for batch in batches:
                 with self.client.pipeline(transaction=False) as p:
-                    for (project_and_trace, parent_span_id), salt, subsegment in batch:
-                        byte_count = sum(len(span.payload) for span in subsegment)
-
-                        try:
-                            if self._debug_trace_logger is None:
-                                self._debug_trace_logger = DebugTraceLogger(self.client)
-                            self._debug_trace_logger.log_subsegment_info(
-                                project_and_trace, parent_span_id, subsegment
-                            )
-                        except Exception:
-                            logger.exception("process_spans: Failed to log debug trace info")
-
-                        span_ids = [span.span_id for span in subsegment]
-                        is_segment_span = (
-                            "true" if any(span.is_segment_span for span in subsegment) else "false"
-                        )
+                    for subsegment in batch:
+                        SubsegmentDebugLog(
+                            project_and_trace=subsegment.project_and_trace,
+                            parent_span_id=subsegment.parent_span_id,
+                            subsegment=subsegment.spans,
+                        ).emit(self._get_debug_trace_logger)
 
                         p.execute_command(
                             "EVALSHA",
                             add_buffer_sha,
                             1,
-                            project_and_trace,
-                            len(subsegment),
-                            parent_span_id,
-                            is_segment_span,
+                            subsegment.project_and_trace,
+                            len(subsegment.spans),
+                            subsegment.parent_span_id,
+                            "true" if subsegment.has_segment_span else "false",
                             redis_ttl,
-                            byte_count,
+                            subsegment.byte_count,
                             max_segment_bytes,
-                            salt,
+                            subsegment.salt,
                             check_flush_lock,
-                            *span_ids,
+                            *subsegment.span_ids,
                         )
 
-                        is_root_span_count += sum(span.is_segment_span for span in subsegment)
-
-                        # All spans in a subsegment share the same trace_id,
-                        # so they all came from the same Kafka partition.
-                        partition = subsegment[0].partition
-                        result_meta.append((project_and_trace, parent_span_id, partition, salt))
+                        result_subsegments.append(subsegment)
 
                     results.extend(p.execute())
 
+            assert len(result_subsegments) == len(results)
+
+            inserted_subsegments = [
+                InsertedSubsegment(subsegment, EvalshaResult.from_redis_result(result))
+                for subsegment, result in zip(result_subsegments, results)
+            ]
+
+        # Emit metrics for insert spans / EVALSHA Lua script
+        insert_spans_metrics = InsertSpansMetrics.from_inserted_subsegments(inserted_subsegments)
+        insert_spans_metrics.emit_metrics()
+
+        # Record cumulative latency per trace slow-operation logger
+        self._buffer_logger.log(insert_spans_metrics.evalsha_latency_entries)
+
+        return inserted_subsegments
+
+    def _emit_process_spans_count_metrics(
+        self,
+        spans: Sequence[Span],
+        trees: dict[tuple[str, str], list[Span]],
+        inserted_subsegments: Sequence[InsertedSubsegment],
+    ) -> None:
+        is_root_span_count = sum(
+            span.is_segment_span
+            for inserted_subsegment in inserted_subsegments
+            for span in inserted_subsegment.subsegment.spans
+        )
+
+        metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
+        # This incr metric is needed to get a rate overall.
+        metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
+        metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
+        metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
+        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(inserted_subsegments))
+
+    def _update_queue(
+        self,
+        trees: dict[tuple[str, str], list[Span]],
+        inserted_subsegments: Sequence[InsertedSubsegment],
+        *,
+        now: int,
+        redis_ttl: int,
+        timeout: int,
+        root_timeout: int,
+    ) -> None:
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
-            latency_entries: list[tuple[str, int]] = []
-            latency_metrics = []
-            gauge_metrics = []
-            longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
-                -1.0,
-                [],
-                [],
-            )
 
-            assert len(result_meta) == len(results)
+            for inserted_subsegment in inserted_subsegments:
+                subsegment = inserted_subsegment.subsegment
+                result = inserted_subsegment.result
 
-            for (project_and_trace, parent_span_id, partition, salt), result in zip(
-                result_meta, results
-            ):
-                (
-                    segment_key,
-                    has_root_span,
-                    evalsha_latency_ms,
-                    _,
-                    _,
-                ) = result
+                queue_key = self._get_queue_key(inserted_subsegment.queue_shard)
 
-                latency_entries.append((project_and_trace, evalsha_latency_ms))
-
-                # The Kafka partition is used directly as the queue shard
-                # so that routing is stable across rebalances.
-                shard = partition
-                queue_key = self._get_queue_key(shard)
-
-                # if the currently processed span is a root span, OR the buffer
-                # already had a root span inside, use a different timeout than
-                # usual.
-                if has_root_span:
-                    offset = root_timeout
-                else:
-                    offset = timeout
+                # If the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than usual.
+                offset = root_timeout if result.has_root_span else timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
 
                 new_deadline = now + offset
-                zadd_items[segment_key] = new_deadline
+                zadd_items[result.segment_key] = new_deadline
 
-                # Debug logging
-                try:
-                    old_deadline = None
-                    if self._debug_trace_logger is None:
-                        self._debug_trace_logger = DebugTraceLogger(self.client)
-                    if self._debug_trace_logger._should_log_trace(project_and_trace):
-                        old_deadline_score = self.client.zscore(queue_key, segment_key)
-                        old_deadline = (
-                            int(old_deadline_score) if old_deadline_score is not None else None
-                        )
+                DeadlineUpdateLog(
+                    segment_key=result.segment_key,
+                    project_and_trace=inserted_subsegment.project_and_trace,
+                    queue_key=queue_key,
+                    new_deadline=new_deadline,
+                    message_timestamp=now,
+                    has_root_span=result.has_root_span,
+                ).emit(self.client, self._get_debug_trace_logger)
 
-                    self._debug_trace_logger.log_deadline_update(
-                        segment_key=segment_key,
-                        project_and_trace=project_and_trace,
-                        old_deadline=old_deadline,
-                        new_deadline=new_deadline,
-                        message_timestamp=now,
-                        has_root_span=has_root_span,
-                    )
-                except Exception:
-                    logger.exception("process_spans: Failed to log deadline update")
-
-                subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
-                if not segment_key.endswith(salt.encode("ascii")):
+                if not inserted_subsegment.is_detached_segment:
                     delete_set.update(
-                        self._get_span_key(project_and_trace, span.span_id)
-                        for span in subsegment_spans
+                        self._get_span_key(subsegment.project_and_trace, span.span_id)
+                        for span in trees[subsegment.key]
                     )
-                delete_set.discard(segment_key)
-
-            for result in results:
-                (
-                    _,
-                    _,
-                    evalsha_latency_ms,
-                    evalsha_latency_metrics,
-                    evalsha_gauge_metrics,
-                ) = result
-                latency_metrics.append(evalsha_latency_metrics)
-                gauge_metrics.append(evalsha_gauge_metrics)
-                if evalsha_latency_ms > longest_evalsha_data[0]:
-                    longest_evalsha_data = (
-                        evalsha_latency_ms,
-                        evalsha_latency_metrics,
-                        evalsha_gauge_metrics,
-                    )
-
-            self._buffer_logger.log(latency_entries)
+                delete_set.discard(result.segment_key)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
@@ -485,18 +518,6 @@ class SpansBuffer:
                         p.zrem(queue_key, *deletes)
 
                 p.execute()
-
-        metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
-        # This incr metric is needed to get a rate overall.
-        metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
-        metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
-        metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
-        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
-
-        try:
-            emit_observability_metrics(latency_metrics, gauge_metrics, longest_evalsha_data)
-        except Exception as e:
-            logger.exception("Error emitting observability metrics: %s", e)
 
     def _ensure_script(self) -> str:
         """
@@ -720,20 +741,15 @@ class SpansBuffer:
             )
             num_has_root_spans += int(has_root_span)
 
-            try:
-                if self._debug_trace_logger is None:
-                    self._debug_trace_logger = DebugTraceLogger(self.client)
-                self._debug_trace_logger.log_flush_info(
-                    segment_key,
-                    segment_span_id,
-                    has_root_span,
-                    len(segment),
-                    shard,
-                    queue_key,
-                    now,
-                )
-            except Exception:
-                logger.exception("flush_segments: Failed to log debug trace flush info")
+            FlushSegmentLog(
+                segment_key=segment_key,
+                segment_span_id=segment_span_id,
+                has_root_span=has_root_span,
+                num_spans=len(segment),
+                shard=shard,
+                queue_key=queue_key,
+                timestamp=now,
+            ).emit(self._get_debug_trace_logger)
 
             if flusher_logger_enabled and segment:
                 project_id, trace_id, _ = parse_segment_key(segment_key)
@@ -767,8 +783,7 @@ class SpansBuffer:
         now: int,
     ) -> tuple[dict[SegmentKey, list[bytes]], dict[SegmentKey, list[PayloadKey]]]:
         """
-        Loads the segments from Redis, given a list of segment keys. Segments
-        exceeding a certain size are skipped, and an error is logged.
+        Loads the segments from Redis, given a list of segment keys.
 
         :param segment_keys: List of segment keys to load.
         :param segment_to_queue: Mapping of segment keys to their queue keys for TTL checking.
@@ -806,8 +821,6 @@ class SpansBuffer:
                 cursors[payload_key] = 0
             payload_keys_map[key] = segment_payload_keys
 
-        dropped_segments: set[SegmentKey] = set()
-
         def _add_spans(key: SegmentKey, raw_data: bytes):
             """
             Decompress and add spans to the segment.
@@ -830,10 +843,6 @@ class SpansBuffer:
 
             for key, (cursor, scan_values) in zip(current_keys, scan_results):
                 segment_key = scan_key_to_segment[key]
-                if segment_key in dropped_segments:
-                    cursors.pop(key, None)
-                    continue
-
                 for scan_value in scan_values:
                     if segment_key in payloads:
                         _add_spans(segment_key, scan_value)
@@ -951,6 +960,12 @@ class SpansBuffer:
                         for payload_key in flushed_segment.payload_keys:
                             p.unlink(payload_key)
 
+                    # A segment can be queued in more than one shard when spans from the
+                    # same segment land in different Kafka partitions. Releasing the lock
+                    # here lets a contending flusher later acquire it and remove those stale
+                    # queue entries instead of blocking on ZRANGEBYSCORE until lock TTL expires.
+                    # Since the segment metadata and payload keys have already been deleted
+                    # above, a stale queue entry cannot produce the segment again.
                     p.delete(self._get_flush_lock_key(segment_key))
 
                 for queue_key, keys in queue_removals.items():

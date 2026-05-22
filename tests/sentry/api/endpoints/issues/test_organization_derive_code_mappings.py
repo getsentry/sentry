@@ -8,6 +8,7 @@ from rest_framework import status
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -366,15 +367,19 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         return_value=[{"name": "name", "identifier": "name", "external_id": "88888"}],
     )
     def test_post_existing_code_mapping(self, mock_get_repos: MagicMock) -> None:
-        RepositoryProjectPathConfig.objects.create(
+        project_repo, _ = ProjectRepository.objects.get_or_create(
             project=self.project,
+            repository=self.repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        RepositoryProjectPathConfig.objects.create(
             stack_root="/stack/root",
             source_root="/source/root/wrong",
             default_branch="master",
-            repository=self.repo,
             organization_integration_id=self.organization_integration.id,
             organization_id=self.organization_integration.organization_id,
             integration_id=self.organization_integration.integration_id,
+            project_repository=project_repo,
         )
 
         config_data = {
@@ -389,7 +394,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
 
         # Both mappings should coexist: the original and the newly derived one
         mappings = RepositoryProjectPathConfig.objects.filter(
-            project=self.project, stack_root="/stack/root"
+            project_repository__project=self.project, stack_root="/stack/root"
         )
         assert mappings.count() == 2
         assert set(mappings.values_list("source_root", flat=True)) == {

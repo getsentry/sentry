@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
@@ -185,7 +186,7 @@ export function BillingPlans() {
   }
 
   return (
-    <BillingPlansContainer>
+    <Container padding="xl">
       <h1>Billing Plans</h1>
       <Button icon={<IconDownload />} onClick={handleDownloadCsv}>
         Download CSV
@@ -199,7 +200,7 @@ export function BillingPlans() {
           notLive={billingPlansResponse.not_live}
         />
       ))}
-    </BillingPlansContainer>
+    </Container>
   );
 }
 
@@ -429,10 +430,6 @@ function PriceTiersTable({
     </div>
   );
 }
-
-const BillingPlansContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-`;
 
 const StyledResultTable = styled(ResultTable)`
   margin-bottom: ${p => p.theme.space.xl};

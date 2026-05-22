@@ -1105,9 +1105,8 @@ class SearchResolver:
                 if mapped_column is not None:
                     field = mapped_column
 
-            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedAttribute(
-                public_alias=alias, internal_name=field, search_type=search_type
+                public_alias=alias, internal_name=field, search_type=field_type
             )
             column_context = None
 

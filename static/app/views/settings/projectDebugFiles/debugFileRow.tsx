@@ -15,7 +15,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 
 import {getFeatureTooltip, getPrettyFileType} from './utils';
 
@@ -24,7 +24,7 @@ type Props = {
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
-  project: Project;
+  project: DetailedProject;
   showDetails: boolean;
 };
 

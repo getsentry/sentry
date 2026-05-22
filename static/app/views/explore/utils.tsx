@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -769,7 +769,7 @@ export class TraceItemMetaInfo {
     attribute: string,
     meta: TraceItemDetailsMeta,
     organization?: Organization,
-    project?: Project
+    project?: DetailedProject
   ): string | React.ReactNode | null {
     const metaInfo = new TraceItemMetaInfo(meta);
     const remarks = metaInfo.getRemarks(attribute);

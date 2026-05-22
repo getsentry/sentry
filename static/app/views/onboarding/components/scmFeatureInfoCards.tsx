@@ -70,7 +70,7 @@ export function ScmFeatureInfoCards({
               <Grid
                 columns="min-content 1fr"
                 rows="min-content min-content"
-                gap={{xs: 'xs md', sm: 'xs lg'}}
+                gap="xs lg"
                 align="center"
                 areas={`
                     "icon label"

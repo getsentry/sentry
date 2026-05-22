@@ -19,7 +19,7 @@ import type {
   AvailableNotificationAction,
   NotificationAction,
 } from 'sentry/types/notificationActions';
-import type {Project} from 'sentry/types/project';
+import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,7 +46,7 @@ interface Props {
 }
 
 function SpikeProtectionProjects({subscription}: Props) {
-  const [projects, setProjects] = useState([] as Project[]);
+  const [projects, setProjects] = useState([] as ProjectSummaryWithOptions[]);
   const [pageLinks, setPageLinks] = useState<string | null>();
   const [currentCursor, setCurrentCursor] = useState<string | undefined>('');
   const [availableNotificationActions, setAvailableNotificationActions] = useState<
@@ -123,7 +123,7 @@ function SpikeProtectionProjects({subscription}: Props) {
   }, [fetchAvailableNotificationActions]);
 
   const fetchProjectNotificationActions = async (
-    project: Project,
+    project: ProjectSummaryWithOptions,
     projectNotificationActions: Record<string, NotificationAction[]>
   ) => {
     const projectId = project.id;
@@ -171,7 +171,10 @@ function SpikeProtectionProjects({subscription}: Props) {
     fetchData();
   }, [fetchProjects, fetchData]);
 
-  function toggleSpikeProtectionOption(project: Project, isFeatureEnabled: boolean) {
+  function toggleSpikeProtectionOption(
+    project: ProjectSummaryWithOptions,
+    isFeatureEnabled: boolean
+  ) {
     const updatedProject = {
       ...project,
       options: {
@@ -225,7 +228,7 @@ function SpikeProtectionProjects({subscription}: Props) {
     );
   }
 
-  const renderAccordionTitle = (project: Project) => {
+  const renderAccordionTitle = (project: ProjectSummaryWithOptions) => {
     return (
       <Flex justify="between" align="center" width="100%" height="100%">
         <Flex align="center" marginRight="xl">
@@ -235,7 +238,7 @@ function SpikeProtectionProjects({subscription}: Props) {
     );
   };
 
-  const renderAccordionBody = (project: Project) => {
+  const renderAccordionBody = (project: ProjectSummaryWithOptions) => {
     const projectNotificationActions = notificationActionsById[project.id] ?? [];
 
     // Only render if all of the notification actions have been loaded

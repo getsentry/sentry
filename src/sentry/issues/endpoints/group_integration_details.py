@@ -73,7 +73,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @cell_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

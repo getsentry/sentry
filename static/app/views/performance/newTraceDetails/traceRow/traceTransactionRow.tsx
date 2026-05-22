@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
@@ -73,10 +73,10 @@ export function TraceTransactionRow(props: TraceRowProps<TransactionNode>) {
             platform={props.projects[props.node.value.project_slug] ?? 'default'}
           />
           {props.node.value['transaction.op'] !== 'default' && (
-            <React.Fragment>
+            <Fragment>
               <span className="TraceOperation">{props.node.value['transaction.op']}</span>
               <strong className="TraceEmDash"> — </strong>
-            </React.Fragment>
+            </Fragment>
           )}
           <span className="TraceDescription">{props.node.value.transaction}</span>
         </div>

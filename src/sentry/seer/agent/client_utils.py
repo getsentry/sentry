@@ -55,6 +55,7 @@ class AgentChatRequest(TypedDict):
     run_id: int | None
     insert_index: int | None
     on_page_context: str | None
+    external_idempotency_key: NotRequired[str]
     page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
@@ -88,6 +89,7 @@ class AgentRunsRequest(TypedDict):
     expand: NotRequired[str]
     start: NotRequired[datetime]
     end: NotRequired[datetime]
+    query: NotRequired[str]
 
 
 class AgentUpdateRequest(TypedDict):

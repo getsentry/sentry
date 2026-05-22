@@ -68,6 +68,7 @@ class OutboxCategory(IntEnum):
     PROJECT_KEY_UPDATE = 45
     SCM_INTEGRATION_CONFIG_BACKFILL = 46
     ORGANIZATION_AVATAR_UPDATE = 47
+    SEER_RUN_CREATE = 48
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -201,6 +202,7 @@ class OutboxCategory(IntEnum):
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.apitoken import ApiToken
         from sentry.models.organization import Organization
+        from sentry.seer.models.run import SeerRun
         from sentry.users.models.user import User
 
         assert (model is not None) ^ (object_identifier is not None), (
@@ -238,6 +240,9 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "api_token_id"):
                     shard_identifier = model.api_token_id
+            if scope == OutboxScope.SEER_SCOPE:
+                if isinstance(model, SeerRun):
+                    shard_identifier = model.id
 
         assert (model is not None) or shard_identifier is not None, (
             "Either model or shard_identifier must be specified"
@@ -337,6 +342,7 @@ class OutboxScope(IntEnum):
     )
     API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
+    SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
 
     def __str__(self) -> str:
         return self.name
@@ -359,6 +365,8 @@ class OutboxScope(IntEnum):
             return "app_id"
         if scope == OutboxScope.API_TOKEN_SCOPE:
             return "api_token_id"
+        if scope == OutboxScope.SEER_SCOPE:
+            return "seer_run_id"
 
         return "shard_identifier"
 

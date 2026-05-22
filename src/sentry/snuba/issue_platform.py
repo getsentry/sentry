@@ -4,7 +4,6 @@ from datetime import timedelta
 
 import sentry_sdk
 
-from sentry import options
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -153,11 +152,7 @@ def timeseries_query(
     with sentry_sdk.start_span(op="issueplatform", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
 
-        column_resolver = None
-        if options.get("issues.search.use-tag-aware-condition-resolver"):
-            column_resolver = functools.partial(
-                get_snuba_column_name, dataset=Dataset.IssuePlatform
-            )
+        column_resolver = functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform)
 
         base_builder = IssuePlatformTimeseriesQueryBuilder(
             Dataset.IssuePlatform,

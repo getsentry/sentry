@@ -11,7 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {Project, SeerNightshiftTweaks} from 'sentry/types/project';
+import type {DetailedProject, SeerNightshiftTweaks} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -42,7 +42,7 @@ function levelOptions(defaultValue: Level) {
 const INTELLIGENCE_LEVEL_OPTIONS = levelOptions(DEFAULT_INTELLIGENCE_LEVEL);
 const REASONING_EFFORT_OPTIONS = levelOptions(DEFAULT_REASONING_EFFORT);
 
-function getTweaks(project: Project): SeerNightshiftTweaks {
+function getTweaks(project: DetailedProject): SeerNightshiftTweaks {
   return project.seerNightshiftTweaks ?? {};
 }
 
@@ -70,7 +70,7 @@ function Row({
 
 interface Props {
   canWrite: boolean;
-  project: Project;
+  project: DetailedProject;
 }
 
 export function NightShift({canWrite, project}: Props) {

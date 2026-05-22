@@ -3,7 +3,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -185,24 +184,9 @@ export function SnapshotMainContent({
       <DiffModeToggle diffMode={diffMode} onDiffModeChange={onDiffModeChange} />
     </Fragment>
   ) : null;
-  let soloDiffToggle: React.ReactNode = null;
-  if (hasDiffComparison) {
-    soloDiffToggle = (
-      <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
-    );
-  } else if (comparisonType === 'solo') {
-    soloDiffToggle = <Tag variant="promotion">{t('Base')}</Tag>;
-  } else if (comparisonType === 'waiting_for_base') {
-    soloDiffToggle = (
-      <Tooltip
-        title={t(
-          "Base snapshots haven't been uploaded yet. This will resolve automatically within ~10 minutes or fail."
-        )}
-      >
-        <Tag variant="muted">{t('Waiting for base')}</Tag>
-      </Tooltip>
-    );
-  }
+  const soloDiffToggle = hasDiffComparison ? (
+    <SoloDiffToggle isSoloView={isSoloView} onToggleSoloView={onToggleSoloView} />
+  ) : null;
 
   if (viewMode === 'list') {
     return (
@@ -357,14 +341,22 @@ export function SnapshotMainContent({
   }
   const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
   let status: DiffStatus | null;
-  if (selectedItem.type === 'solo') {
-    status = null;
-  } else if (selectedItem.type === 'added') {
-    status = DiffStatus.ADDED;
-  } else if (selectedItem.type === 'removed') {
-    status = DiffStatus.REMOVED;
-  } else {
-    status = DiffStatus.UNCHANGED;
+  switch (selectedItem.type) {
+    case 'solo':
+      status = null;
+      break;
+    case 'added':
+      status = DiffStatus.ADDED;
+      break;
+    case 'removed':
+      status = DiffStatus.REMOVED;
+      break;
+    case 'skipped':
+      status = DiffStatus.SKIPPED;
+      break;
+    case 'unchanged':
+    default:
+      status = DiffStatus.UNCHANGED;
   }
 
   return (

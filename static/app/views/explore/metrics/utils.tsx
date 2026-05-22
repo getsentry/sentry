@@ -100,7 +100,7 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
 
 export function hasDisplayMetricUnit(
   hasMetricUnitsUI: boolean,
-  metricUnit?: string
+  metricUnit?: string | null
 ): metricUnit is string {
   return (
     hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
@@ -108,7 +108,9 @@ export function hasDisplayMetricUnit(
 }
 
 export function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+  // Coerce '-' to NONE_UNIT because we do not want to allow the UI to query '-' as a unit, it's a catch-all
+  // that queries for all metrics with the same name and type regardless of the unit. These should be kept separate for now.
+  return `${metric.name}||${metric.type}||${defined(metric.unit) && metric.unit !== '-' ? metric.unit : NONE_UNIT}`;
 }
 
 export function getMetricsUnit(
@@ -263,7 +265,7 @@ export function makeMetricsAggregate({
     attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
     traceMetric.name,
     traceMetric.type,
-    traceMetric.unit ?? '-',
+    traceMetric.unit ?? NONE_UNIT,
   ];
   return `${aggregate}(${args.join(',')})`;
 }
@@ -302,7 +304,7 @@ const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
  * responses, so the frontend must do this mapping based on the selected
  * metric's unit.
  */
-export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
+export function mapMetricUnitToFieldType(metricUnit: string | null | undefined): {
   fieldType: ColumnType;
   unit: string | undefined;
 } {

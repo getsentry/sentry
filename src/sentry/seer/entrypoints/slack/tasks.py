@@ -11,6 +11,7 @@ from sentry import analytics
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.seer.entrypoints.metrics import (
@@ -22,6 +23,7 @@ from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
     SlackSeerAgentResponded,
 )
+from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackAgentEntrypoint
 from sentry.seer.entrypoints.slack.mention import (
     SlackMessageLink,
@@ -35,6 +37,8 @@ from sentry.seer.entrypoints.slack.messaging import send_halt_message
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
+    ProcessReactionFailureReason,
+    ProcessReactionHaltReason,
 )
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.tasks.base import instrumented_task
@@ -458,3 +462,126 @@ def _build_inaccessible_links_renderable(
 
     message = "\n\n".join(sections)
     return SlackRenderable(blocks=[MarkdownBlock(text=message)], text=message)
+
+
+@instrumented_task(
+    name="sentry.seer.entrypoints.slack.process_reaction_for_slack",
+    namespace=integrations_tasks,
+    processing_deadline_duration=30,
+    retry=Retry(times=2, delay=30),
+)
+def process_reaction_for_slack(
+    *,
+    integration_id: int,
+    organization_id: int,
+    channel_id: str,
+    message_ts: str,
+    reaction: str,
+    reactor_slack_user_id: str,
+) -> None:
+    """
+    Process a Slack reaction on a Seer bot message to record feedback.
+
+    Only handles :+1: and :-1: reactions on messages our bot posted in Seer threads.
+    Records an analytics event and sends an ephemeral acknowledgement.
+    """
+    from sentry.integrations.slack.integration import SlackIntegration
+    from sentry.integrations.slack.webhooks.event import SEER_FEEDBACK_REACTION_PREFIXES
+    from sentry.seer.entrypoints.slack.analytics import SlackSeerAgentFeedback
+
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.PROCESS_REACTION,
+        integration_id=integration_id,
+        organization_id=organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {
+                "channel_id": channel_id,
+                "message_ts": message_ts,
+                "reaction": reaction,
+                "reactor_slack_user_id": reactor_slack_user_id,
+            },
+        )
+
+        if not reaction.startswith(SEER_FEEDBACK_REACTION_PREFIXES):
+            lifecycle.record_halt(ProcessReactionHaltReason.UNSUPPORTED_REACTION)
+            return
+
+        feedback_type = "positive" if reaction.startswith("+") else "negative"
+
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            lifecycle.record_failure(failure_reason=ProcessReactionFailureReason.ORG_NOT_FOUND)
+            return
+
+        if not SlackAgentEntrypoint.has_access(organization):
+            lifecycle.record_halt(halt_reason=ProcessReactionHaltReason.NO_AGENT_ACCESS)
+            return
+
+        cached = SlackSeerAgentMessageCache.get(
+            integration_id=integration_id, channel_id=channel_id, message_ts=message_ts
+        )
+        if not cached:
+            lifecycle.record_halt(halt_reason=ProcessReactionHaltReason.THREAD_NOT_FOUND)
+            return
+        thread_ts = cached["thread_ts"]
+        run_id = cached["run_id"]
+
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if not integration:
+            lifecycle.record_failure(
+                failure_reason=ProcessReactionFailureReason.INTEGRATION_NOT_FOUND
+            )
+            return
+
+        user = _resolve_user(integration=integration, slack_user_id=reactor_slack_user_id)
+        if not user:
+            lifecycle.record_halt(ProcessReactionHaltReason.IDENTITY_NOT_LINKED)
+            return
+
+        install = integration.get_installation(organization_id=organization_id)
+        if not install:
+            lifecycle.record_failure(
+                failure_reason=ProcessReactionFailureReason.INSTALLATION_NOT_FOUND
+            )
+            return
+        if not isinstance(install, SlackIntegration):
+            lifecycle.record_failure(
+                failure_reason=ProcessReactionFailureReason.INSTALLATION_NOT_FOUND
+            )
+            return
+
+        try:
+            analytics.record(
+                SlackSeerAgentFeedback(
+                    organization_id=organization.id,
+                    org_slug=organization.slug,
+                    thread_ts=thread_ts,
+                    user_id=user.id,
+                    username=user.username,
+                    feedback_type=feedback_type,
+                    run_id=run_id,
+                    integration_id=integration_id,
+                )
+            )
+        except Exception:
+            _logger.warning("seer.slack.process_reaction.analytics_failed", exc_info=True)
+
+        message = (
+            "_**Feedback received** — My ego is intact and thriving, thanks._"
+            if feedback_type == "positive"
+            else "_**Feedback received** — Appreciated, even if it stings a little._"
+        )
+        renderable = SlackRenderable(
+            blocks=[MarkdownBlock(text=message)], text="Feedback received..."
+        )
+        try:
+            install.send_threaded_ephemeral_message(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                renderable=renderable,
+                slack_user_id=reactor_slack_user_id,
+            )
+        except Exception:
+            _logger.warning("seer.slack.process_reaction.send_ephemeral_failed", exc_info=True)

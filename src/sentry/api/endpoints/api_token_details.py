@@ -14,8 +14,8 @@ from sentry.api.endpoints.api_tokens import get_appropriate_user_id
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.models.apitoken import ApiToken
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 ALLOWED_FIELDS = ["name", "tokenId"]
 

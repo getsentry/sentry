@@ -304,7 +304,11 @@ class UniqueConditionQuery:
 
 def fetch_project(project_id: int) -> Project | None:
     try:
-        return Project.objects.get_from_cache(id=project_id)
+        project = Project.objects.get_from_cache(id=project_id)
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
+        )
+        return project
     except Project.DoesNotExist:
         logger.info(
             "delayed_processing.project_does_not_exist",
@@ -665,7 +669,7 @@ def get_group_to_groupevent(
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
     project: Project,
 ) -> dict[Group, tuple[GroupEvent, datetime | None]]:
-    groups = Group.objects.filter(id__in=event_data.group_ids)
+    groups = Group.objects.get_many_from_cache(event_data.group_ids)
     group_id_to_group = {group.id: group for group in groups}
 
     bulk_event_id_to_events = bulk_fetch_events(list(event_data.event_ids), project)
@@ -716,7 +720,7 @@ def fire_actions_for_groups(
     serialized_groups = {
         group.id: group_event.event_id for group, (group_event, _) in group_to_groupevent.items()
     }
-    logger.info(
+    logger.debug(
         "workflow_engine.delayed_workflow.fire_actions_for_groups",
         extra={
             "groups_to_fire": groups_to_fire,
@@ -921,7 +925,8 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         project,
     )
 
-    fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
+    if groups_to_dcgs and group_to_groupevent:
+        fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
 
 
 @sentry_sdk.trace

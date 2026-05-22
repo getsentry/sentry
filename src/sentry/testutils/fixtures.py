@@ -280,6 +280,11 @@ class Fixtures:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
+    def create_seer_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_seer_project_repository(project, **kwargs)
+
     def create_repository_settings(self, *args, **kwargs):
         return Factories.create_repository_settings(*args, **kwargs)
 
@@ -1199,6 +1204,11 @@ class Fixtures:
         )
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
+
+    def create_seer_run(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_seer_run(organization=organization, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:

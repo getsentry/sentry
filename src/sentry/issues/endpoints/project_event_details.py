@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
-from sentry.api.serializers.models.event import IssueEventSerializerResponse
+from sentry.api.serializers.models.event import GroupEventDetailsResponse
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
@@ -21,11 +21,6 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-
-
-class GroupEventDetailsResponse(IssueEventSerializerResponse):
-    nextEventID: str | None
-    previousEventID: str | None
 
 
 def wrap_event_response(

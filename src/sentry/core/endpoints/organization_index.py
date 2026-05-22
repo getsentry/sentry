@@ -40,16 +40,19 @@ from sentry.services.organization import (
     OrganizationProvisioningOptions,
     PostProvisionOptions,
 )
-from sentry.services.organization.provisioning import organization_provisioning_service
+from sentry.services.organization.provisioning import (
+    organization_provisioning_service,
+    resolve_provisioning_cell,
+)
 from sentry.silo.base import SiloMode
 from sentry.types.cell import (
     CellResolutionError,
     RegionCategory,
     get_locality_by_name,
-    get_new_org_cell_for_locality,
 )
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.pagination_factory import PaginatorLike
 
 logger = logging.getLogger(__name__)
@@ -99,7 +102,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         locality_name = attrs.get("dataStorageLocation")
 
         if locality_name:
-            attrs["cell_name"] = get_new_org_cell_for_locality(locality_name).name
+            attrs["cell_name"] = resolve_provisioning_cell(locality_name)
         else:
             # TODO(cells) Remove this when cell silo compatibility is removed.
             attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION
@@ -146,6 +149,8 @@ class OrganizationIndexEndpoint(Endpoint):
         return self._get_from_cell(request)
 
     def _get_from_cell(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
         queryset = Organization.objects.distinct()
@@ -244,6 +249,8 @@ class OrganizationIndexEndpoint(Endpoint):
         )
 
     def _get_from_control(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
         if owner_only:
@@ -389,6 +396,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 {"detail": "You are attempting to create too many organizations too quickly."},
                 status=429,
             )
+
+        metrics.incr(
+            "api.organization_index.post",
+            tags={"silo": SiloMode.get_current_mode().name.lower()},
+            sample_rate=1.0,
+        )
 
         serializer = OrganizationPostSerializer(data=request.data, context={"request": request})
 

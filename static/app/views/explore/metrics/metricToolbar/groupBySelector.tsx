@@ -30,6 +30,10 @@ interface GroupBySelectorProps {
    */
   traceMetric: TraceMetric;
   /**
+   * If set, disables the selector and shows this string as a tooltip.
+   */
+  disabledReason?: string;
+  /**
    * Whether to skip the trace metric filter.
    *
    * For equations, because at the moment there isn't an easy way to filter
@@ -46,11 +50,13 @@ interface GroupBySelectorProps {
 export function GroupBySelector({
   traceMetric,
   skipTraceMetricFilter,
+  disabledReason,
 }: GroupBySelectorProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const isDisabled = disabledReason !== undefined;
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -129,6 +135,7 @@ export function GroupBySelector({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          tooltipProps={{title: disabledReason}}
           prefix={t('Group by')}
           style={{width: '100%'}}
         />
@@ -136,7 +143,7 @@ export function GroupBySelector({
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
-      disabled={!skipTraceMetricFilter && !traceMetricFilter}
+      disabled={isDisabled || (!skipTraceMetricFilter && !traceMetricFilter)}
       onChange={handleChange}
       style={{width: '100%'}}
     />

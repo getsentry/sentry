@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {RadioField} from 'sentry/components/forms/fields/radioField';
@@ -164,7 +166,7 @@ export function PlanList({
               const fieldValue = formModel.getValue(reservedKey);
               const currentValueDisplay = getCurrentValueDisplay(category);
               return (
-                <SelectFieldWrapper key={`test-${category}`}>
+                <Container position="relative" key={`test-${category}`}>
                   <SelectField
                     inline={false}
                     stacked
@@ -180,7 +182,7 @@ export function PlanList({
                     required
                   />
                   {currentValueDisplay}
-                </SelectFieldWrapper>
+                </Container>
               );
             })}
           </StyledFormSection>
@@ -211,7 +213,7 @@ export function PlanList({
           })}
         </StyledFormSection>
       )}
-      <AuditFields>
+      <Container marginTop="xl">
         <InputField
           data-test-id="url-field"
           name="ticket-url"
@@ -230,7 +232,7 @@ export function PlanList({
           flexibleControlStateSize
           maxLength={500}
         />
-      </AuditFields>
+      </Container>
     </Form>
   );
 }
@@ -259,18 +261,10 @@ const SubText = styled('small')`
   color: #999;
 `;
 
-const SelectFieldWrapper = styled('div')`
-  position: relative;
-`;
-
 const CurrentValueText = styled('div')`
   color: #666;
   font-size: 0.9em;
   margin-top: -${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.lg};
   font-style: italic;
-`;
-
-const AuditFields = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
 `;

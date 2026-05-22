@@ -7,7 +7,6 @@ from typing import cast
 import sentry_sdk
 from snuba_sdk import Column, Condition
 
-from sentry import options
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
@@ -111,22 +110,20 @@ def timeseries_query(
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
-    allow_metric_aggregates=False,
-    has_metrics=False,
-    on_demand_metrics_enabled=False,
+    allow_metric_aggregates: bool = False,
+    has_metrics: bool = False,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
     *,
     referrer: str,
-):
+) -> SnubaTSResult:
     with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
 
-        column_resolver = None
-        if options.get("issues.search.use-tag-aware-condition-resolver"):
-            column_resolver = functools.partial(get_snuba_column_name, dataset=Dataset.Events)
+        column_resolver = functools.partial(get_snuba_column_name, dataset=Dataset.Events)
 
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
