@@ -180,14 +180,7 @@ export function ConversationAggregatesBar({
         </Flex>
       ) : (
         aggregates.toolNames.length > 0 && (
-          <Flex
-            align="center"
-            gap="xs"
-            minWidth={0}
-            overflow="hidden"
-            flexShrink={1}
-            wrap="nowrap"
-          >
+          <ToolTagsRow>
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
@@ -214,7 +207,7 @@ export function ConversationAggregatesBar({
                 {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
               </InfoText>
             )}
-          </Flex>
+          </ToolTagsRow>
         )
       )}
     </Flex>
@@ -400,3 +393,18 @@ const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
 const StyledLink = styled(Link)`
   text-decoration: none;
 `;
+
+function ToolTagsRow({children}: {children: React.ReactNode}) {
+  return (
+    <Flex
+      align="center"
+      gap="xs"
+      minWidth={0}
+      overflow="hidden"
+      flexShrink={1}
+      wrap="nowrap"
+    >
+      {children}
+    </Flex>
+  );
+}

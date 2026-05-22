@@ -1,3 +1,4 @@
+import type React from 'react';
 import {useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
@@ -57,24 +58,34 @@ function ConversationDetailPage() {
             isLoading={isLoading}
           />
         </Flex>
-        <Container
-          flex={1}
-          minHeight="0"
-          overflow="hidden"
-          border="primary"
-          radius="md"
-          background="primary"
-          display="flex"
-        >
+        <ConversationViewContainer>
           <ConversationViewContent
             conversation={conversation}
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}
             focusedTool={queryState.focusedTool}
           />
-        </Container>
+        </ConversationViewContainer>
       </Stack>
     </ViewportConstrainedPage>
+  );
+}
+
+function ConversationViewContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Container
+      flex={1}
+      minHeight="0"
+      overflow="hidden"
+      border="primary"
+      radius="md"
+      background="primary"
+      display="flex"
+    >
+      <Flex flex={1} minHeight="0" height="100%">
+        {children}
+      </Flex>
+    </Container>
   );
 }
 
