@@ -268,13 +268,9 @@ def _get_sentry_convention_visibility_candidates(
             candidates.add(public_alias)
 
     replacement_map = SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.get(item_type, {})
-    seen: set[str] = set()
     pending = list(candidates)
     while pending:
         candidate = pending.pop()
-        if candidate in seen:
-            continue
-        seen.add(candidate)
         replacement = replacement_map.get(candidate)
         if replacement is not None and replacement not in candidates:
             candidates.add(replacement)
