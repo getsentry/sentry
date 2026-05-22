@@ -25,7 +25,7 @@ from sentry.search.eap.types import (
     SearchResolverConfig,
     SupportedTraceItemType,
 )
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute_to_api, translate_internal_to_public_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils import json, snuba_rpc
@@ -222,9 +222,12 @@ class Spans(rpc_dataset_common.RPCBase):
         attributes: list[AttributeKey] | None = None,
         max_buckets: int = 75,
         skip_translate_internal_to_public_alias: bool = False,
+        include_internal: bool = False,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
+        if search_resolver.has_hidden_api_attributes():
+            return []
         meta = search_resolver.resolve_meta(
             referrer=referrer,
             sampling_mode=params.sampling_mode,
@@ -257,8 +260,10 @@ class Spans(rpc_dataset_common.RPCBase):
             ):
                 attrs = defaultdict(list)
                 for attribute in result.attribute_distributions.attributes:
-                    if not can_expose_attribute(
-                        attribute.attribute_name, SupportedTraceItemType.SPANS
+                    if not can_expose_attribute_to_api(
+                        attribute.attribute_name,
+                        SupportedTraceItemType.SPANS,
+                        include_internal=include_internal,
                     ):
                         continue
 

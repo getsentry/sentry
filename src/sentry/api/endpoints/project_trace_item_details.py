@@ -29,7 +29,7 @@ from sentry.search.eap.types import (
     TraceItemAttribute,
 )
 from sentry.search.eap.utils import (
-    can_expose_attribute,
+    can_expose_attribute_to_api,
     get_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
@@ -118,7 +118,7 @@ def convert_rpc_attribute_to_json(
     for attribute in attributes:
         internal_name = attribute["name"]
 
-        if not can_expose_attribute(
+        if not can_expose_attribute_to_api(
             internal_name, trace_item_type, include_internal=include_internal
         ):
             continue
@@ -209,6 +209,7 @@ def convert_rpc_attribute_to_json(
 def serialize_meta(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
+    include_internal: bool = False,
 ) -> dict:
     internal_name = ""
     attribute = {}
@@ -243,6 +244,12 @@ def serialize_meta(
             result = json.loads(attribute["value"]["valStr"])
             # Map the internal field key name back to its public name
             if field_key in attribute_map:
+                if not can_expose_attribute_to_api(
+                    field_key,
+                    trace_item_type,
+                    include_internal=include_internal,
+                ):
+                    continue
                 item_type: Literal["string", "number", "boolean"]
                 if (
                     "valInt" in attribute_map[field_key]
@@ -270,7 +277,11 @@ def serialize_meta(
     return meta_result
 
 
-def serialize_links(attributes: list[dict]) -> list[dict] | None:
+def serialize_links(
+    attributes: list[dict],
+    trace_item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> list[dict] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
     link_attribute = None
     for attribute in attributes:
@@ -285,7 +296,14 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
         value = link_attribute.get("value", {}).get("valStr", None)
         if value is not None:
             links = json.loads(value)
-            return [serialize_link(link) for link in links]
+            return [
+                serialize_link(
+                    link,
+                    trace_item_type=trace_item_type,
+                    include_internal=include_internal,
+                )
+                for link in links
+            ]
         else:
             return None
     except Exception as e:
@@ -293,7 +311,11 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
         return None
 
 
-def serialize_link(link: dict) -> dict:
+def serialize_link(
+    link: dict,
+    trace_item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> dict:
     clean_link = {
         "itemId": link["span_id"],
         "traceId": link["trace_id"],
@@ -307,6 +329,11 @@ def serialize_link(link: dict) -> dict:
             {"name": k, "value": v, "type": infer_type(v)}
             for k, v in attributes.items()
             if infer_type(v) is not None
+            and can_expose_attribute_to_api(
+                k,
+                trace_item_type,
+                include_internal=include_internal,
+            )
         ]
 
     return clean_link
@@ -428,8 +455,12 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 include_internal=include_internal,
                 include_arrays=include_arrays,
             ),
-            "meta": serialize_meta(resp["attributes"], item_type),
-            "links": serialize_links(resp["attributes"]),
+            "meta": serialize_meta(
+                resp["attributes"], item_type, include_internal=include_internal
+            ),
+            "links": serialize_links(
+                resp["attributes"], item_type, include_internal=include_internal
+            ),
         }
 
         return Response(resp_dict)

@@ -13,7 +13,7 @@ from sentry.data_export.base import ExportError
 from sentry.search.eap.constants import PROTOBUF_TYPE_TO_SEARCH_TYPE
 from sentry.search.eap.rpc_utils import anyvalue_to_python
 from sentry.search.eap.types import SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute_to_api, translate_internal_to_public_alias
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.snuba import discover
 from sentry.utils import metrics, snuba
@@ -146,7 +146,7 @@ def trace_item_to_row(
     _merge_trace_export_cell(row, "id", item.item_id.hex() if item.item_id else None)
 
     for internal_key, av in item.attributes.items():
-        if not can_expose_attribute(internal_key, item_type, include_internal=False):
+        if not can_expose_attribute_to_api(internal_key, item_type, include_internal=False):
             continue
         which = av.WhichOneof("value")
         value = anyvalue_to_python(av)

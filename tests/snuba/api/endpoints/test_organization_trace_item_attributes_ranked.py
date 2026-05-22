@@ -66,6 +66,11 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.status_code == 200, response.data
         assert response.data == {"rankedAttributes": []}
 
+    def test_internal_convention_attribute_query_returns_empty_for_non_staff(self) -> None:
+        response = self.do_request(query={"query_1": "sentry.dsc.trace_id:abc123"})
+        assert response.status_code == 200, response.data
+        assert response.data == {"rankedAttributes": []}
+
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_distribution_values(self, mock_compare_distributions) -> None:
         mock_compare_distributions.return_value = {

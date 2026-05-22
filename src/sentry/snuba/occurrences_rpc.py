@@ -281,9 +281,14 @@ class Occurrences(rpc_dataset_common.RPCBase):
         max_buckets: int = 75,
         skip_translate_internal_to_public_alias: bool = False,
         occurrence_category: OccurrenceCategory | None = None,
+        include_internal: bool = False,
     ) -> list[dict[str, Any]]:
         search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
+        if search_resolver.has_hidden_api_attributes():
+            # Hidden attributes here came from the query filter. Dropping them would
+            # broaden the query and return results for different search semantics.
+            return []
 
         stats_filter = and_trace_item_filters(
             stats_filter, cls._build_category_filter(occurrence_category)
@@ -315,7 +320,10 @@ class Occurrences(rpc_dataset_common.RPCBase):
         response = snuba_rpc.trace_item_stats_rpc(stats_request)
         stats = []
 
-        from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+        from sentry.search.eap.utils import (
+            can_expose_attribute_to_api,
+            translate_internal_to_public_alias,
+        )
 
         for result in response.results:
             if "attributeDistributions" in stats_types and result.HasField(
@@ -323,8 +331,10 @@ class Occurrences(rpc_dataset_common.RPCBase):
             ):
                 attrs: dict[str, list[dict[str, Any]]] = defaultdict(list)
                 for attribute in result.attribute_distributions.attributes:
-                    if not can_expose_attribute(
-                        attribute.attribute_name, SupportedTraceItemType.OCCURRENCES
+                    if not can_expose_attribute_to_api(
+                        attribute.attribute_name,
+                        SupportedTraceItemType.OCCURRENCES,
+                        include_internal=include_internal,
                     ):
                         continue
 

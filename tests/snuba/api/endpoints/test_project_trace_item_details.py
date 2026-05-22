@@ -309,6 +309,80 @@ class ProjectTraceItemDetailsEndpointTest(
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
+    def test_internal_convention_span_attributes_are_staff_only(self) -> None:
+        span = self.create_span(
+            {
+                "tags": {
+                    "sentry._meta.fields.attributes.sentry.dsc.trace_id": '{"reason": "internal"}'
+                },
+                "sentry_tags": {"dsc.trace_id": "abc123"},
+            },
+            start_ts=self.one_min_ago,
+        )
+        span["trace_id"] = self.trace_uuid
+        item_id = span["span_id"]
+        self.store_span(span)
+
+        response = self.do_request("spans", item_id)
+        assert response.status_code == 200, response.content
+        attribute_names = {attr["name"] for attr in response.data["attributes"]}
+        assert "dsc.trace_id" not in attribute_names
+        assert "sentry.dsc.trace_id" not in response.data["meta"]
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request("spans", item_id)
+        assert response.status_code == 200, response.content
+        attributes = {attr["name"]: attr for attr in response.data["attributes"]}
+        assert attributes["dsc.trace_id"] == {
+            "name": "dsc.trace_id",
+            "type": "str",
+            "value": "abc123",
+        }
+        assert response.data["meta"]["sentry.dsc.trace_id"] == {"reason": "internal"}
+
+    def test_stripped_internal_convention_span_attributes_are_staff_only(self) -> None:
+        span = self.create_span(
+            {
+                "description": "test span",
+                "tags": {
+                    "dsc.trace_id": "abc123",
+                    "_internal.normalized_description": "normalized",
+                },
+            },
+            start_ts=self.one_min_ago,
+        )
+        span["trace_id"] = self.trace_uuid
+        item_id = span["span_id"]
+
+        self.store_span(span)
+
+        response = self.do_request("spans", item_id)
+        assert response.status_code == 200, response.content
+        attribute_names = {attr["name"] for attr in response.data["attributes"]}
+        assert "dsc.trace_id" not in attribute_names
+        assert "_internal.normalized_description" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request("spans", item_id)
+        assert response.status_code == 200, response.content
+        attributes = {attr["name"]: attr for attr in response.data["attributes"]}
+        assert attributes["dsc.trace_id"] == {
+            "name": "dsc.trace_id",
+            "type": "str",
+            "value": "abc123",
+        }
+        assert attributes["_internal.normalized_description"] == {
+            "name": "_internal.normalized_description",
+            "type": "str",
+            "value": "normalized",
+        }
+
     def test_simple_using_spans_item_type_with_sentry_conventions(self) -> None:
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
@@ -496,7 +570,7 @@ class ProjectTraceItemDetailsEndpointTest(
             {
                 "description": "foo",
                 "sentry_tags": {
-                    "links": '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":1}}]',
+                    "links": '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":1,"dsc.trace_id":"abc123","_internal.normalized_description":"normalized"}}]',
                 },
             },
             start_ts=self.one_min_ago,
