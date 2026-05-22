@@ -46,7 +46,12 @@ LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
     "project": {
         "type": "integer",
         "required": False,
-        "description": "Project ID to scope the lookup; recommended since app_id may not be unique across projects",
+        "description": "Project ID to scope the lookup. Use either project or projectSlug when app_id is not unique across projects or project inference is unavailable.",
+    },
+    "projectSlug": {
+        "type": "string",
+        "required": False,
+        "description": "Project slug to scope the lookup. Use either projectSlug or project when app_id is not unique across projects or project inference is unavailable.",
     },
 }
 
