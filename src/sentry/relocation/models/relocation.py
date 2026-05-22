@@ -245,7 +245,7 @@ class RelocationFile(DefaultFieldsModelExisting):
         def to_filename(self, ext: str):
             return str(self) + "." + ext
 
-        def storage_path(self, relocation_id: str | UUID, ext: str) -> str:
+        def bucket_path(self, relocation_id: str | UUID, ext: str) -> str:
             filename = self.to_filename(ext)
             return f"runs/{relocation_id}/{filename}"
 

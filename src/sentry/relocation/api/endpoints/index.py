@@ -279,7 +279,7 @@ class RelocationIndexEndpoint(Endpoint):
             return err
 
         relocation_uuid = uuid4()
-        path = RelocationFile.Kind.RAW_USER_DATA.storage_path(relocation_uuid, "tar")
+        path = RelocationFile.Kind.RAW_USER_DATA.bucket_path(relocation_uuid, "tar")
         relocation_storage = get_relocation_storage()
         relocation_storage.save(path, fileobj)
 
