@@ -486,11 +486,14 @@ describe('getWidgetMetricsUrl', () => {
         queries: [
           {
             name: 'Query 1',
-            fields: [],
+            fields: [
+              'equation|avg(value,duration,distribution,none) + count(value,requests,counter,none)',
+              'transaction',
+            ],
             aggregates: [
               'equation|avg(value,duration,distribution,none) + count(value,requests,counter,none)',
             ],
-            columns: [],
+            columns: ['transaction'],
             conditions: 'transaction:"/api/users"',
             orderby: '',
             fieldAliases: [],
@@ -522,13 +525,18 @@ describe('getWidgetMetricsUrl', () => {
         type: 'counter',
         unit: 'none',
       });
+      expect(parsedMetrics[1].aggregateFields).toHaveLength(1);
+      expect(parsedMetrics[1].aggregateFields[0].groupBy).toBeUndefined();
       expect(parsedMetrics[1].aggregateFields[0].yAxes[0]).toBe(
         'count(value,requests,counter,none)'
       );
 
+      // 2 fields, one for the equation and one for the group by
+      expect(parsedMetrics[2].aggregateFields).toHaveLength(2);
       expect(parsedMetrics[2].aggregateFields[0].yAxes[0]).toBe(
         'equation|avg(value,duration,distribution,none) + count(value,requests,counter,none)'
       );
+      expect(parsedMetrics[2].aggregateFields[1].groupBy).toBe('transaction');
       expect(parsedMetrics[2].query).toContain('transaction:"/api/users"');
     });
 
