@@ -25,7 +25,7 @@ const variantMap: Record<FeatureBadgeProps['type'], TagVariant> = {
   beta: 'warning',
   new: 'success',
   experimental: 'muted',
-  debug: 'info',
+  debug: 'danger',
 };
 
 const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
