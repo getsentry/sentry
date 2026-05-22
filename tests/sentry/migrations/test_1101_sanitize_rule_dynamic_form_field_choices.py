@@ -1,6 +1,10 @@
 import pytest
 
+from sentry.models.rule import Rule
 from sentry.testutils.cases import TestMigrations
+
+JIRA_ACTION_ID = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+EMAIL_ACTION_ID = "sentry.mail.actions.NotifyEmailAction"
 
 
 @pytest.mark.skip
@@ -12,17 +16,15 @@ class TestSanitizeRuleDynamicFormFieldChoices(TestMigrations):
     def setup_initial_state(self) -> None:
         project = self.create_project(organization=self.create_organization())
 
-        Rule = self.apps_before.get_model("sentry", "Rule")
-
-        # Corrupt Jira ticket action with a serialized React element label
-        # and a clean tuple alongside it.
+        # Recoverable: the carcass has string children we can extract ("Jane Doe").
+        # The second choice is a clean tuple — proves we don't touch healthy rows.
         self.corrupted_rule = Rule.objects.create(
             project_id=project.id,
             label="corrupted-jira-rule",
             data={
                 "actions": [
                     {
-                        "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                        "id": JIRA_ACTION_ID,
                         "dynamic_form_fields": [
                             {
                                 "name": "reporter",
@@ -37,10 +39,7 @@ class TestSanitizeRuleDynamicFormFieldChoices(TestMigrations):
                                                     {
                                                         "key": None,
                                                         "ref": None,
-                                                        "props": {
-                                                            "size": "xs",
-                                                            "title": "tooltip",
-                                                        },
+                                                        "props": {"size": "xs", "title": "tooltip"},
                                                     },
                                                     " ",
                                                     "Jane Doe",
@@ -57,26 +56,21 @@ class TestSanitizeRuleDynamicFormFieldChoices(TestMigrations):
             },
         )
 
-        # No-recovery shape: the carcass has no string children. We expect
-        # the helper to fall back to the value.
+        # Carcass with no string children — recovery fails, helper falls back to value.
         self.unrecoverable_rule = Rule.objects.create(
             project_id=project.id,
             label="unrecoverable-jira-rule",
             data={
                 "actions": [
                     {
-                        "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                        "id": JIRA_ACTION_ID,
                         "dynamic_form_fields": [
                             {
                                 "name": "reporter",
                                 "choices": [
                                     [
                                         "user-789",
-                                        {
-                                            "key": None,
-                                            "ref": None,
-                                            "props": {"children": []},
-                                        },
+                                        {"key": None, "ref": None, "props": {"children": []}},
                                     ],
                                 ],
                             }
@@ -86,14 +80,14 @@ class TestSanitizeRuleDynamicFormFieldChoices(TestMigrations):
             },
         )
 
-        # Clean ticket action — should be untouched.
+        # Already-clean ticket action — must be untouched.
         self.clean_rule = Rule.objects.create(
             project_id=project.id,
             label="clean-jira-rule",
             data={
                 "actions": [
                     {
-                        "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                        "id": JIRA_ACTION_ID,
                         "dynamic_form_fields": [
                             {
                                 "name": "assignee",
@@ -105,15 +99,15 @@ class TestSanitizeRuleDynamicFormFieldChoices(TestMigrations):
             },
         )
 
-        # Non-ticket action with a coincidentally-shaped dict label. We
-        # only touch known ticket-action ids, so this must stay untouched.
+        # Non-ticket action whose label coincidentally looks like a carcass.
+        # Proves the action-id scoping prevents collateral damage.
         self.non_ticket_rule = Rule.objects.create(
             project_id=project.id,
             label="email-rule-with-suspicious-shape",
             data={
                 "actions": [
                     {
-                        "id": "sentry.mail.actions.NotifyEmailAction",
+                        "id": EMAIL_ACTION_ID,
                         "dynamic_form_fields": [
                             {
                                 "name": "whatever",
@@ -134,31 +128,33 @@ class TestSanitizeRuleDynamicFormFieldChoices(TestMigrations):
             },
         )
 
+        # Rule whose data has no actions key at all — migration must not crash.
         self.no_actions_rule = Rule.objects.create(
             project_id=project.id,
             label="rule-with-no-actions",
             data={"conditions": []},
         )
 
-    def test_migration(self) -> None:
-        from sentry.models.rule import Rule
+    def _get_choices(self, rule_id: int) -> list:
+        rule = Rule.objects.get(id=rule_id)
+        return rule.data["actions"][0]["dynamic_form_fields"][0]["choices"]
 
-        corrupted = Rule.objects.get(id=self.corrupted_rule.id)
-        choices = corrupted.data["actions"][0]["dynamic_form_fields"][0]["choices"]
-        assert choices[0] == ["user-123", "Jane Doe"]
-        assert choices[1] == ["user-456", "Already Clean"]
+    def test_recovers_text_from_react_element_carcass(self) -> None:
+        assert self._get_choices(self.corrupted_rule.id)[0] == ["user-123", "Jane Doe"]
 
-        unrecoverable = Rule.objects.get(id=self.unrecoverable_rule.id)
-        choices = unrecoverable.data["actions"][0]["dynamic_form_fields"][0]["choices"]
-        assert choices[0] == ["user-789", "user-789"]
+    def test_preserves_clean_tuple_within_corrupted_rule(self) -> None:
+        assert self._get_choices(self.corrupted_rule.id)[1] == ["user-456", "Already Clean"]
 
-        clean = Rule.objects.get(id=self.clean_rule.id)
-        choices = clean.data["actions"][0]["dynamic_form_fields"][0]["choices"]
-        assert choices == [["user-1", "Alice"], ["user-2", "Bob"]]
+    def test_falls_back_to_value_when_unrecoverable(self) -> None:
+        assert self._get_choices(self.unrecoverable_rule.id)[0] == ["user-789", "user-789"]
 
-        non_ticket = Rule.objects.get(id=self.non_ticket_rule.id)
-        choices = non_ticket.data["actions"][0]["dynamic_form_fields"][0]["choices"]
-        assert isinstance(choices[0][1], dict)
+    def test_does_not_touch_clean_rule(self) -> None:
+        assert self._get_choices(self.clean_rule.id) == [["user-1", "Alice"], ["user-2", "Bob"]]
 
-        no_actions = Rule.objects.get(id=self.no_actions_rule.id)
-        assert "actions" not in no_actions.data
+    def test_does_not_touch_non_ticket_actions(self) -> None:
+        # The label is still the original dict — action-id filter held.
+        assert isinstance(self._get_choices(self.non_ticket_rule.id)[0][1], dict)
+
+    def test_skips_rules_without_actions(self) -> None:
+        rule = Rule.objects.get(id=self.no_actions_rule.id)
+        assert "actions" not in rule.data
