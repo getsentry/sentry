@@ -77,8 +77,7 @@ class DBBackedRelocationExportService(CellRelocationExportService):
         requesting_region_name: str,
         replying_region_name: str,
         org_slug: str,
-        encrypted_bytes: list[int],
-        # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+        encrypted_bytes: list[int] | None = None,
         encrypted_contents: bytes | None = None,
     ) -> None:
         with atomic_transaction(
@@ -169,8 +168,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         requesting_region_name: str,
         replying_region_name: str,
         org_slug: str,
-        encrypted_bytes: list[int],
-        # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+        encrypted_bytes: list[int] | None = None,
         encrypted_contents: bytes | None = None,
     ) -> None:
         logger_data = {
