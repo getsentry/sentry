@@ -953,6 +953,32 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
 
+    def test_internal_convention_attributes_are_staff_only(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": {"normal_attr": "normal_value", "sentry.dsc.trace_id": "abc123"}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": ""})
+        assert response.status_code == 200
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "sentry.dsc.trace_id" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": ""})
+        assert response.status_code == 200
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "sentry.dsc.trace_id" in attribute_names
+
     def test_boolean_attributes(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1491,6 +1517,28 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 "lastSeen": mock.ANY,
             },
         ]
+
+    def test_internal_convention_attribute_values_are_staff_only(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": {"sentry.dsc.trace_id": "abc123"}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(key="sentry.dsc.trace_id")
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(key="sentry.dsc.trace_id")
+        assert response.status_code == 200, response.content
+        assert [item["value"] for item in response.data] == ["abc123"]
 
     def test_transaction_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
@@ -2442,6 +2490,40 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         attr = response.data["attributes"]["span.duration"]
         assert attr["valid"] is True
         assert attr["type"] == "number"
+
+    def test_internal_convention_attribute_validation_is_staff_only(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": {"sentry.dsc.trace_id": "abc123"}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            payload={"attributes": ["sentry.dsc.trace_id"]},
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+        attr = response.data["attributes"]["sentry.dsc.trace_id"]
+        assert attr == {
+            "valid": False,
+            "error": "Unknown attribute: sentry.dsc.trace_id",
+        }
+
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_attributes.is_active_staff",
+            return_value=True,
+        ):
+            response = self.do_request(
+                payload={"attributes": ["sentry.dsc.trace_id"]},
+                query_params={"itemType": "spans"},
+            )
+        assert response.status_code == 200
+        attr = response.data["attributes"]["sentry.dsc.trace_id"]
+        assert attr["valid"] is True
+        assert attr["type"] == "string"
 
     def test_virtual_context_attributes(self):
         response = self.do_request(

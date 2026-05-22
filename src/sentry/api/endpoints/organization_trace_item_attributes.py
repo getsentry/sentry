@@ -64,7 +64,7 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import (
-    can_expose_attribute,
+    can_expose_attribute_to_api,
     get_secondary_aliases,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
@@ -321,12 +321,21 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         trace_item_type = SupportedTraceItemType(dataset)
         referrer = resolve_attribute_referrer(trace_item_type)
         column_definitions = get_column_definitions(trace_item_type)
+        include_internal = is_active_superuser(request) or is_active_staff(request)
         resolver = SearchResolver(
             params=snuba_params,
-            config=SearchResolverConfig(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=trace_item_type.value,
+                api_attribute_visibility_include_internal=include_internal,
+            ),
             definitions=column_definitions,
         )
         query_filter, _, _ = resolver.resolve_query(query_string)
+        if resolver.has_hidden_api_attributes():
+            return self.paginate(
+                request=request,
+                paginator=ChainPaginator([]),
+            )
         meta = resolver.resolve_meta(referrer=referrer.value)
         meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
             trace_item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
@@ -337,8 +346,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         )
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
-
-        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
@@ -404,6 +411,11 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             and substring_match in column.public_alias
                             and not column.secondary_alias
                             and not column.private
+                            and can_expose_attribute_to_api(
+                                column.public_alias,
+                                trace_item_type,
+                                include_internal=include_internal,
+                            )
                         ):
                             all_aliased_attributes.append(column)
                     for (
@@ -415,6 +427,11 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             and virtual_context.search_type is not None
                             and not virtual_context.secondary_alias
                             and constants.TYPE_MAP[virtual_context.search_type] == attr_type
+                            and can_expose_attribute_to_api(
+                                public_label,
+                                trace_item_type,
+                                include_internal=include_internal,
+                            )
                         ):
                             all_aliased_attributes.append(
                                 ProxyResolvedAttribute(
@@ -433,6 +450,11 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             and virtual_context.search_type is not None
                             and not virtual_context.secondary_alias
                             and constants.TYPE_MAP[virtual_context.search_type] == attr_type
+                            and can_expose_attribute_to_api(
+                                public_label,
+                                trace_item_type,
+                                include_internal=include_internal,
+                            )
                         ):
                             all_aliased_attributes.append(
                                 ProxyResolvedAttribute(
@@ -493,7 +515,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute(
+            if attribute.name and can_expose_attribute_to_api(
                 attribute.name,
                 trace_item_type,
                 include_internal=include_internal,
@@ -523,6 +545,14 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             if attr_key["name"] in attribute_keys:
                 del attribute_keys[attr_key["name"]]
         for aliased_attr in aliased_attributes:
+            if not (
+                can_expose_attribute_to_api(
+                    aliased_attr.public_alias,
+                    trace_item_type,
+                    include_internal=include_internal,
+                )
+            ):
+                continue
             attr_key = as_attribute_key(
                 aliased_attr.internal_name,
                 attribute_type,
@@ -547,7 +577,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute(
+            if attribute.name and can_expose_attribute_to_api(
                 attribute.name,
                 trace_item_type,
                 include_internal=include_internal,
@@ -579,18 +609,21 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             if attr_key["name"] in attribute_keys:
                 del attribute_keys[attr_key["name"]]
         for aliased_attr in aliased_attributes:
-            if can_expose_attribute(
-                aliased_attr.public_alias,
-                trace_item_type,
-                include_internal=include_internal,
-            ):
-                attr_key = as_attribute_key(
-                    aliased_attr.internal_name,
-                    attribute_type,
+            if not (
+                can_expose_attribute_to_api(
+                    aliased_attr.public_alias,
                     trace_item_type,
-                    is_proxy=isinstance(aliased_attr, ProxyResolvedAttribute),
+                    include_internal=include_internal,
                 )
-                attribute_keys[attr_key["key"]] = attr_key
+            ):
+                continue
+            attr_key = as_attribute_key(
+                aliased_attr.internal_name,
+                attribute_type,
+                trace_item_type,
+                is_proxy=isinstance(aliased_attr, ProxyResolvedAttribute),
+            )
+            attribute_keys[attr_key["key"]] = attr_key
         attributes = list(attribute_keys.values())
         sentry_sdk.set_context("api_response", {"attributes": attributes})
         return attributes
@@ -628,19 +661,25 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         max_attribute_values = options.get("explore.trace-items.values.max")
 
         definitions = get_column_definitions(SupportedTraceItemType(dataset))
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def data_fn(offset: int, limit: int):
-            executor = TraceItemAttributeValuesAutocompletionExecutor(
-                organization=organization,
-                snuba_params=snuba_params,
-                key=key,
-                query=substring_match,
-                limit=limit,
-                offset=offset,
-                definitions=definitions,
-            )
-
             with handle_query_errors():
+                executor = TraceItemAttributeValuesAutocompletionExecutor(
+                    organization=organization,
+                    snuba_params=snuba_params,
+                    key=key,
+                    query=substring_match,
+                    limit=limit,
+                    offset=offset,
+                    definitions=definitions,
+                    item_type=SupportedTraceItemType(dataset),
+                    include_internal=include_internal,
+                )
+
+                if not executor.can_expose_attribute_to_api():
+                    return []
+
                 tag_values = executor.execute()
             tag_values.sort(key=lambda tag: tag.value or "")
             return tag_values
@@ -664,10 +703,15 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         limit: int,
         offset: int,
         definitions: ColumnDefinitions,
+        item_type: SupportedTraceItemType,
+        include_internal: bool,
     ):
         super().__init__(organization, snuba_params, key, query, limit)
         self.limit = limit
         self.offset = offset
+        self.item_type = item_type
+        self.include_internal = include_internal
+        self.definitions = definitions
         self.resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=definitions
         )
@@ -696,6 +740,23 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             resolved_attr.search_type,
             resolved_attr.proto_definition,
             context_definition,
+        )
+
+    def can_expose_attribute_to_api(self) -> bool:
+        is_public_defined_attribute = (
+            self.key in self.definitions.columns or self.key in self.definitions.contexts
+        )
+        return can_expose_attribute_to_api(
+            self.key,
+            self.item_type,
+            include_internal=self.include_internal,
+        ) and (
+            is_public_defined_attribute
+            or can_expose_attribute_to_api(
+                self.attribute_key.name,
+                self.item_type,
+                include_internal=self.include_internal,
+            )
         )
 
     def execute(self) -> list[TagValue]:
@@ -1033,6 +1094,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
 
         item_type = SupportedTraceItemType(query_serializer.validated_data["item_type"])
         attribute_names: list[str] = serializer.validated_data["attributes"]
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -1045,7 +1107,10 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
             return Response({"detail": f"Unsupported item type: {item_type.value}"}, status=400)
         resolver = SearchResolver(
             params=snuba_params,
-            config=SearchResolverConfig(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=item_type.value,
+                api_attribute_visibility_include_internal=include_internal,
+            ),
             definitions=definitions,
         )
 
@@ -1056,6 +1121,12 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         for attr_name in attribute_names:
             try:
                 resolved, _context = resolver.resolve_attribute(attr_name)
+                if resolver.is_hidden_api_attribute(attr_name):
+                    results[attr_name] = {
+                        "valid": False,
+                        "error": f"Unknown attribute: {attr_name}",
+                    }
+                    continue
                 if attr_name in definitions.contexts or attr_name in definitions.columns:
                     # Known column or virtual context — always valid
                     results[attr_name] = {

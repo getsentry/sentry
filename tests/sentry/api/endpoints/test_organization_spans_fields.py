@@ -163,6 +163,32 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
         assert "tags[is_debug,boolean]" in keys
         assert "tags[is_production,boolean]" in keys
 
+    def test_internal_convention_attributes_are_staff_only(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": {"normal_attr": "normal_value", "sentry.dsc.trace_id": "abc123"}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(query={"dataset": "spans", "type": "string", "process": 1})
+        assert response.status_code == 200, response.data
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "sentry.dsc.trace_id" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"dataset": "spans", "type": "string", "process": 1})
+        assert response.status_code == 200, response.data
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "sentry.dsc.trace_id" in attribute_names
+
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-spans-fields-values"
@@ -248,6 +274,33 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 "lastSeen": mock.ANY,
             },
         ]
+
+    def test_internal_convention_attribute_values_are_staff_only(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"sentry.dsc.trace_id": "abc123"},
+        )
+
+        response = self.do_request("sentry.dsc.trace_id")
+        assert response.status_code == 200, response.data
+        assert response.data == []
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request("sentry.dsc.trace_id")
+        assert response.status_code == 200, response.data
+        assert [item["value"] for item in response.data] == ["abc123"]
 
     def test_transaction_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
