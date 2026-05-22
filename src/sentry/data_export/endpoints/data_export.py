@@ -13,7 +13,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, is_api_or_agent_request
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.processors.discover import DiscoverProcessor
@@ -274,7 +274,22 @@ class DataExportEndpoint(OrganizationEndpoint):
             project_id = query_info["project"]
         return project_id
 
-    def _parse_limit(self, data: dict[str, Any]) -> tuple[int, bool]:
+    def _parse_limit(self, data: dict[str, Any], is_api_request: bool) -> tuple[int | None, bool]:
+        """
+        Determine the export row limit and whether to run synchronously.
+
+        Caller behavior:
+          - API-token / agent requests (`is_api_request=True`): hard cap of
+            ``MAX_EXPORT_LIMIT`` rows for every dataset. Unspecified or
+            larger limits are clamped down. Larger self-serve exports were
+            unreliable in practice; GDPR data-portability requests are
+            handled out-of-band via sentry.io/contact/gdpr/.
+          - Browser/session requests (`is_api_request=False`):
+              - logs full export: hard cap of ``MAX_EXPORT_LIMIT`` (the
+                sync download path is sized for this).
+              - discover / spans: no enforced cap; existing behavior is
+                preserved to avoid regressing in-product exports.
+        """
         limit = data.get("limit")
 
         if limit is not None:
@@ -283,14 +298,16 @@ class DataExportEndpoint(OrganizationEndpoint):
             except (TypeError, ValueError):
                 limit = None
 
-        if limit is None or limit > MAX_EXPORT_LIMIT:
-            limit = MAX_EXPORT_LIMIT
-
-        run_sync = (
+        is_logs_full_export = (
             data["query_type"] == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
             and data["query_info"].get("dataset") == "logs"
         )
-        return limit, run_sync
+
+        if is_api_request or is_logs_full_export:
+            if limit is None or limit > MAX_EXPORT_LIMIT:
+                limit = MAX_EXPORT_LIMIT
+
+        return limit, is_logs_full_export
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -337,7 +354,9 @@ class DataExportEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
         validated_data = serializer.validated_data
 
-        limit, run_sync = self._parse_limit(validated_data)
+        limit, run_sync = self._parse_limit(
+            validated_data, is_api_request=is_api_or_agent_request(request)
+        )
 
         try:
             # If this user has sent a request with the same payload and organization,
@@ -383,7 +402,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         self,
         data_export: ExportedData,
         environment_id: int | None,
-        limit: int,
+        limit: int | None,
         validated_data: dict[str, Any],
         run_sync: bool = False,
     ) -> None:
@@ -391,6 +410,8 @@ class DataExportEndpoint(OrganizationEndpoint):
         export_format = validated_data["format"]
         dataset = qi.get("dataset")
         if run_sync:
+            # `_parse_limit` guarantees a clamped int whenever run_sync is True.
+            assert limit is not None
             export_data_to_stored_blobs_sync(
                 data_export=data_export,
                 export_limit=limit,

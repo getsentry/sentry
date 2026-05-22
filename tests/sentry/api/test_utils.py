@@ -8,12 +8,20 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, Throttled, ValidationError
 from sentry_sdk import Scope
 
+from sentry.api.authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    SessionNoAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
+    is_api_or_agent_request,
     print_and_capture_handler_exception,
     to_valid_int_id,
     to_valid_int_id_list,
@@ -425,3 +433,23 @@ class TestToValidIntIdList:
         max_val = BoundedBigAutoField.MAX_VALUE
         result = to_valid_int_id_list("test_ids", [1, max_val, 100])
         assert result == [1, max_val, 100]
+
+
+def test_is_api_or_agent_request() -> None:
+    """
+    Only session/cookie auth is UI; every other authenticator (including
+    `ViewerContextAuthentication`, which deliberately sets
+    `request.auth = None` to mimic session permissions) is an agent caller.
+    """
+
+    def req(authenticator: object) -> MagicMock:
+        r = MagicMock()
+        r.successful_authenticator = authenticator
+        return r
+
+    assert is_api_or_agent_request(req(SessionNoAuthTokenAuthentication())) is False
+    assert is_api_or_agent_request(req(UserAuthTokenAuthentication())) is True
+    assert is_api_or_agent_request(req(OrgAuthTokenAuthentication())) is True
+    assert is_api_or_agent_request(req(ApiKeyAuthentication())) is True
+    assert is_api_or_agent_request(req(ViewerContextAuthentication())) is True
+    assert is_api_or_agent_request(req(None)) is True
