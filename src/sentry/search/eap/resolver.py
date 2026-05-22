@@ -60,7 +60,7 @@ from sentry.search.eap.columns import (
 from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -105,8 +105,15 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
+    _hidden_api_attributes: set[str] = field(default_factory=set, repr=False)
     qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
     _internal_name_to_column: dict[str, ResolvedAttribute] = field(default_factory=dict, repr=False)
+
+    def has_hidden_api_attributes(self) -> bool:
+        return bool(self._hidden_api_attributes)
+
+    def is_hidden_api_attribute(self, column: str) -> bool:
+        return column in self._hidden_api_attributes
 
     def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
         """Look up a column definition by its internal name (e.g. 'sentry.item_id' -> 'id' column).
@@ -1043,7 +1050,9 @@ class SearchResolver:
         if public_alias_override is not None:
             alias = public_alias_override
 
+        is_public_defined_attribute = False
         if column in self.definitions.contexts:
+            is_public_defined_attribute = True
             column_context = self.definitions.contexts[column]
             column_definition = ResolvedAttribute(
                 public_alias=alias,
@@ -1052,6 +1061,7 @@ class SearchResolver:
                 processor=column_context.processor,
             )
         elif column in self.definitions.columns:
+            is_public_defined_attribute = True
             column_context = None
             column_definition = self.definitions.columns[column]
             if column_definition.private and column not in self.config.fields_acl.attributes:
@@ -1111,6 +1121,21 @@ class SearchResolver:
             column_context = None
 
         if column_definition:
+            if self.config.api_attribute_visibility_item_type is not None:
+                from sentry.search.eap.utils import can_expose_attribute_to_api
+
+                item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
+                visibility_attribute = (
+                    column_definition.public_alias
+                    if is_public_defined_attribute
+                    else column_definition.internal_name
+                )
+                if not can_expose_attribute_to_api(
+                    visibility_attribute,
+                    item_type,
+                    include_internal=self.config.api_attribute_visibility_include_internal,
+                ):
+                    self._hidden_api_attributes.add(column)
             self._resolved_attribute_cache[column] = (column_definition, column_context)
             return self._resolved_attribute_cache[column]
         else:
