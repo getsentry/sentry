@@ -152,16 +152,12 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                     )
                     return (image_hash, None)
 
-            executor = ContextPropagatingThreadPoolExecutor(
-                max_workers=FETCH_MAX_WORKERS
-            )
+            executor = ContextPropagatingThreadPoolExecutor(max_workers=FETCH_MAX_WORKERS)
             try:
                 # Process in batches to cap memory and keep zip bytes
                 # flowing to the client progressively.
                 for batch_start in range(0, len(unique_hashes), FETCH_BATCH_SIZE):
-                    batch = unique_hashes[
-                        batch_start : batch_start + FETCH_BATCH_SIZE
-                    ]
+                    batch = unique_hashes[batch_start : batch_start + FETCH_BATCH_SIZE]
                     futures = [executor.submit(fetch_image, h) for h in batch]
                     try:
                         # as_completed() streams results as they finish,
@@ -177,9 +173,7 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                             if chunk:
                                 yield chunk
                     except TimeoutError:
-                        failed_count += len(batch) - sum(
-                            1 for f in futures if f.done()
-                        )
+                        failed_count += len(batch) - sum(1 for f in futures if f.done())
                         logger.warning(
                             "preprod_snapshot_download.batch_timeout",
                             extra={
