@@ -293,7 +293,7 @@ export default function SnapshotsPage() {
 
       const pushImages = (
         imgs: SnapshotImage[],
-        type: 'added' | 'removed' | 'unchanged'
+        type: 'added' | 'removed' | 'unchanged' | 'skipped'
       ) => {
         for (const [groupKey, images] of groupByKey(imgs, imageGroupKey)) {
           items.push({
@@ -311,6 +311,7 @@ export default function SnapshotsPage() {
       pushImages(data.added, 'added');
       pushImages(data.removed, 'removed');
       pushImages(data.unchanged, 'unchanged');
+      pushImages(data.skipped ?? [], 'skipped');
 
       items.sort(
         (a, b) => (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99)
@@ -396,6 +397,7 @@ export default function SnapshotsPage() {
       DiffStatus.ADDED,
       DiffStatus.RENAMED,
       DiffStatus.UNCHANGED,
+      DiffStatus.SKIPPED,
     ];
     const byType = new Map<
       DiffStatus,
@@ -426,6 +428,7 @@ export default function SnapshotsPage() {
       [DiffStatus.REMOVED]: 0,
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
+      [DiffStatus.SKIPPED]: 0,
     };
     for (const item of searchFilteredItems) {
       if (item.type in counts) {

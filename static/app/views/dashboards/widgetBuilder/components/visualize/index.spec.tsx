@@ -1923,7 +1923,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['sum(value,alpha_metric,counter,-)'],
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },

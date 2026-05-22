@@ -282,6 +282,88 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert len(response.data) == 1
         assert not any([query["name"] == "Homepage Test Query" for query in response.data])
 
+    def test_get_hides_queries_when_no_project_access(self) -> None:
+        # Disable Open Membership so project-level access actually applies.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        # Original Test query (created in setUp) is scoped to self.projects.
+        # Create a second project that the no-team user will have access to via a team.
+        accessible_team = self.create_team(organization=self.org)
+        accessible_project = self.create_project(organization=self.org, teams=[accessible_team])
+        accessible_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Accessible query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+            version=1,
+        )
+        accessible_query.set_projects([accessible_project.id])
+
+        # And one with no projects at all (covers "All Projects" / "My Projects").
+        DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="All-projects query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+            version=1,
+        )
+
+        # A regular member with access only to `accessible_team` should NOT see queries
+        # scoped to projects they cannot access, nor the "no projects" query authored by
+        # someone else (since they aren't org:write or the creator).
+        outsider = self.create_user()
+        self.create_member(
+            user=outsider, organization=self.org, role="member", teams=[accessible_team]
+        )
+        self.login_as(outsider)
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        names = sorted(item["name"] for item in response.data)
+        assert names == ["Accessible query"]
+
+        # The `all=1` branch must apply the same filter.
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"all": "1"})
+        assert response.status_code == 200, response.content
+        names = sorted(item["name"] for item in response.data)
+        assert names == ["Accessible query"]
+
+    def test_get_shows_unprojected_query_to_creator_only(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        # Owner-authored "no projects" query that members shouldn't see.
+        DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Owner-authored all-projects query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+            version=1,
+        )
+
+        outsider = self.create_user()
+        team = self.create_team(organization=self.org)
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[team])
+        # Member-authored "no projects" query — same user should still see it.
+        own_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=outsider.id,
+            name="Outsider's all-projects query",
+            query={"fields": ["test"], "conditions": [], "limit": 10},
+            version=1,
+        )
+
+        self.login_as(outsider)
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        names = sorted(item["name"] for item in response.data)
+        assert names == ["Outsider's all-projects query"]
+        assert response.data[0]["id"] == str(own_query.id)
+
     def test_post(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.post(

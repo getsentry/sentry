@@ -15,8 +15,8 @@ import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
 } from 'sentry/actionCreators/sentryApps';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -50,15 +50,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
-const FirstPartyIntegrationAlert = HookOrDefault({
-  hookName: 'component:first-party-integration-alert',
+const FirstPartyIntegrationAlert = OverrideOrDefault({
+  overrideName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
@@ -494,7 +493,6 @@ function IntegrationSettingsHeader({
   search: string;
   title: string;
 }) {
-  const hasPageFrame = useHasPageFrameFeature();
   const getCategoryLabel = useCallback((c: string) => {
     return c === 'api' ? 'API' : startCase(c);
   }, []);
@@ -510,54 +508,30 @@ function IntegrationSettingsHeader({
     <SettingsPageHeader
       title={title}
       body={
-        hasPageFrame ? (
-          <Flex align="center" gap="md">
-            <Container width="240px">
-              <Select
-                name="select-categories"
-                onChange={onChangeCategory}
-                value={category}
-                options={categoryOptions}
-              />
-            </Container>
-            <Container flex={1}>
-              {({className}) => (
-                <SearchBar
-                  className={className}
-                  query={search}
-                  onSearch={onChangeSearch}
-                  placeholder={t('Filter Integrations\u2026')}
-                  aria-label={t('Filter')}
-                  width="100%"
-                  data-test-id="search-bar"
-                />
-              )}
-            </Container>
-            <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
-          </Flex>
-        ) : (
-          <ActionContainer>
+        <Flex align="center" gap="md">
+          <Container width="240px">
             <Select
               name="select-categories"
               onChange={onChangeCategory}
               value={category}
               options={categoryOptions}
             />
-            <SearchBar
-              query={search}
-              onSearch={onChangeSearch}
-              placeholder={t('Filter Integrations\u2026')}
-              aria-label={t('Filter')}
-              width="100%"
-              data-test-id="search-bar"
-            />
-          </ActionContainer>
-        )
-      }
-      action={
-        hasPageFrame ? undefined : (
-          <CreateIntegrationButton analyticsView="integrations_directory" />
-        )
+          </Container>
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                query={search}
+                onSearch={onChangeSearch}
+                placeholder={t('Filter Integrations\u2026')}
+                aria-label={t('Filter')}
+                width="100%"
+                data-test-id="search-bar"
+              />
+            )}
+          </Container>
+          <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
+        </Flex>
       }
     />
   );
@@ -582,12 +556,6 @@ function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
     </Stack>
   );
 }
-
-const ActionContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 240px auto;
-  gap: ${p => p.theme.space.xl};
-`;
 
 const EmptyResultsBody = styled('div')`
   font-size: 16px;

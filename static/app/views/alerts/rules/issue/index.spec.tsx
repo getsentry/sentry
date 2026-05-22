@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -78,8 +79,19 @@ const projectAlertRuleDetailsRoutes: PlainRoute[] = [
   {path: ':ruleId/'},
 ];
 
-const createWrapper = (props = {}) => {
-  const {organization, project, router} = initializeOrg(props);
+const createWrapper = (props: Parameters<typeof initializeOrg>[0] = {}) => {
+  const {organization, project} = initializeOrg(props);
+  const propsRouterParams = props.router?.params as
+    | Record<string, string | undefined>
+    | undefined;
+  const router = RouterFixture({
+    ...props.router,
+    params: {
+      orgId: organization.slug,
+      projectId: project.slug,
+      ...propsRouterParams,
+    },
+  });
   const params = {
     projectId: project.slug,
     organizationId: organization.slug,

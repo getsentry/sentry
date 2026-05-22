@@ -105,6 +105,8 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     config = get_configuration(org_id)
     if not config.is_enabled:
         return DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
+    if not config.projects:
+        return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
     org_volume_5_minutes = get_eap_organization_volume(
         config, time_interval=ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
@@ -113,6 +115,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     org_volume_1_hour = get_eap_organization_volume(
         config, time_interval=ACTIVE_ORGS_DEFAULT_TIME_INTERVAL
     )
+
     if org_volume_1_hour is None:
         return DynamicSamplingStatus.NO_VOLUME
 

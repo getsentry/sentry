@@ -60,10 +60,11 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {withProjects} from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -135,6 +136,7 @@ type IncompatibleRule = {
 type Props = {
   location: Location;
   members: Member[] | undefined;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -578,12 +580,13 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       });
 
       addSuccessMessage(t('Deleted alert rule'));
-      browserHistory.replace(
+      this.props.navigate(
         recreateRoute('', {
           ...this.props,
           params: {...this.props.params, orgId: organization.slug},
           stepBack: -2,
-        })
+        }),
+        {replace: true}
       );
     } catch (err: any) {
       this.setState({
@@ -1493,7 +1496,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   }
 }
 
-export default withOrganization(withProjects(IssueRuleEditor));
+function IssueRuleEditorWithNavigate(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <IssueRuleEditor {...props} navigate={navigate} />;
+}
+
+export default withOrganization(withProjects(IssueRuleEditorWithNavigate));
 
 export const findIncompatibleRules = (
   rule: IssueAlertRule | UnsavedIssueAlertRule | null | undefined

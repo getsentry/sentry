@@ -102,10 +102,6 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 @extend_schema(tags=["Alerts"])
 @cell_silo_endpoint
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
-        "DELETE": "organizations:workflow-engine-issue-alert-endpoints-delete",
-    }
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
@@ -130,9 +126,9 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+        suggested_api="sentry-api-0-organization-workflow-details",
     )
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
         ## Deprecated
         🚧 Use [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
@@ -145,23 +141,12 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        if isinstance(rule, Workflow):
-            workflow = rule
-            workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
-                expand=request.GET.getlist("expand", []),
-                prepare_component_fields=True,
-                project_slug=project.slug,
-            )
-            serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
-        else:
-            report_used_legacy_models()
-            # Serialize Rule object
-            rule_serializer = RuleSerializer(
-                expand=request.GET.getlist("expand", []),
-                prepare_component_fields=True,
-                project_slug=project.slug,
-            )
-            serialized_rule = serialize(rule, request.user, rule_serializer)
+        workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
+            expand=request.GET.getlist("expand", []),
+            prepare_component_fields=True,
+            project_slug=project.slug,
+        )
+        serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
 
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
@@ -197,7 +182,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+        suggested_api="sentry-api-0-organization-workflow-details",
     )
     def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
@@ -378,9 +363,9 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/:workflow_id/",
+        suggested_api="sentry-api-0-organization-workflow-details",
     )
-    def delete(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def delete(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
         ## Deprecated
          🚧 Use [Delete an Alert](/api/monitors/delete-an-alert) instead.
@@ -393,59 +378,39 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        if isinstance(rule, Workflow):
-            with transaction.atomic(router.db_for_write(Workflow)):
-                rule.update(status=ObjectStatus.PENDING_DELETION)
-                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=rule.id,
-                event=audit_log.get_event_id("WORKFLOW_REMOVE"),
-                data=rule.get_audit_log_data(),
-                transaction_id=scheduled.id,
-            )
-            try:
-                ard = AlertRuleWorkflow.objects.get(workflow_id=rule.id)
-                rule = Rule.objects.get(id=ard.rule_id, project=project)
+        with transaction.atomic(router.db_for_write(Workflow)):
+            rule.update(status=ObjectStatus.PENDING_DELETION)
+            scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=rule.id,
+            event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+            data=rule.get_audit_log_data(),
+            transaction_id=scheduled.id,
+        )
+        try:
+            ard = AlertRuleWorkflow.objects.get(workflow_id=rule.id)
+            legacy_rule = Rule.objects.get(id=ard.rule_id, project=project)
 
-                report_used_legacy_models()
-                with transaction.atomic(router.db_for_write(Rule)):
-                    rule.update(status=ObjectStatus.PENDING_DELETION)
-                    RuleActivity.objects.create(
-                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
-                    )
-                    scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
-                self.create_audit_entry(
-                    request=request,
-                    organization=project.organization,
-                    target_object=rule.id,
-                    event=audit_log.get_event_id("RULE_REMOVE"),
-                    data=rule.get_audit_log_data(),
-                    transaction_id=scheduled.id,
-                )
-            except (AlertRuleWorkflow.DoesNotExist, Rule.DoesNotExist):
-                return Response(status=202)
-
-        else:
             report_used_legacy_models()
             with transaction.atomic(router.db_for_write(Rule)):
-                rule.update(status=ObjectStatus.PENDING_DELETION)
+                legacy_rule.update(status=ObjectStatus.PENDING_DELETION)
                 RuleActivity.objects.create(
-                    rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                    rule=legacy_rule,
+                    user_id=request.user.id,
+                    type=RuleActivityType.DELETED.value,
                 )
-                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
-                # The Rule's scheduled deletion should take care of the workflow, but
-                # we mark it pending immediately so we don't return it while the deletion is in progress.
-                for workflow in Workflow.objects.filter(alertruleworkflow__rule_id=rule.id):
-                    workflow.update(status=ObjectStatus.PENDING_DELETION)
-
+                scheduled = CellScheduledDeletion.schedule(legacy_rule, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=rule.id,
+                target_object=legacy_rule.id,
                 event=audit_log.get_event_id("RULE_REMOVE"),
-                data=rule.get_audit_log_data(),
+                data=legacy_rule.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )
+        except (AlertRuleWorkflow.DoesNotExist, Rule.DoesNotExist):
+            pass
+
         return Response(status=202)
