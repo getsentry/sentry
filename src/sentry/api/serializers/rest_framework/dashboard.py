@@ -399,7 +399,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         widget_type_name = self.context.get("widget_type")
         if widget_type_name is not None and display_type_id is not None:
             widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
-            config = DATASET_CONFIG.get(widget_type_id) if widget_type_id is not None else None
+            config = DATASET_CONFIG.get(widget_type_id)
             if config is not None and display_type_id not in config["supported_display_types"]:
                 supported_names = sorted(
                     DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
