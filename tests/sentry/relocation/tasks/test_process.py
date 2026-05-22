@@ -162,12 +162,10 @@ class RelocationTaskTestCase(TestCase):
                     self.tarball = create_encrypted_export_tarball(
                         data, LocalFileEncryptor(p)
                     ).getvalue()
-                    # file.putfile(BytesIO(self.tarball))
 
                     path = relocation_raw_data_path(self.relocation.uuid)
                     relocation_storage = get_relocation_storage()
                     relocation_storage.save(path, BytesIO(self.tarball))
-            # return file
 
     def swap_relocation_file_with_data_from_fixture(
         self,
@@ -202,8 +200,7 @@ class RelocationTaskTestCase(TestCase):
 
     def mock_kms_client(self, fake_kms_client: Mock):
         if not hasattr(self, "tarball"):
-            # failing because tarball hasn't been populated by the cached property...
-            _ = self.file
+            self.create_import_tarball()
 
         unwrapped = unwrap_encrypted_export_tarball(BytesIO(self.tarball))
         plaintext_dek = LocalFileDecryptor.from_bytes(
