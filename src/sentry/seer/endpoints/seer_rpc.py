@@ -126,6 +126,7 @@ from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
+from sentry.users.services.user.service import user_service
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
@@ -322,11 +323,13 @@ def get_organization_project_ids(*, org_id: int) -> dict:
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 
-def get_organization_features(*, org_id: int) -> dict[str, list[str]]:
+def get_organization_features(*, org_id: int, user_id: int | None = None) -> dict[str, list[str]]:
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
         return {"features": []}
+
+    actor = user_service.get_user(user_id=user_id) if user_id is not None else None
 
     features_to_check = {
         feature
@@ -339,6 +342,7 @@ def get_organization_features(*, org_id: int) -> dict[str, list[str]]:
     with sentry_sdk.start_span(op="features.check", name="check batch features"):
         batch = features.batch_has(
             list(features_to_check),
+            actor=actor,
             organization=organization,
             skip_experiment_exposure=True,
         )
@@ -351,7 +355,7 @@ def get_organization_features(*, org_id: int) -> dict[str, list[str]]:
 
     with sentry_sdk.start_span(op="features.check", name="check individual features"):
         for name in features_to_check:
-            if features.has(name, organization, skip_entity=True):
+            if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
     return {"features": list(sorted(feature_set))}

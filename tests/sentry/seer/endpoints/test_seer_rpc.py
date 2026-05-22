@@ -1671,6 +1671,18 @@ class TestGetOrganizationFeatures(APITestCase):
         result = get_organization_features(org_id=0)
         assert result == {"features": []}
 
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_uses_user_as_actor_when_provided(self, _mock_all: object) -> None:
+        with self.feature("organizations:seer-agent-source-code-search"):
+            result = get_organization_features(org_id=self.organization.id, user_id=self.user.id)
+        assert result == {"features": ["seer-agent-source-code-search"]}
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_unknown_user_id_falls_back_to_no_actor(self, _mock_all: object) -> None:
+        with self.feature("organizations:seer-agent-source-code-search"):
+            result = get_organization_features(org_id=self.organization.id, user_id=0)
+        assert result == {"features": ["seer-agent-source-code-search"]}
+
 
 class TestTriggerCodingAgentLaunch:
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
