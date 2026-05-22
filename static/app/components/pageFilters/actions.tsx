@@ -366,28 +366,31 @@ export function initializeUrlState({
     );
   }
 
-  const newDatetime = shouldUseMaxDateRange
-    ? {
-        period: `${maxDateRange}d`,
-        start: null,
-        end: null,
-        utc: datetime.utc,
-      }
-    : shouldUseMaxPickableDays
-      ? {
-          period: `${maxPickableDays}d`,
-          start: null,
-          end: null,
-          utc: datetime.utc,
-        }
-      : {
-          ...datetime,
-          period:
-            parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
-              ? datetime.period
-              : null,
-          utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
-        };
+  let newDatetime: PageFiltersUpdate;
+  if (shouldUseMaxDateRange) {
+    newDatetime = {
+      period: `${maxDateRange}d`,
+      start: null,
+      end: null,
+      utc: datetime.utc,
+    };
+  } else if (shouldUseMaxPickableDays) {
+    newDatetime = {
+      period: `${maxPickableDays}d`,
+      start: null,
+      end: null,
+      utc: datetime.utc,
+    };
+  } else {
+    newDatetime = {
+      ...datetime,
+      period:
+        parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
+          ? datetime.period
+          : null,
+      utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
+    };
+  }
 
   if (!skipInitializeUrlParams) {
     updateParams({project, environment, ...newDatetime}, location, navigate, {

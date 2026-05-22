@@ -16,6 +16,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -172,7 +173,7 @@ export function PageFiltersContainer({
       const maxStart = new Date(maxPeriod.start);
 
       if (maxDateRange) {
-        const maxTimeRange = maxDateRange * 24 * 60 * 60 * 1000;
+        const maxTimeRange = maxDateRange * DAY_IN_MS;
         return (
           periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
           periodStart.getTime() < maxStart.getTime()

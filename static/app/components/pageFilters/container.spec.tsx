@@ -628,6 +628,30 @@ describe('PageFiltersContainer', () => {
       );
     });
 
+    it('does not reset period when selection is within maxPickableDays and maxDateRange', async () => {
+      const start = moment().subtract(14, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().subtract(8, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      render(<PageFiltersContainer maxPickableDays={30} maxDateRange={7} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {start, end},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: null,
+          utc: null,
+          start,
+          end,
+        })
+      );
+    });
+
     it('resets absolute range when maxDateRange appears and range exceeds it', async () => {
       const start = moment().subtract(10, 'days').format('YYYY-MM-DDTHH:mm:ss');
       const end = moment().subtract(1, 'days').format('YYYY-MM-DDTHH:mm:ss');
