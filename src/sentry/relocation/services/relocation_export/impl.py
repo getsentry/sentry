@@ -25,8 +25,6 @@ from sentry.relocation.services.relocation_export.service import (
     CellRelocationExportService,
     ControlRelocationExportService,
 )
-from sentry.relocation.tasks.process import fulfill_cross_region_export_request, uploading_complete
-from sentry.relocation.tasks.transfer import process_relocation_transfer_control
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.utils.db import atomic_transaction
 
@@ -43,6 +41,8 @@ class DBBackedRelocationExportService(CellRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
+        from sentry.relocation.tasks.process import fulfill_cross_region_export_request
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -81,6 +81,8 @@ class DBBackedRelocationExportService(CellRelocationExportService):
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         encrypted_contents: bytes | None = None,
     ) -> None:
+        from sentry.relocation.tasks.process import uploading_complete
+
         with atomic_transaction(
             using=(
                 router.db_for_write(Relocation),
@@ -141,6 +143,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
+        from sentry.relocation.tasks.transfer import process_relocation_transfer_control
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -173,6 +177,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         encrypted_contents: bytes | None = None,
     ) -> None:
+        from sentry.relocation.tasks.transfer import process_relocation_transfer_control
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
