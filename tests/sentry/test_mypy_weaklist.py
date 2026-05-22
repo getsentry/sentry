@@ -5,12 +5,12 @@ import subprocess
 import sys
 
 
-def test_stronglist() -> None:
+def test_weaklist() -> None:
     pyproject_path = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
     pyproject_path = os.path.relpath(pyproject_path)
 
     proc = subprocess.run(
-        (sys.executable, "-uSm", "tools.mypy_helpers.check_stronglist", pyproject_path),
+        (sys.executable, "-uSm", "tools.mypy_helpers.check_weaklist", pyproject_path),
         check=False,
         text=True,
         stdout=subprocess.PIPE,

@@ -61,12 +61,12 @@ repos:
         types: [python]
       - id: sort-mypy-weaklist
         name: sort mypy weaklist
-        entry: python3 -m tools.mypy_helpers.sort_stronger_modules
+        entry: python3 -m tools.mypy_helpers.sort_weaklist
         files: ^pyproject\.toml$
         language: python
       - id: check-mypy-weaklist
         name: check mypy weaklist
-        entry: python3 -m tools.mypy_helpers.check_stronglist pyproject.toml
+        entry: python3 -m tools.mypy_helpers.check_weaklist pyproject.toml
         files: (^pyproject\.toml$|\.py$)
         pass_filenames: false
         language: python

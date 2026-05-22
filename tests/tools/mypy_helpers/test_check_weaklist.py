@@ -1,6 +1,6 @@
 import re
 
-from tools.mypy_helpers.check_stronglist import _glob_to_re, main
+from tools.mypy_helpers.check_weaklist import _glob_to_re, main
 
 
 def test_glob_to_re_exact_matches() -> None:

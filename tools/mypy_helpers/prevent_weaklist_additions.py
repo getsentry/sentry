@@ -29,6 +29,23 @@ _CHECKS = (
 )
 
 
+def _is_weaklist_rename(
+    *,
+    added_module: str,
+    head_modules: frozenset[str],
+    staged_modules: frozenset[str],
+) -> bool:
+    if "weaklist" not in added_module:
+        return False
+
+    legacy_module = added_module.replace("weaklist", "stronglist")
+    return (
+        legacy_module != added_module
+        and legacy_module in head_modules
+        and legacy_module not in staged_modules
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Prevent new additions to mypy override lists.")
     parser.add_argument("filenames", nargs="*")
@@ -53,6 +70,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             head_modules = _modules_for_override_key(head_data, key, filename)
             staged_modules = _modules_for_override_key(staged_data, key, filename)
             for mod in sorted(staged_modules - head_modules):
+                if _is_weaklist_rename(
+                    added_module=mod,
+                    head_modules=head_modules,
+                    staged_modules=staged_modules,
+                ):
+                    continue
                 print(
                     f"{filename}: '{mod}' was added to the {list_name} — "
                     f"do not add new modules; {advice}."

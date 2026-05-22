@@ -2379,7 +2379,7 @@ tests/sentry/test_dependencies.py
 tests/sentry/test_devimports.py
 tests/sentry/test_http.py
 tests/sentry/test_killswitches.py
-tests/sentry/test_mypy_stronglist.py
+tests/sentry/test_mypy_weaklist.py
 tests/sentry/test_no_create_or_update_usage.py
 tests/sentry/test_sdk_updates.py
 tests/sentry/test_stacktraces.py

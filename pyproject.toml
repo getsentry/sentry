@@ -2376,7 +2376,7 @@ module = [
     "tests.sentry.test_devimports",
     "tests.sentry.test_http",
     "tests.sentry.test_killswitches",
-    "tests.sentry.test_mypy_stronglist",
+    "tests.sentry.test_mypy_weaklist",
     "tests.sentry.test_no_create_or_update_usage",
     "tests.sentry.test_sdk_updates",
     "tests.sentry.test_stacktraces",

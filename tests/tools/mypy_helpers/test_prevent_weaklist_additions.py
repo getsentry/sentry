@@ -129,6 +129,25 @@ disallow_untyped_defs = false
     assert "'d.e.f'" not in out
 
 
+def test_stronglist_to_weaklist_rename_passes(tmp_path) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["tests.sentry.test_mypy_stronglist"]
+disallow_untyped_defs = false
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["tests.sentry.test_mypy_weaklist"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 0
+
+
 def test_unrelated_overrides_ignored(tmp_path) -> None:
     initial = """\
 [[tool.mypy.overrides]]
