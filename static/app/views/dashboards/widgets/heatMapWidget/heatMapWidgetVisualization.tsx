@@ -113,15 +113,15 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
     let formattedXValue = ECHARTS_MISSING_DATA_VALUE;
 
+    const xAxisBucketSize = heatMapPlottable.heatMapSeries.meta.xAxis.bucketSize;
+    const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
+    const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
+    const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
+
     return renderToString(
       <Fragment>
         <div className="tooltip-series">
           {filteredParams.map(param => {
-            const xAxisBucketSize = heatMapPlottable.heatMapSeries.meta.xAxis.bucketSize;
-            const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
-            const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
-            const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
-
             let rawXValue: number | undefined;
             let rawYValue: number | undefined;
 

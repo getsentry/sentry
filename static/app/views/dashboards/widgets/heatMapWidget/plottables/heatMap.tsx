@@ -65,8 +65,8 @@ export class HeatMap implements HeatMapPlottable {
         }),
         emphasis: {
           itemStyle: {
-            borderColor: theme.tokens.content.primary,
-            borderWidth: 2,
+            borderColor: theme.tokens.border.onVibrant.dark,
+            borderWidth: parseInt(theme.border.xl.replace('px', ''), 10),
           },
         },
       },
