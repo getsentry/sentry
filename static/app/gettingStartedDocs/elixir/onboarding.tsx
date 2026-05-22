@@ -20,7 +20,20 @@ const getConfigureSnippet = (params: DocsParams) => `
   dsn: "${params.dsn.public}",
   environment_name: Mix.env(),
   enable_source_code_context: true,
-  root_source_code_paths: [File.cwd!()]`;
+  root_source_code_paths: [File.cwd!()]${
+    params.isPerformanceSelected
+      ? `,
+  # Set traces_sample_rate to 1.0 to capture 100%
+  # of transactions for tracing.
+  traces_sample_rate: 1.0`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `,
+  # Enable sending logs to Sentry
+  enable_logs: true`
+      : ''
+  }`;
 
 const getPlugSnippet = () => `
  defmodule MyAppWeb.Endpoint

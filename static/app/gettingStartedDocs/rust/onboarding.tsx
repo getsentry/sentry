@@ -24,7 +24,20 @@ let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
   release: sentry::release_name!(),
   // Capture user IPs and potentially sensitive headers when using HTTP server integrations
   // see https://docs.sentry.io/platforms/rust/data-management/data-collected for more info
-  send_default_pii: true,
+  send_default_pii: true,${
+    params.isPerformanceSelected
+      ? `
+  // Set traces_sample_rate to 1.0 to capture 100%
+  // of transactions for tracing.
+  traces_sample_rate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable sending logs to Sentry
+  enable_logs: true,`
+      : ''
+  }
   ..Default::default()
 }));`;
 
@@ -34,7 +47,20 @@ fn main() {
     release: sentry::release_name!(),
     // Capture user IPs and potentially sensitive headers when using HTTP server integrations
     // see https://docs.sentry.io/platforms/rust/data-management/data-collected for more info
-    send_default_pii: true,
+    send_default_pii: true,${
+      params.isPerformanceSelected
+        ? `
+    // Set traces_sample_rate to 1.0 to capture 100%
+    // of transactions for tracing.
+    traces_sample_rate: 1.0,`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+    // Enable sending logs to Sentry
+    enable_logs: true,`
+        : ''
+    }
     ..Default::default()
   }));
 
