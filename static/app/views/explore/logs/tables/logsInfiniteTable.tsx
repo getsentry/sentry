@@ -561,7 +561,7 @@ export function LogsInfiniteTable({
           {isRefetching && !hasReplay && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
-          {virtualItems.map(virtualRow => {
+          {virtualItems.map((virtualRow, index) => {
             const dataRow = data?.[virtualRow.index];
 
             if (!dataRow) {
@@ -589,6 +589,10 @@ export function LogsInfiniteTable({
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  style={{
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
+                  }}
                 />
               </Fragment>
             );

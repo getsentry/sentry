@@ -127,6 +127,7 @@ type LogsRowProps = {
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
+  style?: React.CSSProperties;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
@@ -215,6 +216,7 @@ export const LogRowContent = memo(function LogRowContent({
   logEnd,
   showCellActions,
   showExploreSimilarSpansLink,
+  style,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -392,6 +394,7 @@ export const LogRowContent = memo(function LogRowContent({
         data-test-id="log-table-row"
         highlighted={isPseudoRow}
         pinned={isPinned}
+        style={style}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
         onMouseEnter={e => {
