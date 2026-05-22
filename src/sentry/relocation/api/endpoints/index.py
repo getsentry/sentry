@@ -29,7 +29,7 @@ from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.tasks.process import uploading_start
-from sentry.relocation.utils import RELOCATION_FILE_TYPE
+from sentry.relocation.utils import RELOCATION_FILE_TYPE, relocation_raw_data_path
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
 from sentry.users.models.user import MAX_USERNAME_LENGTH, User
@@ -279,7 +279,7 @@ class RelocationIndexEndpoint(Endpoint):
             return err
 
         relocation_uuid = uuid4()
-        path = RelocationFile.Kind.RAW_USER_DATA.bucket_path(relocation_uuid, "tar")
+        path = relocation_raw_data_path(relocation_uuid)
         relocation_storage = get_relocation_storage()
         relocation_storage.save(path, fileobj)
 

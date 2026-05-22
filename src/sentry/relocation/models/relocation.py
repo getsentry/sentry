@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, IntEnum, unique
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from django.db import models
 
@@ -244,10 +244,6 @@ class RelocationFile(DefaultFieldsModelExisting):
 
         def to_filename(self, ext: str):
             return str(self) + "." + ext
-
-        def bucket_path(self, relocation_id: str | UUID, ext: str) -> str:
-            filename = self.to_filename(ext)
-            return f"runs/{relocation_id}/{filename}"
 
     relocation = FlexibleForeignKey("sentry.Relocation")
     file = FlexibleForeignKey("sentry.File")

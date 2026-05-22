@@ -363,7 +363,7 @@ class PostRelocationsTest(APITestCase):
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == 1
         relocation_file = RelocationFile.objects.get(relocation=relocation)
-        assert relocation_file.bucket_path == f"runs/{relocation.uuid}/raw-relocation-data.tar"
+        assert relocation_file.bucket_path == f"runs/{relocation.uuid}/in/raw-relocation-data.tar"
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
