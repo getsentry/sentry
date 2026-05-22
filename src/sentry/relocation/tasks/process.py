@@ -756,7 +756,7 @@ def preprocessing_transfer(uuid: str) -> None:
         raw_relocation_file = (
             RelocationFile.objects.filter(
                 relocation=relocation,
-                kind=RelocationFile.Kind.RAW_USER_DATA,
+                kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
             .select_related("file")
             .prefetch_related("file__blobs")

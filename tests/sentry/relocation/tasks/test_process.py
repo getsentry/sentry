@@ -1,5 +1,4 @@
 from datetime import timedelta
-from functools import cached_property
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -138,36 +137,37 @@ class RelocationTaskTestCase(TestCase):
         )
         self.relocation_file = RelocationFile.objects.create(
             relocation=self.relocation,
-            file=self.file,
+            file=File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE),
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
             bucket_path=relocation_raw_data_path(self.relocation.uuid),
         )
+        self.create_import_tarball()
         self.uuid = str(self.relocation.uuid)
 
-    @cached_property
-    def file(self):
+    def create_import_tarball(self):
         with TemporaryDirectory() as tmp_dir:
-            (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
+            self.priv_key_pem, self.pub_key_pem = generate_rsa_key_pair()
             tmp_priv_key_path = Path(tmp_dir).joinpath("key")
-            self.priv_key_pem = priv_key_pem
             with open(tmp_priv_key_path, "wb") as f:
-                f.write(priv_key_pem)
+                f.write(self.priv_key_pem)
 
             tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
-            self.pub_key_pem = pub_key_pem
             with open(tmp_pub_key_path, "wb") as f:
-                f.write(pub_key_pem)
+                f.write(self.pub_key_pem)
 
             with open(IMPORT_JSON_FILE_PATH, "rb") as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    file = File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE)
+                    # file = File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE)
                     self.tarball = create_encrypted_export_tarball(
                         data, LocalFileEncryptor(p)
                     ).getvalue()
-                    file.putfile(BytesIO(self.tarball))
+                    # file.putfile(BytesIO(self.tarball))
 
-            return file
+                    path = relocation_raw_data_path(self.relocation.uuid)
+                    relocation_storage = get_relocation_storage()
+                    relocation_storage.save(path, BytesIO(self.tarball))
+            # return file
 
     def swap_relocation_file_with_data_from_fixture(
         self,
@@ -202,6 +202,7 @@ class RelocationTaskTestCase(TestCase):
 
     def mock_kms_client(self, fake_kms_client: Mock):
         if not hasattr(self, "tarball"):
+            # failing because tarball hasn't been populated by the cached property...
             _ = self.file
 
         unwrapped = unwrap_encrypted_export_tarball(BytesIO(self.tarball))
