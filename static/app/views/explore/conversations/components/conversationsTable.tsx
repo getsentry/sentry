@@ -118,7 +118,9 @@ function ConversationsTableInner() {
           column.name
         )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'inputOutput' && <CellExpander />}
+        {/* Force the cell to take as much width as possible in the table
+            layout, otherwise GridEditable will let the last column grow. */}
+        {column.key === 'inputOutput' && <Container width="100vw" />}
       </Flex>
     );
   }, []);
@@ -360,14 +362,6 @@ const SingleLineMarkdown = styled('div')`
   * {
     display: inline;
   }
-`;
-
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
 `;
 
 const ConversationIdLink = styled(Link)`
