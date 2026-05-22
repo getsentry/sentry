@@ -59,16 +59,15 @@ class GeneratedWidgetQuery(BaseModel):
             "`value` (the numeric value of the metric; no other attributes are supported at this "
             "time), metric_name is the metric's name as ingested, metric_type is one of "
             "'counter', 'gauge', or 'distribution', and metric_unit is the metric's unit as "
-            "ingested (e.g. 'milliseconds', 'bytes', 'none') or '-' to match any unit. "
-            "Examples: `count(value, my.app.requests, counter, none)`, "
+            "ingested (e.g. 'milliseconds', 'bytes'); use 'none' only when the metric has no "
+            "unit. Examples: `count(value, my.app.requests, counter, none)`, "
             "`avg(value, my.app.cpu, gauge, percent)`, "
             "`p95(value, my.app.latency, distribution, milliseconds)`. "
             "Allowed functions for tracemetrics: count, count_unique, sum, avg, max, min, "
             "p50, p75, p90, p95, p99. You MUST NOT guess metric_name, metric_type, or "
             "metric_unit; look them up first using the available tools (e.g. by querying the "
             "tracemetrics dataset for distinct `metric.name`, `metric.type`, and `metric.unit` "
-            "values, or fetching trace-item attributes). If you cannot confirm the unit but have "
-            "confirmed the name and type, use '-' to match any unit."
+            "values, or fetching trace-item attributes)."
         ),
     )
     columns: list[str] = Field(

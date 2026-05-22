@@ -31,9 +31,9 @@ TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemet
   - `attribute` must be `value` (the numeric value of the metric); no other attributes are supported at this time.
   - `metric_name` is the metric's name as ingested (e.g. `my.app.latency`).
   - `metric_type` is exactly one of `counter`, `gauge`, or `distribution`.
-  - `metric_unit` is the metric's unit as ingested (e.g. `milliseconds`, `bytes`, `none`). Use `-` to match any unit when the unit is unknown or irrelevant.
+  - `metric_unit` is the metric's unit as ingested (e.g. `milliseconds`, `bytes`). Use `none` only when the metric has no unit.
 - Examples: `count(value, my.app.requests, counter, none)`, `avg(value, my.app.cpu, gauge, percent)`, `p95(value, my.app.latency, distribution, milliseconds)`.
-- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, fall back to `-` for the unit only if the metric and type are confirmed, otherwise pick a different dataset or omit the widget."""
+- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, pick a different dataset or omit the widget."""
 
 CREATE_ON_PAGE_CONTEXT = (
     "The user is on the dashboard generation page. This session must ONLY generate a dashboard "
