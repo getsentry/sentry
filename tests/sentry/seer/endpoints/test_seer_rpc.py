@@ -70,6 +70,17 @@ class TestSeerRpc(APITestCase):
         )
         assert response.status_code == 404
 
+    def test_get_organization_features_registered_on_internal_rpc(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert "features" in response.data
+        assert isinstance(response.data["features"], list)
+
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
         path = self._get_path("get_trace_waterfall")

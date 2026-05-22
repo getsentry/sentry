@@ -957,6 +957,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
+    "get_organization_features": get_organization_features,
     "check_repository_integrations_status": check_repository_integrations_status,
     "validate_repo": validate_repo,
     "get_repo_installation_id": get_repo_installation_id,
