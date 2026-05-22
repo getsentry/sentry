@@ -87,6 +87,7 @@ from sentry.relocation.utils import (
     RELOCATION_FILE_TYPE,
     OrderedTask,
     StorageBackedCheckpointExporter,
+    relocation_raw_data_path,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -139,6 +140,7 @@ class RelocationTaskTestCase(TestCase):
             relocation=self.relocation,
             file=self.file,
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
+            bucket_path=relocation_raw_data_path(self.relocation.uuid),
         )
         self.uuid = str(self.relocation.uuid)
 
@@ -168,14 +170,21 @@ class RelocationTaskTestCase(TestCase):
             return file
 
     def swap_relocation_file_with_data_from_fixture(
-        self, file: File, fixture_name: str, blob_size: int = RELOCATION_BLOB_SIZE
+        self,
+        relocation_file: RelocationFile,
+        fixture_name: str,
+        blob_size: int = RELOCATION_BLOB_SIZE,
     ) -> None:
         with open(get_fixture_path("backup", fixture_name), "rb") as fp:
-            return self.swap_relocation_file(file, BytesIO(fp.read()), blob_size)
+            return self.swap_relocation_file(relocation_file, BytesIO(fp.read()), blob_size)
 
     def swap_relocation_file(
-        self, file: File, contents: BytesIO, blob_size: int = RELOCATION_BLOB_SIZE
+        self,
+        relocation_file: RelocationFile,
+        contents: BytesIO,
+        blob_size: int = RELOCATION_BLOB_SIZE,
     ) -> None:
+        relocation_storage = get_relocation_storage()
         with TemporaryDirectory() as tmp_dir:
             tmp_priv_key_path = Path(tmp_dir).joinpath("key")
             tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
@@ -189,7 +198,7 @@ class RelocationTaskTestCase(TestCase):
                 self.tarball = create_encrypted_export_tarball(
                     data, LocalFileEncryptor(p)
                 ).getvalue()
-                file.putfile(BytesIO(self.tarball), blob_size=blob_size)
+                relocation_storage.save(relocation_file.bucket_path, BytesIO(self.tarball))
 
     def mock_kms_client(self, fake_kms_client: Mock):
         if not hasattr(self, "tarball"):
@@ -716,8 +725,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def test_fail_invalid_json(
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
-        file = RelocationFile.objects.get(relocation=self.relocation).file
-        self.swap_relocation_file_with_data_from_fixture(file, "invalid-user.json")
+        relocation_file = RelocationFile.objects.get(relocation=self.relocation)
+        self.swap_relocation_file_with_data_from_fixture(relocation_file, "invalid-user.json")
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
@@ -739,8 +748,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def test_fail_no_users(
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
-        file = RelocationFile.objects.get(relocation=self.relocation).file
-        self.swap_relocation_file_with_data_from_fixture(file, "single-option.json")
+        relocation_file = RelocationFile.objects.get(relocation=self.relocation)
+        self.swap_relocation_file_with_data_from_fixture(relocation_file, "single-option.json")
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
@@ -784,8 +793,10 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def test_fail_no_orgs(
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
-        file = RelocationFile.objects.get(relocation=self.relocation).file
-        self.swap_relocation_file_with_data_from_fixture(file, "user-with-minimum-privileges.json")
+        relocation_file = RelocationFile.objects.get(relocation=self.relocation)
+        self.swap_relocation_file_with_data_from_fixture(
+            relocation_file, "user-with-minimum-privileges.json"
+        )
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
@@ -1910,13 +1921,14 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         assert export_contents.getvalue() == reexport_contents.getvalue()
         export_contents.seek(0)
 
-        # Convert this into a `SAAS_TO_SAAS` relocation, and use the data we just exported as the
-        # import blob.
-        file = RelocationFile.objects.get(relocation=self.relocation).file
+        # Save the export into the expected RelocationFile path so it can be imported.
+        relocation_file = RelocationFile.objects.get(relocation=self.relocation)
         self.tarball = create_encrypted_export_tarball(
             json.load(export_contents), encryptor
         ).getvalue()
-        file.putfile(BytesIO(self.tarball), blob_size=RELOCATION_BLOB_SIZE)
+        relocation_storage = get_relocation_storage()
+        relocation_storage.save(relocation_file.bucket_path, BytesIO(self.tarball))
+
         self.mock_kms_client(fake_kms_client)
         self.relocation.provenance = Relocation.Provenance.SAAS_TO_SAAS
         self.relocation.save()
