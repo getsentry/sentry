@@ -1702,6 +1702,19 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
+  const snapshotsRedirect: SentryRouteObject = {
+    children: [
+      {
+        path: '/snapshots/',
+        redirectTo: '/explore/releases/?tab=snapshots',
+      },
+      {
+        path: '/organizations/:orgId/snapshots/',
+        redirectTo: '/organizations/:orgId/explore/releases/?tab=snapshots',
+      },
+    ],
+  };
+
   const discoverChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2775,6 +2788,7 @@ function buildRoutes(): RouteObject[] {
       preprodRoutes,
       replayRoutes,
       releasesRoutes,
+      snapshotsRedirect,
       statsRoutes,
       discoverRoutes,
       errorsRoutes,
