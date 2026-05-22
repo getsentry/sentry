@@ -178,7 +178,7 @@ function ConversationOnboardingPanel({
             <div>
               <Flex justify="between" gap="2xl" padding="3xl">
                 <HeaderText>
-                  <Heading as="h1">{t('See Exactly What Your Agent Said')}</Heading>
+                  <Title>{t('See Exactly What Your Agent Said')}</Title>
                   <SubTitle>
                     {t(
                       "Replay every message, tool call, and handoff in a conversation. When your agent goes off-script, you'll know why."
@@ -200,7 +200,9 @@ function ConversationOnboardingPanel({
                   <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
                 </Container>
               </Flex>
-              <Separator orientation="horizontal" />
+              <Container width="95%" margin="0 auto">
+                <Separator orientation="horizontal" />
+              </Container>
               <Grid autoColumns="minmax(0, 1fr)" flow="column" position="relative">
                 <Setup>{children}</Setup>
                 <Container padding="xl" paddingTop="3xl">
@@ -491,6 +493,12 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
   padding-right: ${p => p.theme.space['3xl']};
+`;
+
+const Title = styled('div')`
+  font-size: 26px;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Setup = styled('div')`
