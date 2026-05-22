@@ -11,6 +11,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('PageFiltersContainer', () => {
@@ -646,8 +647,8 @@ describe('PageFiltersContainer', () => {
         expect(PageFiltersStore.getState().selection.datetime).toEqual({
           period: null,
           utc: null,
-          start,
-          end,
+          start: getUtcToLocalDateObject(start),
+          end: getUtcToLocalDateObject(end),
         })
       );
     });
