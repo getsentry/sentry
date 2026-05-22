@@ -23,13 +23,9 @@ from sentry.utils.dates import parse_stats_period
 
 MAX_RETENTION_DAYS = 30
 
-# Widening steps used when no explicit time range is provided.
-# We try progressively wider windows so that a recent conversation is found
-# quickly, while older ones can still be located without timing out on a
-# full 30-day scan every time.
+# Try progressively wider windows before giving up.
 _WIDENING_STEPS = [timedelta(days=7), timedelta(days=MAX_RETENTION_DAYS)]
 
-# Base span fields always returned
 AI_CONVERSATION_ATTRIBUTES = [
     "span_id",
     "trace",
@@ -96,7 +92,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         max_retention_cutoff = now - timedelta(days=MAX_RETENTION_DAYS)
 
         if has_explicit_range:
-            # Caller supplied precise timestamps — validate retention and use as-is.
             if snuba_params.start and snuba_params.start < max_retention_cutoff:
                 return Response(
                     {"detail": f"start time cannot be older than {MAX_RETENTION_DAYS} days"},
@@ -109,8 +104,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 )
             data_fn = self._make_direct_data_fn(snuba_params, conversation_id)
         else:
-            # No explicit range: respect the passed statsPeriod as the first
-            # attempt, then widen to 7d and 30d if the conversation is not found.
             params_sequence = self._build_widening_sequence(snuba_params, stats_period, now)
             data_fn = self._make_widening_data_fn(params_sequence, conversation_id)
 
@@ -129,22 +122,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 status=504,
             )
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
     def _build_widening_sequence(
         self, base_params: SnubaParams, stats_period: str | None, now: datetime
     ) -> list[SnubaParams]:
-        """
-        Return a list of SnubaParams covering progressively wider time windows.
-
-        Starts from the requested statsPeriod (if any), then appends the
-        standard widening steps (7d, 30d) that are wider than the initial period.
-        """
-        requested_delta: timedelta | None = None
-        if stats_period:
-            requested_delta = parse_stats_period(stats_period)
+        # parse_stats_period returns None for invalid input; skip to default steps
+        requested_delta = parse_stats_period(stats_period) if stats_period else None
 
         steps: list[timedelta] = []
         if requested_delta and requested_delta < timedelta(days=MAX_RETENTION_DAYS):
@@ -156,20 +138,13 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
-    def _make_direct_data_fn(self, snuba_params, conversation_id: str):
-        """data_fn for an explicit time range — no widening."""
-
+    def _make_direct_data_fn(self, snuba_params: SnubaParams, conversation_id: str):
         def data_fn(offset: int, limit: int) -> list:
             return self._fetch_conversation_spans(snuba_params, conversation_id, offset, limit)
 
         return data_fn
 
     def _make_widening_data_fn(self, params_sequence: list[SnubaParams], conversation_id: str):
-        """
-        data_fn that tries each set of params in order and memoises the first
-        one that returns results.  Subsequent pages reuse the winning params
-        directly, avoiding redundant narrower-window queries.
-        """
         winning_params: SnubaParams | None = None
 
         def data_fn(offset: int, limit: int) -> list:
@@ -193,7 +168,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     @sentry_sdk.trace
     def _fetch_conversation_spans(
         self,
-        snuba_params,
+        snuba_params: SnubaParams,
         conversation_id: str,
         offset: int,
         limit: int,

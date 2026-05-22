@@ -1,11 +1,14 @@
 from datetime import timedelta
 from typing import Any
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.urls import reverse
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 
@@ -516,3 +519,21 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert ai_client_span["gen_ai.operation.type"] == "ai_client"
         assert ai_client_span["gen_ai.usage.total_tokens"] == 100
         assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01
+
+    def test_timeout_returns_504_with_error_code(self) -> None:
+        """A Snuba RPC timeout surfaces as 504 with a machine-readable code."""
+        conversation_id = uuid4().hex
+
+        # Wrap in a ReadTimeoutError so handle_query_errors() converts it to
+        # TimeoutException, which our endpoint then catches to return 504.
+        rpc_timeout = SnubaRPCTimeout(ReadTimeoutError(None, "/", "timed out"))
+
+        with patch(
+            "sentry.snuba.spans_rpc.Spans.run_table_query",
+            side_effect=rpc_timeout,
+        ):
+            response = self.do_request(conversation_id, {"project": [self.project.id]})
+
+        assert response.status_code == 504
+        assert response.data["code"] == "query_timeout"
+        assert "detail" in response.data
