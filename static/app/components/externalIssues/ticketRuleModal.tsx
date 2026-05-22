@@ -30,6 +30,30 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 const IGNORED_FIELDS = ['Sprint'];
 
+// Older saved automations may have `dynamic_form_fields[i].choices` whose
+// labels were React elements (the pre-#112094 code wrapped the current
+// option's label in a <Fragment><QuestionTooltip />…</Fragment>). When the
+// rule was JSON-serialized to the backend, $$typeof (Symbol) and type
+// (function) were dropped, leaving {key, ref, props} on the wire. React 19
+// throws "Objects are not valid as a React child" when those leak into the
+// option list. Coerce any non-string label to String(value) at the read
+// boundary so the form can render and so we don't re-persist the bad shape.
+function sanitizeSavedChoices(choices: Choices): Choices {
+  return choices.map(([value, label]) =>
+    typeof label === 'string' || typeof label === 'number'
+      ? [value, label]
+      : [value, String(value)]
+  );
+}
+
+function sanitizeSavedFields(fields: IssueConfigField[]): IssueConfigField[] {
+  return fields.map(field =>
+    Array.isArray(field.choices)
+      ? {...field, choices: sanitizeSavedChoices(field.choices)}
+      : field
+  );
+}
+
 interface TicketRuleModalProps extends ModalRenderProps {
   instance: TicketActionData;
   link: string | null;
@@ -83,7 +107,7 @@ export function TicketRuleModal({
   const [issueConfigFieldsCache, setIssueConfigFieldsCache] = useState<
     IssueConfigField[]
   >(() => {
-    return Object.values(instance?.dynamic_form_fields || {});
+    return sanitizeSavedFields(Object.values(instance?.dynamic_form_fields || {}));
   });
 
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
@@ -320,7 +344,7 @@ export function TicketRuleModal({
             Array.isArray(f.choices) &&
             f.choices.length > 0
         )
-        .map(f => [f.name, f.choices as Choices])
+        .map(f => [f.name, sanitizeSavedChoices(f.choices as Choices)])
     );
 
     const configFields = (integrationDetails?.[getConfigName(action)] ||

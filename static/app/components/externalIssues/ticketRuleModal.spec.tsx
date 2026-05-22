@@ -330,6 +330,60 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       expect(formData.reporter).toBe('saved-user-id');
     });
 
+    it('should not crash when saved choices have non-string labels (legacy data)', async () => {
+      // Automations saved by the pre-#112094 form persisted React-element
+      // labels on dynamic_form_fields[].choices. JSON-serialized, those
+      // collapse to {key, ref, props}. React 19 throws when those leak into
+      // option rendering — see https://sentry.sentry.io/issues/JAVASCRIPT-3921
+      const reporterField: IssueConfigField = {
+        label: 'Reporter',
+        required: false,
+        url: 'http://example.com',
+        type: 'select',
+        name: 'reporter',
+        choices: [],
+      };
+
+      addMockConfigsAPICall(reporterField);
+
+      render(
+        <TicketRuleModal
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          link=""
+          ticketType=""
+          instance={{
+            integration: '1',
+            reporter: 'saved-user-id',
+            dynamic_form_fields: [
+              ...defaultIssueConfig,
+              {
+                ...reporterField,
+                choices: [
+                  [
+                    'saved-user-id',
+                    // Shape left behind by JSON-stringifying a React element.
+                    {key: null, ref: null, props: {children: 'Joe Smith'}} as any,
+                  ],
+                ],
+              },
+            ],
+          }}
+          onSubmitAction={onSubmitAction}
+        />,
+        {organization}
+      );
+
+      // Falls back to the value string instead of crashing.
+      expect(await screen.findByText('saved-user-id')).toBeInTheDocument();
+
+      await submitSuccess();
+      expect(onSubmitAction.mock.calls[0][0].reporter).toBe('saved-user-id');
+    });
+
     it('should get async options from URL', async () => {
       await renderTicketRuleModal();
 
