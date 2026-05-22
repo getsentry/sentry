@@ -12,7 +12,7 @@ import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
@@ -117,7 +117,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   // Get data for markdown copy functionality
   const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
+  const {runState: autofixData} = useExplorerAutofix(group.id);
 
   const handleCopyMarkdown = useCallback(() => {
     const markdownText = issueAndEventToMarkdown(

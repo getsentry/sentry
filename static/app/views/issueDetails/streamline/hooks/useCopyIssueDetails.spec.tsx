@@ -5,12 +5,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {
-  AutofixStatus,
-  AutofixStepType,
-  type AutofixData,
-} from 'sentry/components/events/autofix/types';
-import * as autofixHooks from 'sentry/components/events/autofix/useAutofix';
+import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
@@ -39,46 +35,50 @@ describe('useCopyIssueDetails', () => {
     possibleCause: 'Missing parameter',
   };
 
-  // Create a mock AutofixData with steps that includes root cause and solution steps
-  const mockAutofixData: AutofixData = {
-    last_triggered_at: '2023-01-01T00:00:00Z',
-    request: {
-      repos: [],
-    },
-    codebases: {},
-    run_id: '123',
-    status: AutofixStatus.COMPLETED,
-    steps: [
+  const mockAutofixData: ExplorerAutofixState = {
+    run_id: 123,
+    status: 'completed',
+    updated_at: '2023-01-01T00:00:00Z',
+    blocks: [
       {
-        id: 'root-cause-step',
-        index: 0,
-        progress: [],
-        status: AutofixStatus.COMPLETED,
-        title: 'Root Cause',
-        type: AutofixStepType.ROOT_CAUSE_ANALYSIS,
-        causes: [
+        id: 'root-cause-block',
+        message: {
+          role: 'assistant' as const,
+          content: 'Found the root cause',
+          metadata: {step: 'root_cause'},
+        },
+        timestamp: '2023-01-01T00:00:00Z',
+        loading: false,
+        artifacts: [
           {
-            id: 'cause-1',
-            description: 'Root cause text',
+            key: 'root_cause',
+            reason: 'Root cause analysis',
+            data: {
+              one_line_description: 'Root cause text',
+              five_whys: ['Why 1'],
+            },
           },
         ],
-        selection: null,
       },
       {
-        id: 'solution-step',
-        index: 1,
-        progress: [],
-        status: AutofixStatus.COMPLETED,
-        title: 'Solution',
-        type: AutofixStepType.SOLUTION,
-        solution: [
+        id: 'solution-block',
+        message: {
+          role: 'assistant' as const,
+          content: 'Here is the solution',
+          metadata: {step: 'solution'},
+        },
+        timestamp: '2023-01-01T00:00:01Z',
+        loading: false,
+        artifacts: [
           {
-            timeline_item_type: 'internal_code',
-            title: 'Solution title',
-            code_snippet_and_analysis: 'Solution text',
+            key: 'solution',
+            reason: 'Solution plan',
+            data: {
+              one_line_summary: 'Solution title',
+              steps: [{title: 'Fix it', description: 'Solution text'}],
+            },
           },
         ],
-        solution_selected: true,
       },
     ],
   };
@@ -379,10 +379,17 @@ describe('useCopyIssueDetails', () => {
         isPending: false,
       });
 
-      jest.spyOn(autofixHooks, 'useAutofixData').mockReturnValue({
-        data: mockAutofixData,
-        isPending: false,
-      });
+      jest.spyOn(explorerAutofixHooks, 'useExplorerAutofix').mockReturnValue({
+        runState: mockAutofixData,
+        isLoading: false,
+        isPolling: false,
+        startStep: jest.fn(),
+        createPR: jest.fn(),
+        reset: jest.fn(),
+        triggerCodingAgentHandoff: jest.fn(),
+        codingAgentErrors: [],
+        dismissCodingAgentError: jest.fn(),
+      } as any);
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
