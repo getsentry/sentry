@@ -108,6 +108,106 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["tags[foo]"] == "five"
 
+    def test_cross_trace_query_with_internal_span_attribute_is_staff_only(self) -> None:
+        trace_id = uuid.uuid4().hex
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "baz",
+                        "tags": {"foo": "five"},
+                        "trace_id": trace_id,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "hidden-filter-span",
+                        "tags": {"__sentry_internal_test": "internal_value"},
+                        "trace_id": trace_id,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        query = {
+            "field": ["tags[foo]", "count()"],
+            "query": "description:baz",
+            "orderby": "count()",
+            "project": self.project.id,
+            "dataset": "spans",
+            "spanQuery": ["__sentry_internal_test:internal_value"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == []
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+        with self.feature({"organizations:discover-basic": True}):
+            response = self.client_get(self.reverse_url(), query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "tags[foo]": "five",
+                "count()": 1,
+            }
+        ]
+
+    def test_cross_trace_query_with_internal_log_attribute_is_staff_only(self) -> None:
+        trace_id = uuid.uuid4().hex
+        logs = [
+            self.create_ourlog(
+                {"body": "foo", "trace_id": trace_id},
+                timestamp=self.ten_mins_ago,
+                attributes={"__sentry_internal_test": "internal_value"},
+            ),
+        ]
+        self.store_eap_items(logs)
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "baz",
+                        "tags": {"foo": "five"},
+                        "trace_id": trace_id,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        query = {
+            "field": ["tags[foo]", "count()"],
+            "query": "description:baz",
+            "orderby": "count()",
+            "project": self.project.id,
+            "dataset": "spans",
+            "logQuery": ["__sentry_internal_test:internal_value"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == []
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+        with self.feature({"organizations:discover-basic": True}):
+            response = self.client_get(self.reverse_url(), query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "tags[foo]": "five",
+                "count()": 1,
+            }
+        ]
+
     def test_cross_trace_query_with_spans_and_logs(self) -> None:
         trace_id = uuid.uuid4().hex
         excluded_trace_id = uuid.uuid4().hex
