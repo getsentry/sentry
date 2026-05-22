@@ -458,7 +458,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "crispy_forms",
     "rest_framework",
     "sentry",
-    "sentry.autopilot",
     "sentry.analytics",
     "sentry.auth_v2",
     "sentry.incidents.apps.Config",
@@ -865,9 +864,6 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.autopilot.tasks.missing_sdk_integration",
-    "sentry.autopilot.tasks.sdk_update",
-    "sentry.autopilot.tasks.trace_instrumentation",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
