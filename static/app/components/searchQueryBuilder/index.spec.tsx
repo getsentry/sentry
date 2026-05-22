@@ -6583,5 +6583,70 @@ describe('SearchQueryBuilder', () => {
         expect(mockGetTagKeys).toHaveBeenCalledWith('some_query');
       });
     });
+
+    it('uses getTagKeys for has value suggestions and deduplicates static keys', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: 'custom_tag_name', name: 'Custom Tag Name', kind: FieldKind.TAG},
+        {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
+      ]);
+      const mockGetTagValues = jest.fn().mockResolvedValue([]);
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          getTagValues={mockGetTagValues}
+          initialQuery="has:custom_tag_name"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.type(input, 'tag');
+
+      await waitFor(() => {
+        expect(mockGetTagKeys).toHaveBeenCalledWith('tag');
+      });
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole('option', {name: 'custom_tag_name'})).toHaveLength(1);
+      expect(mockGetTagValues).not.toHaveBeenCalled();
+    });
+
+    it('saves the selected async has suggestion as the returned key', async () => {
+      const mockGetTagKeys = jest
+        .fn()
+        .mockResolvedValue([
+          {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
+        ]);
+      const mockOnChange = jest.fn();
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          initialQuery="has:custom_tag_name"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.type(input, 'async');
+      await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenLastCalledWith(
+          'has:async_tag_one',
+          expect.anything()
+        );
+      });
+    });
   });
 });

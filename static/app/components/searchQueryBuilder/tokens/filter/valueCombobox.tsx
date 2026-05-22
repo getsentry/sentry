@@ -350,6 +350,41 @@ function sortSuggestionsByFzf(
     .map(({suggestion}) => suggestion);
 }
 
+function mergeAsyncHasKeySuggestions({
+  asyncKeys,
+  predefinedValues,
+}: {
+  asyncKeys: Tag[] | undefined;
+  predefinedValues: SuggestionSection[] | null;
+}): SuggestionSection[] {
+  const suggestionGroups = predefinedValues ? [...predefinedValues] : [];
+  const seenValues = new Set(
+    suggestionGroups.flatMap(group =>
+      group.suggestions.map(suggestion => suggestion.value)
+    )
+  );
+
+  const asyncSuggestions =
+    asyncKeys
+      ?.filter(tag => {
+        if (seenValues.has(tag.key)) {
+          return false;
+        }
+        seenValues.add(tag.key);
+        return true;
+      })
+      .map(tag => ({
+        label: prettifyTagKey(tag.key),
+        value: tag.key,
+      })) ?? [];
+
+  if (asyncSuggestions.length) {
+    suggestionGroups.push({sectionText: '', suggestions: asyncSuggestions});
+  }
+
+  return suggestionGroups;
+}
+
 function useFilterSuggestions({
   token,
   filterValue,
@@ -360,7 +395,8 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
-  const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
+  const {getFieldDefinition, getTagKeys, getTagValues, filterKeys} =
+    useSearchQueryBuilder();
   const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
   const valueType = getFilterValueType(token, fieldDefinition);
@@ -378,7 +414,9 @@ function useFilterSuggestions({
   // This is because the way keys are fetched doesn't guarantee that we have
   // every key loaded. So we should try to fetch values for it even if it
   // doesn't exist in the list of available keys.
-  const shouldFetchValues = predefinedValues === null && (key ? !key.predefined : true);
+  const shouldFetchTagKeys = token.filter === FilterType.HAS && !!getTagKeys;
+  const shouldFetchValues =
+    !shouldFetchTagKeys && predefinedValues === null && (key ? !key.predefined : true);
   const shouldUseDefaultSuggestionOrder = shouldUseDefaultNumericSuggestions(
     filterValue,
     valueType
@@ -407,6 +445,13 @@ function useFilterSuggestions({
   const queryKey = useDebouncedValue(baseQueryKey);
   const isDebouncing = baseQueryKey !== queryKey;
 
+  const tagKeysBaseQueryKey = useMemo(
+    () => ['search-query-builder-tag-keys', filterValue] as const,
+    [filterValue]
+  );
+  const tagKeysQueryKey = useDebouncedValue(tagKeysBaseQueryKey);
+  const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
+
   // TODO(malwilley): Display error states
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isFetching} = useQuery({
@@ -415,6 +460,15 @@ function useFilterSuggestions({
       getTagValues({tag: ctx.queryKey[1][0], searchQuery: ctx.queryKey[1][1]}),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
+  });
+
+  // TODO(malwilley): Display error states
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
+    queryKey: tagKeysQueryKey,
+    queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
+    placeholderData: keepPreviousData,
+    enabled: shouldFetchTagKeys,
   });
 
   const createItem = useCallback(
@@ -453,7 +507,9 @@ function useFilterSuggestions({
 
   const suggestionGroups = useMemo(() => {
     let groups: SuggestionSection[];
-    if (shouldFetchValues) {
+    if (shouldFetchTagKeys) {
+      groups = mergeAsyncHasKeySuggestions({asyncKeys, predefinedValues});
+    } else if (shouldFetchValues) {
       const suggestions = data?.map(value => {
         return {
           value,
@@ -481,7 +537,9 @@ function useFilterSuggestions({
     }));
   }, [
     data,
+    asyncKeys,
     predefinedValues,
+    shouldFetchTagKeys,
     shouldFetchValues,
     key?.key,
     filterValue,
@@ -502,7 +560,7 @@ function useFilterSuggestions({
   return {
     items,
     suggestionSectionItems,
-    isFetching: isFetching || isDebouncing,
+    isFetching: isFetching || isDebouncing || isFetchingTagKeys || isDebouncingTagKeys,
   };
 }
 
