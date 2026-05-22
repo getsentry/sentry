@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
@@ -21,7 +21,7 @@ from sentry.snuba.spans_rpc import Spans
 
 class OrganizationVolumeConfig(Protocol):
     organization: Organization
-    projects: Sequence[Project]
+    projects: list[Project]
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
