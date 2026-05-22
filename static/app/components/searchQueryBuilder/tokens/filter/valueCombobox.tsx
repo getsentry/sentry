@@ -350,41 +350,6 @@ function sortSuggestionsByFzf(
     .map(({suggestion}) => suggestion);
 }
 
-function mergeAsyncHasKeySuggestions({
-  asyncKeys,
-  predefinedValues,
-}: {
-  asyncKeys: Tag[] | undefined;
-  predefinedValues: SuggestionSection[] | null;
-}): SuggestionSection[] {
-  const suggestionGroups = predefinedValues ? [...predefinedValues] : [];
-  const seenValues = new Set(
-    suggestionGroups.flatMap(group =>
-      group.suggestions.map(suggestion => suggestion.value)
-    )
-  );
-
-  const asyncSuggestions =
-    asyncKeys
-      ?.filter(tag => {
-        if (seenValues.has(tag.key)) {
-          return false;
-        }
-        seenValues.add(tag.key);
-        return true;
-      })
-      .map(tag => ({
-        label: prettifyTagKey(tag.key),
-        value: tag.key,
-      })) ?? [];
-
-  if (asyncSuggestions.length) {
-    suggestionGroups.push({sectionText: '', suggestions: asyncSuggestions});
-  }
-
-  return suggestionGroups;
-}
-
 function useFilterSuggestions({
   token,
   filterValue,
@@ -508,7 +473,12 @@ function useFilterSuggestions({
   const suggestionGroups = useMemo(() => {
     let groups: SuggestionSection[];
     if (shouldFetchTagKeys) {
-      groups = mergeAsyncHasKeySuggestions({asyncKeys, predefinedValues});
+      const suggestions =
+        asyncKeys?.map(tag => ({
+          label: prettifyTagKey(tag.key),
+          value: tag.key,
+        })) ?? [];
+      groups = [{sectionText: '', suggestions}];
     } else if (shouldFetchValues) {
       const suggestions = data?.map(value => {
         return {
