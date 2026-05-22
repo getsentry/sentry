@@ -261,6 +261,47 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_start_run_sets_enable_frontend_code_search_when_flag_active(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 446}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        with self.feature("organizations:seer-agent-source-code-search"):
+            client = SeerAgentClient(self.organization, self.user)
+            run_id = client.start_run("Test query")
+
+        assert run_id == 446
+        body = mock_post.call_args[0][0]
+        assert body["enable_frontend_code_search"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_start_run_omits_enable_frontend_code_search_when_flag_inactive(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 447}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        client = SeerAgentClient(self.organization, self.user)
+        run_id = client.start_run("Test query")
+
+        assert run_id == 447
+        body = mock_post.call_args[0][0]
+        assert "enable_frontend_code_search" not in body
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_basic(self, mock_post, mock_access):
         """Test continuing an existing run"""
         mock_access.return_value = (True, None)

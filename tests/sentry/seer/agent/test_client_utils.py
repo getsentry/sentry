@@ -1,8 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import jwt
 from django.test import override_settings
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.agent.client_utils import (
+    _get_org_feature_flags,
     _normalize_wildcard_operators,
     collect_user_org_context,
     get_proxy_headers,
@@ -165,10 +168,10 @@ class CollectUserOrgContextTest(TestCase):
         context = collect_user_org_context(other_user, self.organization)
 
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
-        assert context == {
-            "org_slug": self.organization.slug,
-            "all_org_projects": context["all_org_projects"],
-        }
+        # Non-member path returns only org-level keys — no user-specific keys.
+        assert set(context.keys()) == {"org_slug", "all_org_projects", "org_features"}
+        assert context["org_slug"] == self.organization.slug
+        assert isinstance(context["org_features"], list)
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
 
     def test_collect_context_with_timezone(self) -> None:
@@ -221,6 +224,52 @@ class CollectUserOrgContextTest(TestCase):
         user_by_id = {p["id"]: p for p in context["user_projects"]}
         assert [r["external_id"] for r in user_by_id[self.project1.id]["repos"]] == ["ext-1"]
         assert [r["external_id"] for r in user_by_id[self.project2.id]["repos"]] == ["ext-2"]
+
+    @patch(
+        "sentry.seer.agent.client_utils._get_org_feature_flags",
+        return_value=["seer-agent-source-code-search"],
+    )
+    def test_collect_context_member_includes_org_features(self, _mock_flags: MagicMock) -> None:
+        context = collect_user_org_context(self.user, self.organization)
+        assert context["org_features"] == ["seer-agent-source-code-search"]
+
+
+# Two real flags registered with api_expose=True used to exercise _get_org_feature_flags
+# in isolation. Mocking features.all to exactly this set keeps each test fast and
+# deterministic (otherwise all 100+ api-exposed features are checked).
+_TEST_FEATURE_SET = {
+    "organizations:seer-agent-source-code-search": MagicMock(),
+    "organizations:seer-explorer-chat-coding": MagicMock(),
+}
+
+
+class GetOrgFeatureFlagsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+
+    @patch("sentry.seer.agent.client_utils.features.all", return_value=_TEST_FEATURE_SET)
+    def test_returns_active_flag_without_prefix(self, _mock_all: MagicMock) -> None:
+        with self.feature("organizations:seer-agent-source-code-search"):
+            result = _get_org_feature_flags(self.org, self.user)
+        assert result == ["seer-agent-source-code-search"]
+
+    @patch("sentry.seer.agent.client_utils.features.all", return_value=_TEST_FEATURE_SET)
+    def test_excludes_inactive_flags(self, _mock_all: MagicMock) -> None:
+        result = _get_org_feature_flags(self.org, self.user)
+        assert result == []
+
+    @patch("sentry.seer.agent.client_utils.features.all", return_value=_TEST_FEATURE_SET)
+    def test_returns_sorted_list(self, _mock_all: MagicMock) -> None:
+        with self.feature(
+            {
+                "organizations:seer-agent-source-code-search": True,
+                "organizations:seer-explorer-chat-coding": True,
+            }
+        ):
+            result = _get_org_feature_flags(self.org, self.user)
+        # "seer-agent-..." < "seer-explorer-..." alphabetically
+        assert result == ["seer-agent-source-code-search", "seer-explorer-chat-coding"]
 
 
 class SnapshotToMarkdownTest(TestCase):
