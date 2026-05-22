@@ -141,6 +141,50 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
+    def test_sentry_internal_groupby_values_are_staff_only(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": {"__sentry_internal_test": "internal_value"}},
+                    start_ts=self.start,
+                ),
+            ],
+        )
+        query = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "yAxis": "count()",
+            "groupBy": "__sentry_internal_test",
+            "orderby": "-count()",
+            "topEvents": 1,
+            "project": self.project.id,
+            "dataset": "spans",
+            "excludeOther": 1,
+        }
+
+        response = self._do_request(data=query)
+        assert response.status_code == 200, response.content
+        assert response.data["timeSeries"] == []
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self._do_request(data=query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["groupBy"] == [
+            {"key": "__sentry_internal_test", "value": "internal_value"}
+        ]
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start,
+            3_600_000,
+            [1, 0, 0, 0, 0, 0],
+            ignore_accuracy=True,
+        )
+
     def test_handle_nans_from_snuba(self) -> None:
         self.store_spans(
             [self.create_span({"description": "foo"}, start_ts=self.start)],

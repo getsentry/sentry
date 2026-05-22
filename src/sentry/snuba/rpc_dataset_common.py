@@ -807,12 +807,22 @@ class RPCBase:
             sampling_mode=sampling_mode,
             additional_queries=additional_queries,
         )
+        result = ProcessedTimeseries()
+        if search_resolver.has_hidden_api_attributes():
+            final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_request.meta)
+            for resolved_field in aggregates + groupbys:
+                final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
+            return SnubaTSResult(
+                {"data": [], "processed_timeseries": result, "meta": final_meta},
+                params.start,
+                params.end,
+                params.granularity_secs,
+            )
 
         """Run the query"""
         rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
 
         """Process the results"""
-        result = ProcessedTimeseries()
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)

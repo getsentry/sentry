@@ -28,6 +28,8 @@ from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -53,7 +55,11 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
-from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
+from sentry.snuba.utils import (
+    DATASET_LABELS,
+    RPC_DATASETS,
+    get_rpc_dataset_attribute_visibility_item_type,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaTSResult
 
@@ -230,6 +236,16 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             organization,
             actor=request.user,
         )
+        api_item_type = get_rpc_dataset_attribute_visibility_item_type(dataset)
+        attribute_visibility_kwargs = (
+            {
+                "api_attribute_visibility_item_type": api_item_type.value,
+                "api_attribute_visibility_include_internal": is_active_superuser(request)
+                or is_active_staff(request),
+            }
+            if api_item_type is not None
+            else {}
+        )
 
         if dataset == TraceMetrics:
             # tracemetrics uses aggregate conditions
@@ -240,6 +256,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                **attribute_visibility_kwargs,
             )
         elif dataset == PreprodSize:
             return PreprodSizeSearchResolverConfig(
@@ -248,6 +265,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                **attribute_visibility_kwargs,
             )
         else:
             return SearchResolverConfig(
@@ -256,6 +274,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                **attribute_visibility_kwargs,
             )
 
     def get_event_stats(
