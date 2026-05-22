@@ -3,8 +3,10 @@ from unittest import mock
 
 import pytest
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.types import AdditionalQueries, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
@@ -92,6 +94,36 @@ class TestBulkTableQueries(TestCase):
 
         assert results == {"hidden": {"data": [], "meta": {"fields": {}}, "confidence": []}}
         mock_table_rpc.assert_not_called()
+
+    def test_cross_trace_queries_pass_subquery_item_type_for_visibility(self) -> None:
+        resolver = Spans.get_resolver(
+            self.snuba_params,
+            SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS.value
+            ),
+        )
+
+        def resolve_query(search_resolver: SearchResolver, query_string: str):
+            if (
+                search_resolver.config.api_attribute_visibility_item_type
+                == SupportedTraceItemType.OCCURRENCES.value
+            ):
+                search_resolver.add_hidden_api_attributes({query_string})
+            return TraceItemFilter(), None, []
+
+        with mock.patch.object(SearchResolver, "resolve_query", autospec=True) as mock_resolve:
+            mock_resolve.side_effect = resolve_query
+            RPCBase.get_cross_trace_queries(
+                AdditionalQueries(
+                    span=None,
+                    log=None,
+                    metric=None,
+                    occurrences=["occurrence.internal.only:value"],
+                ),
+                resolver,
+            )
+
+        assert resolver.has_hidden_api_attributes()
 
 
 trace_id_test_cases = (
