@@ -115,6 +115,12 @@ class SearchResolver:
     def is_hidden_api_attribute(self, column: str) -> bool:
         return column in self._hidden_api_attributes
 
+    def get_hidden_api_attributes(self) -> set[str]:
+        return set(self._hidden_api_attributes)
+
+    def add_hidden_api_attributes(self, columns: set[str]) -> None:
+        self._hidden_api_attributes.update(columns)
+
     def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
         """Look up a column definition by its internal name (e.g. 'sentry.item_id' -> 'id' column).
 

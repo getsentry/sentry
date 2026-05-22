@@ -58,6 +58,7 @@ from sentry.search.eap.types import (
     ConfidenceData,
     EAPResponse,
     SearchResolverConfig,
+    SupportedTraceItemType,
 )
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
@@ -177,8 +178,7 @@ class RPCBase:
     def get_cross_trace_queries(
         cls,
         additional_queries: AdditionalQueries | None,
-        config: SearchResolverConfig,
-        query_params: SnubaParams,
+        resolver: SearchResolver,
     ) -> list[TraceItemFilterWithType]:
         from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
         from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -190,32 +190,48 @@ class RPCBase:
 
         # resolve cross trace queries
         # Copy the existing resolver, but we don't allow aggregate conditions for cross trace filters
-        cross_trace_config = replace(config, use_aggregate_conditions=False)
+        cross_trace_config = replace(resolver.config, use_aggregate_conditions=False)
 
         cross_trace_queries = []
-        for queries, definitions, item_type in [
+        for queries, definitions, item_type, api_item_type in [
             (
                 additional_queries.log,
                 OURLOG_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_LOG,
+                SupportedTraceItemType.LOGS,
             ),
-            (additional_queries.span, SPAN_DEFINITIONS, TraceItemType.TRACE_ITEM_TYPE_SPAN),
+            (
+                additional_queries.span,
+                SPAN_DEFINITIONS,
+                TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                SupportedTraceItemType.SPANS,
+            ),
             (
                 additional_queries.metric,
                 TRACE_METRICS_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_METRIC,
+                SupportedTraceItemType.TRACEMETRICS,
             ),
             (
                 additional_queries.occurrences,
                 OCCURRENCE_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
+                SupportedTraceItemType.OCCURRENCES,
             ),
         ]:
             if queries is not None:
                 # Create a resolver for the subqueries
+                query_config = replace(
+                    cross_trace_config,
+                    api_attribute_visibility_item_type=(
+                        api_item_type.value
+                        if cross_trace_config.api_attribute_visibility_item_type is not None
+                        else None
+                    ),
+                )
                 cross_resolver = SearchResolver(
-                    params=query_params,
-                    config=cross_trace_config,
+                    params=resolver.params,
+                    config=query_config,
                     definitions=definitions,
                 )
                 for query_string in queries:
@@ -228,6 +244,8 @@ class RPCBase:
                                 item_type=item_type,
                             )
                         )
+                if cross_resolver.has_hidden_api_attributes():
+                    resolver.add_hidden_api_attributes(cross_resolver.get_hidden_api_attributes())
         return cross_trace_queries
 
     @classmethod
@@ -262,9 +280,7 @@ class RPCBase:
         # if there are additional conditions to be added, make sure to merge them with the
         where = and_trace_item_filters(where, query.extra_conditions)
 
-        cross_trace_queries = cls.get_cross_trace_queries(
-            query.additional_queries, query.resolver.config, query.resolver.params
-        )
+        cross_trace_queries = cls.get_cross_trace_queries(query.additional_queries, query.resolver)
 
         trace_column, _ = resolver.resolve_column("trace")
         if (
@@ -441,19 +457,28 @@ class RPCBase:
             names.add(query.name)
 
         request_context_pairs: list[tuple[str, TableRequest, dict[str, Any]]] = []
+        results: dict[str, EAPResponse] = {}
         for query in queries:
             assert query.name is not None
             table_request = cls.get_table_rpc_request(query)
+            if query.resolver.has_hidden_api_attributes():
+                results[query.name] = {"data": [], "meta": {"fields": {}}, "confidence": []}
+                continue
             request_context_pairs.append(
                 (query.name, table_request, cls.build_rpc_table_row_context(query))
             )
-        responses = snuba_rpc.table_rpc(
-            [request.rpc_request for _, request, _ in request_context_pairs]
-        )
-        results = {
-            name: cls.process_table_response(response, request, context=process_context)
-            for (name, request, process_context), response in zip(request_context_pairs, responses)
-        }
+        if request_context_pairs:
+            responses = snuba_rpc.table_rpc(
+                [request.rpc_request for _, request, _ in request_context_pairs]
+            )
+            results.update(
+                {
+                    name: cls.process_table_response(response, request, context=process_context)
+                    for (name, request, process_context), response in zip(
+                        request_context_pairs, responses
+                    )
+                }
+            )
         return results
 
     @classmethod
@@ -726,9 +751,7 @@ class RPCBase:
             selected_equations,
         )
 
-        cross_trace_queries = cls.get_cross_trace_queries(
-            additional_queries, search_resolver.config, search_resolver.params
-        )
+        cross_trace_queries = cls.get_cross_trace_queries(additional_queries, search_resolver)
 
         trace_column, _ = search_resolver.resolve_column("trace")
         if (

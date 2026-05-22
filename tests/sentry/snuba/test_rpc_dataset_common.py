@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 
 import pytest
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
@@ -17,7 +18,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 class TestBulkTableQueries(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.snuba_params = SnubaParams()
+        self.snuba_params = SnubaParams(projects=[self.project], stats_period="1h")
         self.config = SearchResolverConfig()
         self.resolver = Spans.get_resolver(self.snuba_params, self.config)
 
@@ -68,6 +69,29 @@ class TestBulkTableQueries(TestCase):
                     ),
                 ]
             )
+
+    def test_hidden_attribute_query_returns_empty_without_rpc(self) -> None:
+        self.resolver.add_hidden_api_attributes({"__sentry_internal_test"})
+
+        with mock.patch("sentry.snuba.rpc_dataset_common.snuba_rpc.table_rpc") as mock_table_rpc:
+            results = RPCBase.run_bulk_table_queries(
+                [
+                    TableQuery(
+                        "",
+                        ["count()"],
+                        None,
+                        0,
+                        1,
+                        "TestReferrer",
+                        None,
+                        self.resolver,
+                        name="hidden",
+                    )
+                ]
+            )
+
+        assert results == {"hidden": {"data": [], "meta": {"fields": {}}, "confidence": []}}
+        mock_table_rpc.assert_not_called()
 
 
 trace_id_test_cases = (
