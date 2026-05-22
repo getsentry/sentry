@@ -1,11 +1,9 @@
 from datetime import timedelta
-from io import BytesIO
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.models.relocationtransfer import (
@@ -165,12 +163,6 @@ class ProcessRelocationTransferControlTest(TestCase):
             state=RelocationTransferState.Reply,
             public_key=b"public_key_data",
         )
-        relocation_storage = get_relocation_storage()
-        relocation_storage.save(
-            f"runs/{relocation.uuid}/saas_to_saas_export/{organization.slug}.tar",
-            BytesIO(b"export data"),
-        )
-
         process_relocation_transfer_control(transfer_id=transfer.id)
 
         assert mock_uploading_complete.apply_async.called, "task should be spawned"
@@ -209,12 +201,6 @@ class ProcessRelocationTransferRegionTest(TestCase):
             relocation_uuid=relocation.uuid,
             state=RelocationTransferState.Reply,
         )
-        relocation_storage = get_relocation_storage()
-        relocation_storage.save(
-            f"runs/{relocation.uuid}/saas_to_saas_export/{organization.slug}.tar",
-            BytesIO(b"export data"),
-        )
-
         process_relocation_transfer_region(transfer_id=transfer.id)
 
         # Should be removed on completion.
