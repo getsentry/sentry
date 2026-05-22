@@ -124,7 +124,7 @@ describe('useCopyIssueDetails', () => {
       );
 
       expect(result).toContain('## Root Cause');
-      expect(result).toContain('## Solution');
+      expect(result).toContain('## Plan');
     });
 
     it('includes tags when present in event', () => {
@@ -437,7 +437,7 @@ describe('useCopyIssueDetails', () => {
       expect(capturedText).toContain(`**Project:** ${group.project?.slug}`);
       expect(capturedText).toContain('## Issue Summary');
       expect(capturedText).toContain('## Root Cause');
-      expect(capturedText).toContain('## Solution');
+      expect(capturedText).toContain('## Plan');
       expect(capturedText).not.toContain('## Exception');
     });
 
