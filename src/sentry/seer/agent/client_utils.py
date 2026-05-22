@@ -22,6 +22,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.features.base import OrganizationFeature
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -245,19 +246,17 @@ def _get_org_feature_flags(
     organization: Organization, user: SentryUser | RpcUser | AnonymousUser | None
 ) -> list[str]:
     """Return the list of active org feature flag names (without the 'organizations:' prefix)."""
-    from sentry.features.base import OrganizationFeature
-
-    features_to_check = [
+    features_to_check = {
         feature
         for feature in features.all(feature_type=OrganizationFeature, api_expose_only=True).keys()
         if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
-    ]
+    }
 
     feature_set: set[str] = set()
 
     with sentry_sdk.start_span(op="features.check", name="check batch features"):
         batch = features.batch_has(
-            features_to_check,
+            list(features_to_check),
             actor=user,
             organization=organization,
             skip_experiment_exposure=True,
@@ -267,7 +266,7 @@ def _get_org_feature_flags(
             for name, active in batch.get(f"organization:{organization.id}", {}).items():
                 if active:
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-                features_to_check.remove(name)
+                features_to_check.discard(name)
 
     with sentry_sdk.start_span(op="features.check", name="check individual features"):
         for name in features_to_check:
