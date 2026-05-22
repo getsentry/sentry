@@ -6,7 +6,7 @@
 import base64
 import logging
 from datetime import UTC, datetime
-from io import BytesIO
+from uuid import UUID
 
 from django.db import router
 from django.db.utils import IntegrityError
@@ -14,7 +14,6 @@ from django.utils import timezone
 from sentry_sdk import capture_exception
 
 from sentry.models.files.file import File
-from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.models.relocationtransfer import (
     RETRY_BACKOFF,
@@ -27,7 +26,10 @@ from sentry.relocation.services.relocation_export.service import (
 )
 from sentry.relocation.tasks.process import fulfill_cross_region_export_request, uploading_complete
 from sentry.relocation.tasks.transfer import process_relocation_transfer_control
-from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
+from sentry.relocation.utils import (
+    RELOCATION_FILE_TYPE,
+    relocation_raw_data_path,
+)
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.relocation")
@@ -92,23 +94,22 @@ class DBBackedRelocationExportService(CellRelocationExportService):
                 "requesting_region_name": requesting_region_name,
                 "replying_region_name": replying_region_name,
                 "org_slug": org_slug,
-                # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-                "encrypted_bytes_size": len(encrypted_bytes or []),
             }
             logger.info("SaaS -> SaaS reply received in triggering region", extra=logger_data)
+            uuid = UUID(relocation_uuid)
 
             try:
-                relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)
+                relocation: Relocation = Relocation.objects.get(uuid=uuid)
             except Relocation.DoesNotExist as e:
                 logger.exception("Could not locate Relocation model by UUID: %s", relocation_uuid)
                 capture_exception(e)
                 return
 
-            # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-            fp = BytesIO(bytes(encrypted_bytes or []))
-            file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
-            file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
-            logger.info("SaaS -> SaaS relocation underlying File created", extra=logger_data)
+            # Now that we have confirmation that the export file
+            # was stored in the shared bucket, create a RelocationFile record
+            # so that the import process can begin.
+            # TODO(cells) Remove this once RelocationFile.file is optional.
+            file = File.objects.create(name="stub", type=RELOCATION_FILE_TYPE, size=10000)
 
             # This write ensures that the entire chain triggered by `uploading_start` remains
             # idempotent, since only one (relocation_uuid, relocation_file_kind) pairing can exist
@@ -119,11 +120,11 @@ class DBBackedRelocationExportService(CellRelocationExportService):
                     relocation=relocation,
                     file=file,
                     kind=RelocationFile.Kind.RAW_USER_DATA.value,
+                    bucket_path=relocation_raw_data_path(uuid),
                 )
             except IntegrityError:
                 # We already have the file, we can proceed.
                 pass
-
             logger.info("SaaS -> SaaS relocation RelocationFile saved", extra=logger_data)
 
             uploading_complete.apply_async(args=[relocation.uuid])
@@ -176,19 +177,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             "requesting_region_name": requesting_region_name,
             "replying_region_name": replying_region_name,
             "org_slug": org_slug,
-            # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-            "encrypted_bytes_size": len(encrypted_bytes or []),
         }
         logger.info("SaaS -> SaaS reply received on proxy", extra=logger_data)
-
-        # Save the payload into the control silo's "relocation" GCS bucket. This bucket is only used
-        # for temporary storage of `encrypted_bytes` being shuffled between cells like this.
-        path = f"runs/{relocation_uuid}/saas_to_saas_export/{org_slug}.tar"
-        relocation_storage = get_relocation_storage()
-        # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-        fp = BytesIO(bytes(encrypted_bytes or []))
-        relocation_storage.save(path, fp)
-        logger.info("SaaS -> SaaS export contents retrieved", extra=logger_data)
 
         # Save transfer record so we can push state to the requesting cell
         transfer = ControlRelocationTransfer.objects.create(

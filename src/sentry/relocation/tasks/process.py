@@ -45,7 +45,6 @@ from sentry.backup.exports import (
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
-from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.organization import Organization, OrganizationStatus
@@ -72,6 +71,7 @@ from sentry.relocation.utils import (
     create_cloudbuild_yaml,
     fail_relocation,
     get_relocations_bucket_name,
+    relocation_raw_data_path,
     retry_task_or_fail_relocation,
     send_relocation_update_email,
     start_relocation_task,
@@ -363,7 +363,6 @@ def fulfill_cross_region_export_request(
 
     log_gcp_credentials_details(logger)
     uuid = UUID(uuid_str)
-    path = f"runs/{uuid}/saas_to_saas_export/{org_slug}.tar"
     relocation_storage = get_relocation_storage()
     fp = BytesIO()
     logger.info(
@@ -392,8 +391,11 @@ def fulfill_cross_region_export_request(
         extra=logger_data,
     )
 
+    # Rewind the file pointer and write to storage.
     fp.seek(0)
+    path = relocation_raw_data_path(uuid)
     relocation_storage.save(path, fp)
+
     logger_data["encrypted_contents_size"] = fp.tell()
     logger.info(
         "fulfill_cross_region_export_request: saved",
@@ -491,10 +493,11 @@ def uploading_complete(uuid: str) -> None:
     if relocation is None:
         return
 
-    # Pull down the `RelocationFile` associated with this `Relocation`. Fallibility is expected
-    # here: we're pushing a potentially very large file with many blobs to a cloud store, so it is
-    # possible (likely, even) that not all of the blobs are yet available. If this segment fails,
-    # we'll just allow the Exception to bubble up and retry the task if possible.
+    # Ensure that the `RelocationFile` associated with this `Relocation` exists.
+    # Fallibility is expected here: we're pushing a potentially very large file with many blobs
+    # to a cloud store, so it is possible (likely, even) that not all of the blobs are yet
+    # available. If this segment fails, we'll just allow the Exception to bubble up and retry
+    # the task if possible.
     with retry_task_or_fail_relocation(
         relocation,
         OrderedTask.UPLOADING_COMPLETE,
@@ -509,9 +512,11 @@ def uploading_complete(uuid: str) -> None:
             .select_related("file")
             .get()
         )
-        fp = raw_relocation_file.file.getfile()
-        with fp:
-            preprocessing_scan.apply_async(args=[uuid])
+        logger.info(
+            "uploading_complete.relocation_file_present",
+            extra={"uuid": uuid, "id": raw_relocation_file.id},
+        )
+        preprocessing_scan.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -563,7 +568,8 @@ def preprocessing_scan(uuid: str) -> None:
             .select_related("file")
             .get()
         )
-        fp = raw_relocation_file.file.getfile()
+        relocation_storage = get_relocation_storage()
+        fp = relocation_storage.open(raw_relocation_file.bucket_path)
 
         with fp:
             try:
@@ -746,12 +752,11 @@ def preprocessing_transfer(uuid: str) -> None:
         kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
         relocation_storage.save(f"runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
 
-        # Now, upload the relocation data proper.
-        kind = RelocationFile.Kind.RAW_USER_DATA
+        # Ensure that the RelocationFile exists.
         raw_relocation_file = (
             RelocationFile.objects.filter(
                 relocation=relocation,
-                kind=kind.value,
+                kind=RelocationFile.Kind.RAW_USER_DATA,
             )
             .select_related("file")
             .prefetch_related("file__blobs")
@@ -759,15 +764,6 @@ def preprocessing_transfer(uuid: str) -> None:
         )
         if raw_relocation_file is None:
             raise FileNotFoundError("User-supplied relocation data not found.")
-
-        file: File = raw_relocation_file.file
-        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
-
-        # Copy all of the files from Django's abstract filestore into an isolated,
-        # backend-specific filestore for relocation operations only.
-        fp = file.getfile()
-        fp.seek(0)
-        relocation_storage.save(path, fp)
 
     preprocessing_baseline_config.apply_async(args=[uuid])
 
@@ -1400,7 +1396,9 @@ def importing(uuid: str) -> None:
             .select_related("file")
             .get()
         )
-        relocation_data_fp = raw_relocation_file.file.getfile()
+        relocation_storage = get_relocation_storage()
+        relocation_data_fp = relocation_storage.open(raw_relocation_file.bucket_path)
+
         log_gcp_credentials_details(logger)
         kms_config_fp = BytesIO(json.dumps(get_default_crypto_key_version()).encode("utf-8"))
 
