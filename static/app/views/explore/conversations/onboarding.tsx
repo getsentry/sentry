@@ -10,7 +10,7 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading, Prose} from '@sentry/scraps/text';
+import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -427,15 +427,15 @@ function UnsupportedPlatformOnboarding({
   return (
     <ConversationOnboardingPanel project={project}>
       <Prose>
-        <p>
+        <Text as="p">
           {tct(
             "Auto instrumentation isn't available for [platform] yet, but you can still get conversations working.",
             {
               platform: platformName,
             }
           )}
-        </p>
-        <p>
+        </Text>
+        <Text as="p">
           {tct(
             '[link:Manually instrument] your agents using the Sentry SDK, or let an AI coding agent set it up for you.',
             {
@@ -444,7 +444,7 @@ function UnsupportedPlatformOnboarding({
               ),
             }
           )}
-        </p>
+        </Text>
         <CopyLLMPromptButton />
       </Prose>
     </ConversationOnboardingPanel>
@@ -455,13 +455,13 @@ function NoDocsOnboarding({project}: {project: Project}) {
   return (
     <ConversationOnboardingPanel project={project}>
       <Prose>
-        <p>
+        <Text as="p">
           {tct(
             "We don't have a setup checklist for [project] yet, but that won't stop us.",
             {project: project.slug}
           )}
-        </p>
-        <p>
+        </Text>
+        <Text as="p">
           {tct(
             'Follow our [link:documentation] to get started, or let an AI coding agent handle the setup for you.',
             {
@@ -470,7 +470,7 @@ function NoDocsOnboarding({project}: {project: Project}) {
               ),
             }
           )}
-        </p>
+        </Text>
         <CopyLLMPromptButton />
       </Prose>
     </ConversationOnboardingPanel>
