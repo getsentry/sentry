@@ -4,6 +4,7 @@ from typing import Any
 import sentry_sdk
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +14,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params, is_api_or_agent_request
+from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.processors.discover import DiscoverProcessor
@@ -51,6 +52,13 @@ SUPPORTED_DATASETS = {
 
 logger = logging.getLogger(__name__)
 MAX_EXPORT_LIMIT = 10_000
+
+
+def is_api_or_agent_request(request: Request) -> bool:
+    """
+    True when the request did NOT come from a logged-in browser session.
+    """
+    return not isinstance(request.successful_authenticator, SessionAuthentication)
 
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):

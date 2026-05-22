@@ -14,9 +14,7 @@ from django.conf import settings
 from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
-from rest_framework.request import Request
 from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
@@ -364,13 +362,6 @@ def get_auth_api_token_type(auth: object) -> str | None:
     if is_api_key_auth(auth):
         return "api_key"
     return None
-
-
-def is_api_or_agent_request(request: Request) -> bool:
-    """
-    True when the request did NOT come from a logged-in browser session.
-    """
-    return not isinstance(request.successful_authenticator, SessionAuthentication)
 
 
 @contextmanager
