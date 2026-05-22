@@ -390,6 +390,8 @@ class RPCBase:
     ) -> EAPResponse:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
+        if query.resolver.has_hidden_api_attributes():
+            return {"data": [], "meta": {"fields": {}}, "confidence": []}
         rpc_request = table_request.rpc_request
         try:
             rpc_response = snuba_rpc.table_rpc([rpc_request])[0]

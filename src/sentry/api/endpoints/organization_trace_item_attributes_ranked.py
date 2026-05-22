@@ -20,13 +20,15 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute_to_api, translate_internal_to_public_alias
 from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -58,6 +60,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         above = request.GET.get("above") == "1"
         query_1 = request.GET.get("query_1", "")  # Suspect query
         query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         if query_1 == query_2:
             return Response({"rankedAttributes": []})
@@ -68,6 +71,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             above=above,
             query_1=query_1,
             query_2=query_2,
+            include_internal=include_internal,
         )
 
         cohort_2_distribution = distributions_result["cohort_2_distribution"]
@@ -131,7 +135,19 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             if public_alias is None:
                 public_alias = attr
 
-            if not public_alias.startswith("tags[") and (
+            if (
+                can_expose_attribute_to_api(
+                    attr,
+                    SupportedTraceItemType.SPANS,
+                    include_internal=include_internal,
+                )
+                and can_expose_attribute_to_api(
+                    public_alias,
+                    SupportedTraceItemType.SPANS,
+                    include_internal=include_internal,
+                )
+                and not public_alias.startswith("tags[")
+            ) and (
                 not public_alias.startswith("sentry.")
                 or public_alias == "sentry.normalized_description"
             ):
@@ -175,6 +191,7 @@ def query_attribute_distributions(
     above: bool,
     query_1: str,
     query_2: str,
+    include_internal: bool = False,
 ) -> AttributeDistributionsResponse:
     """
     Query for and compute span attribute distributions for outlier (query_1) and baseline (query_2) cohorts.
@@ -190,7 +207,9 @@ def query_attribute_distributions(
         AttributeDistributionsResponse with distribution data and total counts for both cohorts
     """
     resolver_config = SearchResolverConfig(
-        extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+        extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        api_attribute_visibility_item_type=SupportedTraceItemType.SPANS.value,
+        api_attribute_visibility_include_internal=include_internal,
     )
 
     resolver = SearchResolver(
@@ -261,6 +280,16 @@ def query_attribute_distributions(
 
     cohort_1, _, _ = resolver.resolve_query(query_1)
     cohort_2, _, _ = resolver.resolve_query(query_2)
+    if resolver.has_hidden_api_attributes():
+        return AttributeDistributionsResponse(
+            cohort_2_distribution=[],
+            cohort_2_distribution_map={},
+            total_cohort_2=0,
+            cohort_1_distribution=[],
+            cohort_1_distribution_map={},
+            total_cohort_1=0,
+            cohort_1_function_value=function_value,
+        )
 
     # Fetch attribute names for parallelization
     adjusted_start_date, adjusted_end_date = adjust_start_end_window(
@@ -290,6 +319,12 @@ def query_attribute_distributions(
     chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
     for i, attr_proto in enumerate(attrs_response.attributes):
         if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
+            continue
+        if not can_expose_attribute_to_api(
+            attr_proto.name,
+            SupportedTraceItemType.SPANS,
+            include_internal=include_internal,
+        ):
             continue
 
         chunked_attributes[i % PARALLELIZATION_FACTOR].append(
@@ -367,7 +402,11 @@ def query_attribute_distributions(
     processed_cohort_2_buckets = set()
 
     for attribute in cohort_2_data:
-        if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+        if not can_expose_attribute_to_api(
+            attribute.attribute_name,
+            SupportedTraceItemType.SPANS,
+            include_internal=include_internal,
+        ):
             continue
 
         for bucket in attribute.buckets:
@@ -376,7 +415,11 @@ def query_attribute_distributions(
             )
 
     for attribute in cohort_1_data:
-        if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+        if not can_expose_attribute_to_api(
+            attribute.attribute_name,
+            SupportedTraceItemType.SPANS,
+            include_internal=include_internal,
+        ):
             continue
         for bucket in attribute.buckets:
             cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))

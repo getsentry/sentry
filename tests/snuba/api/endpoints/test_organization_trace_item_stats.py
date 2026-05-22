@@ -182,6 +182,38 @@ class OrganizationTraceItemsStatsEndpointTest(
         assert "custom_attr" not in attribute_distribution
         assert "other_attr" not in attribute_distribution
 
+    def test_internal_convention_attributes_are_staff_only(self) -> None:
+        self.store_span(
+            self.create_span(
+                {"sentry_tags": {"dsc.trace_id": "abc123"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        )
+
+        response = self.do_request(
+            query={
+                "statsType": ["attributeDistributions"],
+                "substringMatch": "dsc",
+            }
+        )
+        assert response.status_code == 200, response.data
+        assert response.data == {"data": []}
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(
+            query={
+                "statsType": ["attributeDistributions"],
+                "substringMatch": "dsc",
+            }
+        )
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        assert attribute_distribution["sentry.dsc.trace_id"] == [{"label": "abc123", "value": 1.0}]
+
     def test_query_filters_spans_before_stats(self) -> None:
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 100),

@@ -17,6 +17,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -31,7 +33,8 @@ from sentry.search.eap.spans.attributes import (
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
@@ -143,9 +146,15 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
-        stats_config = get_trace_item_stats_config(serialized.get("itemType", "spans"))
+        item_type = serialized.get("itemType", "spans")
+        stats_config = get_trace_item_stats_config(item_type)
+        api_item_type = SupportedTraceItemType(item_type)
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
-        resolver_config = SearchResolverConfig()
+        resolver_config = SearchResolverConfig(
+            api_attribute_visibility_item_type=api_item_type.value,
+            api_attribute_visibility_include_internal=include_internal,
+        )
         resolver = SearchResolver(
             params=snuba_params, config=resolver_config, definitions=stats_config.definitions
         )
@@ -159,7 +168,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             with handle_query_errors():
                 return stats_config.rpc_class.run_table_query(
                     params=snuba_params,
-                    config=SearchResolverConfig(),
+                    config=resolver_config,
                     offset=0,
                     limit=serialized.get("traceItemsLimit", 1000),
                     sampling_mode=snuba_params.sampling_mode,
@@ -180,6 +189,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                     search_resolver=resolver,
                     max_buckets=1,
                     skip_translate_internal_to_public_alias=True,
+                    include_internal=include_internal,
                 )
 
         def run_stats_query_with_error_handling(attributes):
@@ -192,6 +202,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                     config=resolver_config,
                     search_resolver=resolver,
                     attributes=attributes,
+                    include_internal=include_internal,
                 )
 
         def data_fn(offset: int, limit: int):
@@ -217,6 +228,20 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
                 if public_alias in stats_config.excluded_attributes:
+                    continue
+
+                if not (
+                    can_expose_attribute_to_api(
+                        internal_name,
+                        api_item_type,
+                        include_internal=include_internal,
+                    )
+                    and can_expose_attribute_to_api(
+                        public_alias,
+                        api_item_type,
+                        include_internal=include_internal,
+                    )
+                ):
                     continue
 
                 if value_substring_match:
