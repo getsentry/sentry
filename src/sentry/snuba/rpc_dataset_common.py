@@ -809,7 +809,7 @@ class RPCBase:
         )
         result = ProcessedTimeseries()
         if search_resolver.has_hidden_api_attributes():
-            final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_request.meta)
+            final_meta: EventsMeta = {"fields": {}}
             for resolved_field in aggregates + groupbys:
                 final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
             return SnubaTSResult(
@@ -1148,6 +1148,7 @@ class RPCBase:
         attributes: list[AttributeKey] | None = None,
         max_buckets: int = 75,
         skip_translate_internal_to_public_alias: bool = False,
+        include_internal: bool = False,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
 
