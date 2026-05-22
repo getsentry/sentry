@@ -121,6 +121,18 @@ class SearchResolver:
     def add_hidden_api_attributes(self, columns: set[str]) -> None:
         self._hidden_api_attributes.update(columns)
 
+    def get_api_attribute_visibility_item_type(self) -> SupportedTraceItemType | None:
+        if self.config.api_attribute_visibility_item_type is None:
+            return None
+
+        configured_item_type = SupportedTraceItemType(
+            self.config.api_attribute_visibility_item_type
+        )
+        for item_type, trace_item_type in constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.items():
+            if trace_item_type == self.definitions.trace_item_type:
+                return item_type
+        return configured_item_type
+
     def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
         """Look up a column definition by its internal name (e.g. 'sentry.item_id' -> 'id' column).
 
@@ -1127,10 +1139,10 @@ class SearchResolver:
             column_context = None
 
         if column_definition:
-            if self.config.api_attribute_visibility_item_type is not None:
+            item_type = self.get_api_attribute_visibility_item_type()
+            if item_type is not None:
                 from sentry.search.eap.utils import can_expose_attribute_to_api
 
-                item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
                 visibility_attribute = (
                     column_definition.public_alias
                     if is_public_defined_attribute

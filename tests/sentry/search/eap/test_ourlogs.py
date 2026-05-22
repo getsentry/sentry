@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -17,9 +17,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 
 
@@ -50,6 +51,26 @@ class SearchResolverQueryTest(TestCase):
             )
         )
         assert having is None
+
+    def test_visibility_uses_definitions_item_type(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS.value
+            ),
+            definitions=OURLOG_DEFINITIONS,
+        )
+
+        with mock.patch.dict(
+            eap_utils.PRIVATE_ATTRIBUTES,
+            {
+                SupportedTraceItemType.SPANS: set(),
+                SupportedTraceItemType.LOGS: {"log.internal.only"},
+            },
+        ):
+            resolver.resolve_attribute("log.internal.only")
+
+        assert resolver.has_hidden_api_attributes()
 
     def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!message:foo")
