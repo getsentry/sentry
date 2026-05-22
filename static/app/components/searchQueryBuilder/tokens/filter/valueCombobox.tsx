@@ -339,7 +339,9 @@ function sortSuggestionsByFzf(
 
   return suggestions
     .map((suggestion, index) => {
-      const result = fzf(suggestion.value, query, false);
+      const text =
+        typeof suggestion.label === 'string' ? suggestion.label : suggestion.value;
+      const result = fzf(text, query, false);
       return {
         suggestion,
         score: result.end === -1 ? 0 : Math.max(1, result.score),
