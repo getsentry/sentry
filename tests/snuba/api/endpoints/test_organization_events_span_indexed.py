@@ -4551,6 +4551,47 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
             assert response.status_code == 400, response.content
 
+    def test_sentry_internal_field_values_are_staff_only(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "tags": {
+                            "normal_attr": "normal_value",
+                            "__sentry_internal_test": "internal_value",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+        query = {
+            "field": ["__sentry_internal_test", "count()"],
+            "query": "",
+            "orderby": "__sentry_internal_test",
+            "project": self.project.id,
+            "dataset": "spans",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == []
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+        with self.feature({"organizations:discover-basic": True}):
+            response = self.client_get(self.reverse_url(), query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "__sentry_internal_test": "internal_value",
+                "count()": 1,
+            }
+        ]
+
     def test_transaction_profile_attributes(self) -> None:
         span_with_profile = self.create_span(start_ts=before_now(minutes=10))
         span_without_profile = self.create_span(

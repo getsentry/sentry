@@ -77,9 +77,24 @@ RPC_DATASETS = {
     TraceMetrics,
     UptimeResults,
 }
+RPC_DATASET_ATTRIBUTE_VISIBILITY_ITEM_TYPES = {
+    Occurrences: SupportedTraceItemType.OCCURRENCES,
+    OurLogs: SupportedTraceItemType.LOGS,
+    PreprodSize: SupportedTraceItemType.PREPROD,
+    ProcessingErrors: SupportedTraceItemType.PROCESSING_ERRORS,
+    ProfileFunctions: SupportedTraceItemType.PROFILE_FUNCTIONS,
+    Replays: SupportedTraceItemType.REPLAYS,
+    Spans: SupportedTraceItemType.SPANS,
+    TraceMetrics: SupportedTraceItemType.TRACEMETRICS,
+    UptimeResults: SupportedTraceItemType.UPTIME_RESULTS,
+}
 DATASET_LABELS = {
     value: key for key, value in DATASET_OPTIONS.items() if key not in DEPRECATED_LABELS
 }
+
+
+def get_rpc_dataset_attribute_visibility_item_type(dataset: Any) -> SupportedTraceItemType | None:
+    return RPC_DATASET_ATTRIBUTE_VISIBILITY_ITEM_TYPES.get(dataset)
 
 
 TRANSACTION_ONLY_FIELDS = [
