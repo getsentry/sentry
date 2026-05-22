@@ -66,6 +66,9 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         with pytest.raises(AttributeError):
             getattr(configuration, "project_target_sample_rates")
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
+        assert configuration.get_sample_rate() == 0.5
+        configuration.set_sliding_window_sample_rate(0.25)
+        assert configuration.get_sample_rate() == 0.25
 
     def test_subscription_backed_org_without_sample_rate_is_disabled(self) -> None:
         org = self.create_organization()
@@ -142,6 +145,8 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                     measure_case.expected_measure == SamplingMeasure.SEGMENTS
                 )
                 assert configuration.sample_rate == 0.3
+                configuration.set_sliding_window_sample_rate(0.1)
+                assert configuration.get_sample_rate() == 0.3
                 with pytest.raises(AttributeError):
                     getattr(configuration, "project_target_sample_rates")
                 get_blended_sample_rate.assert_not_called()
@@ -182,6 +187,8 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                     project.id: 0.2,
                     project_without_rate.id: None,
                 }
+                configuration.set_sliding_window_sample_rate(0.1)
+                assert configuration.get_sample_rate() is None
                 with pytest.raises(AttributeError):
                     getattr(configuration, "sample_rate")
                 get_blended_sample_rate.assert_not_called()

@@ -49,11 +49,19 @@ class BaseDynamicSamplingConfiguration(ABC):
 
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
+        self.sliding_window_sample_rate: TargetSampleRate = None
 
     @property
     @abstractmethod
     def is_enabled(self) -> bool:
         raise NotImplementedError
+
+    @abstractmethod
+    def get_sample_rate(self) -> TargetSampleRate:
+        raise NotImplementedError
+
+    def set_sliding_window_sample_rate(self, sample_rate: TargetSampleRate) -> None:
+        self.sliding_window_sample_rate = sample_rate
 
     @property
     def is_span_based(self) -> bool:
@@ -78,11 +86,14 @@ class BaseDynamicSamplingConfiguration(ABC):
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self) -> None:
-        pass
+        self.sliding_window_sample_rate: TargetSampleRate = None
 
     @property
     def is_enabled(self) -> bool:
         return False
+
+    def get_sample_rate(self) -> TargetSampleRate:
+        return None
 
 
 class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
@@ -103,6 +114,11 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def is_enabled(self) -> bool:
         return self.sample_rate is not None
 
+    def get_sample_rate(self) -> TargetSampleRate:
+        if self.sliding_window_sample_rate is not None:
+            return self.sliding_window_sample_rate
+        return self.sample_rate
+
 
 class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):
     sample_rate: TargetSampleRate
@@ -120,6 +136,9 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     def is_enabled(self) -> bool:
         return True
 
+    def get_sample_rate(self) -> TargetSampleRate:
+        return self.sample_rate
+
 
 class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration):
     project_target_sample_rates: ProjectTargetSampleRates
@@ -135,6 +154,9 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
         return any(
             sample_rate is not None for sample_rate in self.project_target_sample_rates.values()
         )
+
+    def get_sample_rate(self) -> TargetSampleRate:
+        return None
 
     def _get_project_target_sample_rates(self) -> ProjectTargetSampleRates:
         project_sample_rates = ProjectOption.objects.get_value_bulk(

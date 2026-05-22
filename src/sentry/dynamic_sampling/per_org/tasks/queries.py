@@ -1,21 +1,27 @@
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
-from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+
+
+class OrganizationVolumeConfig(Protocol):
+    organization: Organization
+    projects: Sequence[Project]
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
@@ -46,7 +52,7 @@ def run_eap_spans_table_query_in_chunks(
 
 
 def get_eap_organization_volume(
-    config: BaseDynamicSamplingConfiguration,
+    config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> OrganizationDataVolume | None:
     end_time = datetime.now(UTC)
