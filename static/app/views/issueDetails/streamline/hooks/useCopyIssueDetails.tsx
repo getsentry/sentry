@@ -184,17 +184,17 @@ export const issueAndEventToMarkdown = (
       : null;
 
     const rootCauseCopyText = rootCauseArtifact
-      ? artifactToMarkdown(rootCauseArtifact)
+      ? artifactToMarkdown(rootCauseArtifact, 2)
       : null;
     const solutionCopyText = solutionArtifact
-      ? artifactToMarkdown(solutionArtifact)
+      ? artifactToMarkdown(solutionArtifact, 2)
       : null;
 
     if (rootCauseCopyText) {
-      markdownText += `\n## Root Cause\n\`\`\`\n${rootCauseCopyText}\n\`\`\`\n`;
+      markdownText += `\n${rootCauseCopyText}\n`;
     }
     if (solutionCopyText) {
-      markdownText += `\n## Solution\n\`\`\`\n${solutionCopyText}\n\`\`\`\n`;
+      markdownText += `\n${solutionCopyText}\n`;
     }
   }
 
@@ -209,7 +209,7 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
   const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {runState: autofixData} = useExplorerAutofix(group.id);
+  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {

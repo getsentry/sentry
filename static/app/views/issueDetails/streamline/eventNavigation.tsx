@@ -117,7 +117,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   // Get data for markdown copy functionality
   const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {runState: autofixData} = useExplorerAutofix(group.id);
+  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
 
   const handleCopyMarkdown = useCallback(() => {
     const markdownText = issueAndEventToMarkdown(
