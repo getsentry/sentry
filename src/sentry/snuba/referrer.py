@@ -686,7 +686,6 @@ class Referrer(StrEnum):
 
     LOW_VALUE_TELEMETRY_DETECTOR = "configuration.low_value_telemetry_detector"
 
-
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
