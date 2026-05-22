@@ -58,6 +58,7 @@ export function PageFiltersContainer({
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   maxPickableDays,
+  maxDateRange,
   children,
   ...props
 }: Props) {
@@ -103,6 +104,7 @@ export function PageFiltersContainer({
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
       maxPickableDays,
+      maxDateRange,
       memberProjects,
       nonMemberProjects,
       defaultSelection,
