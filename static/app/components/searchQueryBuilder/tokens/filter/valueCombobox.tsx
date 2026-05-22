@@ -842,16 +842,13 @@ export function SearchQueryBuilderValueCombobox({
       {escapeSearchValue = false}: {escapeSearchValue?: boolean} = {}
     ) => {
       if (token.filter === FilterType.HAS) {
-        const suggested = getSuggestedFilterKey(value);
-        if (suggested) {
-          dispatch({
-            type: 'UPDATE_TOKEN_VALUE',
-            token,
-            value: suggested,
-          });
-          onCommit();
-          return true;
-        }
+        dispatch({
+          type: 'UPDATE_TOKEN_VALUE',
+          token,
+          value: getSuggestedFilterKey(value) ?? value,
+        });
+        onCommit();
+        return true;
       }
 
       const valueForSaving =
