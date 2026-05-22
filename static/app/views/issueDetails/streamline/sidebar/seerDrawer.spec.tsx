@@ -1,8 +1,4 @@
-import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
-import {EventFixture} from 'sentry-fixture/event';
-import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
@@ -15,8 +11,50 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {EntryType} from 'sentry/types/event';
 import {SeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+
+function makeExplorerBlock({
+  id = 'block-1',
+  content = 'Analysis content',
+  step,
+  loading = false,
+  artifacts,
+}: {
+  artifacts?: Array<{data: Record<string, unknown>; key: string; reason: string}>;
+  content?: string;
+  id?: string;
+  loading?: boolean;
+  step?: string;
+} = {}) {
+  return {
+    id,
+    message: {
+      role: 'assistant' as const,
+      content,
+      metadata: step ? {step} : null,
+    },
+    timestamp: '2024-01-01T00:00:00Z',
+    loading,
+    artifacts: artifacts ?? [],
+  };
+}
+
+function makeExplorerAutofixData({
+  blocks = [makeExplorerBlock()],
+  status = 'completed' as const,
+  run_id = 1,
+}: {
+  blocks?: Array<ReturnType<typeof makeExplorerBlock>>;
+  run_id?: number;
+  status?: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
+} = {}) {
+  return {
+    run_id,
+    blocks,
+    status,
+    updated_at: '2024-01-01T00:00:00Z',
+  };
+}
 
 describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
@@ -24,82 +62,8 @@ describe('SeerDrawer', () => {
     features: ['gen-ai-features'],
   });
 
-  const mockEvent = EventFixture({
-    entries: [
-      {
-        type: EntryType.EXCEPTION,
-        data: {values: [{stacktrace: {frames: [FrameFixture()]}}]},
-      },
-    ],
-  });
   const mockGroup = GroupFixture();
   const mockProject = DetailedProjectFixture();
-
-  const mockAutofixData = AutofixDataFixture({steps: [AutofixStepFixture()]});
-
-  // Create autofix data with various repository configurations for testing notices
-  const mockAutofixWithReadableRepos = AutofixDataFixture({
-    steps: [AutofixStepFixture()],
-    request: {
-      repos: [
-        {
-          name: 'org/repo',
-          provider: 'github',
-          owner: 'org',
-          external_id: 'repo-123',
-        },
-      ],
-    },
-    codebases: {
-      'repo-123': {
-        repo_external_id: 'repo-123',
-        is_readable: true,
-        is_writeable: true,
-      },
-    },
-  });
-
-  const mockAutofixWithUnreadableGithubRepos = AutofixDataFixture({
-    steps: [AutofixStepFixture()],
-    request: {
-      repos: [
-        {
-          name: 'org/repo',
-          provider: 'github',
-          owner: 'org',
-          external_id: 'repo-123',
-        },
-      ],
-    },
-    codebases: {
-      'repo-123': {
-        repo_external_id: 'repo-123',
-        is_readable: false,
-        is_writeable: false,
-      },
-    },
-  });
-
-  const mockAutofixWithUnreadableNonGithubRepos = AutofixDataFixture({
-    steps: [AutofixStepFixture()],
-    request: {
-      repos: [
-        {
-          name: 'org/gitlab-repo',
-          provider: 'gitlab',
-          owner: 'org',
-          external_id: 'repo-123',
-        },
-      ],
-    },
-    codebases: {
-      'repo-123': {
-        repo_external_id: 'repo-123',
-        is_readable: false,
-        is_writeable: false,
-      },
-    },
-  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -111,16 +75,6 @@ describe('SeerDrawer', () => {
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
-      method: 'POST',
-      body: {
-        whatsWrong: 'Test whats wrong',
-        trace: 'Test trace',
-        possibleCause: 'Test possible cause',
-        headline: 'Test headline',
-      },
     });
     MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/preferences/`,
@@ -164,51 +118,13 @@ describe('SeerDrawer', () => {
     });
   });
 
-  it('renders issue summary if consent flow is removed and there is no autofix quota', async () => {
-    const orgWithConsentFlowRemoved = OrganizationFixture({
-      hideAiFeatures: false,
-      features: ['seer-billing', 'gen-ai-features'],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: false, reason: null},
-        githubWriteIntegration: {ok: false, repos: []},
-        billing: {hasAutofixQuota: false},
-      }),
-    });
+  it('renders loading state while autofix setup is pending', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization: orgWithConsentFlowRemoved,
-    });
-
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // Issue summary fields are rendered
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
-    expect(screen.getByText('Test headline')).toBeInTheDocument();
-
-    // Should display the seer purchase flow
-    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
-  });
-
-  it('renders initial state with Start Root Cause Analysis button', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -217,28 +133,15 @@ describe('SeerDrawer', () => {
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
     );
-
-    expect(screen.getByRole('heading', {name: 'Seer Autofix'})).toBeInTheDocument();
-
-    // Verify the Start Root Cause Analysis button is available
-    const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
-    expect(startButton).toBeInTheDocument();
   });
 
-  it('renders GitHub integration setup notice when missing GitHub integration', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: false, reason: null},
-        githubWriteIntegration: {ok: false, repos: []},
-      }),
-    });
+  it('renders Seer Autofix header text after loading', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -246,165 +149,112 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Integration')).toBeInTheDocument();
-
-    const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
-    expect(startButton).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
   });
 
-  it('triggers Seer on clicking the Start button', async () => {
+  it('shows reset button that is always enabled', async () => {
     MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    const resetButton = screen.getByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeEnabled();
+  });
+
+  it('shows copy button disabled when no autofix run exists', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    const copyButton = screen.getByRole('button', {
+      name: 'Copy analysis as Markdown',
+    });
+    expect(copyButton).toBeInTheDocument();
+    expect(copyButton).toBeDisabled();
+  });
+
+  it('shows copy button enabled when autofix run exists', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: makeExplorerAutofixData(),
+      },
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    const copyButton = screen.getByRole('button', {
+      name: 'Copy analysis as Markdown',
+    });
+    expect(copyButton).toBeInTheDocument();
+    expect(copyButton).toBeEnabled();
+  });
+
+  it('renders reset button enabled with autofix data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: makeExplorerAutofixData(),
+      },
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    const resetButton = screen.getByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeEnabled();
+  });
+
+  it('clicking reset triggers a new root cause analysis', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: makeExplorerAutofixData(),
+      },
+    });
+
+    const postMock = MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       method: 'POST',
-      body: {autofix: null},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      method: 'GET',
-      body: {autofix: null},
+      body: {run_id: 2},
     });
 
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    let resetButton = await screen.findByRole('button', {
-      name: 'Start a new analysis from scratch',
-    });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeDisabled();
-
-    const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
-    await userEvent.click(startButton);
-
-    resetButton = await screen.findByRole('button', {
-      name: 'Start a new analysis from scratch',
-    });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
-  });
-
-  it('shows disabled reset button when hasAutofix is false', async () => {
-    // Mock AI consent as okay but no autofix capability
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    // Use jest.spyOn instead of jest.mock inside the test
-    const issueTypeConfigModule = require('sentry/utils/issueTypeConfig');
-    const spy = jest
-      .spyOn(issueTypeConfigModule, 'getConfigForIssueType')
-      .mockImplementation(() => ({
-        autofix: false,
-        issueSummary: {enabled: true},
-        resources: null,
-      }));
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    const resetButton = await screen.findByRole('button', {
-      name: 'Start a new analysis from scratch',
-    });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeDisabled();
-
-    // But the Start Root Cause Analysis button should not be visible
-    expect(
-      screen.queryByRole('button', {name: 'Start Root Cause Analysis'})
-    ).not.toBeInTheDocument();
-
-    // Restore the original implementation
-    spy.mockRestore();
-  });
-
-  it('shows disabled reset button when hasAutofix is true but no autofixData', async () => {
-    // Mock everything as ready for autofix but no data
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // Reset button should be visible and enabled (onReset is always provided)
-    const resetButton = screen.getByRole('button', {
-      name: 'Start a new analysis from scratch',
-    });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeDisabled();
-  });
-
-  it('shows enabled reset button when hasAutofix and autofixData are both true', async () => {
-    // Mock everything as ready with existing autofix data
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixData},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // Reset button should be visible and enabled
-    const resetButton = screen.getByRole('button', {
-      name: 'Start a new analysis from scratch',
-    });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
-  });
-
-  it('displays reset button with autofix data', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixData},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -415,240 +265,48 @@ describe('SeerDrawer', () => {
     const resetButton = screen.getByRole('button', {
       name: 'Start a new analysis from scratch',
     });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
-  });
-
-  it('displays reset button even without autofix data', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    const resetButton = await screen.findByRole('button', {
-      name: 'Start a new analysis from scratch',
-    });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeDisabled();
-    expect(
-      await screen.findByRole('button', {name: 'Start Root Cause Analysis'})
-    ).toBeInTheDocument();
-  });
-
-  it('resets autofix on clicking the reset button', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixData},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    const resetButton = await screen.findByRole('button', {
-      name: 'Start a new analysis from scratch',
-    });
-    expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
     await userEvent.click(resetButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole('button', {name: 'Start Root Cause Analysis'})
-      ).toBeInTheDocument();
+      expect(postMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({step: 'root_cause'}),
+        })
+      );
     });
   });
 
-  it('shows setup instructions when GitHub integration setup is needed', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: false, reason: null},
-        githubWriteIntegration: {ok: false, repos: []},
-      }),
-    });
+  it('renders root cause section when blocks contain root cause step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/?provider_key=github&includeConfig=0',
-      body: [],
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByRole('heading', {name: 'Seer Autofix'})).toBeInTheDocument();
-
-    // Since "Install the GitHub Integration" text isn't found, let's check for
-    // the "Set Up the GitHub Integration" text which is what the component is actually showing
-    expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Integration')).toBeInTheDocument();
-  });
-
-  it('does not render SeerNotices when all repositories are readable', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixWithReadableRepos},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // We don't expect to see any notice about repositories since all are readable
-    expect(screen.queryByText(/Seer can't access/)).not.toBeInTheDocument();
-  });
-
-  it('renders warning for unreadable GitHub repository', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixWithUnreadableGithubRepos},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText(/Seer can't access the/)).toBeInTheDocument();
-    expect(screen.getByText('org/repo')).toBeInTheDocument();
-    expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
-  });
-
-  it('renders warning for unreadable non-GitHub repository', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixWithUnreadableNonGithubRepos},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText(/Seer can't access the/)).toBeInTheDocument();
-    expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
-    expect(
-      screen.getByText(/It currently only supports GitHub repositories/)
-    ).toBeInTheDocument();
-  });
-
-  it('shows cursor integration onboarding step if integration is installed but handoff not configured', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/integrations/coding-agents/`,
       body: {
-        integrations: [
-          {
-            id: '123',
-            provider: 'cursor',
-            name: 'Cursor',
-          },
-        ],
+        autofix: makeExplorerAutofixData({
+          blocks: [
+            makeExplorerBlock({
+              id: 'rc-1',
+              step: 'root_cause',
+              content: 'Root cause analysis result',
+              artifacts: [
+                {
+                  key: 'root_cause',
+                  reason: 'Analysis complete',
+                  data: {
+                    one_line_description: 'A null pointer dereference in the auth module',
+                    five_whys: ['First why', 'Second why'],
+                  },
+                },
+              ],
+            }),
+          ],
+          status: 'completed',
+        }),
       },
     });
-    MockApiClient.addMockResponse({
-      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/preferences/`,
-      body: {
-        code_mapping_repos: [],
-        preference: {
-          repositories: [{external_id: 'repo-123', name: 'org/repo', provider: 'github'}],
-          automated_run_stopping_point: 'root_cause',
-          // No automation_handoff
-        },
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
-      body: {
-        autofixAutomationTuning: 'medium',
-        seerScannerAutomation: true,
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
-      body: [
-        {
-          name: 'org/repo',
-          provider: 'github',
-          owner: 'org',
-          external_id: 'repo-123',
-          is_readable: true,
-          is_writeable: true,
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/group-search-views/starred/`,
-      body: [
-        {
-          id: '1',
-          name: 'Fixability View',
-          query: 'is:unresolved issue.seer_actionability:high',
-          starred: true,
-        },
-      ],
-    });
 
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization: OrganizationFixture({
-        features: ['gen-ai-features', 'issue-views'],
-      }),
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization,
     });
 
     await waitForElementToBeRemoved(() =>
@@ -656,87 +314,7 @@ describe('SeerDrawer', () => {
     );
 
     expect(
-      await screen.findByText('Hand Off to Cursor Cloud Agents')
+      await screen.findByText('A null pointer dereference in the auth module')
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Set Seer to hand off to Cursor'})
-    ).toBeInTheDocument();
-  });
-
-  it('does not show cursor integration step if localStorage skip key is set', async () => {
-    // Set skip key BEFORE rendering
-    localStorage.setItem(`seer-onboarding-cursor-skipped:${mockProject.id}`, 'true');
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [
-          {
-            id: '123',
-            provider: 'cursor',
-            name: 'Cursor',
-          },
-        ],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/preferences/`,
-      body: {
-        code_mapping_repos: [],
-        preference: {
-          repositories: [{external_id: 'repo-123', name: 'org/repo', provider: 'github'}],
-          automated_run_stopping_point: 'root_cause',
-          // No automation_handoff
-        },
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
-      body: {
-        autofixAutomationTuning: 'medium',
-        seerScannerAutomation: true,
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
-      body: [
-        {
-          name: 'org/repo',
-          provider: 'github',
-          owner: 'org',
-          external_id: 'repo-123',
-          is_readable: true,
-          is_writeable: true,
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/group-search-views/starred/`,
-      body: [
-        {
-          id: '1',
-          name: 'Fixability View',
-          query: 'is:unresolved issue.seer_actionability:high',
-          starred: true,
-        },
-      ],
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization: OrganizationFixture({
-        features: ['gen-ai-features', 'issue-views'],
-      }),
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // Should not show the step since it was skipped
-    expect(screen.queryByText('Hand Off to Cursor Cloud Agents')).not.toBeInTheDocument();
   });
 });
