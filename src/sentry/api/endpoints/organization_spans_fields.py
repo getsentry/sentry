@@ -29,7 +29,7 @@ from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute_to_api, translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
@@ -125,7 +125,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                     as_tag_key(attribute.name, serialized["type"])
                     for attribute in rpc_response.attributes
                     if attribute.name
-                    and can_expose_attribute(
+                    and can_expose_attribute_to_api(
                         attribute.name,
                         SupportedTraceItemType.SPANS,
                         include_internal=include_internal,
@@ -164,15 +164,25 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
 
         max_span_tag_values = options.get("performance.spans-tags-values.max")
 
-        executor = EAPSpanFieldValuesAutocompletionExecutor(
-            organization=organization,
-            snuba_params=snuba_params,
-            key=key,
-            query=request.GET.get("query"),
-            max_span_tag_values=max_span_tag_values,
-        )
-
         with handle_query_errors():
+            executor = EAPSpanFieldValuesAutocompletionExecutor(
+                organization=organization,
+                snuba_params=snuba_params,
+                key=key,
+                query=request.GET.get("query"),
+                max_span_tag_values=max_span_tag_values,
+                include_internal=is_active_superuser(request) or is_active_staff(request),
+            )
+
+            if not executor.can_expose_attribute_to_api():
+                return self.paginate(
+                    request=request,
+                    paginator=ChainPaginator([]),
+                    on_results=lambda results: serialize(results, request.user),
+                    default_per_page=max_span_tag_values,
+                    max_per_page=max_span_tag_values,
+                )
+
             tag_values = executor.execute()
 
         tag_values.sort(key=lambda tag: tag.value or "")
@@ -245,8 +255,10 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         key: str,
         query: str | None,
         max_span_tag_values: int,
+        include_internal: bool,
     ):
         super().__init__(organization, snuba_params, key, query, max_span_tag_values)
+        self.include_internal = include_internal
         self.resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
         )
@@ -257,6 +269,23 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
     ) -> tuple[constants.SearchType, AttributeKey]:
         resolved, _ = self.resolver.resolve_attribute(key)
         return resolved.search_type, resolved.proto_definition
+
+    def can_expose_attribute_to_api(self) -> bool:
+        is_public_defined_attribute = (
+            self.key in SPAN_DEFINITIONS.columns or self.key in SPAN_DEFINITIONS.contexts
+        )
+        return can_expose_attribute_to_api(
+            self.key,
+            SupportedTraceItemType.SPANS,
+            include_internal=self.include_internal,
+        ) and (
+            is_public_defined_attribute
+            or can_expose_attribute_to_api(
+                self.attribute_key.name,
+                SupportedTraceItemType.SPANS,
+                include_internal=self.include_internal,
+            )
+        )
 
     def execute(self) -> list[TagValue]:
         if self.key in self.PROJECT_ID_KEYS:
