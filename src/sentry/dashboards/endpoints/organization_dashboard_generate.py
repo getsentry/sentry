@@ -27,13 +27,12 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemetrics"`:
-- Aggregates use a 4-argument form: `func(attribute, metric_name, metric_type, metric_unit)`. All four positional arguments are REQUIRED — passing only 3 will misalign the arguments and fail validation.
+- Aggregates use a required 4-argument form: `func(attribute, metric_name, metric_type, metric_unit)`.
   - `attribute` must be `value` (the numeric value of the metric); no other attributes are supported at this time.
   - `metric_name` is the metric's name as ingested (e.g. `my.app.latency`).
   - `metric_type` is exactly one of `counter`, `gauge`, or `distribution`.
   - `metric_unit` is the metric's unit as ingested (e.g. `milliseconds`, `bytes`, `none`). Use `-` to match any unit when the unit is unknown or irrelevant.
 - Examples: `count(value, my.app.requests, counter, none)`, `avg(value, my.app.cpu, gauge, percent)`, `p95(value, my.app.latency, distribution, milliseconds)`.
-- Single-argument forms like `p50(my.metric)` and 3-argument forms like `avg(value, my.metric, gauge)` are INVALID for tracemetrics.
 - Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, fall back to `-` for the unit only if the metric and type are confirmed, otherwise pick a different dataset or omit the widget."""
 
 CREATE_ON_PAGE_CONTEXT = (
