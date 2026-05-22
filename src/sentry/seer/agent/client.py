@@ -364,6 +364,13 @@ class SeerAgentClient:
         ):
             chat_body["is_context_engine_enabled"] = override_ce_enable
 
+        if features.has(
+            "organizations:seer-agent-source-code-search",
+            self.organization,
+            actor=self.user,
+        ):
+            chat_body["enable_frontend_code_search"] = True
+
         if features.has("organizations:seer-run-mirror-explorer", self.organization):
             user_id = (
                 self.user.id
