@@ -69,19 +69,16 @@ class RetryRelocationTest(APITestCase):
         )
 
         # Make two files - one to be referenced by our existing `Relocation`, the other not.
-        self.file: File = File.objects.create(
-            name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE
-        )
+        self.file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         self.file.putfile(get_test_tarball())
-        other_file: File = File.objects.create(
-            name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE
-        )
+        other_file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         other_file.putfile(get_test_tarball())
 
         self.relocation_file = RelocationFile.objects.create(
             relocation=self.relocation,
             file=self.file,
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
+            bucket_path=RelocationFile.Kind.RAW_USER_DATA.bucket_path(self.relocation.uuid, "tar"),
         )
 
     @override_options(
@@ -116,14 +113,20 @@ class RetryRelocationTest(APITestCase):
         assert response.data["importedUserIds"] == []
         assert response.data["importedOrgIds"] == []
 
-        assert (
+        new_relocation = (
             Relocation.objects.filter(owner_id=self.owner.id)
             .exclude(uuid=self.relocation.uuid)
-            .exists()
+            .first()
         )
+        assert new_relocation
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
         assert File.objects.count() == file_count
+        new_relocation_file = RelocationFile.objects.get(relocation=new_relocation)
+        # The new RelocationFile should reference the old bucket path.
+        assert new_relocation_file.bucket_path == RelocationFile.Kind.RAW_USER_DATA.bucket_path(
+            self.relocation.uuid, "tar"
+        )
 
         assert uploading_start_mock.call_count == 1
 
