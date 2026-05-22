@@ -2,16 +2,20 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from datetime import timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
+from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
+from sentry.dynamic_sampling.tasks.common import compute_sliding_window_sample_rate
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.models.options.project_option import ProjectOption
@@ -60,9 +64,6 @@ class BaseDynamicSamplingConfiguration(ABC):
     def get_sample_rate(self) -> TargetSampleRate:
         raise NotImplementedError
 
-    def set_sliding_window_sample_rate(self, sample_rate: TargetSampleRate) -> None:
-        self.sliding_window_sample_rate = sample_rate
-
     @property
     def is_span_based(self) -> bool:
         return self.measure == SamplingMeasure.SPANS
@@ -109,6 +110,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         except ObjectDoesNotExist as exc:
             raise DynamicSamplingException(DynamicSamplingStatus.NO_SUBSCRIPTION) from exc
         self.projects = self._get_projects()
+        self.sliding_window_sample_rate = self._get_sliding_window_sample_rate()
 
     @property
     def is_enabled(self) -> bool:
@@ -118,6 +120,23 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
+
+    def _get_sliding_window_sample_rate(self) -> TargetSampleRate:
+        if not self.projects:
+            return None
+
+        org_volume_24h = get_eap_organization_volume(
+            self, time_interval=timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
+        )
+        if org_volume_24h is None:
+            return None
+
+        return compute_sliding_window_sample_rate(
+            org_id=self.organization.id,
+            project_id=None,
+            total_root_count=org_volume_24h.total,
+            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+        )
 
 
 class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):

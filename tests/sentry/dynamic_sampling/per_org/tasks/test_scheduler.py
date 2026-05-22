@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
-from sentry.dynamic_sampling.per_org.tasks.configuration import (
-    AutomaticDynamicSamplingConfiguration,
-    BaseDynamicSamplingConfiguration,
-)
+from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     BUCKET_COUNT,
     BUCKET_CURSOR_KEY,
@@ -19,7 +15,6 @@ from sentry.dynamic_sampling.per_org.tasks.scheduler import (
 from sentry.dynamic_sampling.per_org.tasks.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -139,6 +134,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ),
             patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.get_eap_organization_volume",
+                return_value=None,
+            ),
+            patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
                 return_value=None,
             ) as get_volume,
@@ -153,7 +152,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
 
         with (
             patch(
@@ -161,39 +159,18 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
-                side_effect=[org_volume, sliding_window_volume],
-            ) as get_volume,
+                "sentry.dynamic_sampling.per_org.tasks.configuration.get_eap_organization_volume",
+                return_value=None,
+            ),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.compute_sliding_window_sample_rate",
-                return_value=0.25,
-            ) as compute_sample_rate,
-            patch.object(
-                AutomaticDynamicSamplingConfiguration,
-                "set_sliding_window_sample_rate",
-                autospec=True,
-            ) as set_sliding_window_sample_rate,
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                return_value=org_volume,
+            ) as get_volume,
         ):
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
-        assert get_volume.call_count == 2
-        first_config = get_volume.call_args_list[0].args[0]
-        assert isinstance(first_config, BaseDynamicSamplingConfiguration)
-        assert first_config.organization.id == org.id
-        second_config = get_volume.call_args_list[1].args[0]
-        assert isinstance(second_config, BaseDynamicSamplingConfiguration)
-        assert second_config.organization.id == org.id
-        assert get_volume.call_args_list[1].kwargs["time_interval"] == timedelta(
-            hours=FALLBACK_SLIDING_WINDOW_SIZE
-        )
-        compute_sample_rate.assert_called_once_with(
-            org_id=org.id,
-            project_id=None,
-            total_root_count=1000,
-            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
-        )
-        assert set_sliding_window_sample_rate.call_args.args[1] == 0.25
+        _assert_called_once_with_config(get_volume, org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_dynamic_sampling(self) -> None:

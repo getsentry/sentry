@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import sentry_sdk
 from django.db.models import F
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
-from sentry.dynamic_sampling.per_org.tasks.configuration import (
-    BaseDynamicSamplingConfiguration,
-    get_configuration,
-)
+from sentry.dynamic_sampling.per_org.tasks.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
@@ -21,8 +18,6 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.common import compute_sliding_window_sample_rate
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -42,21 +37,6 @@ def _next_bucket_index() -> int:
         sentry_sdk.capture_exception(exc)
         return datetime.now(tz=timezone.utc).minute % BUCKET_COUNT
     return bucket_index
-
-
-def _get_sliding_window_sample_rate(config: BaseDynamicSamplingConfiguration) -> float | None:
-    org_volume_24h = get_eap_organization_volume(
-        config, time_interval=timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
-    )
-    if org_volume_24h is None:
-        return None
-
-    return compute_sliding_window_sample_rate(
-        org_id=config.organization.id,
-        project_id=None,
-        total_root_count=org_volume_24h.total,
-        window_size=FALLBACK_SLIDING_WINDOW_SIZE,
-    )
 
 
 @instrumented_task(
@@ -128,8 +108,5 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     org_volume = get_eap_organization_volume(config)
     if org_volume is None:
         return DynamicSamplingStatus.NO_VOLUME
-
-    sliding_window_sample_rate = _get_sliding_window_sample_rate(config)
-    config.set_sliding_window_sample_rate(sliding_window_sample_rate)
 
     return None
