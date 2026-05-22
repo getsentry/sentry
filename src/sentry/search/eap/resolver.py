@@ -61,6 +61,7 @@ from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -1122,8 +1123,6 @@ class SearchResolver:
 
         if column_definition:
             if self.config.api_attribute_visibility_item_type is not None:
-                from sentry.search.eap.utils import can_expose_attribute_to_api
-
                 item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
                 visibility_attribute = (
                     column_definition.public_alias
