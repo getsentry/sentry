@@ -82,7 +82,6 @@ from sentry.relocation.tasks.process import (
     validating_start,
 )
 from sentry.relocation.utils import (
-    RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
     OrderedTask,
     StorageBackedCheckpointExporter,
@@ -158,7 +157,6 @@ class RelocationTaskTestCase(TestCase):
             with open(IMPORT_JSON_FILE_PATH, "rb") as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    # file = File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE)
                     self.tarball = create_encrypted_export_tarball(
                         data, LocalFileEncryptor(p)
                     ).getvalue()
@@ -171,18 +169,18 @@ class RelocationTaskTestCase(TestCase):
         self,
         relocation_file: RelocationFile,
         fixture_name: str,
-        blob_size: int = RELOCATION_BLOB_SIZE,
     ) -> None:
         with open(get_fixture_path("backup", fixture_name), "rb") as fp:
-            return self.swap_relocation_file(relocation_file, BytesIO(fp.read()), blob_size)
+            return self.swap_relocation_file(relocation_file, BytesIO(fp.read()))
 
     def swap_relocation_file(
         self,
         relocation_file: RelocationFile,
         contents: BytesIO,
-        blob_size: int = RELOCATION_BLOB_SIZE,
     ) -> None:
         relocation_storage = get_relocation_storage()
+        relocation_storage.delete(relocation_file.bucket_path)
+
         with TemporaryDirectory() as tmp_dir:
             tmp_priv_key_path = Path(tmp_dir).joinpath("key")
             tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
@@ -668,9 +666,13 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def test_fail_invalid_tarball(
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
-        file = RelocationFile.objects.get(relocation=self.relocation).file
-        corrupted_tarball_bytes = bytearray(file.getfile().read())[9:]
-        file.putfile(BytesIO(bytes(corrupted_tarball_bytes)))
+        relocation_storage = get_relocation_storage()
+        with relocation_storage.open(self.relocation_file.bucket_path) as f:
+            blob = f.read()
+        corrupted_tarball_bytes = blob[9:]
+        relocation_storage.delete(self.relocation_file.bucket_path)
+        relocation_storage.save(self.relocation_file.bucket_path, BytesIO(corrupted_tarball_bytes))
+
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
@@ -723,8 +725,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def test_fail_invalid_json(
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
-        relocation_file = RelocationFile.objects.get(relocation=self.relocation)
-        self.swap_relocation_file_with_data_from_fixture(relocation_file, "invalid-user.json")
+        self.swap_relocation_file_with_data_from_fixture(self.relocation_file, "invalid-user.json")
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
@@ -746,8 +747,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def test_fail_no_users(
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
-        relocation_file = RelocationFile.objects.get(relocation=self.relocation)
-        self.swap_relocation_file_with_data_from_fixture(relocation_file, "single-option.json")
+        self.swap_relocation_file_with_data_from_fixture(self.relocation_file, "single-option.json")
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
@@ -791,9 +791,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def test_fail_no_orgs(
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
-        relocation_file = RelocationFile.objects.get(relocation=self.relocation)
         self.swap_relocation_file_with_data_from_fixture(
-            relocation_file, "user-with-minimum-privileges.json"
+            self.relocation_file, "user-with-minimum-privileges.json"
         )
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -980,8 +979,9 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert preprocessing_colliding_users_mock.call_count == 1
 
         (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
-        assert len(files) == 1
+        assert len(files) == 2
         assert "baseline-config.tar" in files
+        assert "raw-relocation-data.tar" in files
 
         with self.relocation_storage.open(f"runs/{self.uuid}/in/baseline-config.tar") as fp:
             json_models = json.loads(
@@ -1086,8 +1086,9 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert preprocessing_complete_mock.call_count == 1
 
         (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
-        assert len(files) == 1
+        assert len(files) == 2
         assert "colliding-users.tar" in files
+        assert "raw-relocation-data.tar" in files
 
         with self.relocation_storage.open(f"runs/{self.uuid}/in/colliding-users.tar") as fp:
             json_models = json.loads(
@@ -1924,7 +1925,9 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         self.tarball = create_encrypted_export_tarball(
             json.load(export_contents), encryptor
         ).getvalue()
+
         relocation_storage = get_relocation_storage()
+        relocation_storage.delete(relocation_file.bucket_path)
         relocation_storage.save(relocation_file.bucket_path, BytesIO(self.tarball))
 
         self.mock_kms_client(fake_kms_client)
