@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute

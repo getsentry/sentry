@@ -520,15 +520,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     actor=request.user,
                 )
                 api_item_type = get_rpc_dataset_attribute_visibility_item_type(scoped_dataset)
-                attribute_visibility_kwargs = (
-                    {
-                        "api_attribute_visibility_item_type": api_item_type.value,
-                        "api_attribute_visibility_include_internal": is_active_superuser(request)
-                        or is_active_staff(request),
-                    }
-                    if api_item_type is not None
-                    else {}
+                api_attribute_visibility_item_type = (
+                    api_item_type.value if api_item_type is not None else None
                 )
+                api_attribute_visibility_include_internal = is_active_superuser(
+                    request
+                ) or is_active_staff(request)
 
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
@@ -538,7 +535,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
@@ -547,7 +545,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -560,7 +559,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -570,7 +570,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
@@ -579,7 +580,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
                 elif scoped_dataset == ProcessingErrors:
                     return SearchResolverConfig(
@@ -588,7 +590,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
                 elif scoped_dataset == PreprodSize:
                     return PreprodSizeSearchResolverConfig(
@@ -596,7 +599,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
                 else:
                     return SearchResolverConfig(
@@ -604,7 +608,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
-                        **attribute_visibility_kwargs,
+                        api_attribute_visibility_item_type=api_attribute_visibility_item_type,
+                        api_attribute_visibility_include_internal=api_attribute_visibility_include_internal,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
