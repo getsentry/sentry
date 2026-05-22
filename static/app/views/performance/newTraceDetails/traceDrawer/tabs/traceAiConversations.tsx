@@ -10,8 +10,6 @@ import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  ConversationDetailPanel,
-  ConversationLeftPanel,
   ConversationSplitLayout,
   ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
@@ -178,6 +176,7 @@ function TraceConversationChat({
   onSelectSpan: (spanId: string) => void;
   selectedSpanId: string | null;
 }) {
+  const organization = useOrganization();
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
     selectedSpanId,
@@ -206,7 +205,7 @@ function TraceConversationChat({
       <ConversationSplitLayout
         sizeStorageKey="trace-conversation-split-size"
         left={
-          <ConversationLeftPanel>
+          <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
             <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
               <MessagesPanel
                 nodes={nodes}
@@ -214,13 +213,29 @@ function TraceConversationChat({
                 onSelectNode={handleSelectNode}
               />
             </Flex>
-          </ConversationLeftPanel>
+          </Flex>
         }
         right={
-          <ConversationDetailPanel
-            selectedNode={selectedNode}
-            nodeTraceMap={nodeTraceMap}
-          />
+          <Flex
+            direction="column"
+            flex={1}
+            minHeight="0"
+            background="primary"
+            overflowY="auto"
+            overflowX="hidden"
+          >
+            {selectedNode?.renderDetails({
+              node: selectedNode,
+              manager: null,
+              onParentClick: () => {},
+              onTabScrollToNode: () => {},
+              organization,
+              replay: null,
+              traceId: nodeTraceMap.get(selectedNode.id) ?? '',
+              hideNodeActions: true,
+              initiallyCollapseAiIO: true,
+            })}
+          </Flex>
         }
       />
     </TraceStateProvider>

@@ -6,9 +6,11 @@ import {PlatformIcon} from 'platformicons';
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Heading} from '@sentry/scraps/text';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Prose} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -176,7 +178,7 @@ function ConversationOnboardingPanel({
             <div>
               <Flex justify="between" gap="2xl" padding="3xl">
                 <HeaderText>
-                  <Title>{t('See Exactly What Your Agent Said')}</Title>
+                  <Heading as="h1">{t('See Exactly What Your Agent Said')}</Heading>
                   <SubTitle>
                     {t(
                       "Replay every message, tool call, and handoff in a conversation. When your agent goes off-script, you'll know why."
@@ -194,9 +196,11 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <HeaderImage src={replayOnboardingImg} />
+                <Container display={{xs: 'none', sm: 'block'}}>
+                  <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
+                </Container>
               </Flex>
-              <Divider />
+              <Separator orientation="horizontal" />
               <Grid autoColumns="minmax(0, 1fr)" flow="column" position="relative">
                 <Setup>{children}</Setup>
                 <Container padding="xl" paddingTop="3xl">
@@ -373,7 +377,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
       <Flex gap="md" align="center" wrap="wrap" paddingBottom="md">
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </Flex>
-      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      {introduction && <Prose>{introduction}</Prose>}
       <GuidedSteps
         key={selectedIntegration}
         initialStep={decodeInteger(location.query.guidedStep)}
@@ -420,7 +424,7 @@ function UnsupportedPlatformOnboarding({
 }) {
   return (
     <ConversationOnboardingPanel project={project}>
-      <DescriptionWrapper>
+      <Prose>
         <p>
           {tct(
             "Auto instrumentation isn't available for [platform] yet, but you can still get conversations working.",
@@ -440,7 +444,7 @@ function UnsupportedPlatformOnboarding({
           )}
         </p>
         <CopyLLMPromptButton />
-      </DescriptionWrapper>
+      </Prose>
     </ConversationOnboardingPanel>
   );
 }
@@ -448,7 +452,7 @@ function UnsupportedPlatformOnboarding({
 function NoDocsOnboarding({project}: {project: Project}) {
   return (
     <ConversationOnboardingPanel project={project}>
-      <DescriptionWrapper>
+      <Prose>
         <p>
           {tct(
             "We don't have a setup checklist for [project] yet, but that won't stop us.",
@@ -466,7 +470,7 @@ function NoDocsOnboarding({project}: {project: Project}) {
           )}
         </p>
         <CopyLLMPromptButton />
-      </DescriptionWrapper>
+      </Prose>
     </ConversationOnboardingPanel>
   );
 }
@@ -489,23 +493,6 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   padding-right: ${p => p.theme.space['3xl']};
 `;
 
-const Title = styled('div')`
-  font-size: 26px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const HeaderImage = styled('img')`
-  display: block;
-  pointer-events: none;
-  height: 120px;
-  overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
 const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 
@@ -524,36 +511,4 @@ const Arcade = styled('iframe')`
   min-height: 420px;
   margin-top: ${p => p.theme.space.md};
   border: 0;
-`;
-
-const Divider = styled('hr')`
-  width: 95%;
-  border: none;
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0;
-`;
-
-const DescriptionWrapper = styled('div')`
-  code:not([class*='language-']) {
-    color: ${p => p.theme.colors.pink500};
-  }
-
-  :not(:last-child) {
-    margin-bottom: ${p => p.theme.space.md};
-  }
-
-  && > h4,
-  && > h5,
-  && > h6 {
-    font-size: ${p => p.theme.font.size.xl};
-    font-weight: ${p => p.theme.font.weight.sans.medium};
-    line-height: 34px;
-  }
-
-  && > * {
-    margin: 0;
-    &:not(:last-child) {
-      margin-bottom: ${p => p.theme.space.md};
-    }
-  }
 `;

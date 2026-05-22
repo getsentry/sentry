@@ -57,34 +57,24 @@ function ConversationDetailPage() {
             isLoading={isLoading}
           />
         </Flex>
-        <ConversationViewContainer>
+        <Container
+          flex={1}
+          minHeight="0"
+          overflow="hidden"
+          border="primary"
+          radius="md"
+          background="primary"
+          display="flex"
+        >
           <ConversationViewContent
             conversation={conversation}
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}
             focusedTool={queryState.focusedTool}
           />
-        </ConversationViewContainer>
+        </Container>
       </Stack>
     </ViewportConstrainedPage>
-  );
-}
-
-function ConversationViewContainer({children}: {children: React.ReactNode}) {
-  return (
-    <Container
-      flex={1}
-      minHeight="0"
-      overflow="hidden"
-      border="primary"
-      radius="md"
-      background="primary"
-      display="flex"
-    >
-      <Flex flex={1} minHeight="0" height="100%">
-        {children}
-      </Flex>
-    </Container>
   );
 }
 
