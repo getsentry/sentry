@@ -118,9 +118,11 @@ function ConversationsTableInner() {
           column.name
         )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {/* Force the cell to take as much width as possible in the table
-            layout, otherwise GridEditable will let the last column grow. */}
-        {column.key === 'inputOutput' && <Container width="100vw" />}
+        {column.key === 'inputOutput' && (
+          // Force the cell to take as much width as possible in the table
+          // layout, otherwise GridEditable will let the last column grow.
+          <Container width="100vw" />
+        )}
       </Flex>
     );
   }, []);
