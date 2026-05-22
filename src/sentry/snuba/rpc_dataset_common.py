@@ -809,11 +809,11 @@ class RPCBase:
         )
         result = ProcessedTimeseries()
         if search_resolver.has_hidden_api_attributes():
-            final_meta: EventsMeta = {"fields": {}}
+            hidden_meta: EventsMeta = {"fields": {}}
             for resolved_field in aggregates + groupbys:
-                final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
+                hidden_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
             return SnubaTSResult(
-                {"data": [], "processed_timeseries": result, "meta": final_meta},
+                {"data": [], "processed_timeseries": result, "meta": hidden_meta},
                 params.start,
                 params.end,
                 params.granularity_secs,
