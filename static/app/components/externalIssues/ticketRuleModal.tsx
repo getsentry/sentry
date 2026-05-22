@@ -30,20 +30,21 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 const IGNORED_FIELDS = ['Sprint'];
 
-// Older saved automations may have `dynamic_form_fields[i].choices` whose
-// labels were React elements (the pre-#112094 code wrapped the current
-// option's label in a <Fragment><QuestionTooltip />…</Fragment>). When the
-// rule was JSON-serialized to the backend, $$typeof (Symbol) and type
-// (function) were dropped, leaving {key, ref, props} on the wire. React 19
-// throws "Objects are not valid as a React child" when those leak into the
-// option list. Coerce any non-string label to String(value) at the read
-// boundary so the form can render and so we don't re-persist the bad shape.
+// The new form adapter requires string labels — see `JsonFormAdapterSelect`
+// in backendJsonFormAdapter/types.ts. Older saved automations may have
+// `dynamic_form_fields[i].choices` whose labels were React elements (the
+// pre-#112094 code wrapped the current option's label in a
+// <Fragment><QuestionTooltip />…</Fragment>). When the rule was
+// JSON-serialized to the backend, $$typeof (Symbol) and type (function)
+// were dropped, leaving {key, ref, props} on the wire. React 19 throws
+// "Objects are not valid as a React child" when those leak into the option
+// list. Enforce stringness at the read boundary so the form can render and
+// so we don't re-persist the bad shape.
 function sanitizeSavedChoices(choices: Choices): Choices {
-  return choices.map(([value, label]) =>
-    typeof label === 'string' || typeof label === 'number'
-      ? [value, label]
-      : [value, String(value)]
-  );
+  return choices.map(([value, label]) => [
+    value,
+    typeof label === 'string' ? label : String(value),
+  ]);
 }
 
 function sanitizeSavedFields(fields: IssueConfigField[]): IssueConfigField[] {
