@@ -431,7 +431,7 @@ function useFilterSuggestions({
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
     queryKey: tagKeysQueryKey,
-    queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
+    queryFn: ctx => getTagKeys?.(ctx.queryKey[1] ?? '') ?? [],
     placeholderData: keepPreviousData,
     enabled: shouldFetchTagKeys,
   });
