@@ -135,7 +135,7 @@ type AutofixProgressItem = {
   data?: any;
 };
 
-export type AutofixStep =
+type AutofixStep =
   | AutofixDefaultStep
   | AutofixRootCauseStep
   | AutofixSolutionStep
@@ -190,7 +190,7 @@ type InsightSources = {
   event_trace_timestamp?: number;
 };
 
-export interface AutofixDefaultStep extends BaseStep {
+interface AutofixDefaultStep extends BaseStep {
   insights: AutofixInsight[];
   type: AutofixStepType.DEFAULT;
 }
