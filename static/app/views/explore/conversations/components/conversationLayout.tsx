@@ -7,6 +7,8 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 const LEFT_PANEL_MIN = 400;
 const RIGHT_PANEL_MIN = 400;
@@ -96,11 +98,53 @@ export function ConversationSplitLayout({
   );
 }
 
+export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
+  return (
+    <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
+      {children}
+    </Flex>
+  );
+}
+
+export function ConversationDetailPanel({
+  selectedNode,
+  nodeTraceMap,
+  initiallyCollapseAiIO = true,
+}: {
+  nodeTraceMap: Map<string, string>;
+  initiallyCollapseAiIO?: boolean;
+  selectedNode?: AITraceSpanNode;
+}) {
+  const organization = useOrganization();
+  return (
+    <Flex
+      direction="column"
+      flex={1}
+      minHeight="0"
+      background="primary"
+      overflowY="auto"
+      overflowX="hidden"
+    >
+      {selectedNode?.renderDetails({
+        node: selectedNode,
+        manager: null,
+        onParentClick: () => {},
+        onTabScrollToNode: () => {},
+        organization,
+        replay: null,
+        traceId: nodeTraceMap.get(selectedNode.id) ?? '',
+        hideNodeActions: true,
+        initiallyCollapseAiIO,
+      })}
+    </Flex>
+  );
+}
+
 export function ConversationViewSkeleton() {
   return (
     <ConversationSplitLayout
       left={
-        <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
+        <ConversationLeftPanel>
           <Container borderBottom="primary" padding="md lg">
             <Flex gap="lg">
               <Placeholder height="14px" width="40px" />
@@ -141,7 +185,7 @@ export function ConversationViewSkeleton() {
               </Flex>
             </Container>
           </Flex>
-        </Flex>
+        </ConversationLeftPanel>
       }
       right={
         <Flex direction="column" gap="lg" padding="lg">

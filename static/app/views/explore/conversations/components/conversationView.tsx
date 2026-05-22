@@ -9,6 +9,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  ConversationDetailPanel,
+  ConversationLeftPanel,
   ConversationSplitLayout,
   ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
@@ -118,7 +120,7 @@ function ConversationView({
   return (
     <ConversationSplitLayout
       left={
-        <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
+        <ConversationLeftPanel>
           <Flex direction="column" flex="1" minHeight="0" width="100%" overflow="hidden">
             <Container flexShrink={0} borderBottom="primary" background="primary">
               <Tabs value={activeTab} onChange={handleTabChange}>
@@ -154,29 +156,13 @@ function ConversationView({
               )}
             </Flex>
           </Flex>
-        </Flex>
+        </ConversationLeftPanel>
       }
       right={
-        <Flex
-          direction="column"
-          flex={1}
-          minHeight="0"
-          background="primary"
-          overflowY="auto"
-          overflowX="hidden"
-        >
-          {selectedNode?.renderDetails({
-            node: selectedNode,
-            manager: null,
-            onParentClick: () => {},
-            onTabScrollToNode: () => {},
-            organization,
-            replay: null,
-            traceId: nodeTraceMap.get(selectedNode.id) ?? '',
-            hideNodeActions: true,
-            initiallyCollapseAiIO: true,
-          })}
-        </Flex>
+        <ConversationDetailPanel
+          selectedNode={selectedNode}
+          nodeTraceMap={nodeTraceMap}
+        />
       }
     />
   );

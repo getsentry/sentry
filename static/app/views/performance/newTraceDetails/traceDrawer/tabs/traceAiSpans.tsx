@@ -11,7 +11,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ConversationSplitLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {
+  ConversationDetailPanel,
+  ConversationLeftPanel,
+  ConversationSplitLayout,
+} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -172,7 +176,6 @@ export function AiSpansSplitView({
   nodes: AITraceSpanNode[];
   traceSlug: string;
 }) {
-  const organization = useOrganization();
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
 
   const nodeTraceMap = useMemo(() => {
@@ -190,7 +193,7 @@ export function AiSpansSplitView({
   return (
     <ConversationSplitLayout
       left={
-        <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
+        <ConversationLeftPanel>
           <Flex flex="1" minHeight="0" overflowY="auto" overflowX="hidden">
             <Container padding="md lg md lg" width="100%">
               <AISpanList
@@ -200,29 +203,14 @@ export function AiSpansSplitView({
               />
             </Container>
           </Flex>
-        </Flex>
+        </ConversationLeftPanel>
       }
       right={
-        <Flex
-          direction="column"
-          flex={1}
-          minHeight="0"
-          background="primary"
-          overflowY="auto"
-          overflowX="hidden"
-        >
-          {selectedNode?.renderDetails({
-            node: selectedNode,
-            manager: null,
-            onParentClick: () => {},
-            onTabScrollToNode: () => {},
-            organization,
-            replay: null,
-            traceId: nodeTraceMap.get(selectedNode.id) ?? '',
-            hideNodeActions: true,
-            initiallyCollapseAiIO: false,
-          })}
-        </Flex>
+        <ConversationDetailPanel
+          selectedNode={selectedNode}
+          nodeTraceMap={nodeTraceMap}
+          initiallyCollapseAiIO={false}
+        />
       }
     />
   );
