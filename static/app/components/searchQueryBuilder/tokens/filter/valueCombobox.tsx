@@ -449,7 +449,7 @@ function useFilterSuggestions({
           ),
         value: suggestion.value,
         details: suggestion.description,
-        textValue: suggestion.value,
+        textValue: typeof label === 'string' ? label : suggestion.value,
         hideCheck: true,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
         trailingItems: ({isFocused, disabled}: any) => {
