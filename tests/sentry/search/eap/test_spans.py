@@ -1,5 +1,7 @@
 import os
 from datetime import datetime
+from types import SimpleNamespace
+from unittest import mock
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
@@ -28,6 +30,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -40,11 +43,92 @@ from sentry.search.eap.spans.attributes import (
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
+
+
+class AttributeVisibilityTest(TestCase):
+    def test_public_convention_attribute_visible_to_everyone(self) -> None:
+        with mock.patch.dict(
+            eap_utils.ATTRIBUTE_METADATA,
+            {"public.attr": SimpleNamespace(visibility="public")},
+        ):
+            assert can_expose_attribute_to_api("public.attr", SupportedTraceItemType.SPANS)
+
+    def test_internal_convention_attribute_hidden_unless_included(self) -> None:
+        with mock.patch.dict(
+            eap_utils.ATTRIBUTE_METADATA,
+            {"internal.attr": SimpleNamespace(visibility="internal")},
+        ):
+            assert not can_expose_attribute_to_api("internal.attr", SupportedTraceItemType.SPANS)
+            assert can_expose_attribute_to_api(
+                "internal.attr", SupportedTraceItemType.SPANS, include_internal=True
+            )
+
+    def test_internal_convention_public_alias_is_hidden(self) -> None:
+        with (
+            mock.patch.dict(
+                eap_utils.ATTRIBUTE_METADATA,
+                {"internal.attr": SimpleNamespace(visibility="internal")},
+            ),
+            mock.patch.dict(
+                eap_utils.PUBLIC_ALIAS_TO_INTERNAL_MAPPING[SupportedTraceItemType.SPANS],
+                {
+                    "public.alias": ResolvedAttribute(
+                        public_alias="public.alias",
+                        internal_name="internal.attr",
+                        search_type="string",
+                    )
+                },
+            ),
+        ):
+            assert not can_expose_attribute_to_api("public.alias", SupportedTraceItemType.SPANS)
+
+    def test_internal_convention_translated_public_alias_is_hidden(self) -> None:
+        with (
+            mock.patch.dict(
+                eap_utils.ATTRIBUTE_METADATA,
+                {"public.alias": SimpleNamespace(visibility="internal")},
+            ),
+            mock.patch.dict(
+                eap_utils.INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS[SupportedTraceItemType.SPANS]["string"],
+                {"internal.attr": "public.alias"},
+            ),
+        ):
+            assert not can_expose_attribute_to_api("internal.attr", SupportedTraceItemType.SPANS)
+
+    def test_internal_convention_replacement_is_hidden(self) -> None:
+        with (
+            mock.patch.dict(
+                eap_utils.ATTRIBUTE_METADATA,
+                {"replacement.attr": SimpleNamespace(visibility="internal")},
+            ),
+            mock.patch.dict(
+                eap_utils.SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS[SupportedTraceItemType.SPANS],
+                {"deprecated.attr": "replacement.attr"},
+            ),
+        ):
+            assert not can_expose_attribute_to_api("deprecated.attr", SupportedTraceItemType.SPANS)
+
+    def test_stripped_internal_prefix_alias_is_hidden(self) -> None:
+        assert not can_expose_attribute_to_api(
+            "_internal.normalized_description", SupportedTraceItemType.SPANS
+        )
+        assert can_expose_attribute_to_api(
+            "_internal.normalized_description",
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
+
+    def test_stripped_dsc_convention_alias_is_hidden(self) -> None:
+        assert not can_expose_attribute_to_api("dsc.trace_id", SupportedTraceItemType.SPANS)
+        assert can_expose_attribute_to_api(
+            "dsc.trace_id", SupportedTraceItemType.SPANS, include_internal=True
+        )
 
 
 class SearchResolverQueryTest(TestCase):
