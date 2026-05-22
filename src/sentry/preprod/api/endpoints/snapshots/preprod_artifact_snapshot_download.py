@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+import os
+import resource
+import time
 import zipfile
 from collections import defaultdict
 from collections.abc import Generator
@@ -137,11 +140,32 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
             buf = _DrainableBuffer()
             zf = zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED)
             failed_count = 0
+            images_written = 0
+            bytes_yielded = 0
+            batches_completed = 0
+            stream_start = time.monotonic()
+            last_yield_time = stream_start
+            exit_reason = "unknown"
 
-            def fetch_image(image_hash: str) -> tuple[str, bytes | None]:
+            def _rss_mb() -> int:
+                return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // (1024 * 1024)
+
+            logger.info(
+                "preprod_snapshot_download.stream_start",
+                extra={
+                    "preprod_artifact_id": artifact.id,
+                    "unique_hashes": len(unique_hashes),
+                    "total_filenames": sum(len(v) for v in hash_to_filenames.values()),
+                    "pid": os.getpid(),
+                    "rss_mb": _rss_mb(),
+                },
+            )
+
+            def fetch_image(image_hash: str) -> tuple[str, bytes | None, int]:
+                t0 = time.monotonic()
                 try:
                     data = session.get(f"{key_prefix}/{image_hash}").payload.read()
-                    return (image_hash, data)
+                    return (image_hash, data, int((time.monotonic() - t0) * 1000))
                 except Exception:
                     logger.exception(
                         "preprod_snapshot_download.image_fetch_failed",
@@ -150,7 +174,7 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                             "image_hash": image_hash,
                         },
                     )
-                    return (image_hash, None)
+                    return (image_hash, None, int((time.monotonic() - t0) * 1000))
 
             executor = ContextPropagatingThreadPoolExecutor(max_workers=FETCH_MAX_WORKERS)
             try:
@@ -158,19 +182,31 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                 # flowing to the client progressively.
                 for batch_start in range(0, len(unique_hashes), FETCH_BATCH_SIZE):
                     batch = unique_hashes[batch_start : batch_start + FETCH_BATCH_SIZE]
+                    batch_num = batch_start // FETCH_BATCH_SIZE
+                    batch_t0 = time.monotonic()
+                    fetch_durations: list[int] = []
+                    max_yield_gap_ms = 0
                     futures = [executor.submit(fetch_image, h) for h in batch]
                     try:
                         # as_completed() streams results as they finish,
                         # timeout caps how long we wait for the whole batch.
                         for future in as_completed(futures, timeout=BATCH_TIMEOUT):
-                            image_hash, data = future.result()
+                            image_hash, data, fetch_ms = future.result()
+                            fetch_durations.append(fetch_ms)
                             if data is None:
                                 failed_count += 1
                                 continue
                             for filename in hash_to_filenames[image_hash]:
                                 zf.writestr(filename, data)
+                                images_written += 1
                             chunk = buf.drain()
                             if chunk:
+                                now = time.monotonic()
+                                gap_ms = int((now - last_yield_time) * 1000)
+                                if gap_ms > max_yield_gap_ms:
+                                    max_yield_gap_ms = gap_ms
+                                last_yield_time = now
+                                bytes_yielded += len(chunk)
                                 yield chunk
                     except TimeoutError:
                         failed_count += len(batch) - sum(1 for f in futures if f.done())
@@ -178,9 +214,43 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                             "preprod_snapshot_download.batch_timeout",
                             extra={
                                 "preprod_artifact_id": artifact.id,
-                                "batch_start": batch_start,
+                                "batch_num": batch_num,
                             },
                         )
+
+                    batches_completed += 1
+                    sorted_durations = sorted(fetch_durations) if fetch_durations else [0]
+                    logger.info(
+                        "preprod_snapshot_download.batch_complete",
+                        extra={
+                            "preprod_artifact_id": artifact.id,
+                            "batch_num": batch_num,
+                            "batch_size": len(batch),
+                            "batch_duration_ms": int((time.monotonic() - batch_t0) * 1000),
+                            "elapsed_s": round(time.monotonic() - stream_start, 1),
+                            "images_written": images_written,
+                            "bytes_yielded": bytes_yielded,
+                            "max_yield_gap_ms": max_yield_gap_ms,
+                            "fetch_p50_ms": sorted_durations[len(sorted_durations) // 2],
+                            "fetch_p99_ms": sorted_durations[min(len(sorted_durations) - 1, int(len(sorted_durations) * 0.99))],
+                            "fetch_max_ms": sorted_durations[-1],
+                            "rss_mb": _rss_mb(),
+                        },
+                    )
+
+                exit_reason = "complete"
+                logger.info(
+                    "preprod_snapshot_download.stream_complete",
+                    extra={
+                        "preprod_artifact_id": artifact.id,
+                        "images_written": images_written,
+                        "bytes_yielded": bytes_yielded,
+                        "failed_count": failed_count,
+                        "batches_completed": batches_completed,
+                        "duration_s": round(time.monotonic() - stream_start, 1),
+                        "rss_mb": _rss_mb(),
+                    },
+                )
 
                 if failed_count:
                     logger.warning(
@@ -191,7 +261,37 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                             "total_count": len(unique_hashes),
                         },
                     )
+            except GeneratorExit:
+                exit_reason = "client_disconnect"
+                raise
+            except Exception:
+                exit_reason = "exception"
+                logger.exception(
+                    "preprod_snapshot_download.stream_error",
+                    extra={
+                        "preprod_artifact_id": artifact.id,
+                        "images_written": images_written,
+                        "bytes_yielded": bytes_yielded,
+                        "batches_completed": batches_completed,
+                        "elapsed_s": round(time.monotonic() - stream_start, 1),
+                    },
+                )
+                raise
             finally:
+                logger.info(
+                    "preprod_snapshot_download.stream_finally",
+                    extra={
+                        "preprod_artifact_id": artifact.id,
+                        "exit_reason": exit_reason,
+                        "images_written": images_written,
+                        "bytes_yielded": bytes_yielded,
+                        "batches_completed": batches_completed,
+                        "failed_count": failed_count,
+                        "elapsed_s": round(time.monotonic() - stream_start, 1),
+                        "rss_mb": _rss_mb(),
+                        "pid": os.getpid(),
+                    },
+                )
                 # wait=False so hung objectstore reads from timed-out batches
                 # don't block the generator and eventually the WSGI worker.
                 executor.shutdown(wait=False, cancel_futures=True)
@@ -199,6 +299,7 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
 
             chunk = buf.drain()
             if chunk:
+                bytes_yielded += len(chunk)
                 yield chunk
 
         response = StreamingHttpResponse(_stream_zip(), content_type="application/zip")
