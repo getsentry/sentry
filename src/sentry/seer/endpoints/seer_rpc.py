@@ -36,6 +36,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -44,6 +45,7 @@ from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribut
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
+from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
@@ -315,6 +317,44 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     )
 
     return {"projects": projects}
+
+
+_ORGANIZATION_SCOPE_PREFIX = "organizations:"
+
+
+def get_organization_features(*, org_id: int) -> dict[str, list[str]]:
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return {"features": []}
+
+    features_to_check = {
+        feature
+        for feature in features.all(feature_type=OrganizationFeature, api_expose_only=True).keys()
+        if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
+    }
+
+    feature_set: set[str] = set()
+
+    with sentry_sdk.start_span(op="features.check", name="check batch features"):
+        batch = features.batch_has(
+            list(features_to_check),
+            organization=organization,
+            skip_experiment_exposure=True,
+        )
+
+        if batch:
+            for name, active in batch.get(f"organization:{organization.id}", {}).items():
+                if active:
+                    feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+                features_to_check.discard(name)
+
+    with sentry_sdk.start_span(op="features.check", name="check individual features"):
+        for name in features_to_check:
+            if features.has(name, organization, skip_entity=True):
+                feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+    return {"features": list(sorted(feature_set))}
 
 
 class SentryOrganizaionIdsAndSlugs(TypedDict):

@@ -14,7 +14,6 @@ from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -22,7 +21,6 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.features.base import OrganizationFeature
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -239,43 +237,6 @@ def has_seer_agent_access_with_detail(
     return True, None
 
 
-_ORGANIZATION_SCOPE_PREFIX = "organizations:"
-
-
-def _get_org_feature_flags(
-    organization: Organization, user: SentryUser | RpcUser | AnonymousUser | None
-) -> list[str]:
-    """Return the list of active org feature flag names (without the 'organizations:' prefix)."""
-    features_to_check = {
-        feature
-        for feature in features.all(feature_type=OrganizationFeature, api_expose_only=True).keys()
-        if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
-    }
-
-    feature_set: set[str] = set()
-
-    with sentry_sdk.start_span(op="features.check", name="check batch features"):
-        batch = features.batch_has(
-            list(features_to_check),
-            actor=user,
-            organization=organization,
-            skip_experiment_exposure=True,
-        )
-
-        if batch:
-            for name, active in batch.get(f"organization:{organization.id}", {}).items():
-                if active:
-                    feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-                features_to_check.discard(name)
-
-    with sentry_sdk.start_span(op="features.check", name="check individual features"):
-        for name in features_to_check:
-            if features.has(name, organization, actor=user, skip_entity=True):
-                feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-
-    return sorted(feature_set)
-
-
 def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
@@ -298,13 +259,10 @@ def collect_user_org_context(
         for p in all_projects
     ]
 
-    org_features = _get_org_feature_flags(organization, user)
-
     if user is None or isinstance(user, AnonymousUser):
         return {
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,
-            "org_features": org_features,
         }
 
     try:
@@ -322,7 +280,6 @@ def collect_user_org_context(
         return {
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,
-            "org_features": org_features,
         }
     user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
     my_projects = (
@@ -361,7 +318,6 @@ def collect_user_org_context(
         "user_teams": user_teams,
         "user_projects": user_projects,
         "all_org_projects": all_org_projects,
-        "org_features": org_features,
     }
 
 

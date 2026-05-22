@@ -25,6 +25,7 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
@@ -1614,6 +1615,50 @@ class TestSeerRpcMethods(APITestCase):
             project_ids=[],
         )
         assert result == {}
+
+
+# Two real api_expose=True flags used as a controlled feature set for
+# get_organization_features tests. Mocking features.all to this subset keeps
+# each test deterministic instead of iterating all 100+ registered flags.
+_ORG_FEATURES_TEST_SET = {
+    "organizations:seer-agent-source-code-search": object(),
+    "organizations:seer-explorer-chat-coding": object(),
+}
+
+
+class TestGetOrganizationFeatures(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_returns_active_flags_without_prefix(self, _mock_all: object) -> None:
+        with self.feature("organizations:seer-agent-source-code-search"):
+            result = get_organization_features(org_id=self.organization.id)
+        assert result == {"features": ["seer-agent-source-code-search"]}
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_excludes_inactive_flags(self, _mock_all: object) -> None:
+        result = get_organization_features(org_id=self.organization.id)
+        assert result == {"features": []}
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_returns_sorted_list(self, _mock_all: object) -> None:
+        with self.feature(
+            {
+                "organizations:seer-agent-source-code-search": True,
+                "organizations:seer-explorer-chat-coding": True,
+            }
+        ):
+            result = get_organization_features(org_id=self.organization.id)
+        # "seer-agent-..." < "seer-explorer-..." alphabetically
+        assert result == {
+            "features": ["seer-agent-source-code-search", "seer-explorer-chat-coding"]
+        }
+
+    def test_org_not_found_returns_empty(self) -> None:
+        result = get_organization_features(org_id=0)
+        assert result == {"features": []}
 
 
 class TestTriggerCodingAgentLaunch:
