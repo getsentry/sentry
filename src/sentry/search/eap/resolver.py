@@ -1126,9 +1126,7 @@ class SearchResolver:
 
                 item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
                 visibility_attribute = (
-                    column_definition.public_alias
-                    if is_public_defined_attribute
-                    else column_definition.internal_name
+                    column if is_public_defined_attribute else column_definition.internal_name
                 )
                 if not can_expose_attribute_to_api(
                     visibility_attribute,
