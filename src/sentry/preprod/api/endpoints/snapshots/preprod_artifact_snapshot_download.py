@@ -232,7 +232,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                             "bytes_yielded": bytes_yielded,
                             "max_yield_gap_ms": max_yield_gap_ms,
                             "fetch_p50_ms": sorted_durations[len(sorted_durations) // 2],
-                            "fetch_p99_ms": sorted_durations[min(len(sorted_durations) - 1, int(len(sorted_durations) * 0.99))],
+                            "fetch_p99_ms": sorted_durations[
+                                min(len(sorted_durations) - 1, int(len(sorted_durations) * 0.99))
+                            ],
                             "fetch_max_ms": sorted_durations[-1],
                             "rss_mb": _rss_mb(),
                         },
