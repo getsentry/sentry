@@ -165,9 +165,10 @@ class CollectUserOrgContextTest(TestCase):
         context = collect_user_org_context(other_user, self.organization)
 
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
-        # Non-member path returns only org-level keys — no user-specific keys.
-        assert set(context.keys()) == {"org_slug", "all_org_projects"}
-        assert context["org_slug"] == self.organization.slug
+        assert context == {
+            "org_slug": self.organization.slug,
+            "all_org_projects": context["all_org_projects"],
+        }
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
 
     def test_collect_context_with_timezone(self) -> None:
