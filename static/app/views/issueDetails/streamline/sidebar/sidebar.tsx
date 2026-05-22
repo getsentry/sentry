@@ -28,7 +28,6 @@ import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sid
 import {FirstLastSeenSection} from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {PeopleSection} from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
-import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 import {SupergroupSection} from 'sentry/views/issueDetails/streamline/sidebar/supergroupSection';
 
@@ -96,11 +95,7 @@ export function StreamlinedSidebar({group, event, project}: Props) {
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>
-              {organization.features.includes('autofix-on-explorer') ? (
-                <AutofixSection group={group} project={project} event={event} />
-              ) : (
-                <SeerSection group={group} project={project} event={event} />
-              )}
+              <AutofixSection group={group} project={project} event={event} />
             </ErrorBoundary>
           )}
           {event && (
