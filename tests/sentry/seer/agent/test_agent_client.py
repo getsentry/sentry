@@ -278,6 +278,8 @@ class TestSeerAgentClient(TestCase):
 
         assert run_id == 456
         assert mock_post.called
+        body = mock_post.call_args[0][0]
+        assert "enable_frontend_code_search" not in body
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
@@ -290,11 +292,14 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.continue_run(789, "Follow up", insert_index=2, on_page_context="context")
+        with self.feature("organizations:seer-agent-source-code-search"):
+            run_id = client.continue_run(
+                789, "Follow up", insert_index=2, on_page_context="context"
+            )
 
         assert run_id == 789
-        call_args = mock_post.call_args
-        assert call_args is not None
+        body = mock_post.call_args[0][0]
+        assert body["enable_frontend_code_search"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")

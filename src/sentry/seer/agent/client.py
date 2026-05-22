@@ -549,6 +549,13 @@ class SeerAgentClient:
         if _has_context_engine(self.organization, self.user):
             chat_body["is_context_engine_enabled"] = True
 
+        if features.has(
+            "organizations:seer-agent-source-code-search",
+            self.organization,
+            actor=self.user,
+        ):
+            chat_body["enable_frontend_code_search"] = True
+
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
