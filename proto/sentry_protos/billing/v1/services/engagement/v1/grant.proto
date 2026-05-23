@@ -3,6 +3,7 @@ syntax = "proto3";
 package sentry_protos.billing.v1.services.engagement.v1;
 
 import "sentry_protos/billing/v1/date.proto";
+import "sentry_protos/billing/v1/services/engagement/v1/grant_source.proto";
 
 // Denomination of a Grant.
 enum GrantType {
@@ -24,15 +25,25 @@ enum GrantStatus {
   GRANT_STATUS_EXPIRED = 3;
 }
 
-// A quota allowance granted to an organization for a time window.
+// A non-billable quota allowance for an organization within a time window.
+//
+// Grants can be offset by counter-grants: separate Grant rows with a negative
+// amount. The effective amount is the original amount plus the sum of all
+// counter-grant amounts, netted server-side and returned via
+// GetEffectiveGrants.
+//
+// UNITS grants have exactly one entry in line_item_uids. CENTS grants may
+// have several.
 message Grant {
   uint64 id = 1;
   uint64 organization_id = 2;
   GrantType type = 3;
   // The line items this grant applies to.
   repeated string line_item_uids = 4;
+  // The original amount. May be negative for counter-grants.
   int64 amount = 5;
   sentry_protos.billing.v1.Date start_date = 6;
   sentry_protos.billing.v1.Date end_date = 7;
   GrantStatus status = 8;
+  GrantSource source = 9;
 }

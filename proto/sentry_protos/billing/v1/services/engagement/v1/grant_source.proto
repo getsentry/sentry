@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package sentry_protos.billing.v1.services.engagement.v1;
+
+// Why a Grant exists. Kept in its own file so values can grow without
+// touching grant.proto review surface.
+enum GrantSource {
+  GRANT_SOURCE_UNSPECIFIED = 0;
+
+  // Derived from a Trial row.
+  GRANT_SOURCE_TRIAL_PRODUCT = 1;
+  GRANT_SOURCE_TRIAL_SUBSCRIPTION = 2;
+  GRANT_SOURCE_TRIAL_PLAN = 3;
+  GRANT_SOURCE_TRIAL_ENTERPRISE = 4;
+
+  // Promo-code redemption.
+  GRANT_SOURCE_PROMO = 5;
+
+  // Recurring quota credit (e.g. monthly free errors).
+  GRANT_SOURCE_RECURRING = 6;
+
+  // One-off admin/support gift.
+  GRANT_SOURCE_GIFT = 7;
+}
