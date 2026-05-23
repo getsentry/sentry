@@ -2,16 +2,17 @@ import {useCallback, useMemo} from 'react';
 import {
   skipToken,
   useInfiniteQuery,
+  useQueries,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {defined} from 'sentry/utils';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -179,15 +180,34 @@ export function useReplayData({
     Boolean(projectSlug) &&
     Boolean(replayRecord);
 
+  const attachmentCursors = useMemo(() => {
+    const hits = replayRecord?.count_segments ?? 0;
+    if (hits === 0) return [];
+    return Array.from(
+      {length: Math.ceil(hits / segmentsPerPage)},
+      (_, i) => `0:${segmentsPerPage * i}:0`
+    );
+  }, [replayRecord?.count_segments, segmentsPerPage]);
+
   const {
     pages: attachmentPages,
     status: fetchAttachmentsStatus,
-    error: fetchAttachmentsError,
-  } = useFetchParallelPages({
-    enabled: enableAttachments,
-    getQueryOptions: getAttachmentsQueryOptions,
-    hits: replayRecord?.count_segments ?? 0,
-    perPage: segmentsPerPage,
+    errors: fetchAttachmentsError,
+  } = useQueries({
+    queries: enableAttachments
+      ? attachmentCursors.map(cursor =>
+          getAttachmentsQueryOptions({cursor, per_page: segmentsPerPage})
+        )
+      : [],
+    combine: results => ({
+      pages: results.map(r => r.data).filter(defined),
+      status: results.some(r => r.status === 'error')
+        ? 'error'
+        : results.some(r => r.status === 'pending')
+          ? 'pending'
+          : 'success',
+      errors: results.map(r => r.error).filter(defined),
+    }),
   });
 
   const getErrorsQueryOptions = useCallback(
@@ -220,17 +240,40 @@ export function useReplayData({
     [orgSlug, replayRecord]
   );
 
+  const errorCursors = useMemo(() => {
+    const hits = replayRecord?.count_errors ?? 0;
+    if (hits === 0) return [];
+    return Array.from(
+      {length: Math.ceil(hits / errorsPerPage)},
+      (_, i) => `0:${errorsPerPage * i}:0`
+    );
+  }, [replayRecord?.count_errors, errorsPerPage]);
+
   const enableErrors = Boolean(replayRecord) && Boolean(projectSlug);
-  const {
-    pages: errorPages,
-    status: fetchErrorsStatus,
-    lastResponseHeaders: lastErrorsResponseHeaders,
-  } = useFetchParallelPages<{data: RawReplayError[]}>({
-    enabled: enableErrors,
-    hits: replayRecord?.count_errors ?? 0,
-    getQueryOptions: getErrorsQueryOptions,
-    perPage: errorsPerPage,
+  const {pages: errorPages, status: fetchErrorsStatus} = useQueries({
+    queries: enableErrors
+      ? errorCursors.map(cursor =>
+          getErrorsQueryOptions({cursor, per_page: errorsPerPage})
+        )
+      : [],
+    combine: results => ({
+      pages: results.map(r => r.data).filter(defined),
+      status: results.some(r => r.status === 'error')
+        ? 'error'
+        : results.some(r => r.status === 'pending')
+          ? 'pending'
+          : 'success',
+    }),
   });
+
+  const lastErrorCursor = errorCursors.at(-1);
+  const lastErrorsResponseHeaders =
+    lastErrorCursor && fetchErrorsStatus === 'success'
+      ? queryClient.getQueryData(
+          getErrorsQueryOptions({cursor: lastErrorCursor, per_page: errorsPerPage})
+            .queryKey
+        )?.headers
+      : undefined;
 
   const links = parseLinkHeader(lastErrorsResponseHeaders?.Link ?? null);
   const enableExtraErrors =
@@ -385,7 +428,7 @@ export function useReplayData({
       attachments: attachmentPages.flat(2),
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
-      attachmentError: fetchAttachmentsError ?? undefined,
+      attachmentError: fetchAttachmentsError?.length ? fetchAttachmentsError : undefined,
       feedbackEvents,
       isError,
       isPending,

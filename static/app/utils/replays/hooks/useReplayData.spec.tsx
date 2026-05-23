@@ -45,7 +45,9 @@ describe('useReplayData', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
   });
 
@@ -370,10 +372,12 @@ describe('useReplayData', () => {
 
     await act(() => jest.advanceTimersByTimeAsync(0));
 
-    await waitFor(() => expect(mockedErrorEventsMetaCall1).toHaveBeenCalledTimes(1));
-    expect(mockedErrorEventsMetaCall2).toHaveBeenCalledTimes(1);
-    expect(mockedIssuePlatformEventsMetaCall1).toHaveBeenCalledTimes(1);
-    expect(mockedIssuePlatformEventsMetaCall2).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockedErrorEventsMetaCall1).toHaveBeenCalledTimes(1);
+      expect(mockedErrorEventsMetaCall2).toHaveBeenCalledTimes(1);
+      expect(mockedIssuePlatformEventsMetaCall1).toHaveBeenCalledTimes(1);
+      expect(mockedIssuePlatformEventsMetaCall2).toHaveBeenCalledTimes(1);
+    });
 
     await waitFor(() => {
       expect(result.current).toStrictEqual(
