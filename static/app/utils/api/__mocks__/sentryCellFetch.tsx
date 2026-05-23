@@ -1,7 +1,11 @@
 import type {QueryFunctionContext} from '@tanstack/react-query';
 
 import {Client} from 'sentry/api';
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {
+  ApiQueryKey,
+  InfiniteApiQueryKey,
+  QueryKeyEndpointOptions,
+} from 'sentry/utils/api/apiQueryKey';
 import type {ApiResponse, SentryCellFetchConfig} from 'sentry/utils/api/sentryCellFetch';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 
@@ -27,41 +31,39 @@ function buildApiResponse<T>(
   };
 }
 
+export async function fetchWithUrl<TQueryFnData = unknown>(
+  url: string,
+  options: QueryKeyEndpointOptions = {}
+): Promise<ApiResponse<TQueryFnData>> {
+  const [json, , response] = await mockClient.requestPromise(url, {
+    includeAllArgs: true,
+    allowAuthError: options.allowAuthError,
+    host: options.host,
+    method: options.method ?? 'GET',
+    data: options.data,
+    query: options.query,
+    headers: options.headers,
+  });
+
+  return buildApiResponse(json as TQueryFnData, response);
+}
+
 export async function sentryCellFetch<TQueryFnData = unknown>(
   context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResponse<TQueryFnData>> {
   const [url, options] = context.queryKey;
-
-  const [json, , response] = await mockClient.requestPromise(url, {
-    includeAllArgs: true,
-    allowAuthError: options?.allowAuthError,
-    host: options?.host,
-    method: options?.method ?? 'GET',
-    data: options?.data,
-    query: options?.query,
-    headers: options?.headers,
-  });
-
-  return buildApiResponse(json as TQueryFnData, response);
+  return fetchWithUrl(url, options);
 }
 
 export async function sentryCellFetchInfinite<TQueryFnData = unknown>(
   context: QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>
 ): Promise<ApiResponse<TQueryFnData>> {
   const [url, options] = context.queryKey;
-
-  const [json, , response] = await mockClient.requestPromise(url, {
-    includeAllArgs: true,
-    allowAuthError: options?.allowAuthError,
-    host: options?.host,
-    method: options?.method ?? 'GET',
-    data: options?.data,
+  return fetchWithUrl(url, {
+    ...options,
     query: {
       ...options?.query,
       cursor: context.pageParam?.cursor ?? options?.query?.cursor,
     },
-    headers: options?.headers,
   });
-
-  return buildApiResponse(json as TQueryFnData, response);
 }

@@ -237,51 +237,48 @@ async function handleErrorResponse(
   throw error;
 }
 
-export async function sentryCellFetch<TQueryFnData = unknown>(
-  context: QueryFunctionContext<ApiQueryKey>
+export async function fetchWithUrl<TQueryFnData = unknown>(
+  url: string,
+  options: QueryKeyEndpointOptions = {},
+  signal?: AbortSignal
 ): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = context.queryKey;
-
-  const fullUrl = buildUrl(url, options?.query, options?.host);
+  const fullUrl = buildUrl(url, options.query, options.host);
 
   const result = await executeFetch(
     fullUrl,
     {
-      allowAuthError: options?.allowAuthError,
-      host: options?.host,
-      method: options?.method ?? 'GET',
-      data: options?.data,
-      headers: options?.headers,
+      allowAuthError: options.allowAuthError,
+      host: options.host,
+      method: options.method ?? 'GET',
+      data: options.data,
+      headers: options.headers,
     },
-    context.signal
+    signal
   );
 
   return result as ApiResponse<TQueryFnData>;
+}
+
+export async function sentryCellFetch<TQueryFnData = unknown>(
+  context: QueryFunctionContext<ApiQueryKey>
+): Promise<ApiResponse<TQueryFnData>> {
+  const [url, options] = context.queryKey;
+  return fetchWithUrl(url, options, context.signal);
 }
 
 export async function sentryCellFetchInfinite<TQueryFnData = unknown>(
   context: QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>
 ): Promise<ApiResponse<TQueryFnData>> {
   const [url, options] = context.queryKey;
-
-  const query = {
-    ...options?.query,
-    cursor: context.pageParam?.cursor ?? options?.query?.cursor,
-  };
-
-  const fullUrl = buildUrl(url, query, options?.host);
-
-  const result = await executeFetch(
-    fullUrl,
+  return fetchWithUrl(
+    url,
     {
-      allowAuthError: options?.allowAuthError,
-      host: options?.host,
-      method: options?.method ?? 'GET',
-      data: options?.data,
-      headers: options?.headers,
+      ...options,
+      query: {
+        ...options?.query,
+        cursor: context.pageParam?.cursor ?? options?.query?.cursor,
+      },
     },
     context.signal
   );
-
-  return result as ApiResponse<TQueryFnData>;
 }
