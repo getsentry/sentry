@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package sentry_protos.billing.v1.services.engagement.v1;
+
+import "sentry_protos/billing/v1/date.proto";
+
+// A single day's usage for a single line item, before grant application.
+message DailyLineItemUsage {
+  sentry_protos.billing.v1.Date date = 1;
+  string line_item_uid = 2;
+  int64 quantity = 3;
+}
+
+message ApplyGrantsToUsageRequest {
+  uint64 organization_id = 1;
+  repeated DailyLineItemUsage daily_usage = 2;
+  sentry_protos.billing.v1.Date start_date = 3;
+  sentry_protos.billing.v1.Date end_date = 4;
+}
+
+// A single day's usage for a single line item, after grant application.
+message AdjustedDailyLineItemUsage {
+  sentry_protos.billing.v1.Date date = 1;
+  string line_item_uid = 2;
+  int64 adjusted_quantity = 3;
+  int64 grant_consumed = 4;
+}
+
+// How much of a specific grant was consumed across the billing window.
+message GrantConsumptionSummary {
+  uint64 grant_id = 1;
+  int64 total_consumed = 2;
+  int64 remaining = 3;
+}
+
+message ApplyGrantsToUsageResponse {
+  // Same cardinality as the input daily_usage.
+  repeated AdjustedDailyLineItemUsage adjusted_daily_usage = 1;
+  repeated GrantConsumptionSummary grant_summaries = 2;
+}
