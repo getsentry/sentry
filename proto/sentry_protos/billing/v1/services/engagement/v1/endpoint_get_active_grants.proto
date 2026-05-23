@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package sentry_protos.billing.v1.services.engagement.v1;
+
+import "sentry_protos/billing/v1/date.proto";
+import "sentry_protos/billing/v1/services/engagement/v1/grant.proto";
+
+message GetActiveGrantsRequest {
+  uint64 organization_id = 1;
+  // When set, returns only grants whose line_item_uids contain this value.
+  optional string line_item_uid = 2;
+  sentry_protos.billing.v1.Date start_date = 3;
+  sentry_protos.billing.v1.Date end_date = 4;
+}
+
+message GetActiveGrantsResponse {
+  repeated Grant grants = 1;
+}
