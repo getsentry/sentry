@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package sentry_protos.billing.v1;
+
+message Date {
+  uint32 year = 1;
+  uint32 month = 2;
+  uint32 day = 3;
+}

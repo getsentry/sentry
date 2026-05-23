@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package sentry_protos.billing.v1.services.engagement.v1;
+
+import "sentry_protos/billing/v1/date.proto";
+
+// Denomination of a Grant.
+enum GrantType {
+  GRANT_TYPE_UNSPECIFIED = 0;
+  // A quantity of units for specific line items.
+  GRANT_TYPE_UNITS = 1;
+  // A monetary allowance measured in cents.
+  GRANT_TYPE_CENTS = 2;
+}
+
+// Lifecycle state of a Grant.
+enum GrantStatus {
+  GRANT_STATUS_UNSPECIFIED = 0;
+  // Consumable now; within [start_date, end_date].
+  GRANT_STATUS_ACTIVE = 1;
+  // Manually deactivated (admin revoke, customer opt-out, etc.).
+  GRANT_STATUS_INACTIVE = 2;
+  // Past end_date.
+  GRANT_STATUS_EXPIRED = 3;
+}
+
+// A quota allowance granted to an organization for a time window.
+message Grant {
+  uint64 id = 1;
+  uint64 organization_id = 2;
+  GrantType type = 3;
+  // The line items this grant applies to.
+  repeated string line_item_uids = 4;
+  int64 amount = 5;
+  sentry_protos.billing.v1.Date start_date = 6;
+  sentry_protos.billing.v1.Date end_date = 7;
+  GrantStatus status = 8;
+}
