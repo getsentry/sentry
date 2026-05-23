@@ -401,6 +401,33 @@ class IssueParams:
         required=False,
         many=True,
     )
+
+    GROUP_DETAILS_EXPAND = OpenApiParameter(
+        name="expand",
+        description="Additional data to include in the response.",
+        enum=[
+            "inbox",
+            "owners",
+            "forecast",
+            "integrationIssues",
+            "sentryAppIssues",
+            "latestEventHasAttachments",
+        ],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
+    GROUP_DETAILS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        description="Fields to remove from the response to improve query performance.",
+        enum=["release", "tags", "stats"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
     MUTATE_ISSUE_ID_LIST = OpenApiParameter(
         name="id",
         description="The list of issue IDs to mutate. It is optional for status updates, in which an implicit `update all` is assumed.",
