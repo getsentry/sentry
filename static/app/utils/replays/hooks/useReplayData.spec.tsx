@@ -448,16 +448,17 @@ describe('useReplayData', () => {
     });
 
     const expectedReplayData = {
+      attachmentError: undefined,
       attachments: [],
       errors: [],
       feedbackEvents: [],
       fetchError: undefined,
-      isError: true,
+      isError: false,
       isPending: true,
       onRetry: expect.any(Function),
       projectSlug: null,
       replayRecord: undefined,
-      status: 'error',
+      status: 'pending',
     } as Record<string, unknown>;
 
     // Immediately we will see the replay call is made
@@ -566,15 +567,16 @@ describe('useReplayData', () => {
       expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(2);
     });
 
-    result.current.onRetry();
-
-    await act(() => jest.advanceTimersByTimeAsync(0));
+    await act(async () => {
+      result.current.onRetry();
+      await jest.runAllTimersAsync();
+    });
 
     await waitFor(() => {
       expect(mockedReplayCall).toHaveBeenCalledTimes(2);
     });
     await waitFor(() => {
-      expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(2);
+      expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(4);
     });
   });
 });

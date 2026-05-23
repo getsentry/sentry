@@ -1,12 +1,17 @@
 import {useCallback, useMemo} from 'react';
-import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  skipToken,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
-import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -215,33 +220,6 @@ export function useReplayData({
     [orgSlug, replayRecord]
   );
 
-  const getPlatformErrorsQueryOptions = useCallback(
-    ({cursor, per_page}: {cursor: string; per_page: number}) => {
-      const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
-      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
-
-      return apiOptions.as<{data: RawReplayError[]}>()(
-        '/organizations/$organizationIdOrSlug/events/',
-        {
-          path: {organizationIdOrSlug: orgSlug},
-          query: {
-            referrer: 'replay_details',
-            dataset: DiscoverDatasets.ISSUE_PLATFORM,
-            field: REPLAY_ERROR_FIELDS,
-            start: replayRecord?.started_at?.toISOString() ?? '',
-            end: finishedAtClone.toISOString(),
-            project: ALL_ACCESS_PROJECTS,
-            query: `replayId:[${replayRecord?.id}]`,
-            per_page,
-            cursor,
-          },
-          staleTime: Infinity,
-        }
-      );
-    },
-    [orgSlug, replayRecord]
-  );
-
   const enableErrors = Boolean(replayRecord) && Boolean(projectSlug);
   const {
     pages: errorPages,
@@ -259,20 +237,69 @@ export function useReplayData({
     Boolean(replayRecord) &&
     (!replayRecord?.count_errors || Boolean(links.next?.results)) &&
     fetchErrorsStatus === 'success';
-  const {pages: extraErrorPages, status: fetchExtraErrorsStatus} =
-    useFetchSequentialPages<{data: RawReplayError[]}>({
-      enabled: enableExtraErrors,
-      initialCursor: links.next?.cursor,
-      getQueryOptions: getErrorsQueryOptions,
-      perPage: errorsPerPage,
-    });
 
-  const {pages: platformErrorPages, status: fetchPlatformErrorsStatus} =
-    useFetchSequentialPages<{data: RawReplayError[]}>({
-      enabled: true,
-      getQueryOptions: getPlatformErrorsQueryOptions,
-      perPage: errorsPerPage,
-    });
+  const replayEnd = useMemo(() => {
+    if (!replayRecord?.finished_at) {
+      return '';
+    }
+    const d = new Date(replayRecord.finished_at);
+    d.setSeconds(d.getSeconds() + 1);
+    return d.toISOString();
+  }, [replayRecord?.finished_at]);
+
+  const extraErrorsResult = useInfiniteQuery(
+    apiOptions.asInfinite<{data: RawReplayError[]}>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path: enableExtraErrors ? {organizationIdOrSlug: orgSlug} : skipToken,
+        query: {
+          referrer: 'replay_details',
+          dataset: DiscoverDatasets.ERRORS,
+          field: REPLAY_ERROR_FIELDS,
+          start: replayRecord?.started_at?.toISOString() ?? '',
+          end: replayEnd,
+          project: ALL_ACCESS_PROJECTS,
+          query: `replayId:[${replayRecord?.id}]`,
+          per_page: errorsPerPage,
+          cursor: links.next?.cursor ?? '0:0:0',
+        },
+        staleTime: Infinity,
+      }
+    )
+  );
+  useFetchAllPages({result: extraErrorsResult});
+  const extraErrorPages = useMemo(
+    () => extraErrorsResult.data?.pages.map(p => p.json) ?? [],
+    [extraErrorsResult.data?.pages]
+  );
+  const fetchExtraErrorsStatus = extraErrorsResult.status;
+
+  const platformErrorsResult = useInfiniteQuery(
+    apiOptions.asInfinite<{data: RawReplayError[]}>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path: replayRecord ? {organizationIdOrSlug: orgSlug} : skipToken,
+        query: {
+          referrer: 'replay_details',
+          dataset: DiscoverDatasets.ISSUE_PLATFORM,
+          field: REPLAY_ERROR_FIELDS,
+          start: replayRecord?.started_at?.toISOString() ?? '',
+          end: replayEnd,
+          project: ALL_ACCESS_PROJECTS,
+          query: `replayId:[${replayRecord?.id}]`,
+          per_page: errorsPerPage,
+          cursor: '0:0:0',
+        },
+        staleTime: Infinity,
+      }
+    )
+  );
+  useFetchAllPages({result: platformErrorsResult});
+  const platformErrorPages = useMemo(
+    () => platformErrorsResult.data?.pages.map(p => p.json) ?? [],
+    [platformErrorsResult.data?.pages]
+  );
+  const fetchPlatformErrorsStatus = platformErrorsResult.status;
 
   const clearQueryCache = useCallback(() => {
     if (!replayId) {

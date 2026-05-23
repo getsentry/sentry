@@ -55,7 +55,7 @@ interface State<Data> {
 /**
  * A query hook to fetch a fixed number of list pages all at once.
  *
- * See also: `useFetchSequentialPages()`
+ * See also: `useInfiniteQuery()` + `useFetchAllPages()`
  *
  * <WARNING>
  *   Using this hook might not be a good idea!
