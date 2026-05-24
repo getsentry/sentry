@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
@@ -60,6 +60,7 @@ export function TaggedEventNode() {
 function KeyField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
+  const typedValueRef = useRef('');
 
   // TODO - get form context, get the detector ids from the context.
   // if there are connected detectors / projects, then grab the project id list and use that. otherwise, -1.
@@ -105,7 +106,21 @@ function KeyField() {
       placeholder={isLoading ? t('Loading tags\u2026') : t('tag')}
       value={condition.comparison.key}
       options={sortedOptions}
+      onInputChange={(value: string, {action}: {action: string}) => {
+        // 'menu-close' and 'input-blur' fire with '' right before onBlur and would
+        // wipe the tracked value, so only track real typing actions
+        if (action === 'input-change') {
+          typedValueRef.current = value;
+        }
+      }}
+      onBlur={() => {
+        if (typedValueRef.current) {
+          onUpdate({comparison: {...condition.comparison, key: typedValueRef.current}});
+          removeError(condition.id);
+        }
+      }}
       onChange={(e: SelectValue<MatchType>) => {
+        typedValueRef.current = '';
         onUpdate({comparison: {...condition.comparison, key: e.value}});
         removeError(condition.id);
       }}
@@ -154,11 +169,14 @@ function ValueField() {
 export function validateTaggedEventCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
-  if (!condition.comparison.key || !condition.comparison.match) {
-    return t('Ensure all fields are filled in.');
+  if (!condition.comparison.key) {
+    return t('Select a tag.');
+  }
+  if (!condition.comparison.match) {
+    return t('Select a match type.');
   }
   if (matchRequiresValue(condition.comparison.match) && !condition.comparison.value) {
-    return t('Ensure all fields are filled in.');
+    return t('Enter a value.');
   }
   return undefined;
 }
