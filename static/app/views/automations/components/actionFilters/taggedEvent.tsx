@@ -117,6 +117,7 @@ function KeyField() {
         if (typedValueRef.current) {
           onUpdate({comparison: {...condition.comparison, key: typedValueRef.current}});
           removeError(condition.id);
+          typedValueRef.current = '';
         }
       }}
       onChange={(e: SelectValue<MatchType>) => {
