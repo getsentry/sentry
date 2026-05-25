@@ -1,9 +1,11 @@
 from datetime import timedelta
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.models.relocationtransfer import (
@@ -17,6 +19,7 @@ from sentry.relocation.tasks.transfer import (
     process_relocation_transfer_control,
     process_relocation_transfer_region,
 )
+from sentry.relocation.utils import relocation_raw_data_path
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import (
@@ -163,6 +166,10 @@ class ProcessRelocationTransferControlTest(TestCase):
             state=RelocationTransferState.Reply,
             public_key=b"public_key_data",
         )
+        # Save a file as we use it to get size metadata
+        relocation_storage = get_relocation_storage()
+        relocation_storage.save(relocation_raw_data_path(relocation.uuid), BytesIO(b"some bytes"))
+
         process_relocation_transfer_control(transfer_id=transfer.id)
 
         assert mock_uploading_complete.apply_async.called, "task should be spawned"
@@ -170,7 +177,10 @@ class ProcessRelocationTransferControlTest(TestCase):
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
         # the relocation RPC call should create a file on the cell
         with assume_test_silo_mode(SiloMode.CELL):
-            assert RelocationFile.objects.filter(relocation=relocation).exists()
+            relocation_file = RelocationFile.objects.get(relocation=relocation)
+            assert relocation_file
+            assert relocation_file.file
+            assert relocation_file.file.size == len("some bytes")
 
 
 @cell_silo_test(cells=TEST_REGIONS)

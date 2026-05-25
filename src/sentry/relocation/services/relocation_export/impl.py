@@ -109,9 +109,9 @@ class DBBackedRelocationExportService(CellRelocationExportService):
             # Now that we have confirmation that the export file
             # was stored in the shared bucket, create a RelocationFile record
             # so that the import process can begin.
-            # TODO(cells) Remove this once RelocationFile.file is optional.
             relocation_storage = get_relocation_storage()
             blobsize = relocation_storage.size(relocation_raw_data_path(uuid))
+            # TODO(cells) Remove this once RelocationFile.file is optional.
             file = File.objects.create(name="stub", type=RELOCATION_FILE_TYPE, size=blobsize)
 
             # This write ensures that the entire chain triggered by `uploading_start` remains

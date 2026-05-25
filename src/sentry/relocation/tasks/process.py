@@ -770,11 +770,10 @@ def preprocessing_transfer(uuid: str) -> None:
 
         # If the currrent UUID is not in the bucket_path, we are processing
         # a retry and need to copy the file.
-        if uuid not in raw_relocation_file.bucket_path:
+        if raw_relocation_file.bucket_path and uuid not in raw_relocation_file.bucket_path:
             new_path = relocation_raw_data_path(UUID(uuid))
             with relocation_storage.open(raw_relocation_file.bucket_path) as f:
-                contents = f.read()
-            relocation_storage.save(new_path, BytesIO(contents))
+                relocation_storage.save(new_path, f)
             raw_relocation_file.bucket_path = new_path
             raw_relocation_file.save()
 
