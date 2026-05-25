@@ -1,6 +1,6 @@
 import {memo, useCallback, useMemo} from 'react';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {
@@ -143,19 +143,23 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
     });
 
     return (
-      <Grid columns="minmax(180px, 240px) 1fr" gap="md">
-        <MetricSelector traceMetric={metric} onChange={onMetricChange} />
-        <SearchQueryBuilderProvider
-          // Use the metric name as a key to force remount when it changes
-          // This prevents race conditions when switching between different metrics
-          key={metric.name}
-          {...searchQueryBuilderProps}
-        >
-          <TraceItemSearchQueryBuilder
-            itemType={TraceItemDataset.TRACEMETRICS}
-            {...eapSpanSearchQueryBuilderProps}
-          />
-        </SearchQueryBuilderProvider>
+      <Grid columns="minmax(0, 240px) minmax(0, 1fr)" gap="md" minWidth="0">
+        <Container minWidth="0">
+          <MetricSelector traceMetric={metric} onChange={onMetricChange} />
+        </Container>
+        <Container minWidth="0">
+          <SearchQueryBuilderProvider
+            // Use the metric name as a key to force remount when it changes
+            // This prevents race conditions when switching between different metrics
+            key={metric.name}
+            {...searchQueryBuilderProps}
+          >
+            <TraceItemSearchQueryBuilder
+              itemType={TraceItemDataset.TRACEMETRICS}
+              {...eapSpanSearchQueryBuilderProps}
+            />
+          </SearchQueryBuilderProvider>
+        </Container>
       </Grid>
     );
   }

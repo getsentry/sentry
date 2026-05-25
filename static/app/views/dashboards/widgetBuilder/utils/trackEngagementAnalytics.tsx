@@ -6,7 +6,8 @@ export function trackEngagementAnalytics(
   widgets: Widget[],
   organization: Organization,
   dashboardTitle: string,
-  globalFilterCount: number
+  globalFilterCount: number,
+  isSentryBuilt: boolean
 ) {
   // Handle edge-case of dashboard with no widgets.
   if (!widgets.length) return;
@@ -48,6 +49,7 @@ export function trackEngagementAnalytics(
     logRatio: logWidgetCount / widgets.length,
     metricsRatio: metricsWidgetCount / widgets.length,
     globalFilterCount,
+    isSentryBuilt,
   };
   trackAnalytics('dashboards_views.engagement.load', analyticsPayload);
 }

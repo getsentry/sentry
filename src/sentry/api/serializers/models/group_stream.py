@@ -281,7 +281,7 @@ class _Filtered(TypedDict):
 class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
-    shareId: NotRequired[str]
+    shareId: NotRequired[str | None]
     shortId: NotRequired[str]
     title: NotRequired[str]
     culprit: NotRequired[str | None]
@@ -304,7 +304,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     numComments: NotRequired[int]
-    assignedTo: NotRequired[ActorSerializerResponse]
+    assignedTo: NotRequired[ActorSerializerResponse | None]
     isBookmarked: NotRequired[bool]
     isSubscribed: NotRequired[bool]
     subscriptionDetails: NotRequired[SubscriptionDetails | None]
