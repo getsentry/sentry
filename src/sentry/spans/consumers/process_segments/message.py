@@ -461,43 +461,6 @@ class BoundedLRUCache:
         return int.from_bytes(digest, "big")
 
 
-class TieredCache:
-    """
-    A tiered caching class with local and remote caching capability.
-
-    :param local_cache:
-    :param remote_cache:
-    """
-
-    def __init__(self, local_cache: BoundedLRUCache, remote_cache: CacheProtocol):
-        self.local_cache = local_cache
-        self.remote_cache = remote_cache
-
-    def get(self, key: str) -> int | None:
-        """If the key exists return the previously recorded timestamp."""
-        local_ts = self.local_cache.get(key)
-        if local_ts is not None:
-            return local_ts
-
-        remote_ts = self.remote_cache.get(key)
-        if isinstance(remote_ts, int):
-            self.local_cache.set(key, remote_ts)
-            return remote_ts
-
-        return None
-
-    def set(self, key: str, timestamp: int) -> None:
-        """Add the key-timestamp pair to the caches."""
-        # The remote cache's value is set first. If an exception is raised the local cache
-        # does not retain partially written state. The remote cache will expire the key
-        # after one hour. It should be continually refreshed by new events however if the
-        # key is rare or comes from a near-zero volume project there's no reason to keep
-        # it around.
-        self.remote_cache.set(key, timestamp, 3600)
-        self.local_cache.set(key, timestamp)
-        return None
-
-
 def _get_cache():
     global cache
     if cache is None:
