@@ -73,12 +73,20 @@ function useChartIntervalImpl({
     const options = getIntervalOptionsForPageFilter(datetime);
 
     // Compute the default from the ladder-derived options, before appending extras
-    const fallback =
-      unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
-        ? options[0]!.value
-        : unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_BIGGEST
-          ? options[options.length - 1]!.value
-          : (options[options.length - 2]?.value ?? options[options.length - 1]!.value);
+    let fallback: string;
+    switch (unspecifiedStrategy) {
+      case ChartIntervalUnspecifiedStrategy.USE_SMALLEST:
+        fallback = options[0]!.value;
+        break;
+      case ChartIntervalUnspecifiedStrategy.USE_BIGGEST:
+        fallback = options[options.length - 1]!.value;
+        break;
+      case ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST:
+      default:
+        fallback =
+          options[options.length - 2]?.value ?? options[options.length - 1]!.value;
+        break;
+    }
 
     if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
       options.push(ONE_DAY_OPTION);
