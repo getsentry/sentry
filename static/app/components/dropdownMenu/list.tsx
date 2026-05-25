@@ -236,9 +236,7 @@ export function DropdownMenuList({
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
-        zIndex={
-          zIndex === undefined ? theme.zIndex.sidebarPanel + 1 : Number(zIndex)
-        }
+        zIndex={zIndex === undefined ? theme.zIndex.sidebarPanel + 1 : Number(zIndex)}
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
