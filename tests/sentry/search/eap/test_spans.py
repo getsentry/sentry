@@ -1,9 +1,9 @@
 import os
 from datetime import datetime
-from types import SimpleNamespace
 from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, ATTRIBUTE_NAMES
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -53,66 +53,54 @@ from sentry.utils import json
 
 class AttributeVisibilityTest(TestCase):
     def test_public_convention_attribute_visible_to_everyone(self) -> None:
-        with mock.patch.dict(
-            eap_utils.ATTRIBUTE_METADATA,
-            {"public.attr": SimpleNamespace(visibility="public")},
-        ):
-            assert can_expose_attribute_to_api("public.attr", SupportedTraceItemType.SPANS)
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT, SupportedTraceItemType.SPANS
+        )
 
     def test_internal_convention_attribute_hidden_unless_included(self) -> None:
-        with mock.patch.dict(
-            eap_utils.ATTRIBUTE_METADATA,
-            {"internal.attr": SimpleNamespace(visibility="internal")},
-        ):
-            assert not can_expose_attribute_to_api("internal.attr", SupportedTraceItemType.SPANS)
-            assert can_expose_attribute_to_api(
-                "internal.attr", SupportedTraceItemType.SPANS, include_internal=True
-            )
+        assert not can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT, SupportedTraceItemType.SPANS
+        )
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
 
     def test_internal_convention_public_alias_is_hidden(self) -> None:
-        with (
-            mock.patch.dict(
-                eap_utils.ATTRIBUTE_METADATA,
-                {"internal.attr": SimpleNamespace(visibility="internal")},
-            ),
-            mock.patch.dict(
-                eap_utils.PUBLIC_ALIAS_TO_INTERNAL_MAPPING[SupportedTraceItemType.SPANS],
-                {
-                    "public.alias": ResolvedAttribute(
-                        public_alias="public.alias",
-                        internal_name="internal.attr",
-                        search_type="string",
-                    )
-                },
-            ),
+        with mock.patch.dict(
+            eap_utils.PUBLIC_ALIAS_TO_INTERNAL_MAPPING[SupportedTraceItemType.SPANS],
+            {
+                "public.alias": ResolvedAttribute(
+                    public_alias="public.alias",
+                    internal_name=ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+                    search_type="string",
+                )
+            },
         ):
             assert not can_expose_attribute_to_api("public.alias", SupportedTraceItemType.SPANS)
 
     def test_internal_convention_translated_public_alias_is_hidden(self) -> None:
-        with (
-            mock.patch.dict(
-                eap_utils.ATTRIBUTE_METADATA,
-                {"public.alias": SimpleNamespace(visibility="internal")},
-            ),
-            mock.patch.dict(
-                eap_utils.INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS[SupportedTraceItemType.SPANS]["string"],
-                {"internal.attr": "public.alias"},
-            ),
+        with mock.patch.dict(
+            eap_utils.INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS[SupportedTraceItemType.SPANS]["string"],
+            {ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT: "public.alias"},
         ):
-            assert not can_expose_attribute_to_api("internal.attr", SupportedTraceItemType.SPANS)
+            assert not can_expose_attribute_to_api(
+                ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT, SupportedTraceItemType.SPANS
+            )
 
     def test_internal_convention_replacement_is_hidden(self) -> None:
-        with (
-            mock.patch.dict(
-                eap_utils.ATTRIBUTE_METADATA,
-                {"replacement.attr": SimpleNamespace(visibility="internal")},
-            ),
-            mock.patch.dict(
-                eap_utils.SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS[SupportedTraceItemType.SPANS],
-                {"deprecated.attr": "replacement.attr"},
-            ),
+        with mock.patch.dict(
+            eap_utils.SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS[SupportedTraceItemType.SPANS],
+            {"deprecated.attr": ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT},
         ):
             assert not can_expose_attribute_to_api("deprecated.attr", SupportedTraceItemType.SPANS)
+
+    def test_public_convention_deprecated_alias_visible_to_everyone(self) -> None:
+        aliases = ATTRIBUTE_METADATA[ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT].aliases
+
+        assert aliases is not None
+        assert can_expose_attribute_to_api(aliases[0], SupportedTraceItemType.SPANS)
 
     def test_stripped_internal_prefix_alias_is_hidden(self) -> None:
         assert not can_expose_attribute_to_api(
@@ -125,9 +113,14 @@ class AttributeVisibilityTest(TestCase):
         )
 
     def test_stripped_dsc_convention_alias_is_hidden(self) -> None:
-        assert not can_expose_attribute_to_api("dsc.trace_id", SupportedTraceItemType.SPANS)
+        assert not can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix("sentry."),
+            SupportedTraceItemType.SPANS,
+        )
         assert can_expose_attribute_to_api(
-            "dsc.trace_id", SupportedTraceItemType.SPANS, include_internal=True
+            ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix("sentry."),
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
         )
 
 
