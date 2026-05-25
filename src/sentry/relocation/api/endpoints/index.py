@@ -284,7 +284,7 @@ class RelocationIndexEndpoint(Endpoint):
         relocation_storage.save(path, fileobj)
 
         # TODO(cells) Make RelocationFile.file nullable
-        file = File.objects.create(name="stub", type=RELOCATION_FILE_TYPE, size=len(fileobj))
+        file = File.objects.create(name="stub", type=RELOCATION_FILE_TYPE, size=file_size)
 
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))

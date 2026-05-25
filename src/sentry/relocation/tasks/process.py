@@ -20,7 +20,7 @@ from django.utils import timezone
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 from sentry_sdk import capture_exception
-from taskbroker_client.retry import LastAction, Retry
+from taskbroker_client.retry import LastAction, Retry, retry_task
 from taskbroker_client.task import Task
 
 from sentry import analytics
@@ -396,7 +396,6 @@ def fulfill_cross_region_export_request(
     path = relocation_raw_data_path(uuid)
     relocation_storage.save(path, fp)
 
-    logger_data["encrypted_contents_size"] = fp.tell()
     logger.info(
         "fulfill_cross_region_export_request: saved",
         extra=logger_data,
@@ -512,6 +511,10 @@ def uploading_complete(uuid: str) -> None:
             .select_related("file")
             .get()
         )
+        relocation_storage = get_relocation_storage()
+        if not relocation_storage.exists(raw_relocation_file.bucket_path):
+            retry_task()
+
         logger.info(
             "uploading_complete.relocation_file_present",
             extra={"uuid": uuid, "id": raw_relocation_file.id},
