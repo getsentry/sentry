@@ -5,7 +5,7 @@ import uuid
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -114,6 +114,7 @@ def _process_segment(
     cache_key = f"{project.id}:{_to_string(environment_name)}:{_to_string(release_name)}:{_to_string(dist_name)}"
 
     cache = _get_cache()
+    cache_metric_name = "spans.consumers.process_segments.cache"
     cached_timestamp = cache.get(cache_key)
     timestamp = int(date.timestamp())
 
@@ -122,6 +123,7 @@ def _process_segment(
     if cached_timestamp is None:
         _create_models(project, environment_name, release_name, dist_name, date)
         cache.set(cache_key, timestamp)
+        metrics.incr(cache_metric_name, tags={"outcome": "miss"})
     # If a cached value was found and the timestamp specified by the current event exceeds
     # the previously cached timestamp by at least `LAST_SEEN_INTERVAL_SECONDS` then we
     # perform small mutations on select models. From the code in this module this may appear
@@ -132,10 +134,11 @@ def _process_segment(
     elif timestamp - LAST_SEEN_INTERVAL_SECONDS >= cached_timestamp:
         _bump_release_last_seen(project, environment_name, release_name, date)
         cache.set(cache_key, timestamp)
+        metrics.incr(cache_metric_name, tags={"action": "bump", "outcome": "hit"})
     # If a cached value was found and the timestamp does NOT exceed the interval then we
     # do nothing! This should be the majority of events.
     else:
-        pass
+        metrics.incr(cache_metric_name, tags={"action": "noop", "outcome": "hit"})
 
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
@@ -404,11 +407,6 @@ def _bump_release_last_seen(
 
 def _to_string(s: Any) -> str:
     return s if isinstance(s, str) else ""
-
-
-class CacheProtocol(Protocol):
-    def get(self, key) -> Any: ...
-    def set(self, key, value, timeout) -> Any: ...
 
 
 class BoundedLRUCache:
