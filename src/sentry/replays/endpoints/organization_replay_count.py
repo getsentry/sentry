@@ -34,6 +34,7 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
             Dataset.Events.value,
             Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
+            "spans",
         ),
         default=Dataset.Discover.value,
     )
