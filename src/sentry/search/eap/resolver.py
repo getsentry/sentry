@@ -535,12 +535,14 @@ class SearchResolver:
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
         resolved_column, context_definition = self.resolve_column(term.key.name)
+        self._raise_if_hidden_resolved_attribute(term.key.name, resolved_column)
 
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
             resolved_column, value = self.map_search_term_context_to_original_column(
                 term, context_definition
             )
+            self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
             context_definition = None
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
@@ -816,6 +818,7 @@ class SearchResolver:
         self, term: event_search.AggregateFilter
     ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+        self._raise_if_hidden_resolved_attribute(term.key.name, resolved_column)
         proto_definition = resolved_column.proto_definition
 
         if not isinstance(
@@ -1075,6 +1078,12 @@ class SearchResolver:
     ) -> None:
         if self._should_hide_api_attribute(column, resolved_attribute):
             raise _HiddenApiAttribute(f"The field {column} is not allowed for this query")
+
+    def _raise_if_hidden_resolved_attribute(
+        self, column: str, resolved_column: ResolvedAttribute | ResolvedFunction
+    ) -> None:
+        if isinstance(resolved_column, ResolvedAttribute):
+            self._raise_if_hidden_api_attribute(column, resolved_column)
 
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None

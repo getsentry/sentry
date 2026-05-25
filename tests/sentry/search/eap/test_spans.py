@@ -43,6 +43,7 @@ from sentry.search.eap.spans.attributes import (
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
@@ -524,6 +525,45 @@ class SearchResolverQueryTest(TestCase):
                 val=1000,
             )
         )
+
+    def test_query_hides_internal_api_attributes_in_where(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="not allowed"):
+            resolver.resolve_query(f"{hidden_attribute}:foo")
+
+    def test_query_hides_internal_api_attributes_in_having(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="not allowed"):
+            resolver.resolve_query(f"count_unique({hidden_attribute}):>0")
+
+    def test_query_hides_internal_api_attributes_in_if_subquery(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=TRACE_METRICS_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="not allowed"):
+            resolver.resolve_query(f"count_if(`{hidden_attribute}:foo`, value):>0")
 
     def test_aggregate_query_on_attributes_with_units(self) -> None:
         for value in ["1000", "1s", "1000ms"]:
