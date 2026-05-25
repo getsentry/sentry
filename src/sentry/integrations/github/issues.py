@@ -51,6 +51,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                         {"detail": "Some given field was misconfigured"}
                     ) from exc
             elif exc.code == 410:
+                # GitHub returns 410 for two distinct cases:
+                # 1. The Issues feature is disabled for the repository
+                # 2. A specific issue has been deleted
+                # Check the error message to distinguish between the two.
+                if exc.json is not None and "deleted" in (exc.json.get("message") or "").lower():
+                    raise IntegrationResourceNotFoundError from exc
                 raise IntegrationConfigurationError(
                     "Issues are disabled for this repository, please check your repository permissions"
                 ) from exc
