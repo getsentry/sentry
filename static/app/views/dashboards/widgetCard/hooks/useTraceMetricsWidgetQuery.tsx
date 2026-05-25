@@ -293,9 +293,14 @@ export function useTraceMetricsTableQuery(
           const equations = fields.filter(isEquation);
           const equationIndex = getEquationAliasIndex(baseSort?.field ?? '');
           const equation = equations[equationIndex];
-          requestParams.sort = toArray(
-            equation ? (baseSort?.kind === 'desc' ? `-${equation}` : equation) : ''
-          );
+          if (equation) {
+            requestParams.sort = toArray(
+              baseSort?.kind === 'desc' ? `-${equation}` : equation
+            );
+          } else {
+            // In case we failed to find an equation by its index, reset the sort
+            requestParams.sort = undefined;
+          }
         } else {
           requestParams.sort = toArray(query.orderby);
         }
