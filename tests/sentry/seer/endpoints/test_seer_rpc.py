@@ -521,16 +521,12 @@ class TestSeerRpcMethods(APITestCase):
     @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
     def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
-        """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
         event_payload = {"run_id": 123}
         event_name = "root_cause_completed"
 
-        with (
-            self.feature("organizations:seer-slack-workflows"),
-            patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
-        ):
+        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
             result = send_seer_webhook(
                 event_name=event_name,
                 organization_id=self.organization.id,
