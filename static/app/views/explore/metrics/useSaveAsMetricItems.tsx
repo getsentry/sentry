@@ -35,6 +35,7 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {
   canUseMetricsAlertsUI,
   canUseMetricsEquationsInAlerts,
+  canUseMetricsEquationsInDashboards,
   canUseMetricsSavedQueriesUI,
 } from './metricsFlags';
 
@@ -53,6 +54,9 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
 
   const metricQueries = useMultiMetricsQueryParams();
   const {addToDashboard} = useAddMetricToDashboard();
+
+  const metricsEquationsInDashboardsEnabled =
+    canUseMetricsEquationsInDashboards(organization);
 
   const project =
     projects.length === 1
@@ -193,9 +197,14 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                     addToDashboard(
                       metricQueries.filter(
                         metricQuery =>
-                          !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) &&
-                          metricQuery.queryParams.visualizes[0]!.chartType !==
-                            ChartType.HEATMAP
+                          metricQuery.queryParams.visualizes[0]?.chartType !==
+                            ChartType.HEATMAP &&
+                          // Allow all charts if you have the flag, otherwise only allow non-equation charts without the flag
+                          (metricsEquationsInDashboardsEnabled ||
+                            (!metricsEquationsInDashboardsEnabled &&
+                              !isVisualizeEquation(
+                                metricQuery.queryParams.visualizes[0]!
+                              )))
                       )
                     );
                   },
@@ -205,7 +214,8 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
             const isUnsupported =
-              isVisualizeEquation(visualize) || visualize.chartType === ChartType.HEATMAP;
+              (!metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize)) ||
+              visualize.chartType === ChartType.HEATMAP;
             const label = isVisualizeFunction(visualize)
               ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
                   formatTraceMetricsFunction(
@@ -222,20 +232,22 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                 if (isUnsupported) {
                   return;
                 }
+                // TODO: Handle sorting by equation better
                 addToDashboard(metricQuery);
               },
               disabled: isUnsupported,
-              tooltip: isVisualizeEquation(visualize)
-                ? t('Equations cannot currently be added to a dashboard')
-                : visualize.chartType === ChartType.HEATMAP
-                  ? t('Heat maps cannot currently be added to a dashboard')
-                  : undefined,
+              tooltip:
+                !metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize)
+                  ? t('Equations cannot currently be added to a dashboard')
+                  : visualize.chartType === ChartType.HEATMAP
+                    ? t('Heat maps cannot currently be added to a dashboard')
+                    : undefined,
             };
           }),
         ],
       },
     ];
-  }, [addToDashboard, metricQueries]);
+  }, [addToDashboard, metricQueries, metricsEquationsInDashboardsEnabled]);
 
   return useMemo(() => {
     return [...saveAsItems, ...saveAsAlertItems, ...addToDashboardItems];
