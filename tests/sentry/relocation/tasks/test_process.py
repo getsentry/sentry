@@ -178,6 +178,7 @@ class RelocationTaskTestCase(TestCase):
         relocation_file: RelocationFile,
         contents: BytesIO,
     ) -> None:
+        assert relocation_file.bucket_path
         relocation_storage = get_relocation_storage()
         relocation_storage.delete(relocation_file.bucket_path)
 
@@ -667,6 +668,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         relocation_storage = get_relocation_storage()
+        assert self.relocation_file.bucket_path
         with relocation_storage.open(self.relocation_file.bucket_path) as f:
             blob = f.read()
         corrupted_tarball_bytes = blob[9:]
@@ -933,6 +935,9 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         assert preprocessing_baseline_config_mock.call_count == 1
 
         reload_file = RelocationFile.objects.get(id=retry_file.id)
+        assert reload_file.bucket_path
+        assert self.relocation_file.bucket_path
+
         assert reload_file.bucket_path != self.relocation_file.bucket_path
         assert str(self.relocation.uuid) not in reload_file.bucket_path
         assert str(retry_relocation.uuid) in reload_file.bucket_path
@@ -1960,6 +1965,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
             json.load(export_contents), encryptor
         ).getvalue()
 
+        assert relocation_file.bucket_path
         relocation_storage = get_relocation_storage()
         relocation_storage.delete(relocation_file.bucket_path)
         relocation_storage.save(relocation_file.bucket_path, BytesIO(self.tarball))
