@@ -96,7 +96,7 @@ function useHandleCopyMarkdown({
       const markdown = getOrderedAutofixSections(aiAutofix.runState)
         .map(getAutofixArtifactFromSection)
         .filter(defined)
-        .map(artifactToMarkdown)
+        .map(artifact => artifactToMarkdown(artifact))
         .filter(defined)
         .join('\n\n');
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
