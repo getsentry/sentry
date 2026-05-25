@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
 from sentry import options, ratelimits
+from sentry.integrations.data_forwarding.tasks import forward_event
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -90,8 +91,6 @@ class BaseDataForwarder(ABC):
 
         event_payload = self.get_event_payload(event=event, config=config)
         if random.random() < options.get("data-forwarding.task-rollout-rate"):
-            from sentry.integrations.data_forwarding.tasks import forward_event
-
             task_payload = self.get_task_payload(event=event, config=config)
             forward_event.delay(
                 data_forwarder_project_id=data_forwarder_project.id,

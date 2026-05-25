@@ -83,5 +83,5 @@ def forward_event(
         event_payload=event_payload,
         task_payload=task_payload,
     )
-    metrics.incr("data_forwarding.event_forwarded_via_task", tags={"provider": provider})
-    logger.info("data_forwarding.event_forwarded_via_task", extra=logging_ctx)
+    metrics.incr("data_forwarding.forwarding_task_succeeded", tags={"provider": provider})
+    logger.info("data_forwarding.forwarding_task_succeeded", extra=logging_ctx)
