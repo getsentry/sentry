@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
 from sentry import options, ratelimits
-from sentry.integrations.data_forwarding.tasks import forward_event
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -84,6 +83,8 @@ class BaseDataForwarder(ABC):
     def post_process(
         self, event: Event | GroupEvent, data_forwarder_project: DataForwarderProject
     ) -> None:
+        from sentry.integrations.data_forwarding.tasks import forward_event
+
         config = data_forwarder_project.get_config()
         self.initialize_variables(event, config)
         if self.is_ratelimited(event):
