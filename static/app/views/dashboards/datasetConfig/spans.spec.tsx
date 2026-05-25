@@ -185,6 +185,7 @@ describe('SpansConfig', () => {
         {
           organization: org,
           location,
+          navigate: jest.fn(),
           theme,
           eventView: new EventView({
             ...baseEventViewOptions,

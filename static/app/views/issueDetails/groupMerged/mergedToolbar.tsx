@@ -5,28 +5,39 @@ import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import {GroupingStore} from 'sentry/stores/groupingStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
+import {
+  type Fingerprint,
+  type GroupMergedState,
+  isAllUnmergedSelected,
+} from './useGroupMerged';
+
 type Props = {
+  enableFingerprintCompare: boolean;
+  fingerprints: Fingerprint[];
   groupId: Group['id'];
   onToggleCollapse: () => void;
   onUnmerge: () => void;
   project: Project;
+  state: GroupMergedState;
+  unmergeDisabled: boolean;
 };
 
-export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: Props) {
-  const {
-    unmergeList,
-    mergedItems,
-    unmergeLastCollapsed,
-    unmergeDisabled,
-    enableFingerprintCompare,
-  } = useLegacyStore(GroupingStore);
+export function MergedToolbar({
+  enableFingerprintCompare,
+  fingerprints,
+  groupId,
+  project,
+  state,
+  unmergeDisabled,
+  onUnmerge,
+  onToggleCollapse,
+}: Props) {
+  const {unmergeLastCollapsed, unmergeList} = state;
 
-  const unmergeCount = unmergeList?.size ?? 0;
+  const unmergeCount = unmergeList.size;
 
   function handleShowDiff(event: React.MouseEvent) {
     event.stopPropagation();
@@ -53,11 +64,11 @@ export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: P
   }
 
   const unmergeDisabledReason =
-    mergedItems.length <= 1
+    fingerprints.length <= 1
       ? t('To unmerge, the list must contain 2 or more items')
       : unmergeList.size === 0
         ? t('To unmerge, 1 or more items must be selected')
-        : GroupingStore.isAllUnmergedSelected()
+        : isAllUnmergedSelected(state, fingerprints)
           ? t('We are unable to unmerge all items at once')
           : undefined;
 
@@ -72,7 +83,7 @@ export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: P
           )}
         >
           <Button size="xs" tooltipProps={{title: unmergeDisabledReason}}>
-            {mergedItems.length <= 1
+            {fingerprints.length <= 1
               ? t('Unmerge')
               : tct('Unmerge ([itemsSelectedQuantity])', {
                   itemsSelectedQuantity: unmergeCount,

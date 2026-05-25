@@ -65,24 +65,20 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {organization.features.includes('autofix-on-explorer') && (
-          <Fragment>
-            <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
-              <SecondaryNavigation.List>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/autofix/recent/`}
-                    analyticsItemName="issues_autofix"
-                    end
-                  >
-                    {t('Recently Run')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </SecondaryNavigation.List>
-            </SecondaryNavigation.Section>
-          </Fragment>
-        )}
+        <SecondaryNavigation.Separator />
+        <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/autofix/recent/`}
+                analyticsItemName="issues_autofix"
+                end
+              >
+                {t('Recently Run')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
+        </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>

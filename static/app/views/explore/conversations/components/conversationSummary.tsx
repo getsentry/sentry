@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -18,6 +19,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,7 +46,7 @@ interface ConversationSummaryProps {
 }
 
 const VISIBLE_TRACE_COUNT = 5;
-const VISIBLE_TOOL_COUNT = 5;
+const VISIBLE_TOOL_COUNT = 4;
 
 function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
   return normalizeUrl(
@@ -127,7 +129,7 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${conversationId.replace(/"/g, '\\"')}" span.status:internal_error`,
+    query: `gen_ai.conversation.id:"${conversationId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" span.status:internal_error`,
   });
 
   return (
@@ -188,24 +190,22 @@ export function ConversationAggregatesBar({
               </Tag>
             ))}
             {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
-              <DropdownMenu
+              <InfoText
                 size="sm"
-                triggerLabel={
-                  <Text size="sm" variant="muted">
-                    {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
-                  </Text>
+                variant="muted"
+                wrap="nowrap"
+                title={
+                  <Flex wrap="wrap" gap="xs" paddingTop="xs" paddingBottom="xs">
+                    {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                      <Tag key={name} variant="info">
+                        {name}
+                      </Tag>
+                    ))}
+                  </Flex>
                 }
-                triggerProps={{
-                  size: 'zero',
-                  variant: 'transparent',
-                  showChevron: false,
-                }}
-                items={aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => ({
-                  key: name,
-                  label: <Tag variant="info">{name}</Tag>,
-                  textValue: name,
-                }))}
-              />
+              >
+                {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+              </InfoText>
             )}
           </ToolTagsRow>
         )
@@ -227,7 +227,9 @@ export function ConversationSummary({
   }, [nodes]);
 
   const handleCopyConversationId = () => {
-    trackAnalytics('conversations.detail.copy-conversation-id', {organization});
+    trackAnalytics('conversations.detail.copy-conversation-id', {
+      organization,
+    });
     copyToClipboard(conversationId, {
       successMessage: t('Copied conversation ID to clipboard'),
     });
@@ -248,8 +250,19 @@ export function ConversationSummary({
 
   return (
     <Flex direction="column" gap="md" flex={1}>
-      <Flex align="center" gap="sm">
-        <Heading as="h2">{t('Conversation #%s', conversationId.slice(0, 8))}</Heading>
+      <Flex align="center" gap="sm" minWidth={0}>
+        <Tooltip
+          title={conversationId}
+          showOnlyOnOverflow
+          skipWrapper
+          disabled={isUUID(conversationId)}
+        >
+          <Heading as="h2" ellipsis style={{minWidth: 0, flexShrink: 1}}>
+            {isUUID(conversationId)
+              ? t('Conversation #%s', conversationId.slice(0, 8))
+              : t('Conversation #%s', conversationId)}
+          </Heading>
+        </Tooltip>
         <Tooltip title={t('Copy conversation ID')}>
           <Button
             size="zero"
@@ -319,7 +332,9 @@ export function ConversationSummary({
         isLoading={isLoading}
         lastMessageDate={lastMessageDate}
         onErrorsLinkClick={() =>
-          trackAnalytics('conversations.detail.click-errors-link', {organization})
+          trackAnalytics('conversations.detail.click-errors-link', {
+            organization,
+          })
         }
       />
     </Flex>

@@ -8,7 +8,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import {getBroadcastSchema} from 'admin/schemas/broadcasts';
 
 const getRow = (row: any) => [

@@ -35,7 +35,7 @@ describe('useAddMetricToDashboard', () => {
   });
 
   it('opens the dashboard modal with the trace metrics widget configuration', () => {
-    const yAxis = 'avg(value,metric.a,counter,-)';
+    const yAxis = 'avg(value,metric.a,counter,none)';
     const visualize = new VisualizeFunction(yAxis, {chartType: ChartType.BAR});
     const metricQuery: BaseMetricQuery = {
       metric: {name: 'metric.a', type: 'counter'},
@@ -86,8 +86,8 @@ describe('useAddMetricToDashboard', () => {
   });
 
   it('includes all yAxes when multiple visualizes are present', () => {
-    const yAxis1 = 'p50(value,metric.a,counter,-)';
-    const yAxis2 = 'p75(value,metric.a,counter,-)';
+    const yAxis1 = 'p50(value,metric.a,counter,none)';
+    const yAxis2 = 'p75(value,metric.a,counter,none)';
     const visualize1 = new VisualizeFunction(yAxis1, {chartType: ChartType.BAR});
     const visualize2 = new VisualizeFunction(yAxis2, {chartType: ChartType.LINE});
     const metricQuery: BaseMetricQuery = {
@@ -139,7 +139,7 @@ describe('useAddMetricToDashboard', () => {
   });
 
   it('does not pass an orderby if there are no group bys', () => {
-    const yAxis = 'avg(value,metric.a,counter,-)';
+    const yAxis = 'avg(value,metric.a,counter,none)';
     const visualize = new VisualizeFunction(yAxis, {chartType: ChartType.BAR});
     const metricQuery: BaseMetricQuery = {
       metric: {name: 'metric.a', type: 'counter'},

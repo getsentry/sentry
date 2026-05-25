@@ -7,7 +7,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDownload} from 'sentry/icons';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import ResultGrid, {type State as ResultGridState} from 'admin/components/resultGrid';
+import {ResultGrid, type State as ResultGridState} from 'admin/components/resultGrid';
 import {prettyDate} from 'admin/utils';
 
 const getRow = (row: any, _rows: any[], state: ResultGridState) => [

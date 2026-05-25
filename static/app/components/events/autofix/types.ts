@@ -1,6 +1,4 @@
 import {t} from 'sentry/locale';
-import type {EventMetadata} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {isArrayOf} from 'sentry/types/utils';
 
@@ -91,7 +89,7 @@ export function getResultButtonLabel(url: string | null | undefined): string {
   return t('View Pull Request');
 }
 
-export interface CodingAgentState {
+interface CodingAgentState {
   id: string;
   name: string;
   provider: CodingAgentProvider;
@@ -130,14 +128,14 @@ export type AutofixData = {
   users?: Record<number, User>;
 };
 
-export type AutofixProgressItem = {
+type AutofixProgressItem = {
   message: string;
   timestamp: string;
   type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
   data?: any;
 };
 
-export type AutofixStep =
+type AutofixStep =
   | AutofixDefaultStep
   | AutofixRootCauseStep
   | AutofixSolutionStep
@@ -157,19 +155,19 @@ interface BaseStep {
   output_stream?: string | null;
 }
 
-export type CommentThread = {
+type CommentThread = {
   id: string;
   is_completed: boolean;
   messages: CommentThreadMessage[];
 };
 
-export interface CommentThreadMessage {
+interface CommentThreadMessage {
   content: string;
   role: 'user' | 'assistant';
   isLoading?: boolean;
 }
 
-export type AutofixInsight = {
+type AutofixInsight = {
   insight: string;
   justification: string;
   change_diff?: FilePatch[];
@@ -178,7 +176,7 @@ export type AutofixInsight = {
   type?: 'insight' | 'file_change';
 };
 
-export type InsightSources = {
+type InsightSources = {
   breadcrumbs_used: boolean;
   code_used_urls: string[];
   connected_error_ids_used: string[];
@@ -192,12 +190,12 @@ export type InsightSources = {
   event_trace_timestamp?: number;
 };
 
-export interface AutofixDefaultStep extends BaseStep {
+interface AutofixDefaultStep extends BaseStep {
   insights: AutofixInsight[];
   type: AutofixStepType.DEFAULT;
 }
 
-export type AutofixRootCauseSelection =
+type AutofixRootCauseSelection =
   | {
       cause_id: string;
     }
@@ -219,7 +217,7 @@ interface AutofixSolutionStep extends BaseStep {
   description?: string;
 }
 
-export type AutofixCodebaseChange = {
+type AutofixCodebaseChange = {
   description: string;
   diff: FilePatch[];
   repo_name: string;
@@ -231,7 +229,7 @@ export type AutofixCodebaseChange = {
   repo_id?: number; // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon. Use repo_external_id instead.
 };
 
-export interface AutofixChangesStep extends BaseStep {
+interface AutofixChangesStep extends BaseStep {
   changes: AutofixCodebaseChange[];
   type: AutofixStepType.CHANGES;
   termination_reason?: string;
@@ -246,7 +244,7 @@ type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
   url?: string;
 };
 
-export type AutofixTimelineEvent = {
+type AutofixTimelineEvent = {
   code_snippet_and_analysis: string;
   relevant_code_file: AutofixRelevantCodeFile;
   timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
@@ -268,14 +266,6 @@ export type AutofixRootCauseData = {
   description?: string;
   reproduction_urls?: Array<string | null>;
   root_cause_reproduction?: AutofixTimelineEvent[];
-};
-
-type EventMetadataWithAutofix = EventMetadata & {
-  autofix?: AutofixData;
-};
-
-export type GroupWithAutofix = Group & {
-  metadata?: EventMetadataWithAutofix;
 };
 
 export type FilePatch = {

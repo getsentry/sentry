@@ -23,7 +23,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/components/pageFilters/usePageFilters');
-jest.mock('sentry/utils/useRouter');
 jest.mock('sentry/actionCreators/modal');
 
 const mockedUseLocation = jest.mocked(useLocation);

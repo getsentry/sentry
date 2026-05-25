@@ -79,10 +79,7 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
   return markdownText;
 }
 
-export function formatEventToMarkdown(
-  event: Event,
-  activeThreadId: number | undefined
-): string {
+function formatEventToMarkdown(event: Event, activeThreadId: number | undefined): string {
   let markdownText = '';
 
   // Add tags
