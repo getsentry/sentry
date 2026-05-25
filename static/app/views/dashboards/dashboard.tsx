@@ -204,7 +204,7 @@ function DashboardInner({
       organization,
       dashboard.title,
       dashboard.filters?.[DashboardFilterKeys.GLOBAL_FILTER]?.length ?? 0,
-      dashboard.prebuiltId !== undefined
+      dashboard.prebuiltId !== undefined && dashboard.prebuiltId !== null
     );
 
     return () => {
