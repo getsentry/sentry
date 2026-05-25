@@ -10,7 +10,10 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Placeholder} from 'sentry/components/placeholder';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -153,7 +156,8 @@ export function SchemaHintsList({
   const organization = useOrganization();
   const {openDrawer, panelRef} = useDrawer();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const {dispatch, query, wrapperRef: searchBarWrapperRef} = useSearchQueryBuilder();
+  const {dispatch, query} = useSearchQueryBuilderState();
+  const {wrapperRef: searchBarWrapperRef} = useSearchQueryBuilderLayout();
 
   // Create a ref to hold the latest query for the drawer
   const queryRef = useRef(query);
