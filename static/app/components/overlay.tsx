@@ -143,8 +143,8 @@ const OverlayInner = styled(motion.div)<{
   box-shadow: 0 2px 0 ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.font.size.md};
 
-  /* Override z-index from useOverlayPosition */
-  z-index: ${p => p.theme.zIndex.dropdown} !important;
+  /* Override z-index from useOverlayPosition to ensure overlays appear above sidebar */
+  z-index: ${p => p.theme.zIndex.sidebarPanel + 1} !important;
   will-change: transform, opacity;
 
   /* Specificity hack to allow override styles to have higher specificity than
