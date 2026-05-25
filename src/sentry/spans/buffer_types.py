@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any, NamedTuple
 
-from sentry.spans.segment_key import SegmentKey
+from sentry.spans.segment_key import PayloadKey, SegmentKey
 
 type DataPoint = tuple[bytes, float]
 type EvalshaData = list[DataPoint]
@@ -102,3 +102,8 @@ class InsertedSubsegment(NamedTuple):
     @property
     def is_detached_segment(self) -> bool:
         return self.result.segment_key.endswith(self.subsegment.salt.encode("ascii"))
+
+
+class LoadedSegmentData(NamedTuple):
+    payloads: dict[SegmentKey, list[bytes]]
+    payload_keys: dict[SegmentKey, list[PayloadKey]]
