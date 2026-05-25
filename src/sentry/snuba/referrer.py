@@ -436,6 +436,7 @@ class Referrer(StrEnum):
     API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
 
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
+    API_ORGANIZATION_TRACE_ITEM_DETAILS_RAW = "api.organization-trace-item-details-raw"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
