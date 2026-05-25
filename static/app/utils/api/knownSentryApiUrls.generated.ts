@@ -740,6 +740,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/$tombstoneId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/raw/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/transfer/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/'
