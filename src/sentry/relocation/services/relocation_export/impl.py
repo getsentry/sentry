@@ -28,6 +28,7 @@ from sentry.relocation.tasks.process import fulfill_cross_region_export_request,
 from sentry.relocation.tasks.transfer import process_relocation_transfer_control
 from sentry.relocation.utils import (
     RELOCATION_FILE_TYPE,
+    get_relocation_storage,
     relocation_raw_data_path,
 )
 from sentry.utils.db import atomic_transaction
@@ -109,7 +110,9 @@ class DBBackedRelocationExportService(CellRelocationExportService):
             # was stored in the shared bucket, create a RelocationFile record
             # so that the import process can begin.
             # TODO(cells) Remove this once RelocationFile.file is optional.
-            file = File.objects.create(name="stub", type=RELOCATION_FILE_TYPE, size=10000)
+            relocation_storage = get_relocation_storage()
+            blobsize = relocation_storage.size(relocation_raw_data_path(uuid))
+            file = File.objects.create(name="stub", type=RELOCATION_FILE_TYPE, size=blobsize)
 
             # This write ensures that the entire chain triggered by `uploading_start` remains
             # idempotent, since only one (relocation_uuid, relocation_file_kind) pairing can exist
