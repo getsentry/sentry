@@ -86,8 +86,6 @@ interface SearchQueryBuilderAIContextData {
   displayAskSeer: boolean;
   displayAskSeerFeedback: boolean;
   enableAISearch: boolean;
-  // @deprecated: remove this, it's constant now
-  gaveSeerConsent: true;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
@@ -412,7 +410,6 @@ export function SearchQueryBuilderProvider({
       displayAskSeer,
       displayAskSeerFeedback,
       enableAISearch,
-      gaveSeerConsent: true,
       setAutoSubmitSeer,
       setDisplayAskSeer: setDisplayAskSeerState,
       setDisplayAskSeerFeedback,
