@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from django.http.request import QueryDict
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
@@ -375,20 +375,14 @@ def _unfurl_explore(
     )
     orgs_by_slug = {org.slug: org for org in organizations}
 
-    # Check if any org has the feature flag enabled before doing any work
-    enabled_orgs = {
-        slug: org
-        for slug, org in orgs_by_slug.items()
-        if features.has("organizations:data-browsing-widget-unfurl", org, actor=user)
-    }
-    if not enabled_orgs:
+    if not orgs_by_slug:
         return {}
 
     unfurls = {}
 
     for link in links:
         org_slug = link.args["org_slug"]
-        org = enabled_orgs.get(org_slug)
+        org = orgs_by_slug.get(org_slug)
 
         if not org:
             continue

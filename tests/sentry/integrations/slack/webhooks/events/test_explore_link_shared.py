@@ -93,8 +93,7 @@ class ExploreLinkSharedEvent(BaseEventTest):
         return self.mock_post.call_args[1]
 
     def test_share_explore_links_unlinked_user(self) -> None:
-        with self.feature("organizations:data-browsing-widget-unfurl"):
-            data = self.share_explore_links_ephemeral_sdk()
+        data = self.share_explore_links_ephemeral_sdk()
 
         blocks = orjson.loads(data["blocks"])
 
