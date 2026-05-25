@@ -15,7 +15,7 @@ from sentry.exceptions import (
     InvalidSearchQuery,
     UnsupportedQuerySubscription,
 )
-from sentry.explore.utils import is_logs_enabled, is_trace_metrics_alerts_enabled
+from sentry.explore.utils import is_logs_enabled, is_trace_metrics_enabled
 from sentry.incidents.logic import (
     check_aggregate_column_support,
     get_column_from_aggregate,
@@ -199,7 +199,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
             raise serializers.ValidationError("You do not have access to the log alerts feature.")
 
-        if not is_trace_metrics_alerts_enabled(
+        if not is_trace_metrics_enabled(
             self.context["organization"], actor=self.context.get("user", None)
         ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC]):
             raise serializers.ValidationError(
@@ -441,26 +441,9 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         if value is None:
             return None
 
-        if not features.has(
-            "organizations:workflow-engine-metric-alert-group-by-creation",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
-            raise serializers.ValidationError(
-                "Group by Metric Alerts feature must be enabled to use this field"
-            )
-
-        if len(value) > 100:
-            raise serializers.ValidationError("Group by must be 100 or fewer items")
-
-        # group by has to be unique list of strings
-        if len(value) != len(set(value)):
-            raise serializers.ValidationError("Group by must be a unique list of strings")
-
-        # TODO:
-        # validate that group by is a valid snql / EAP column?
-
-        return value
+        raise serializers.ValidationError(
+            "Group by Metric Alerts feature must be enabled to use this field"
+        )
 
     @override
     def create_source(self, validated_data: dict[str, Any]) -> QuerySubscription:

@@ -48,6 +48,7 @@ describe('PerforceInstallationConfigStep', () => {
         client: undefined,
         sslFingerprint: 'AB:CD:EF',
         webUrl: undefined,
+        charset: 'none',
       });
     });
   });
@@ -110,6 +111,7 @@ describe('PerforceInstallationConfigStep', () => {
         client: 'my-workspace',
         sslFingerprint: 'AB:CD:EF',
         webUrl: 'https://swarm.example.com',
+        charset: 'none',
       });
     });
   });
