@@ -462,7 +462,7 @@ class BoundedLRUCache:
 def _get_cache():
     global cache
     if cache is None:
-        cache = BoundedLRUCache(max_size=1_000_000)
+        cache = BoundedLRUCache(max_size=100_000)
     return cache
 
 
