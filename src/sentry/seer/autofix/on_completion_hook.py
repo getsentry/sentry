@@ -361,6 +361,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         reached_stopping_point=reached_stopping_point,
                     )
                 )
+                logger.info(
+                    "autofix.on_completion_hook.introspection",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_id": group.project_id,
+                        "group_id": group.id,
+                        "referrer": referrer.value,
+                        "step": current_step.value,
+                        "action": decision.action.value,
+                        "reason": decision.reason,
+                        "reached_stopping_point": reached_stopping_point,
+                    },
+                )
 
         if stopping_point is None or reached_stopping_point:
             # We've reached the stopping point
