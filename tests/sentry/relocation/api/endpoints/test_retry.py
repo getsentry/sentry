@@ -17,7 +17,7 @@ from sentry.relocation.api.endpoints.retry import (
     ERR_OWNER_NO_LONGER_EXISTS,
 )
 from sentry.relocation.models.relocation import Relocation, RelocationFile
-from sentry.relocation.utils import RELOCATION_FILE_TYPE, OrderedTask
+from sentry.relocation.utils import RELOCATION_FILE_TYPE, OrderedTask, relocation_raw_data_path
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
@@ -78,7 +78,7 @@ class RetryRelocationTest(APITestCase):
             relocation=self.relocation,
             file=self.file,
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
-            bucket_path=RelocationFile.Kind.RAW_USER_DATA.bucket_path(self.relocation.uuid, "tar"),
+            bucket_path=relocation_raw_data_path(self.relocation.uuid),
         )
 
     @override_options(
@@ -124,9 +124,8 @@ class RetryRelocationTest(APITestCase):
         assert File.objects.count() == file_count
         new_relocation_file = RelocationFile.objects.get(relocation=new_relocation)
         # The new RelocationFile should reference the old bucket path.
-        assert new_relocation_file.bucket_path == RelocationFile.Kind.RAW_USER_DATA.bucket_path(
-            self.relocation.uuid, "tar"
-        )
+
+        assert new_relocation_file.bucket_path == relocation_raw_data_path(self.relocation.uuid)
 
         assert uploading_start_mock.call_count == 1
 
