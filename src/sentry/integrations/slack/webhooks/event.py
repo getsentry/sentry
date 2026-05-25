@@ -229,21 +229,15 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
                 feature_flag = {
                     LinkType.DISCOVER: "organizations:discover-basic",
+                    LinkType.EXPLORE: "organizations:visibility-explore-view",
+                    LinkType.DASHBOARDS: "organizations:dashboards-basic",
                 }.get(link_type)
-                requires_identity = link_type in (
-                    LinkType.DISCOVER,
-                    LinkType.EXPLORE,
-                    LinkType.DASHBOARDS,
-                )
 
                 if (
                     organization
-                    and requires_identity
+                    and feature_flag
                     and not slack_request.has_identity
-                    and (
-                        feature_flag is None
-                        or features.has(feature_flag, organization, actor=request.user)
-                    )
+                    and features.has(feature_flag, organization, actor=request.user)
                 ):
                     try:
                         analytics.record(

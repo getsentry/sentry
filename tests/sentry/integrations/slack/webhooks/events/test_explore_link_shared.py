@@ -93,7 +93,8 @@ class ExploreLinkSharedEvent(BaseEventTest):
         return self.mock_post.call_args[1]
 
     def test_share_explore_links_unlinked_user(self) -> None:
-        data = self.share_explore_links_ephemeral_sdk()
+        with self.feature("organizations:visibility-explore-view"):
+            data = self.share_explore_links_ephemeral_sdk()
 
         blocks = orjson.loads(data["blocks"])
 
