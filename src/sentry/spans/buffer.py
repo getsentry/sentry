@@ -801,8 +801,8 @@ class SpansBuffer:
         """
         Load the payload keys indexed under each segment key.
 
-        Segment keys point to member-key indexes; those indexes contain salts
-        used to build the distributed Redis keys that store compressed payload batches.
+        Segment keys point to member-key indexes; indexes contain payload keys
+        that point to spans payloads for the segment.
         """
         payload_keys: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
 
