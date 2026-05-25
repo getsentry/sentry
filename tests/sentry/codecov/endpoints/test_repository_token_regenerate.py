@@ -125,7 +125,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         self.create_member(
             user=user_with_write,
             organization=self.organization,
-            role="admin",  # admin role has org:write
+            role="manager",
         )
 
         # Create a user with no permissions
@@ -134,11 +134,10 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
 
         url = self.reverse_url()
 
-        # Test that user with org:read can access the endpoint
+        # Test that user with only org:read cannot regenerate tokens
         self.login_as(user_with_read_only)
         response = self.client.post(url, data={})
-        # Should not be a 403 Forbidden (permission denied)
-        assert response.status_code == 200
+        assert response.status_code == 403
 
         # Test that user with org:write can access the endpoint
         self.login_as(user_with_write)

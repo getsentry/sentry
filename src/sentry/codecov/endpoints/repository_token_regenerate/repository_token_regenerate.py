@@ -17,13 +17,6 @@ from sentry.codecov.endpoints.repository_token_regenerate.serializers import (
 from sentry.integrations.services.integration.model import RpcIntegration
 
 
-class RepositoryTokenRegeneratePermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-    }
-
-
 @extend_schema(tags=["Prevent"])
 @cell_silo_endpoint
 class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
@@ -31,7 +24,7 @@ class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (RepositoryTokenRegeneratePermission,)
+    permission_classes = (OrganizationPermission,)
 
     @extend_schema(
         operation_id="Regenerates a repository upload token and returns the new token",
