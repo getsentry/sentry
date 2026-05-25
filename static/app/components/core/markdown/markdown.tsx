@@ -48,7 +48,7 @@ export type MarkdownComponents = Partial<{
   UnorderedList: ComponentType<WithDefault<{children: ReactNode}>>;
 }>;
 
-interface MarkdownProps {
+export interface MarkdownProps {
   raw: string;
   components?: MarkdownComponents;
   variant?: 'static' | 'streaming';
@@ -110,7 +110,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
   }, [isStreaming, elements]);
 
   return (
-    <Stack ref={containerRef} gap="lg" flex={1} maxWidth="72ch">
+    <Stack ref={containerRef} gap="lg" flex={1} style={{overflowWrap: 'break-word'}}>
       {isStreaming && <Global styles={streamingAnimationStyles} />}
       {elements}
     </Stack>

@@ -39,7 +39,8 @@ export function RelayWrapper() {
 
   const organization = useOrganization();
   const api = useApi();
-  const [relays, setRelays] = useState(organization.trustedRelays);
+  const [relays, setRelays] = useState(organization.trustedRelays ?? []);
+
   const disabled = !organization.access.includes('org:write');
 
   const handleOpenAddDialog = () => {
@@ -51,7 +52,7 @@ export function RelayWrapper() {
         orgSlug={organization.slug}
         onSubmitSuccess={response => {
           addSuccessMessage(t('Successfully added Relay public key'));
-          setRelays(response.trustedRelays);
+          setRelays(response.trustedRelays ?? []);
         }}
       />
     ));
@@ -191,7 +192,7 @@ function RelayUsageList({
         relay={editRelay}
         onSubmitSuccess={response => {
           addSuccessMessage(t('Successfully updated Relay public key'));
-          onRelaysChange(response.trustedRelays);
+          onRelaysChange(response.trustedRelays ?? []);
         }}
       />
     ));
@@ -208,7 +209,7 @@ function RelayUsageList({
         data: {trustedRelays},
       });
       addSuccessMessage(t('Successfully deleted Relay public key'));
-      onRelaysChange(response.trustedRelays);
+      onRelaysChange(response.trustedRelays ?? []);
     } catch {
       addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
     }
