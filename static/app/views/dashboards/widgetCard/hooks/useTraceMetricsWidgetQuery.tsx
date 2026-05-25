@@ -294,11 +294,7 @@ export function useTraceMetricsTableQuery(
           const equationIndex = getEquationAliasIndex(baseSort?.field ?? '');
           const equation = equations[equationIndex];
           requestParams.sort = toArray(
-            equation
-              ? baseSort?.kind === 'desc'
-                ? `-${equation}`
-                : equation
-              : query.orderby
+            equation ? (baseSort?.kind === 'desc' ? `-${equation}` : equation) : ''
           );
         } else {
           requestParams.sort = toArray(query.orderby);
