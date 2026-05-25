@@ -111,7 +111,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     id: str
-    shareId: str
+    shareId: str | None
     shortId: str
     title: str
     culprit: str | None
@@ -134,7 +134,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     issueCategory: str
     metadata: dict[str, Any]
     numComments: int
-    assignedTo: ActorSerializerResponse
+    assignedTo: ActorSerializerResponse | None
     isBookmarked: bool
     isSubscribed: bool
     subscriptionDetails: SubscriptionDetails | None

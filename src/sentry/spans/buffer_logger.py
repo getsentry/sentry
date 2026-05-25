@@ -8,7 +8,7 @@ from typing import Any, NamedTuple, TypeVar
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
-from sentry.spans.buffer_types import EvalshaData, EvalshaResult
+from sentry.spans.buffer_types import EvalshaData, EvalshaResult, InsertedSubsegment, Span
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import SegmentKey
 from sentry.utils import metrics
@@ -227,7 +227,7 @@ type QueueKey = bytes
 class SubsegmentDebugLog(NamedTuple):
     project_and_trace: str
     parent_span_id: str
-    subsegment: Sequence[Any]
+    subsegment: Sequence[Span]
 
     def emit(self, get_debug_trace_logger: Callable[[], DebugTraceLogger]) -> None:
         try:
@@ -238,7 +238,7 @@ class SubsegmentDebugLog(NamedTuple):
             logger.exception("process_spans: Failed to log debug trace info")
 
 
-class ProcessSpansObservability:
+class InsertSpansMetrics:
     def __init__(self) -> None:
         self._latency_entries: list[tuple[str, int]] = []
         self._latency_metrics: list[EvalshaData] = []
@@ -248,6 +248,18 @@ class ProcessSpansObservability:
             [],
             [],
         )
+
+    @classmethod
+    def from_inserted_subsegments(
+        cls, inserted_subsegments: Sequence[InsertedSubsegment]
+    ) -> InsertSpansMetrics:
+        insert_spans_metrics = cls()
+        for inserted_subsegment in inserted_subsegments:
+            insert_spans_metrics.record_evalsha_result(
+                inserted_subsegment.project_and_trace,
+                inserted_subsegment.result,
+            )
+        return insert_spans_metrics
 
     def record_evalsha_result(self, project_and_trace: str, result: EvalshaResult) -> None:
         self._latency_entries.append((project_and_trace, result.latency_ms))

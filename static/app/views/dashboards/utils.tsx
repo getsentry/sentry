@@ -278,7 +278,11 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
+    query: applyDashboardFilters(
+      widget.queries?.[0]?.conditions,
+      dashboardFilters,
+      widget.widgetType
+    ),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL

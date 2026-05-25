@@ -2,7 +2,7 @@ import {Fragment, useEffect, useEffectEvent} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -30,7 +30,13 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const EMPTY_CROSS_EVENTS: CrossEvent[] = [];
 
-export function SpansTabCrossEventSearchBars() {
+interface SpansTabCrossEventSearchBarsProps {
+  hasIndependentDateColumn?: boolean;
+}
+
+export function SpansTabCrossEventSearchBars({
+  hasIndependentDateColumn = false,
+}: SpansTabCrossEventSearchBarsProps) {
   const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents() ?? EMPTY_CROSS_EVENTS;
   const setCrossEvents = useSetQueryParamsCrossEvents();
@@ -71,7 +77,7 @@ export function SpansTabCrossEventSearchBars() {
     return null;
   }
 
-  return visibleCrossEvents.map(({crossEvent, index}, visibleIndex) => {
+  const crossEventRows = visibleCrossEvents.map(({crossEvent, index}, visibleIndex) => {
     let traceItemType = TraceItemDataset.SPANS;
     if (crossEvent.type === 'logs') {
       traceItemType = TraceItemDataset.LOGS;
@@ -176,4 +182,17 @@ export function SpansTabCrossEventSearchBars() {
       </Fragment>
     );
   });
+
+  if (!hasIndependentDateColumn) {
+    return <Fragment>{crossEventRows}</Fragment>;
+  }
+
+  return (
+    <Grid
+      gap="md"
+      columns={{sm: '1fr', md: 'minmax(300px, max-content) 1fr min-content'}}
+    >
+      {crossEventRows}
+    </Grid>
+  );
 }

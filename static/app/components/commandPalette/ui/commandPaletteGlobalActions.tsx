@@ -333,14 +333,12 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          {organization.features.includes('autofix-on-explorer') && (
-            <CMDKAction display={{label: t('Autofix')}}>
-              <CMDKAction
-                display={{label: t('Recently Run')}}
-                to={`${prefix}/issues/autofix/recent/`}
-              />
-            </CMDKAction>
-          )}
+          <CMDKAction display={{label: t('Autofix')}}>
+            <CMDKAction
+              display={{label: t('Recently Run')}}
+              to={`${prefix}/issues/autofix/recent/`}
+            />
+          </CMDKAction>
         </CMDKAction>
 
         <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
