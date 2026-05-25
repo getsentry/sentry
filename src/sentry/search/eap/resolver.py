@@ -83,6 +83,10 @@ def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[st
     return out
 
 
+class _HiddenApiAttribute(InvalidSearchQuery):
+    pass
+
+
 @dataclass(frozen=True)
 class SearchResolver:
     """The only attributes are things we want to cache and params
@@ -967,7 +971,10 @@ class SearchResolver:
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
-            resolved_column, context = self.resolve_column(column, match)
+            try:
+                resolved_column, context = self.resolve_column(column, match)
+            except _HiddenApiAttribute:
+                continue
             if isinstance(resolved_column, ResolvedAttribute) and self._should_hide_api_attribute(
                 column, resolved_column
             ):
@@ -1036,6 +1043,13 @@ class SearchResolver:
             resolved_contexts.append(context)
         return resolved_columns, resolved_contexts
 
+    def should_hide_api_column(
+        self, column: str, resolved_column: ResolvedAttribute | ResolvedFunction
+    ) -> bool:
+        if not isinstance(resolved_column, ResolvedAttribute):
+            return False
+        return self._should_hide_api_attribute(column, resolved_column)
+
     def _should_hide_api_attribute(
         self, column: str, resolved_attribute: ResolvedAttribute
     ) -> bool:
@@ -1055,6 +1069,12 @@ class SearchResolver:
             item_type,
             include_internal=self.config.api_attribute_visibility_include_internal,
         )
+
+    def _raise_if_hidden_api_attribute(
+        self, column: str, resolved_attribute: ResolvedAttribute
+    ) -> None:
+        if self._should_hide_api_attribute(column, resolved_attribute):
+            raise _HiddenApiAttribute(f"The field {column} is not allowed for this query")
 
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None
@@ -1152,7 +1172,10 @@ class SearchResolver:
         """Helper function to resolve a list of functions instead of 1 attribute at a time"""
         resolved_functions, resolved_contexts = [], []
         for column in columns:
-            function, context = self.resolve_function(column)
+            try:
+                function, context = self.resolve_function(column)
+            except _HiddenApiAttribute:
+                continue
             resolved_functions.append(function)
             resolved_contexts.append(context)
         return resolved_functions, resolved_contexts
@@ -1208,6 +1231,9 @@ class SearchResolver:
                     parsed_args.append(argument_definition.default_arg)
                 else:
                     parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                    self._raise_if_hidden_api_attribute(
+                        argument_definition.default_arg, parsed_argument
+                    )
                     parsed_args.append(parsed_argument)
                 missing_args -= 1
                 continue
@@ -1222,6 +1248,7 @@ class SearchResolver:
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
+                    self._raise_if_hidden_api_attribute(argument, parsed_argument)
                     parsed_args.append(parsed_argument)
                 else:
                     if argument_definition.argument_types is None:
@@ -1308,7 +1335,10 @@ class SearchResolver:
         formulas = []
         contexts = []
         for equation in equations:
-            formula, context = self.resolve_equation(equation)
+            try:
+                formula, context = self.resolve_equation(equation)
+            except _HiddenApiAttribute:
+                continue
             formulas.append(formula)
             contexts.extend(context)
         return formulas, contexts
@@ -1329,6 +1359,8 @@ class SearchResolver:
             col, context = self.resolve_column(
                 operation, public_alias_override=f"equation|{equation}"
             )
+            if isinstance(col, ResolvedAttribute):
+                self._raise_if_hidden_api_attribute(operation, col)
             return col, [context] if context else []
         elif isinstance(operation, float):
             return (
@@ -1404,6 +1436,8 @@ class SearchResolver:
         # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
         # Columns in equations must pass default_value=0 otherwise they may become a null and ruin the entire formula
         col, context = self.resolve_column(operation, default_value=0)
+        if isinstance(col, ResolvedAttribute):
+            self._raise_if_hidden_api_attribute(operation, col)
         contexts = [context] if context is not None else []
         proto_definition = col.proto_definition
 

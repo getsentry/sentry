@@ -841,6 +841,40 @@ class SearchResolverColumnTest(TestCase):
         assert [column.public_alias for column in resolved_columns] == ["span.op"]
         assert resolved_contexts == [None]
 
+    def test_resolve_columns_hides_functions_with_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            ["span.op", f"count_unique({hidden_attribute})"]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == ["span.op"]
+        assert resolved_contexts == [None]
+
+    def test_resolve_equations_hides_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        resolved_equations, resolved_contexts = resolver.resolve_equations(
+            [f"count_unique({hidden_attribute}) / count()", "count() / 1"]
+        )
+
+        assert [column.public_alias for column in resolved_equations] == ["equation|count() / 1"]
+        assert resolved_contexts == []
+
     def test_resolve_columns_includes_internal_api_attributes_when_configured(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(projects=[self.project]),

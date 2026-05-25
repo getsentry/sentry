@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
@@ -129,6 +131,35 @@ def test_force_sampling_mode_in_table(dataset, query, mode):
     rpc_request = RPCBase.get_table_rpc_request(table_query)
 
     assert rpc_request.rpc_request.meta.downsampled_storage_config.mode == mode
+
+
+@django_db_all
+def test_table_orderby_rejects_hidden_api_attribute() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    config = SearchResolverConfig(api_attribute_visibility_item_type=SupportedTraceItemType.SPANS)
+    resolver = Spans.get_resolver(snuba_params, config)
+    hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+    table_query = TableQuery(
+        "",
+        [hidden_attribute],
+        [hidden_attribute],
+        0,
+        1,
+        "TestReferrer",
+        None,
+        resolver,
+    )
+
+    with pytest.raises(
+        InvalidSearchQuery, match="orderby must also be in the selected columns or groupby"
+    ):
+        RPCBase.get_table_rpc_request(table_query)
 
 
 @pytest.mark.parametrize(
