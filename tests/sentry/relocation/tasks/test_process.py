@@ -903,6 +903,40 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         self.create_user("importing")
         self.relocation_storage = get_relocation_storage()
 
+    def test_copy_file_for_retry(
+        self,
+        preprocessing_baseline_config_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+
+        # Simulate a retry relocation which references another
+        # relocation's bucket_path
+        retry_relocation = Relocation.objects.create(
+            creator_id=self.staff_user.id,
+            owner_id=self.owner.id,
+            want_org_slugs=[self.requested_org_slug],
+            want_usernames=[],
+            step=Relocation.Step.UPLOADING.value,
+            latest_task=OrderedTask.PREPROCESSING_SCAN.name,
+        )
+        retry_file = RelocationFile.objects.create(
+            relocation=retry_relocation,
+            file=File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE),
+            kind=RelocationFile.Kind.RAW_USER_DATA.value,
+            bucket_path=self.relocation_file.bucket_path,
+        )
+
+        preprocessing_transfer(retry_relocation.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert preprocessing_baseline_config_mock.call_count == 1
+
+        reload_file = RelocationFile.objects.get(id=retry_file.id)
+        assert reload_file.bucket_path != self.relocation_file.bucket_path
+        assert str(self.relocation.uuid) not in reload_file.bucket_path
+        assert str(retry_relocation.uuid) in reload_file.bucket_path
+
     def test_retry_if_attempts_left(
         self,
         preprocessing_baseline_config_mock: Mock,

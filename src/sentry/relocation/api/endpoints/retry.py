@@ -123,6 +123,10 @@ class RelocationRetryEndpoint(Endpoint):
                 new_relocation_uuid=new_relocation.uuid,
                 sender=self.__class__,
             )
+            # Create a new RelocationFile. Initially the bucket_path
+            # will point to the original relocation. During preprocessing_transfer
+            # we will copy the raw data into `runs/{uuid}/in` so it can be copied
+            # into cloudbuild.
             RelocationFile.objects.create(
                 relocation=new_relocation,
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
