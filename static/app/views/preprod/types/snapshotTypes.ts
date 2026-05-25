@@ -61,6 +61,8 @@ export interface SnapshotDetailsApiResponse {
   renamed_count?: number;
   unchanged: SnapshotImage[];
   unchanged_count: number;
+  skipped?: SnapshotImage[];
+  skipped_count?: number;
 }
 
 export enum DiffStatus {
@@ -69,6 +71,7 @@ export enum DiffStatus {
   REMOVED = 'removed',
   RENAMED = 'renamed',
   UNCHANGED = 'unchanged',
+  SKIPPED = 'skipped',
 }
 
 export function getImageName(image: SnapshotImage): string {
@@ -86,6 +89,6 @@ export type SidebarItem =
   | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {type: 'renamed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {
-      type: 'added' | 'removed' | 'unchanged';
+      type: 'added' | 'removed' | 'unchanged' | 'skipped';
       images: SnapshotImage[];
     });

@@ -249,7 +249,10 @@ class RelocationFile(DefaultFieldsModelExisting):
     file = FlexibleForeignKey("sentry.File")
     kind = models.SmallIntegerField(choices=Kind.get_choices())
 
-    __repr__ = sane_repr("relocation", "file")
+    # The path to the file within the shared storage bucket.
+    bucket_path = models.CharField(null=True)
+
+    __repr__ = sane_repr("relocation", "kind", "bucket_path", "file")
 
     class Meta:
         unique_together = (("relocation", "file"), ("relocation", "kind"))

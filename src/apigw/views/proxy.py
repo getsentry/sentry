@@ -9,10 +9,11 @@ from ..dsl import (
     get_cell_for_organization,
     get_cell_from_dsn,
 )
-from ..proxy import proxy_cell_request, proxy_control_request
+from ..proxy import ProxyLatencyPipe, proxy_cell_request, proxy_control_request
 from ..utils import abort_with_json
 
 proxy = app.module(__name__, "proxy")
+proxy.pipeline = [ProxyLatencyPipe()]
 
 
 @proxy.route(
