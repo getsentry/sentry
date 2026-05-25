@@ -127,7 +127,7 @@ class DBBackedRelocationExportService(CellRelocationExportService):
 
             logger.info("SaaS -> SaaS relocation RelocationFile saved", extra=logger_data)
 
-            uploading_complete.apply_async(args=[relocation.uuid])
+            uploading_complete.apply_async(args=[str(relocation.uuid)])
             logger.info("SaaS -> SaaS relocation next task scheduled", extra=logger_data)
 
 
