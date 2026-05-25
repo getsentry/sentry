@@ -798,6 +798,12 @@ class SpansBuffer:
     def _load_payload_keys(
         self, segment_keys: Sequence[SegmentKey]
     ) -> dict[SegmentKey, list[PayloadKey]]:
+        """
+        Load the payload keys indexed under each segment key.
+
+        Segment keys point to member-key indexes; those indexes contain salts
+        used to build the distributed Redis keys that store compressed payload batches.
+        """
         payload_keys: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
 
         with self.client.pipeline(transaction=False) as p:
@@ -822,6 +828,9 @@ class SpansBuffer:
         payload_keys: Mapping[SegmentKey, Sequence[PayloadKey]],
         page_size: int,
     ) -> tuple[dict[SegmentKey, list[bytes]], int]:
+        """
+        Scan payload keys and return decompressed payloads grouped by segment key.
+        """
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         decompress_latency_ms = 0.0
         segment_by_payload_key = {
