@@ -175,6 +175,10 @@ class FlusherLogger:
         load_data_latency_ms: int,
         decompress_latency_ms: int,
     ) -> None:
+        """
+        Record loaded segments and periodically log the top traces sorted by
+        cumulative bytes flushed.
+        """
         if not options.get("spans.buffer.flusher-cumulative-logger-enabled"):
             return
 
