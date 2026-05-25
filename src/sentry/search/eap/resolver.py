@@ -1038,8 +1038,7 @@ class SearchResolver:
         resolved_contexts = []
         for column in columns:
             col, context = self.resolve_attribute(column)
-            if self._should_hide_api_attribute(column, col):
-                continue
+            self._raise_if_hidden_api_attribute(column, col)
             if self.config.disable_array_attributes and col.internal_type == constants.ARRAY:
                 continue
             resolved_columns.append(col)

@@ -162,6 +162,36 @@ def test_table_orderby_rejects_hidden_api_attribute() -> None:
         RPCBase.get_table_rpc_request(table_query)
 
 
+@django_db_all
+def test_timeseries_groupby_rejects_hidden_api_attribute() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        granularity_secs=60,
+        organization=organization,
+        projects=[project],
+    )
+    config = SearchResolverConfig(api_attribute_visibility_item_type=SupportedTraceItemType.SPANS)
+    resolver = Spans.get_resolver(snuba_params, config)
+    hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+    with pytest.raises(InvalidSearchQuery, match="not allowed"):
+        RPCBase.get_timeseries_query(
+            search_resolver=resolver,
+            params=snuba_params,
+            query_string="",
+            y_axes=["count()"],
+            groupby=[hidden_attribute],
+            referrer="TestReferrer",
+            sampling_mode=None,
+        )
+
+
 @pytest.mark.parametrize(
     ["dataset"],
     [
