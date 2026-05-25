@@ -12,6 +12,10 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 import {
+  NUMBER_MAX_FRACTION_DIGITS,
+  NUMBER_MIN_VALUE,
+} from 'sentry/views/dashboards/widgets/common/settings';
+import {
   isADurationUnit,
   isARateUnit,
   isASizeUnit,
@@ -58,8 +62,13 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       if (Number.isInteger(value)) {
         return formatAbbreviatedNumber(value);
       }
+      if (value > 0 && value < NUMBER_MIN_VALUE) {
+        return value.toLocaleString(undefined, {
+          maximumSignificantDigits: NUMBER_MAX_FRACTION_DIGITS,
+        });
+      }
       return value.toLocaleString(undefined, {
-        maximumFractionDigits: 20,
+        maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
       });
     case 'percentage':
       return formatPercentage(value, 3);
