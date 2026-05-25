@@ -105,15 +105,8 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
-    _hidden_api_attributes: set[str] = field(default_factory=set, repr=False)
     qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
     _internal_name_to_column: dict[str, ResolvedAttribute] = field(default_factory=dict, repr=False)
-
-    def has_hidden_api_attributes(self) -> bool:
-        return bool(self._hidden_api_attributes)
-
-    def is_hidden_api_attribute(self, column: str) -> bool:
-        return column in self._hidden_api_attributes
 
     def _find_column_by_internal_name(self, internal_name: str) -> ResolvedAttribute | None:
         """Look up a column definition by its internal name (e.g. 'sentry.item_id' -> 'id' column).
@@ -975,6 +968,10 @@ class SearchResolver:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
             resolved_column, context = self.resolve_column(column, match)
+            if isinstance(resolved_column, ResolvedAttribute) and self._should_hide_api_attribute(
+                column, resolved_column
+            ):
+                continue
             if (
                 self.config.disable_array_attributes
                 and isinstance(resolved_column, ResolvedAttribute)
@@ -1031,11 +1028,33 @@ class SearchResolver:
         resolved_contexts = []
         for column in columns:
             col, context = self.resolve_attribute(column)
+            if self._should_hide_api_attribute(column, col):
+                continue
             if self.config.disable_array_attributes and col.internal_type == constants.ARRAY:
                 continue
             resolved_columns.append(col)
             resolved_contexts.append(context)
         return resolved_columns, resolved_contexts
+
+    def _should_hide_api_attribute(
+        self, column: str, resolved_attribute: ResolvedAttribute
+    ) -> bool:
+        if self.config.api_attribute_visibility_item_type is None:
+            return False
+
+        from sentry.search.eap.utils import can_expose_attribute_to_api
+
+        item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
+        visibility_attribute = (
+            column
+            if column in self.definitions.contexts or column in self.definitions.columns
+            else resolved_attribute.internal_name
+        )
+        return not can_expose_attribute_to_api(
+            visibility_attribute,
+            item_type,
+            include_internal=self.config.api_attribute_visibility_include_internal,
+        )
 
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None
@@ -1050,9 +1069,7 @@ class SearchResolver:
         if public_alias_override is not None:
             alias = public_alias_override
 
-        is_public_defined_attribute = False
         if column in self.definitions.contexts:
-            is_public_defined_attribute = True
             column_context = self.definitions.contexts[column]
             column_definition = ResolvedAttribute(
                 public_alias=alias,
@@ -1061,7 +1078,6 @@ class SearchResolver:
                 processor=column_context.processor,
             )
         elif column in self.definitions.columns:
-            is_public_defined_attribute = True
             column_context = None
             column_definition = self.definitions.columns[column]
             if column_definition.private and column not in self.config.fields_acl.attributes:
@@ -1121,19 +1137,6 @@ class SearchResolver:
             column_context = None
 
         if column_definition:
-            if self.config.api_attribute_visibility_item_type is not None:
-                from sentry.search.eap.utils import can_expose_attribute_to_api
-
-                item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
-                visibility_attribute = (
-                    column if is_public_defined_attribute else column_definition.internal_name
-                )
-                if not can_expose_attribute_to_api(
-                    visibility_attribute,
-                    item_type,
-                    include_internal=self.config.api_attribute_visibility_include_internal,
-                ):
-                    self._hidden_api_attributes.add(column)
             self._resolved_attribute_cache[column] = (column_definition, column_context)
             return self._resolved_attribute_cache[column]
         else:

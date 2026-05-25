@@ -822,6 +822,48 @@ class SearchResolverColumnTest(TestCase):
         )
         assert virtual_context is None
 
+    def test_resolve_columns_hides_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            [
+                "span.op",
+                f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+            ]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == ["span.op"]
+        assert resolved_contexts == [None]
+
+    def test_resolve_columns_includes_internal_api_attributes_when_configured(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS,
+                api_attribute_visibility_include_internal=True,
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            [
+                "span.op",
+                f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+            ]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == [
+            "span.op",
+            f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+        ]
+        assert resolved_contexts == [None, None]
+
     def test_sum_function(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")
         assert resolved_column.proto_definition == AttributeAggregation(
