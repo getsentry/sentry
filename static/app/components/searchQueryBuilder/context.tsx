@@ -152,24 +152,6 @@ const SearchQueryBuilderInteractionContext =
   createContext<SearchQueryBuilderInteractionContextData | null>(null);
 const SearchQueryBuilderProviderContext = createContext(false);
 
-export const SearchQueryBuilderContext = SearchQueryBuilderProviderContext;
-
-export function useSearchQueryBuilder() {
-  const state = useSearchQueryBuilderState();
-  const config = useSearchQueryBuilderConfig();
-  const layout = useSearchQueryBuilderLayout();
-  const ai = useSearchQueryBuilderAI();
-  const interaction = useSearchQueryBuilderInteraction();
-
-  return {
-    ...state,
-    ...config,
-    ...layout,
-    ...ai,
-    ...interaction,
-  };
-}
-
 export function SearchQueryBuilderProvider({
   children,
   aiSearchBadgeType = 'beta',
