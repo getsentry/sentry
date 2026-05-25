@@ -9,11 +9,13 @@ from typing import Any
 
 import sentry_sdk
 from django.conf import settings
+from django.core.cache import cache as django_cache
 from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import options
+from sentry.cache.base import BaseCache
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
@@ -459,10 +461,51 @@ class BoundedLRUCache:
         return int.from_bytes(digest, "big")
 
 
+class TieredCache:
+    """
+    A tiered caching class with local and remote caching capability.
+
+    :param local_cache:
+    :param remote_cache:
+    """
+
+    def __init__(self, local_cache: BoundedLRUCache, remote_cache: BaseCache):
+        self.local_cache = local_cache
+        self.remote_cache = remote_cache
+
+    def get(self, key: str) -> int | None:
+        """If the key exists return the previously recorded timestamp."""
+        local_ts = self.local_cache.get(key)
+        if local_ts is not None:
+            return local_ts
+
+        remote_ts = self.remote_cache.get(key)
+        if isinstance(remote_ts, int):
+            # Local cache is updated so we don't have to fetch this value again.
+            self.local_cache.set(key, remote_ts)
+            return remote_ts
+
+        return None
+
+    def set(self, key: str, timestamp: int) -> None:
+        """Add the key-timestamp pair to the caches."""
+        # The remote cache's value is set first. If an exception is raised the local cache
+        # does not retain partially written state. The remote cache will expire the key
+        # after one hour. It should be continually refreshed by new events however if the
+        # key is rare or comes from a near-zero volume project there's no reason to keep
+        # it around.
+        self.remote_cache.set(key, timestamp, 3600)
+        self.local_cache.set(key, timestamp)
+        return None
+
+
 def _get_cache():
     global cache
     if cache is None:
-        cache = BoundedLRUCache(max_size=100_000)
+        cache = TieredCache(
+            local_cache=BoundedLRUCache(max_size=100_000),
+            remote_cache=django_cache,
+        )
     return cache
 
 
