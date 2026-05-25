@@ -291,12 +291,23 @@ def is_internal_sentry_convention_attribute(
 def can_expose_attribute_to_api(
     attribute: str, item_type: SupportedTraceItemType, include_internal: bool = False
 ) -> bool:
+    """Return whether an attribute may be exposed by public API surfaces.
+
+    The visibility check expands the requested attribute to its related public
+    aliases, internal names, and replacement attributes because any of those may
+    carry the metadata that marks the underlying convention as internal.
+    `include_internal` only allows those Sentry-owned internal convention
+    attributes. It does not bypass `can_expose_attribute`, which still filters
+    private attributes first.
+    """
     candidates = _get_sentry_convention_visibility_candidates(attribute, item_type)
 
     for candidate in candidates:
         if not can_expose_attribute(candidate, item_type, include_internal=include_internal):
             return False
 
+    # Private attributes are rejected above before this internal-only override
+    # is applied.
     if include_internal:
         return True
 
