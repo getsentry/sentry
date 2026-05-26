@@ -390,7 +390,6 @@ module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.db.postgres.base",
     "sentry.middleware.ratelimit",
-    "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",

@@ -45,7 +45,10 @@ from sentry.snuba.metrics.query import (
     MetricGroupByField,
     MetricOrderByField,
 )
-from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
+from sentry.snuba.metrics.utils import (
+    MetricOperationType,
+    OrderByNotSupportedOverCompositeEntityException,
+)
 from sentry.snuba.sessions_v2 import (
     QueryDefinition,
     finite_or_none,
@@ -205,6 +208,16 @@ class Field(ABC):
 
 UNSORTABLE = {SessionStatus.HEALTHY, SessionStatus.ERRORED}
 
+DURATION_FIELD_OPS: Mapping[str, MetricOperationType] = {
+    "avg(session.duration)": "avg",
+    "p50(session.duration)": "p50",
+    "p75(session.duration)": "p75",
+    "p90(session.duration)": "p90",
+    "p95(session.duration)": "p95",
+    "p99(session.duration)": "p99",
+    "max(session.duration)": "max",
+}
+
 
 class CountField(Field):
     """Base class for sum(sessions) and count_unique(user)"""
@@ -303,7 +316,9 @@ class CountUniqueUser(CountField):
 
 class DurationField(Field):
     def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
-        self.op = name[:3]  # That this works is just a lucky coincidence
+        if name not in DURATION_FIELD_OPS:
+            raise InvalidParams(f"Unsupported duration field: {name}")
+        self.op = DURATION_FIELD_OPS[name]
         super().__init__(name, raw_groupby, status_filter)
 
     def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None:
