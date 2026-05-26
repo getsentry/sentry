@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
+from django.db import router
 from orjson import JSONDecodeError, dumps
 
 from sentry.backup.crypto import (
@@ -28,6 +29,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTransactionTestCase,
@@ -779,8 +781,10 @@ class QueryTests(ExportTestCase):
             token = ApiToken.objects.create(
                 user=user, token_type=AuthTokenType.USER, scope_list=scopes
             )
-            # Perform an update to dodge signals that remove project:distribution
-            ApiToken.objects.filter(id=token.id).update(scope_list=scopes)
+            # Perform a queryset.update to dodge signals that remove project:distribution
+            # Disable outbox write checks as well.
+            with unguarded_write(using=router.db_for_write(ApiToken)):
+                ApiToken.objects.filter(id=token.id).update(scope_list=scopes)
             token.refresh_from_db()
             assert token.scope_list == scopes, "Need to have invalid scopes to continue"
 
