@@ -116,7 +116,7 @@ def get_eap_project_volumes(
     start_time = end_time - time_interval
     project_volumes: list[ProjectVolume] = []
 
-    for data in run_eap_spans_table_query_in_chunks(
+    for row in run_eap_spans_table_query_in_chunks(
         {
             "params": SnubaParams(
                 start=start_time,
@@ -139,16 +139,15 @@ def get_eap_project_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         }
     ):
-        for row in data:
-            total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
-            keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
-            project_volumes.append(
-                ProjectVolume(
-                    project_id=ProjectId(int(row[DynamicSamplingQueryFields.ROOT_PROJECT])),
-                    total=total,
-                    keep=keep,
-                    drop=max(total - keep, 0),
-                )
+        total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
+        keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
+        project_volumes.append(
+            ProjectVolume(
+                project_id=ProjectId(int(row[DynamicSamplingQueryFields.ROOT_PROJECT])),
+                total=total,
+                keep=keep,
+                drop=max(total - keep, 0),
             )
+        )
 
     return project_volumes

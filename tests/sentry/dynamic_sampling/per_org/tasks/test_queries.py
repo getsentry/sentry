@@ -169,18 +169,16 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         with patch(
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
-                [
-                    {
-                        "sentry.dsc.root_project": project.id,
-                        "count()": 2,
-                        "count_sample()": 2,
-                    },
-                    {
-                        "sentry.dsc.root_project": other_project.id,
-                        "count()": 1,
-                        "count_sample()": 1,
-                    },
-                ]
+                {
+                    "sentry.dsc.root_project": project.id,
+                    "count()": 2,
+                    "count_sample()": 2,
+                },
+                {
+                    "sentry.dsc.root_project": other_project.id,
+                    "count()": 1,
+                    "count_sample()": 1,
+                },
             ],
         ) as run_table_query:
             project_volumes = get_eap_project_volumes(
@@ -227,11 +225,9 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         with patch(
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
-                [
-                    {
-                        "sentry.dsc.root_project": project.id,
-                    }
-                ]
+                {
+                    "sentry.dsc.root_project": project.id,
+                }
             ],
         ):
             project_volumes = get_eap_project_volumes(self.get_config(organization))
