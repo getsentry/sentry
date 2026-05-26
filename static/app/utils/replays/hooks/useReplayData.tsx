@@ -275,14 +275,7 @@ export function useReplayData({
     (!replayRecord?.count_errors || Boolean(lastLinkHeader.next?.results)) &&
     fetchErrorsStatus === 'success';
 
-  const replayEnd = (() => {
-    if (!replayRecord?.finished_at) {
-      return '';
-    }
-    const d = new Date(replayRecord.finished_at);
-    d.setSeconds(d.getSeconds() + 1);
-    return d.toISOString();
-  })();
+  const replayEnd = getReplayEndTimestamp(replayRecord);
 
   const extraErrorsResult = useInfiniteQuery(
     apiOptions.asInfinite<{data: RawReplayError[]}>()(
@@ -444,4 +437,13 @@ export function useReplayData({
     replayRecord,
     allErrors,
   ]);
+}
+
+function getReplayEndTimestamp(replayRecord: ReplayRecord | undefined): string {
+  if (!replayRecord?.finished_at) {
+    return '';
+  }
+  const d = new Date(replayRecord.finished_at);
+  d.setSeconds(d.getSeconds() + 1);
+  return d.toISOString();
 }
