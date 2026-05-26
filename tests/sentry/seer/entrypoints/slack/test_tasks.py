@@ -42,8 +42,6 @@ _SEER_SLACK_FEATURES = {
     "organizations:gen-ai-features": True,
     "organizations:seer-explorer": True,
     "organizations:autofix-on-explorer": True,
-    "organizations:seer-slack-explorer": True,
-    "organizations:seer-slack-workflows": True,
 }
 
 

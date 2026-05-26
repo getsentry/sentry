@@ -397,7 +397,6 @@ module = [
     "sentry.services.eventstore.models",
     "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
-    "tests.sentry.api.helpers.test_group_index",
 ]
 disable_error_code = [
     "arg-type",
@@ -1639,7 +1638,6 @@ module = [
     "sentry.web.frontend.debug.debug_error_embed",
     "sentry.web.frontend.debug.debug_feedback_issue",
     "sentry.web.frontend.debug.debug_generic_issue",
-    "sentry.web.frontend.debug.debug_incident_trigger_email",
     "sentry.web.frontend.debug.debug_invalid_identity_email",
     "sentry.web.frontend.debug.debug_mfa_added_email",
     "sentry.web.frontend.debug.debug_mfa_removed_email",

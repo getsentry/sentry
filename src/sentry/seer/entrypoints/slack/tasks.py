@@ -77,10 +77,9 @@ def process_mention_for_slack(
     ``ts`` is the message's own timestamp (always present).
     ``thread_ts`` is the parent thread's timestamp (None for top-level messages).
 
-    Authorization: Access is gated by the org-level ``seer-slack-workflows``
-    feature flag and ``has_explorer_access()``.  The incoming webhook is
-    verified by ``SlackDMRequest.validate()``.  The Slack user must have a
-    linked Sentry identity; if not, an ephemeral prompt to link is sent.
+    Authorization: Access is gated by ``has_explorer_access()``.  The incoming
+    webhook is verified by ``SlackDMRequest.validate()``.  The Slack user must
+    have a linked Sentry identity; if not, an ephemeral prompt to link is sent.
     """
 
     with SlackEntrypointEventLifecycleMetric(
