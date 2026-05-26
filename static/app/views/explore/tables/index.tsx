@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
@@ -123,7 +122,6 @@ export function ExploreTables(props: ExploreTablesProps) {
               disabled={hasCrossEvents}
             >
               {t('Attribute Breakdowns')}
-              <FeatureBadge type="beta" />
             </TabList.Item>
           </TabList>
         </Tabs>
