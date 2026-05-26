@@ -50,7 +50,10 @@ class ErrorEmbedResolver(CellRequestResolver):
         view_func: Callable[..., HttpResponseBase],
         view_kwargs: dict[str, Any],
     ) -> Cell | None:
-        dsn = request.GET.get("dsn")
+        if "dsn" not in request.GET:
+            return None
+
+        dsn = request.GET["dsn"]
         try:
             parsed = urlparse(dsn)
         except Exception as err:

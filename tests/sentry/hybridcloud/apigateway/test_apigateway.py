@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import pytest
@@ -7,6 +7,7 @@ from django.test import override_settings
 from django.urls import get_resolver, reverse
 from rest_framework.response import Response
 
+from sentry.models.projectkey import ProjectKey
 from sentry.models.projectkeymapping import ProjectKeyMapping
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
@@ -317,7 +318,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         assert resp_json["name"] == expected_name
 
 
-def _get_incr_calls(mock_metrics):
+def _get_incr_calls(mock_metrics: MagicMock) -> set[tuple[str, tuple[tuple[str, str], ...]]]:
     return {
         (args[0], tuple(sorted(kwargs["tags"].items())))
         for args, kwargs in mock_metrics.incr.call_args_list
@@ -326,7 +327,7 @@ def _get_incr_calls(mock_metrics):
 
 @control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class CellResolverTest(ApiGatewayTestCase):
-    def _create_project_key_with_mapping(self):
+    def _create_project_key_with_mapping(self) -> ProjectKey:
         project_key = self.create_project_key(self.project)
         ProjectKeyMapping.objects.update_or_create(
             project_key_id=project_key.id,
@@ -462,3 +463,64 @@ class CellResolverTest(ApiGatewayTestCase):
                 "apigateway.proxy_request",
                 (("kind", "cell_resolver"), ("url_name", "sentry-js-sdk-loader")),
             ) not in incr_calls
+
+    @override_options({"apigateway.cell_resolver.enabled": True})
+    def test_proxy_error_embed_dsn(self) -> None:
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/api/embed/error-page/",
+            json_data={"proxy": True, "name": "error-embed"},
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            # no dsn
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get("/api/embed/error-page/")
+
+            # invalid dsn
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get("/api/embed/error-page/", data={"dsn": "lolnope"})
+
+            # invalid DSN that doesn't match our domain
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get(
+                    "/api/embed/error-page/", data={"dsn": "https://abc123@nope.com/123"}
+                )
+
+            # Older DSN with no region -> monolith region
+            resp = self.client.get(
+                "/api/embed/error-page/", data={"dsn": "https://abc123@testserver/123"}
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.sentry.io style hosts
+            resp = self.client.get(
+                "/api/embed/error-page/", data={"dsn": "https://abc123@o123.ingest.testserver/123"}
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.us.sentry.io style hosts
+            resp = self.client.get(
+                "/api/embed/error-page/",
+                data={"dsn": "https://abc123@o123.ingest.us.testserver/123"},
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.us.sentry.io style hosts with a garbage region
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get(
+                    "/api/embed/error-page/",
+                    data={"dsn": "https://abc123@o123.ingest.zz.testserver/123"},
+                )
+
+    @staticmethod
+    def _check_response(resp: Response, expected_name: str) -> None:
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            assert resp.status_code == 401
+            return
+        assert resp.status_code == 200
+        resp_json = json.loads(close_streaming_response(resp))
+        assert resp_json["proxy"] is True
+        assert resp_json["name"] == expected_name
