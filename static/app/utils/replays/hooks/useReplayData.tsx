@@ -180,14 +180,10 @@ export function useReplayData({
     Boolean(projectSlug) &&
     Boolean(replayRecord);
 
-  const segmentCount = replayRecord?.count_segments ?? 0;
-  const attachmentCursors =
-    segmentCount === 0
-      ? []
-      : Array.from(
-          {length: Math.ceil(segmentCount / segmentsPerPage)},
-          (_, i) => `0:${segmentsPerPage * i}:0`
-        );
+  const attachmentCursors = Array.from(
+    {length: Math.ceil(replayRecord?.count_segments ?? 0 / segmentsPerPage)},
+    (_, i) => `0:${segmentsPerPage * i}:0`
+  );
 
   const {
     pages: attachmentPages,
@@ -240,14 +236,10 @@ export function useReplayData({
     [orgSlug, replayRecord]
   );
 
-  const errorCount = replayRecord?.count_errors ?? 0;
-  const errorCursors =
-    errorCount === 0
-      ? []
-      : Array.from(
-          {length: Math.ceil(errorCount / errorsPerPage)},
-          (_, i) => `0:${errorsPerPage * i}:0`
-        );
+  const errorCursors = Array.from(
+    {length: Math.ceil(replayRecord?.count_errors ?? 0 / errorsPerPage)},
+    (_, i) => `0:${errorsPerPage * i}:0`
+  );
 
   const enableErrors = Boolean(replayRecord) && Boolean(projectSlug);
   const {pages: errorPages, status: fetchErrorsStatus} = useQueries({
