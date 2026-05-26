@@ -210,11 +210,7 @@ def build_metric_alert_chart(
         ),
     }
 
-    allow_mri = features.has(
-        "organizations:insights-alerts",
-        organization,
-        actor=user,
-    )
+    allow_mri = False
     aggregate = translate_aggregate_field(
         snuba_query.aggregate,
         reverse=True,
