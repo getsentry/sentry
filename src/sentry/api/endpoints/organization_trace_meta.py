@@ -94,7 +94,7 @@ def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> int:
             snuba_count,
             eap_count,
             callsite,
-            is_experimental_data_a_null_result=(eap_count == 0),
+            is_experimental_data_nullish=(eap_count == 0),
             reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
             debug_context={
                 "trace_id": trace_id,
