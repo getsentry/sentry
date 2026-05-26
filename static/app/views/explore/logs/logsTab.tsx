@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -23,19 +23,15 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
-import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
   ExploreContentSection,
   ExploreControlSection,
-  ExploreSchemaHintsSection,
 } from 'sentry/views/explore/components/styles';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -72,7 +68,6 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {useOurLogsSchemaHintsRemoval} from 'sentry/views/explore/logs/tables/useOurLogsSchemaHintsRemoval';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -121,15 +116,12 @@ function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) 
 
 interface LogsSearchSectionProps {
   datePageFilterProps: DatePageFilterProps;
-  searchBarWidthOffset?: number;
 }
 
 const LogsSearchSection = memo(function LogsSearchSection({
   datePageFilterProps,
-  searchBarWidthOffset,
 }: LogsSearchSectionProps) {
   const logsSearch = useQueryParamsSearch();
-  const logsSearchQuery = logsSearch.formatString();
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const [interval] = useChartInterval();
@@ -145,21 +137,12 @@ const LogsSearchSection = memo(function LogsSearchSection({
     sortBys: aggregateSortBys,
   });
 
-  const {
-    attributes: stringAttributes,
-    isLoading: stringAttributesLoading,
-    secondaryAliases: stringSecondaryAliases,
-  } = useLogItemAttributes({}, 'string', HiddenLogSearchFields);
-  const {
-    attributes: numberAttributes,
-    isLoading: numberAttributesLoading,
-    secondaryAliases: numberSecondaryAliases,
-  } = useLogItemAttributes({}, 'number', HiddenLogSearchFields);
-  const {
-    attributes: booleanAttributes,
-    isLoading: booleanAttributesLoading,
-    secondaryAliases: booleanSecondaryAliases,
-  } = useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useLogItemAttributes({}, 'string', HiddenLogSearchFields);
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useLogItemAttributes({}, 'number', HiddenLogSearchFields);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
@@ -171,15 +154,10 @@ const LogsSearchSection = memo(function LogsSearchSection({
       stringSecondaryAliases,
     });
 
-  const supportedAggregates = useMemo<AggregationKey[]>(() => {
-    return [];
-  }, []);
-
   const organization = useOrganization();
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
-  const schemaHintsRemoval = useOurLogsSchemaHintsRemoval();
 
   return (
     <SearchQueryBuilderProvider
@@ -222,24 +200,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          {!schemaHintsRemoval && (
-            <ExploreSchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={supportedAggregates}
-                booleanTags={booleanAttributes}
-                numberTags={numberAttributes}
-                stringTags={stringAttributes}
-                isLoading={
-                  numberAttributesLoading ||
-                  stringAttributesLoading ||
-                  booleanAttributesLoading
-                }
-                exploreQuery={logsSearchQuery}
-                source={SchemaHintsSources.LOGS}
-                searchBarWidthOffset={searchBarWidthOffset}
-              />
-            </ExploreSchemaHintsSection>
-          )}
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
@@ -283,7 +243,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const [_, setPersistentParams] = usePersistedLogsPageParams();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
-  const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const [interval] = useChartInterval();
 
@@ -446,10 +405,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
   return (
     <LogsSidebarProvider value={setSidebarOpen}>
-      <LogsSearchSection
-        datePageFilterProps={datePageFilterProps}
-        searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
-      />
+      <LogsSearchSection datePageFilterProps={datePageFilterProps} />
       <ViewportConstrainedPage constrained={mode === Mode.SAMPLES} hideFooter>
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
