@@ -18,7 +18,9 @@ class PendingPullRequestIteration(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     pull_request = FlexibleForeignKey("sentry.PullRequest", on_delete=models.CASCADE)
-    integration = FlexibleForeignKey("sentry.Integration", on_delete=models.CASCADE)
+    integration = FlexibleForeignKey(
+        "sentry.Integration", on_delete=models.CASCADE, db_constraint=False
+    )
     process_after = models.DateTimeField()
     extras = models.JSONField(db_default={}, default=dict)
 
