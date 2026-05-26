@@ -1,9 +1,10 @@
-import {memo, useEffect, useState} from 'react';
+import {memo, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,6 +21,10 @@ import {
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import {
+  extractMessagesFromNodes,
+  messagesToMarkdown,
+} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -105,6 +110,8 @@ function ConversationView({
     setActiveTab(newTab);
   };
 
+  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+
   if (isLoading) {
     return <ConversationViewSkeleton />;
   }
@@ -122,14 +129,38 @@ function ConversationView({
       left={
         <ConversationLeftPanel>
           <Flex direction="column" flex="1" minHeight="0" width="100%" overflow="hidden">
-            <Container flexShrink={0} borderBottom="primary" background="primary">
-              <Tabs value={activeTab} onChange={handleTabChange}>
-                <TabList>
-                  <TabList.Item key="messages">{t('Chat')}</TabList.Item>
-                  <TabList.Item key="trace">{t('Spans')}</TabList.Item>
-                </TabList>
-              </Tabs>
-            </Container>
+            <Flex
+              flexShrink={0}
+              align="center"
+              borderBottom="primary"
+              background="primary"
+            >
+              <Flex flex={1}>
+                <Tabs value={activeTab} onChange={handleTabChange}>
+                  <TabList>
+                    <TabList.Item key="messages">{t('Chat')}</TabList.Item>
+                    <TabList.Item key="trace">{t('Spans')}</TabList.Item>
+                  </TabList>
+                </Tabs>
+              </Flex>
+              {activeTab === 'messages' && messages.length > 0 && (
+                <Container paddingRight="sm">
+                  <CopyAsDropdown
+                    size="xs"
+                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                      markdown: () => {
+                        trackAnalytics('conversations.detail.copy-conversation', {
+                          organization,
+                        });
+                        return messagesToMarkdown(messages);
+                      },
+                      text: undefined,
+                      json: undefined,
+                    })}
+                  />
+                </Container>
+              )}
+            </Flex>
             <Flex
               flex="1"
               minHeight="0"
