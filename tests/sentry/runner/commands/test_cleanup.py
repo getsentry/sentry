@@ -417,8 +417,8 @@ class RemoveOldNotificationMessagesTest(TestCase):
         return message
 
     def test_deletes_messages_older_than_retention(self) -> None:
-        old = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 1)
-        very_old = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 365)
+        self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 1)
+        self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 365)
         recent = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS - 1)
         brand_new = self._create_message(days_old=0)
 
@@ -426,8 +426,6 @@ class RemoveOldNotificationMessagesTest(TestCase):
 
         remaining_ids = set(self.NotificationMessage.objects.values_list("id", flat=True))
         assert remaining_ids == {recent.id, brand_new.id}
-        assert old.id not in remaining_ids
-        assert very_old.id not in remaining_ids
 
     def test_no_op_when_nothing_to_delete(self) -> None:
         recent = self._create_message(days_old=1)
