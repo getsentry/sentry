@@ -99,6 +99,11 @@ def resolve_action_source(request: Request | None) -> str:
     return ActionSource.API
 
 
+class ActorType(StrEnum):
+    USER = "user"
+    SYSTEM = "system"
+
+
 class ActionType(StrEnum):
     VIEW = "view"
     RESOLVE = "resolve"
@@ -131,6 +136,7 @@ def publish_action(
     No-op publisher — emits a structured log line and a metric counter.
     Will be swapped for the real Action Log publisher when available.
     """
+    actor_type = ActorType.USER if actor_id is not None else ActorType.SYSTEM
     logger.info(
         "issue.action_log",
         extra={
@@ -139,6 +145,7 @@ def publish_action(
             "group_id": group_id,
             "organization_id": organization_id,
             "project_id": project_id,
+            "actor_type": actor_type,
             "actor_id": actor_id,
             "metadata": metadata or {},
         },
