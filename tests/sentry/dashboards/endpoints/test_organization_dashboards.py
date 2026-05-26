@@ -2126,48 +2126,47 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(prebuilt_in_response) == 1
 
     def test_post_with_text_widget(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Dashboard from Post",
-                "widgets": [
-                    {
-                        "displayType": "line",
-                        "interval": "5m",
-                        "title": "Chart",
-                        "queries": [
-                            {
-                                "name": "Transactions",
-                                "fields": ["count()"],
-                                "columns": [],
-                                "aggregates": ["count()"],
-                                "conditions": "event.type:transaction",
-                            }
-                        ],
-                    },
-                    {
-                        "title": "Text Widget",
-                        "displayType": "text",
-                        "description": "This is a text widget description",
-                    },
-                ],
-            }
-            response = self.do_request("post", self.url, data=data)
-            assert response.status_code == 201, response.data
-            dashboard = Dashboard.objects.get(
-                organization=self.organization, title="Dashboard from Post"
-            )
-            assert dashboard.created_by_id == self.user.id
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Chart",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+                {
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "This is a text widget description",
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard from Post"
+        )
+        assert dashboard.created_by_id == self.user.id
 
-            widgets = self.get_widgets(dashboard.id)
-            assert len(widgets) == 2
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 2
 
-            text_widget = widgets[1]
-            assert text_widget.title == "Text Widget"
-            assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
-            assert text_widget.description == "This is a text widget description"
-            assert text_widget.widget_type is None
+        text_widget = widgets[1]
+        assert text_widget.title == "Text Widget"
+        assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
+        assert text_widget.description == "This is a text widget description"
+        assert text_widget.widget_type is None
 
-            assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
+        assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
 
     def test_agents_traces_table_dashboard_save_and_update(self) -> None:
         # Regression: the AI Agents Overview prebuilt config has an
@@ -2226,34 +2225,33 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         # Regression: DRF reuses a single child serializer for ``many=True``,
         # so a previous widget's widget_type can leak via serializer context
         # and incorrectly fail validation for a later TEXT widget.
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Dashboard from Post",
-                "widgets": [
-                    {
-                        "title": "Mobile Size",
-                        "displayType": "line",
-                        "widgetType": "preprod-app-size",
-                        "interval": "5m",
-                        "queries": [
-                            {
-                                "name": "",
-                                "fields": ["count()"],
-                                "columns": [],
-                                "aggregates": ["count()"],
-                                "conditions": "",
-                            }
-                        ],
-                    },
-                    {
-                        "title": "Text Widget",
-                        "displayType": "text",
-                        "description": "Notes",
-                    },
-                ],
-            }
-            response = self.do_request("post", self.url, data=data)
-            assert response.status_code == 201, response.data
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "title": "Mobile Size",
+                    "displayType": "line",
+                    "widgetType": "preprod-app-size",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+                {
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "Notes",
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
 
     def test_post_with_text_widget_without_feature_flag(self) -> None:
         data = {
@@ -2272,30 +2270,29 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert "Text widgets are not enabled" in response.data["widgets"][0]["displayType"][0]
 
     def test_post_with_text_widget_ignores_queries(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Dashboard from Post",
-                "widgets": [
-                    {
-                        "title": "Text Widget with Queries",
-                        "displayType": "text",
-                        "description": "This should ignore queries",
-                        "queries": [
-                            {
-                                "name": "errors",
-                                "conditions": "event.type:error",
-                                "fields": ["count()"],
-                                "columns": [],
-                                "aggregates": ["count()"],
-                            }
-                        ],
-                    },
-                ],
-            }
-            response = self.do_request("post", self.url, data=data)
-            assert response.status_code == 400, response.data
-            assert "widgets" in response.data, response.data
-            assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "title": "Text Widget with Queries",
+                    "displayType": "text",
+                    "description": "This should ignore queries",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "conditions": "event.type:error",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert "widgets" in response.data, response.data
+        assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"
 
     def test_post_validate_only_success_without_creating(self) -> None:
         data: dict[str, Any] = {
