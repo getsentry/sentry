@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import resource
+import sys
 import time
 import zipfile
 from collections import defaultdict
@@ -148,7 +149,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
             exit_reason = "unknown"
 
             def _rss_mb() -> int:
-                return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // (1024 * 1024)
+                # ru_maxrss is in KB on Linux, bytes on macOS
+                rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                return rss // 1024 if sys.platform == "linux" else rss // (1024 * 1024)
 
             logger.info(
                 "preprod_snapshot_download.stream_start",
@@ -280,6 +283,16 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                 )
                 raise
             finally:
+                # wait=False so hung objectstore reads from timed-out batches
+                # don't block the generator and eventually the WSGI worker.
+                executor.shutdown(wait=False, cancel_futures=True)
+                zf.close()
+
+                # Drain the final ZIP central directory bytes for accurate logging
+                final_chunk = buf.drain()
+                if final_chunk:
+                    bytes_yielded += len(final_chunk)
+
                 logger.info(
                     "preprod_snapshot_download.stream_finally",
                     extra={
@@ -294,15 +307,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                         "pid": os.getpid(),
                     },
                 )
-                # wait=False so hung objectstore reads from timed-out batches
-                # don't block the generator and eventually the WSGI worker.
-                executor.shutdown(wait=False, cancel_futures=True)
-                zf.close()
 
-            chunk = buf.drain()
-            if chunk:
-                bytes_yielded += len(chunk)
-                yield chunk
+            if final_chunk:
+                yield final_chunk
 
         response = StreamingHttpResponse(_stream_zip(), content_type="application/zip")
         response["Content-Disposition"] = (
