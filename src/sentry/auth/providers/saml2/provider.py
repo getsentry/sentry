@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
-import sentry_sdk
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
@@ -17,9 +16,8 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
-from rest_framework.request import Request
 
-from sentry import features, options
+from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import Provider
@@ -30,7 +28,6 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
-from sentry.users.services.user.service import user_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -458,42 +455,3 @@ def build_auth(request: HttpRequest, saml_config: _TypedDict) -> OneLogin_Saml2_
     }
 
     return OneLogin_Saml2_Auth(saml_request, saml_config)
-
-
-def handle_saml_single_logout(request: Request) -> OneLogin_Saml2_Auth:
-    """
-    This method will attempt to call the backend of the IdP. However, not
-    all IdP will invalidate the user session from their end.
-
-    We should get the SLO URL and redirect the user back to the IdP site
-    to delete the IdP session cookie in their browser
-    """
-    # Do not handle SLO if a user is in more than 1 organization
-    # Propagating it to multiple IdPs results in confusion for the user
-    organizations = user_service.get_organizations(user_id=request.user.id)
-    if not len(organizations) == 1:
-        return
-
-    org = organizations[0]
-    if not features.has("organizations:sso-saml2-slo", org):
-        return
-
-    provider = get_provider(org.slug)
-    if not provider or not provider.is_saml:
-        return
-
-    # Try/catch is needed because IdP may not support SLO and
-    # will return an error
-    try:
-        saml_config = build_saml_config(provider.config, org.slug)
-        idp_auth = build_auth(request, saml_config)
-        idp_slo_url = idp_auth.get_slo_url()
-
-        # IdP that does not support SLO will usually not provide a URL (e.g. Okta)
-        if not idp_slo_url:
-            return
-
-        idp_auth.logout()
-        return idp_slo_url
-    except Exception as e:
-        sentry_sdk.capture_exception(e)

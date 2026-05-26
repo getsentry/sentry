@@ -21,7 +21,6 @@ from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.demo_mode.utils import is_demo_user
@@ -332,10 +331,6 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         if is_demo_user(request.user) and request.data.get("all", None) is True:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # If there is an SLO URL, return it to frontend so the browser can redirect
-        # the user back to the IdP site to delete the IdP session cookie
-        slo_url = handle_saml_single_logout(request)
-
         # For signals to work here, we must promote the request.user to a full user object
         logout(request._request)
         request.user = AnonymousUser()
@@ -352,10 +347,6 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 )
             )
 
-        if slo_url:
-            response.status_code = status.HTTP_200_OK
-            response.data = {"sloUrl": slo_url}
-        else:
-            response.status_code = status.HTTP_204_NO_CONTENT
+        response.status_code = status.HTTP_204_NO_CONTENT
 
         return response
