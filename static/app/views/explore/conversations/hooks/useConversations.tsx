@@ -7,6 +7,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {decodeUnicodeEscapes} from 'sentry/views/insights/pages/agents/utils/decodeUnicodeEscapes';
 
 export interface ConversationUser {
   email: string | null;
@@ -80,14 +81,16 @@ export function useConversations() {
           lastOutput: rawLastOutput,
           ...rest
         }): Conversation => {
-          const firstInput =
+          const rawFirst =
             typeof rawFirstInput === 'string'
               ? rawFirstInput
               : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
-          const lastOutput =
+          const rawLast =
             typeof rawLastOutput === 'string'
               ? rawLastOutput
               : (rawLastOutput?.find(content => content.type === 'text')?.text ?? null);
+          const firstInput = rawFirst ? decodeUnicodeEscapes(rawFirst) : null;
+          const lastOutput = rawLast ? decodeUnicodeEscapes(rawLast) : null;
           return {...rest, firstInput, lastOutput};
         }
       )
