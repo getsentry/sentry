@@ -475,7 +475,7 @@ describe('Discover > Homepage', () => {
       },
     });
 
-    const {router} = render(<Homepage />, {
+    render(<Homepage />, {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
