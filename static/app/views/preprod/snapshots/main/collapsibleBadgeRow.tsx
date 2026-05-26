@@ -94,7 +94,14 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
           background="primary"
           paddingLeft="sm"
         >
-          <Button variant="link" size="xs" onClick={() => setExpanded(true)}>
+          <Button
+            variant="link"
+            size="xs"
+            onClick={e => {
+              e.stopPropagation();
+              setExpanded(true);
+            }}
+          >
             {t('+%s more tags', hiddenKeys.size)}
           </Button>
         </Flex>

@@ -283,7 +283,10 @@ export const CardHeader = memo(function CardHeader({
               aria-label={t('Copy file name')}
               tooltip={fileName}
               icon={<IconFile size="xs" />}
-              onClick={() => copy(fileName, {successMessage: t('Copied file name')})}
+              onClick={e => {
+                e.stopPropagation();
+                copy(fileName, {successMessage: t('Copied file name')});
+              }}
             />
           )}
         </Flex>
