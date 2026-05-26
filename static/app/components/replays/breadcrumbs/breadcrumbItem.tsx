@@ -157,29 +157,26 @@ const StyledTimelineItem = styled(Timeline.Item)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin: 0;
   &:hover {
-    background: ${p => p.theme.colors.surface200};
+    background-color: ${p => p.theme.colors.surface200};
     .timeline-icon-wrapper {
-      background: ${p => p.theme.colors.surface200};
+      background-color: ${p => p.theme.colors.surface200};
     }
-  }
-  .timeline-icon-wrapper {
-    z-index: 1;
   }
   cursor: pointer;
   /* vertical line connecting items */
-  &:not(:last-child)::before {
-    content: '';
-    position: absolute;
-    left: 16.5px;
-    width: 1px;
-    top: -2px;
-    bottom: -9px;
+  &:not(:last-child) {
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    background: ${p => p.theme.tokens.border.primary};
-    z-index: 0;
+    background-image: linear-gradient(
+      ${p => p.theme.tokens.border.primary},
+      ${p => p.theme.tokens.border.primary}
+    );
+    background-position: 16.5px -2px;
+    background-repeat: no-repeat;
+    background-size: 1px calc(100% + 11px);
   }
-  &:first-child::before {
-    top: 4px;
+  &:first-child {
+    background-position: 16.5px 4px;
+    background-size: 1px calc(100% + 5px);
   }
 `;
 
