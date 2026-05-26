@@ -181,3 +181,83 @@ class TestFetchServiceProvider(TestCase):
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None
+
+    def test_github_enterprise_returns_github_provider(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-dispatch-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+
+        repository: Repository = {
+            "id": 1,
+            "integration_id": integration.id,
+            "name": "acme/widget",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": "9001",
+            "provider_name": "github_enterprise",
+            "web_base_url": "https://github.acme.com",
+        }
+        provider = fetch_service_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GitHubProvider)
+
+    def test_github_enterprise_without_integration_returns_none(self) -> None:
+        repository: Repository = {
+            "id": 1,
+            "integration_id": 99999,
+            "name": "acme/widget",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": "9001",
+            "provider_name": "github_enterprise",
+            "web_base_url": "https://github.acme.com",
+        }
+        assert fetch_service_provider(self.organization.id, repository) is None
+
+    def test_github_enterprise_client_error_returns_none(self) -> None:
+        from unittest.mock import patch
+
+        from sentry.shared_integrations.exceptions import IntegrationError
+
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-clienterror-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repository: Repository = {
+            "id": 1,
+            "integration_id": integration.id,
+            "name": "acme/widget",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": "9001",
+            "provider_name": "github_enterprise",
+            "web_base_url": "https://github.acme.com",
+        }
+
+        with (
+            patch(
+                "sentry.scm.private.helpers.integration_service.get_integration",
+                return_value=integration,
+            ),
+            patch.object(
+                type(integration.get_installation(organization_id=self.organization.id)),
+                "get_client",
+                side_effect=IntegrationError("boom"),
+            ),
+        ):
+            assert fetch_service_provider(self.organization.id, repository) is None
