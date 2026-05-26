@@ -40,7 +40,6 @@ from sentry.testutils.helpers.backups import (
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
-
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
