@@ -123,7 +123,10 @@ export function RootAllocationCard({
                   <Cell>{t('Available')}</Cell>
                   <Cell>
                     {rootAllocation.costPerItem === 0 ? (
-                      <InfoText title={t('Cost per event is unavailable for base plans')}>
+                      <InfoText
+                        variant="inherit"
+                        title={t('Cost per event is unavailable for base plans')}
+                      >
                         N/A
                       </InfoText>
                     ) : (
@@ -133,7 +136,7 @@ export function RootAllocationCard({
                     )}
                   </Cell>
                   <Cell>
-                    <InfoText title={availableEvents.toLocaleString()}>
+                    <InfoText variant="inherit" title={availableEvents.toLocaleString()}>
                       {bigNumFormatter(availableEvents, 2, metricUnit)}
                     </InfoText>
                   </Cell>
@@ -143,7 +146,10 @@ export function RootAllocationCard({
                   <Cell>
                     {/* TODO: include OD costs if enabled */}
                     {rootAllocation.costPerItem === 0 ? (
-                      <InfoText title={t('Cost per event is unavailable for base plans')}>
+                      <InfoText
+                        variant="inherit"
+                        title={t('Cost per event is unavailable for base plans')}
+                      >
                         N/A
                       </InfoText>
                     ) : (
@@ -159,7 +165,10 @@ export function RootAllocationCard({
                   </Cell>
                   <Cell>
                     <Flex gap="md">
-                      <InfoText title={rootAllocation.consumedQuantity.toLocaleString()}>
+                      <InfoText
+                        variant="inherit"
+                        title={rootAllocation.consumedQuantity.toLocaleString()}
+                      >
                         {bigNumFormatter(
                           Math.min(
                             rootAllocation.reservedQuantity,
