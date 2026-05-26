@@ -218,13 +218,17 @@ def update_groups(
                 status=HTTPStatus.BAD_REQUEST,
             )
 
+        priority_value = PriorityLevel.from_str(result["priority"]) if result["priority"] else None
+        groups_with_priority_change = [
+            g for g in groups if priority_value is not None and g.priority != priority_value
+        ]
         handle_priority(
             priority=result["priority"],
             group_list=groups,
             acting_user=acting_user,
             project_lookup=project_lookup,
         )
-        for group in groups:
+        for group in groups_with_priority_change:
             publish_action(
                 action=ActionType.SET_PRIORITY,
                 source=source,
@@ -846,6 +850,10 @@ def prepare_response(
         pass
 
     if "assignedTo" in result:
+        prev_assignees = {
+            ga.group_id: (ga.user_id, ga.team_id)
+            for ga in GroupAssignee.objects.filter(group__in=group_list)
+        }
         result["assignedTo"] = handle_assigned_to(
             result["assignedTo"],
             data.get("assignedBy"),
@@ -857,6 +865,17 @@ def prepare_response(
         if source is not None:
             action = ActionType.ASSIGN if result["assignedTo"] else ActionType.UNASSIGN
             for group in group_list:
+                had_assignee = group.id in prev_assignees
+                if action == ActionType.UNASSIGN and not had_assignee:
+                    continue
+                if action == ActionType.ASSIGN:
+                    cur = (
+                        GroupAssignee.objects.filter(group=group)
+                        .values_list("user_id", "team_id")
+                        .first()
+                    )
+                    if cur and prev_assignees.get(group.id) == cur:
+                        continue
                 publish_action(
                     action=action,
                     source=source,
@@ -916,18 +935,37 @@ def prepare_response(
             urlparse(referer).path,
         )
         if source is not None:
-            for group in group_list:
+            primary = group_list[0]
+            children = group_list[1:]
+            publish_action(
+                action=ActionType.MERGE_FROM_OTHER,
+                source=source,
+                group_id=primary.id,
+                organization_id=primary.project.organization_id,
+                project_id=primary.project_id,
+                actor_id=actor_id,
+                metadata={"counterpart_group_ids": [g.id for g in children]},
+            )
+            for child in children:
                 publish_action(
-                    action=ActionType.MERGE,
+                    action=ActionType.MERGE_INTO_OTHER,
                     source=source,
-                    group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
+                    group_id=child.id,
+                    organization_id=child.project.organization_id,
+                    project_id=child.project_id,
                     actor_id=actor_id,
+                    metadata={"counterpart_group_id": primary.id},
                 )
 
     inbox = result.get("inbox", None)
     if inbox is not None:
+        from sentry.models.groupinbox import GroupInbox
+
+        groups_in_inbox: set[int] = set()
+        if inbox is False:
+            groups_in_inbox = set(
+                GroupInbox.objects.filter(group__in=group_list).values_list("group_id", flat=True)
+            )
         result["inbox"] = update_inbox(
             inbox,
             group_list,
@@ -937,14 +975,15 @@ def prepare_response(
         )
         if source is not None and inbox is False:
             for group in group_list:
-                publish_action(
-                    action=ActionType.MARK_REVIEWED,
-                    source=source,
-                    group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
-                    actor_id=actor_id,
-                )
+                if group.id in groups_in_inbox:
+                    publish_action(
+                        action=ActionType.MARK_REVIEWED,
+                        source=source,
+                        group_id=group.id,
+                        organization_id=group.project.organization_id,
+                        project_id=group.project_id,
+                        actor_id=actor_id,
+                    )
 
     # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
     # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this

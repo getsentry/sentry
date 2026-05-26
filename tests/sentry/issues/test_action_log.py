@@ -6,8 +6,10 @@ from sentry.issues.action_log import (
     publish_action,
     resolve_action_source,
 )
+from sentry.models.group import GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
 def _make_request(
@@ -147,3 +149,159 @@ class TestPublishAction(TestCase):
         extra = logs.records[0].__dict__
         assert extra["actor_id"] is None
         assert extra["metadata"] == {}
+
+    def test_actor_type_derived_from_actor_id(self) -> None:
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            publish_action(
+                action=ActionType.RESOLVE,
+                source="web",
+                group_id=1,
+                organization_id=2,
+                project_id=3,
+                actor_id=99,
+            )
+        assert logs.records[0].__dict__["actor_type"] == "user"
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            publish_action(
+                action=ActionType.RESOLVE,
+                source="system",
+                group_id=1,
+                organization_id=2,
+                project_id=3,
+            )
+        assert logs.records[0].__dict__["actor_type"] == "system"
+
+
+PUBLISH_UPDATE = "sentry.api.helpers.group_index.update.publish_action"
+PUBLISH_DETAILS = "sentry.issues.endpoints.group_details.publish_action"
+
+
+class TestActionLogIntegration(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.group = self.create_group(
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            priority=PriorityLevel.MEDIUM,
+        )
+        self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
+
+    @patch(PUBLISH_UPDATE)
+    def test_resolve_emits_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.put(self.url, data={"status": "resolved"}, format="json")
+        assert response.status_code == 200
+        mock_publish.assert_called_once()
+        kwargs = mock_publish.call_args.kwargs
+        assert kwargs["action"] == ActionType.RESOLVE
+        assert kwargs["group_id"] == self.group.id
+        assert kwargs["actor_id"] == self.user.id
+
+    @patch(PUBLISH_UPDATE)
+    def test_resolve_already_resolved_skips_action(self, mock_publish: MagicMock) -> None:
+        self.group.update(status=GroupStatus.RESOLVED, substatus=None)
+        response = self.client.put(self.url, data={"status": "resolved"}, format="json")
+        assert response.status_code == 200
+        mock_publish.assert_not_called()
+
+    @patch(PUBLISH_UPDATE)
+    def test_archive_emits_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.put(
+            self.url,
+            data={"status": "ignored", "substatus": "archived_until_escalating"},
+            format="json",
+        )
+        assert response.status_code == 200
+        mock_publish.assert_called_once()
+        assert mock_publish.call_args.kwargs["action"] == ActionType.ARCHIVE
+
+    @patch(PUBLISH_UPDATE)
+    def test_priority_change_emits_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.put(self.url, data={"priority": "high"}, format="json")
+        assert response.status_code == 200
+        mock_publish.assert_called_once()
+        kwargs = mock_publish.call_args.kwargs
+        assert kwargs["action"] == ActionType.SET_PRIORITY
+        assert kwargs["metadata"] == {"priority": "high"}
+
+    @patch(PUBLISH_UPDATE)
+    def test_priority_same_value_skips_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.put(self.url, data={"priority": "medium"}, format="json")
+        assert response.status_code == 200
+        mock_publish.assert_not_called()
+
+    @patch(PUBLISH_UPDATE)
+    def test_assign_emits_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.put(
+            self.url,
+            data={"assignedTo": f"user:{self.user.id}"},
+            format="json",
+        )
+        assert response.status_code == 200
+        calls = [c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.ASSIGN]
+        assert len(calls) == 1
+        assert calls[0].kwargs["group_id"] == self.group.id
+
+    @patch(PUBLISH_UPDATE)
+    def test_assign_same_user_skips_action(self, mock_publish: MagicMock) -> None:
+        self.client.put(
+            self.url,
+            data={"assignedTo": f"user:{self.user.id}"},
+            format="json",
+        )
+        mock_publish.reset_mock()
+        self.client.put(
+            self.url,
+            data={"assignedTo": f"user:{self.user.id}"},
+            format="json",
+        )
+        assign_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.ASSIGN
+        ]
+        assert len(assign_calls) == 0
+
+    @patch(PUBLISH_UPDATE)
+    def test_unassign_without_assignee_skips_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
+        assert response.status_code == 200
+        unassign_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.UNASSIGN
+        ]
+        assert len(unassign_calls) == 0
+
+    @patch(PUBLISH_DETAILS)
+    def test_view_emits_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        mock_publish.assert_called_once()
+        kwargs = mock_publish.call_args.kwargs
+        assert kwargs["action"] == ActionType.VIEW
+        assert kwargs["group_id"] == self.group.id
+
+    @patch(PUBLISH_UPDATE)
+    def test_mark_reviewed_only_for_groups_in_inbox(self, mock_publish: MagicMock) -> None:
+        from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+
+        group_in_inbox = self.create_group(
+            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
+        )
+        group_not_in_inbox = self.create_group(
+            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING
+        )
+        add_group_to_inbox(group_in_inbox, GroupInboxReason.NEW)
+        assert GroupInbox.objects.filter(group=group_in_inbox).exists()
+        assert not GroupInbox.objects.filter(group=group_not_in_inbox).exists()
+
+        url = f"/api/0/organizations/{self.organization.slug}/issues/?id={group_in_inbox.id}&id={group_not_in_inbox.id}"
+        response = self.client.put(
+            url,
+            data={"inbox": False},
+            format="json",
+        )
+        assert response.status_code == 200
+        reviewed_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.MARK_REVIEWED
+        ]
+        assert len(reviewed_calls) == 1
+        assert reviewed_calls[0].kwargs["group_id"] == group_in_inbox.id
