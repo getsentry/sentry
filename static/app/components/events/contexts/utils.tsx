@@ -363,7 +363,9 @@ export function getContextIcon({
   if (getLogoImage(iconName) === null) {
     return null;
   }
-  return <ContextIcon name={iconName} alt={`${type}: ${iconName}`} {...contextIconProps} />;
+  return (
+    <ContextIcon name={iconName} alt={`${type}: ${iconName}`} {...contextIconProps} />
+  );
 }
 
 export function getFormattedContextData({
