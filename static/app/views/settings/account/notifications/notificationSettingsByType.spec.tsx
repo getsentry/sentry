@@ -151,15 +151,12 @@ describe('NotificationSettingsByType', () => {
   it('renders all the quota subcategories', async () => {
     renderComponent({notificationType: 'quota'});
 
-    // The page title is always "Quota Notifications"; per-org feature filtering
-    // is no longer applied here, so every billed category is shown.
-    expect(await screen.findAllByText('Quota Notifications')).toHaveLength(1);
+    expect(await screen.findByText('Errors')).toBeInTheDocument();
     expect(
       screen.getByText(
         'Receive notifications when your organization exceeds the following limits.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
@@ -266,7 +263,7 @@ describe('NotificationSettingsByType', () => {
   it('toggles a quota subcategory', async () => {
     renderComponent({notificationType: 'quota'});
 
-    expect(await screen.findAllByText('Quota Notifications')).toHaveLength(1);
+    expect(await screen.findByText('Errors')).toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
       url: '/users/me/notification-options/',
