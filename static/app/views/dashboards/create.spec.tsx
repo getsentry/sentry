@@ -84,7 +84,7 @@ describe('Dashboards > CreateDashboard', () => {
     });
 
     // Should render the dashboard in create mode
-    expect(screen.getByText('Create Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Untitled dashboard')).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'Save and Finish'})
     ).toBeInTheDocument();
@@ -203,7 +203,7 @@ describe('Dashboards > CreateDashboard', () => {
     });
 
     // Should render like a normal create dashboard without widgets
-    expect(await screen.findByText('Create Dashboard')).toBeInTheDocument();
+    expect(await screen.findByText('Untitled dashboard')).toBeInTheDocument();
     expect(screen.queryByTestId('sortable-widget')).not.toBeInTheDocument();
   });
 

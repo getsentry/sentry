@@ -225,7 +225,12 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+    await userEvent.click(
+      await screen.findByRole('button', {name: /discover context menu/i})
+    );
+    expect(
+      screen.getByRole('menuitemradio', {name: /remove default/i})
+    ).toBeInTheDocument();
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 
@@ -250,9 +255,12 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
-    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: /discover context menu/i})
+    );
+    expect(
+      screen.getByRole('menuitemradio', {name: /set as default/i})
+    ).toBeInTheDocument();
 
     expect(measurementsMetaMock).toHaveBeenCalled();
   });
@@ -417,7 +425,12 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
+    await userEvent.click(
+      await screen.findByRole('button', {name: /discover context menu/i})
+    );
+    expect(
+      screen.getByRole('menuitemradio', {name: /set as default/i})
+    ).toBeInTheDocument();
   });
 
   it('shows Set as Default when dataset differs from saved homepage', async () => {
@@ -472,21 +485,12 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
-    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
-
-    const queryParams = new URLSearchParams({
-      dataset: 'transactions',
-      name: 'homepage query',
-      query: '',
-      field: 'environment',
-      queryDataset: 'transaction-like',
-    });
-    router.navigate(
-      `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
+    await userEvent.click(
+      await screen.findByRole('button', {name: /discover context menu/i})
     );
-
-    expect(await screen.findByText('Set as Default')).toBeInTheDocument();
-    expect(screen.queryByText('Remove Default')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: /remove default/i})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 });

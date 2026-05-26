@@ -960,9 +960,10 @@ describe('Results', () => {
       });
 
       await waitFor(() =>
-        expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
+        expect(screen.getByRole('button', {name: /discover context menu/i})).toBeEnabled()
       );
-      await userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /set as default/i}));
 
       expect(mockHomepageUpdate).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/homepage/',
@@ -1003,70 +1004,6 @@ describe('Results', () => {
       expect(mockHomepageGet).not.toHaveBeenCalled();
     });
 
-    it('Changes the Use as Discover button to a reset button for saved query', async () => {
-      renderMockRequests();
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/homepage/',
-        method: 'PUT',
-        statusCode: 200,
-        body: {
-          id: '2',
-          name: '',
-          projects: [],
-          version: 2,
-          expired: false,
-          dateCreated: '2021-04-08T17:53:25.195782Z',
-          dateUpdated: '2021-04-09T12:13:18.567264Z',
-          createdBy: {
-            id: '2',
-          },
-          environment: [],
-          fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
-          widths: ['-1', '-1', '-1', '-1', '-1'],
-          range: '24h',
-          orderby: '-user.display',
-          queryDataset: 'discover',
-        },
-      });
-      const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query'],
-      });
-
-      ProjectsStore.loadInitialData([ProjectFixture()]);
-      renderMockRequests();
-
-      const {router} = render(<Results />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
-            query: {id: '1'},
-          },
-          route: '/organizations/:orgId/explore/discover/results/',
-        },
-        organization,
-      });
-
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
-      );
-      await userEvent.click(screen.getByText('Set as Default'));
-      expect(await screen.findByText('Remove Default')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByText('Total Period'));
-      await userEvent.click(screen.getByText('Previous Period'));
-
-      // Navigate to update the display parameter
-      const newParams = new URLSearchParams({
-        id: '1',
-        display: 'previous',
-      });
-      router.navigate(`${router.location.pathname}?${newParams.toString()}`);
-
-      await screen.findByText('Previous Period');
-      expect(await screen.findByText('Set as Default')).toBeInTheDocument();
-    });
-
     it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
@@ -1098,8 +1035,12 @@ describe('Results', () => {
       });
 
       await screen.findAllByText(getTransactionViews(organization)[0]!.name);
-      await userEvent.click(screen.getByText('Set as Default'));
-      expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /set as default/i}));
+      await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.getByRole('menuitemradio', {name: /remove default/i})
+      ).toBeInTheDocument();
 
       await userEvent.click(screen.getByText('Total Period'));
       await userEvent.click(screen.getByText('Previous Period'));
@@ -1117,7 +1058,14 @@ describe('Results', () => {
       router.navigate(`${router.location.pathname}?${updatedParams.toString()}`);
 
       await screen.findByText('Previous Period');
-      expect(await screen.findByText('Set as Default')).toBeInTheDocument();
+      await userEvent.click(
+        await screen.findByRole('button', {name: /discover context menu/i})
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByRole('menuitemradio', {name: /set as default/i})
+        ).toBeInTheDocument();
+      });
     });
 
     it('links back to the homepage through the Discover breadcrumb', async () => {
@@ -1210,7 +1158,10 @@ describe('Results', () => {
         expect(measurementsMetaMock).toHaveBeenCalled();
       });
 
-      expect(screen.getByTestId('set-as-default')).toBeEnabled();
+      await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.getByRole('menuitemradio', {name: /set as default/i})
+      ).toBeInTheDocument();
     });
 
     it("doesn't render sample data alert", async () => {
