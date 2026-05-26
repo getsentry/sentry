@@ -24,6 +24,7 @@ from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -181,6 +182,23 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
+        response = self._post_inner(request, group)
+
+        if response.status_code == status.HTTP_202_ACCEPTED:
+            publish_action(
+                action=ActionType.TRIGGER_AUTOFIX,
+                source=resolve_action_source(request),
+                group_id=group.id,
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                actor_id=request.user.id
+                if getattr(request.user, "is_authenticated", False)
+                else None,
+            )
+
+        return response
+
+    def _post_inner(self, request: Request, group: Group) -> Response:
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

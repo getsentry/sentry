@@ -24,6 +24,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -204,6 +205,9 @@ def update_groups(
     if discard:
         return handle_discard(request, groups, projects, acting_user)
 
+    source = resolve_action_source(request)
+    actor_id = acting_user.id if acting_user else None
+
     status_details = result.pop("statusDetails", result)
     status = result.get("status")
     res_type = None
@@ -220,6 +224,16 @@ def update_groups(
             acting_user=acting_user,
             project_lookup=project_lookup,
         )
+        for group in groups:
+            publish_action(
+                action=ActionType.SET_PRIORITY,
+                source=source,
+                group_id=group.id,
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+                actor_id=actor_id,
+                metadata={"priority": result["priority"]},
+            )
     if status in ("resolved", "resolvedInNextRelease"):
         if any(not group.issue_type.enable_user_status_and_priority_changes for group in groups):
             return Response(
@@ -236,6 +250,8 @@ def update_groups(
                 project_lookup,
                 acting_user,
                 result,
+                source=source,
+                actor_id=actor_id,
             )
         except MultipleProjectsError:
             return Response({"detail": "Cannot set resolved for multiple projects."}, status=400)
@@ -247,6 +263,8 @@ def update_groups(
             project_lookup,
             status_details,
             acting_user,
+            source=source,
+            actor_id=actor_id,
         )
 
     return prepare_response(
@@ -260,6 +278,8 @@ def update_groups(
         res_type,
         request.META.get("HTTP_REFERER", ""),
         organization,
+        source=source,
+        actor_id=actor_id,
     )
 
 
@@ -371,6 +391,8 @@ def handle_resolve_in_release(
     project_lookup: Mapping[int, Project],
     acting_user: RpcUser | User | None,
     result: MutableMapping[str, Any],
+    source: str | None = None,
+    actor_id: int | None = None,
 ) -> tuple[dict[str, Any], int | None]:
     res_type = None
     release = None
@@ -488,6 +510,17 @@ def handle_resolve_in_release(
             resolution_type=res_type_str,
             sender=update_groups,
         )
+
+        if source is not None:
+            publish_action(
+                action=ActionType.RESOLVE,
+                source=source,
+                group_id=group.id,
+                organization_id=projects[0].organization_id,
+                project_id=group.project_id,
+                actor_id=actor_id,
+                metadata={"resolution_type": res_type_str},
+            )
 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
@@ -719,6 +752,8 @@ def handle_other_status_updates(
     project_lookup: Mapping[int, Project],
     status_details: dict[str, Any],
     acting_user: RpcUser | User | None,
+    source: str | None = None,
+    actor_id: int | None = None,
 ) -> dict[str, Any]:
     group_ids = [group.id for group in group_list]
     queryset = Group.objects.filter(id__in=group_ids)
@@ -764,6 +799,21 @@ def handle_other_status_updates(
             status_details=result.get("statusDetails", {}),
             sender=update_groups,
         )
+
+        if source is not None:
+            action = (
+                ActionType.ARCHIVE if new_status == GroupStatus.IGNORED else ActionType.UNRESOLVE
+            )
+            for group in group_list:
+                publish_action(
+                    action=action,
+                    source=source,
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor_id=actor_id,
+                )
+
     return result
 
 
@@ -778,6 +828,8 @@ def prepare_response(
     res_type: int | None,
     referer: str,
     organization: Organization | None = None,
+    source: str | None = None,
+    actor_id: int | None = None,
 ) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
@@ -802,16 +854,48 @@ def prepare_response(
             project_lookup,
             acting_user,
         )
+        if source is not None:
+            action = ActionType.ASSIGN if result["assignedTo"] else ActionType.UNASSIGN
+            for group in group_list:
+                publish_action(
+                    action=action,
+                    source=source,
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor_id=actor_id,
+                )
 
     handle_has_seen(result.get("hasSeen"), group_list, project_lookup, projects, acting_user)
 
     if "isBookmarked" in result:
         handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, acting_user)
+        if source is not None and result["isBookmarked"]:
+            for group in group_list:
+                publish_action(
+                    action=ActionType.BOOKMARK,
+                    source=source,
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor_id=actor_id,
+                )
 
     if result.get("isSubscribed") in (True, False):
         result["subscriptionDetails"] = handle_is_subscribed(
             result["isSubscribed"], group_list, project_lookup, acting_user
         )
+        if source is not None:
+            action = ActionType.SUBSCRIBE if result["isSubscribed"] else ActionType.UNSUBSCRIBE
+            for group in group_list:
+                publish_action(
+                    action=action,
+                    source=source,
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor_id=actor_id,
+                )
 
     if "isPublic" in result:
         result["shareId"] = handle_is_public(
@@ -831,6 +915,16 @@ def prepare_response(
             acting_user,
             urlparse(referer).path,
         )
+        if source is not None:
+            for group in group_list:
+                publish_action(
+                    action=ActionType.MERGE,
+                    source=source,
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor_id=actor_id,
+                )
 
     inbox = result.get("inbox", None)
     if inbox is not None:
@@ -841,6 +935,16 @@ def prepare_response(
             acting_user,
             sender=update_groups,
         )
+        if source is not None and inbox is False:
+            for group in group_list:
+                publish_action(
+                    action=ActionType.MARK_REVIEWED,
+                    source=source,
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor_id=actor_id,
+                )
 
     # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
     # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this
