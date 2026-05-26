@@ -37,7 +37,6 @@ import {
   IconUpload,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
@@ -48,7 +47,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
-import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
@@ -63,6 +61,7 @@ import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
+import {useDiscardIssueMutation} from 'sentry/views/issueDetails/useDiscardIssueMutation';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -117,6 +116,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const location = useLocation();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
+  const {mutate: discardIssue} = useDiscardIssueMutation();
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -300,28 +300,12 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const onDiscard = () => {
-    const id = uniqueId();
-    addLoadingMessage(t('Discarding event\u2026'));
-
-    GroupStore.onDiscard(id, group.id);
-
-    api.request(`/issues/${group.id}/`, {
-      method: 'PUT',
-      data: {discard: true},
-      success: response => {
-        GroupStore.onDiscardSuccess(id, group.id, response);
-        navigate({
-          pathname: `/organizations/${organization.slug}/issues/`,
-          query: {project: project.id},
-        });
-      },
-      error: error => {
-        GroupStore.onDiscardError(id, group.id, error);
-      },
-      complete: clearIndicators,
-    });
     trackIssueAction('discarded');
-    IssueListCacheStore.reset();
+    discardIssue({
+      groupId: group.id,
+      orgSlug: organization.slug,
+      projectId: project.id,
+    });
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
