@@ -383,7 +383,7 @@ def _track_outcomes(segment_span: CompatibleSpan, spans: list[CompatibleSpan]) -
 @metrics.wraps("spans.consumers.process_segments.bump_release_last_seen")
 def _bump_release_last_seen(
     project: Project, environment_name: Any, release_name: Any, date: datetime
-):
+) -> None:
     if not release_name:
         return
 
@@ -460,11 +460,11 @@ class BoundedLRUCache:
         return int.from_bytes(digest, "big")
 
 
-def _get_cache():
+def _get_cache() -> BoundedLRUCache:
     global cache
     if cache is None:
         cache = BoundedLRUCache(max_size=100_000)
     return cache
 
 
-cache = None
+cache: BoundedLRUCache | None = None
