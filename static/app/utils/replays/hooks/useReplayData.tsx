@@ -99,6 +99,8 @@ const REPLAY_ERROR_FIELDS = [
   'title',
 ] as const;
 
+const EMPTY_PAGES: Array<{data: RawReplayError[]}> = [];
+
 interface Result {
   attachmentError: undefined | Error[];
   attachments: unknown[];
@@ -277,8 +279,8 @@ export function useReplayData({
 
   const replayEnd = getReplayEndTimestamp(replayRecord);
 
-  const extraErrorsResult = useInfiniteQuery(
-    apiOptions.asInfinite<{data: RawReplayError[]}>()(
+  const extraErrorsResult = useInfiniteQuery({
+    ...apiOptions.asInfinite<{data: RawReplayError[]}>()(
       '/organizations/$organizationIdOrSlug/events/',
       {
         path: enableExtraErrors ? {organizationIdOrSlug: orgSlug} : skipToken,
@@ -295,17 +297,15 @@ export function useReplayData({
         },
         staleTime: Infinity,
       }
-    )
-  );
+    ),
+    select: data => data.pages.map(p => p.json),
+  });
   useFetchAllPages({result: extraErrorsResult});
-  const extraErrorPages = useMemo(
-    () => extraErrorsResult.data?.pages.map(p => p.json) ?? [],
-    [extraErrorsResult.data?.pages]
-  );
+  const extraErrorPages = extraErrorsResult.data ?? EMPTY_PAGES;
   const fetchExtraErrorsStatus = extraErrorsResult.status;
 
-  const platformErrorsResult = useInfiniteQuery(
-    apiOptions.asInfinite<{data: RawReplayError[]}>()(
+  const platformErrorsResult = useInfiniteQuery({
+    ...apiOptions.asInfinite<{data: RawReplayError[]}>()(
       '/organizations/$organizationIdOrSlug/events/',
       {
         path: replayRecord ? {organizationIdOrSlug: orgSlug} : skipToken,
@@ -322,13 +322,11 @@ export function useReplayData({
         },
         staleTime: Infinity,
       }
-    )
-  );
+    ),
+    select: data => data.pages.map(p => p.json),
+  });
   useFetchAllPages({result: platformErrorsResult});
-  const platformErrorPages = useMemo(
-    () => platformErrorsResult.data?.pages.map(p => p.json) ?? [],
-    [platformErrorsResult.data?.pages]
-  );
+  const platformErrorPages = platformErrorsResult.data ?? EMPTY_PAGES;
   const fetchPlatformErrorsStatus = platformErrorsResult.status;
 
   const clearQueryCache = useCallback(() => {
@@ -368,10 +366,9 @@ export function useReplayData({
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
   const {allErrors, feedbackEventIds} = useMemo(() => {
-    const errors = errorPages
-      .concat(extraErrorPages)
-      .concat(platformErrorPages)
-      .flatMap(page => page.data);
+    const errors = [...errorPages, ...extraErrorPages, ...platformErrorPages].flatMap(
+      page => page.data
+    );
 
     const feedbackIds = errors
       ?.filter(error => error?.title.includes('User Feedback'))
