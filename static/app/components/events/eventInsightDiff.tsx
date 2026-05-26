@@ -12,7 +12,7 @@ import {
   useSizeAnalysisComparison,
 } from 'sentry/utils/preprod/useSizeAnalysisComparison';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 
 type SectionProps = MetricIds & {project: Project};
@@ -50,7 +50,7 @@ function EventInsightDiffContent({baseMetricId, headMetricId, project}: SectionP
 
 function EventInsightDiffSection({baseMetricId, headMetricId, project}: SectionProps) {
   return (
-    <InterimSection title={t('Insight Diff')} type={SectionKey.INSIGHT_DIFF}>
+    <FoldSection title={t('Insight Diff')} sectionKey={SectionKey.INSIGHT_DIFF}>
       <ErrorBoundary mini>
         <EventInsightDiffContent
           project={project}
@@ -58,7 +58,7 @@ function EventInsightDiffSection({baseMetricId, headMetricId, project}: SectionP
           baseMetricId={baseMetricId}
         />
       </ErrorBoundary>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

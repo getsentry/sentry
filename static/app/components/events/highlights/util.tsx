@@ -14,19 +14,17 @@ import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
-export type HighlightTags = Required<Project>['highlightTags'];
-export type HighlightContext = Required<Project>['highlightContext'];
+export type HighlightTags = Required<DetailedProject>['highlightTags'];
+export type HighlightContext = Required<DetailedProject>['highlightContext'];
 
 interface ContextData extends ContextItem {
   data: KeyValueListData;
 }
 
 export const EMPTY_HIGHLIGHT_DEFAULT = '--';
-export const HIGHLIGHT_DOCS_LINK =
-  'https://docs.sentry.io/product/issues/issue-details/#event-highlights';
 
 /**
  * Helper function to use try HighlightContext saved values on multiple fields improve match rate.

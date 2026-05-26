@@ -13,7 +13,7 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
@@ -23,7 +23,7 @@ interface Props {
   projectSlug: string;
 }
 
-function SpanEvidenceInterimSection({
+function SpanEvidenceFoldSection({
   children,
   event,
   organization,
@@ -39,12 +39,9 @@ function SpanEvidenceInterimSection({
   const sanitizedHash = hashTitle && sanitizeQuerySelector(hashTitle);
 
   return (
-    <InterimSection
-      type={SectionKey.SPAN_EVIDENCE}
+    <FoldSection
+      sectionKey={SectionKey.SPAN_EVIDENCE}
       title={t('Span Evidence')}
-      help={t(
-        'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
-      )}
       actions={
         issueType &&
         hasSetting && (
@@ -70,7 +67,7 @@ function SpanEvidenceInterimSection({
       }
     >
       {children}
-    </InterimSection>
+    </FoldSection>
   );
 }
 
@@ -81,7 +78,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const traceId = event.contexts.trace?.trace_id;
   return (
-    <SpanEvidenceInterimSection
+    <SpanEvidenceFoldSection
       event={event}
       organization={organization}
       projectSlug={projectSlug}
@@ -94,6 +91,6 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           traceId={traceId}
         />
       )}
-    </SpanEvidenceInterimSection>
+    </SpanEvidenceFoldSection>
   );
 }

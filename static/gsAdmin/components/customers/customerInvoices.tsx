@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;

@@ -147,7 +147,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.invalid_state",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "state": main_metric.state},
+                extra={"preprod_artifact_id": head_artifact.id, "state": main_metric.state},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -199,7 +199,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.no_file_id",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
+                extra={"preprod_artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -211,7 +211,10 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.file_not_found",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "analysis_file_id": analysis_file_id,
+                },
             )
             return Response({"detail": "Analysis file not found"}, status=404)
 
@@ -223,7 +226,10 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "preprod.public_api.size_analysis.parse_error",
-                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "analysis_file_id": analysis_file_id,
+                },
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500

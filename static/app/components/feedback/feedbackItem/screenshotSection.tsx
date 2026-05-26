@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
-import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {FeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
 import {
@@ -23,6 +23,8 @@ type Props = {
 };
 
 export function ScreenshotSection({event, organization, projectSlug}: Props) {
+  const {openModal} = useModal();
+
   const {screenshots} = useFeedbackScreenshot({projectSlug, event});
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
 

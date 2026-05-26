@@ -29,7 +29,7 @@ describe('getting started with log4j2', () => {
     ).toBeInTheDocument();
   });
 
-  it.isKnownFlake('renders maven docs correctly', async () => {
+  it('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.maven-plugin': {

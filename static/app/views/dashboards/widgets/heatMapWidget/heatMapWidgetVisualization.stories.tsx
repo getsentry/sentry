@@ -26,6 +26,10 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
         <LargeWidget>
           <HeatMapWidgetVisualization plottables={[new HeatMap(sampleLatencyHeatMap)]} />
         </LargeWidget>
+        <p>
+          <strong>Hint:</strong> clicking on the chart will display the x-, y-, and z-axis
+          values in the tooltip.
+        </p>
       </Fragment>
     );
   });

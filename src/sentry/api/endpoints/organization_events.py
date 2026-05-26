@@ -117,7 +117,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:dynamic-sampling",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
-            "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -385,7 +384,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
-                    scoped_query,
+                    scoped_query or "",
                 )
                 has_errors = False
                 has_transactions = False
@@ -393,8 +392,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 # See if we can infer which dataset based on selected columns and query string.
                 with handle_query_errors():
                     if (
-                        dataset := SAVED_QUERY_DATASET_MAP.get(dataset_inferred_from_query)
-                    ) is not None:
+                        dataset_inferred_from_query is not None
+                        and (dataset := SAVED_QUERY_DATASET_MAP.get(dataset_inferred_from_query))
+                        is not None
+                    ):
                         result = _data_fn(
                             dataset.query,
                             offset,
@@ -506,6 +507,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
                 extrapolation_mode = self.get_extrapolation_mode(request)
 
+                disable_array_attributes = not features.has(
+                    "organizations:trace-item-details-array-fields",
+                    organization,
+                    actor=request.user,
+                )
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
@@ -513,6 +520,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
@@ -520,6 +528,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         use_aggregate_conditions=False,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -531,6 +540,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -539,6 +549,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
@@ -546,6 +557,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProcessingErrors:
                     return SearchResolverConfig(
@@ -553,18 +565,21 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == PreprodSize:
                     return PreprodSizeSearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":

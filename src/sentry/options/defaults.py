@@ -776,6 +776,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
+    type=Float,
+    default=0.1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1131,7 +1137,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 
 # Killswitch for issue priority
 register(
@@ -1513,6 +1518,13 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "release-health.monitor-release-adoption-jitter-seconds",
+    type=Int,
+    default=45 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
@@ -2470,6 +2482,7 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 # Webhook processing controls
 register(
     "hybridcloud.webhookpayload.worker_threads",
@@ -3036,13 +3049,6 @@ register(
 )
 
 register(
-    "relocation.outbox-orgslug.killswitch",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "profiling.killswitch.ingest-profiles",
     type=Sequence,
     default=[],
@@ -3274,7 +3280,8 @@ register(
 )
 # TTL (in seconds) for the per-segment lock acquired at flush time to
 # prevent two flushers from producing the same segment concurrently.
-# The lock is never explicitly released and only expires via this TTL.
+# The lock is explicitly released by the flusher after the segment payloads
+# are flushed/produced and metadata are cleaned up.
 # Pick a value larger than the expected flush+produce latency but smaller than
 # `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
 # next flush cycle. If set to 0, no locks will be acquired.
@@ -3284,19 +3291,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# When True, done_flush_segments uses Lua scripts to conditionally clean up
-# segments only if their state hasn't changed since the flush started: Phase 1
-# ZREMs the queue entry only if the score is unchanged, and Phase 2 deletes the
-# per-segment data keys (hrs, ic, ibc) only if the ingested count is unchanged.
-# When False, both phases unconditionally remove queue entries and delete data
-# keys for every flushed segment.
-register(
-    "spans.buffer.done-flush-conditional-zrem",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
@@ -3379,11 +3373,6 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.process-segments.semantic-partitioning",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # TTL in seconds for span deduplication tracking. When > 0, the consumer
 # will use Redis SETNX to detect duplicate spans and emit metrics.
 # Set to 0 to disable.
@@ -3391,6 +3380,13 @@ register(
     "spans.process-segments.dedupe-ttl",
     type=Int,
     default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When True (and dedupe-ttl > 0), actually filter out duplicate spans
+# instead of just detecting and emitting metrics.
+register(
+    "spans.process-segments.dedupe-filter-enable",
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3767,18 +3763,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Routes the seen-stats / TSDB conditions through `get_snuba_column_name`
-# so a column-name-vs-tag-name collision (e.g. user tag named `platform`)
-# resolves to the tag, matching the issue surfacing query. Without this,
-# `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
-# names as column references and the badge disagrees with surfacing.
-register(
-    "issues.search.use-tag-aware-condition-resolver",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Rate limiting for the occurrence consumer
 register(
     "issues.occurrence-consumer.rate-limit.quota",
@@ -4149,30 +4133,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organization slug allowlist to enable Autopilot for specific organizations.
-register(
-    "autopilot.organization-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable missing SDK integration detector for specific projects.
-register(
-    "autopilot.missing-sdk-integration.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable trace instrumentation detector for specific projects.
-register(
-    "autopilot.trace-instrumentation.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Global flag to enable API token async flush
 register(
     "api-token-async-flush",
@@ -4185,11 +4145,18 @@ register(
 
 # Whether or not provisioning analytics and audits are made in the provision_organization RPC call
 register(
-    "provision_organization_in_cell.record_analytics",
-    type=Bool,
-    default=False,
+    "provision_organization.override.mapping",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "provision_organization.override.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # SCM
 
@@ -4203,13 +4170,6 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "integrations.jira.multi-cell-enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

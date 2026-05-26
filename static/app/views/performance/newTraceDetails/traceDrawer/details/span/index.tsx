@@ -37,7 +37,7 @@ import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
@@ -98,9 +98,9 @@ function SpanSections({
         onParentClick={onParentClick}
       />
       {hasSpanSpecificData ? (
-        <InterimSection
+        <FoldSection
+          sectionKey="span_specifc"
           title={t('Span Specific')}
-          type="span_specifc"
           disableCollapsePersistence
         >
           <TraceDrawerComponents.SectionCardGroup>
@@ -111,7 +111,7 @@ function SpanSections({
               <Measurements node={node} location={location} organization={organization} />
             ) : null}
           </TraceDrawerComponents.SectionCardGroup>
-        </InterimSection>
+        </FoldSection>
       ) : null}
     </Fragment>
   );

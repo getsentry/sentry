@@ -3,7 +3,6 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -25,7 +24,7 @@ describe('Dashboards - DashboardTable', () => {
     features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
-  const {router} = initializeOrg();
+  const location = LocationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -111,7 +110,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={[]}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -127,7 +126,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -141,7 +140,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -266,7 +265,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organizationWithEditAccess}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -292,7 +291,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organizationWithFavorite}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />,
       {
         organization: organizationWithFavorite,

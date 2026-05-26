@@ -3566,7 +3566,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         title: str = "some error",
         transaction: str | None = None,
         issue_occurrence_id: str | None = None,
-        tags: dict[str, str] | None = None,
+        tags: dict[str, list[str] | str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
         client_sample_rate: float = 1.0,

@@ -12,7 +12,7 @@ from sentry.plugins.base import plugins
 
 @cell_silo_endpoint
 class ProjectPluginsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

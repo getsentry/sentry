@@ -1,11 +1,13 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -14,9 +16,8 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconAdd, IconClock, IconCopy, IconEllipsis, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
 interface ExplorerDrawerHeaderProps {
   onChangeSession: (runId: number) => void;
@@ -45,58 +46,43 @@ export function ExplorerDrawerHeader({
   onShowThinkingToggle,
   disableNewChatButton = false,
 }: ExplorerDrawerHeaderProps) {
-  // Session history query
-  const {
-    sessionMenuItems: rawSessionMenuItems,
-    isPending,
-    isError,
-    refetch: refetchSessionHistory,
-  } = useSessionMenuItems({
-    onChangeSession,
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const {data, isFetching, isError, refetch} = useSeerExplorerSessionsQuery({
+    query: debouncedSearch || undefined,
   });
+
+  const isSearchPending = search !== debouncedSearch;
+  const sessionOptions = useMemo(() => {
+    if (isSearchPending || isFetching) {
+      return [];
+    }
+    return (
+      data?.data.map(session => ({
+        value: session.run_id,
+        label: session.title,
+        details: (
+          <TimeSince
+            tooltipPrefix="Last updated"
+            date={moment.utc(session.last_triggered_at).toDate()}
+            suffix="ago"
+          />
+        ),
+      })) ?? []
+    );
+  }, [data, isSearchPending, isFetching]);
 
   const onHistoryOpenChange = useCallback(
     (isOpen: boolean) => {
       if (isOpen) {
-        refetchSessionHistory();
+        refetch();
+      } else {
+        setSearch('');
       }
     },
-    [refetchSessionHistory]
+    [refetch]
   );
-
-  // Session history menu items
-  const sessionMenuItems = useMemo(() => {
-    if (isError) {
-      return [
-        {
-          key: 'session-history-error',
-          label: t('Error loading session history.'),
-          disabled: true,
-        },
-      ];
-    }
-    if (!isPending && rawSessionMenuItems.length === 0) {
-      return [
-        {
-          key: 'session-history-empty',
-          label: t('No previous sessions to show.'),
-          disabled: true,
-        },
-      ];
-    }
-    return [
-      ...rawSessionMenuItems,
-      ...(isPending
-        ? [
-            {
-              key: 'session-history-loading',
-              label: t('Loading...'),
-              disabled: true,
-            },
-          ]
-        : []),
-    ];
-  }, [rawSessionMenuItems, isPending, isError]);
 
   const overflowMenuItems: MenuItemProps[] = useMemo(
     () => [
@@ -173,54 +159,70 @@ export function ExplorerDrawerHeader({
             </Flex>
           </Tooltip>
         )}
-        <InlineActions>
-          <Button
-            icon={<IconCopy />}
-            onClick={onCopySessionClick}
-            disabled={!onCopySessionClick}
-            variant="secondary"
-            size="xs"
-            aria-label={t('Copy conversation to clipboard')}
-            tooltipProps={{title: t('Copy conversation to clipboard')}}
-          />
-          <Button
-            icon={<IconLink />}
-            onClick={onCopyLinkClick}
-            disabled={!onCopyLinkClick}
-            variant="secondary"
-            size="xs"
-            aria-label={t('Copy link to current chat and web page')}
-            tooltipProps={{title: t('Copy link to current chat and web page')}}
-          />
-        </InlineActions>
-        <OverflowActions>
-          <DropdownMenu
-            items={overflowMenuItems}
-            size="xs"
-            position="bottom-end"
-            triggerProps={{
-              'aria-label': t('More actions'),
-              icon: <IconEllipsis />,
-              showChevron: false,
-              variant: 'secondary',
-              size: 'xs',
+        <Flex gap="0" align="center">
+          <InlineActions>
+            <Button
+              icon={<IconCopy />}
+              onClick={onCopySessionClick}
+              disabled={!onCopySessionClick}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Copy conversation to clipboard')}
+              tooltipProps={{title: t('Copy conversation to clipboard')}}
+            />
+            <Button
+              icon={<IconLink />}
+              onClick={onCopyLinkClick}
+              disabled={!onCopyLinkClick}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Copy link to current chat and web page')}
+              tooltipProps={{title: t('Copy link to current chat and web page')}}
+            />
+          </InlineActions>
+          <OverflowActions>
+            <DropdownMenu
+              items={overflowMenuItems}
+              size="xs"
+              position="bottom-end"
+              triggerProps={{
+                'aria-label': t('More actions'),
+                icon: <IconEllipsis />,
+                showChevron: false,
+                variant: 'transparent',
+                size: 'xs',
+              }}
+            />
+          </OverflowActions>
+          <CompactSelect
+            options={sessionOptions}
+            value={undefined}
+            disabled={false}
+            onChange={option => onChangeSession(option.value)}
+            onOpenChange={onHistoryOpenChange}
+            loading={isFetching || search !== debouncedSearch}
+            emptyMessage={isError ? t('Error loading session history.') : ' '}
+            search={{
+              filter: false,
+              onChange: setSearch,
+              placeholder: t('Search chats…'),
             }}
+            menuTitle={t('Chat history')}
+            position="bottom-end"
+            size="xs"
+            menuWidth={320}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                aria-label={t('Chat history')}
+                tooltipProps={{title: t('Chat history')}}
+                icon={<IconClock />}
+                variant="transparent"
+                size="xs"
+              />
+            )}
           />
-        </OverflowActions>
-        <DropdownMenu
-          items={sessionMenuItems}
-          size="xs"
-          position="bottom-end"
-          onOpenChange={onHistoryOpenChange}
-          triggerProps={{
-            'aria-label': t('Chat history'),
-            tooltipProps: {title: t('Chat history')},
-            icon: <IconClock />,
-            showChevron: false,
-            variant: 'secondary',
-            size: 'xs',
-          }}
-        />
+        </Flex>
         <OverflowActions>
           <Button
             icon={<IconAdd />}
@@ -250,59 +252,8 @@ export function ExplorerDrawerHeader({
   );
 }
 
-function useSessionMenuItems({
-  onChangeSession,
-  enabled = true,
-}: {
-  onChangeSession: (runId: number) => void;
-  enabled?: boolean;
-}): {
-  isError: boolean;
-  isPending: boolean;
-  refetch: () => void;
-  sessionMenuItems: MenuItemProps[];
-} {
-  const organization = useOrganization({allowNull: true});
-  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
-
-  const {data, isPending, isError, refetch} = useExplorerSessions({
-    limit: 20,
-    enabled: enabled && hasFeature,
-  });
-
-  const sessionMenuItems = useMemo(() => {
-    return (
-      data?.data.map(
-        (session: {
-          last_triggered_at: moment.MomentInput;
-          run_id: number;
-          title: any;
-        }) => ({
-          key: 'session-' + session.run_id.toString(),
-          label: session.title,
-          details: (
-            <TimeSince
-              tooltipPrefix="Last updated"
-              date={moment.utc(session.last_triggered_at).toDate()}
-              suffix="ago"
-            />
-          ),
-          onAction: () => onChangeSession(session.run_id),
-        })
-      ) ?? []
-    );
-  }, [data, onChangeSession]);
-
-  return {
-    sessionMenuItems,
-    isPending,
-    isError,
-    refetch,
-  };
-}
-
 const InlineActions = styled(Flex)`
-  gap: ${p => p.theme.space.md};
+  gap: 0;
 
   @container seer-explorer-root (max-width: 500px) {
     display: none;

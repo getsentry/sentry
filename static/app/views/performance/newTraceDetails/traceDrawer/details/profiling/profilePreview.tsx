@@ -30,7 +30,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 
 interface SpanProfileProps {
@@ -169,9 +169,9 @@ export function ProfilePreview({
       <FlamegraphThemeProvider>
         {message}
         <SectionDivider orientation="horizontal" />
-        <InterimSection
+        <FoldSection
           title={t('Profile')}
-          type="no_instrumentation_profile"
+          sectionKey="no_instrumentation_profile"
           initialCollapse={false}
           actions={
             <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
@@ -195,7 +195,7 @@ export function ProfilePreview({
               )}
             </FlamegraphContainer>
           </div>
-        </InterimSection>
+        </FoldSection>
       </FlamegraphThemeProvider>
     );
   }

@@ -162,8 +162,11 @@ export function useCreateAutomation() {
         queryKey: automationsApiOptions(org).queryKey,
       });
     },
-    onError: _ => {
-      addErrorMessage(t('Unable to create alert'));
+    onError: error => {
+      addErrorMessage(
+        getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
+          t('Unable to create alert')
+      );
     },
   });
 }
@@ -269,8 +272,11 @@ export function useUpdateAutomation() {
         queryKey: automationsApiOptions(org).queryKey,
       });
     },
-    onError: _ => {
-      addErrorMessage(t('Unable to update alert'));
+    onError: error => {
+      addErrorMessage(
+        getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
+          t('Unable to update alert')
+      );
     },
   });
 }

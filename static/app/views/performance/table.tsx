@@ -267,6 +267,7 @@ export function Table({
     const rendered = fieldRenderer(dataRow, {
       organization,
       location,
+      navigate,
       theme,
       unit: tableMeta.units?.[column.key],
     });
@@ -601,7 +602,7 @@ export function Table({
               referrer="api.insights.landing-table"
               transactionName={transactionData?.name}
               transactionThreshold={transactionData?.threshold}
-              queryExtras={getMEPQueryParams(value)}
+              queryExtras={value ? getMEPQueryParams(value) : undefined}
             >
               {({pageLinks, isLoading, tableData}) => (
                 <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>

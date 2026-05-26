@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 @all_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

@@ -23,8 +23,8 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -274,7 +274,9 @@ function VisualizeDropdown({
           .filter(option => {
             // Filtering by value here, so it's based off of explicit tags i.e. `key`
             // or `tags[<key>, <boolean | number | string>]
-            if (seen.has(option.value)) return false;
+            if (seen.has(option.value)) {
+              return false;
+            }
             seen.add(option.value);
             return true;
           })

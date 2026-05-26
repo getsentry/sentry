@@ -1,15 +1,14 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -19,9 +18,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -41,7 +39,7 @@ import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/compon
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 import {hasPermissions} from 'getsentry/views/subscriptionPage/utils';
 
-import AllocationForm from './components/allocationForm';
+import {AllocationForm} from './components/allocationForm';
 import type {SpendAllocation} from './components/types';
 import {EnableSpendAllocations} from './enableSpendAllocations';
 import {ProjectAllocationsTable} from './projectAllocationsTable';
@@ -49,12 +47,13 @@ import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits} from './utils';
 
 type Props = {
-  organization: Organization;
   subscription: Subscription;
 };
 
-export function SpendAllocationsRoot({organization, subscription}: Props) {
-  const theme = useTheme();
+export function SpendAllocationsRoot({subscription}: Props) {
+  const organization = useOrganization();
+  const {openModal} = useModal();
+
   const [errors, setErrors] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [orgEnabledFlag, setOrgEnabledFlag] = useState(true);
@@ -291,7 +290,6 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           {...modalProps}
           fetchSpendAllocations={fetchSpendAllocations}
           initializedData={formData}
-          organization={organization}
           selectedMetric={selectedMetric}
           rootAllocation={rootAllocationForMetric}
           spendAllocations={currentAllocations}
@@ -306,7 +304,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (!organization.features.includes('spend-allocations')) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <PlanFeature organization={organization} features={['spend-allocations']}>
           {({plan}) => (
             <Panel dashedBorder data-test-id="disabled-allocations">
@@ -353,26 +351,25 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (isDisabledByPartner(subscription)) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <PartnershipNote subscription={subscription} />
       </SubscriptionPageContainer>
     );
   }
 
   return (
-    <SubscriptionPageContainer background="secondary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Spend Allocations')}
         action={
           !isLoading &&
           orgEnabledFlag && (
-            <div>
+            <Flex gap="md">
               {subscription.canSelfServe && hasBillingPerms && (
                 <LinkButton
                   aria-label={t('Manage Subscription')}
                   size="sm"
-                  style={{marginRight: theme.space.md}}
                   to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
@@ -388,7 +385,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               >
                 {t('New Allocation')}
               </Button>
-            </div>
+            </Flex>
           )
         }
       />
@@ -526,7 +523,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   );
 }
 
-export default withOrganization(withSubscription(SpendAllocationsRoot));
+export default withSubscription(SpendAllocationsRoot);
 
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;

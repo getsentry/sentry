@@ -71,9 +71,7 @@ describe('Subscription > UsageHistory', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
-    expect(
-      await screen.findByRole('heading', {name: /Usage History/i})
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId('history-expand')).toBeInTheDocument();
   });
 
   it('shows an error for non-billing roles', async () => {

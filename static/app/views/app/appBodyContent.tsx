@@ -3,7 +3,7 @@ import {Outlet} from 'react-router-dom';
 
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-import SystemAlerts from './systemAlerts';
+import {SystemAlerts} from './systemAlerts';
 
 interface AppContentProps {
   children: React.ReactNode;

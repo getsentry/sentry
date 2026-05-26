@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
@@ -19,6 +19,7 @@ export interface TimelineItemProps {
   'data-index'?: number;
   icon?: React.ReactNode;
   isActive?: boolean;
+  marker?: React.ReactNode;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
@@ -33,6 +34,7 @@ function Item({
   title,
   children,
   icon,
+  marker,
   colorConfig,
   timestamp,
   isActive = false,
@@ -42,9 +44,11 @@ function Item({
 }: TimelineItemProps) {
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
+  const hasMarker = marker !== undefined;
 
   return (
-    <Row ref={ref} {...props}>
+    <Row ref={ref} hasMarker={hasMarker} {...props}>
+      {hasMarker && <MarkerWrapper>{marker}</MarkerWrapper>}
       {icon ? (
         <IconWrapper
           style={{
@@ -63,8 +67,8 @@ function Item({
         {titleTrailingItems}
       </Flex>
       {timestamp ?? <div />}
-      <Spacer />
-      <Content>{children}</Content>
+      <Container justifySelf="center" width="0" height="100%" column="span 1" />
+      <Content hasMarker={hasMarker}>{children}</Content>
     </Row>
   );
 }
@@ -77,12 +81,14 @@ function makeDefaultColorConfig(theme: Theme) {
   };
 }
 
-const Row = styled('div')<{showLastLine?: boolean}>`
+const Row = styled('div')<{hasMarker: boolean; showLastLine?: boolean}>`
   position: relative;
   color: ${p => p.theme.tokens.content.secondary};
   display: grid;
   align-items: start;
-  grid-template: auto auto / 22px 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-columns: ${p =>
+    p.hasMarker ? '22px 22px minmax(50px, 1fr) auto' : '22px minmax(50px, 1fr) auto'};
   grid-column-gap: ${p => p.theme.space.md};
   margin: ${p => p.theme.space.md} 0;
   &:first-child {
@@ -94,6 +100,15 @@ const Row = styled('div')<{showLastLine?: boolean}>`
     background: ${p =>
       p.showLastLine ? 'transparent' : p.theme.tokens.background.primary};
   }
+`;
+
+const MarkerWrapper = styled('div')`
+  grid-column: span 1;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  min-height: 22px;
 `;
 
 const IconWrapper = styled('div')`
@@ -115,16 +130,9 @@ const Title = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const Spacer = styled('div')`
-  grid-column: span 1;
-  height: 100%;
-  width: 0;
-  justify-self: center;
-`;
-
-const Content = styled('div')`
+const Content = styled('div')<{hasMarker: boolean}>`
   text-align: left;
-  grid-column: span 2;
+  grid-column: ${p => (p.hasMarker ? '3 / -1' : 'span 2')};
   color: ${p => p.theme.tokens.content.secondary};
   margin: ${p => p.theme.space['2xs']} 0 0;
   font-size: ${p => p.theme.font.size.sm};
@@ -153,7 +161,7 @@ const Data = styled('div')`
   }
 `;
 
-const Container = styled('div')`
+const TimelineContainer = styled('div')`
   position: relative;
   /* vertical line connecting items */
   &::before {
@@ -172,5 +180,5 @@ export const Timeline = {
   Data,
   Text,
   Item,
-  Container,
+  Container: TimelineContainer,
 };

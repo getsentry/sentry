@@ -383,8 +383,8 @@ export function LaunchpadAdminPage() {
               <Flex direction="column" gap="md">
                 <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
-                  Rerun analysis for one or more preprod artifacts using comma-separated
-                  IDs.
+                  Rerun all enabled analyses (size, snapshots, etc.) for one or more
+                  preprod artifacts using comma-separated IDs.
                 </Text>
                 <label htmlFor="rerunArtifactId">
                   <Text bold>Preprod Artifact ID (comma-separated):</Text>

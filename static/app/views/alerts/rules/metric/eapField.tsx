@@ -26,7 +26,7 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,

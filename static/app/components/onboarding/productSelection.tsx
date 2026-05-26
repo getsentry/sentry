@@ -214,6 +214,7 @@ export const platformProductAvailability = {
   javascript: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-react': [
@@ -255,6 +256,7 @@ export const platformProductAvailability = {
   'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-svelte': [

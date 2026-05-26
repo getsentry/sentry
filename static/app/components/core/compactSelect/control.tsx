@@ -429,7 +429,9 @@ export function Control({
     const values = Array.isArray(value) ? value : [value];
     const options = items
       .flatMap(item => {
-        if ('options' in item) return item.options;
+        if ('options' in item) {
+          return item.options;
+        }
         return item;
       })
       .filter(item => values.includes(item.value));
@@ -461,8 +463,12 @@ export function Control({
   });
 
   const hasSelection = useMemo(() => {
-    if (value === undefined) return false;
-    if (Array.isArray(value)) return value.length > 0;
+    if (value === undefined) {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
     return true;
   }, [value]);
 
@@ -504,13 +510,13 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={menuMinWidth ?? overlayProps.style!.minWidth}
+              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
                   : undefined
               }
-              maxHeight={overlayProps.style!.maxHeight}
+              maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
               data-menu-has-search={searchEnabled}

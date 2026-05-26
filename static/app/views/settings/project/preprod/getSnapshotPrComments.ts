@@ -1,4 +1,4 @@
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 
 const ENABLED_KEY = 'sentry:preprod_snapshot_pr_comments_enabled';
 const POST_ON_ADDED_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_added';
@@ -6,7 +6,7 @@ const POST_ON_REMOVED_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_removed
 const POST_ON_CHANGED_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_changed';
 const POST_ON_RENAMED_KEY = 'sentry:preprod_snapshot_pr_comments_post_on_renamed';
 
-export function getSnapshotPrComments(project: Project) {
+export function getSnapshotPrComments(project: DetailedProject) {
   const enabled =
     project.preprodSnapshotPrCommentsEnabled ?? project.options?.[ENABLED_KEY] === true;
 

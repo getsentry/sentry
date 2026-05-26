@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
 from sentry_protos.billing.v1.date_pb2 import Date
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
     CategoryUsage,
@@ -28,7 +29,10 @@ from snuba_sdk import (
 )
 from snuba_sdk.orderby import Direction
 
-from sentry.billing.platform.services.category_mapping import proto_to_sentry_category
+from sentry.billing.platform.services.category_mapping import (
+    proto_to_sentry_category,
+    sentry_to_proto_category,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
@@ -75,7 +79,16 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
             sample_rate=1.0,
         )
 
-    return _build_response(rows)
+    last_usage_ts: datetime | None = None
+    for row in rows:
+        row_max = row.get("max_ts")
+        if not row_max:
+            continue
+        parsed = datetime.fromisoformat(row_max).replace(tzinfo=timezone.utc)
+        if last_usage_ts is None or parsed > last_usage_ts:
+            last_usage_ts = parsed
+
+    return _build_response(rows, last_usage_ts)
 
 
 def _build_query(
@@ -102,6 +115,7 @@ def _build_query(
         select=[
             Column("category"),
             Column("time"),
+            Function("max", [Column("timestamp")], "max_ts"),
             _total_function(total_outcomes),
             Function(
                 "sumIf",
@@ -165,22 +179,23 @@ def _build_query(
     )
 
 
-def _build_response(rows: list[dict]) -> GetUsageResponse:
+def _build_response(rows: list[dict], last_usage_ts: datetime | None) -> GetUsageResponse:
     # Two-level accumulator: days_map[day_str][category_id] -> usage fields.
     # Each row already contains all 7 sumIf-aggregated fields from ClickHouse.
     #
     # NOTE: CategoryUsage.category carries Relay/Sentry int values (not proto
-    # DataCategory ints).  The proto field is typed as DataCategory but every
-    # existing consumer (getsentry postgres backend, shadow comparison,
-    # UsagePricerService, customer_usage, projection, etc.) interprets it as a
-    # Relay int.  Converting to proto ints here would break all consumers and
-    # the shadow comparison.  See the TODO in getsentry's
+    # DataCategory ints). We need to convert this to proto enum values because
+    # downstream consumers indiscriminately convert the values from proto to relay values. See the TODO in getsentry's
     # usage_pricer/service.py for the planned migration.
     days_map: defaultdict[str, dict[int, dict[str, int]]] = defaultdict(dict)
 
     for row in rows:
         day = row["time"]
-        category = int(row["category"])
+        category = sentry_to_proto_category(int(row["category"]))
+        if category == ProtoDataCategory.DATA_CATEGORY_UNKNOWN:
+            # Sentry category has no proto mapping; skipping prevents it
+            # from colliding with a different proto category at the same int.
+            continue
         days_map[day][category] = {
             "total": int(row["total"]),
             "accepted": int(row["accepted"]),
@@ -200,7 +215,10 @@ def _build_response(rows: list[dict]) -> GetUsageResponse:
         ]
         days.append(DailyUsage(date=date, usage=usage))
 
-    return GetUsageResponse(days=days, seats=[])
+    response = GetUsageResponse(days=days, seats=[])
+    if last_usage_ts is not None:
+        response.last_usage_ts.FromDatetime(last_usage_ts)
+    return response
 
 
 def _total_function(outcomes: Sequence[int] | None) -> Function:

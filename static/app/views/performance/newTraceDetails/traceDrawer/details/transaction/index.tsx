@@ -19,7 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
@@ -251,9 +251,9 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
         location={location}
         cacheMetrics={cacheMetrics}
       />
-      <InterimSection
+      <FoldSection
+        sectionKey="transaction_specifc"
         title={t('Transaction Specific')}
-        type="transaction_specifc"
         disableCollapsePersistence
       >
         <TraceDrawerComponents.SectionCardGroup>
@@ -269,7 +269,7 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
           ) : null}
         </TraceDrawerComponents.SectionCardGroup>
         <Request event={event} />
-      </InterimSection>
+      </FoldSection>
     </Fragment>
   );
 }

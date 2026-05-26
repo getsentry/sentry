@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Hotkey} from '@sentry/scraps/hotkey';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -175,13 +175,13 @@ type HeaderItemProps = {
 
 function HeaderItem({group}: HeaderItemProps) {
   return (
-    <SearchDropdownGroup key={group.title}>
+    <Container as="li" key={group.title}>
       <SearchDropdownGroupTitle>
         {group.icon}
         {group.title && group.title}
         {group.desc && <span>{group.desc}</span>}
       </SearchDropdownGroupTitle>
-    </SearchDropdownGroup>
+    </Container>
   );
 }
 
@@ -506,8 +506,6 @@ const Info = styled('div')`
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
-
-const SearchDropdownGroup = styled('li')``;
 
 const SearchDropdownGroupTitle = styled('header')`
   display: flex;

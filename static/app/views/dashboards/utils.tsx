@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
@@ -28,15 +27,14 @@ import {
   getAggregateAlias,
   isEquation,
   isMeasurement,
-  RATE_UNIT_MULTIPLIERS,
   RateUnit,
-  SIZE_UNIT_MULTIPLIERS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -118,21 +116,6 @@ export function getThresholdUnitSelectOptions(
   }
 
   return [];
-}
-
-export function normalizeUnit(value: number, unit: string, dataType: string): number {
-  const multiplier =
-    dataType === 'rate'
-      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        RATE_UNIT_MULTIPLIERS[unit]
-      : dataType === 'duration'
-        ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          DURATION_UNITS[unit]
-        : dataType === 'size'
-          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            SIZE_UNIT_MULTIPLIERS[unit]
-          : 1;
-  return value * multiplier;
 }
 
 export function getWidgetInterval(
@@ -295,7 +278,11 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
+    query: applyDashboardFilters(
+      widget.queries?.[0]?.conditions,
+      dashboardFilters,
+      widget.widgetType
+    ),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
@@ -452,11 +439,18 @@ export function getSavedPageFilters(dashboard: DashboardDetails) {
   };
 }
 
-export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
-  browserHistory.replace({
-    ...location,
-    query: getSavedPageFilters(dashboard),
-  });
+export function resetPageFilters(
+  dashboard: DashboardDetails,
+  location: Location,
+  navigate: ReactRouter3Navigate
+) {
+  navigate(
+    {
+      ...location,
+      query: getSavedPageFilters(dashboard),
+    },
+    {replace: true}
+  );
 }
 
 export function getCurrentPageFilters(

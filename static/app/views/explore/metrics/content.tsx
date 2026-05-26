@@ -11,6 +11,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -21,12 +22,7 @@ import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags'
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {
-  getIdFromLocation,
-  getTitleFromLocation,
-  ID_KEY,
-  TITLE_KEY,
-} from 'sentry/views/explore/queryParams/savedQuery';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -90,8 +86,8 @@ const metricsFeedbackOptions = {
 
 function MetricsHeader() {
   const location = useLocation();
-  const pageId = getIdFromLocation(location, ID_KEY);
-  const title = getTitleFromLocation(location, TITLE_KEY);
+  const pageId = decodeScalar(location.query[ID_KEY]);
+  const title = decodeScalar(location.query[TITLE_KEY]);
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasSavedQueryTitle =

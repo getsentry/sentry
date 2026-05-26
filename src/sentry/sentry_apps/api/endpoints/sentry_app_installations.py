@@ -33,7 +33,7 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.PRIVATE,

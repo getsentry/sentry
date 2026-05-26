@@ -205,20 +205,6 @@ class SubscriptionProcessor:
             )
             results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            self.subscription.project.organization,
-        ):
-            logger.info(
-                "incidents.workflow_engine.results",
-                extra={
-                    "results": results,
-                    "num_results": len(results),
-                    "value": aggregation_value,
-                    "detector_id": detector.id,
-                    "subscription_update": subscription_update,
-                },
-            )
         return results
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:

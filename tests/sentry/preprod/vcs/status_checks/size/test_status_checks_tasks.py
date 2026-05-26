@@ -258,7 +258,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         ]
 
         for artifact_state, expected_status, error_message in test_cases:
-            with self.subTest(state=artifact_state):
+            with self.subTest(state=artifact_state.name):
                 preprod_artifact = self._create_preprod_artifact(
                     state=artifact_state,
                     error_message=error_message,
@@ -1377,7 +1377,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         ]
 
         for artifact_state, expected_status in test_cases:
-            with self.subTest(state=artifact_state, expected=expected_status):
+            with self.subTest(state=artifact_state.name, expected=expected_status.name):
                 preprod_artifact = self._create_preprod_artifact(
                     state=artifact_state,
                     error_message=(

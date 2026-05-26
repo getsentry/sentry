@@ -8,6 +8,7 @@ import uniqBy from 'lodash/uniqBy';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -129,6 +130,7 @@ export function OwnershipRulesTable({
         (selectedActors === null ||
           // Selected actors was cleared
           selectedActors.length === 0 ||
+          rule.owners.length === 0 ||
           rule.owners.some(owner => selectedActors.includes(`${owner.type}:${owner.id}`)))
     );
 
@@ -186,6 +188,7 @@ export function OwnershipRulesTable({
         emptyMessage={t('No ownership rules found')}
       >
         {chunkedRules[page]?.map((rule, index) => {
+          const isExclusionRule = rule.owners.length === 0;
           const hasUnknownOwners = rule.owners.some(owner => !defined(owner.id));
           const ownerNames = rule.owners.map(owner => {
             if (!owner.id) {
@@ -208,20 +211,26 @@ export function OwnershipRulesTable({
               </Flex>
               <RowRule>{rule.matcher.pattern}</RowRule>
               <Flex align="center" gap="md">
-                <AvatarContainer numAvatars={Math.min(rule.owners.length, 3)}>
-                  {/* Avoid attempting to render the avatar stack if there are broken owners */}
-                  {!hasUnknownOwners && (
-                    <SuggestedAvatarStack
-                      owners={rule.owners as Actor[]}
-                      suggested={false}
-                      reverse={false}
-                      tooltip={ownerNames.join(', ')}
-                    />
-                  )}
-                </AvatarContainer>
-                {name}
-                {rule.owners.length > 1 &&
-                  tn(' and %s other', ' and %s others', rule.owners.length - 1)}
+                {isExclusionRule ? (
+                  <Text variant="muted">{t('No Owner')}</Text>
+                ) : (
+                  <Fragment>
+                    <AvatarContainer numAvatars={Math.min(rule.owners.length, 3)}>
+                      {/* Avoid attempting to render the avatar stack if there are broken owners */}
+                      {!hasUnknownOwners && (
+                        <SuggestedAvatarStack
+                          owners={rule.owners as Actor[]}
+                          suggested={false}
+                          reverse={false}
+                          tooltip={ownerNames.join(', ')}
+                        />
+                      )}
+                    </AvatarContainer>
+                    {name}
+                    {rule.owners.length > 1 &&
+                      tn(' and %s other', ' and %s others', rule.owners.length - 1)}
+                  </Fragment>
+                )}
               </Flex>
             </Fragment>
           );

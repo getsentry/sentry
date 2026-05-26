@@ -184,7 +184,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
           paddingTop="3xl"
         >
           <Flex align="center">{genBackButton?.()}</Flex>
-          <Flex align="center" gap="md">
+          <Flex align="center" gap="md" minWidth={0}>
             {!selectedRepository && (
               <Button
                 analyticsEventKey="onboarding.scm_connect_skip_clicked"
@@ -194,8 +194,11 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
                 }}
                 onClick={() => onComplete()}
                 variant="transparent"
+                style={{minWidth: 0}}
               >
-                {t('Continue without a repo')}
+                <Text ellipsis variant="inherit">
+                  {t('Continue without a repo')}
+                </Text>
               </Button>
             )}
 

@@ -603,6 +603,7 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
     API_TRACE_VIEW_TRANSACTION_CHILDREN = "api.trace-view.transaction-children"
     API_TRACE_VIEW_LOGS_META = "api.trace-view.logs-meta"
+    API_TRACE_VIEW_TRACE_METRICS_META = "api.trace-view.trace-metrics-meta"
     API_TRACE_VIEW_LOGS = "api.trace-view.logs"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
@@ -669,6 +670,7 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+    ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
     ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET = "issues.suspect_flags.query_baseline_set"
     ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET = "issues.suspect_flags.query_selection_set"
     ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS = "issues.suspect_flags.query_error_counts"
@@ -682,8 +684,7 @@ class Referrer(StrEnum):
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
-    # TODO(telex-team): temporary referrer, remove once low value spans job is no longer needed
-    LOW_VALUE_SPANS_JOB = "autopilot.low_value_spans_job"
+    LOW_VALUE_TELEMETRY_DETECTOR = "configuration.low_value_telemetry_detector"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
@@ -797,6 +798,7 @@ class Referrer(StrEnum):
     SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SEER_AUTOFIX_GET_TRACE_EVENTS = "seer.autofix.trace.get-events"
+    SEER_AGENT_IN_CHAT_LINK = "seer.agent.in-chat-link"
     SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
         "supergroups_backfill_lightweight.get_latest_events"
     )

@@ -31,7 +31,7 @@ import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {
   formatExceptionsAsText,
@@ -172,7 +172,7 @@ function SharedIssueStackTraceContent({
 
   if (view === 'raw') {
     return (
-      <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Panel>
           <RawStackTraceText>
             {formatExceptionsAsText({
@@ -183,7 +183,7 @@ function SharedIssueStackTraceContent({
             })}
           </RawStackTraceText>
         </Panel>
-      </InterimSection>
+      </FoldSection>
     );
   }
 
@@ -194,7 +194,7 @@ function SharedIssueStackTraceContent({
     const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
 
     return (
-      <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Flex direction="column" gap="lg">
           {hasExceptionInfo && (
             <Fragment>
@@ -218,12 +218,12 @@ function SharedIssueStackTraceContent({
             <StackTraceFrames frameContextComponent={FrameContent} />
           </StackTraceProvider>
         </Flex>
-      </InterimSection>
+      </FoldSection>
     );
   }
 
   return (
-    <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+    <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
       <Flex direction="column" gap="lg">
         <Text variant="muted">
           {tn(
@@ -295,6 +295,6 @@ function SharedIssueStackTraceContent({
           );
         })}
       </Flex>
-    </InterimSection>
+    </FoldSection>
   );
 }

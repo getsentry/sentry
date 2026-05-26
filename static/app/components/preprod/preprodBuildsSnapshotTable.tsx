@@ -1,19 +1,17 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   BuildDetailsApiResponse,
-  SnapshotApprovalStatus,
   SnapshotComparisonState,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
@@ -28,65 +26,25 @@ interface PreprodBuildsSnapshotTableProps {
   onRowClick?: (build: BuildDetailsApiResponse) => void;
 }
 
-function ApprovalBadge({
-  comparisonState,
-  approvalStatus,
-}: {
-  approvalStatus: SnapshotApprovalStatus | null | undefined;
-  comparisonState: SnapshotComparisonState | null | undefined;
-}) {
-  if (!comparisonState || comparisonState !== 'success') {
-    return <Text variant="muted">{'–'}</Text>;
-  }
-  if (approvalStatus === 'approved') {
-    return <Tag variant="success">{t('Approved')}</Tag>;
-  }
-  if (approvalStatus === 'requires_approval') {
-    return <Tag variant="warning">{t('Needs Approval')}</Tag>;
-  }
-  return <Text variant="muted">{'–'}</Text>;
-}
-
 function ChangeCounts({
   added,
   removed,
   changed,
   unchanged,
+  skipped,
   comparisonState,
-  errorMessage,
 }: {
   added: number;
   changed: number;
   comparisonState: SnapshotComparisonState | null | undefined;
-  errorMessage: string | null | undefined;
   removed: number;
+  skipped: number;
   unchanged: number;
 }) {
-  if (!comparisonState) {
-    return <Tag variant="info">{t('Base')}</Tag>;
+  if (comparisonState !== 'success') {
+    return <Text variant="muted">{'–'}</Text>;
   }
-  if (comparisonState === 'pending') {
-    return (
-      <Tooltip title={t('Waiting to start comparison')}>
-        <Tag variant="muted">{t('Pending')}</Tag>
-      </Tooltip>
-    );
-  }
-  if (comparisonState === 'processing') {
-    return (
-      <Tooltip title={t('Comparing against base snapshot')}>
-        <Tag variant="muted">{t('Processing')}</Tag>
-      </Tooltip>
-    );
-  }
-  if (comparisonState === 'failed') {
-    return (
-      <Tooltip title={errorMessage || t('Comparison failed')}>
-        <Tag variant="danger">{t('Failed')}</Tag>
-      </Tooltip>
-    );
-  }
-  if (added === 0 && removed === 0 && changed === 0) {
+  if (added === 0 && removed === 0 && changed === 0 && skipped === 0) {
     return (
       <Text size="sm" variant="muted">
         {t('No changes')}
@@ -105,6 +63,9 @@ function ChangeCounts({
   }
   if (unchanged > 0) {
     parts.push(t('%s unchanged', unchanged));
+  }
+  if (skipped > 0) {
+    parts.push(t('%s skipped', skipped));
   }
   return (
     <Text size="sm" variant="muted">
@@ -145,13 +106,20 @@ export function PreprodBuildsSnapshotTable({
             </SimpleTable.RowCell>
           )}
           <SimpleTable.RowCell>
+            <SnapshotStatusBadge
+              comparisonState={info?.comparison_state}
+              approvalStatus={info?.approval_status}
+              errorMessage={info?.comparison_error_message}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
             <ChangeCounts
               added={info?.images_added ?? 0}
               removed={info?.images_removed ?? 0}
               changed={info?.images_changed ?? 0}
               unchanged={info?.images_unchanged ?? 0}
+              skipped={info?.images_skipped ?? 0}
               comparisonState={info?.comparison_state}
-              errorMessage={info?.comparison_error_message}
             />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="start">
@@ -177,12 +145,6 @@ export function PreprodBuildsSnapshotTable({
             </Flex>
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
-            <ApprovalBadge
-              comparisonState={info?.comparison_state}
-              approvalStatus={info?.approval_status}
-            />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell>
             {build.app_info?.date_added ? (
               <TimeSince date={build.app_info.date_added} unitStyle="short" />
             ) : (
@@ -201,9 +163,9 @@ export function PreprodBuildsSnapshotTable({
         {showProjectColumn && (
           <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
         )}
+        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Changes')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Branch')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Approval')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {content ?? rows}
@@ -212,10 +174,10 @@ export function PreprodBuildsSnapshotTable({
 }
 
 const snapshotTableColumns = {
-  withProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(100px, 1fr) minmax(80px, 120px)`,
-  withoutProject: `minmax(200px, 2fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(100px, 1fr) minmax(80px, 120px)`,
+  withProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 140px)
+    minmax(180px, 2fr) minmax(80px, 120px)`,
+  withoutProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
+    minmax(180px, 2fr) minmax(80px, 120px)`,
 };
 
 const BuildsSnapshotTable = styled(SimpleTable)<{showProjectColumn?: boolean}>`

@@ -28,7 +28,6 @@ import type {
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -48,7 +47,7 @@ import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -282,9 +281,9 @@ function ContributingIssues({
   };
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey="contributing_issues"
       title={t('Contributing Issues')}
-      type="contributing_issues"
       actions={
         queryContainsBooleanLogic ? null : (
           <LinkButton
@@ -313,7 +312,7 @@ function ContributingIssues({
           />
         )}
       </GroupListWrapper>
-    </InterimSection>
+    </FoldSection>
   );
 }
 
@@ -404,9 +403,9 @@ function TriggeredConditionDetails({
           openPeriodEnd={endDate}
         />
       )}
-      <InterimSection
+      <FoldSection
         title="Triggered Condition"
-        type="triggered_condition"
+        sectionKey="triggered_condition"
         actions={
           <Flex gap="xs">
             <FeedbackButton
@@ -441,9 +440,7 @@ function TriggeredConditionDetails({
             },
             {
               key: 'aggregate',
-              value: datasetConfig.fromApiAggregate(
-                stripEquationPrefix(snubaQuery.aggregate)
-              ),
+              value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
               subject: t('Aggregate'),
             },
             ...(snubaQuery.query
@@ -471,7 +468,7 @@ function TriggeredConditionDetails({
               value: (
                 <pre>
                   {getConditionDescription({
-                    aggregate: stripEquationPrefix(snubaQuery.aggregate),
+                    aggregate: snubaQuery.aggregate,
                     condition: triggeredCondition,
                     config: evidenceData.config ?? {
                       detectionType: 'static',
@@ -488,7 +485,7 @@ function TriggeredConditionDetails({
             },
           ]}
         />
-      </InterimSection>
+      </FoldSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
       {detectorDataset === DetectorDataset.SPANS && openPeriod && (
         <AttributeComparisonSection
@@ -501,9 +498,9 @@ function TriggeredConditionDetails({
       )}
       {isErrorsDataset &&
         (isOpenPeriodLoading ? (
-          <InterimSection title={t('Contributing Issues')} type="contributing_issues">
+          <FoldSection title={t('Contributing Issues')} sectionKey="contributing_issues">
             <Placeholder height="200px" />
-          </InterimSection>
+          </FoldSection>
         ) : (
           <ContributingIssues
             projectId={projectId}
@@ -536,9 +533,9 @@ export function MetricDetectorTriggeredSection({
   return (
     <Fragment>
       {message && (
-        <InterimSection title="Message" type="message">
+        <FoldSection title="Message" sectionKey="message">
           <AnnotatedText value={message} />
-        </InterimSection>
+        </FoldSection>
       )}
       <ErrorBoundary mini>
         <TriggeredConditionDetails

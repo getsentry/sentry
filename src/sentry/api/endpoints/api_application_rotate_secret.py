@@ -16,7 +16,7 @@ class ApiApplicationRotateSecretEndpoint(ApiApplicationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.FOUNDATIONS
     authentication_classes = (SessionAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
 

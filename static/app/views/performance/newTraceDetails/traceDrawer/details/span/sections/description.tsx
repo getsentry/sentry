@@ -154,7 +154,7 @@ export function SpanDescription({
             }}
           />
         ) : (
-          <MissingFrame />
+          <MissingFrame source="span" />
         )}
       </Stack>
     ) : hasInsightModules &&

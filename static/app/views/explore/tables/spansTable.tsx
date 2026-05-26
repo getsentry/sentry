@@ -23,9 +23,9 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsFields,
   useQueryParamsSortBys,

@@ -25,6 +25,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -226,7 +227,9 @@ export function useMetricDetectorChart({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
-    aggregate,
+    aggregate: snubaQuery.eventTypes.includes(EventTypes.TRACE_ITEM_METRIC)
+      ? snubaQuery.aggregate
+      : aggregate,
     interval: snubaQuery.timeWindow,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     environment: snubaQuery.environment,

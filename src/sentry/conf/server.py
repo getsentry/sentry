@@ -163,6 +163,8 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
     "ff00::/8",
 )
 
+SENTRY_ALLOWED_IPS: tuple[str, ...] = ()
+
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
 # search domains.
@@ -188,7 +190,12 @@ SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
+# Redis cluster for span buffer data and flush locks. Flush locks must remain
+# on this cluster because add-buffer.lua checks lock existence atomically.
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
+# Redis cluster for span deduplication keys in process_segments consumer.
+# Falls back to SENTRY_SPAN_BUFFER_CLUSTER if not set.
+SENTRY_SPAN_DEDUPE_CLUSTER: str | None = None
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
@@ -372,6 +379,7 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
+APIGW_WARN_REQS = os.environ.get("SENTRY_APIGW_WARN_REQS", "").lower() in ("1", "true", "y", "yes")
 APIGW_MIDDLEWARE = (
     "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
     if APIGW_ASYNC
@@ -452,7 +460,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "crispy_forms",
     "rest_framework",
     "sentry",
-    "sentry.autopilot",
     "sentry.analytics",
     "sentry.auth_v2",
     "sentry.incidents.apps.Config",
@@ -795,7 +802,7 @@ SCM_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
-    LAUNCHPAD_RPC_SHARED_SECRET = [val]
+    LAUNCHPAD_RPC_SHARED_SECRET = [s.strip() for s in val.split(",") if s.strip()]
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -859,9 +866,6 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.autopilot.tasks.missing_sdk_integration",
-    "sentry.autopilot.tasks.sdk_update",
-    "sentry.autopilot.tasks.trace_instrumentation",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -930,6 +934,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
+    "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
@@ -975,7 +980,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.relay",
     "sentry.tasks.ai_agent_monitoring",
     "sentry.tasks.release_registry",
-    "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scim.privilege_sync",
     "sentry.tasks.statistical_detectors",
@@ -1126,18 +1130,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "autopilot-run-sdk-update-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "autopilot-run-missing-sdk-integration-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": crontab("0", "*/4", "*", "*", "*"),
-    },
-    "autopilot-run-trace-instrumentation-detector": {
-        "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1336,7 +1328,6 @@ LOGGING: LoggingConfig = {
         },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
-        "sentry.autopilot.tasks.missing_sdk_integration": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
@@ -2239,7 +2230,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.4.2"
+SELF_HOSTED_STABLE_VERSION = "26.5.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3207,7 +3198,7 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
-    "sentry-organization-avatar-url",
+    "sentry-organization-avatar-url-deprecated",
     "sentry-chartcuterie-config",
     "sentry-robots-txt",
 }
@@ -3334,3 +3325,15 @@ CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "c
 SYNAPSE_HMAC_SECRET: list[str] | None = None
 if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:
     SYNAPSE_HMAC_SECRET = [val]
+
+if SILO_DEVSERVER or IS_DEV:
+    SYNAPSE_HMAC_SECRET = ["synapse-dev-secret"]
+
+if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
+    # Pair with `devservices --mode cell-routing`. Cell-scoped API XHRs cross
+    # to Synapse on :13000; UI HTML and control API stay on the devserver.
+    SENTRY_OPTIONS["system.region-api-url-template"] = "http://dev.getsentry.net:13000"
+    SENTRY_OPTIONS["system.organization-base-hostname"] = "{slug}.dev.getsentry.net:8000"
+    SENTRY_OPTIONS["system.organization-url-template"] = "http://{hostname}"
+    SENTRY_FEATURES["system:multi-region"] = True
+    SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"

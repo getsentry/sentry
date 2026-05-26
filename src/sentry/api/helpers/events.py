@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -16,6 +17,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.utils.snuba import get_snuba_column_name
 from sentry.utils.validators import normalize_event_id
 
 if TYPE_CHECKING:
@@ -84,6 +86,8 @@ def get_query_builder_for_group(
     else:
         orderby_list = [orderby, "id"]
 
+    column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
+
     return DiscoverQueryBuilder(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",
@@ -95,6 +99,7 @@ def get_query_builder_for_group(
         offset=offset,
         config=QueryBuilderConfig(
             functions_acl=["column_hash"],
+            column_resolver=column_resolver,
         ),
     )
 

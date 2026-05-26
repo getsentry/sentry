@@ -10,6 +10,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.projectrepository import ProjectRepository
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixStatus,
@@ -22,7 +23,9 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     CodingAgentProviderType,
     CodingAgentStatus,
+    add_seer_project_repos,
     bulk_read_preferences_from_sentry_db,
+    bulk_update_seer_project_settings,
     bulk_write_preferences_to_sentry_db,
     clear_preference_automation_handoff,
     deduplicate_repositories,
@@ -33,6 +36,7 @@ from sentry.seer.autofix.utils import (
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     read_preference_from_sentry_db,
+    replace_all_seer_project_repos,
     update_seer_project_settings,
     write_preference_to_sentry_db,
 )
@@ -477,7 +481,7 @@ class TestHasProjectConnectedRepos(TestCase):
             external_id="123",
             name="owner/repo",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         assert has_project_connected_repos(self.organization, self.project) is True
 
@@ -493,7 +497,7 @@ class TestHasProjectConnectedRepos(TestCase):
         )
         repo.status = ObjectStatus.DISABLED
         repo.save()
-        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
 
         assert has_project_connected_repos(self.organization, self.project) is False
 
@@ -512,8 +516,22 @@ class TestHasProjectConnectedRepos(TestCase):
             external_id="456",
             name="owner/active",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=disabled_repo)
-        SeerProjectRepository.objects.create(project=self.project, repository=active_repo)
+        self.create_seer_project_repository(project=self.project, repository=disabled_repo)
+        self.create_seer_project_repository(project=self.project, repository=active_repo)
+
+        assert has_project_connected_repos(self.organization, self.project) is True
+
+    def test_returns_true_via_project_repository_fk(self):
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="789",
+            name="owner/fk-repo",
+        )
+        pr = ProjectRepository.objects.create(project=self.project, repository=repo)
+        SeerProjectRepository.objects.create(
+            project_repository=pr,
+        )
 
         assert has_project_connected_repos(self.organization, self.project) is True
 
@@ -653,7 +671,10 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") == 42
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     def test_deletes_project_options_when_defaults(self) -> None:
         preference = SeerProjectPreference(
@@ -699,10 +720,12 @@ class TestWritePreferencesToSentryDb(TestCase):
 
         write_preference_to_sentry_db(self.project, preference)
 
-        seer_repo = SeerProjectRepository.objects.get(project=self.project)
-        assert seer_repo.repository_id == self.repo.id
+        seer_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
+        assert seer_repo.project_repository.repository_id == self.repo.id
         assert seer_repo.branch_name == "develop"
         assert seer_repo.instructions == "Use conventional commits"
+        assert seer_repo.project_repository is not None
+        assert ProjectRepository.objects.filter(project=self.project, repository=self.repo).exists()
 
         overrides = SeerProjectRepositoryBranchOverride.objects.filter(
             seer_project_repository=seer_repo
@@ -738,10 +761,13 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
         write_preference_to_sentry_db(self.project, preference_to_replace)
 
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 1
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 1
+        )
         assert (
             SeerProjectRepositoryBranchOverride.objects.filter(
-                seer_project_repository__project=self.project
+                seer_project_repository__project_repository__project=self.project
             ).count()
             == 1
         )
@@ -768,12 +794,12 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
         write_preference_to_sentry_db(self.project, new_preference)
 
-        repos = SeerProjectRepository.objects.filter(project=self.project)
+        repos = SeerProjectRepository.objects.filter(project_repository__project=self.project)
         assert len(repos) == 1
-        assert repos[0].repository_id == repo2.id
+        assert repos[0].project_repository.repository_id == repo2.id
         assert (
             SeerProjectRepositoryBranchOverride.objects.filter(
-                seer_project_repository__project=self.project
+                seer_project_repository__project_repository__project=self.project
             ).count()
             == 0
         )
@@ -811,11 +837,13 @@ class TestWritePreferencesToSentryDb(TestCase):
 
         write_preference_to_sentry_db(self.project, preference)
 
-        repos = SeerProjectRepository.objects.filter(project=self.project).order_by("repository_id")
+        repos = SeerProjectRepository.objects.filter(
+            project_repository__project=self.project
+        ).order_by("project_repository__repository_id")
         assert len(repos) == 2
-        assert repos[0].repository_id == self.repo.id
+        assert repos[0].project_repository.repository_id == self.repo.id
         assert repos[0].branch_name == "develop"
-        assert repos[1].repository_id == repo2.id
+        assert repos[1].project_repository.repository_id == repo2.id
         assert repos[1].instructions == "Deploy carefully"
 
     def test_preserves_existing_seer_project_repository_for_inactive_repo(self) -> None:
@@ -829,7 +857,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
         disabled_repo.status = ObjectStatus.DISABLED
         disabled_repo.save()
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project,
             repository=disabled_repo,
             branch_name="branch-1",
@@ -852,11 +880,11 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
         write_preference_to_sentry_db(self.project, new_preference)
 
-        project_repos = SeerProjectRepository.objects.filter(project=self.project).order_by(
-            "repository_id"
-        )
+        project_repos = SeerProjectRepository.objects.filter(
+            project_repository__project=self.project
+        ).order_by("project_repository__repository_id")
         assert len(project_repos) == 2
-        project_repos_by_repo_id = {r.repository_id: r for r in project_repos}
+        project_repos_by_repo_id = {r.project_repository.repository_id: r for r in project_repos}
         assert project_repos_by_repo_id[disabled_repo.id].branch_name == "branch-1"
         assert project_repos_by_repo_id[disabled_repo.id].instructions == "kept across writes"
         assert project_repos_by_repo_id[self.repo.id].branch_name == "branch-2"
@@ -865,7 +893,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         """If a repo is disabled and its ID appears in the payload, any
         existing SeerProjectRepository for that repo should be preserved
         and no new row should be created."""
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project,
             repository=self.repo,
             branch_name="original",
@@ -890,9 +918,9 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
         write_preference_to_sentry_db(self.project, new_preference)
 
-        repos = list(SeerProjectRepository.objects.filter(project=self.project))
+        repos = list(SeerProjectRepository.objects.filter(project_repository__project=self.project))
         assert len(repos) == 1
-        assert repos[0].repository_id == self.repo.id
+        assert repos[0].project_repository.repository_id == self.repo.id
         assert repos[0].branch_name == "original"
         assert repos[0].instructions == "original instructions"
 
@@ -940,15 +968,15 @@ class TestWritePreferencesToSentryDb(TestCase):
 
         bulk_write_preferences_to_sentry_db([self.project, project2], preferences)
 
-        p1_repos = SeerProjectRepository.objects.filter(project=self.project)
+        p1_repos = SeerProjectRepository.objects.filter(project_repository__project=self.project)
         assert len(p1_repos) == 1
-        assert p1_repos[0].repository_id == self.repo.id
+        assert p1_repos[0].project_repository.repository_id == self.repo.id
         assert p1_repos[0].branch_name == "develop"
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
 
-        p2_repos = SeerProjectRepository.objects.filter(project=project2)
+        p2_repos = SeerProjectRepository.objects.filter(project_repository__project=project2)
         assert len(p2_repos) == 1
-        assert p2_repos[0].repository_id == repo2.id
+        assert p2_repos[0].project_repository.repository_id == repo2.id
         assert p2_repos[0].instructions == "Be careful"
         assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
 
@@ -961,10 +989,10 @@ class TestWritePreferencesToSentryDb(TestCase):
             name="test-org/other-repo",
         )
 
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project, repository_id=self.repo.id, branch_name="project-1-branch"
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=project2, repository_id=repo2.id, branch_name="project-2-branch"
         )
 
@@ -990,9 +1018,9 @@ class TestWritePreferencesToSentryDb(TestCase):
 
         # When bulk writing, existing repos for included projects are replaced,
         # but repos for projects NOT in the preferences list are untouched.
-        p1_repo = SeerProjectRepository.objects.get(project=self.project)
+        p1_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
         assert p1_repo.branch_name == "new-branch"
-        p2_repo = SeerProjectRepository.objects.get(project=project2)
+        p2_repo = SeerProjectRepository.objects.get(project_repository__project=project2)
         assert p2_repo.branch_name == "project-2-branch"
 
 
@@ -1035,7 +1063,7 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
         self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
         self.project.update_option("sentry:autofix_automation_tuning", "high")
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project,
             repository_id=self.repo.id,
             branch_name="develop",
@@ -1048,8 +1076,8 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
         assert self.project.get_option("sentry:autofix_automation_tuning") == "high"
 
-        seer_repo = SeerProjectRepository.objects.get(project=self.project)
-        assert seer_repo.repository_id == self.repo.id
+        seer_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
+        assert seer_repo.project_repository.repository_id == self.repo.id
         assert seer_repo.branch_name == "develop"
         assert seer_repo.instructions == "Use conventional commits"
 
@@ -1094,7 +1122,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_project_with_repos_only(self):
-        spr = SeerProjectRepository.objects.create(
+        spr = self.create_seer_project_repository(
             project=self.project,
             repository=self.repo,
             branch_name="main",
@@ -1106,7 +1134,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
             tag_value="production",
             branch_name="release",
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project,
             repository=self.repo2,
             branch_name="develop",
@@ -1132,8 +1160,19 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.automated_run_stopping_point == "code_changes"
         assert result.automation_handoff is None
 
-    def test_autofix_automation_tuning_default(self):
+    def test_reads_via_project_repository_fk(self):
+        pr = ProjectRepository.objects.create(project=self.project, repository=self.repo)
         SeerProjectRepository.objects.create(
+            project_repository=pr,
+            branch_name="main",
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].branch_name == "main"
+
+    def test_autofix_automation_tuning_default(self):
+        self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
         )
 
@@ -1142,7 +1181,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_autofix_automation_tuning_explicit(self):
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
         )
         self.project.update_option(
@@ -1189,12 +1228,12 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.automation_handoff.auto_create_pr is True
 
     def test_project_with_repos_and_options(self):
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project,
             repository=self.repo,
             branch_name="main",
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project,
             repository=self.repo2,
             branch_name="develop",
@@ -1224,12 +1263,12 @@ class TestReadPreferenceFromSentryDb(TestCase):
             external_id="ext789",
             name="test-org/other-project-repo",
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=other_project, repository=other_repo, branch_name="main"
         )
         other_project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="develop"
         )
         self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
@@ -1254,10 +1293,10 @@ class TestReadPreferenceFromSentryDb(TestCase):
             external_id="ext_bad",
             name="no-slash-repo",
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project, repository=bad_repo, branch_name="main"
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
         )
 
@@ -1267,13 +1306,13 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.repositories[0].name == "test-repo"
 
     def test_excludes_inactive_repos(self):
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
         )
 
         self.repo2.status = ObjectStatus.DISABLED
         self.repo2.save()
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project, repository=self.repo2, branch_name="develop"
         )
 
@@ -1317,10 +1356,10 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_returns_correct_preferences(self):
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project1, repository=self.repo2, branch_name="develop"
         )
         self.project2.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
@@ -1353,7 +1392,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref2.automation_handoff.auto_create_pr is False
 
     def test_autofix_automation_tuning_populated(self):
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
         self.project1.update_option(
@@ -1373,7 +1412,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref2.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_autofix_automation_tuning_defaults_to_off(self):
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
 
@@ -1385,7 +1424,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
 
     def test_wrong_organization_excluded(self):
         other_org = self.create_organization()
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
 
@@ -1393,12 +1432,12 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert result == {}
 
     def test_excludes_inactive_repos(self):
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
         self.repo2.status = ObjectStatus.DISABLED
         self.repo2.save()
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project1, repository=self.repo2, branch_name="develop"
         )
 
@@ -1410,7 +1449,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         )
         project2_repo.status = ObjectStatus.DISABLED
         project2_repo.save()
-        SeerProjectRepository.objects.create(
+        self.create_seer_project_repository(
             project=self.project2, repository=project2_repo, branch_name="main"
         )
 
@@ -1725,4 +1764,357 @@ class TestUpdateSeerProjectSettings(TestCase):
 
         assert not ProjectOption.objects.filter(
             project=self.project, key="sentry:seer_scanner_automation"
+        ).exists()
+
+
+class TestBulkUpdateSeerProjectSettings(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project_a = self.create_project(organization=self.organization)
+        self.project_b = self.create_project(organization=self.organization)
+        self.projects = [self.project_a, self.project_b]
+
+    def test_empty_projects(self) -> None:
+        """Empty project list should be a no-op without errors."""
+        bulk_update_seer_project_settings([], {"scannerAutomation": False})
+
+    def test_sets_options(self) -> None:
+        """All provided settings fields should be applied to every project."""
+        bulk_update_seer_project_settings(
+            self.projects,
+            {
+                "agent": AutomationCodingAgent.CURSOR,
+                "integrationId": 99,
+                "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
+                "scannerAutomation": False,
+            },
+        )
+
+        for project in self.projects:
+            assert (
+                project.get_option("sentry:seer_automation_handoff_target")
+                == AutomationCodingAgent.CURSOR
+            )
+            assert (
+                project.get_option("sentry:seer_automation_handoff_point")
+                == AutofixHandoffPoint.ROOT_CAUSE
+            )
+            assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
+            assert (
+                project.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.MEDIUM
+            )
+            assert (
+                project.get_option("sentry:seer_automated_run_stopping_point")
+                == AutofixStoppingPoint.OPEN_PR
+            )
+            assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+            assert project.get_option("sentry:seer_scanner_automation") is False
+
+    def test_agent_seer_clears_handoff_options(self) -> None:
+        """Switching to seer agent should delete handoff options across all projects."""
+        for project in self.projects:
+            project.update_option(
+                "sentry:seer_automation_handoff_target",
+                CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+            )
+            project.update_option(
+                "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
+            )
+            project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+
+        bulk_update_seer_project_settings(self.projects, {"agent": AutomationCodingAgent.SEER})
+
+        for project in self.projects:
+            assert project.get_option("sentry:seer_automation_handoff_target") is None
+            assert project.get_option("sentry:seer_automation_handoff_point") is None
+            assert project.get_option("sentry:seer_automation_handoff_integration_id") is None
+
+    def test_upserts_existing_options(self) -> None:
+        """Existing options should be overwritten, not duplicated."""
+        for project in self.projects:
+            project.update_option("sentry:seer_scanner_automation", True)
+
+        bulk_update_seer_project_settings(self.projects, {"scannerAutomation": False})
+
+        for project in self.projects:
+            assert project.get_option("sentry:seer_scanner_automation") is False
+            assert (
+                ProjectOption.objects.filter(
+                    project=project, key="sentry:seer_scanner_automation"
+                ).count()
+                == 1
+            )
+
+    def test_clears_option_when_value_is_default(self) -> None:
+        """Setting a value equal to its registered default should delete the ProjectOption row."""
+        for project in self.projects:
+            project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+
+        bulk_update_seer_project_settings(
+            self.projects,
+            {"stoppingPoint": AutofixStoppingPoint(SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT)},
+        )
+
+        for project in self.projects:
+            assert (
+                project.get_option("sentry:seer_automated_run_stopping_point")
+                == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+            )
+            assert not ProjectOption.objects.filter(
+                project=project, key="sentry:seer_automated_run_stopping_point"
+            ).exists()
+
+    def test_stopping_point_off_sets_tuning_off(self) -> None:
+        """stoppingPoint='off' should set tuning to OFF and preserve existing stopping point."""
+        for project in self.projects:
+            project.update_option(
+                "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.OPEN_PR
+            )
+            project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        bulk_update_seer_project_settings(self.projects, {"stoppingPoint": "off"})
+
+        for project in self.projects:
+            assert (
+                project.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.OFF
+            )
+
+    def test_mixed_sets_and_clears_options(self) -> None:
+        """Test that sets new options and deletes existing ones."""
+        for project in self.projects:
+            project.update_option(
+                "sentry:seer_automation_handoff_target",
+                CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+            )
+            project.update_option(
+                "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
+            )
+            project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+
+        bulk_update_seer_project_settings(
+            self.projects,
+            {"agent": AutomationCodingAgent.SEER, "scannerAutomation": False},
+        )
+
+        for project in self.projects:
+            assert project.get_option("sentry:seer_automation_handoff_target") is None
+            assert project.get_option("sentry:seer_automation_handoff_point") is None
+            assert project.get_option("sentry:seer_automation_handoff_integration_id") is None
+            assert project.get_option("sentry:seer_scanner_automation") is False
+
+    def test_omitted_fields_preserve_existing_options(self) -> None:
+        """Updating one field should not clobber unrelated existing options."""
+        for project in self.projects:
+            project.update_option(
+                "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+            )
+            project.update_option(
+                "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.OPEN_PR
+            )
+            project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        bulk_update_seer_project_settings(self.projects, {"scannerAutomation": False})
+
+        for project in self.projects:
+            assert (
+                project.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.MEDIUM
+            )
+            assert (
+                project.get_option("sentry:seer_automated_run_stopping_point")
+                == AutofixStoppingPoint.OPEN_PR
+            )
+            assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+            assert project.get_option("sentry:seer_scanner_automation") is False
+
+
+class TestAddSeerProjectRepos(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        self.repo1 = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="111",
+        )
+        self.repo2 = self.create_repo(
+            project=self.project,
+            name="getsentry/relay",
+            provider="integrations:github",
+            external_id="222",
+        )
+
+    def test_creates_project_repos(self):
+        add_seer_project_repos(
+            self.project,
+            [
+                {"repository_id": self.repo1.id, "branch_name": "main", "instructions": "hello"},
+                {"repository_id": self.repo2.id},
+            ],
+        )
+        pr1 = SeerProjectRepository.objects.get(
+            project_repository__project=self.project, project_repository__repository=self.repo1
+        )
+        assert pr1.branch_name == "main"
+        assert pr1.instructions == "hello"
+        pr2 = SeerProjectRepository.objects.get(
+            project_repository__project=self.project, project_repository__repository=self.repo2
+        )
+        assert pr2.branch_name is None
+
+    def test_creates_branch_overrides(self):
+        add_seer_project_repos(
+            self.project,
+            [
+                {
+                    "repository_id": self.repo1.id,
+                    "branch_overrides": [
+                        {"tag_name": "environment", "tag_value": "prod", "branch_name": "release"},
+                    ],
+                },
+            ],
+        )
+        project_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project, project_repository__repository=self.repo1
+        )
+        overrides = list(project_repo.branch_overrides.all())
+        assert len(overrides) == 1
+        assert overrides[0].tag_name == "environment"
+        assert overrides[0].tag_value == "prod"
+        assert overrides[0].branch_name == "release"
+
+    def test_upserts_existing_repo(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="old")
+
+        add_seer_project_repos(
+            self.project,
+            [{"repository_id": self.repo1.id, "branch_name": "new"}],
+        )
+
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 1
+        )
+        pr = SeerProjectRepository.objects.get(
+            project_repository__project=self.project, project_repository__repository=self.repo1
+        )
+        assert pr.branch_name == "new"
+
+    def test_returns_created_ids(self):
+        created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
+        assert created_ids == list(
+            SeerProjectRepository.objects.filter(
+                project_repository__project=self.project
+            ).values_list("id", flat=True)
+        )
+
+
+class TestReplaceAllSeerProjectRepos(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        self.repo1 = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="111",
+        )
+        self.repo2 = self.create_repo(
+            project=self.project,
+            name="getsentry/relay",
+            provider="integrations:github",
+            external_id="222",
+        )
+
+    def test_replaces_existing_repos(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+
+        replace_all_seer_project_repos(
+            self.project,
+            [{"repository_id": self.repo2.id, "branch_name": "develop"}],
+        )
+
+        assert (
+            not SeerProjectRepository.objects.filter(project_repository__project=self.project)
+            .exclude(project_repository__repository=self.repo2)
+            .exists()
+        )
+        pr2 = SeerProjectRepository.objects.get(
+            project_repository__project=self.project, project_repository__repository=self.repo2
+        )
+        assert pr2.branch_name == "develop"
+
+    def test_clears_all_when_empty(self):
+        project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="release",
+        )
+
+        replace_all_seer_project_repos(self.project, [])
+
+        assert not SeerProjectRepository.objects.filter(
+            project_repository__project=self.project
+        ).exists()
+        assert not SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository=project_repo
+        ).exists()
+
+    def test_creates_branch_overrides(self):
+        replace_all_seer_project_repos(
+            self.project,
+            [
+                {
+                    "repository_id": self.repo1.id,
+                    "branch_overrides": [
+                        {"tag_name": "env", "tag_value": "staging", "branch_name": "staging"},
+                    ],
+                },
+            ],
+        )
+        project_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project, project_repository__repository=self.repo1
+        )
+        assert project_repo.branch_overrides.count() == 1
+
+    def test_clears_old_branch_overrides(self):
+        project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=project_repo,
+            tag_name="env",
+            tag_value="prod",
+            branch_name="old",
+        )
+
+        replace_all_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
+
+        project_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project, project_repository__repository=self.repo1
+        )
+        assert project_repo.branch_overrides.count() == 0
+
+    def test_preserves_inactive_repos(self):
+        inactive_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/inactive",
+            provider="integrations:github",
+            external_id="999",
+        )
+        inactive_repo.status = ObjectStatus.PENDING_DELETION
+        inactive_repo.save()
+        inactive_seer_repo = self.create_seer_project_repository(
+            self.project, repository=inactive_repo
+        )
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+
+        replace_all_seer_project_repos(self.project, [{"repository_id": self.repo2.id}])
+
+        assert SeerProjectRepository.objects.filter(id=inactive_seer_repo.id).exists()
+        assert not SeerProjectRepository.objects.filter(
+            project_repository__project=self.project, project_repository__repository=self.repo1
         ).exists()

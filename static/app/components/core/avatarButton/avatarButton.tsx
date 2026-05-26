@@ -1,6 +1,6 @@
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
@@ -32,8 +32,10 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
 
   const {data: imageResult} = useQuery({
     queryKey: ['avatar-button-chonk', imageUrl, theme.type],
-    queryFn: () => resolveImageAvatarColors(imageUrl!, theme.type),
-    enabled: !!imageUrl && avatarDefinition.type === 'image',
+    queryFn:
+      imageUrl && avatarDefinition.type === 'image'
+        ? () => resolveImageAvatarColors(imageUrl, theme.type)
+        : skipToken,
     staleTime: Infinity,
   });
 
@@ -133,32 +135,35 @@ const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
 // Returns 'fill' when the image covers the full frame edge-to-edge, 'padded' otherwise.
 // Each edge check returns 'padded' when every pixel on that edge is transparent (alpha < 128).
 // Pixel (col, row) has its alpha channel at (row * 12 + col) * 4 + 3 in a 12×12 RGBA canvas.
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
   // oxfmt-ignore
   if (!(data[3]!>=128   || data[51]!>=128  || data[99]!>=128  ||
         data[147]!>=128 || data[195]!>=128 || data[243]!>=128 ||
         data[291]!>=128 || data[339]!>=128 || data[387]!>=128 ||
-        data[435]!>=128 || data[483]!>=128 || data[531]!>=128)) return 'padded';
+        data[435]!>=128 || data[483]!>=128 || data[531]!>=128)) {return 'padded';}
   // oxfmt-ignore
   if (!(data[47]!>=128  || data[95]!>=128  || data[143]!>=128 ||
         data[191]!>=128 || data[239]!>=128 || data[287]!>=128 ||
         data[335]!>=128 || data[383]!>=128 || data[431]!>=128 ||
-        data[479]!>=128 || data[527]!>=128 || data[575]!>=128)) return 'padded';
+        data[479]!>=128 || data[527]!>=128 || data[575]!>=128)) {return 'padded';}
   // oxfmt-ignore
   if (!(data[3]!>=128  || data[7]!>=128  || data[11]!>=128 ||
         data[15]!>=128 || data[19]!>=128 || data[23]!>=128 ||
         data[27]!>=128 || data[31]!>=128 || data[35]!>=128 ||
-        data[39]!>=128 || data[43]!>=128 || data[47]!>=128)) return 'padded';
+        data[39]!>=128 || data[43]!>=128 || data[47]!>=128)) {return 'padded';}
   // oxfmt-ignore
   if (!(data[531]!>=128 || data[535]!>=128 || data[539]!>=128 ||
         data[543]!>=128 || data[547]!>=128 || data[551]!>=128 ||
         data[555]!>=128 || data[559]!>=128 || data[563]!>=128 ||
-        data[567]!>=128 || data[571]!>=128 || data[575]!>=128)) return 'padded';
-  if (data[3]! < 128 || data[47]! < 128 || data[531]! < 128 || data[575]! < 128)
+        data[567]!>=128 || data[571]!>=128 || data[575]!>=128)) {return 'padded';}
+  if (data[3]! < 128 || data[47]! < 128 || data[531]! < 128 || data[575]! < 128) {
     return 'padded';
+  }
 
   return 'fill';
 }
+/* eslint-enable @typescript-eslint/no-non-null-assertion */
 
 function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   const SAMPLE_SIZE = 12;
@@ -167,7 +172,9 @@ function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
     canvas.width = SAMPLE_SIZE;
     canvas.height = SAMPLE_SIZE;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
+    if (!ctx) {
+      return null;
+    }
 
     // Draw the image on a 12x12 canvas to make the sampling more efficient
     const naturalW = img.naturalWidth || img.width;
@@ -195,23 +202,33 @@ function sampleAvatarColor(
   img: HTMLImageElement
 ): {hex: string | null; style: 'fill' | 'padded'} | null {
   const data = readPixels(img);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   const style = shouldPadImage(data);
 
   // Accumulate two sets: chromatic pixels (saturation ≥ 0.15) and all opaque pixels.
-  // oxfmt-ignore
-  let cr = 0, cg = 0, cb = 0, ccount = 0;
-  // oxfmt-ignore
-  let ar = 0, ag = 0, ab = 0, acount = 0;
+  let cr = 0,
+    cg = 0,
+    cb = 0,
+    ccount = 0;
+  let ar = 0,
+    ag = 0,
+    ab = 0,
+    acount = 0;
 
   for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3]! < 128) continue;
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+    if (data[i + 3]! < 128) {
+      continue;
+    }
 
     const r = data[i]!,
       g = data[i + 1]!,
       b = data[i + 2]!;
 
+    /* eslint-enable @typescript-eslint/no-non-null-assertion */
     // accumulate all pixels
     ar += r;
     ag += g;
@@ -228,7 +245,9 @@ function sampleAvatarColor(
   }
 
   const [r, g, b, count] = ccount > 0 ? [cr, cg, cb, ccount] : [ar, ag, ab, acount];
-  if (count === 0) return {hex: null, style};
+  if (count === 0) {
+    return {hex: null, style};
+  }
 
   const toHex = (v: number) =>
     Math.round(v / count)
@@ -255,7 +274,9 @@ async function resolveImageAvatarColors(
 ): Promise<{chonk: string | undefined; style: 'fill' | 'padded'} | null> {
   const sampled = await fetchAvatarColor(url);
 
-  if (!sampled?.hex) return null;
+  if (!sampled?.hex) {
+    return null;
+  }
 
   const chonk = color(sampled.hex)
     .darken(theme === 'dark' ? 0.85 : 0.45)

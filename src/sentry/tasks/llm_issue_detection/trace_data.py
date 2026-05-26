@@ -154,6 +154,7 @@ def get_project_top_transaction_traces_for_llm_detection(
     project_id: int,
     limit: int,
     start_time_delta_minutes: int,
+    sample_multiplier: int = 1,
 ) -> list[TraceMetadataWithSpanCount]:
     """
     Get top transactions by total time spent, return one semi-randomly chosen trace per transaction.
@@ -199,7 +200,7 @@ def get_project_top_transaction_traces_for_llm_detection(
 
     transaction_rows = transactions_result.get("data", [])
     random.shuffle(transaction_rows)
-    transaction_rows = transaction_rows[:TRACE_SAMPLE_SIZE]
+    transaction_rows = transaction_rows[: TRACE_SAMPLE_SIZE * sample_multiplier]
 
     trace_ids: list[str] = []
     seen_names: set[str] = set()

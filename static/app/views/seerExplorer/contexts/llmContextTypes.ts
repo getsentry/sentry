@@ -22,6 +22,8 @@ export type LLMContextNodeType =
   | 'dashboard'
   | 'issue-detail'
   | 'issue-list'
+  | 'logs-explorer'
+  | 'releases-list'
   | 'trace'
   | 'traces-explorer'
   | 'widget'

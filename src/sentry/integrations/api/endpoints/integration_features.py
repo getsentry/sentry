@@ -22,7 +22,7 @@ class IntegrationFeaturesPermissions(SentryPermission):
 
 @control_silo_endpoint
 class IntegrationFeaturesEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

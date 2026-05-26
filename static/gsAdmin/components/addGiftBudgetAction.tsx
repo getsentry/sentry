@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -118,7 +118,7 @@ function AddGiftBudgetModal({
                   {(budget.freeBudget / 100).toLocaleString()}
                 </div>
               </Flex>
-              <BudgetCategories>
+              <Container marginBottom="md">
                 <strong>Categories:</strong>{' '}
                 {Object.keys(budget.categories)
                   .map(category =>
@@ -130,7 +130,7 @@ function AddGiftBudgetModal({
                     })
                   )
                   .join(', ') || 'None'}
-              </BudgetCategories>
+              </Container>
               {selectedBudgetId === budget.id && (
                 <NumberField
                   inline={false}
@@ -160,7 +160,7 @@ function AddGiftBudgetModal({
           {reservedBudgetOptions.length === 0 && (
             <div>No reserved budgets available.</div>
           )}
-          <AuditFields>
+          <Container marginTop="xl">
             <InputField
               data-test-id="url-field"
               name="ticket-url"
@@ -182,7 +182,7 @@ function AddGiftBudgetModal({
               required // serializer requires this to be present
               onChange={(notesInput: any) => setNotes(notesInput)}
             />
-          </AuditFields>
+          </Container>
         </Form>
       </Body>
     </Fragment>
@@ -204,12 +204,4 @@ const BudgetCard = styled('div')<{isSelected: boolean}>`
   border-radius: ${p => p.theme.radius.md};
   background-color: ${p => (p.isSelected ? p.theme.colors.surface200 : 'transparent')};
   cursor: pointer;
-`;
-
-const BudgetCategories = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const AuditFields = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
 `;

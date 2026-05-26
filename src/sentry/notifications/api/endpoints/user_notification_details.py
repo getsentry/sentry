@@ -55,7 +55,7 @@ class UserNotificationDetailsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserNotificationDetailsEndpoint(UserEndpoint):
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.NOTIFICATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,

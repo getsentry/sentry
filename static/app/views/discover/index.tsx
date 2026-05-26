@@ -38,7 +38,7 @@ function DiscoverContainer() {
     <Feature
       features="discover-basic"
       organization={organization}
-      hookName="feature-disabled:discover2-page"
+      overrideName="feature-disabled:discover2-page"
       renderDisabled={renderNoAccess}
     >
       <NoProjectMessage organization={organization}>

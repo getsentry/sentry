@@ -1,6 +1,7 @@
 from typing import cast
 
 import sentry_sdk
+from django.db.models import Q
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.rate_limit import RateLimitProvider
@@ -51,9 +52,9 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             repo = RepositoryModel.objects.get(organization_id=organization_id, id=repository_id)
         else:
             repo = RepositoryModel.objects.get(
+                Q(external_id=repository_id[1]) | Q(name=repository_id[1]),
                 organization_id=organization_id,
                 provider=f"integrations:{repository_id[0]}",
-                external_id=repository_id[1],
             )
     except RepositoryModel.DoesNotExist:
         return None
@@ -81,6 +82,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             "name": repo.name,
             "organization_id": repo.organization_id,
             "provider_name": repo.provider.removeprefix("integrations:"),
+            "web_base_url": None,
         },
     )
 

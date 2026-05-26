@@ -7,6 +7,7 @@ import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import {
   AssigneeSelectorDropdown,
   type AssignableEntity,
+  type AssigneeGroup,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
@@ -27,7 +28,7 @@ type HandleAssignOptions = {
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
-  group: Group;
+  group: AssigneeGroup;
   handleAssigneeChange: (
     assignedActor: AssignableEntity | null,
     options?: HandleAssignOptions
@@ -51,7 +52,7 @@ export function useHandleAssigneeChange({
   onSuccess,
   onError,
 }: {
-  group: Group;
+  group: AssigneeGroup;
   organization: Organization;
   onAssign?: OnAssignCallback;
   onError?: (error: Error) => void;
@@ -109,6 +110,10 @@ export function AssigneeSelector({
     enabled: memberList === undefined,
   });
   const currentMemberList = memberList ?? defaultMemberList;
+  const assignedUser =
+    group.assignedTo?.type === 'user'
+      ? currentMemberList.find(user => user.id === group.assignedTo?.id)
+      : undefined;
 
   return (
     <AssigneeSelectorDropdown
@@ -129,6 +134,7 @@ export function AssigneeSelector({
         >
           <AssigneeBadge
             assignedTo={group.assignedTo ?? undefined}
+            assignedUser={assignedUser}
             assignmentReason={
               group.owners?.find(owner => {
                 const [_ownershipType, ownerId] = owner.owner.split(':');

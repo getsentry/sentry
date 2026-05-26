@@ -23,7 +23,7 @@ import {t, tct} from 'sentry/locale';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
@@ -133,7 +133,7 @@ export function Request({data, event}: RequestProps) {
 
   let fullUrl = getFullUrl(data);
 
-  if (!isUrl(fullUrl)) {
+  if (!isValidUrl(fullUrl)) {
     // Check if the url passed in is a safe url to avoid XSS
     fullUrl = undefined;
   }

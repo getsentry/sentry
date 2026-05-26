@@ -6,13 +6,13 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import Hook from 'sentry/components/hook';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
+import {Override} from 'sentry/components/override';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {categoryList} from 'sentry/data/platformPickerCategories';
@@ -107,7 +107,9 @@ const scmOnboardingSteps: StepDescriptor[] = [
 function WelcomeVariable(props: StepProps) {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
 
-  if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
+  if (hasNewWelcomeUI) {
+    return <NewWelcomeUI {...props} />;
+  }
 
   return <TargetedOnboardingWelcome {...props} />;
 }
@@ -201,7 +203,7 @@ export function OnboardingWithoutContext() {
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
     enabled: hasScmOnboarding,
-    sampleRate: 0.3,
+    sampleRate: 0.5,
   });
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
@@ -391,7 +393,7 @@ export function OnboardingWithoutContext() {
           </Flex>
         )}
         <Flex align="center" justify="end" gap="md">
-          <Hook
+          <Override
             name="onboarding:targeted-onboarding-header"
             source="targeted-onboarding"
           />

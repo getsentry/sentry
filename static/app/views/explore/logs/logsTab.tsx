@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -48,8 +48,8 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -58,6 +58,7 @@ import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwit
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
@@ -94,13 +95,14 @@ import {
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
-  tableExpando: boolean;
 };
 
 interface LogsSearchBarProps {
@@ -244,12 +246,13 @@ const LogsSearchSection = memo(function LogsSearchSection({
   );
 });
 
-export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps) {
+function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const {openModal} = useModal();
 
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
+  const groupBys = useQueryParamsGroupBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
   const sortBys = useQueryParamsSortBys();
@@ -258,6 +261,21 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const searchQuery = useQueryParamsSearch().formatString();
+  const visualizes = useQueryParamsVisualizes();
+
+  useLLMContext({
+    contextHint:
+      'Sentry logs explorer page. Users search log entries by attributes and view samples or aggregates. ' +
+      'You can search live telemetry for logs, get detailed log attributes by trace ID, and discover attribute names via the telemetry index.',
+    searchQuery,
+    mode,
+    fields,
+    sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    groupBys: groupBys.filter(g => g !== ''),
+    visualizes: visualizes.map(v => v.yAxis),
+    currentSelectedDateRange: pageFilters.selection.datetime,
+  });
 
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
@@ -268,7 +286,6 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const [interval] = useChartInterval();
-  const visualizes = useQueryParamsVisualizes();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
@@ -428,15 +445,12 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <Fragment>
+    <LogsSidebarProvider value={setSidebarOpen}>
       <LogsSearchSection
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedPage
-        constrained={tableExpando && mode === Mode.SAMPLES}
-        hideFooter={tableExpando}
-      >
+      <ViewportConstrainedPage constrained={mode === Mode.SAMPLES} hideFooter>
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}
@@ -521,11 +535,11 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                 </TableActionsContainer>
               )}
             </LogsTableActionsContainer>
-            <LogsItemContainer overflowX="auto">
+            <LogsItemContainer minHeight="max(25vh, 20rem)" overflowX="auto">
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  expanded={tableExpando}
+                  expanded
                   booleanAttributes={booleanAttributes}
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
@@ -537,9 +551,11 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
           </ExploreContentSection>
         </ViewportConstrainedBody>
       </ViewportConstrainedPage>
-    </Fragment>
+    </LogsSidebarProvider>
   );
 }
+
+export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;

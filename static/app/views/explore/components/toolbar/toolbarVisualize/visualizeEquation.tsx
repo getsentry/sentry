@@ -18,8 +18,8 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeEquationProps {

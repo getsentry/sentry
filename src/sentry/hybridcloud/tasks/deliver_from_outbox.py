@@ -26,6 +26,7 @@ from sentry.utils.env import in_test_environment
     name="sentry.tasks.enqueue_outbox_jobs_control",
     namespace=hybridcloud_control_tasks,
     silo_mode=SiloMode.CONTROL,
+    processing_deadline_duration=30,
 )
 def enqueue_outbox_jobs_control(
     concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
@@ -42,6 +43,7 @@ def enqueue_outbox_jobs_control(
     name="sentry.tasks.enqueue_outbox_jobs",
     namespace=hybridcloud_tasks,
     silo_mode=SiloMode.CELL,
+    processing_deadline_duration=30,
 )
 def enqueue_outbox_jobs(
     concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any

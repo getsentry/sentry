@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -215,13 +215,20 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 status=200,
             )
 
-    def get_rpc_config(self, dataset: Any, request: Request) -> SearchResolverConfig:
+    def get_rpc_config(
+        self, dataset: Any, request: Request, organization: Organization
+    ) -> SearchResolverConfig:
         if dataset not in RPC_DATASETS:
             raise NotImplementedError
 
         extrapolation_mode = self.get_extrapolation_mode(request)
         disable_aggregate_extrapolation = (
             request.GET.get("disableAggregateExtrapolation", "0") == "1"
+        )
+        disable_array_attributes = not features.has(
+            "organizations:trace-item-details-array-fields",
+            organization,
+            actor=request.user,
         )
 
         if dataset == TraceMetrics:
@@ -232,6 +239,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
+                disable_array_attributes=disable_array_attributes,
             )
         elif dataset == PreprodSize:
             return PreprodSizeSearchResolverConfig(
@@ -239,6 +247,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
+                disable_array_attributes=disable_array_attributes,
             )
         else:
             return SearchResolverConfig(
@@ -246,6 +255,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
+                disable_array_attributes=disable_array_attributes,
             )
 
     def get_event_stats(
@@ -295,7 +305,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     limit=top_events,
                     include_other=include_other,
                     referrer=referrer,
-                    config=self.get_rpc_config(dataset, request),
+                    config=self.get_rpc_config(dataset, request, organization),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
@@ -325,7 +335,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 query_string=query,
                 y_axes=query_columns,
                 referrer=referrer,
-                config=self.get_rpc_config(dataset, request),
+                config=self.get_rpc_config(dataset, request, organization),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,

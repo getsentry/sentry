@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {usePreprodItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface PreprodSearchBarProps {

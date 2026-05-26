@@ -66,7 +66,7 @@ export default function ProjectFilters() {
         {filterType === 'discarded-groups' ? (
           <GroupTombstones project={project} />
         ) : (
-          <ProjectFiltersSettings project={project} params={params} features={features} />
+          <ProjectFiltersSettings project={project} params={params} />
         )}
       </div>
     </Fragment>

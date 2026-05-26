@@ -1,4 +1,3 @@
-import {type ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -9,8 +8,11 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  getEquationAliasIndex,
+  isEquationAlias,
   parseFunction,
   RateUnit,
+  stripEquationPrefix,
   type AggregationOutputType,
   type DataUnit,
   type QueryFieldValue,
@@ -27,6 +29,7 @@ import {
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -48,7 +51,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -211,23 +214,7 @@ function useTraceMetricsSearchScope() {
   return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
 
-export function formatTraceMetricsFunction(
-  valueToParse: string | string[],
-  defaultValue?: string | ReactNode
-) {
-  if (Array.isArray(valueToParse)) {
-    const parsedFunctions = valueToParse.map(v => parseFunction(v));
-    const functionNames = parsedFunctions.map(f => f?.name).join(', ');
-    const firstFunction = parsedFunctions[0];
-    return `${functionNames}(${firstFunction?.arguments[1] ?? '…'})`;
-  }
-
-  const parsedFunction = parseFunction(valueToParse);
-  if (parsedFunction) {
-    return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
-  }
-  return defaultValue ?? valueToParse;
-}
+export {formatTraceMetricsFunction};
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
   props: Pick<SearchBarDataProviderProps, 'pageFilters'>
@@ -270,7 +257,7 @@ export const TraceMetricsConfig: DatasetConfig<
   defaultCategoryField: 'project',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: false,
+  enableEquations: false, // TODO: Enable this when equations in dashboards is GA'd
   SearchBar: TraceMetricsSearchBar,
   useSearchBarDataProvider: useTraceMetricsSearchBarDataProvider,
   filterSeriesSortOptions,
@@ -280,10 +267,19 @@ export const TraceMetricsConfig: DatasetConfig<
   // We've forced the sort options to use the table sort options UI because
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
-    getTableSortOptions(organization, widgetQuery).map(option => ({
-      label: formatTraceMetricsFunction(option.value, option.label),
-      value: option.value,
-    })),
+    getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
+      if (isEquationAlias(value)) {
+        return {
+          label: `ƒ${getEquationAliasIndex(value) + 1}`,
+          value,
+        };
+      }
+
+      return {
+        label,
+        value,
+      };
+    }),
   getGroupByFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
@@ -334,7 +330,9 @@ export const TraceMetricsConfig: DatasetConfig<
   getFieldHeaderMap: widgetQuery => {
     return (
       widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
-        acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+        acc[aggregate] = stripEquationPrefix(
+          formatTraceMetricsFunction(aggregate) as string
+        );
         return acc;
       }, {}) ?? {}
     );

@@ -1,4 +1,4 @@
-from collections.abc import Mapping, MutableMapping
+from collections.abc import MutableMapping
 from typing import Any, TypedDict
 
 from django.db import IntegrityError
@@ -19,7 +19,7 @@ from sentry.integrations.api.parsers.external_actor import (
 )
 from sentry.integrations.api.parsers.integrations import validate_provider
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.integrations.utils.providers import get_provider_choices
 from sentry.models.organization import Organization
 from sentry.models.team import Team
@@ -95,7 +95,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
         return int(provider.value)
 
-    def get_actor_params(self, validated_data: MutableMapping[str, Any]) -> Mapping[str, int]:
+    def get_actor_params(self, validated_data: MutableMapping[str, Any]) -> dict[str, Any]:
         actor_model = validated_data.pop(self._actor_key)
         if isinstance(actor_model, Team):
             return dict(team_id=actor_model.id)
@@ -104,6 +104,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
+        actor_params["source"] = ExternalActorSource.MANUAL.value
 
         if validated_data["provider"] in CASE_INSENSITIVE_PROVIDERS:
             external_name = validated_data.pop("external_name")

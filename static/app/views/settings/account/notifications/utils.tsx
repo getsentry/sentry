@@ -12,7 +12,7 @@ export const isGroupedByProject = (notificationType: string): boolean =>
 
 export const groupByOrganization = (projects: Project[]): Record<string, Project[]> => {
   return projects.reduce<Record<string, Project[]>>((acc, project) => {
-    const orgSlug = project.organization.slug;
+    const orgSlug = project.organization?.slug ?? '';
     if (Object.hasOwn(acc, orgSlug)) {
       acc[orgSlug]!.push(project);
     } else {

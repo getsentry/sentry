@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -24,21 +29,22 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectAlertRulePermission,)
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
-    }
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
-    def get(self, request: Request, project) -> HttpResponseBase:
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
+    def get(self, request: Request, project: Project) -> HttpResponseBase:
         """
         Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
         return self.fetch_metric_alerts(request, project.organization, [project])
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
-    def post(self, request: Request, project) -> HttpResponseBase:
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
+    def post(self, request: Request, project: Project) -> HttpResponseBase:
         """
         Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """

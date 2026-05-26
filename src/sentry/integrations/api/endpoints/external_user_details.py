@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 @cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.INTEGRATION_PLATFORM
     permission_classes = (ExternalUserPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -42,13 +43,14 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         self,
         request: Request,
         organization_id_or_slug: int | str,
-        external_user_id: int,
+        external_user_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
         kwargs["external_user"] = self.get_external_actor_or_404(
-            external_user_id, kwargs["organization"]
+            to_valid_int_id("external_user_id", external_user_id, raise_404=True),
+            kwargs["organization"],
         )
         return args, kwargs
 

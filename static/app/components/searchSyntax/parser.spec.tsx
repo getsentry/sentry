@@ -191,6 +191,43 @@ describe('searchSyntax/parser', () => {
     })
   );
 
+  it('handles no-argument aggregate filters after free text', () => {
+    const result = parseSearch('TypeError count():>10');
+
+    if (result === null) {
+      throw new Error('Parsed result as null');
+    }
+
+    expect(result.map(token => token.type)).toEqual([
+      Token.SPACES,
+      Token.FREE_TEXT,
+      Token.SPACES,
+      Token.FILTER,
+      Token.SPACES,
+    ]);
+
+    expect(result[1]).toMatchObject({
+      type: Token.FREE_TEXT,
+      value: 'TypeError ',
+    });
+
+    const filter = result[3] as TokenResult<Token.FILTER>;
+    expect(filter).toMatchObject({
+      type: Token.FILTER,
+      filter: 'aggregateNumeric',
+      operator: '>',
+      key: {
+        type: Token.KEY_AGGREGATE,
+        name: {type: Token.KEY_SIMPLE, value: 'count'},
+        args: null,
+      },
+      value: {
+        type: Token.VALUE_NUMBER,
+        value: '10',
+      },
+    });
+  });
+
   it('returns token warnings', () => {
     const result = parseSearch('foo:bar bar:baz tags[foo]:bar tags[bar]:baz', {
       getFilterTokenWarning: key => (key === 'foo' ? 'foo warning' : null),

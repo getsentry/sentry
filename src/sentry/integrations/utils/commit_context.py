@@ -257,7 +257,7 @@ def _generate_integration_to_files_mapping(
                     lineno=frame.lineno,
                     path=src_path,
                     ref=code_mapping.default_branch or "master",
-                    repo=code_mapping.repository,
+                    repo=code_mapping.project_repository.repository,
                     code_mapping=code_mapping,
                 )
             )

@@ -11,7 +11,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -79,7 +79,6 @@ import {
   dashboardFiltersToString,
   eventViewFromWidget,
   getFieldsFromEquations,
-  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -306,7 +305,6 @@ function DataWidgetViewerModal(props: Props) {
   };
   const {aggregates, columns} = tableWidget.queries[0]!;
   const {orderby} = widget.queries[0]!;
-  const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
   const fields =
@@ -340,14 +338,6 @@ function DataWidgetViewerModal(props: Props) {
         }
       });
     }
-  }
-
-  // Need to set the orderby of the eventsv2 query to equation[index] format
-  // since eventsv2 does not accept the raw equation as a valid sort payload
-  if (isEquation(rawOrderby) && tableWidget.queries[0]!.orderby === orderby) {
-    tableWidget.queries[0]!.orderby = `${order ? '-' : ''}equation[${
-      getNumEquations(fields) - 1
-    }]`;
   }
 
   // Default table columns for visualizations that don't have a group by set
@@ -648,7 +638,7 @@ function DataWidgetViewerModal(props: Props) {
       <Fragment>
         {hasSessionDuration && SESSION_DURATION_ALERT}
         {shouldRenderChartVisualization && (
-          <Container
+          <ChartContainer
             height={
               widget.displayType === DisplayType.BIG_NUMBER
                 ? BIG_NUMBER_HEIGHT
@@ -693,7 +683,7 @@ function DataWidgetViewerModal(props: Props) {
                 widgetInterval={widgetInterval}
               />
             )}
-          </Container>
+          </ChartContainer>
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
@@ -705,7 +695,7 @@ function DataWidgetViewerModal(props: Props) {
           </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
-          <QueryContainer>
+          <Container marginBottom="xl" position="relative">
             <Select
               value={selectedQueryIndex}
               options={queryOptions}
@@ -791,7 +781,7 @@ function DataWidgetViewerModal(props: Props) {
                 size="sm"
               />
             )}
-          </QueryContainer>
+          </Container>
         )}
         {shouldRenderTable && renderWidgetViewerTable()}
       </Fragment>
@@ -1075,8 +1065,8 @@ function ViewerTableV2({
     datasetConfig?.getFieldHeaderMap?.(tableWidget.queries[selectedQueryIndex]) ?? {}
   );
 
-  // Inject any prettified function names that aren't currently aliased into the aliases
   for (const column of tableColumns) {
+    // Inject any prettified function names that aren't currently aliased into the aliases
     const parsedFunction = parseFunction(column.key);
     if (!aliases[column.key] && parsedFunction) {
       aliases[column.key] = prettifyParsedFunction(parsedFunction);
@@ -1171,6 +1161,7 @@ function ViewerTableV2({
 
           return {
             location,
+            navigate,
             organization,
             theme,
             unit,
@@ -1237,17 +1228,12 @@ export const modalCss = css`
   max-width: 1200px;
 `;
 
-const Container = styled('div')<{height?: number | null}>`
+const ChartContainer = styled('div')<{height?: number | null}>`
   display: flex;
   flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const QueryContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  position: relative;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`

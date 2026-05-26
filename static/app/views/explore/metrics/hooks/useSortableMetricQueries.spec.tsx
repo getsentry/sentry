@@ -4,8 +4,10 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
-import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  MultiMetricsQueryParamsProvider,
+  useMultiMetricsQueryParams,
+} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   isVisualizeEquation,
   VisualizeEquation,
@@ -29,7 +31,7 @@ describe('useSortableMetricQueries', () => {
                 metric: {name: 'foo', type: 'counter'},
                 query: '',
                 aggregateFields: [
-                  new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                 ],
                 aggregateSortBys: [],
                 mode: 'samples',
@@ -38,7 +40,7 @@ describe('useSortableMetricQueries', () => {
                 metric: {name: 'bar', type: 'counter'},
                 query: '',
                 aggregateFields: [
-                  new VisualizeFunction('sum(value,bar,counter,-)').serialize(),
+                  new VisualizeFunction('sum(value,bar,counter,none)').serialize(),
                 ],
                 aggregateSortBys: [],
                 mode: 'samples',
@@ -73,7 +75,7 @@ describe('useSortableMetricQueries', () => {
                   metric: {name: 'foo', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -82,7 +84,7 @@ describe('useSortableMetricQueries', () => {
                   metric: {name: 'bar', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,bar,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,bar,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -143,7 +145,7 @@ describe('useSortableMetricQueries', () => {
                   metric: {name: 'foo', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -179,7 +181,7 @@ describe('useSortableMetricQueries', () => {
     const duplicateQuery = JSON.stringify({
       metric: {name: 'foo', type: 'counter'},
       query: '',
-      aggregateFields: [new VisualizeFunction('sum(value,foo,counter,-)').serialize()],
+      aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)').serialize()],
       aggregateSortBys: [],
       mode: 'samples',
     });

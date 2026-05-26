@@ -735,6 +735,12 @@ export function formatTagKey(key: string): string {
   if (key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(key)) {
     return `tags[${key}]`;
   }
+
+  // Reserved keywords that conflict with discover search query
+  if (['project_id', 'project.name'].includes(key)) {
+    return `tags[${key}]`;
+  }
+
   return key;
 }
 

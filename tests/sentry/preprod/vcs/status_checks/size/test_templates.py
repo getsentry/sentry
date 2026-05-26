@@ -37,7 +37,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             PreprodArtifact.ArtifactState.UPLOADING,
             PreprodArtifact.ArtifactState.UPLOADED,
         ]:
-            with self.subTest(state=state):
+            with self.subTest(state=state.name):
                 artifact = self.create_preprod_artifact(
                     project=self.project,
                     state=state,

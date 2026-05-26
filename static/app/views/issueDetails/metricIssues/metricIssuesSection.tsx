@@ -17,7 +17,7 @@ import {
   useMetricTimePeriod,
 } from 'sentry/views/issueDetails/metricIssues/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface MetricIssuesSectionProps {
   group: Group;
@@ -78,10 +78,9 @@ export function MetricIssuesSection({
     );
 
     return (
-      <InterimSection
+      <FoldSection
+        sectionKey={SectionKey.CORRELATED_ISSUES}
         title={t('Correlated Issues')}
-        type={SectionKey.CORRELATED_ISSUES}
-        help={t('A list of issues that are correlated with this event')}
         actions={actions}
       >
         <RelatedIssues
@@ -99,16 +98,15 @@ export function MetricIssuesSection({
           }
           skipHeader
         />
-      </InterimSection>
+      </FoldSection>
     );
   }
 
   if ([Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset)) {
     return (
-      <InterimSection
+      <FoldSection
+        sectionKey={SectionKey.CORRELATED_TRANSACTIONS}
         title={t('Correlated Transactions')}
-        type={SectionKey.CORRELATED_TRANSACTIONS}
-        help={t('A list of transactions that are correlated with this event')}
       >
         <RelatedTransactions
           organization={organization}
@@ -118,7 +116,7 @@ export function MetricIssuesSection({
           timePeriod={timePeriod}
           filter={extractEventTypeFilterFromRule(rule)}
         />
-      </InterimSection>
+      </FoldSection>
     );
   }
 

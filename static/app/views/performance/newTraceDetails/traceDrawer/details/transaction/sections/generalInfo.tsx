@@ -10,7 +10,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {SpanResponse} from 'sentry/views/insights/types';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {
   TraceDrawerComponents,
   type SectionCardKeyValueList,
@@ -97,17 +97,17 @@ export function GeneralInfo(props: GeneralInfoProps) {
   }
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey="trace_transaction_general"
       title={t('General')}
       disableCollapsePersistence
-      type="trace_transaction_general"
     >
       <ContentWrapper>
         {items.map(item => (
           <Content key={item.key} item={item} />
         ))}
       </ContentWrapper>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

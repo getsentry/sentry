@@ -565,38 +565,39 @@ function GroupDetailsContentError({
   }
 }
 
-function getIssueDetailContextHint(
-  view: 'specific-event' | 'events-list' | 'issue-overview'
-): string {
-  const tools =
-    'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
-    'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-    'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.';
+type IssueView =
+  | 'specific-event'
+  | 'events-list'
+  | 'issue-overview'
+  | 'replays'
+  | 'attachments'
+  | 'distributions'
+  | 'distributions-tag-detail';
+
+const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
+  'specific-event':
+    'Sentry issue detail page. The user is viewing a specific event — You can get event details with the eventId below to see what they see.',
+  'events-list':
+    'Sentry issue events list. The user is browsing all events for this issue. You can search live telemetry to query events matching this issue.',
+  replays:
+    'Sentry issue replays tab. The user is viewing session replays where this issue occurred. You can search replays to find sessions that encountered this error, or get replay details for a specific session.',
+  attachments:
+    'Sentry issue attachments tab. The user is viewing files attached to events for this issue (screenshots, crash reports, minidumps). You can get event attachments to inspect specific files.',
+  distributions:
+    'Sentry issue distributions (tags) tab. The user is viewing how this issue is distributed across tag values. You can get issue tag values for breakdown by browser, environment, URL, release, OS, device, or any other tag.',
+  'distributions-tag-detail':
+    'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
+  'issue-overview':
+    'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+};
+
+function getIssueDetailContextHint(view: IssueView): string {
+  const preamble = ISSUE_VIEW_PREAMBLES[view];
   const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
-
-  if (view === 'specific-event') {
-    return (
-      'Sentry issue detail page. The user is viewing a specific event — ' +
-      'call get_event_details(event_id) with the eventId below to see what they see. ' +
-      shortIdNote +
-      tools
-    );
-  }
-
-  if (view === 'events-list') {
-    return (
-      'Sentry issue events list. The user is browsing all events for this issue. ' +
-      'Use telemetry_live_search to query events matching this issue. ' +
-      shortIdNote +
-      tools
-    );
-  }
-
-  return (
-    'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
-    shortIdNote +
-    tools
-  );
+  const tools =
+    'You can get issue details for aggregate stats and stack trace, get event details for a specific error event, ' +
+    'and search live telemetry for related spans/errors/logs/metrics.';
+  return `${preamble} ${shortIdNote}${tools}`;
 }
 
 function GroupDetailsContentInner({
@@ -670,13 +671,22 @@ function GroupDetailsContentInner({
 
   useEngagedViewTracking({group, project});
 
-  const {eventId: eventIdParam} = useParams<{eventId?: string}>();
+  const {eventId: eventIdParam, tagKey} = useParams<{
+    eventId?: string;
+    tagKey?: string;
+  }>();
 
-  let issueView: 'specific-event' | 'events-list' | 'issue-overview' = 'issue-overview';
+  let issueView: IssueView = 'issue-overview';
   if (eventIdParam && !RESERVED_EVENT_IDS.has(eventIdParam)) {
     issueView = 'specific-event';
   } else if (currentTab === Tab.EVENTS) {
     issueView = 'events-list';
+  } else if (currentTab === Tab.REPLAYS) {
+    issueView = 'replays';
+  } else if (currentTab === Tab.ATTACHMENTS) {
+    issueView = 'attachments';
+  } else if (currentTab === Tab.DISTRIBUTIONS) {
+    issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
   }
 
   useLLMContext({
@@ -693,6 +703,8 @@ function GroupDetailsContentInner({
     lastSeen: group.lastSeen,
     projectSlug: project.slug,
     eventId: event?.id,
+    currentTab,
+    ...(tagKey ? {tagKey} : {}),
   });
 
   const isDisplayingEventDetails = [
