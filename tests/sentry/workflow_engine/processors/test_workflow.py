@@ -113,6 +113,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.data.triggered_workflows == {self.error_workflow}
+        assert result.data.workflows is not None
         assert cross_org_workflow not in result.data.workflows
 
     def test_error_event(self) -> None:
