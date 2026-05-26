@@ -328,6 +328,10 @@ class RPCBase:
                     internal_name=context_def.sort_column,
                     search_type="string",
                 )
+                if resolver.should_hide_api_column(stripped_orderby, sort_col):
+                    raise InvalidSearchQuery(
+                        "orderby must also be in the selected columns or groupby"
+                    )
                 orderby_resolved = sort_col
                 all_columns.append(sort_col)
                 sort_column_aliases.add(sort_alias)

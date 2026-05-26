@@ -761,6 +761,8 @@ class SearchResolver:
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{resolved_column.public_alias} is not valid search term")
 
+        self._raise_if_hidden_api_attribute(context.to_column_name, resolved_column)
+
         return resolved_column
 
     def map_search_term_context_to_original_column(
@@ -1061,11 +1063,12 @@ class SearchResolver:
         from sentry.search.eap.utils import can_expose_attribute_to_api
 
         item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
-        visibility_attribute = (
-            column
-            if column in self.definitions.contexts or column in self.definitions.columns
-            else resolved_attribute.internal_name
-        )
+        if column in self.definitions.contexts and resolved_attribute.internal_name != column:
+            visibility_attribute = resolved_attribute.internal_name
+        elif column in self.definitions.contexts or column in self.definitions.columns:
+            visibility_attribute = column
+        else:
+            visibility_attribute = resolved_attribute.internal_name
         return not can_expose_attribute_to_api(
             visibility_attribute,
             item_type,

@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
+from unittest import mock
 
 import pytest
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
@@ -162,6 +164,38 @@ def test_table_orderby_rejects_hidden_api_attribute() -> None:
         RPCBase.get_table_rpc_request(table_query)
 
 
+def test_table_orderby_rejects_hidden_remapped_virtual_context_sort_attribute() -> None:
+    organization = mock.Mock(id=1)
+    project = mock.Mock(id=1, slug="project-slug", organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    config = SearchResolverConfig(api_attribute_visibility_item_type=SupportedTraceItemType.SPANS)
+    resolver = Spans.get_resolver(snuba_params, config)
+
+    table_query = TableQuery(
+        "",
+        ["device.class", "count()"],
+        ["device.class"],
+        0,
+        1,
+        "TestReferrer",
+        None,
+        resolver,
+    )
+
+    def can_expose(attribute: str, *_args: Any, **_kwargs: Any) -> bool:
+        return attribute != "sentry.device.class"
+
+    with (
+        mock.patch("sentry.search.eap.utils.can_expose_attribute_to_api", can_expose),
+        pytest.raises(
+            InvalidSearchQuery, match="orderby must also be in the selected columns or groupby"
+        ),
+    ):
+        RPCBase.get_table_rpc_request(table_query)
+
+
 @django_db_all
 def test_timeseries_groupby_rejects_hidden_api_attribute() -> None:
     owner = Factories.create_user()
@@ -187,6 +221,39 @@ def test_timeseries_groupby_rejects_hidden_api_attribute() -> None:
             query_string="",
             y_axes=["count()"],
             groupby=[hidden_attribute],
+            referrer="TestReferrer",
+            sampling_mode=None,
+        )
+
+
+def test_timeseries_groupby_rejects_hidden_remapped_virtual_context_attribute() -> None:
+    organization = mock.Mock(id=1)
+    project = mock.Mock(id=1, slug="project-slug", organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        granularity_secs=60,
+        organization=organization,
+        projects=[project],
+    )
+    config = SearchResolverConfig(api_attribute_visibility_item_type=SupportedTraceItemType.SPANS)
+    resolver = Spans.get_resolver(snuba_params, config)
+
+    def can_expose(attribute: str, *_args: Any, **_kwargs: Any) -> bool:
+        return attribute != "sentry.category"
+
+    with (
+        mock.patch("sentry.search.eap.utils.can_expose_attribute_to_api", can_expose),
+        pytest.raises(InvalidSearchQuery, match="not allowed"),
+    ):
+        RPCBase.get_timeseries_query(
+            search_resolver=resolver,
+            params=snuba_params,
+            query_string="",
+            y_axes=["count()"],
+            groupby=["span.module"],
             referrer="TestReferrer",
             sampling_mode=None,
         )
