@@ -28,6 +28,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
     borderRadius: theme.radius.md,
     minHeight,
     overflow: 'auto',
+    overflowWrap: 'break-word' as const,
   };
 
   return {

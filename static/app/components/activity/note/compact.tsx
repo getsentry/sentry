@@ -237,6 +237,7 @@ const NoteInputForm = styled('form')<{error?: string}>`
   gap: ${p => p.theme.space.sm};
   align-items: flex-end;
   width: 100%;
+  min-width: 0;
   transition: padding 0.2s ease-in-out;
 
   ${getNoteInputErrorStyles};
