@@ -4,7 +4,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
