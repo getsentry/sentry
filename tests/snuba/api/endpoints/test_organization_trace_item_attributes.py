@@ -1112,6 +1112,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tag.op" in keys
         assert "tag.op2" in keys
 
+    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_empty_attribute_type_for_all_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1135,6 +1136,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert ("tag.string", "string") in keys
         assert ("tags[tag.number,number]", "number") in keys
 
+    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_multiple_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
