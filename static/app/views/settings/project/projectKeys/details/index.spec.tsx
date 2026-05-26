@@ -103,7 +103,7 @@ describe('ProjectKeyDetails', () => {
 
   it('has stats box', async () => {
     renderProjectKeyDetails();
-    expect(await screen.findByText('Key Details')).toBeInTheDocument();
+    expect(await screen.findByTestId('key-details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });
 

@@ -203,7 +203,8 @@ function DashboardInner({
       dashboard.widgets,
       organization,
       dashboard.title,
-      dashboard.filters?.[DashboardFilterKeys.GLOBAL_FILTER]?.length ?? 0
+      dashboard.filters?.[DashboardFilterKeys.GLOBAL_FILTER]?.length ?? 0,
+      dashboard.prebuiltId !== undefined && dashboard.prebuiltId !== null
     );
 
     return () => {

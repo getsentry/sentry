@@ -20,7 +20,7 @@ import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -36,7 +36,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
@@ -90,7 +89,6 @@ export const SESSION_DURATION_ALERT = (
 type Props = {
   api: Client;
   isEditingDashboard: boolean;
-  organization: Organization;
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -143,6 +141,7 @@ type Data = {
 };
 
 function WidgetCard(props: Props) {
+  const organization = useOrganization();
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
@@ -191,7 +190,6 @@ function WidgetCard(props: Props) {
 
   const {
     api,
-    organization,
     selection,
     widget,
     isMobile,
@@ -490,10 +488,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default registerLLMContext(
-  'widget',
-  withApi(withOrganization(withPageFilters(WidgetCard)))
-);
+export default registerLLMContext('widget', withApi(withPageFilters(WidgetCard)));
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();

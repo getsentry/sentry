@@ -20,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
   encodeMetricQueryParams,
@@ -142,7 +143,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             metric_context: {
               metric_name: traceMetric.name,
               metric_type: traceMetric.type,
-              metric_unit: traceMetric.unit ?? 'none',
+              metric_unit: traceMetric.unit ?? NONE_UNIT,
             },
           },
         },
@@ -398,7 +399,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           metric_context: {
             metric_name: traceMetric.name,
             metric_type: traceMetric.type,
-            metric_unit: traceMetric.unit ?? 'none',
+            metric_unit: traceMetric.unit ?? NONE_UNIT,
           },
         }}
         applySeerSearchQuery={applySeerSearchQuery}

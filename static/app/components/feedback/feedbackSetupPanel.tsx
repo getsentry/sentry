@@ -25,7 +25,7 @@ export function FeedbackSetupPanel() {
     <NoMarginPanel>
       <Container>
         <IlloBox>
-          <img src={feedbackOnboardingImg} />
+          <img src={feedbackOnboardingImg} alt="" />
         </IlloBox>
         <StyledBox>
           <Fragment>

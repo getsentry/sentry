@@ -194,6 +194,30 @@ describe('Dashboards util', () => {
       const urlParams = new URLSearchParams(queryString);
       expect(urlParams.get('query')).toBe('(is:unresolved) release:["1.0.0","2.0.0"] ');
     });
+    it('applies global filters scoped to the issue dataset', () => {
+      const url = getWidgetIssueUrl(
+        widget,
+        {
+          globalFilter: [
+            {
+              dataset: WidgetType.ISSUE,
+              tag: {key: 'transaction', name: 'transaction'},
+              value: 'transaction:/api/foo',
+            },
+            {
+              dataset: WidgetType.DISCOVER,
+              tag: {key: 'transaction', name: 'transaction'},
+              value: 'transaction:/api/bar',
+            },
+          ],
+        },
+        selection,
+        OrganizationFixture()
+      );
+      const queryString = url.split('?')[1];
+      const urlParams = new URLSearchParams(queryString);
+      expect(urlParams.get('query')).toBe('(is:unresolved) transaction:/api/foo');
+    });
   });
 
   describe('flattenErrors', () => {

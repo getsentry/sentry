@@ -573,25 +573,16 @@ class GroupEventDetailsHelpfulEndpointTest(
             events.append(event)
         return event.group, events
 
-    def test_platform_tag_collision_without_option(self) -> None:
-        group, _events = self._store_platform_tag_collision_events()
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
-        response = self.client.get(url, {"query": "platform:SJ1"}, format="json")
-        assert response.status_code == 404
-
-    def test_platform_tag_collision_with_option(self) -> None:
+    def test_platform_tag_collision_resolved_correctly(self) -> None:
         group, events = self._store_platform_tag_collision_events()
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
-        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
-            response = self.client.get(url, {"query": "platform:SJ1"}, format="json")
+        response = self.client.get(url, {"query": "platform:SJ1"}, format="json")
         assert response.status_code == 200, response.content
         assert response.data["id"] == events[-1].event_id
 
-    def test_explicit_tag_query_works_regardless_of_option(self) -> None:
+    def test_explicit_tag_query_works(self) -> None:
         group, events = self._store_platform_tag_collision_events()
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
-        for option_value in (False, True):
-            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
-                response = self.client.get(url, {"query": "tags[platform]:SJ1"}, format="json")
-            assert response.status_code == 200, response.content
-            assert response.data["id"] == events[-1].event_id
+        response = self.client.get(url, {"query": "tags[platform]:SJ1"}, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == events[-1].event_id

@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -17,12 +18,12 @@ function initialize(query: Record<string, string>, additionalFeatures: string[] 
   });
   const initialData = initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {...query},
-      },
-    },
     projects: [],
+  });
+  const router = RouterFixture({
+    location: {
+      query: {...query},
+    },
   });
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -32,7 +33,7 @@ function initialize(query: Record<string, string>, additionalFeatures: string[] 
       fields: ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'],
       projects: [],
     },
-    initialData.router.location
+    router.location
   );
 
   const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
@@ -42,8 +43,9 @@ function initialize(query: Record<string, string>, additionalFeatures: string[] 
     ...initialData,
     spanOperationBreakdownFilter,
     transactionName,
-    location: initialData.router.location,
+    location: router.location,
     eventView,
+    router,
   };
 }
 

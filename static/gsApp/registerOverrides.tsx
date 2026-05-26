@@ -7,7 +7,6 @@ import type {Overrides} from 'sentry/types/overrides';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
-import {AiSetupConfiguration} from 'getsentry/components/ai/aiSetupConfiguration';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
@@ -163,7 +162,9 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   /**
    * Augment the global help search modal with a contat support button
    */
-  'help-modal:footer': props => <HelpSearchFooter key="help-search-footer" {...props} />,
+  'help-modal:footer': ({closeModal}) => (
+    <HelpSearchFooter key="help-search-footer" closeModal={closeModal} />
+  ),
 
   /**
    * Registers usage & billing org settings as globally-available CMDK actions.
@@ -234,7 +235,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:insights-date-range-query-limit-footer': () =>
     InsightsDateRangeQueryLimitFooter,
   'component:ai-configure-seer-quota-sidebar': () => AiConfigureSeerQuotaSidebar,
-  'component:ai-setup-configuration': () => AiSetupConfiguration,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
   'component:continuous-profiling-billing-requirement-banner': () =>

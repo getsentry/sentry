@@ -5,7 +5,6 @@ import trimStart from 'lodash/trimStart';
 
 import {Redirect} from 'sentry/components/redirect';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {RouteComponent} from 'sentry/types/legacyReactRouter';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -33,7 +32,7 @@ import {useOrganization} from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-export function withDomainRedirect(WrappedComponent: RouteComponent) {
+export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
   // eslint-disable-next-line @typescript-eslint/no-restricted-types
   return function WithDomainRedirectWrapper(props: object) {
     const {customerDomain, links, features} = ConfigStore.getState();

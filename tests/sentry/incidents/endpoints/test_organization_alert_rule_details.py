@@ -28,6 +28,7 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     DetailedWorkflowEngineDetectorSerializer,
+    WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import INVALID_TIME_WINDOW
@@ -64,7 +65,6 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.tasks import update_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -970,7 +970,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         alert_rule.name = "what"
         alert_rule.date_modified = resp.data["dateModified"]
-        assert resp.data == serialize(alert_rule)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert resp.data["name"] == "what"
         assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
 
@@ -1057,29 +1058,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule.refresh_from_db()
         assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
-    @with_feature("organizations:incidents")
-    @freeze_time("2024-12-11 03:21:34")
-    def test_workflow_engine_serializer(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-
-        self.login_as(self.user)
-        alert_rule = self.alert_rule
-        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["name"] = "what"
-
-        with self.feature("organizations:workflow-engine-metric-alert-endpoints-put"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
-
-        rule_resp = self.get_success_response(
-            self.organization.slug, alert_rule.id, **serialized_alert_rule
-        )
-        self.assert_alert_detail_results_match(rule_resp.data, resp.data)
-
     def test_not_updated_fields(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -1099,7 +1077,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         alert_rule.refresh_from_db()
         # Alert rule should be exactly the same
-        assert resp.data == serialize(self.alert_rule)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=self.alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
         updated_alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
@@ -1193,8 +1172,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
+        alert_rule.refresh_from_db()
         assert resp.data["name"] == "AUniqueName"
-        assert resp.data["resolveThreshold"] is None
+        assert alert_rule.resolve_threshold is None
 
     def test_update_resolve_alert_threshold(self) -> None:
         # This is a test to make sure we can remove a resolveThreshold after it has been set.
@@ -1251,10 +1231,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["triggers"].pop(1)
 
         with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
+            self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
-        assert len(resp.data["triggers"]) == 1
+        assert AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id).count() == 1
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
 
@@ -1562,13 +1542,17 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
         serialized_action = serialized_alert_rule["triggers"][1]["actions"].pop(1)
         action = AlertRuleTriggerAction.objects.get(id=serialized_action["id"])
+        warning_trigger_id = serialized_alert_rule["triggers"][1]["id"]
 
         with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
+            self.get_success_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
-        assert len(resp.data["triggers"][1]["actions"]) == 1
+        assert (
+            AlertRuleTriggerAction.objects.filter(alert_rule_trigger_id=warning_trigger_id).count()
+            == 1
+        )
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
         assert mock_dual_delete.call_args_list[0][0][0] == action
@@ -1654,7 +1638,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
 
         alert_rule.refresh_from_db()
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert resp.data["owner"] is None
 
     def test_team_permission(self) -> None:
@@ -1683,7 +1668,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
 
         alert_rule.refresh_from_db()
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_change_name_of_existing_alert(self) -> None:
         self.create_member(
@@ -1702,7 +1688,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.alert_rule.refresh_from_db()
         self.alert_rule.name = "what"
         self.alert_rule.snuba_query.refresh_from_db()
-        assert resp.data == serialize(self.alert_rule)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=self.alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert resp.data["name"] == "what"
 
         # We validate that there's only been one change to the alert
@@ -1875,7 +1862,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert "id" in resp.data
         alert_rule.refresh_from_db()
         assert alert_rule.snuba_query.dataset == "transactions"
-        assert resp.data == serialize(alert_rule, self.user)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert resp.data["aggregate"] == "count()"
         assert resp.data["dataset"] == "transactions"
         assert (
@@ -2463,7 +2451,8 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
 
         alert_rule.refresh_from_db()
         alert_rule.name = "ValidSentryAppTestRule"
-        assert resp.data == serialize(alert_rule)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
         assert resp.data["triggers"][0]["actions"][0]["sentryAppId"] == sentry_app.id
 
     def test_no_config_sentry_app(self) -> None:

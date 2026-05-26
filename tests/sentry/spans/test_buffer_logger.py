@@ -6,12 +6,14 @@ from unittest.mock import call
 from sentry.spans.buffer_logger import (
     BufferLogger,
     DeadlineUpdateLog,
+    FlusherLogEntry,
+    FlusherLogger,
     FlushSegmentLog,
-    ProcessSpansObservability,
+    InsertSpansMetrics,
     SubsegmentDebugLog,
     emit_observability_metrics,
 )
-from sentry.spans.buffer_types import EvalshaResult
+from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -21,7 +23,14 @@ def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
 
 
 def test_subsegment_debug_log_emits_debug_log() -> None:
-    span = mock.Mock()
+    span = Span(
+        trace_id="a" * 32,
+        span_id="c" * 16,
+        parent_span_id="b" * 16,
+        segment_id=None,
+        project_id=1,
+        payload=b"{}",
+    )
     debug_trace_logger = mock.Mock()
 
     SubsegmentDebugLog(
@@ -35,13 +44,13 @@ def test_subsegment_debug_log_emits_debug_log() -> None:
     )
 
 
-def test_process_spans_observability_emits_evalsha_data() -> None:
-    observability = ProcessSpansObservability()
+def test_insert_spans_metrics_emits_evalsha_data() -> None:
+    insert_spans_metrics = InsertSpansMetrics()
     buffer_logger = mock.Mock()
     latency_metrics = [(b"step", 20.0)]
     gauge_metrics = [(b"gauge", 2.0)]
 
-    observability.record_evalsha_result(
+    insert_spans_metrics.record_evalsha_result(
         "1:" + "a" * 32,
         EvalshaResult(
             segment_key=_segment_id(1, "a" * 32, "a" * 16),
@@ -51,7 +60,7 @@ def test_process_spans_observability_emits_evalsha_data() -> None:
             gauge_metrics=[(b"gauge", 1.0)],
         ),
     )
-    observability.record_evalsha_result(
+    insert_spans_metrics.record_evalsha_result(
         "1:" + "b" * 32,
         EvalshaResult(
             segment_key=_segment_id(1, "b" * 32, "b" * 16),
@@ -63,8 +72,8 @@ def test_process_spans_observability_emits_evalsha_data() -> None:
     )
 
     with mock.patch("sentry.spans.buffer_logger.emit_observability_metrics") as emit_metrics:
-        buffer_logger.log(observability.evalsha_latency_entries)
-        observability.emit_metrics()
+        buffer_logger.log(insert_spans_metrics.evalsha_latency_entries)
+        insert_spans_metrics.emit_metrics()
 
     buffer_logger.log.assert_called_once_with([("1:" + "a" * 32, 5), ("1:" + "b" * 32, 20)])
     emit_metrics.assert_called_once_with(
@@ -72,6 +81,44 @@ def test_process_spans_observability_emits_evalsha_data() -> None:
         [[(b"gauge", 1.0)], gauge_metrics],
         (20, latency_metrics, gauge_metrics),
     )
+
+
+def test_insert_spans_metrics_from_inserted_subsegments() -> None:
+    trace_id = "a" * 32
+    parent_span_id = "b" * 16
+    project_and_trace = f"1:{trace_id}"
+    subsegment = Subsegment(
+        project_and_trace=project_and_trace,
+        parent_span_id=parent_span_id,
+        salt="salted",
+        spans=[
+            Span(
+                trace_id=trace_id,
+                span_id="c" * 16,
+                parent_span_id=parent_span_id,
+                segment_id=None,
+                project_id=1,
+                payload=b"{}",
+            )
+        ],
+    )
+
+    insert_spans_metrics = InsertSpansMetrics.from_inserted_subsegments(
+        [
+            InsertedSubsegment(
+                subsegment,
+                EvalshaResult(
+                    segment_key=_segment_id(1, trace_id, parent_span_id),
+                    has_root_span=True,
+                    latency_ms=12,
+                    latency_metrics=[(b"step", 12.0)],
+                    gauge_metrics=[(b"gauge", 1.0)],
+                ),
+            )
+        ]
+    )
+
+    assert insert_spans_metrics.evalsha_latency_entries == [(project_and_trace, 12)]
 
 
 def test_deadline_update_log_reads_old_deadline_when_trace_is_enabled() -> None:
@@ -241,6 +288,134 @@ def test_no_logging_when_no_data(mock_logger):
     # the logging path without going through log() method
     # So we just verify initial state
     assert mock_logger.info.call_count == 0
+
+
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_flusher_logger_accumulates_segments_and_spans(mock_time):
+    """
+    Test that FlusherLogger accumulates segment count, span count, and bytes
+    across multiple calls for the same trace, and tracks cumulative flush latency.
+    """
+    with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
+
+        flusher_logger = FlusherLogger()
+
+        flusher_logger.log(
+            [
+                FlusherLogEntry("project1:trace1", 10, 500),
+                FlusherLogEntry("project1:trace1", 20, 800),
+                FlusherLogEntry("project2:trace2", 5, 200),
+            ],
+            load_ids_latency_ms=5,
+            load_data_latency_ms=10,
+            decompress_latency_ms=3,
+        )
+
+        project1 = flusher_logger._metrics_per_trace["project1:trace1"]
+        project2 = flusher_logger._metrics_per_trace["project2:trace2"]
+        assert project1.segment_count == 2
+        assert project1.span_count == 30
+        assert project1.bytes_flushed == 1300
+        assert project2.segment_count == 1
+        assert project2.span_count == 5
+        assert project2.bytes_flushed == 200
+        assert flusher_logger._cumulative_load_ids_latency_ms == 5
+        assert flusher_logger._cumulative_load_data_latency_ms == 10
+        assert flusher_logger._cumulative_decompress_latency_ms == 3
+
+        flusher_logger.log(
+            [FlusherLogEntry("project1:trace1", 15, 600)],
+            load_ids_latency_ms=3,
+            load_data_latency_ms=7,
+            decompress_latency_ms=2,
+        )
+
+        project1 = flusher_logger._metrics_per_trace["project1:trace1"]
+        assert project1.segment_count == 3
+        assert project1.span_count == 45
+        assert project1.bytes_flushed == 1900
+        assert flusher_logger._cumulative_load_ids_latency_ms == 8
+        assert flusher_logger._cumulative_load_data_latency_ms == 17
+        assert flusher_logger._cumulative_decompress_latency_ms == 5
+
+
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time):
+    """
+    Test that FlusherLogger prunes to top 50 entries by cumulative bytes
+    when exceeding MAX_ENTRIES.
+    """
+    with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
+
+        flusher_logger = FlusherLogger()
+
+        entries = [FlusherLogEntry(f"project{i}:trace{i}", 10, 1000 - i) for i in range(500)]
+        flusher_logger.log(
+            entries, load_ids_latency_ms=20, load_data_latency_ms=30, decompress_latency_ms=10
+        )
+
+        assert len(flusher_logger._metrics_per_trace) == 50
+        assert "project0:trace0" in flusher_logger._metrics_per_trace
+        assert "project49:trace49" in flusher_logger._metrics_per_trace
+        assert "project50:trace50" not in flusher_logger._metrics_per_trace
+        assert "project499:trace499" not in flusher_logger._metrics_per_trace
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_flusher_logger_logs_and_resets_after_interval(mock_time, mock_logger):
+    """
+    Test that FlusherLogger logs entries after the 60s interval and resets state,
+    including cumulative flush latency as a top-level field.
+    """
+    with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
+        mock_time.time.side_effect = [
+            1000.0,
+            1000.0,
+            1061.0,
+        ]
+
+        flusher_logger = FlusherLogger()
+
+        flusher_logger.log(
+            [
+                FlusherLogEntry("project1:trace1", 10, 500),
+                FlusherLogEntry("project2:trace2", 5, 200),
+            ],
+            load_ids_latency_ms=20,
+            load_data_latency_ms=30,
+            decompress_latency_ms=8,
+        )
+
+        assert mock_logger.info.call_count == 0
+
+        flusher_logger.log(
+            [FlusherLogEntry("project1:trace1", 8, 400)],
+            load_ids_latency_ms=10,
+            load_data_latency_ms=20,
+            decompress_latency_ms=5,
+        )
+
+        assert mock_logger.info.call_count == 1
+        call_args = mock_logger.info.call_args
+        assert call_args[0][0] == "spans.buffer.top_flush_operations_by_bytes"
+
+        extra = call_args[1]["extra"]
+        entries_list = extra["top_flush_operations"]
+        assert len(entries_list) == 2
+        assert entries_list[0] == "project1:trace1:2:18:900"
+        assert entries_list[1] == "project2:trace2:1:5:200"
+        assert extra["cumulative_load_ids_latency_ms"] == 30
+        assert extra["cumulative_load_data_latency_ms"] == 50
+        assert extra["cumulative_decompress_latency_ms"] == 13
+
+        assert len(flusher_logger._metrics_per_trace) == 0
+        assert flusher_logger._cumulative_load_ids_latency_ms == 0
+        assert flusher_logger._cumulative_load_data_latency_ms == 0
+        assert flusher_logger._cumulative_decompress_latency_ms == 0
+        assert flusher_logger._last_log_time is None
 
 
 class TestEmitObservabilityMetrics:

@@ -24,7 +24,7 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const);
+const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
@@ -77,6 +77,10 @@ function TopBarContent() {
         </Slot.Outlet>
 
         <Flex align="center" gap="sm">
+          <Slot.Outlet name="search">
+            {props => <Flex {...props} align="center" gap="sm" />}
+          </Slot.Outlet>
+
           <Slot.Outlet name="actions">
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
