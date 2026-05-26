@@ -99,6 +99,27 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-gitlab-support"])
+    def test_denied_when_gitlab_la_org_has_no_repo_settings(self) -> None:
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
+
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-gitlab-support"])
+    def test_allowed_when_gitlab_la_org_has_repo_settings_enabled(self) -> None:
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is True
+        assert result.denial_reason is None
+
     # -------------------------------------------------------------------------
     # Seer-added (legacy usage-based) org tests - not eligible for code review
     # -------------------------------------------------------------------------
@@ -326,6 +347,49 @@ class TestCodeReviewPreflightService(TestCase):
 
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
+
+    @with_feature(["organizations:gen-ai-features", "organizations:seer-gitlab-support"])
+    def test_gitlab_la_org_bypasses_contributor_lookup(self) -> None:
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+
+        # No OrganizationContributors row exists — must still be allowed.
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is True
+        assert result.denial_reason is None
+
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @with_feature(
+        [
+            "organizations:gen-ai-features",
+            "organizations:seer-gitlab-support",
+            "organizations:seat-based-seer-enabled",
+        ]
+    )
+    def test_gitlab_la_org_still_checks_quota_when_seat_based_also_enabled(
+        self, mock_check_quota: MagicMock
+    ) -> None:
+        mock_check_quota.return_value = False
+
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
     @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
