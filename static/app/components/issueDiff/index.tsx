@@ -113,63 +113,71 @@ export function IssueDiff({
   const resolvedTargetEventId =
     targetEventId === 'latest' ? cachedTargetLatest?.json?.eventID : targetEventId;
 
-  const {combinedBase, combinedTarget, isLoading, hasError, baseEventData, targetEventData} =
-    useQueries({
-      queries: [
-        // Query 0: resolve "latest" base event ID (skipped if a concrete ID was passed)
-        baseLatestQueryOptions,
-        // Query 1: resolve "latest" target event ID (skipped if a concrete ID was passed)
-        targetLatestQueryOptions,
-        // Query 2: fetch actual base event data (skipped until ID is available)
-        apiOptions.as<Event>()(
-          '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-          {
-            path: resolvedBaseEventId
-              ? {
-                  organizationIdOrSlug: organization.slug,
-                  issueId: baseIssueId,
-                  eventId: resolvedBaseEventId,
-                }
-              : skipToken,
-            staleTime: 60_000,
-          }
-        ),
-        // Query 3: fetch actual target event data (skipped until ID is available)
-        apiOptions.as<Event>()(
-          '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-          {
-            path: resolvedTargetEventId
-              ? {
-                  organizationIdOrSlug: organization.slug,
-                  issueId: targetIssueId,
-                  eventId: resolvedTargetEventId,
-                }
-              : skipToken,
-            staleTime: 60_000,
-          }
-        ),
-      ],
-      combine: ([baseLatest, targetLatest, baseEvent, targetEvent]) => ({
-        isLoading: baseEvent.isPending || targetEvent.isPending,
-        hasError:
-          baseLatest.isError ||
-          targetLatest.isError ||
-          baseEvent.isError ||
-          targetEvent.isError,
-        baseEventData: baseEvent.data,
-        targetEventData: targetEvent.data,
-        combinedBase: getCombinedStacktrace({
-          event: baseEvent.data,
-          hasSimilarityEmbeddingsFeature,
-          newestFirst,
-        }),
-        combinedTarget: getCombinedStacktrace({
-          event: targetEvent.data,
-          hasSimilarityEmbeddingsFeature,
-          newestFirst,
-        }),
+  const {
+    combinedBase,
+    combinedTarget,
+    isLoading,
+    hasError,
+    baseEventData,
+    targetEventData,
+  } = useQueries({
+    queries: [
+      // Query 0: resolve "latest" base event ID (skipped if a concrete ID was passed)
+      baseLatestQueryOptions,
+      // Query 1: resolve "latest" target event ID (skipped if a concrete ID was passed)
+      targetLatestQueryOptions,
+      // Query 2: fetch actual base event data (skipped until ID is available)
+      apiOptions.as<Event>()(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+        {
+          path: resolvedBaseEventId
+            ? {
+                organizationIdOrSlug: organization.slug,
+                issueId: baseIssueId,
+                eventId: resolvedBaseEventId,
+              }
+            : skipToken,
+          staleTime: 60_000,
+        }
+      ),
+      // Query 3: fetch actual target event data (skipped until ID is available)
+      apiOptions.as<Event>()(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+        {
+          path: resolvedTargetEventId
+            ? {
+                organizationIdOrSlug: organization.slug,
+                issueId: targetIssueId,
+                eventId: resolvedTargetEventId,
+              }
+            : skipToken,
+          staleTime: 60_000,
+        }
+      ),
+    ],
+    combine: ([baseLatest, targetLatest, baseEvent, targetEvent]) => ({
+      baseLatestEventId: baseLatest.data?.eventID,
+      targetLatestEventId: targetLatest.data?.eventID,
+      isLoading: baseEvent.isPending || targetEvent.isPending,
+      hasError:
+        baseLatest.isError ||
+        targetLatest.isError ||
+        baseEvent.isError ||
+        targetEvent.isError,
+      baseEventData: baseEvent.data,
+      targetEventData: targetEvent.data,
+      combinedBase: getCombinedStacktrace({
+        event: baseEvent.data,
+        hasSimilarityEmbeddingsFeature,
+        newestFirst,
       }),
-    });
+      combinedTarget: getCombinedStacktrace({
+        event: targetEvent.data,
+        hasSimilarityEmbeddingsFeature,
+        newestFirst,
+      }),
+    }),
+  });
 
   useEffect(() => {
     if (
