@@ -52,6 +52,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
     get_autofix_state,
+    has_project_connected_repos,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -132,12 +133,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     provider = serializers.CharField(
         required=False,
         help_text="Coding agent provider (e.g., 'github_copilot'). Alternative to integration_id for user-authenticated providers.",
-    )
-    intelligence_level = serializers.ChoiceField(
-        required=False,
-        choices=["low", "medium", "high"],
-        default="medium",
-        help_text="The intelligence level to use.",
     )
     user_context = serializers.CharField(
         required=False,
@@ -254,6 +249,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
     def _post_agent(self, request: Request, group: Group) -> Response:
         """Handle POST for the agent-based autofix."""
+        if not has_project_connected_repos(group.organization, group.project):
+            return Response(
+                {"detail": "SCM integration is not configured for this project."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -288,6 +289,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     integration_id=integration_id,
                     provider=provider,
                     user_id=request.user.id if request.user else None,
+                    auto_create_pr=True,
                 )
             except SeerPermissionError as e:
                 if _is_unknown_run_id_error(e):
@@ -320,7 +322,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
-                intelligence_level=data["intelligence_level"],
+                intelligence_level="medium",
                 user_context=data.get("user_context"),
                 insert_index=data.get("insert_index"),
             )

@@ -1,9 +1,8 @@
 import {memo, useCallback, useMemo} from 'react';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {t} from 'sentry/locale';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -23,6 +22,7 @@ import {
   useQueryParamsMode,
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
+import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface SpansTabCrossEventMetricsSearchBarProps {
@@ -96,9 +96,7 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
                 if (
                   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
                 ) {
-                  return t(
-                    "This key won't affect the results because samples mode does not support aggregate functions"
-                  );
+                  return <SamplesModeAggregateFilterWarning />;
                 }
                 return;
               }
@@ -145,19 +143,23 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
     });
 
     return (
-      <Grid columns="minmax(180px, 240px) 1fr" gap="md">
-        <MetricSelector traceMetric={metric} onChange={onMetricChange} />
-        <SearchQueryBuilderProvider
-          // Use the metric name as a key to force remount when it changes
-          // This prevents race conditions when switching between different metrics
-          key={metric.name}
-          {...searchQueryBuilderProps}
-        >
-          <TraceItemSearchQueryBuilder
-            itemType={TraceItemDataset.TRACEMETRICS}
-            {...eapSpanSearchQueryBuilderProps}
-          />
-        </SearchQueryBuilderProvider>
+      <Grid columns="minmax(0, 240px) minmax(0, 1fr)" gap="md" minWidth="0">
+        <Container minWidth="0">
+          <MetricSelector traceMetric={metric} onChange={onMetricChange} />
+        </Container>
+        <Container minWidth="0">
+          <SearchQueryBuilderProvider
+            // Use the metric name as a key to force remount when it changes
+            // This prevents race conditions when switching between different metrics
+            key={metric.name}
+            {...searchQueryBuilderProps}
+          >
+            <TraceItemSearchQueryBuilder
+              itemType={TraceItemDataset.TRACEMETRICS}
+              {...eapSpanSearchQueryBuilderProps}
+            />
+          </SearchQueryBuilderProvider>
+        </Container>
       </Grid>
     );
   }

@@ -20,7 +20,6 @@ pytestmark = [requires_snuba]
 ONDEMAND_FEATURES = [
     "organizations:on-demand-metrics-extraction",
     "organizations:on-demand-metrics-extraction-widgets",
-    "organizations:on-demand-metrics-extraction-experimental",
     "organizations:on-demand-metrics-prefill",
 ]
 
@@ -176,6 +175,30 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
+
+    def test_unsupported_display_type_for_widget_type(self) -> None:
+        data = {
+            "title": "Table on preprod-app-size",
+            "displayType": "table",
+            "widgetType": "preprod-app-size",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "displayType" in response.data, response.data
+        assert "preprod-app-size" in str(response.data["displayType"])
 
     def test_invalid_equation(self) -> None:
         data = {
@@ -1443,7 +1466,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "Test Metrics Query",
             "widgetType": "tracemetrics",
-            "displayType": "table",
+            "displayType": "line",
             "queries": [
                 {
                     "name": "",
@@ -1461,6 +1484,30 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_widget_type_tracemetrics_rejects_table(self) -> None:
+        data = {
+            "title": "Test Metrics Query",
+            "widgetType": "tracemetrics",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "displayType" in response.data, response.data
 
     def test_text_widget_without_feature_flag(self) -> None:
         data = {

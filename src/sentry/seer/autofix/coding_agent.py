@@ -330,6 +330,7 @@ def _launch_agents_for_repos(
             repository=repo,
             branch_name=sanitize_branch_name(autofix_state.request.issue["title"]),
             auto_create_pr=auto_create_pr,
+            issue_short_id=short_id,
         )
 
         try:

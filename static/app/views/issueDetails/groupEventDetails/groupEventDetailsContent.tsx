@@ -36,6 +36,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
@@ -69,6 +70,7 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
@@ -131,8 +133,12 @@ export function EventDetailsContent({
     return <SourceMapIssueDetails group={group} event={event} project={project} />;
   }
 
+  if (group.issueType === IssueType.LOW_VALUE_SPAN_CONFIGURATION) {
+    return <LowValueSpanIssueDetails group={group} event={event} project={project} />;
+  }
+
   return (
-    <Fragment>
+    <DebugMetaSearchProvider key={event.id}>
       <ErrorBoundary mini>
         <HighlightsIconSummary event={event} group={group} />
       </ErrorBoundary>
@@ -411,7 +417,7 @@ export function EventDetailsContent({
           projectSlug={project.slug}
         />
       )}
-    </Fragment>
+    </DebugMetaSearchProvider>
   );
 }
 

@@ -14,6 +14,7 @@ import {IconGroup, IconProject, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -36,6 +37,7 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
   const {
     selectedPlatform,
     selectedFeatures,
+    selectedRepository,
     createdProjectSlug,
     setCreatedProjectSlug,
     projectDetailsForm,
@@ -159,6 +161,19 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
       // the project via useRecentCreatedProject without corrupting
       // selectedPlatform.key (which the platform features step needs).
       setCreatedProjectSlug(project.slug);
+
+      if (selectedRepository?.id) {
+        try {
+          await fetchMutation({
+            url: `/projects/${organization.slug}/${project.slug}/repo/`,
+            method: 'POST',
+            data: {repositoryId: selectedRepository.id},
+          });
+        } catch (error) {
+          Sentry.captureException(error);
+        }
+      }
+
       setProjectDetailsForm({
         projectName: projectNameResolved,
         teamSlug: teamSlugResolved,

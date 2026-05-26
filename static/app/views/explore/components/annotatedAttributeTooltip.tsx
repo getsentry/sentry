@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -29,7 +29,7 @@ export function AnnotatedAttributeTooltip({
 
   // Check if there's meta information for this field
   if (!fieldKey || !extra.traceItemMeta) {
-    return <React.Fragment>{children}</React.Fragment>;
+    return <Fragment>{children}</Fragment>;
   }
 
   const metaTooltip = TraceItemMetaInfo.getTooltipText(
@@ -40,7 +40,7 @@ export function AnnotatedAttributeTooltip({
   );
 
   if (!metaTooltip) {
-    return <React.Fragment>{children}</React.Fragment>;
+    return <Fragment>{children}</Fragment>;
   }
 
   return (

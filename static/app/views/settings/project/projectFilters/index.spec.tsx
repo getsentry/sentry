@@ -1,11 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', () => {
@@ -14,10 +15,14 @@ describe('ProjectFilters', () => {
 
   const getFilterEndpoint = (filter: string) => `${PROJECT_URL}filters/${filter}/`;
 
-  const createFilterMock = (filter: string) =>
+  const createFilterMock = (
+    filter: string,
+    options: Parameters<typeof MockApiClient.addMockResponse>[0] = {}
+  ) =>
     MockApiClient.addMockResponse({
       url: getFilterEndpoint(filter),
       method: 'PUT',
+      ...options,
     });
 
   const initialRouterConfig = {
@@ -37,9 +42,15 @@ describe('ProjectFilters', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: PROJECT_URL,
+      body: DetailedProjectFixture({slug: project.slug}),
     });
 
     MockApiClient.addMockResponse({
@@ -57,7 +68,7 @@ describe('ProjectFilters', () => {
     renderComponent();
 
     const filter = 'browser-extensions';
-    const mock = createFilterMock(filter);
+    const mock = createFilterMock(filter, {asyncDelay: 100});
 
     const control = await screen.findByRole('checkbox', {
       name: 'Filter out errors known to be caused by browser extensions',
@@ -65,6 +76,7 @@ describe('ProjectFilters', () => {
 
     expect(control).toBeChecked();
     await userEvent.click(control);
+    expect(control).not.toBeChecked();
 
     expect(mock).toHaveBeenCalledWith(
       getFilterEndpoint(filter),
@@ -75,6 +87,12 @@ describe('ProjectFilters', () => {
         },
       })
     );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: `Saving ${filter}`})
+      ).not.toBeInTheDocument();
+    });
+    expect(control).not.toBeChecked();
   });
 
   it('can toggle filters: localhost, web crawlers', async () => {
@@ -105,6 +123,55 @@ describe('ProjectFilters', () => {
     }
   });
 
+  it('keeps project option filters toggled after autosave resets', async () => {
+    renderComponent();
+
+    const updatedProject = DetailedProjectFixture({
+      slug: project.slug,
+      options: {
+        'filters:chunk-load-error': true,
+      },
+    });
+
+    const mock = MockApiClient.addMockResponse({
+      url: PROJECT_URL,
+      method: 'PUT',
+      asyncDelay: 100,
+      body: updatedProject,
+    });
+
+    MockApiClient.addMockResponse({
+      url: PROJECT_URL,
+      body: updatedProject,
+    });
+
+    const control = await screen.findByRole('checkbox', {
+      name: 'Filter out ChunkLoadError(s)',
+    });
+    expect(control).not.toBeChecked();
+
+    await userEvent.click(control);
+    expect(control).toBeChecked();
+
+    expect(mock).toHaveBeenCalledWith(
+      PROJECT_URL,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          options: {
+            'filters:chunk-load-error': true,
+          },
+        },
+      })
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: 'Saving filters:chunk-load-error'})
+      ).not.toBeInTheDocument();
+    });
+    expect(control).toBeChecked();
+  });
+
   it('has correct legacy browsers selected', async () => {
     renderComponent();
 
@@ -129,26 +196,40 @@ describe('ProjectFilters', () => {
     renderComponent();
 
     const filter = 'legacy-browsers';
-    const mock = createFilterMock(filter);
+    const mock = createFilterMock(filter, {asyncDelay: 100});
+    const firefoxToggle = await screen.findByRole('checkbox', {
+      name: 'Firefox Version 110 and lower',
+    });
 
-    await userEvent.click(
-      await screen.findByRole('checkbox', {
-        name: 'Firefox Version 110 and lower',
-      })
-    );
+    await userEvent.click(firefoxToggle);
+    expect(firefoxToggle).toBeChecked();
+    expect(
+      await screen.findByRole('status', {name: 'Saving legacy-browsers'})
+    ).toBeInTheDocument();
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
-    // Have to do this because no jest matcher for JS Set
-    expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
+    expect(Array.isArray(mock.mock.calls[0][1].data.subfilters)).toBe(true);
+    expect(mock.mock.calls[0][1].data.subfilters.toSorted()).toEqual([
+      'firefox',
       'ie',
       'safari',
-      'firefox',
     ]);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: 'Saving legacy-browsers'})
+      ).not.toBeInTheDocument();
+    });
+    expect(firefoxToggle).toBeChecked();
 
     // Toggle filter off
-    await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Firefox Version 110 and lower'})
-    );
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['ie', 'safari']);
+    await userEvent.click(firefoxToggle);
+    expect(firefoxToggle).not.toBeChecked();
+    expect(mock.mock.calls[1][1].data.subfilters.toSorted()).toEqual(['ie', 'safari']);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('status', {name: 'Saving legacy-browsers'})
+      ).not.toBeInTheDocument();
+    });
+    expect(firefoxToggle).not.toBeChecked();
   });
 
   it('can toggle all/none for legacy browser', async () => {
@@ -159,19 +240,19 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
-    expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
-      'chrome',
-      'safari',
-      'firefox',
+    expect(mock.mock.calls[0][1].data.subfilters.toSorted()).toEqual([
       'android',
+      'chrome',
       'edge',
+      'firefox',
       'ie',
       'opera',
       'opera_mini',
+      'safari',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([]);
+    expect(mock.mock.calls[1][1].data.subfilters).toEqual([]);
   });
 
   it('can set ip address filter', async () => {
@@ -182,16 +263,38 @@ describe('ProjectFilters', () => {
       method: 'PUT',
     });
 
-    await userEvent.type(
-      await screen.findByRole('textbox', {name: 'IP Addresses'}),
-      'test\ntest2'
-    );
-    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+    const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    expect(
+      screen.queryByText('Changing this filter will apply to all new events.')
+    ).not.toBeInTheDocument();
+    await userEvent.type(textbox, 'test\ntest2');
+    expect(
+      screen.getByText('Changing this filter will apply to all new events.')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
       'test\ntest2'
     );
+  });
+
+  it('can cancel custom filter changes', async () => {
+    renderComponent();
+
+    const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    await userEvent.type(textbox, 'test\ntest2');
+    expect(textbox).toHaveValue('test\ntest2');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(textbox).toHaveValue('');
+  });
+
+  it('shows ip address filter without custom-inbound-filters flag', async () => {
+    renderComponent();
+
+    expect(await screen.findByRole('textbox', {name: 'IP Addresses'})).toBeEnabled();
   });
 
   it('filter by release/error message are not enabled', async () => {
@@ -221,25 +324,21 @@ describe('ProjectFilters', () => {
       method: 'PUT',
     });
 
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Releases'}),
-      'release\nrelease2'
-    );
-    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+    const releasesField = screen.getByRole('textbox', {name: 'Releases'});
+    await userEvent.type(releasesField, 'release\nrelease2');
 
+    const errorField = screen.getByRole('textbox', {name: 'Error Message'});
+    await userEvent.type(errorField, 'error\nerror2');
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(mock).toHaveBeenCalledTimes(1);
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
-    expect(mock.mock.calls[0][1].data.options['filters:releases']).toBe(
-      'release\nrelease2'
-    );
-
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Error Message'}),
-      'error\nerror2'
-    );
-    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
-
-    expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
-      'error\nerror2'
+    expect(mock.mock.calls[0][1].data.options).toEqual(
+      expect.objectContaining({
+        'filters:releases': 'release\nrelease2',
+        'filters:error_messages': 'error\nerror2',
+      })
     );
   });
 
@@ -254,6 +353,9 @@ describe('ProjectFilters', () => {
     checkboxes.forEach(checkbox => {
       expect(checkbox).toBeDisabled();
     });
+
+    expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
   });
 
   it('shows disclaimer if error message filter is populated', async () => {

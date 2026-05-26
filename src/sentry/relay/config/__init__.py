@@ -74,6 +74,7 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
+    "projects:relay-measurements-smart-conversion",
 ]
 
 EXTRACT_METRICS_VERSION = 1

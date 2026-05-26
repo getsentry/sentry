@@ -200,7 +200,7 @@ describe('getDetectorOpenInDestination', () => {
                 subscription: '1',
                 snubaQuery: {
                   id: '1',
-                  aggregate: 'sum(value,my_metric,counter,-)',
+                  aggregate: 'sum(value,my_metric,counter,none)',
                   dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
                   eventTypes: [EventTypes.TRACE_ITEM_METRIC],
                   query: '',
@@ -228,7 +228,7 @@ describe('getDetectorOpenInDestination', () => {
         expect(result?.to).toContain('interval=5m');
         // Metric query params are JSON-encoded then URL-encoded
         expect(result?.to).toContain('my_metric');
-        expect(result?.to).toContain('sum%28value%2Cmy_metric%2Ccounter%2C-%29');
+        expect(result?.to).toContain('sum%28value%2Cmy_metric%2Ccounter%2Cnone%29');
       });
 
       it('expands equation aggregates into per-function rows plus an equation row', () => {
@@ -241,7 +241,8 @@ describe('getDetectorOpenInDestination', () => {
                 subscription: '1',
                 snubaQuery: {
                   id: '1',
-                  aggregate: 'equation|sum(value,a,counter,-) + sum(value,b,counter,-)',
+                  aggregate:
+                    'equation|sum(value,a,counter,none) + sum(value,b,counter,none)',
                   dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
                   eventTypes: [EventTypes.TRACE_ITEM_METRIC],
                   query: 'foo:bar',
@@ -271,16 +272,16 @@ describe('getDetectorOpenInDestination', () => {
         const parsedMetrics = metricParams.map(value => JSON.parse(value));
         expect(parsedMetrics[0].metric.name).toBe('a');
         expect(parsedMetrics[0].aggregateFields[0].yAxes).toEqual([
-          'sum(value,a,counter,-)',
+          'sum(value,a,counter,none)',
         ]);
         expect(parsedMetrics[1].metric.name).toBe('b');
         expect(parsedMetrics[1].aggregateFields[0].yAxes).toEqual([
-          'sum(value,b,counter,-)',
+          'sum(value,b,counter,none)',
         ]);
         // Equation row carries the top-level filter and the full equation text.
         expect(parsedMetrics[2].query).toBe('foo:bar');
         expect(parsedMetrics[2].aggregateFields[0].yAxes[0]).toBe(
-          'equation|sum(value,a,counter,-) + sum(value,b,counter,-)'
+          'equation|sum(value,a,counter,none) + sum(value,b,counter,none)'
         );
       });
     });

@@ -69,6 +69,7 @@ function makeBuild(
       images_removed: 0,
       images_changed: 3,
       images_unchanged: 19,
+      images_skipped: 0,
     },
     ...overrides,
   };
@@ -117,6 +118,7 @@ describe('PreprodBuildsSnapshotTable', () => {
               images_removed: 0,
               images_changed: 3,
               images_unchanged: 19,
+              images_skipped: 0,
             },
           })
         ),
@@ -137,6 +139,7 @@ describe('PreprodBuildsSnapshotTable', () => {
               images_removed: 0,
               images_changed: 0,
               images_unchanged: 0,
+              images_skipped: 0,
             },
           })
         ),
@@ -168,6 +171,7 @@ describe('PreprodBuildsSnapshotTable', () => {
               images_removed: 0,
               images_changed: 0,
               images_unchanged: 20,
+              images_skipped: 0,
             },
           })
         ),

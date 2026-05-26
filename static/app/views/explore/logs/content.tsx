@@ -23,7 +23,6 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {useOurLogsTableExpando} from 'sentry/views/explore/logs/tables/useOurLogsTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -38,7 +37,6 @@ export default function LogsContent() {
     dataCategories: [DataCategory.LOG_BYTE],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-  const tableExpando = useOurLogsTableExpando();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
@@ -61,11 +59,7 @@ export default function LogsContent() {
       >
         <AnalyticsArea name="explore.logs">
           <AiQueryProvider>
-            <LogsPageStack
-              flex={1}
-              data-footer-constrained={tableExpando ? '' : undefined}
-              data-hide-footer={tableExpando ? '' : undefined}
-            >
+            <LogsPageStack flex={1} data-footer-constrained data-hide-footer>
               <LogsQueryParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 source="location"
@@ -79,10 +73,7 @@ export default function LogsContent() {
                       datePageFilterProps={datePageFilterProps}
                     />
                   ) : (
-                    <LogsTabContent
-                      datePageFilterProps={datePageFilterProps}
-                      tableExpando={tableExpando}
-                    />
+                    <LogsTabContent datePageFilterProps={datePageFilterProps} />
                   )}
                 </LogsPageDataProvider>
               </LogsQueryParamsProvider>

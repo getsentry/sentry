@@ -10,7 +10,7 @@ jest.mock('sentry/utils/demoMode', () => ({
 
 describe('DisableInDemoMode', () => {
   it('renders children when demo mode is disabled', () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(false);
+    jest.mocked(isDemoModeActive).mockReturnValue(false);
 
     render(
       <DisableInDemoMode>
@@ -23,7 +23,7 @@ describe('DisableInDemoMode', () => {
   });
 
   it('renders a tooltip when demo mode is enabled', () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    jest.mocked(isDemoModeActive).mockReturnValue(true);
 
     render(
       <DisableInDemoMode>

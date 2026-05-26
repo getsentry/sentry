@@ -17,6 +17,7 @@ import {
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {
   TraceDrawerComponents,
@@ -39,6 +40,7 @@ export function Measurements({
   node: SpanNode;
   organization: Organization;
 }) {
+  const navigate = useNavigate();
   const theme = useTheme();
   const {measurements} = node.value;
   const measurementNames = useMemo(() => {
@@ -61,7 +63,7 @@ export function Measurements({
           ? FIELD_FORMATTERS[fieldType].renderFunc(
               name,
               {[name]: renderValue},
-              {location, organization, unit, theme}
+              {location, navigate, organization, unit, theme}
             )
           : renderValue;
 
@@ -93,7 +95,15 @@ export function Measurements({
       }
     }
     return result;
-  }, [measurements, measurementNames, location, organization, projectID, theme]);
+  }, [
+    measurements,
+    measurementNames,
+    location,
+    navigate,
+    organization,
+    projectID,
+    theme,
+  ]);
 
   if (measurementNames.length < 1) {
     return null;

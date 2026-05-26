@@ -42,6 +42,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
   '/explore/logs/',
+  '/explore/logs/trace/:traceSlug/',
   '/explore/releases/',
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
@@ -53,6 +54,10 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/',
   '/issues/:groupId/events/',
   '/issues/:groupId/events/:eventId/',
+  '/issues/:groupId/replays/',
+  '/issues/:groupId/attachments/',
+  '/issues/:groupId/distributions/',
+  '/issues/:groupId/distributions/:tagKey/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
 const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();

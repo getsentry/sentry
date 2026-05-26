@@ -461,7 +461,7 @@ function DashboardEditFeature({
 
   return (
     <Feature
-      hookName="feature-disabled:dashboards-edit"
+      overrideName="feature-disabled:dashboards-edit"
       features="organizations:dashboards-edit"
       renderDisabled={renderDisabled}
     >

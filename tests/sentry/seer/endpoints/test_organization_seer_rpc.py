@@ -64,6 +64,16 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert self.project.id in project_ids
 
     @with_feature("organizations:seer-public-rpc")
+    def test_org_level_method_get_organization_features(self) -> None:
+        """Test that get_organization_features returns the features key"""
+        path = self._get_path("get_organization_features")
+        response = self.client.post(path, data={"args": {}}, format="json")
+
+        assert response.status_code == 200
+        assert "features" in response.data
+        assert isinstance(response.data["features"], list)
+
+    @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_dsn(self) -> None:
         project = self.create_project(organization=self.organization, slug="wordcraft")
         path = self._get_path("get_dsn")
