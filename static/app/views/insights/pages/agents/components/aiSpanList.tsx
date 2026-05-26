@@ -232,6 +232,12 @@ const TraceListItem = memo(function TraceListItem({
     compressedStartByNodeId
   );
   const duration = getNodeTimeBounds(node).duration;
+  const durationBarLabel = getDurationBarLabel({
+    node,
+    traceBounds,
+    duration,
+    isCompressed: compressedStartByNodeId !== undefined,
+  });
 
   return (
     <ListItemContainer
@@ -275,7 +281,11 @@ const TraceListItem = memo(function TraceListItem({
             {getDuration(duration, 2, true, true)}
           </Text>
         </Flex>
-        <DurationBar color={color} relativeTiming={relativeTiming} />
+        <DurationBar
+          color={color}
+          relativeTiming={relativeTiming}
+          ariaLabel={durationBarLabel}
+        />
       </Stack>
     </ListItemContainer>
   );
@@ -405,13 +415,46 @@ function calculateRelativeTiming(
   const relativeStart = Math.max(0, effectiveStart / traceBounds.duration) * 100;
   const spanDuration = ((effectiveEnd - effectiveStart) / traceBounds.duration) * 100;
 
-  const minWidth = 2;
-  const adjustedWidth = Math.max(spanDuration, minWidth);
+  return {leftPercent: relativeStart, widthPercent: spanDuration};
+}
 
-  const maxAllowedStart = 100 - adjustedWidth;
-  const adjustedStart = Math.min(relativeStart, maxAllowedStart);
+/**
+ * Builds the screen-reader label for a span's duration bar. Falls back to
+ * just the span duration when timestamps are missing or compression is in
+ * use (positional info isn't meaningful under compression).
+ */
+function getDurationBarLabel({
+  node,
+  traceBounds,
+  duration,
+  isCompressed,
+}: {
+  duration: number;
+  isCompressed: boolean;
+  node: AITraceSpanNode;
+  traceBounds: TraceBounds;
+}): string {
+  const durationLabel = getDuration(duration, 2, true, true);
 
-  return {leftPercent: adjustedStart, widthPercent: adjustedWidth};
+  // Under gap compression the visual position doesn't reflect real time, so
+  // describing positional info would be misleading - fall back to duration.
+  if (
+    isCompressed ||
+    !node.startTimestamp ||
+    !node.endTimestamp ||
+    !traceBounds.duration
+  ) {
+    return t('Duration: %s', durationLabel);
+  }
+
+  const spanStart = node.startTimestamp - traceBounds.startTime;
+  const spanEnd = node.endTimestamp - traceBounds.startTime;
+  return t(
+    'Ran from %s to %s of %s trace',
+    getDuration(spanStart, 2, true, true),
+    getDuration(spanEnd, 2, true, true),
+    getDuration(traceBounds.duration, 2, true, true)
+  );
 }
 
 interface SpanPresentation {
@@ -553,9 +596,40 @@ const ListItemContainer = styled('div')<{
   }
 `;
 
-const DurationBar = styled('div')<{
+const MIN_DURATION_BAR_WIDTH_PERCENT = 2;
+
+function DurationBar({
+  color,
+  relativeTiming,
+  ariaLabel,
+}: {
+  ariaLabel: string;
   color: string;
   relativeTiming: {leftPercent: number; widthPercent: number};
+}) {
+  // Very short spans would otherwise be invisible; clamp width to a visible
+  // minimum and pull the left edge back so the segment stays inside the track.
+  const widthPercent = Math.max(
+    relativeTiming.widthPercent,
+    MIN_DURATION_BAR_WIDTH_PERCENT
+  );
+  const leftPercent = Math.min(relativeTiming.leftPercent, 100 - widthPercent);
+
+  return (
+    <DurationBarTrack
+      role="img"
+      aria-label={ariaLabel}
+      color={color}
+      leftPercent={leftPercent}
+      widthPercent={widthPercent}
+    />
+  );
+}
+
+const DurationBarTrack = styled('div')<{
+  color: string;
+  leftPercent: number;
+  widthPercent: number;
 }>`
   width: 100%;
   height: 4px;
@@ -566,10 +640,10 @@ const DurationBar = styled('div')<{
   &::before {
     content: '';
     position: absolute;
-    left: ${p => p.relativeTiming.leftPercent}%;
+    left: ${p => p.leftPercent}%;
     top: 0;
     height: 100%;
-    width: ${p => p.relativeTiming.widthPercent}%;
+    width: ${p => p.widthPercent}%;
     background-color: ${p => p.color};
     border-radius: 2px;
   }
