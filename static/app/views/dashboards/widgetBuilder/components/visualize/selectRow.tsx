@@ -67,7 +67,7 @@ interface SelectRowProps {
 }
 
 function validateParameter(
-  columnOptions: Array<SelectValue<string>>,
+  columnOptions: Array<{value: string}>,
   parameter: AggregateParameter,
   value: string | undefined
 ) {
@@ -201,6 +201,7 @@ export function SelectRow({
         options={sortSelectedFirst(aggregateValue, aggregateOptions)}
         value={aggregateValue}
         position="bottom-start"
+        menuMinWidth={300}
         onChange={dropdownSelection => {
           const isNone = dropdownSelection.value === NONE;
           let newFields = cloneDeep(fields);

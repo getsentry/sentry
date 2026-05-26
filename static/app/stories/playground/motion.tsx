@@ -70,7 +70,7 @@ export function MotionPlayground() {
             {animations.map(value => (
               <Button
                 key={value}
-                priority={animation === value ? 'primary' : undefined}
+                variant={animation === value ? 'primary' : undefined}
                 onClick={() => setAnimation(value)}
               >
                 {value}

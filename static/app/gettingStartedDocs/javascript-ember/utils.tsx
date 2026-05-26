@@ -10,7 +10,7 @@ const getIntegrations = (params: DocsParams): string[] => {
   const integrations = [];
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isReplaySelected) {

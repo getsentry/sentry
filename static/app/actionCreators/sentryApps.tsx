@@ -1,3 +1,5 @@
+import {skipToken} from '@tanstack/react-query';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -7,6 +9,31 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+export function sentryAppsApiOptions({
+  orgSlug,
+  status,
+}: {
+  orgSlug: string;
+  status?: 'internal' | 'published' | 'unpublished';
+}) {
+  return apiOptions.as<SentryApp[]>()(
+    '/organizations/$organizationIdOrSlug/sentry-apps/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: status ? {status} : undefined,
+      staleTime: 0,
+    }
+  );
+}
+
+export function sentryAppApiOptions({appSlug}: {appSlug: string | null}) {
+  return apiOptions.as<SentryApp>()('/sentry-apps/$sentryAppIdOrSlug/', {
+    path: appSlug ? {sentryAppIdOrSlug: appSlug} : skipToken,
+    staleTime: 0,
+  });
+}
 
 /**
  * Remove a Sentry Application

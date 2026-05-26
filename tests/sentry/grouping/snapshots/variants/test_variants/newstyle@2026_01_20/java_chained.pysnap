@@ -290,7 +290,7 @@ app:
           type*
             "LifecycleException"
           value* (stripped event-specific values)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
+            "Failed to start component [Connector[HTTP/<float>-<int>]]"
           stacktrace (ignored because it contains no in-app frames)
             frame (marked out of app by built-in stacktrace rule (category:framework -app))
               module*
@@ -398,7 +398,7 @@ default:
   root_component:
     default (ignored because system exception takes precedence)
       message (ignored because system exception takes precedence)
-        "Failed to start connector [Connector[HTTP/<float><int>]]"
+        "Failed to start connector [Connector[HTTP/<float>-<int>]]"
 --------------------------------------------------------------------------
 system:
   hash: "db7a5bf0e72c22eb770a3be8940782c6"
@@ -689,7 +689,7 @@ system:
           type*
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
+            "Failed to start component [Connector[HTTP/<float>-<int>]]"
           stacktrace*
             frame (ignored by built-in stacktrace rule (module:io.sentry.* -group))
               module*

@@ -4,6 +4,8 @@ from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 
+PREFERRED_ORGANIZATION_ID_KEY = "preferred_organization_id"
+
 
 class SlackIdentityProvider(OAuth2Provider):
     key = IntegrationProviderSlug.SLACK.value
@@ -69,6 +71,22 @@ class SlackIdentityProvider(OAuth2Provider):
             "scopes": sorted(data["scope"].split(",")),
             "data": self.get_oauth_data(data),
         }
+
+
+class SlackStagingIdentityProvider(SlackIdentityProvider):
+    key = IntegrationProviderSlug.SLACK_STAGING.value
+    name = "Slack (Staging)"
+
+    def get_oauth_client_id(self):
+        return options.get("slack-staging.client-id")
+
+    def get_oauth_client_secret(self):
+        return options.get("slack-staging.client-secret")
+
+    def build_identity(self, data):
+        production_identity = super().build_identity(data)
+        production_identity["type"] = IntegrationProviderSlug.SLACK_STAGING.value
+        return production_identity
 
 
 class SlackOAuth2LoginView(OAuth2LoginView):

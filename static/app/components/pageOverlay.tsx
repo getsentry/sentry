@@ -1,12 +1,13 @@
 import {useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Transition, Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
+import {Container} from '@sentry/scraps/layout';
 import {Prose} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * The default wrapper for the detail text.
@@ -18,7 +19,7 @@ const DefaultWrapper = styled('div')`
   width: 500px;
 `;
 
-const subItemAnimation = {
+const subItemAnimation: Variants = {
   initial: {
     opacity: 0,
     x: 60,
@@ -26,15 +27,15 @@ const subItemAnimation = {
   animate: {
     opacity: 1,
     x: 0,
-    transition: testableTransition({
+    transition: {
       type: 'spring',
       duration: 0.4,
-    }),
+    },
   },
 };
 
 const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
-  <motion.h2 variants={subItemAnimation} transition={testableTransition()} {...props} />
+  <motion.h2 variants={subItemAnimation} {...props} />
 ))`
   display: flex;
   align-items: center;
@@ -43,7 +44,7 @@ const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
 `;
 
 const Body = styled((props: React.ComponentProps<typeof motion.div>) => (
-  <motion.div variants={subItemAnimation} transition={testableTransition()} {...props} />
+  <motion.div variants={subItemAnimation} {...props} />
 ))`
   margin-bottom: ${p => p.theme.space.xl};
 `;
@@ -69,12 +70,6 @@ type PositioningStrategyOpts = {
 };
 
 interface PageOverlayProps extends React.ComponentProps<'div'> {
-  /**
-   * When a background with an anchorRef is provided, you can customize the
-   * positioning strategy for the wrapper by passing in a custom function here
-   * that resolves the X and Y position.
-   */
-  positioningStrategy: (opts: PositioningStrategyOpts) => {x: number; y: number};
   text: (opts: ContentOpts) => React.ReactNode;
   animateDelay?: number;
   /**
@@ -98,6 +93,12 @@ interface PageOverlayProps extends React.ComponentProps<'div'> {
    * anchor
    */
   customWrapper?: React.ComponentType;
+  /**
+   * When a background with an anchorRef is provided, you can customize the
+   * positioning strategy for the wrapper by passing in a custom function here
+   * that resolves the X and Y position.
+   */
+  positioningStrategy?: (opts: PositioningStrategyOpts) => {x: number; y: number};
 }
 
 /**
@@ -123,7 +124,7 @@ const defaultPositioning = ({mainRect, anchorRect}: PositioningStrategyOpts) => 
  * to a safe space in the background.
  */
 export function PageOverlay({
-  positioningStrategy = defaultPositioning,
+  positioningStrategy,
   text,
   animateDelay,
   background: BackgroundComponent,
@@ -134,6 +135,7 @@ export function PageOverlay({
   const contentRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<SVGForeignObjectElement>(null);
+  const strategy = positioningStrategy ?? defaultPositioning;
 
   useEffect(() => {
     if (contentRef.current === null || anchorRef.current === null) {
@@ -157,15 +159,15 @@ export function PageOverlay({
       // Absolute position the container, this avoids the browser having to reflow
       // the component
       wrapperRef.current.style.position = 'absolute';
-      wrapperRef.current.style.left = `0px`;
-      wrapperRef.current.style.top = `0px`;
+      wrapperRef.current.style.left = '0px';
+      wrapperRef.current.style.top = '0px';
 
       const mainRect = contentRef.current.getBoundingClientRect();
       const anchorRect = anchorRef.current.getBoundingClientRect();
       const wrapperRect = wrapperRef.current.getBoundingClientRect();
 
       // Compute the position of the wrapper
-      const {x, y} = positioningStrategy({mainRect, anchorRect, wrapperRect});
+      const {x, y} = strategy({mainRect, anchorRect, wrapperRect});
 
       const transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
       wrapperRef.current.style.transform = transform;
@@ -186,20 +188,26 @@ export function PageOverlay({
     }
 
     return () => bgResizeObserver?.disconnect();
-  }, [positioningStrategy]);
+  }, [strategy]);
 
   const Wrapper = customWrapper ?? DefaultWrapper;
 
-  const transition = testableTransition({
+  const transition: Transition = {
     delay: 1,
     duration: 1.2,
     ease: 'easeInOut',
     delayChildren: animateDelay ?? (BackgroundComponent ? 0.5 : 1.5),
     staggerChildren: 0.15,
-  });
+  };
 
   return (
-    <MaskedContent {...props}>
+    <Container
+      flexGrow={1}
+      flexBasis="0"
+      overflow="hidden"
+      position="relative"
+      {...props}
+    >
       {children}
       <ContentWrapper
         initial="initial"
@@ -217,7 +225,7 @@ export function PageOverlay({
           <PageOverlayProse>{text({Body, Header})}</PageOverlayProse>
         </Wrapper>
       </ContentWrapper>
-    </MaskedContent>
+    </Container>
   );
 }
 
@@ -247,13 +255,6 @@ const Background = styled('div')`
     min-height: 600px;
     height: 100%;
   }
-`;
-
-const MaskedContent = styled('div')`
-  position: relative;
-  overflow: hidden;
-  flex-grow: 1;
-  flex-basis: 0;
 `;
 
 const PageOverlayProse = styled(Prose)`

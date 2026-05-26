@@ -12,7 +12,7 @@ export type ExploreAnalyticsEventParameters = {
     organization: Organization;
   };
   'explore.table_exported': {
-    export_type: 'browser_csv' | 'download';
+    export_type: 'browser_sync' | 'export_download';
     field: string[];
     organization: Organization;
     query: string;
@@ -20,6 +20,8 @@ export type ExploreAnalyticsEventParameters = {
     traceItemDataset: TraceItemDataset;
     end?: string;
     environment?: string[];
+    export_file_format?: 'csv' | 'jsonl';
+    export_row_limit?: number;
     start?: string;
     statsPeriod?: string;
   };

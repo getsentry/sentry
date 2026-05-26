@@ -1,6 +1,10 @@
+import {
+  useQueryClient,
+  type QueryClient,
+  type QueryObserverResult,
+} from '@tanstack/react-query';
+
 import type {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {QueryClient, QueryObserverResult} from 'sentry/utils/queryClient';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {PromotionData} from 'getsentry/types';

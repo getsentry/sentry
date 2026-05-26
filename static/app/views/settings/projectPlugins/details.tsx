@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -17,7 +19,7 @@ import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -85,7 +87,7 @@ export default function ProjectPluginDetails() {
         organization,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       addSuccessMessage(t('Plugin was reset'));
       trackAnalytics('integrations.uninstall_completed', {
         integration: pluginId,
@@ -93,6 +95,8 @@ export default function ProjectPluginDetails() {
         view: 'plugin_details',
         organization,
       });
+      // Keep both the toggle state and config form in sync after reset.
+      await Promise.all([refetchPlugins(), refetchPluginDetails()]);
     },
     onError: () => {
       addErrorMessage(t('An error occurred'));
@@ -136,7 +140,7 @@ export default function ProjectPluginDetails() {
     const disable = (
       <StyledButton
         size="sm"
-        priority="danger"
+        variant="danger"
         onClick={() => togglePluginMutation.mutate({pluginId, shouldEnable: false})}
       >
         {t('Disable Plugin')}
@@ -146,12 +150,12 @@ export default function ProjectPluginDetails() {
     const toggleEnable = enabled ? disable : enable;
 
     return (
-      <div className="pull-right">
+      <Flex gap="md">
         {pluginDetails.canDisable && toggleEnable}
         <Button size="sm" onClick={() => resetMutation.mutate()}>
           {t('Reset Configuration')}
         </Button>
-      </div>
+      </Flex>
     );
   };
 

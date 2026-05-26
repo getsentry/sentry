@@ -1,4 +1,4 @@
-import BasePlugin from 'sentry/plugins/basePlugin';
+import {BasePlugin} from 'sentry/plugins/basePlugin';
 import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 import {Registry} from 'sentry/plugins/registry';
 

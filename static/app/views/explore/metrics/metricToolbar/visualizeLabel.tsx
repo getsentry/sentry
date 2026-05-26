@@ -1,38 +1,52 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconShow} from 'sentry/icons';
-import {IconHide} from 'sentry/icons/iconHide';
+import {IconChevron} from 'sentry/icons';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 interface VisualizeLabelProps {
-  index: number;
+  label: string;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
+  disableCollapse?: boolean;
 }
 
-export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
-  const label = getVisualizeLabel(index);
-  const icon = visualize.visible ? <IconShow /> : <IconHide />;
-
+export function VisualizeLabel({
+  label,
+  onClick,
+  visualize,
+  disableCollapse,
+}: VisualizeLabelProps) {
   return (
-    <Flex align="center" justify="start" gap="md">
-      <IconLabel onClick={onClick} height="36px" justify="center" align="center">
-        {icon}
-      </IconLabel>
-      <Text bold size="md">
-        {label}
-      </Text>
-    </Flex>
+    <Container
+      display="flex"
+      cursor={disableCollapse ? 'default' : 'pointer'}
+      onClick={onClick}
+      style={{userSelect: 'none', WebkitTapHighlightColor: 'transparent'}}
+    >
+      <Flex align="center" gap="xs">
+        {!disableCollapse && (
+          <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
+        )}
+        <VisualizeLabelBadge
+          justify="center"
+          align="center"
+          width="24px"
+          height="36px"
+          radius="md"
+        >
+          <Text as="span" bold variant="accent">
+            {label}
+          </Text>
+        </VisualizeLabelBadge>
+      </Flex>
+    </Container>
   );
 }
 
-const IconLabel = styled(Flex)`
-  cursor: pointer;
-  font-weight: bold;
-  color: ${p => p.theme.tokens.content.accent};
+const VisualizeLabelBadge = styled(Flex)`
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;

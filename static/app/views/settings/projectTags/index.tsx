@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -22,12 +23,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {TagWithTopValues} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -53,7 +49,7 @@ export default function ProjectTags() {
     isError,
   } = useApiQuery<TagWithTopValues[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],
@@ -69,7 +65,7 @@ export default function ProjectTags() {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
         [
-          getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
             path: {
               organizationIdOrSlug: organization.slug,
               projectIdOrSlug: project.slug,
@@ -98,7 +94,12 @@ export default function ProjectTags() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Tags & Context'), project.slug, false)}
       />
-      <SettingsPageHeader title={t('Tags & Context')} />
+      <SettingsPageHeader
+        title={t('Tags & Context')}
+        subtitle={t(
+          'Setup Highlights to promote your event data to the top of the issue page for quicker debugging.'
+        )}
+      />
       <ProjectPermissionAlert project={project} />
       <HighlightsSettingsForm projectSlug={project.slug} />
       <TextBlock>

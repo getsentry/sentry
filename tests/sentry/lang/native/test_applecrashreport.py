@@ -122,6 +122,115 @@ Thread 2 name: com.apple.test\n\
     )
 
 
+def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
+    """
+    When an exception's thread_id matches a thread's id, prefer the thread
+    entry (richer metadata) and skip the exception to avoid duplication.
+    """
+    acr = AppleCrashReport(
+        exceptions=[
+            {
+                "thread_id": 1,
+                "mechanism": {"type": "mach"},
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0x2c8000",
+                            "instruction_addr": "0x31c3e8",
+                            "symbol_addr": "0x31b9f8",
+                            "package": "/path/to/MainApp.framework/MainApp",
+                        },
+                    ]
+                },
+            }
+        ],
+        threads=[
+            {
+                "crashed": True,
+                "id": 1,
+                "name": "com.apple.main-thread",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0x2c8000",
+                            "instruction_addr": "0x31c3e8",
+                            "symbol_addr": "0x31b9f8",
+                            "package": "/path/to/MainApp.framework/MainApp",
+                        },
+                    ]
+                },
+            },
+            {
+                "crashed": False,
+                "id": 2,
+                "name": "background",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0xf0000",
+                            "instruction_addr": "0xf6c78",
+                            "symbol_addr": "0xf6c04",
+                            "package": "/path/to/BackgroundLib.framework/BackgroundLib",
+                        },
+                    ]
+                },
+            },
+        ],
+    )
+    threads = acr.get_threads_apple_string()
+    assert threads.count("Thread 1") == 1
+    assert threads.count("Thread 2") == 1
+    assert "com.apple.main-thread" in threads
+    assert (
+        threads
+        == "Thread 1 name: com.apple.main-thread Crashed:\n\
+0   MainApp                         0x31c3e8            0x2c8000 + 2544\n\n\
+Thread 2 name: background\n\
+0   BackgroundLib                   0xf6c78             0xf0000 + 116"
+    )
+
+
+def _thread(thread_id):
+    return {
+        "id": thread_id,
+        "stacktrace": {
+            "frames": [
+                {
+                    "image_addr": "0x2c8000",
+                    "instruction_addr": "0x31c3e8",
+                    "symbol_addr": "0x31b9f8",
+                    "package": "/path/to/Lib.framework/Lib",
+                }
+            ]
+        },
+    }
+
+
+def _thread_order(output):
+    return [int(line.split()[1]) for line in output.splitlines() if line.startswith("Thread ")]
+
+
+def test_get_threads_apple_string_prioritized_thread_id() -> None:
+    threads = [_thread(965139), _thread(1874743)]
+
+    # Default: payload order.
+    default = AppleCrashReport(threads=threads).get_threads_apple_string()
+    assert _thread_order(default) == [965139, 1874743]
+
+    # Prioritized id moves to the top; accepts int or string.
+    for thread_id in (1874743, "1874743"):
+        output = AppleCrashReport(
+            threads=threads, prioritized_thread_id=thread_id
+        ).get_threads_apple_string()
+        assert _thread_order(output) == [1874743, 965139]
+
+    # Unknown id is a no-op.
+    unknown = AppleCrashReport(
+        threads=threads, prioritized_thread_id=999
+    ).get_threads_apple_string()
+    assert _thread_order(unknown) == [965139, 1874743]
+
+
 def test_get_threads_apple_string_symbolicated() -> None:
     acr = AppleCrashReport(
         symbolicated=True,

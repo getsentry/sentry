@@ -1,5 +1,9 @@
 /* eslint-disable typescript-sort-keys/interface */
-import type {BuildDetailsVcsInfo} from './buildDetailsTypes';
+import type {
+  BuildDetailsVcsInfo,
+  SnapshotApprovalStatus,
+  SnapshotComparisonState,
+} from './buildDetailsTypes';
 
 export interface SnapshotImage {
   display_name: string | null;
@@ -17,14 +21,18 @@ export interface SnapshotDiffPair {
   head_image: SnapshotImage;
 }
 
-export interface SnapshotComparisonRunInfo {
-  completed_at?: string;
-  duration_ms?: number;
-  state?: ComparisonState;
+interface SnapshotApprover {
+  source: 'sentry' | 'github';
+  approved_at?: string | null;
+  avatar_url?: string | null;
+  email?: string | null;
+  id?: string | null;
+  name?: string | null;
+  username?: string | null;
 }
 
 export interface SnapshotDetailsApiResponse {
-  comparison_type: 'solo' | 'diff';
+  comparison_type: 'solo' | 'diff' | 'waiting_for_base';
   head_artifact_id: string;
   image_count: number;
   images: SnapshotImage[];
@@ -32,7 +40,14 @@ export interface SnapshotDetailsApiResponse {
   state: string;
   vcs_info: BuildDetailsVcsInfo;
 
-  comparison_run_info?: SnapshotComparisonRunInfo | null;
+  app_id?: string | null;
+
+  comparison_state?: SnapshotComparisonState | null;
+  approval_status?: SnapshotApprovalStatus | null;
+  comparison_error_message?: string | null;
+  approvers?: SnapshotApprover[];
+
+  diff_threshold?: number | null;
 
   // Diff fields
   added: SnapshotImage[];
@@ -46,13 +61,8 @@ export interface SnapshotDetailsApiResponse {
   renamed_count?: number;
   unchanged: SnapshotImage[];
   unchanged_count: number;
-}
-
-export enum ComparisonState {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
+  skipped?: SnapshotImage[];
+  skipped_count?: number;
 }
 
 export enum DiffStatus {
@@ -61,18 +71,15 @@ export enum DiffStatus {
   REMOVED = 'removed',
   RENAMED = 'renamed',
   UNCHANGED = 'unchanged',
+  SKIPPED = 'skipped',
 }
 
 export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
 }
 
-export function getImageGroup(image: SnapshotImage): string {
-  return image.group ?? image.image_file_name;
-}
-
 interface SidebarItemBase {
-  badge: string | null;
+  displayName: string;
   key: string;
   name: string;
 }
@@ -82,6 +89,6 @@ export type SidebarItem =
   | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {type: 'renamed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {
-      type: 'added' | 'removed' | 'unchanged';
+      type: 'added' | 'removed' | 'unchanged' | 'skipped';
       images: SnapshotImage[];
     });

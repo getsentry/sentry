@@ -41,7 +41,7 @@ export function ChartPanel({title, children, button, subtitle, className}: Props
               {button}
               <Button
                 aria-label={t('Expand Insight Chart')}
-                priority="transparent"
+                variant="transparent"
                 size="xs"
                 icon={<IconExpand />}
                 onClick={() => {

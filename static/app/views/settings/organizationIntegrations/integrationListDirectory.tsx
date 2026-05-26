@@ -1,17 +1,22 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {
+  sentryAppApiOptions,
+  sentryAppsApiOptions,
+} from 'sentry/actionCreators/sentryApps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -51,8 +56,8 @@ import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegra
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
-const FirstPartyIntegrationAlert = HookOrDefault({
-  hookName: 'component:first-party-integration-alert',
+const FirstPartyIntegrationAlert = OverrideOrDefault({
+  overrideName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
@@ -86,7 +91,7 @@ function useIntegrationList() {
     providers: IntegrationProvider[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -98,7 +103,7 @@ function useIntegrationList() {
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {includeConfig: 0}},
@@ -109,14 +114,7 @@ function useIntegrationList() {
     data: orgOwnedApps = [],
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
-  } = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
-  );
+  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
   const {
     data: publishedApps = [],
     isPending: isPublishedAppsPending,
@@ -131,7 +129,7 @@ function useIntegrationList() {
     isError: isAppInstallsError,
   } = useApiQuery<SentryAppInstallation[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -143,7 +141,7 @@ function useIntegrationList() {
     isError: isPluginsError,
   } = useApiQuery<PluginWithProjectList[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -156,17 +154,7 @@ function useIntegrationList() {
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
-  const extraAppQuery = useApiQuery<SentryApp>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-        path: {sentryAppIdOrSlug: extraAppSlug ?? ''},
-      }),
-    ],
-    {
-      ...queryOptions,
-      enabled: isExtraAppEnabled,
-    }
-  );
+  const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
   const {data: extraApp} = extraAppQuery;
   const isExtraAppPending = isExtraAppEnabled && extraAppQuery.isPending;
   const isExtraAppError = isExtraAppEnabled && extraAppQuery.isError;
@@ -520,24 +508,31 @@ function IntegrationSettingsHeader({
     <SettingsPageHeader
       title={title}
       body={
-        <ActionContainer>
-          <Select
-            name="select-categories"
-            onChange={onChangeCategory}
-            value={category}
-            options={categoryOptions}
-          />
-          <SearchBar
-            query={search}
-            onSearch={onChangeSearch}
-            placeholder={t('Filter Integrations\u2026')}
-            aria-label={t('Filter')}
-            width="100%"
-            data-test-id="search-bar"
-          />
-        </ActionContainer>
+        <Flex align="center" gap="md">
+          <Container width="240px">
+            <Select
+              name="select-categories"
+              onChange={onChangeCategory}
+              value={category}
+              options={categoryOptions}
+            />
+          </Container>
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                query={search}
+                onSearch={onChangeSearch}
+                placeholder={t('Filter Integrations\u2026')}
+                aria-label={t('Filter')}
+                width="100%"
+                data-test-id="search-bar"
+              />
+            )}
+          </Container>
+          <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
+        </Flex>
       }
-      action={<CreateIntegrationButton analyticsView="integrations_directory" />}
     />
   );
 }
@@ -561,12 +556,6 @@ function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
     </Stack>
   );
 }
-
-const ActionContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 240px auto;
-  gap: ${p => p.theme.space.xl};
-`;
 
 const EmptyResultsBody = styled('div')`
   font-size: 16px;

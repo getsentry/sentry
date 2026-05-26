@@ -6,7 +6,7 @@ import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -18,7 +18,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
+import {TransactionsListOption} from 'sentry/views/explore/releases/detail/overview';
 
 type Props = {
   errored: boolean;

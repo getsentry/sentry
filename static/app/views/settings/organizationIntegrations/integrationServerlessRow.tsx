@@ -112,7 +112,7 @@ export function IntegrationServerlessRow({
       return serverlessFunction.enabled ? t('Latest') : t('Disabled');
     }
     return (
-      <UpdateButton size="sm" priority="primary" onClick={handleUpdate}>
+      <UpdateButton size="sm" variant="primary" onClick={handleUpdate}>
         {t('Update')}
       </UpdateButton>
     );
@@ -175,7 +175,7 @@ const StyledSwitch = styled(Switch)`
 
 const UpdateButton = styled(Button)``;
 
-const Name = styled(`span`)`
+const Name = styled('span')`
   padding-bottom: ${p => p.theme.space.md};
 `;
 

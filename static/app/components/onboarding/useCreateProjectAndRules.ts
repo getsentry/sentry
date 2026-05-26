@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
+import {useIsMutating, useMutation, useMutationState} from '@tanstack/react-query';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
@@ -8,13 +9,11 @@ import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {useIsMutating, useMutation, useMutationState} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
-
 const MUTATION_KEY = 'create-project-and-rules';
 
 type Variables = {

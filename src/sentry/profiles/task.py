@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import io
 import logging
-import zlib
-from base64 import b64decode, b64encode
+from base64 import b64decode
 from collections.abc import Generator
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
 from time import time
-from typing import Any, TypedDict
+from typing import Any
 from uuid import UUID
 
 import msgpack
@@ -58,13 +57,12 @@ from sentry.profiles.java import (
 from sentry.profiles.utils import (
     Profile,
     apply_stack_trace_rules_to_profile,
-    get_from_profiling_service,
 )
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_profiling_tasks
+from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks, ingest_profiling_tasks
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
@@ -123,13 +121,23 @@ eap_producer = SingletonProducer(
 logger = logging.getLogger(__name__)
 
 
-def encode_payload(message: dict[str, Any]) -> str:
-    return b64encode(
-        zlib.compress(
-            msgpack.packb(message),
-            level=1,
-        )
-    ).decode("utf-8")
+@instrumented_task(
+    name="sentry.profiles.task.process_profile_from_kafka",
+    namespace=ingest_profiling_passthrough_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
+    silo_mode=SiloMode.CELL,
+    pass_headers=True,
+)
+def process_profile_from_kafka(
+    message_bytes: bytes,
+    headers: dict[str, str],
+) -> None:
+    """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
+    from sentry.profiles.consumers.process.factory import _process_profile_message
+
+    _process_profile_message(message_bytes, headers, inline=True)
 
 
 @instrumented_task(
@@ -142,7 +150,7 @@ def encode_payload(message: dict[str, Any]) -> str:
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: str | None = None,
+    payload: bytes | str | None = None,
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
@@ -150,7 +158,10 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(b64decode(payload.encode("utf-8")), use_list=False)
+        # Handle both bytes (new) and base64 string (legacy) payloads
+        if isinstance(payload, str):
+            payload = b64decode(payload.encode("utf-8"))
+        message_dict = msgpack.unpackb(payload, use_list=False)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
@@ -1075,62 +1086,6 @@ def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> No
     )
 
 
-@metrics.wraps("process_profile.insert_vroom_profile")
-def _insert_vroom_profile(profile: Profile) -> bool:
-    with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
-        try:
-            path = "/chunk" if "profiler_id" in profile else "/profile"
-            response = get_from_profiling_service(
-                method="POST",
-                path=path,
-                json_data=profile,
-                metric=(
-                    "profiling.profile.payload.size",
-                    {
-                        "type": "chunk" if "profiler_id" in profile else "profile",
-                        "platform": profile["platform"],
-                    },
-                ),
-            )
-
-            sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
-
-            reason = "bad status"
-
-            if response.status == 204:
-                return True
-            elif response.status == 429:
-                reason = "gcs timeout"
-            elif response.status == 412:
-                reason = "duplicate profile"
-
-            metrics.incr(
-                "process_profile.insert_vroom_profile.error",
-                tags={
-                    "platform": profile["platform"],
-                    "reason": reason,
-                    "status_code": response.status,
-                },
-                sample_rate=1.0,
-            )
-            return False
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr(
-                "process_profile.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": "encountered error"},
-                sample_rate=1.0,
-            )
-            return False
-
-
-def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
-    if _insert_vroom_profile(profile=profile):
-        return True
-    _track_failed_outcome(profile, project, "profiling_failed_vroom_insertion")
-    return False
-
-
 def prepare_android_js_profile(profile: Profile) -> None:
     profile["js_profile"] = {"profile": profile["js_profile"]}
     p = profile["js_profile"]
@@ -1150,11 +1105,6 @@ def clean_android_js_profile(profile: Profile) -> None:
     del p["event_id"]
     del p["release"]
     del p["dist"]
-
-
-class _ProjectKeyKwargs(TypedDict):
-    project_id: int
-    use_case: str
 
 
 @metrics.wraps("process_profile.track_outcome")

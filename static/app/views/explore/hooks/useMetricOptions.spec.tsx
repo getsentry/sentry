@@ -56,7 +56,7 @@ describe('useMetricOptions', () => {
       ],
     };
 
-    const mockRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: mockData,
@@ -78,9 +78,6 @@ describe('useMetricOptions', () => {
       ...context,
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(mockRequest).toHaveBeenCalledTimes(1);
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
         {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
@@ -109,26 +106,24 @@ describe('useMetricOptions', () => {
       ...context,
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(mockRequest).toHaveBeenCalledTimes(1);
-    expect(mockRequest).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: 'tracemetrics',
-          field: [
-            'metric.name',
-            'metric.type',
-            'count(metric.name)',
-            'max(timestamp_precise)',
-          ],
-          referrer: 'api.explore.metric-options',
-          statsPeriod: '3d',
-        }),
-      })
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'tracemetrics',
+            field: [
+              'metric.name',
+              'metric.type',
+              'count(metric.name)',
+              'max(timestamp_precise)',
+            ],
+            referrer: 'api.explore.metric-options',
+            statsPeriod: '3d',
+          }),
+        })
+      )
     );
-
     await waitFor(() =>
       expect(result.current.data?.data).toEqual([
         {['metric.name']: 'metric.a', ['metric.type']: 'distribution'},
@@ -149,9 +144,8 @@ describe('useMetricOptions', () => {
       ...context,
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(result.current.data).toEqual({data: []});
+    await waitFor(() => expect(result.current.data?.data).toEqual([]));
+    expect(result.current.isMetricOptionsEmpty).toBe(true);
   });
 
   it('can be disabled', () => {
@@ -176,7 +170,7 @@ describe('useMetricOptions', () => {
       body: {data: []},
     });
 
-    const {result} = renderHookWithProviders(useMetricOptions, {
+    renderHookWithProviders(useMetricOptions, {
       ...context,
       initialRouterConfig: {
         location: {
@@ -186,16 +180,15 @@ describe('useMetricOptions', () => {
       },
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(mockRequest).toHaveBeenCalledTimes(1);
-    expect(mockRequest).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['production'],
-        }),
-      })
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: ['production'],
+          }),
+        })
+      )
     );
   });
 });

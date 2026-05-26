@@ -89,7 +89,7 @@ export function UsageOverviewActions({organization}: {organization: Organization
           <LinkButton
             key={buttonInfo.label}
             icon={buttonInfo.icon}
-            priority="default"
+            variant="secondary"
             to={buttonInfo.to}
           >
             {buttonInfo.label}
@@ -98,7 +98,7 @@ export function UsageOverviewActions({organization}: {organization: Organization
           <Button
             key={buttonInfo.label}
             icon={buttonInfo.icon}
-            priority="default"
+            variant="secondary"
             onClick={buttonInfo.onClick}
             disabled={buttonInfo.disabled}
           >

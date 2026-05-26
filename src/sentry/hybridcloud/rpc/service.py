@@ -19,6 +19,7 @@ from collections.abc import (
 )
 from contextlib import contextmanager
 from dataclasses import dataclass
+from threading import local
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
@@ -35,6 +36,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.hybridcloud.rpc.resolvers import CellResolutionStrategy
@@ -397,6 +399,7 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.notifications.services",
         "sentry.organizations.services",
         "sentry.projects.services",
+        "sentry.relocation.services",
         "sentry.sentry_apps.services",
         "sentry.users.services",
     )
@@ -492,6 +495,41 @@ def dispatch_remote_call(
     return remote_silo_call.dispatch(use_test_client)
 
 
+def _create_request_session(retry_count: int) -> requests.Session:
+    retry_adapter = HTTPAdapter(
+        max_retries=Retry(
+            total=retry_count,
+            backoff_factor=0.1,
+            status_forcelist=[503],
+            allowed_methods=["POST"],
+        )
+    )
+    http = requests.Session()
+    http.mount("http://", retry_adapter)
+    http.mount("https://", retry_adapter)
+    return http
+
+
+_connections = local()
+
+
+def _get_connection(retry_count: int) -> requests.Session:
+    """
+    Get a shared requests.Session.
+
+    Because retry limits are part of the session definition,
+    each unique retry value creates a different connection pool.
+    """
+    if not hasattr(_connections, "lookup"):
+        _connections.lookup = {}
+
+    if not _connections.lookup.get(retry_count, None):
+        http = _create_request_session(retry_count)
+        _connections.lookup[retry_count] = http
+
+    return _connections.lookup[retry_count]
+
+
 @dataclass(frozen=True)
 class _RemoteSiloCall:
     cell: Cell | None
@@ -571,8 +609,13 @@ class _RemoteSiloCall:
         return settings.RPC_TIMEOUT
 
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
+        vc = get_viewer_context()
+        meta: dict[str, Any] = {}
+        if vc is not None:
+            meta["viewer_context"] = vc.serialize()
+
         request_body = {
-            "meta": {},  # reserved for future use
+            "meta": meta,
             "args": self.serial_arguments,
         }
         data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
@@ -682,19 +725,8 @@ class _RemoteSiloCall:
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_count = self.get_method_retry_count()
-        retry_adapter = HTTPAdapter(
-            max_retries=Retry(
-                total=retry_count,
-                backoff_factor=0.1,
-                status_forcelist=[503],
-                allowed_methods=["POST"],
-            )
-        )
-        http = requests.Session()
-        http.mount("http://", retry_adapter)
-        http.mount("https://", retry_adapter)
+        http = _get_connection(retry_count)
 
-        # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
         timeout = self.get_method_timeout()

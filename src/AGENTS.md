@@ -149,7 +149,7 @@ from rest_framework.response import Response
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import DetailedOrganizationSerializer
+from sentry.api.serializers.models.organization import OrganizationSerializer
 
 @cell_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
@@ -164,7 +164,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             serialize(
                 organization,
                 request.user,
-                DetailedOrganizationSerializer()
+                OrganizationSerializer()
             )
         )
 

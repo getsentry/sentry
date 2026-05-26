@@ -52,7 +52,7 @@ export function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldPro
           // Then at the defaultOptions passed in props...
           options?.find(({value: v}) => v === value) ??
           // Then at the latest value selected in the form
-          (latestSelection as GeneralSelectValue);
+          latestSelection;
 
         return (
           <SelectAsync

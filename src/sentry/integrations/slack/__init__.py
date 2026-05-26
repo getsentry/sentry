@@ -1,4 +1,5 @@
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.staging.spec import SlackStagingMessagingSpec
 
 from .actions.form import *  # noqa: F401,F403
 from .actions.notification import *  # noqa: F401,F403
@@ -24,7 +25,6 @@ from .requests.command import *  # noqa: F401,F403
 from .requests.event import *  # noqa: F401,F403
 from .unfurl.discover import *  # noqa: F401,F403
 from .unfurl.issues import *  # noqa: F401,F403
-from .unfurl.metric_alerts import *  # noqa: F401,F403
 from .urls import *  # noqa: F401,F403
 from .utils.auth import *  # noqa: F401,F403
 from .utils.channel import *  # noqa: F401,F403
@@ -42,3 +42,4 @@ from .webhooks.command import *  # noqa: F401,F403
 from .webhooks.event import *  # noqa: F401,F403
 
 SlackMessagingSpec().initialize()
+SlackStagingMessagingSpec().initialize()

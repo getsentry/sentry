@@ -26,7 +26,7 @@ export function ExpandedStateContextProvider({
   initialExpandedPaths,
   onToggleExpand,
 }: Props) {
-  const expandedRef = useRef<string[]>(initialExpandedPaths());
+  const expandedRef = useRef(initialExpandedPaths());
 
   const expand = useCallback(
     (path: any) => {

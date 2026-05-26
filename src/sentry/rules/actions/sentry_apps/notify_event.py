@@ -158,6 +158,11 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             raise ValidationError("Could not identify integration from the installation uuid.")
 
         sentry_app = installations[0].sentry_app
-        alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
+        components = app_service.find_app_components(app_id=sentry_app.id)
+        for component in components:
+            if component.type == "alert-rule-action":
+                title = component.app_schema.get("title")
+                if title is not None:
+                    return str(title)
 
-        return str(alert_rule_component.app_schema.get("title"))
+        return sentry_app.name

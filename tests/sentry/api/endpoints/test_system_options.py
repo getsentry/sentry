@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from django.test import override_settings
 from django.urls import reverse
 
@@ -40,6 +42,30 @@ class SystemOptionsTest(APITestCase):
         assert response.status_code == 200
         assert "system.url-prefix" in response.data
 
+    def test_required_disables_mail_tls_ssl_pair_when_one_disk_value_is_non_default(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+
+        with override_options({"mail.use-tls": True, "mail.use-ssl": False}):
+            response = self.client.get(self.url, {"query": "is:required"})
+
+        assert response.status_code == 200
+        assert response.data["mail.use-tls"]["field"]["disabled"] is True
+        assert response.data["mail.use-tls"]["field"]["disabledReason"] == "diskPriority"
+        assert response.data["mail.use-ssl"]["field"]["disabled"] is True
+        assert response.data["mail.use-ssl"]["field"]["disabledReason"] == "diskPriority"
+
+    def test_required_keeps_mail_tls_ssl_pair_enabled_when_disk_values_match_defaults(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+
+        with override_options({"mail.use-tls": False, "mail.use-ssl": False}):
+            response = self.client.get(self.url, {"query": "is:required"})
+
+        assert response.status_code == 200
+        assert response.data["mail.use-tls"]["field"]["disabled"] is False
+        assert response.data["mail.use-tls"]["field"]["disabledReason"] is None
+        assert response.data["mail.use-ssl"]["field"]["disabled"] is False
+        assert response.data["mail.use-ssl"]["field"]["disabledReason"] is None
+
     def test_not_logged_in(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 401
@@ -60,6 +86,10 @@ class SystemOptionsTest(APITestCase):
             assert response.status_code == 200
             assert response.data["mail.host"]["field"]["disabled"] is True
             assert response.data["mail.host"]["field"]["disabledReason"] == "smtpDisabled"
+            assert response.data["mail.use-tls"]["field"]["disabled"] is True
+            assert response.data["mail.use-tls"]["field"]["disabledReason"] == "smtpDisabled"
+            assert response.data["mail.use-ssl"]["field"]["disabled"] is True
+            assert response.data["mail.use-ssl"]["field"]["disabledReason"] == "smtpDisabled"
 
     def test_put_user_access_forbidden(self) -> None:
         self.login_as(user=self.user, superuser=False)
@@ -99,6 +129,18 @@ class SystemOptionsTest(APITestCase):
         assert response.status_code == 200
         assert options.get("system.admin-email") == "new_admin@example.com"
 
+    def test_empty_payload_without_permission(self) -> None:
+        with override_settings(SENTRY_SELF_HOSTED=False):
+            self.login_as(user=self.user, superuser=True)
+            response = self.client.put(self.url, {})
+            assert response.status_code == 403
+
+    def test_disallowed_substring_key_without_permission(self) -> None:
+        with override_settings(SENTRY_SELF_HOSTED=False):
+            self.login_as(user=self.user, superuser=True)
+            response = self.client.put(self.url, {"system": "x"})
+            assert response.status_code == 403
+
     def test_put_simple(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
@@ -106,6 +148,33 @@ class SystemOptionsTest(APITestCase):
         response = self.client.put(self.url, {"mail.host": "lolcalhost"})
         assert response.status_code == 200
         assert options.get("mail.host") == "lolcalhost"
+
+    @patch("sentry.api.endpoints.system_options.logger")
+    def test_put_redacts_credential_option_value_in_log(self, mock_logger: MagicMock) -> None:
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+        response = self.client.put(self.url, {"github-app.webhook-secret": "super-secret-value"})
+        assert response.status_code == 200
+        assert options.get("github-app.webhook-secret") == "super-secret-value"
+
+        mock_logger.info.assert_called_once()
+        args, kwargs = mock_logger.info.call_args
+        assert args[0] == "options.update"
+        assert kwargs["extra"]["option_key"] == "github-app.webhook-secret"
+        assert kwargs["extra"]["option_value"] == "[redacted]"
+
+    @patch("sentry.api.endpoints.system_options.logger")
+    def test_put_does_not_redact_non_secret_option(self, mock_logger: MagicMock) -> None:
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+        response = self.client.put(self.url, {"system.admin-email": "new_admin@example.com"})
+        assert response.status_code == 200
+
+        mock_logger.info.assert_called_once()
+        args, kwargs = mock_logger.info.call_args
+        assert args[0] == "options.update"
+        assert kwargs["extra"]["option_key"] == "system.admin-email"
+        assert kwargs["extra"]["option_value"] == "new_admin@example.com"
 
     def test_update_channel(self) -> None:
         assert options.get_last_update_channel("auth.allow-registration") is None

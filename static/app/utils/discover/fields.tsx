@@ -24,12 +24,15 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
+export type SortKind = 'asc' | 'desc';
+
 export type Sort = {
   field: string;
-  kind: 'asc' | 'desc';
+  kind: SortKind;
 };
 
 // Contains the URL field value & the related table column width.
@@ -621,6 +624,23 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  [AggregationKey.OPPORTUNITY_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.OPPORTUNITY_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
@@ -629,7 +649,7 @@ const ALIASES = {
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
+assert(AGGREGATIONS);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
@@ -715,6 +735,12 @@ export function formatTagKey(key: string): string {
   if (key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(key)) {
     return `tags[${key}]`;
   }
+
+  // Reserved keywords that conflict with discover search query
+  if (['project_id', 'project.name'].includes(key)) {
+    return `tags[${key}]`;
+  }
+
   return key;
 }
 
@@ -902,7 +928,7 @@ export function isMeasurement(field: string): boolean {
 }
 
 export function measurementType(field: string): MeasurementType {
-  if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(MEASUREMENT_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
@@ -1074,7 +1100,7 @@ export function generateAggregateFields(
     const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {
@@ -1083,7 +1109,7 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => param.defaultValue !== undefined)) {
       const newField = `${func}(${parameters
         .map((param: any) => param.defaultValue)
         .join(',')})`;
@@ -1092,7 +1118,7 @@ export function generateAggregateFields(
       }
     }
   });
-  return fields.map(field => ({field})) as Field[];
+  return fields.map(field => ({field}));
 }
 
 function isDerivedMetric(field: string): boolean {
@@ -1143,7 +1169,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
-  const parameters = value.function.slice(1).filter(i => i);
+  const parameters = value.function.slice(1).filter(Boolean);
   return `${aggregation}(${parameters.join(',')})`;
 }
 
@@ -1261,7 +1287,7 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+  if (firstArg && Object.hasOwn(SESSIONS_FIELDS, firstArg)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
@@ -1346,7 +1372,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!result) {
     return 'area';
   }
-  if (!AGGREGATIONS.hasOwnProperty(result.name)) {
+  if (!Object.hasOwn(AGGREGATIONS, result.name)) {
     return 'area';
   }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1404,6 +1430,10 @@ export function fieldAlignment(
   columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
+  if (columnName === SpanFields.IS_STARRED_TRANSACTION) {
+    return 'right';
+  }
+
   let align: Alignments = 'left';
 
   if (columnType) {
@@ -1424,7 +1454,7 @@ export function fieldAlignment(
  * Match on types that are legal to show on a timeseries chart.
  */
 export function isLegalYAxisType(match: ColumnType) {
-  return ['number', 'integer', 'duration', 'percentage'].includes(match);
+  return ['number', 'integer', 'duration', 'percentage', 'score'].includes(match);
 }
 
 export function getSpanOperationName(field: string): string | null {

@@ -16,12 +16,8 @@ class TestHandleWebhookEvent(TestCase):
     """Unit tests for handle_webhook_event."""
 
     @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
-    def test_skips_github_enterprise_on_prem(self, mock_preflight: MagicMock) -> None:
-        """
-        Test that GitHub Enterprise on-prem webhooks are skipped.
-
-        Code review is only supported for GitHub Cloud, not GitHub Enterprise Server.
-        """
+    def test_skips_github_enterprise_when_flag_is_off(self, mock_preflight: MagicMock) -> None:
+        """GHE webhooks are blocked when the feature flag is disabled."""
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB_ENTERPRISE
 
@@ -33,8 +29,37 @@ class TestHandleWebhookEvent(TestCase):
             integration=integration,
         )
 
-        # Preflight should never be called for GitHub Enterprise
         mock_preflight.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.handlers.features")
+    @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
+    def test_allows_github_enterprise_when_flag_is_on(
+        self, mock_preflight: MagicMock, mock_features: MagicMock
+    ) -> None:
+        """GHE webhooks proceed to preflight when the feature flag is enabled."""
+        mock_features.has.return_value = True
+
+        integration = MagicMock()
+        integration.provider = IntegrationProviderSlug.GITHUB_ENTERPRISE
+        integration.id = 456
+
+        mock_preflight_instance = MagicMock()
+        mock_preflight_instance.check.return_value.allowed = False
+        mock_preflight_instance.check.return_value.denial_reason = None
+        mock_preflight.return_value = mock_preflight_instance
+
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "opened", "pull_request": {}},
+            organization=self.organization,
+            repo=MagicMock(),
+            integration=integration,
+        )
+
+        mock_features.has.assert_called_once_with(
+            "organizations:seer-code-review-github-enterprise", self.organization
+        )
+        mock_preflight.assert_called_once()
 
     @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
     def test_processes_github_com(self, mock_preflight: MagicMock) -> None:

@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory} from 'sentry/types/group';
 import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
 
 describe('ProjectEventRedirect', () => {
@@ -139,6 +140,82 @@ describe('ProjectEventRedirect', () => {
     });
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
+  it('redirects feedback issues to the feedback page with feedbackSlug', async () => {
+    const event = EventFixture({
+      eventID: 'abc123',
+      groupID: '456',
+      projectSlug: 'my-project',
+      issueCategory: IssueCategory.FEEDBACK,
+      contexts: {
+        feedback: {message: 'some feedback'},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/my-project:event-id/`,
+      body: event,
+    });
+
+    const {router} = render(<ProjectEventRedirect />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/projects/my-project/events/event-id/`,
+        },
+        route: '/organizations/:orgId/projects/:projectId/events/:eventId/',
+      },
+    });
+
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${organization.slug}/issues/feedback/`,
+          query: expect.objectContaining({
+            feedbackSlug: 'my-project:456',
+          }),
+        })
+      );
+    });
+  });
+
+  it('redirects feedback issues without projectSlug using only groupID as feedbackSlug', async () => {
+    const event = EventFixture({
+      eventID: 'abc123',
+      groupID: '456',
+      projectSlug: undefined,
+      issueCategory: IssueCategory.FEEDBACK,
+      contexts: {
+        feedback: {message: 'some feedback'},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/my-project:event-id/`,
+      body: event,
+    });
+
+    const {router} = render(<ProjectEventRedirect />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/projects/my-project/events/event-id/`,
+        },
+        route: '/organizations/:orgId/projects/:projectId/events/:eventId/',
+      },
+    });
+
+    await waitFor(() => {
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${organization.slug}/issues/feedback/`,
+          query: expect.objectContaining({
+            feedbackSlug: '456',
+          }),
+        })
+      );
+    });
   });
 
   it('preserves only relevant query parameters during redirect', async () => {

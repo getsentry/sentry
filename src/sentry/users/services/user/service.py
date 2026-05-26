@@ -112,8 +112,8 @@ class UserService(RpcService):
         """
         Get many users by id.
 
-        Will use region local cache to minimize network overhead.
-        Cache keys in regions will be expired as users are updated via outbox receivers.
+        Will use cell local cache to minimize network overhead.
+        Cache keys in cells will be expired as users are updated via outbox receivers.
 
         :param ids: A list of user ids to fetch
         """
@@ -152,7 +152,7 @@ class UserService(RpcService):
         """
         Get summary data for all organizations of which the user is a member.
 
-        The organizations may span multiple regions.
+        The organizations may span multiple cells.
 
         :param user_id: The user to find organizations from.
         :param only_visible: Whether or not to only fetch visible organizations
@@ -160,11 +160,11 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_member_region_names(self, *, user_id: int) -> list[str]:
+    def get_member_cell_names(self, *, user_id: int) -> list[str]:
         """
-        Get a list of region names where the user is a member of at least one org.
+        Get a list of cell names where the user is a member of at least one org.
 
-        :param user_id: The user to fetch region names for.
+        :param user_id: The user to fetch cell names for.
         """
 
     @rpc_method

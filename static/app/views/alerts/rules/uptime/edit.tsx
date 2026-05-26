@@ -63,7 +63,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
 
   const handleDelete = async () => {
     await deleteUptimeRule(api, organization, rule);
-    navigate(makeAlertsPathname({path: `/rules/`, organization}));
+    navigate(makeAlertsPathname({path: '/rules/', organization}));
   };
 
   return (

@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
-import {TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
 import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -49,22 +48,22 @@ describe('TeamStatsHealth', () => {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/projects/`,
+      url: '/organizations/org-slug/projects/',
       body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/key-transactions-list/`,
+      url: '/organizations/org-slug/key-transactions-list/',
       body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
+      url: '/organizations/org-slug/legacy-key-transactions-count/',
       body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/sessions/`,
+      url: '/organizations/org-slug/sessions/',
       body: {
         start: '2021-10-30T00:00:00Z',
         end: '2021-12-24T00:00:00Z',
@@ -121,28 +120,12 @@ describe('TeamStatsHealth', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
-      body: TeamAlertsTriggeredFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
       body: TeamResolutionTimeFixture(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/teams/org-slug/${team1.slug}/release-count/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
-      body: TeamAlertsTriggeredFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
       body: [],
     });
     MockApiClient.addMockResponse({

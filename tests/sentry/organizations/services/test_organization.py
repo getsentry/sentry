@@ -1,3 +1,6 @@
+from django.conf import settings
+
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization.service import organization_service
 from sentry.testutils.cases import TestCase
@@ -69,4 +72,94 @@ class CheckOrganizationTest(TestCase):
                 id=self.organization.id, only_visible=False
             )
             is True
+        )
+
+
+@all_silo_test
+class FindOrganizationIdByOptionValueTest(TestCase):
+    KEY = "stripe_projects:account_id"
+
+    def _set_option(self, organization: Organization, key: str, value: str) -> None:
+        with assume_test_silo_mode_of(OrganizationOption):
+            OrganizationOption.objects.set_value(organization=organization, key=key, value=value)
+
+    def test_returns_org_id_when_exactly_one_match(self) -> None:
+        org = self.create_organization(slug="org-a")
+        self._set_option(org, self.KEY, "acct_xyz")
+
+        assert (
+            organization_service.find_organization_id_by_option_value(
+                cell_name=settings.SENTRY_MONOLITH_REGION,
+                key=self.KEY,
+                value="acct_xyz",
+            )
+            == org.id
+        )
+
+    def test_returns_none_when_no_rows_match(self) -> None:
+        org = self.create_organization(slug="org-a")
+        self._set_option(org, self.KEY, "acct_other")
+
+        assert (
+            organization_service.find_organization_id_by_option_value(
+                cell_name=settings.SENTRY_MONOLITH_REGION,
+                key=self.KEY,
+                value="acct_missing",
+            )
+            is None
+        )
+
+    def test_returns_lowest_org_id_when_multiple_match(self) -> None:
+        # OrganizationOption.unique_together is (organization, key) — two
+        # orgs CAN store the same value for the same key. Pin deterministic
+        # result = lowest organization_id.
+        org_a = self.create_organization(slug="org-a")
+        org_b = self.create_organization(slug="org-b")
+        self._set_option(org_a, self.KEY, "acct_collide")
+        self._set_option(org_b, self.KEY, "acct_collide")
+
+        result = organization_service.find_organization_id_by_option_value(
+            cell_name=settings.SENTRY_MONOLITH_REGION,
+            key=self.KEY,
+            value="acct_collide",
+        )
+        assert result == min(org_a.id, org_b.id)
+
+    def test_value_match_is_exact_no_case_folding(self) -> None:
+        org = self.create_organization(slug="org-a")
+        self._set_option(org, self.KEY, "acct_XYZ")
+
+        assert (
+            organization_service.find_organization_id_by_option_value(
+                cell_name=settings.SENTRY_MONOLITH_REGION,
+                key=self.KEY,
+                value="acct_xyz",
+            )
+            is None
+        )
+
+    def test_value_match_does_not_strip_whitespace(self) -> None:
+        org = self.create_organization(slug="org-a")
+        self._set_option(org, self.KEY, "acct_xyz")
+
+        assert (
+            organization_service.find_organization_id_by_option_value(
+                cell_name=settings.SENTRY_MONOLITH_REGION,
+                key=self.KEY,
+                value=" acct_xyz ",
+            )
+            is None
+        )
+
+    def test_returns_none_when_key_does_not_match(self) -> None:
+        org = self.create_organization(slug="org-a")
+        self._set_option(org, "some:other:key", "acct_xyz")
+
+        assert (
+            organization_service.find_organization_id_by_option_value(
+                cell_name=settings.SENTRY_MONOLITH_REGION,
+                key=self.KEY,
+                value="acct_xyz",
+            )
+            is None
         )

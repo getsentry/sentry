@@ -21,11 +21,6 @@ export interface GroupTag {
      * Example: user -> `'user.id:\"1\"'`
      */
     query?: string;
-    /**
-     * Available if `readable` query param is true
-     * @deprecated - Use the frontend to get readable device names
-     */
-    readable?: string;
   }>;
   totalValues: number;
 }
@@ -38,11 +33,6 @@ interface FetchIssueTagsParameters {
   groupId: string | undefined;
   orgSlug: string;
   limit?: number;
-  /**
-   * Readable formats mobile device names
-   * TODO(scott): Can we do this in the frontend instead
-   */
-  readable?: boolean;
 }
 
 type GroupTagUseQueryOptions = Partial<UseApiQueryOptions<GroupTag[]>>;
@@ -51,13 +41,12 @@ const makeGroupTagsQueryKey = ({
   groupId,
   orgSlug,
   environment,
-  readable,
   limit,
 }: FetchIssueTagsParameters): ApiQueryKey => [
   getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/', {
     path: {organizationIdOrSlug: orgSlug, issueId: groupId!},
   }),
-  {query: {environment, readable, limit}},
+  {query: {environment, limit}},
 ];
 
 export function useGroupTags(
@@ -76,21 +65,5 @@ export function useGroupTags(
       enabled: defined(parameters.groupId) && enabled,
       ...options,
     }
-  );
-}
-
-/**
- * Primarily used for tag facets
- */
-export function useGroupTagsReadable(
-  parameters: Omit<FetchIssueTagsParameters, 'orgSlug' | 'readable'>,
-  options: GroupTagUseQueryOptions = {}
-) {
-  return useGroupTags(
-    {
-      readable: true,
-      ...parameters,
-    },
-    options
   );
 }

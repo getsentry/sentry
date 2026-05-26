@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Project} from 'sentry/types/project';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 
 export function useEventViewProject(
   projects: Project[],

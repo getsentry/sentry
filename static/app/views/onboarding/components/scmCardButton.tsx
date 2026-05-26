@@ -12,10 +12,8 @@ export const ScmCardButton = styled('button')`
   padding: 0;
   text-align: left;
   cursor: pointer;
-  width: 100%;
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.6;
   }
 `;

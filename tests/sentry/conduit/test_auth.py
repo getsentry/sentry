@@ -11,7 +11,7 @@ from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 RS256_KEY_B64 = base64.b64encode(RS256_KEY.encode()).decode()
 
 
-def test_generate_channel_id_is_valid_uuid():
+def test_generate_channel_id_is_valid_uuid() -> None:
     """Should generate a valid uuid."""
     channel_id = generate_channel_id()
 
@@ -21,12 +21,12 @@ def test_generate_channel_id_is_valid_uuid():
     assert channel_id.count("-") == 4
 
 
-def test_generate_channel_id_is_unique():
+def test_generate_channel_id_is_unique() -> None:
     """Should generate unique channel_ids."""
     assert generate_channel_id() != generate_channel_id()
 
 
-def test_generate_conduit_token_is_valid_jwt():
+def test_generate_conduit_token_is_valid_jwt() -> None:
     """Should generate a valid JWT token with RS256."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
@@ -52,7 +52,7 @@ def test_generate_conduit_token_is_valid_jwt():
     assert "exp" in claims
 
 
-def test_generate_conduit_token_has_expiration():
+def test_generate_conduit_token_has_expiration() -> None:
     """Token should expire in 10 minutes."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
@@ -83,7 +83,7 @@ def test_generate_conduit_token_has_expiration():
     assert exp_time == iat_time + 600
 
 
-def test_generate_conduit_token_uses_settings():
+def test_generate_conduit_token_uses_settings() -> None:
     """Should use settings when parameters are not provided."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
@@ -110,7 +110,7 @@ def test_generate_conduit_token_uses_settings():
         assert claims["aud"] == "test-audience"
 
 
-def test_generate_conduit_token_raises_when_missing():
+def test_generate_conduit_token_raises_when_missing() -> None:
     """Should raise an error if the private key is not configured."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
@@ -121,7 +121,7 @@ def test_generate_conduit_token_raises_when_missing():
         )
 
 
-def test_generate_conduit_token_raises_when_invalid_base64():
+def test_generate_conduit_token_raises_when_invalid_base64() -> None:
     """Should raise an error if the private key isn't valid base64."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
@@ -133,7 +133,7 @@ def test_generate_conduit_token_raises_when_invalid_base64():
         )
 
 
-def test_generate_conduit_token_raises_when_invalid_utf8():
+def test_generate_conduit_token_raises_when_invalid_utf8() -> None:
     """Should raise an error if the private key isn't valid UTF-8 after base64 decode."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
@@ -146,7 +146,7 @@ def test_generate_conduit_token_raises_when_invalid_utf8():
         )
 
 
-def test_get_conduit_credentials_returns_all_credentials():
+def test_get_conduit_credentials_returns_all_credentials() -> None:
     """Should return a url, token, and channel_id."""
     gateway_url = "https://conduit.example.com"
     with patch("sentry.conduit.auth.settings") as mock_settings:
@@ -166,7 +166,7 @@ def test_get_conduit_credentials_returns_all_credentials():
         assert result.url == f"{gateway_url}/events/{org_id}"
 
 
-def test_get_conduit_credentials_uses_custom_url():
+def test_get_conduit_credentials_uses_custom_url() -> None:
     """Should use provided gateway_url instead of settings."""
     gateway_url = "https://custom.conduit.io"
     with patch("sentry.conduit.auth.settings") as mock_settings:
@@ -185,7 +185,7 @@ def test_get_conduit_credentials_uses_custom_url():
         assert result.url == f"{gateway_url}/events/{org_id}"
 
 
-def test_get_conduit_credentials_token_is_valid():
+def test_get_conduit_credentials_token_is_valid() -> None:
     """Generated token should be decodable with correct claims."""
     gateway_url = "https://conduit.example.com"
     with patch("sentry.conduit.auth.settings") as mock_settings:

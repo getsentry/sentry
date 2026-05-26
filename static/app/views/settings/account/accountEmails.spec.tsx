@@ -132,6 +132,7 @@ describe('AccountEmails', () => {
     });
 
     const textbox = await screen.findByRole('textbox');
+    await screen.findAllByLabelText('Remove email');
     expect(screen.getAllByLabelText('Remove email')).toHaveLength(
       AccountEmailsFixture().filter(email => !email.isPrimary).length
     );

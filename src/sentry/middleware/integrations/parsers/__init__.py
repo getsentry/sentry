@@ -10,6 +10,7 @@ from .jira_server import JiraServerRequestParser
 from .msteams import MsTeamsRequestParser
 from .plugin import PluginRequestParser
 from .slack import SlackRequestParser
+from .slack_staging import SlackStagingRequestParser
 from .vercel import VercelRequestParser
 from .vsts import VstsRequestParser
 
@@ -26,6 +27,7 @@ __all__ = (
     "MsTeamsRequestParser",
     "PluginRequestParser",
     "SlackRequestParser",
+    "SlackStagingRequestParser",
     "VercelRequestParser",
     "VstsRequestParser",
 )

@@ -51,6 +51,8 @@ export function UsageOverview({
     if (productFromQuery) {
       const isAddOn = checkIsAddOn(productFromQuery);
       if (selectedProduct !== productFromQuery) {
+        const dataCategory = productFromQuery as DataCategory;
+        const metricHistory = subscription.categories[dataCategory];
         const isSelectable = isAddOn
           ? (subscription.addOns?.[productFromQuery as AddOnCategory]?.enabled ??
               false) &&
@@ -59,17 +61,13 @@ export function UsageOverview({
             ]?.dataCategories.every(category =>
               checkIsAddOnChildCategory(subscription, category, true)
             )
-          : (subscription.categories[productFromQuery as DataCategory]?.reserved ?? 0) >
-              0 ||
-            !!getActiveProductTrial(
-              subscription.productTrials ?? null,
-              productFromQuery as DataCategory
-            ) ||
+          : (metricHistory?.prepaid ?? 0) !== 0 ||
+            !!metricHistory?.softCapType ||
+            (!!metricHistory && subscription.hasSoftCap) ||
+            !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
             (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
               ? subscription.onDemandBudgets.sharedMaxBudget
-              : (subscription.onDemandBudgets?.budgets?.[
-                  productFromQuery as DataCategory
-                ] ?? 0)) > 0;
+              : (subscription.onDemandBudgets?.budgets?.[dataCategory] ?? 0)) > 0;
         if (isSelectable) {
           setSelectedProduct(
             isAddOn

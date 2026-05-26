@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import operator
 from collections.abc import Sequence
+from functools import reduce
 
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 
 from sentry.api.event_search import (
     AggregateFilter,
@@ -19,7 +21,9 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactQuerySet,
     PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 
 search_config = SearchConfig.create_from(
     SearchConfig(),
@@ -39,6 +43,13 @@ search_config = SearchConfig.create_from(
         "download_count",
         "download_size",
         "git_pr_number",
+        "image_count",
+        "images_added",
+        "images_changed",
+        "images_removed",
+        "images_renamed",
+        "images_skipped",
+        "images_unchanged",
         "install_size",
         "state",
     },
@@ -48,11 +59,13 @@ search_config = SearchConfig.create_from(
     key_mappings={},
     boolean_keys={
         "installable",
+        "is_approved",
     },
     # Allowed search keys
     allowed_keys={
         "app_id",
         "app_name",
+        "snapshot_status",
         "build_configuration_name",
         "build_number",
         "build_version",
@@ -65,9 +78,17 @@ search_config = SearchConfig.create_from(
         "git_head_sha",
         "git_pr_number",
         "has",
+        "image_count",
+        "images_added",
+        "images_changed",
+        "images_removed",
+        "images_renamed",
+        "images_skipped",
+        "images_unchanged",
         "install_size",
         "installable",
         "is",
+        "is_approved",
         "platform_name",
         "size_state",
         "state",
@@ -105,6 +126,13 @@ FIELD_MAPPINGS: dict[str, str] = {
     "git_head_sha": "commit_comparison__head_sha",
     "git_pr_number": "commit_comparison__pr_number",
     "distribution_error_code": "installable_app_error_code",
+    "image_count": "preprodsnapshotmetrics__image_count",
+    "images_added": "preprodsnapshotmetrics__snapshot_comparisons_head_metrics__images_added",
+    "images_changed": "preprodsnapshotmetrics__snapshot_comparisons_head_metrics__images_changed",
+    "images_removed": "preprodsnapshotmetrics__snapshot_comparisons_head_metrics__images_removed",
+    "images_renamed": "preprodsnapshotmetrics__snapshot_comparisons_head_metrics__images_renamed",
+    "images_skipped": "preprodsnapshotmetrics__snapshot_comparisons_head_metrics__images_skipped",
+    "images_unchanged": "preprodsnapshotmetrics__snapshot_comparisons_head_metrics__images_unchanged",
     "size_state": "preprodartifactsizemetrics__state",
 }
 
@@ -137,6 +165,39 @@ def _translate_size_state(value: object) -> int:
     return SIZE_STATE_VALUES[raw]
 
 
+SNAPSHOT_STATUS_VALUES = frozenset(
+    {
+        "approved",
+        "auto_approved",
+        "base",
+        "failed",
+        "no_base",
+        "pending",
+        "processing",
+        "requires_approval",
+    }
+)
+
+
+def _validate_snapshot_status(value: object) -> str:
+    raw = str(value).lower()
+    if raw not in SNAPSHOT_STATUS_VALUES:
+        raise InvalidSearchQuery(
+            f"Invalid status value: {value}. Valid values: {', '.join(sorted(SNAPSHOT_STATUS_VALUES))}"
+        )
+    return raw
+
+
+def _base_searchable_queryset() -> PreprodArtifactQuerySet:
+    return (
+        PreprodArtifact.objects.get_queryset()
+        .annotate_download_count()
+        .annotate_installable()
+        .annotate_main_size_metrics()
+        .annotate_platform_name()
+    )
+
+
 def queryset_for_query(
     query: str,
     organization: Organization,
@@ -157,14 +218,8 @@ def queryset_for_query(
     Raises:
         InvalidSearchQuery: If the query string is invalid
     """
-    queryset = PreprodArtifact.objects.get_queryset()
-    queryset = queryset.annotate_download_count()
-    queryset = queryset.annotate_installable()
-    queryset = queryset.annotate_main_size_metrics()
-    queryset = queryset.annotate_platform_name()
-
     search_filters = parse_search_query(query, config=search_config, get_field_type=get_field_type)
-    return apply_filters(queryset, search_filters, organization)
+    return apply_filters(_base_searchable_queryset(), search_filters, organization)
 
 
 def artifact_in_queryset(
@@ -269,7 +324,6 @@ def apply_filters(
                 queryset = queryset.exclude(q)
             else:
                 queryset = queryset.filter(q)
-            queryset = queryset.distinct()
             continue
 
         if name == "distribution_error_code":
@@ -279,6 +333,105 @@ def apply_filters(
                 queryset = queryset.exclude(q)
             else:
                 queryset = queryset.filter(q)
+            continue
+
+        if name == "is_approved":
+            approved_exists = PreprodComparisonApproval.objects.filter(
+                preprod_artifact=OuterRef("pk"),
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+                approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            )
+            want_approved = bool(token.value.value) ^ token.is_negation
+            if want_approved:
+                queryset = queryset.filter(Exists(approved_exists))
+            else:
+                queryset = queryset.filter(~Exists(approved_exists))
+            continue
+
+        if name == "snapshot_status":
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            validated = [_validate_snapshot_status(v) for v in values]
+
+            approval_base_qs = PreprodComparisonApproval.objects.filter(
+                preprod_artifact=OuterRef("pk"),
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            )
+            comparison_exists = PreprodSnapshotComparison.objects.filter(
+                head_snapshot_metrics__preprod_artifact=OuterRef("pk"),
+            )
+
+            subqueries: list[Q] = []
+            for val in validated:
+                if val == "base":
+                    subqueries.append(
+                        Q(preprodsnapshotmetrics__isnull=False)
+                        & (
+                            Q(commit_comparison__isnull=True)
+                            | Q(commit_comparison__base_sha__isnull=True)
+                        )
+                    )
+                elif val == "no_base":
+                    subqueries.append(
+                        Q(preprodsnapshotmetrics__isnull=False)
+                        & Q(commit_comparison__base_sha__isnull=False)
+                        & ~Q(Exists(comparison_exists))
+                    )
+                elif val == "pending":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.PENDING
+                        )
+                    )
+                elif val == "processing":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.PROCESSING
+                        )
+                    )
+                elif val == "failed":
+                    subqueries.append(
+                        Q(
+                            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.FAILED
+                        )
+                    )
+                elif val == "approved":
+                    subqueries.append(
+                        Q(
+                            Exists(
+                                approval_base_qs.filter(
+                                    approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+                                ).exclude(extras__auto_approval=True)
+                            )
+                        )
+                    )
+                elif val == "auto_approved":
+                    subqueries.append(
+                        Q(
+                            Exists(
+                                approval_base_qs.filter(
+                                    approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+                                    extras__auto_approval=True,
+                                )
+                            )
+                        )
+                    )
+                elif val == "requires_approval":
+                    subqueries.append(
+                        Q(
+                            Exists(
+                                approval_base_qs.exclude(
+                                    approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+                                )
+                            )
+                        )
+                    )
+
+            combined = reduce(operator.or_, subqueries)
+
+            if token.is_negation:
+                queryset = queryset.filter(~combined)
+            else:
+                queryset = queryset.filter(combined)
             continue
 
         # We don't have to handle boolean operators or parens here
@@ -303,10 +456,7 @@ def apply_filters(
         elif token.operator == "!=" and token.value.value == "":
             # !has: filter
             q = Q(**{f"{db_field}__isnull": False})
-        elif token.operator == "=":
-            q = Q(**{f"{db_field}__exact": token.value.value})
-        elif token.operator == "!=":
-            # Negation handled below (is_negation handles !=)
+        elif token.operator in ("=", "!="):
             q = Q(**{f"{db_field}__exact": token.value.value})
         else:
             raise InvalidSearchQuery(f"Unknown operator {token.operator}.")
@@ -314,4 +464,50 @@ def apply_filters(
         if token.is_negation or token.operator == "!~":
             q = ~q
         queryset = queryset.filter(q)
-    return queryset
+    return queryset.distinct()
+
+
+def get_sequential_base_artifact(
+    artifact: PreprodArtifact,
+    query: str,
+    organization: Organization,
+) -> PreprodArtifact | None:
+    """
+    Find the most recent prior artifact matching the given query and structural
+    identity fields, with completed size metrics.
+
+    Used by sequential (n-1) monitors to resolve the base artifact for diff
+    comparisons. Unlike the git-based lookup (get_base_artifact_for_commit),
+    this orders by date_added rather than commit ancestry.
+
+    Args:
+        artifact: The current (head) artifact to find a base for.
+        query: The detector's query string (e.g. "app_name:MyApp"). May be empty.
+        organization: The organization for scoping query filters.
+
+    Returns:
+        The most recent prior PreprodArtifact matching the criteria, or None.
+    """
+    queryset = _base_searchable_queryset()
+
+    if query and query.strip():
+        search_filters = parse_search_query(
+            query, config=search_config, get_field_type=get_field_type
+        )
+        queryset = apply_filters(queryset, search_filters, organization)
+
+    queryset = queryset.filter(
+        project_id=artifact.project_id,
+        app_id=artifact.app_id,
+        artifact_type=artifact.artifact_type,
+        build_configuration=artifact.build_configuration,
+    )
+
+    queryset = queryset.filter(
+        preprodartifactsizemetrics__state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        preprodartifactsizemetrics__metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+    )
+
+    queryset = queryset.exclude(pk=artifact.pk)
+
+    return queryset.order_by("-date_added").first()

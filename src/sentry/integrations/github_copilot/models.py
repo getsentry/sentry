@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -12,6 +14,18 @@ class GithubCopilotTaskRequest(BaseModel):
     create_pull_request: bool = True
     base_ref: str | None = None
     event_type: str = "sentry"
+
+
+class GithubCopilotUser(BaseModel):
+    """Lightweight user/owner reference returned by the GitHub Copilot API."""
+
+    id: int
+
+
+class GithubCopilotRepository(BaseModel):
+    """Repository reference returned by the GitHub Copilot API."""
+
+    id: int
 
 
 class GithubCopilotArtifactData(BaseModel):
@@ -39,13 +53,14 @@ class GithubCopilotSession(BaseModel):
     id: str
     name: str | None = None
     state: str | None = None  # queued, in_progress, completed, failed, timed_out
-    user_id: int | None = None
+    user: GithubCopilotUser | None = None
+    owner: GithubCopilotUser | None = None
     agent_id: int | None = None
     agent_type: str | None = None
     resource_type: str | None = None
     resource_id: int | None = None
     resource_global_id: str | None = None
-    last_updated_at: str | None = None
+    updated_at: str | None = None
     created_at: str | None = None
     completed_at: str | None = None
     event_type: str | None = None
@@ -60,6 +75,7 @@ class GithubCopilotAgentCollaborator(BaseModel):
     agent_type: str | None = None
     agent_id: int | None = None
     agent_task_id: str | None = None
+    slug: str | None = None
 
 
 class GithubCopilotTask(BaseModel):
@@ -67,28 +83,23 @@ class GithubCopilotTask(BaseModel):
 
     id: str
     name: str | None = None
-    creator_id: int | None = None
-    user_collaborators: list[int] | None = None
+    # creator/owner changed from int IDs to objects: {"id": int}
+    creator: GithubCopilotUser | None = None
+    owner: GithubCopilotUser | None = None
+    # user_collaborators is transitioning from list[int] to list[User objects].
+    # Use list[Any] to accept both during the migration.
+    user_collaborators: list[Any] | None = None
     agent_collaborators: list[GithubCopilotAgentCollaborator] | None = None
-    owner_id: int | None = None
-    repo_id: int | None = None
-    status: str | None = None
+    repository: GithubCopilotRepository | None = None
     state: str | None = None  # queued, in_progress, completed, failed, timed_out
     session_count: int | None = None
     artifacts: list[GithubCopilotArtifact] | None = None
     archived_at: str | None = None
-    last_updated_at: str | None = None
+    updated_at: str | None = None
     created_at: str | None = None
     sessions: list[GithubCopilotSession] | None = None
-
-
-class GithubCopilotTaskResponse(BaseModel):
-    """
-    Response from GitHub Copilot Tasks API.
-    The API wraps the task object in a {"task": {...}} envelope.
-    """
-
-    task: GithubCopilotTask
+    html_url: str | None = None
+    url: str | None = None
 
 
 class GithubPRFromGraphQL(BaseModel):

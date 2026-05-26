@@ -284,7 +284,7 @@ class MonitorEnvironmentTestCase(TestCase):
         assert len(cm.records) == 1
         assert "invalid config" in cm.records[0].message
 
-    def test_build_occurrence_fingerprint(self):
+    def test_build_occurrence_fingerprint(self) -> None:
         """Test that build_occurrence_fingerprint returns the expected format"""
         monitor = self.create_monitor()
         monitor_environment = self.create_monitor_environment(
@@ -294,7 +294,7 @@ class MonitorEnvironmentTestCase(TestCase):
         fingerprint = monitor_environment.build_occurrence_fingerprint()
         assert fingerprint == f"crons:{monitor_environment.id}"
 
-    def test_build_occurrence_fingerprint_different_environments(self):
+    def test_build_occurrence_fingerprint_different_environments(self) -> None:
         """Test that different MonitorEnvironments get different fingerprints"""
         monitor = self.create_monitor()
         env1 = self.create_environment(name="production")
@@ -314,7 +314,7 @@ class MonitorEnvironmentTestCase(TestCase):
         assert fingerprint1 == f"crons:{monitor_env1.id}"
         assert fingerprint2 == f"crons:{monitor_env2.id}"
 
-    def test_ensure_environment_matches_monitor_muted_state(self):
+    def test_ensure_environment_matches_monitor_muted_state(self) -> None:
         """Test that new environments match the monitor's computed is_muted state.
 
         When creating a new environment, it will be muted if the monitor's is_muted
@@ -436,7 +436,7 @@ class CronMonitorDataSourceHandlerTest(TestCase):
 class MonitorIsMutedPropertyTestCase(TestCase):
     """Test the is_muted computed property for Monitor."""
 
-    def test_is_muted_all_environments_muted(self):
+    def test_is_muted_all_environments_muted(self) -> None:
         """Test that monitor.is_muted returns True when all environments are muted."""
         monitor = self.create_monitor()
         env1 = self.create_environment(name="production")
@@ -457,7 +457,7 @@ class MonitorIsMutedPropertyTestCase(TestCase):
         # Verify monitor.is_muted is True
         assert is_monitor_muted(monitor) is True
 
-    def test_is_muted_some_environments_unmuted(self):
+    def test_is_muted_some_environments_unmuted(self) -> None:
         """Test that monitor.is_muted returns False when any environment is unmuted."""
         monitor = self.create_monitor()
         env1 = self.create_environment(name="production")
@@ -478,7 +478,7 @@ class MonitorIsMutedPropertyTestCase(TestCase):
         # Verify monitor.is_muted is False
         assert is_monitor_muted(monitor) is False
 
-    def test_is_muted_all_environments_unmuted(self):
+    def test_is_muted_all_environments_unmuted(self) -> None:
         """Test that monitor.is_muted returns False when all environments are unmuted."""
         monitor = self.create_monitor()
         env1 = self.create_environment(name="production")
@@ -499,12 +499,12 @@ class MonitorIsMutedPropertyTestCase(TestCase):
         # Verify monitor.is_muted is False
         assert is_monitor_muted(monitor) is False
 
-    def test_is_muted_no_environments(self):
+    def test_is_muted_no_environments(self) -> None:
         """Test that monitor.is_muted returns False when there are no environments."""
         monitor = self.create_monitor()
         assert is_monitor_muted(monitor) is False
 
-    def test_is_muted_single_environment(self):
+    def test_is_muted_single_environment(self) -> None:
         """Test is_muted works correctly with a single environment."""
         # Test with muted environment
         monitor = self.create_monitor()

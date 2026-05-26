@@ -9,14 +9,14 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
+import {getRegionNameChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -24,16 +24,8 @@ import {useApi} from 'sentry/utils/useApi';
 export const DATA_STORAGE_DOCS_LINK =
   'https://docs.sentry.io/product/accounts/choose-your-data-center';
 
-function removeDataStorageLocationFromFormData(
-  formData: Record<string, any>
-): Record<string, any> {
-  const shallowFormDataClone = {...formData};
-  delete shallowFormDataClone.dataStorageLocation;
-  return shallowFormDataClone;
-}
-
-const DataConsentCheck = HookOrDefault({
-  hookName: 'component:data-consent-org-creation-checkbox',
+const DataConsentCheck = OverrideOrDefault({
+  overrideName: 'component:data-consent-org-creation-checkbox',
   defaultComponent: null,
 });
 
@@ -41,12 +33,12 @@ function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const relocationUrl = normalizeUrl(`/relocation/`);
-  const regionChoices = getRegionChoices();
+  const relocationUrl = normalizeUrl('/relocation/');
+  const regionChoices = getRegionNameChoices();
   const client = useApi();
 
   const hasDataConsent =
-    HookStore.get('component:data-consent-org-creation-checkbox').length !== 0;
+    getOverride('component:data-consent-org-creation-checkbox') !== undefined;
 
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host
@@ -56,15 +48,15 @@ function OrganizationCreate() {
       if (!formModel.validateForm()) {
         return;
       }
-      const regionUrl = data.dataStorageLocation;
+      const host = ConfigStore.get('links').sentryUrl;
 
       addLoadingMessage(t('Creating Organization\u2026'));
       formModel.setFormSaving();
 
       client.request('/organizations/', {
         method: 'POST',
-        data: removeDataStorageLocationFromFormData(data),
-        host: regionUrl,
+        data,
+        host,
         success: onSubmitSuccess,
         error: onSubmitError,
       });
@@ -99,7 +91,6 @@ function OrganizationCreate() {
               nextUrl = `${createdOrg.links.organizationUrl}${nextUrl}`;
             }
             // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
-            // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
             testableWindowLocation.assign(nextUrl);
           }}
           onSubmitError={error => {

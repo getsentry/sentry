@@ -13,12 +13,13 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {TransactionsListOption} from 'sentry/views/explore/releases/detail/overview';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
@@ -28,7 +29,6 @@ import {
   TrendParameterLabel,
 } from 'sentry/views/performance/trends/types';
 import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from 'sentry/views/performance/trends/utils';
-import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
 import {ChartControls as LatencyChartControls} from './latencyChart/chartControls';
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
@@ -236,7 +236,7 @@ export function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             projects={project ? [project] : []}
-            withBreakpoint={organization.features.includes('performance-new-trends')}
+            withBreakpoint
           />
         )}
         {display === DisplayModes.VITALS && (

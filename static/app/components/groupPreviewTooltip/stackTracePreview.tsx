@@ -12,6 +12,7 @@ import {
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -79,16 +80,10 @@ export function StackTracePreviewContent({
     | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
-    return (
-      <NativeContent
-        {...commonProps}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hideIcon
-      />
-    );
+    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
-  return <StackTraceContent {...commonProps} expandFirstFrame={false} hideIcon />;
+  return <IssueStackTracePreview event={event} stacktrace={stacktrace} />;
 }
 
 type StackTracePreviewProps = {

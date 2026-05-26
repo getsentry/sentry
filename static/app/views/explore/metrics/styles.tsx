@@ -17,5 +17,4 @@ export const StyledPageFilterBar = styled(PageFilterBar)`
 export const FilterBarWithSaveAsContainer = styled(Flex)`
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${p => p.theme.space.md};
 `;

@@ -4,7 +4,7 @@ import abc
 import logging
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from datetime import datetime, timedelta
 from typing import Any, Optional, TypedDict, TypeVar, cast
 
@@ -38,6 +38,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
@@ -249,9 +250,12 @@ class TraceEvent:
             offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
             for group_id in self.event["occurrence_to_issue_id"][problem.id]:
                 if group_id not in memoized_groups:
-                    memoized_groups[group_id] = Group.objects.get(
-                        id=group_id, project=self.event["project.id"]
-                    )
+                    try:
+                        memoized_groups[group_id] = Group.objects.get(
+                            id=group_id, project=self.event["project.id"]
+                        )
+                    except Group.DoesNotExist:
+                        continue
                 group = memoized_groups[group_id]
                 if event_span.get("span_id") in offender_span_ids:
                     start_timestamp = float(event_span["precise.start_ts"])
@@ -359,7 +363,7 @@ class TraceEvent:
                             control_data=occurrence_ids,
                             experimental_data=eap_occurrence_ids,
                             callsite=callsite,
-                            is_experimental_data_a_null_result=len(eap_occurrence_ids) == 0,
+                            is_experimental_data_nullish=len(eap_occurrence_ids) == 0,
                             reasonable_match_comparator=lambda snuba, eap: {
                                 row["occurrence_id"] for row in eap
                             }.issubset({row["occurrence_id"] for row in snuba}),
@@ -826,7 +830,7 @@ def query_trace_data(
             control_data=transformed_results[1],
             experimental_data=eap_errors,
             callsite=errors_callsite,
-            is_experimental_data_a_null_result=len(eap_errors) == 0,
+            is_experimental_data_nullish=len(eap_errors) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),
@@ -1286,7 +1290,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Event | GroupEvent]:
         event_map = {}
-        with ThreadPoolExecutor(max_workers=20) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
                 executor.submit(
                     eventstore.backend.get_event_by_id, event["project.id"], event["id"]

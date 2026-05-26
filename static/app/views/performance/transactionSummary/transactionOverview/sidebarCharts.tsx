@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -197,7 +197,7 @@ export function SidebarChartsContainer({
       // Link each x-axis together.
       link: [{xAxisIndex: [0, 1]}],
     },
-    xAxes: Array.from(new Array(2)).map((_i, index) => ({
+    xAxes: Array.from(Array.from({length: 2})).map((_i, index) => ({
       gridIndex: index,
       type: 'time',
       show: false,
@@ -218,7 +218,7 @@ export function SidebarChartsContainer({
         gridIndex: 1,
         splitNumber: 4,
         interval: 0.5,
-        max: 1.0,
+        max: 1,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
           color: theme.tokens.content.secondary,

@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -11,8 +11,10 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   openAM2UpsellModal,
@@ -24,8 +26,6 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-
-import {redirectToManage} from './upgradeNowModal/utils';
 
 type ReplayOnboardingCTAUpsellProps = {
   organization: Organization;
@@ -39,6 +39,7 @@ function ReplayOnboardingCTAUpsell({
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   const api = useApi();
+  const navigate = useNavigate();
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${organization.id}:dismiss-replay-update-plan-button`,
     expirationDays: 14,
@@ -55,7 +56,7 @@ function ReplayOnboardingCTAUpsell({
     });
   }, [organization, subscription]);
 
-  const onEmailOwner = useCallback(async () => {
+  const onEmailOwner = async () => {
     await sendReplayOnboardRequest({
       orgSlug: organization.slug,
       api,
@@ -73,7 +74,7 @@ function ReplayOnboardingCTAUpsell({
         });
       },
     });
-  }, [api, organization, subscription, dismiss]);
+  };
 
   const [didClickOpenModal, setDidClickOpenModal] = useState<boolean>();
   const previewData = usePreviewData({
@@ -82,9 +83,9 @@ function ReplayOnboardingCTAUpsell({
     enabled: !subscription.canSelfServe || !hasBillingAccess,
   });
 
-  const handleOpenModal = useCallback(() => {
+  const handleOpenModal = () => {
     setDidClickOpenModal(true);
-  }, []);
+  };
 
   // Once we have 1) previewData, and 2) the user clicked the button; then open the modal
   useEffect(() => {
@@ -94,9 +95,13 @@ function ReplayOnboardingCTAUpsell({
 
     if (previewData.error) {
       if (hasBillingAccess) {
-        // Redirect the user to the subscriptions page, where they will find important information.
-        // If they wish to update their plan, we ask them to contact our sales/support team.
-        redirectToManage(organization);
+        navigate(
+          normalizeUrl({
+            pathname: `/checkout/${organization.slug}/`,
+            query: {referrer: 'replay_onboarding_cta-preview_error'},
+          }),
+          {replace: true}
+        );
       }
       return;
     }
@@ -141,12 +146,13 @@ function ReplayOnboardingCTAUpsell({
     didClickOpenModal,
     hasBillingAccess,
     isDismissed,
+    navigate,
     organization,
     previewData,
     subscription,
   ]);
 
-  const onClickManageSubscription = useCallback(() => {
+  const onClickManageSubscription = () => {
     trackGetsentryAnalytics('replay.list_page.manage_sub', {
       organization,
       surface: 'replay_onboarding_banner',
@@ -155,7 +161,7 @@ function ReplayOnboardingCTAUpsell({
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
     });
-  }, [organization, subscription]);
+  };
 
   if (!subscription.canSelfServe) {
     // Two cases:
@@ -178,7 +184,7 @@ function ReplayOnboardingCTAUpsell({
           <LinkButton
             to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard-managed-cta`}
             onClick={onClickManageSubscription}
-            priority="primary"
+            variant="primary"
           >
             {t('Manage Subscription')}
           </LinkButton>
@@ -206,12 +212,12 @@ function ReplayOnboardingCTAUpsell({
             <LinkButton
               to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`}
               onClick={onClickManageSubscription}
-              priority="primary"
+              variant="primary"
             >
               {t('Manage Subscription')}
             </LinkButton>
           ) : (
-            <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
+            <Button disabled={isDismissed} onClick={onEmailOwner} variant="primary">
               {t('Request to Update Plan')}
             </Button>
           )}
@@ -239,13 +245,13 @@ function ReplayOnboardingCTAUpsell({
         {hasBillingAccess ? (
           <Button
             onClick={handleOpenModal}
-            priority="primary"
+            variant="primary"
             disabled={didClickOpenModal && previewData.loading}
           >
             {t('Set Up Replays')}
           </Button>
         ) : (
-          <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
+          <Button disabled={isDismissed} onClick={onEmailOwner} variant="primary">
             {t('Notify Owner')}
           </Button>
         )}

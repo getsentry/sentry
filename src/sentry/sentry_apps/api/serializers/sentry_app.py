@@ -47,6 +47,7 @@ class SentryAppSerializerResponse(TypedDict):
     verifyInstall: bool
 
     # Optional fields
+    isDisabled: NotRequired[bool]
     author: NotRequired[str | None]
     overview: NotRequired[str | None]
     popularity: NotRequired[int | None]
@@ -131,6 +132,7 @@ class SentryAppSerializer(Serializer):
             events=consolidate_events(obj.events),
             featureData=[],
             isAlertable=obj.is_alertable,
+            isDisabled=obj.is_disabled,
             metadata=obj.metadata,
             name=obj.name,
             overview=obj.overview,

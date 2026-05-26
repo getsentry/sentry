@@ -31,9 +31,7 @@ import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,
@@ -52,22 +50,26 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {toPercent} from 'sentry/utils/number/toPercent';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
 import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
-import {NUMBER_MAX_FRACTION_DIGITS} from 'sentry/views/dashboards/widgets/common/settings';
+import {NUMBER_MIN_VALUE} from 'sentry/views/dashboards/widgets/common/settings';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ADOPTION_STAGE_LABELS} from 'sentry/views/explore/releases/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -76,6 +78,7 @@ import {SpanDescriptionCell} from 'sentry/views/insights/common/components/table
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
@@ -83,8 +86,6 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {ArrayValue} from './arrayValue';
 import {
@@ -107,6 +108,7 @@ import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamK
  */
 export type RenderFunctionBaggage = {
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   theme: Theme;
   /**
@@ -190,6 +192,26 @@ export function nullableValue(value: string | null): string | React.ReactElement
     default:
       return value;
   }
+}
+
+/**
+ * Renders navigable URLs as external links.
+ * Invalid/template URLs render as plain text without an anchor tag.
+ */
+export function renderUrlCellValue(value: unknown): React.ReactNode {
+  if (value === null || value === undefined) {
+    return emptyValue;
+  }
+
+  if (typeof value !== 'string') {
+    return typeof value === 'number' || typeof value === 'boolean' ? value : emptyValue;
+  }
+
+  if (!isValidUrl(value)) {
+    return nullableValue(value);
+  }
+
+  return <ExternalLink href={value}>{value}</ExternalLink>;
 }
 
 // TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
@@ -303,18 +325,21 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   number: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number'
-          ? formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
-              undefined,
-              {
-                maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
-              }
-            )
-          : emptyValue}
-      </NumberContainer>
-    ),
+    renderFunc: (field, data) => {
+      if (typeof data[field] !== 'number') {
+        return <NumberContainer>{emptyValue}</NumberContainer>;
+      }
+      if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
+        return (
+          <NumberContainer>
+            <Tooltip title={formatTooltipValue(data[field], 'number')}>
+              <span>{`<${NUMBER_MIN_VALUE}`}</span>
+            </Tooltip>
+          </NumberContainer>
+        );
+      }
+      return <NumberContainer>{formatNumber(data[field])}</NumberContainer>;
+    },
   },
   percentage: {
     isSortable: true,
@@ -351,32 +376,23 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
-        ? data[field].slice(-1)
+        ? (data[field].at(-1) ?? emptyValue)
         : defined(data[field])
           ? data[field]
           : emptyValue;
 
-      if (isUrl(value)) {
-        return (
-          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>
-              <ExternalLink href={value} data-test-id="group-tag-url">
-                {value}
-              </ExternalLink>
-            </Container>
-          </Tooltip>
-        );
-      }
-
-      if (value && typeof value === 'string') {
-        return (
-          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>{nullableValue(value)}</Container>
-          </Tooltip>
-        );
-      }
-
-      return <Container>{nullableValue(value)}</Container>;
+      return (
+        <Tooltip
+          title={value}
+          showOnlyOnOverflow
+          containerDisplayMode="block"
+          disabled={typeof value !== 'string'}
+        >
+          <Container>
+            <span data-test-id="group-tag-url">{renderUrlCellValue(value)}</span>
+          </Container>
+        </Tooltip>
+      );
     },
   },
   array: {
@@ -423,6 +439,27 @@ const RightAlignedContainer = styled('span')`
   display: block;
   text-align: right;
 `;
+
+function renderAIOutputMessages(rawOutputMessages: unknown) {
+  if (!rawOutputMessages) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const raw =
+    typeof rawOutputMessages === 'string'
+      ? rawOutputMessages
+      : JSON.stringify(rawOutputMessages);
+  if (!raw) {
+    return <Container>{emptyValue}</Container>;
+  }
+
+  const {responseText, responseObject, toolCalls} = extractAssistantOutput(raw, {
+    defaultRole: 'assistant',
+  });
+  const output = responseText ?? responseObject ?? toolCalls ?? raw;
+
+  return <Container>{output}</Container>;
+}
 
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
@@ -560,13 +597,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           showOnlyOnOverflow
           maxWidth={400}
         >
-          <Container>
-            {isUrl(value) ? (
-              <ExternalLink href={value}>{value}</ExternalLink>
-            ) : (
-              nullableValue(value)
-            )}
-          </Container>
+          <Container>{renderUrlCellValue(value)}</Container>
         </Tooltip>
       );
     },
@@ -681,8 +712,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
-      let slugs: string[] | undefined = undefined;
-      let projectIds: number[] | undefined = undefined;
+      let slugs: string[] | undefined;
+      let projectIds: number[] | undefined;
       if (typeof data.project === 'number') {
         projectIds = [data.project];
       } else {
@@ -1045,6 +1076,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return <ModelName modelId={data[SpanFields.GEN_AI_RESPONSE_MODEL]} />;
     },
   },
+  [SpanFields.GEN_AI_OUTPUT_MESSAGES]: {
+    sortField: SpanFields.GEN_AI_OUTPUT_MESSAGES,
+    renderFunc: data => renderAIOutputMessages(data[SpanFields.GEN_AI_OUTPUT_MESSAGES]),
+  },
 };
 
 /**
@@ -1066,7 +1101,9 @@ const getContextIcon = (value: string) => {
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  if (valueArray.length > 1) valueArray.pop();
+  if (valueArray.length > 1) {
+    valueArray.pop();
+  }
   return valueArray.join(' ');
 };
 
@@ -1190,7 +1227,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       <TimeSpentCell
         percentage={data[fieldName]}
         total={data[`sum(${column})`]}
-        op={data[`span.op`]}
+        op={data['span.op']}
       />
     );
   },
@@ -1239,7 +1276,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView, theme}: RenderFunctionBaggage,
+  {location, navigate, organization, eventView, theme}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};
@@ -1318,7 +1355,7 @@ export const spanOperationRelativeBreakdownRenderer = (
                     action: filter,
                     organization,
                   });
-                  browserHistory.push({
+                  navigate({
                     pathname: location.pathname,
                     query: {
                       ...location.query,
@@ -1391,8 +1428,8 @@ export function getFieldRenderer(
   field: string,
   meta: MetaType,
   isAlias = true,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   const baseRenderer = getFieldRendererBase(field, meta, isAlias);
   return wrapFieldRendererInDashboardLink(baseRenderer, field, widget, dashboardFilters);
@@ -1411,14 +1448,14 @@ function getFieldRendererBase(
   meta: MetaType,
   isAlias = true
 ): FieldFormatterRenderFunctionPartial {
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 
   if (isEquation(field)) {
     const strippedField = stripEquationPrefix(field);
-    if (SPECIAL_FIELDS.hasOwnProperty(strippedField)) {
+    if (Object.hasOwn(SPECIAL_FIELDS, strippedField)) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const specialRenderer = SPECIAL_FIELDS[strippedField].renderFunc;
       return (data: EventData, baggage: RenderFunctionBaggage) =>
@@ -1440,7 +1477,7 @@ function getFieldRendererBase(
     }
   }
 
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+  if (Object.hasOwn(FIELD_FORMATTERS, fieldType)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
@@ -1451,8 +1488,8 @@ function getFieldRendererBase(
 function wrapFieldRendererInDashboardLink(
   renderer: FieldFormatterRenderFunctionPartial,
   field: string,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   return function (data, baggage) {
     const dashboardUrl = getDashboardUrl(data, field, baggage, widget, dashboardFilters);
@@ -1467,17 +1504,17 @@ function getDashboardUrl(
   data: EventData,
   field: string,
   baggage: RenderFunctionBaggage,
-  widget: Widget | undefined = undefined,
-  dashboardFilters: DashboardFilters | undefined = undefined
+  widget?: Widget,
+  dashboardFilters?: DashboardFilters
 ) {
   const {organization, location, projects} = baggage;
   if (!widget?.widgetType || !dashboardFilters) {
-    return undefined;
+    return;
   }
 
   const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
   if (!linkedDashboard) {
-    return undefined;
+    return;
   }
 
   // Get project ID override from data if available

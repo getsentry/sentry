@@ -53,8 +53,6 @@ describe('IntegrationListDirectory', () => {
       render(<IntegrationListDirectory />, {
         organization,
       });
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
 
       [
@@ -72,8 +70,6 @@ describe('IntegrationListDirectory', () => {
       render(<IntegrationListDirectory />, {
         organization,
       });
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
       expect(screen.queryByText('GitHub (Legacy)')).not.toBeInTheDocument();
     });
@@ -82,16 +78,12 @@ describe('IntegrationListDirectory', () => {
       render(<IntegrationListDirectory />, {
         organization,
       });
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
       expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
     });
 
     it('shows integrations that match the search query', async () => {
       render(<IntegrationListDirectory />, {organization});
-      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-      expect(screen.getByText('PagerDuty (Legacy)')).toBeInTheDocument();
+      expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
 
       await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'it');
       await userEvent.keyboard('{enter}');

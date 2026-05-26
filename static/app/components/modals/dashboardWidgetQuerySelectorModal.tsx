@@ -23,7 +23,6 @@ export type DashboardWidgetQuerySelectorModalOptions = {
   dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   widget: Widget;
-  isMetricsData?: boolean;
 };
 
 type Props = ModalRenderProps &
@@ -34,8 +33,7 @@ type Props = ModalRenderProps &
   };
 
 function DashboardWidgetQuerySelectorModal(props: Props) {
-  const {organization, widget, selection, isMetricsData, Body, Header, dashboardFilters} =
-    props;
+  const {organization, widget, selection, Body, Header, dashboardFilters} = props;
 
   const renderQueries = () => {
     const querySearchBars = widget.queries.map((query, index) => {
@@ -46,9 +44,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
         },
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       return (
         <Fragment key={index}>
@@ -61,7 +57,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
             </Container>
             <Link to={discoverLocation}>
               <OpenInDiscoverButton
-                priority="primary"
+                variant="primary"
                 icon={<IconChevron size="xs" direction="right" />}
                 onClick={() => {
                   trackAnalytics('dashboards_views.query_selector.selected', {
@@ -112,7 +108,6 @@ const OpenInDiscoverButton = styled(Button)`
 
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.tokens.background.secondary};
   padding: 7px ${p => p.theme.space.md};
   position: relative;

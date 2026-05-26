@@ -27,7 +27,6 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
-import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import {OrganizationSettingsForm} from './organizationSettingsForm';
 
@@ -36,7 +35,6 @@ export default function OrganizationGeneralSettings() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
-
   const removeConfirmMessage = (
     <Fragment>
       <TextBlock>
@@ -103,18 +101,11 @@ export default function OrganizationGeneralSettings() {
     });
   };
 
-  const organizationRegionInfo = OrganizationRegionAction({
-    organization,
-  });
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader
-          title={t('Organization Settings')}
-          action={organizationRegionInfo}
-        />
+        <SettingsPageHeader title={t('Organization Settings')} />
         <OrganizationPermissionAlert />
 
         <OrganizationSettingsForm
@@ -141,7 +132,7 @@ export default function OrganizationGeneralSettings() {
                   message={removeConfirmMessage}
                   onConfirm={handleConfirmRemoveOrg}
                 >
-                  <Button priority="danger">{t('Remove Organization')}</Button>
+                  <Button variant="danger">{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
             </FieldGroup>

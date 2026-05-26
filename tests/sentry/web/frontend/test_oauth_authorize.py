@@ -1,12 +1,14 @@
+import time
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.web.frontend.oauth_authorize import OAUTH_AUTHORIZE_SESSION_TTL
 
 
 @control_silo_test
@@ -86,7 +88,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == "https://example.com/"
@@ -110,7 +112,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "deny"})
+        resp = self.client.post(self.path, {"op": "deny", "tx_id": resp.context["tx_id"]})
 
         assert resp.status_code == 302
         assert resp["Location"] == "https://example.com/?error=access_denied"
@@ -130,7 +132,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == "https://example.com/"
@@ -207,7 +209,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         authorization = ApiAuthorization.objects.get(id=authorization.id)
         assert sorted(authorization.get_scopes()) == ["org:read", "org:write"]
@@ -229,6 +231,22 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Read, write, and admin access to organization members."
         ]
 
+    def test_org_ci_scope_has_its_own_permission_description(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read org:ci"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+        assert resp.context["scopes"] == ["org:read", "org:ci"]
+        assert resp.context["permissions"] == [
+            "Read access to organization details.",
+            "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ]
+
     def test_unauthenticated_basic_auth(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 
@@ -239,7 +257,13 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert resp.context["banner"] == f"Connect Sentry to {self.application.name}"
 
         resp = self.client.post(
-            full_path, {"username": self.user.username, "password": "admin", "op": "login"}
+            full_path,
+            {
+                "username": self.user.username,
+                "password": "admin",
+                "op": "login",
+                "tx_id": resp.context["tx_id"],
+            },
         )
         self.assertRedirects(resp, full_path)
 
@@ -247,7 +271,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(full_path, {"op": "approve"})
+        resp = self.client.post(full_path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == "https://example.com/"
@@ -259,6 +283,105 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
+
+    def test_get_prunes_stale_oa2_session_entries(self) -> None:
+        self.login_as(self.user)
+
+        self.session["oa2:stale_tx"] = {
+            "tx": "stale_tx",
+            "ts": time.time() - OAUTH_AUTHORIZE_SESSION_TTL - 1,
+        }
+        self.save_session()
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        assert "oa2:stale_tx" not in self.client.session
+
+    def test_get_keeps_recent_oa2_session_entries(self) -> None:
+        self.login_as(self.user)
+
+        self.session["oa2:recent_tx"] = {"tx": "recent_tx", "ts": time.time() - 5}
+        self.save_session()
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        assert "oa2:recent_tx" in self.client.session
+
+    def test_get_does_not_touch_device_flow_session_entries(self) -> None:
+        self.login_as(self.user)
+
+        # oauth_device.py shares the "oa2:" prefix with a different payload shape
+        # (no "tx" marker); those entries must not be swept.
+        self.session["oa2:ABCD-1234"] = {"device_code_id": 42, "user_id": self.user.id}
+        self.save_session()
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        assert "oa2:ABCD-1234" in self.client.session
+
+    def test_post_clears_session_entry_when_application_deactivated(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+        assert resp.status_code == 200
+        tx_id = resp.context["tx_id"]
+        assert f"oa2:{tx_id}" in self.client.session
+
+        self.application.status = ApiApplicationStatus.inactive
+        self.application.save()
+
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": tx_id})
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert f"oa2:{tx_id}" not in self.client.session
+
+    def test_auto_approve_does_not_persist_session_entry(self) -> None:
+        self.login_as(self.user)
+        ApiAuthorization.objects.create(user=self.user, application=self.application)
+
+        before = {k for k in self.client.session.keys() if k.startswith("oa2:")}
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+        assert resp.status_code == 302
+        assert "code=" in resp["Location"]
+
+        after = {k for k in self.client.session.keys() if k.startswith("oa2:")}
+        assert after == before
+
+    def test_post_clears_session_entry_after_unauthenticated_login(self) -> None:
+        full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
+
+        resp = self.client.get(full_path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/login.html")
+        tx_id = resp.context["tx_id"]
+
+        resp = self.client.post(
+            full_path,
+            {
+                "username": self.user.username,
+                "password": "admin",
+                "op": "login",
+                "tx_id": tx_id,
+            },
+        )
+        self.assertRedirects(resp, full_path)
+
+        assert f"oa2:{tx_id}" not in self.client.session
 
 
 @control_silo_test
@@ -327,7 +450,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         assert not ApiGrant.objects.filter(user=self.user).exists()
 
@@ -359,7 +482,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "deny"})
+        resp = self.client.post(self.path, {"op": "deny", "tx_id": resp.context["tx_id"]})
 
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
@@ -415,7 +538,12 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         assert resp.context["application"] == self.application
 
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
 
         grant = ApiGrant.objects.get(user=self.owner)
@@ -467,7 +595,12 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         assert resp.context["application"] == self.application
 
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
 
         grant = ApiGrant.objects.get(user=self.owner)
@@ -486,7 +619,12 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
         same_api_auth = ApiAuthorization.objects.get(user=self.owner, application=self.application)
         assert api_auth.id == same_api_auth.id
@@ -501,7 +639,12 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.another_organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.another_organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
         another_api_auth = ApiAuthorization.objects.get(
             user=self.owner,
@@ -559,7 +702,12 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
         assert resp.context["application"] == self.application
 
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
 
         grant = ApiGrant.objects.get(user=self.owner)
@@ -612,7 +760,12 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
         assert resp.context["application"] == self.application
 
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
 
         grant = ApiGrant.objects.get(user=self.owner)
@@ -633,7 +786,12 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
         same_api_auth = ApiAuthorization.objects.get(user=self.owner, application=self.application)
         assert api_auth.id == same_api_auth.id
@@ -648,7 +806,12 @@ class OAuthAuthorizeOrgScopedCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.another_organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.another_organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
         another_api_auth = ApiAuthorization.objects.get(
             user=self.owner,
@@ -707,7 +870,12 @@ class OAuthAuthorizeOrgScopedCustomSchemeStrictTest(TestCase):
         assert resp.context["application"] == self.application
 
         resp = self.client.post(
-            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+            self.path,
+            {
+                "op": "approve",
+                "selected_organization_id": self.organization.id,
+                "tx_id": resp.context["tx_id"],
+            },
         )
 
         grant = ApiGrant.objects.get(user=self.owner)
@@ -781,7 +949,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.custom_uri
@@ -801,7 +969,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         )
 
         assert resp.status_code == 200
-        resp = self.client.post(self.path, {"op": "deny"})
+        resp = self.client.post(self.path, {"op": "deny", "tx_id": resp.context["tx_id"]})
 
         assert resp.status_code == 302
         assert resp["Location"].startswith("sentry-apple://")
@@ -821,7 +989,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         token = ApiToken.objects.get(user=self.user)
         assert token.application == self.application
@@ -841,7 +1009,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         )
 
         assert resp.status_code == 200
-        resp = self.client.post(self.path, {"op": "deny"})
+        resp = self.client.post(self.path, {"op": "deny", "tx_id": resp.context["tx_id"]})
 
         assert resp.status_code == 302
         assert resp["Location"].startswith("sentry-apple://")
@@ -860,7 +1028,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         )
 
         assert resp.status_code == 200
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert resp.status_code == 302
@@ -880,7 +1048,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.custom_uri
@@ -941,7 +1109,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         authorization = ApiAuthorization.objects.get(id=authorization.id)
         assert sorted(authorization.get_scopes()) == ["org:read", "org:write"]
@@ -975,7 +1143,13 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         assert resp.context["banner"] == f"Connect Sentry to {self.application.name}"
 
         resp = self.client.post(
-            full_path, {"username": self.user.username, "password": "admin", "op": "login"}
+            full_path,
+            {
+                "username": self.user.username,
+                "password": "admin",
+                "op": "login",
+                "tx_id": resp.context["tx_id"],
+            },
         )
         self.assertRedirects(resp, full_path)
 
@@ -983,7 +1157,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(full_path, {"op": "approve"})
+        resp = self.client.post(full_path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.custom_uri
@@ -1020,7 +1194,7 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         token = ApiToken.objects.get(user=self.user)
         assert token.application == self.application
@@ -1142,7 +1316,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.custom_uri
@@ -1179,7 +1353,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         token = ApiToken.objects.get(user=self.user)
         assert token.application == self.application
@@ -1199,7 +1373,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         )
 
         assert resp.status_code == 200
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert resp.status_code == 302
@@ -1219,7 +1393,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-authorize.html")
         assert resp.context["application"] == self.application
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.custom_uri
@@ -1240,7 +1414,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         )
 
         assert resp.status_code == 200
-        resp = self.client.post(self.path, {"op": "deny"})
+        resp = self.client.post(self.path, {"op": "deny", "tx_id": resp.context["tx_id"]})
 
         assert resp.status_code == 302
         assert resp["Location"].startswith("sentry-apple://")
@@ -1257,7 +1431,7 @@ class OAuthAuthorizeCustomSchemeStrictTest(TestCase):
         )
 
         assert resp.status_code == 200
-        resp = self.client.post(self.path, {"op": "deny"})
+        resp = self.client.post(self.path, {"op": "deny", "tx_id": resp.context["tx_id"]})
 
         assert resp.status_code == 302
         assert resp["Location"].startswith("sentry-apple://")
@@ -1342,7 +1516,7 @@ class OAuthAuthorizePKCETest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/oauth-authorize.html")
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.code_challenge == code_challenge
@@ -1421,7 +1595,7 @@ class OAuthAuthorizePKCETest(TestCase):
 
         assert resp.status_code == 200
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.code_challenge is None
@@ -1485,7 +1659,7 @@ class OAuthAuthorizePKCETest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/oauth-authorize.html")
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         # Method without challenge should be ignored (set to None)
@@ -1664,7 +1838,7 @@ class OAuthAuthorizeSecurityTest(TestCase):
         assert resp.status_code == 200
 
         # POST approval without selecting an organization
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         # Should succeed (organization validation not performed)
         assert resp.status_code == 302
@@ -1697,7 +1871,7 @@ class OAuthAuthorizeSecurityTest(TestCase):
         )
         assert resp.status_code == 200
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
         assert resp.status_code == 302
 
         location = resp["Location"]
@@ -1722,7 +1896,7 @@ class OAuthAuthorizeSecurityTest(TestCase):
         )
         assert resp.status_code == 200
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
         assert resp.status_code == 302
 
         location = resp["Location"]
@@ -1763,7 +1937,7 @@ class OAuthAuthorizeReplayDebuggerCustomSchemeTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/oauth-authorize.html")
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.custom_uri
@@ -1782,7 +1956,7 @@ class OAuthAuthorizeReplayDebuggerCustomSchemeTest(TestCase):
 
         assert resp.status_code == 200
 
-        resp = self.client.post(self.path, {"op": "approve"})
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": resp.context["tx_id"]})
 
         token = ApiToken.objects.get(user=self.user)
         assert token.application == self.application

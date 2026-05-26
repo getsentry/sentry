@@ -20,7 +20,7 @@ export const extrapolatedAreaStyle = {
     rotation: 0.785,
     scaleX: 0.5,
   },
-  opacity: 1.0,
+  opacity: 1,
 };
 
 export function OnDemandWarningIcon({
@@ -61,7 +61,7 @@ export function OnDemandMetricAlert({
         {dismissable && (
           <Button
             size="sm"
-            priority="transparent"
+            variant="transparent"
             icon={<IconClose />}
             aria-label={t('Close Alert')}
             onClick={dismiss}

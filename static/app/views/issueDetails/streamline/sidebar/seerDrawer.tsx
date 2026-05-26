@@ -1,32 +1,17 @@
-import {useCallback} from 'react';
-import {css} from '@emotion/react';
+import {useCallback, useRef} from 'react';
 
-import {SeerDrawer as LegacySeerDrawer} from 'sentry/components/events/autofix/v1/drawer';
-import {SeerDrawer as ExplorerSeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
+import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-interface SeerDrawerProps {
-  event: Event;
-  group: Group;
-  project: Project;
-}
-
-export function SeerDrawer({group, project, event}: SeerDrawerProps) {
-  const organization = useOrganization();
-
-  if (organization.features.includes('autofix-on-explorer')) {
-    return <ExplorerSeerDrawer group={group} project={project} />;
-  }
-
-  return <LegacySeerDrawer event={event} group={group} project={project} />;
-}
+export {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 
 export const useOpenSeerDrawer = ({
   group,
@@ -41,6 +26,8 @@ export const useOpenSeerDrawer = ({
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
+  const locationRef = useRef(location); // prevents stale location in onClose
+  locationRef.current = location; // sync on every render
   const organization = useOrganization();
 
   const openSeerDrawer = useCallback(() => {
@@ -52,23 +39,27 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
-    openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
+    const issueBaseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/issues/${group.id}/`
+    );
+
+    openDrawer(() => <SeerDrawer group={group} project={project} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
       resizable: true,
-      shouldCloseOnInteractOutside: () => {
-        return false;
+      mode: 'passive',
+      shouldCloseOnLocationChange: nextLocation => {
+        const nextPath = nextLocation.pathname.endsWith('/')
+          ? nextLocation.pathname
+          : `${nextLocation.pathname}/`;
+        return !nextPath.startsWith(issueBaseUrl);
       },
       onClose: () => {
         navigate(
           {
-            pathname: location.pathname,
+            pathname: locationRef.current.pathname,
             query: {
-              ...location.query,
+              ...locationRef.current.query,
               seerDrawer: undefined,
             },
           },
@@ -76,7 +67,17 @@ export const useOpenSeerDrawer = ({
         );
       },
     });
-  }, [openDrawer, event, group, project, location, navigate, organization]);
+
+    if (locationRef.current.query.seerDrawer !== 'true') {
+      navigate({
+        pathname: locationRef.current.pathname,
+        query: {
+          ...locationRef.current.query,
+          seerDrawer: true,
+        },
+      });
+    }
+  }, [openDrawer, event, group, project, navigate, organization]);
 
   return {openSeerDrawer};
 };

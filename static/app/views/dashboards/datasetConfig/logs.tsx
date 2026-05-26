@@ -39,7 +39,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -62,7 +62,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
   (x: {value: AggregationKey}) => x.value
 ).reduce(
-  (acc: Record<AggregationKey, Aggregation>, aggregate: AggregationKey) => {
+  (acc, aggregate) => {
     if (aggregate === AggregationKey.COUNT) {
       acc[AggregationKey.COUNT] = {
         isSortable: true,

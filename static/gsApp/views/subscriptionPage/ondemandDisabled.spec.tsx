@@ -95,7 +95,7 @@ describe('OnDemandDisabled', () => {
       screen.getByRole('link', {name: 'Learn more about this process'})
     ).toHaveAttribute(
       'href',
-      'https://sentry.zendesk.com/hc/en-us/articles/23622477256987-We-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract-What-happens'
+      'https://www.sentry.help/en/articles/13964796-what-can-we-do-if-we-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract'
     );
   });
 });

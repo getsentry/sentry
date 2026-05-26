@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function ArrayValue(props: Props) {
-  const [expanded, setExpanded] = useState<boolean>(false);
+  const [expanded, setExpanded] = useState(false);
   const {value} = props;
 
   const handleToggle = () => {

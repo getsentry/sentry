@@ -9,22 +9,6 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
 
-export function getErrorCellIssuesLink({
-  projectId,
-  query,
-}: {
-  projectId: number | string;
-  query: string;
-}) {
-  return {
-    pathname: '/issues/',
-    query: {
-      project: projectId,
-      query: `is:unresolved event.type:error ${query}`,
-    },
-  };
-}
-
 export function ErrorRateCell({
   errorRate,
   issuesLink,

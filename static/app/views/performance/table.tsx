@@ -4,13 +4,13 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
@@ -19,11 +19,9 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -31,6 +29,7 @@ import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSett
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -128,11 +127,14 @@ export function Table({
   eventView,
   theme,
 }: Props) {
+  const {openModal} = useModal();
+
   const [widths, setWidths] = useState<number[]>([]);
   const [transactionData, setTransactionData] = useState<TransactionData>();
   const [tableMetricSet, setTableMetricSet] = useState(false);
   const unparameterizedMetricProject = useRef<{project?: Project | undefined}>(undefined);
 
+  const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
   useEffect(() => {
@@ -238,7 +240,7 @@ export function Table({
 
       updateQuery(searchConditions, action, column, value);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -265,6 +267,7 @@ export function Table({
     const rendered = fieldRenderer(dataRow, {
       organization,
       location,
+      navigate,
       theme,
       unit: tableMeta.units?.[column.key],
     });
@@ -292,7 +295,7 @@ export function Table({
           dataRow['http.method'] as string,
         ]);
       }
-      if (dataRow.hasOwnProperty('transaction.op')) {
+      if (Object.hasOwn(dataRow, 'transaction.op')) {
         existingQuery.removeFilter('!transaction.op');
         existingQuery.removeFilter('transaction.op');
         if (dataRow['transaction.op']) {
@@ -337,7 +340,7 @@ export function Table({
           <Link
             to={target}
             onClick={handleSummaryClick}
-            style={{display: `block`, width: `100%`}}
+            style={{display: 'block', width: '100%'}}
           >
             {rendered}
           </Link>
@@ -599,7 +602,7 @@ export function Table({
               referrer="api.insights.landing-table"
               transactionName={transactionData?.name}
               transactionThreshold={transactionData?.threshold}
-              queryExtras={getMEPQueryParams(value)}
+              queryExtras={value ? getMEPQueryParams(value) : undefined}
             >
               {({pageLinks, isLoading, tableData}) => (
                 <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>

@@ -4,6 +4,7 @@ import type {Location, Query} from 'history';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -11,17 +12,17 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
-import {Pagination} from 'sentry/components/pagination';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -34,7 +35,7 @@ import {
   handleUpdateHomepageQuery,
 } from './savedQuery/utils';
 import MiniGraph from './miniGraph';
-import QueryCard from './querycard';
+import {QueryCard} from './querycard';
 import {
   getPrebuiltQueries,
   handleAddQueryToDashboard,
@@ -44,6 +45,7 @@ import {
 type Props = {
   api: Client;
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   pageLinks: string;
   refetchSavedQueries: () => void;
@@ -62,12 +64,13 @@ class QueryList extends Component<Props> {
   }
 
   handleDeleteQuery = (eventView: EventView) => {
-    const {api, organization, location, savedQueries, refetchSavedQueries} = this.props;
+    const {api, navigate, organization, location, savedQueries, refetchSavedQueries} =
+      this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       refetchSavedQueries();
       if (savedQueries.length === 1 && location.query.cursor) {
-        browserHistory.push({
+        navigate({
           pathname: location.pathname,
           query: {...location.query, cursor: undefined},
         });
@@ -76,14 +79,14 @@ class QueryList extends Component<Props> {
   };
 
   handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    const {api, location, organization, refetchSavedQueries} = this.props;
+    const {api, navigate, location, organization, refetchSavedQueries} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
       refetchSavedQueries();
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {},
       });
@@ -102,7 +105,7 @@ class QueryList extends Component<Props> {
     }
     cards = cards.concat(this.renderSavedQueries());
 
-    if (cards.filter(x => x).length === 0) {
+    if (cards.filter(Boolean).length === 0) {
       return (
         <StyledEmptyStateWarning>
           <p>{t('No saved queries match that filter')}</p>
@@ -122,7 +125,7 @@ class QueryList extends Component<Props> {
             {...triggerProps}
             aria-label={t('Query actions')}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -148,7 +151,7 @@ class QueryList extends Component<Props> {
     const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
-      const newQuery = getSavedQueryWithDataset(view) as NewQuery;
+      const newQuery = getSavedQueryWithDataset(view)!;
       const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
       // if a search is performed on the list of queries, we filter
@@ -256,7 +259,7 @@ class QueryList extends Component<Props> {
     }
 
     return savedQueries.map((query, index) => {
-      const savedQuery = getSavedQueryWithDataset(query) as SavedQuery;
+      const savedQuery = getSavedQueryWithDataset(query)!;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
@@ -372,7 +375,7 @@ class QueryList extends Component<Props> {
               delete newQuery.cursor;
             }
 
-            browserHistory.push({
+            this.props.navigate({
               pathname: path,
               query: newQuery,
             });
@@ -409,4 +412,9 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
 `;
 
-export default withApi(QueryList);
+function QueryListWithNavigate(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <QueryList {...props} navigate={navigate} />;
+}
+
+export default withApi(QueryListWithNavigate);

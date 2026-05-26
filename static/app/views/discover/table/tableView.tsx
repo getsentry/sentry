@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
@@ -20,7 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
@@ -48,16 +49,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   getExpandedResults,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
@@ -104,11 +104,13 @@ type TableViewProps = {
  * object. The new EventView object is pushed to the location object.
  */
 export function TableView(props: TableViewProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const navigate = useNavigate();
   const {projects} = useProjects();
-  const routes = useRoutes();
-  const replayLinkGenerator = generateReplayLink(routes);
+  const matches = useMatches();
+  const replayLinkGenerator = generateReplayLink(matches);
 
   function _renderPrependColumns(
     isHeader: boolean,
@@ -139,7 +141,7 @@ export function TableView(props: TableViewProps) {
               title={t('event id')}
               direction={undefined}
               canSort={false}
-              generateSortLink={() => undefined}
+              generateSortLink={() => {}}
             />
           </PrependHeader>,
         ];
@@ -179,7 +181,7 @@ export function TableView(props: TableViewProps) {
 
       if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
-        value = fieldRenderer(dataRow, {organization, location, theme});
+        value = fieldRenderer(dataRow, {navigate, organization, location, theme});
       }
 
       let target: any;
@@ -310,7 +312,7 @@ export function TableView(props: TableViewProps) {
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     const unit = tableData.meta.units?.[columnKey];
-    let cell = fieldRenderer(dataRow, {organization, location, unit, theme});
+    let cell = fieldRenderer(dataRow, {navigate, organization, location, unit, theme});
 
     const isTransactionsDataset =
       hasDatasetSelector(organization) &&

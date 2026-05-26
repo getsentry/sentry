@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -12,7 +11,9 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -22,7 +23,6 @@ import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import type {Reservations} from './types';
-import {redirectToManage} from './utils';
 
 type Props = {
   organization: Organization;
@@ -46,8 +46,9 @@ export function ActionButtons({
   surface,
 }: Props) {
   const api = useApi();
+  const navigate = useNavigate();
 
-  const onUpdatePlan = useCallback(async () => {
+  const onUpdatePlan = async () => {
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
@@ -80,20 +81,17 @@ export function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'replay_upgrade_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
     }
-  }, [
-    api,
-    onComplete,
-    organization,
-    plan,
-    previewData.billedAmount,
-    reservations,
-    subscription,
-    surface,
-  ]);
+  };
 
-  const onEmailOwner = useCallback(async () => {
+  const onEmailOwner = async () => {
     const currentPlanName =
       subscription.planTier === PlanTier.AM2 ? 'am2-non-beta' : 'am1-non-beta';
 
@@ -114,12 +112,18 @@ export function ActionButtons({
         });
       },
       onError: () => {
-        redirectToManage(organization);
+        navigate(
+          normalizeUrl({
+            pathname: `/checkout/${organization.slug}/`,
+            query: {referrer: 'replay_upgrade_modal-email_owner-error'},
+          }),
+          {replace: true}
+        );
       },
     });
-  }, [api, organization, subscription, surface, onComplete]);
+  };
 
-  const onClickManageSubscription = useCallback(() => {
+  const onClickManageSubscription = () => {
     trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
       organization,
       surface,
@@ -128,14 +132,14 @@ export function ActionButtons({
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
     });
-  }, [organization, subscription, surface]);
+  };
 
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   return hasBillingAccess ? (
     <ButtonRow>
       <Button
-        priority="primary"
+        variant="primary"
         onClick={onUpdatePlan}
         disabled={isActionDisabled === true}
       >
@@ -151,7 +155,7 @@ export function ActionButtons({
   ) : (
     <ButtonRow>
       <Button
-        priority="primary"
+        variant="primary"
         tooltipProps={{
           title: t(
             'Notify an owner by email to update to the latest version of your plan'

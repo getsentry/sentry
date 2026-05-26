@@ -580,8 +580,8 @@ export default Storybook.story('SearchQueryBuilder', story => {
   });
 
   story('Callbacks', () => {
-    const [onChangeValue, setOnChangeValue] = useState<string>('');
-    const [onSearchValue, setOnSearchValue] = useState<string>('');
+    const [onChangeValue, setOnChangeValue] = useState('');
+    const [onSearchValue, setOnSearchValue] = useState('');
 
     return (
       <Fragment>
@@ -630,7 +630,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       'disallowUnsupportedFilters',
     ];
 
-    const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
+    const [enabledConfigs, setEnabledConfigs] = useState([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[config] = true;
@@ -771,7 +771,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The suggestions will be the values for the provided keys. The following example,
           will show suggestions for the <code>id</code> key when the user types a value
-          that matches the regex pattern <code>{`/^[0-9]{3}$/`}</code>.
+          that matches the regex pattern <code>{'/^[0-9]{3}$/'}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -811,7 +811,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The raw search will be replaced with option(s) in the dropdown. The options will
           be the values for the provided keys. The following example shows the prop set as{' '}
-          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -823,7 +823,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         />
         <p>
           You can also pass multiple values in the prop to replace multiple keys.{' '}
-          <code>{`replaceRawSearchKeys={['span.op', 'span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.op', 'span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""

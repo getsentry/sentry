@@ -62,13 +62,13 @@ const OverlayArrowWrap = styled('div')<{
   transform-origin: center;
 
   ${p =>
-    p.placement?.startsWith('top') && `top: 100%; left: 50%; transform: rotate(0deg);`}
+    p.placement?.startsWith('top') && 'top: 100%; left: 50%; transform: rotate(0deg);'}
   ${p =>
     p.placement?.startsWith('bottom') &&
-    `bottom: 100%; left: 50%; transform: rotate(180deg);`}
+    'bottom: 100%; left: 50%; transform: rotate(180deg);'}
   ${p =>
-    p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: rotate(-90deg);`}
+    p.placement?.startsWith('left') && 'left: 100%; top: 50%; transform: rotate(-90deg);'}
   ${p =>
     p.placement?.startsWith('right') &&
-    `right: 100%; top: 50%; transform: rotate(90deg);`}
+    'right: 100%; top: 50%; transform: rotate(90deg);'}
 `;

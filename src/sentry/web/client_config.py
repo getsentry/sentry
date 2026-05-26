@@ -225,13 +225,6 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
-        # TODO @athena: remove this feature flag after development is done
-        # this is a temporary hack to be able to used flagpole in a case where there's no organization
-        # availble on the frontend
-        if self.last_org and features.has(
-            "organizations:scoped-partner-oauth", self.last_org, actor=self.user
-        ):
-            yield "system:scoped-partner-oauth"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -343,7 +336,7 @@ class _ClientConfig:
         if not self.user or not self.user.id:
             return frozenset()
 
-        cell_names = user_service.get_member_region_names(user_id=self.user.id)
+        cell_names = user_service.get_member_cell_names(user_id=self.user.id)
         directory = get_global_directory()
         return frozenset(
             loc.name
@@ -413,14 +406,10 @@ class _ClientConfig:
         # If the user is viewing the accept invitation user interface,
         # we should avoid preloading the data as they might not yet have access to it,
         # which could cause an error notification (403) to pop up in the user interface.
-        invite_route_names = (
-            "sentry-accept-invite",
-            "sentry-organization-accept-invite",
-        )
         if (
             self.request
             and self.request.resolver_match
-            and self.request.resolver_match.url_name in invite_route_names
+            and self.request.resolver_match.url_name == "sentry-organization-accept-invite"
         ):
             return False
 

@@ -1,6 +1,6 @@
-import BasePlugin from 'sentry/plugins/basePlugin';
+import {BasePlugin} from 'sentry/plugins/basePlugin';
 
-import Settings from './components/settings';
+import {Settings} from './components/settings';
 
 export class SessionStackPlugin extends BasePlugin {
   displayName = 'SessionStack';

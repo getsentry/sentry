@@ -30,7 +30,9 @@ class AdditionalAttachmentManager:
         organization: Organization | RpcOrganization,
     ) -> list[SlackBlock] | None:
         # look up the generator by the provider but only accepting slack for now
-        provider = validate_provider(integration.provider, {ExternalProviders.SLACK})
+        provider = validate_provider(
+            integration.provider, {ExternalProviders.SLACK, ExternalProviders.SLACK_STAGING}
+        )
         attachment_generator = self.attachment_generators.get(provider)
         if attachment_generator is None:
             return None

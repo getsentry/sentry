@@ -74,7 +74,7 @@ func main() {
                 <ExternalLink
                   href={
                     docsPlatform === 'go'
-                      ? `https://docs.sentry.io/platforms/go/logs/#integrations`
+                      ? 'https://docs.sentry.io/platforms/go/logs/#integrations'
                       : `https://docs.sentry.io/platforms/go/guides/${docsPlatform}/logs/#integrations`
                   }
                 />

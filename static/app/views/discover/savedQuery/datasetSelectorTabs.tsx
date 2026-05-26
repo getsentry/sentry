@@ -3,7 +3,7 @@ import {TabList} from '@sentry/scraps/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   ERROR_ONLY_FIELDS,
   explodeField,

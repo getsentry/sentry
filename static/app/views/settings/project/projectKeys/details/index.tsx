@@ -1,17 +1,18 @@
 import {useTheme} from '@emotion/react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import {KeyStats} from 'sentry/views/settings/project/projectKeys/details/keyStats';
@@ -34,7 +35,7 @@ export default function ProjectKeyDetails() {
     isPending,
   } = useApiQuery<ProjectKey>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
@@ -46,10 +47,12 @@ export default function ProjectKeyDetails() {
   );
 
   function onDataChange(data: ProjectKey) {
+    // Will be fixed soon when we get rid of setApiQueryData.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
     setApiQueryData<ProjectKey>(
       queryClient,
       [
-        getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/`, {
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
           path: {
             organizationIdOrSlug: organization.slug,
             projectIdOrSlug: projectId,
@@ -75,17 +78,19 @@ export default function ProjectKeyDetails() {
 
   return (
     <SentryDocumentTitle title={t('Key Details')}>
-      <SettingsPageHeader title={t('Key Details')} data-test-id="key-details" />
-      <ProjectPermissionAlert project={project} />
-      <KeyStats api={api} organization={organization} params={params} theme={theme} />
-      <KeySettings
-        data={projKeyData}
-        updateData={onDataChange}
-        onRemove={handleRemove}
-        organization={organization}
-        project={project}
-        params={params}
-      />
+      <div data-test-id="key-details">
+        <SettingsPageHeader title={t('Key Details')} />
+        <ProjectPermissionAlert project={project} />
+        <KeyStats api={api} organization={organization} params={params} theme={theme} />
+        <KeySettings
+          data={projKeyData}
+          updateData={onDataChange}
+          onRemove={handleRemove}
+          organization={organization}
+          project={project}
+          params={params}
+        />
+      </div>
     </SentryDocumentTitle>
   );
 }

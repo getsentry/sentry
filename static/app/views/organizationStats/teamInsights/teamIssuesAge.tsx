@@ -60,7 +60,7 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     refetch: refetchOldestIssues,
   } = useApiQuery<Group[]>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/issues/old/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/issues/old/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {
@@ -79,7 +79,7 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     refetch: refetchUnresolvedIssueAge,
   } = useApiQuery<Record<string, number>>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/unresolved-issue-age/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/unresolved-issue-age/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
     ],

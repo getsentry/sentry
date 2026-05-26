@@ -11,6 +11,7 @@ from sentry.notifications.utils import (
     NPlusOneAPICallProblemContext,
     PerformanceProblemContext,
     RenderBlockingAssetProblemContext,
+    get_replay_id,
 )
 
 
@@ -179,3 +180,30 @@ class PerformanceProblemContextTestCase(TestCase):
             "transaction_duration": 3000,
             "fcp": 1500,
         }
+
+
+class GetReplayIdTestCase(TestCase):
+    def test_returns_replay_id(self):
+        event = mock_event(
+            transaction="tx",
+            data={"contexts": {"replay": {"replay_id": "abc123"}}},
+        )
+        assert get_replay_id(event) == "abc123"
+
+    def test_returns_none_when_replay_context_is_none(self):
+        event = mock_event(
+            transaction="tx",
+            data={"contexts": {"replay": None}},
+        )
+        assert get_replay_id(event) is None
+
+    def test_returns_none_when_contexts_is_none(self):
+        event = mock_event(
+            transaction="tx",
+            data={"contexts": None},
+        )
+        assert get_replay_id(event) is None
+
+    def test_returns_none_when_no_contexts(self):
+        event = mock_event(transaction="tx", data={})
+        assert get_replay_id(event) is None

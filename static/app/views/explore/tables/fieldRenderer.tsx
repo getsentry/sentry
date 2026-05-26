@@ -3,10 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container as ScrapsContainer} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -15,17 +16,25 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
-import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRenderers';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {
+  getFieldRenderer,
+  nullableValue,
+  renderUrlCellValue,
+} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {
+  type Actions,
+  CellAction,
+  updateQuery,
+} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
@@ -47,7 +56,9 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface FieldProps {
   data: EventData;
   meta: MetaType;
+  allowActions?: Actions[];
   column?: TableColumn<keyof TableDataRow>;
+  extraMenuItems?: MenuItemProps[];
   unit?: string;
   usePortalOnDropdown?: boolean;
 }
@@ -57,6 +68,8 @@ export function FieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
+  extraMenuItems,
   usePortalOnDropdown,
 }: FieldProps) {
   const userQuery = useQueryParamsQuery();
@@ -68,6 +81,8 @@ export function FieldRenderer({
       meta={meta}
       unit={unit}
       column={column}
+      allowActions={allowActions}
+      extraMenuItems={extraMenuItems}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
       usePortalOnDropdown={usePortalOnDropdown}
@@ -85,6 +100,7 @@ export function MultiQueryFieldRenderer({
   unit,
   column,
   index,
+  extraMenuItems,
 }: MultiQueryFieldProps) {
   const queries = useReadQueriesFromLocation();
   const userQuery = queries[index]?.query ?? '';
@@ -96,6 +112,7 @@ export function MultiQueryFieldRenderer({
       meta={meta}
       unit={unit}
       column={column}
+      extraMenuItems={extraMenuItems}
       userQuery={userQuery}
       setUserQuery={(query: string) => updateQuerySearch({query})}
     />
@@ -105,7 +122,6 @@ export function MultiQueryFieldRenderer({
 interface BaseFieldProps extends FieldProps {
   setUserQuery: (query: string) => void;
   userQuery: string;
-  usePortalOnDropdown?: boolean;
 }
 
 function BaseExploreFieldRenderer({
@@ -113,11 +129,14 @@ function BaseExploreFieldRenderer({
   meta,
   unit,
   column,
+  allowActions,
+  extraMenuItems,
   userQuery,
   setUserQuery,
   usePortalOnDropdown,
 }: BaseFieldProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const theme = useTheme();
   const {selection} = usePageFilters();
@@ -125,13 +144,10 @@ function BaseExploreFieldRenderer({
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
-    return projects.reduce(
-      (acc, project) => {
-        acc[project.slug] = project;
-        return acc;
-      },
-      {} as Record<string, Project>
-    );
+    return projects.reduce<Record<string, Project>>((acc, project) => {
+      acc[project.slug] = project;
+      return acc;
+    }, {});
   }, [projects]);
 
   const project = projectsMap[data.project];
@@ -146,6 +162,7 @@ function BaseExploreFieldRenderer({
 
   let rendered = renderer(data, {
     location,
+    navigate,
     organization,
     theme,
     unit,
@@ -292,7 +309,8 @@ function BaseExploreFieldRenderer({
         updateQuery(query, actions, column, value);
         setUserQuery(query.formatString());
       }}
-      allowActions={ALLOWED_CELL_ACTIONS}
+      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
+      extraMenuItems={extraMenuItems}
       usePortalOnDropdown={usePortalOnDropdown}
     >
       {rendered}
@@ -350,13 +368,7 @@ function spanDescriptionRenderFunc(field: string, projects: Record<string, Proje
                 disableLink
               />
             )}
-            <WrappingText>
-              {isValidUrl(value) ? (
-                <ExternalLink href={value}>{value}</ExternalLink>
-              ) : (
-                nullableValue(value)
-              )}
-            </WrappingText>
+            <WrappingText>{renderUrlCellValue(value)}</WrappingText>
           </Description>
         </Tooltip>
       </span>

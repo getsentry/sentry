@@ -8,7 +8,7 @@ import type {
   EChartFinishedHandler,
   ECharts,
 } from 'sentry/types/echarts';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;
@@ -81,6 +81,8 @@ export function BarChartZoom({
   paramStart,
   xAxisIndex,
 }: Props) {
+  const navigate = useNavigate();
+
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
@@ -127,7 +129,7 @@ export function BarChartZoom({
         if (onHistoryPush) {
           onHistoryPush(start, end);
         } else {
-          browserHistory.push(target);
+          navigate(target);
         }
       } else {
         // Dispatch the restore action here to stop ECharts from zooming

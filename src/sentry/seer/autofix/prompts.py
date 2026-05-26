@@ -78,68 +78,6 @@ def code_changes_prompt(
     )
 
 
-def impact_assessment_prompt(
-    *, short_id: str, title: str, culprit: str, artifact_key: str | None
-) -> str:
-    return dedent(
-        f"""\
-        Assess the impact of issue {short_id}: "{title}" (culprit: {culprit})
-
-        Analyze how this issue affects the system, users, and business.
-
-        Steps:
-        1. Fetch the issue details to understand the error and its frequency
-        2. Understand upstream and downstream dependencies
-        3. Check for relevant metrics, performance data, and connected issues
-        4. Consider affected functionality, user-facing impact, data integrity, and system stability
-
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
-
-        When you have assessed the impact, always generate the impact_assessment artifact {artifact_tool_str(artifact_key)}:
-        - one_line_description: A concise summary of the overall impact in under 30 words
-        - impacts: List of specific impacts, each with:
-          - label: What is impacted (e.g., "User Authentication", "Payment Flow")
-          - rating: Severity of the impact. High is an urgent incident, medium is a significant but non-urgent problem, low is a minor issue or no impact at all.
-          - impact_description: One line describing the impact
-          - evidence: Evidence or reasoning for this assessment
-        """
-    )
-
-
-def triage_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
-    return dedent(
-        f"""\
-        Triage issue {short_id}: "{title}" (culprit: {culprit})
-
-        Help triage this issue by identifying potential suspects and assignees.
-
-        Steps:
-        1. Consider the issue details, the relevant telemetry, impacted systems, and the root cause of the issue
-        2. Look at recent commits that touched the problematic systems (use git history if available)
-        3. Identify who might have introduced the issue or at least who owns the affected code
-        4. Consider code ownership patterns in the repository
-
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
-
-        When you have enough information, always generate the triage artifact {artifact_tool_str(artifact_key)}:
-        - suspect_commit: If you can identify a likely culprit commit:
-          - sha: The git commit SHA (7 characters)
-          - repo_name: Full repository name (e.g. 'getsentry/sentry')
-          - message: The commit message/title
-          - author_name: Name of the commit author
-          - author_email: Email of the commit author
-          - committed_date: When the commit was made (YYYY-MM-DD format)
-          - description: Why this commit is suspected of causing the issue
-        - suggested_assignee: If you can identify who should fix this:
-          - name: Name of the suggested assignee
-          - email: Email of the suggested assignee
-          - why: Reason for suggesting this person
-
-        Either field can be omitted if you cannot determine it with reasonable confidence.
-        """
-    )
-
-
 def artifact_tool_str(artifact_key: str | None) -> str:
     if not artifact_key:
         return "with"

@@ -28,12 +28,13 @@ from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
 
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
+    allow_disabled_sentry_app_for_methods = {"DELETE"}
 
     def get(self, request: Request, installation) -> Response:
         return Response(

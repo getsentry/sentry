@@ -3,7 +3,6 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
-import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
@@ -133,6 +132,7 @@ export function getRelativeTimeFromEventDateCreated(
 
 type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
@@ -355,15 +355,12 @@ export function getContextIcon({
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
-    default:
-      break;
   }
   if (iconName.length === 0) {
     return null;
   }
 
-  const imageName = getLogoImage(iconName);
-  if (imageName === logoUnknown) {
+  if (getLogoImage(iconName) === null) {
     return null;
   }
   return <ContextIcon name={iconName} {...contextIconProps} />;
@@ -568,8 +565,6 @@ export function getContextSummary({
         subtitleType = t('Version');
       }
       break;
-    default:
-      break;
   }
   return {
     title,
@@ -583,4 +578,5 @@ const RelativeTime = styled('span')`
   margin-left: ${p => p.theme.space.xs};
 `;
 
-export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;
+export const CONTEXT_DOCS_LINK =
+  'https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/';

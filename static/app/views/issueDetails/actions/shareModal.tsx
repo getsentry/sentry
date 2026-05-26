@@ -1,9 +1,9 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {Grid, type GridProps, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -79,45 +79,45 @@ export function ShareIssueModal({
 
   const {copy} = useCopyToClipboard();
 
-  const handleCopyIssueLink = useCallback(() => {
+  const handleCopyIssueLink = () => {
     copy(issueUrl, {successMessage: t('Copied Issue Link to clipboard')}).then(
       closeModal
     );
-  }, [copy, issueUrl, closeModal]);
+  };
 
-  const handleCopyMarkdownLink = useCallback(() => {
+  const handleCopyMarkdownLink = () => {
     copy(markdownLink, {successMessage: t('Copied Markdown link to clipboard')}).then(
       closeModal
     );
-  }, [copy, markdownLink, closeModal]);
+  };
 
-  const handlePublicShare = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement> | null, reshare?: boolean) => {
-      e?.preventDefault();
-      setLoading(true);
-      onToggle();
-      bulkUpdate(
-        api,
-        {
-          orgId: organization.slug,
-          projectId: projectSlug,
-          itemIds: [groupId],
-          data: {
-            isPublic: reshare ?? !isPublished,
-          },
+  const handlePublicShare = (
+    e: React.ChangeEvent<HTMLInputElement> | null,
+    reshare?: boolean
+  ) => {
+    e?.preventDefault();
+    setLoading(true);
+    onToggle();
+    bulkUpdate(
+      api,
+      {
+        orgId: organization.slug,
+        projectId: projectSlug,
+        itemIds: [groupId],
+        data: {
+          isPublic: reshare ?? !isPublished,
         },
-        {
-          error: () => {
-            addErrorMessage(t('Error sharing'));
-          },
-          complete: () => {
-            setLoading(false);
-          },
-        }
-      );
-    },
-    [api, setLoading, onToggle, isPublished, organization.slug, projectSlug, groupId]
-  );
+      },
+      {
+        error: () => {
+          addErrorMessage(t('Error sharing'));
+        },
+        complete: () => {
+          setLoading(false);
+        },
+      }
+    );
+  };
 
   const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
 
@@ -156,7 +156,7 @@ export function ShareIssueModal({
               {t('Copy as Markdown')}
             </Button>
             <Button
-              priority="primary"
+              variant="primary"
               size="sm"
               onClick={handleCopyIssueLink}
               analyticsEventKey={
@@ -214,7 +214,7 @@ export function ShareIssueModal({
                         title: t('Generate new URL. Invalidates previous URL'),
                       }}
                       aria-label={t('Generate new URL')}
-                      priority="transparent"
+                      variant="transparent"
                       size="sm"
                       icon={<IconRefresh />}
                       onClick={() => handlePublicShare(null, true)}
@@ -225,7 +225,7 @@ export function ShareIssueModal({
                   <ButtonContainer>
                     <Button
                       size="sm"
-                      priority="primary"
+                      variant="primary"
                       disabled={!shareUrl}
                       onClick={() =>
                         copy(shareUrl, {

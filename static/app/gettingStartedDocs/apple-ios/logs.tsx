@@ -79,7 +79,7 @@ pod update`,
 SentrySDK.start { options in
     options.dsn = "${params.dsn.public}"
     // Enable logs to be sent to Sentry
-    options.experimental.enableLogs = true
+    options.enableLogs = true
 }`,
             },
             {
@@ -90,7 +90,7 @@ SentrySDK.start { options in
 [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
     options.dsn = @"${params.dsn.public}";
     // Enable logs to be sent to Sentry
-    options.experimental.enableLogs = YES;
+    options.enableLogs = YES;
 }];`,
             },
           ],

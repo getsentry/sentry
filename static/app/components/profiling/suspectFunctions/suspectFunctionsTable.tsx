@@ -16,7 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
@@ -24,6 +24,7 @@ import {isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   Table,
@@ -35,7 +36,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {getProfileTargetId} from 'sentry/views/profiling/utils';
+import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
 const MAX_EXAMPLES_PER_FRAME = 5;
 
@@ -115,6 +116,7 @@ export function SuspectFunctionsTable({
 }: SuspectFunctionsTableProps) {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   const flamegraphQuery = useAggregateFlamegraphQuery({
@@ -131,9 +133,9 @@ export function SuspectFunctionsTable({
     const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
     const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
 
-    const examples = new Array<Array<Exclude<Profiling.ProfileReference, string>>>(
-      frames.length
-    );
+    const examples = Array.from<
+      Array<Profiling.ContinuousProfileReference | Profiling.TransactionProfileReference>
+    >({length: frames.length});
 
     for (const profile of flamegraphQuery.data?.profiles ?? []) {
       if (isSampledProfile(profile)) {
@@ -214,6 +216,7 @@ export function SuspectFunctionsTable({
 
   const baggage: RenderFunctionBaggage = {
     location,
+    navigate,
     organization,
     theme,
     unit: 'nanosecond',

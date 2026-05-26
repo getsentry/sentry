@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {Project, ProjectStats} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -17,9 +17,9 @@ type BaseChartProps = React.ComponentProps<typeof BaseChart>;
 type Props = {
   firstEvent: boolean;
   project: Project;
-  stats: Project['stats'];
+  stats: ProjectStats | undefined;
   onBarClick?: (data: {seriesName: string; timestamp: number; value: number}) => void;
-  transactionStats?: Project['transactionStats'];
+  transactionStats?: ProjectStats;
 };
 
 export function ProjectChart({
@@ -64,7 +64,7 @@ export function ProjectChart({
       emphasis: {
         itemStyle: {
           color: theme.tokens.dataviz.semantic.neutral,
-          opacity: 1.0,
+          opacity: 1,
         },
       },
     });
@@ -129,7 +129,7 @@ export function ProjectChart({
     tooltip: {
       trigger: 'axis' as const,
     },
-    xAxes: Array.from(new Array(series.length)).map((_i, index) => ({
+    xAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
       axisLine: {
         show: false,
@@ -150,7 +150,7 @@ export function ProjectChart({
         },
       },
     })),
-    yAxes: Array.from(new Array(series.length)).map((_i, index) => ({
+    yAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
       interval: Infinity,
       max(value: {max: number}) {

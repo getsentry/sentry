@@ -12,7 +12,7 @@ export function useCodecovJwt(
 ) {
   return useApiQuery<CodecovJWTResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/codecov-jwt/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/codecov-jwt/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
     ],

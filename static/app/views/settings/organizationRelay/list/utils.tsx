@@ -7,7 +7,7 @@ export function getRelaysByPublicKey(relays: Relay[], relayActivities: RelayActi
   return relays.reduce<RelaysByPublickey>((relaysByPublicKey, relay) => {
     const {name, description, created, publicKey} = relay;
 
-    if (!relaysByPublicKey.hasOwnProperty(publicKey)) {
+    if (!Object.hasOwn(relaysByPublicKey, publicKey)) {
       relaysByPublicKey[publicKey] = {name, description, created, activities: []};
     }
 

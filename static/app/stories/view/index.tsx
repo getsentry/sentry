@@ -3,6 +3,7 @@ import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -70,7 +71,9 @@ function StoryDetail() {
 
     while (queue.length > 0) {
       const node = queue.pop();
-      if (!node) break;
+      if (!node) {
+        break;
+      }
 
       if (node.filesystemPath === location.query.name) {
         storyNode = node;
@@ -142,15 +145,17 @@ function StoriesLayout(props: PropsWithChildren) {
     <Fragment>
       <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
-        <OrganizationContainer>
-          <Layout>
-            <HeaderContainer>
-              <StoryHeader />
-            </HeaderContainer>
-            <StorySidebar />
-            {props.children}
-          </Layout>
-        </OrganizationContainer>
+        <GlobalDrawer>
+          <OrganizationContainer>
+            <Layout>
+              <HeaderContainer>
+                <StoryHeader />
+              </HeaderContainer>
+              <StorySidebar />
+              {props.children}
+            </Layout>
+          </OrganizationContainer>
+        </GlobalDrawer>
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
@@ -173,7 +178,9 @@ function getStoryFromParams(
 
   while (queue.length > 0) {
     const node = queue.pop();
-    if (!node) break;
+    if (!node) {
+      break;
+    }
 
     if (node.category === context.category && node.slug === context.slug) {
       return node;

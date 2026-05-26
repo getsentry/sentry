@@ -9,7 +9,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {GlobalModal} from 'sentry/components/globalModal';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import OrganizationSecurityAndPrivacy from 'sentry/views/settings/organizationSecurityAndPrivacy';
 

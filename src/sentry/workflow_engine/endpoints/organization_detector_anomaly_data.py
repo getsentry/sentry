@@ -1,6 +1,7 @@
 import logging
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,13 +10,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.snuba.models import QuerySubscription
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,9 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             raise SubscriptionNotFound
 
         try:
-            return QuerySubscription.objects.get(id=int(data_source.source_id))
+            return QuerySubscription.objects.select_related("project").get(
+                id=int(data_source.source_id)
+            )
         except ValueError:
             raise SubscriptionNotFound
 
@@ -80,9 +83,11 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
             )
             raise ResourceDoesNotExist
 
-        subscription = QuerySubscription.objects.filter(
-            snuba_query_id=alert_rule.snuba_query_id
-        ).first()
+        subscription = (
+            QuerySubscription.objects.select_related("project")
+            .filter(snuba_query_id=alert_rule.snuba_query_id)
+            .first()
+        )
         if not subscription:
             raise SubscriptionNotFound
         logger.info(
@@ -149,6 +154,9 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
                 {"detail": f"Could not find query subscription for {model_type}"},
                 status=404,
             )
+
+        if not request.access.has_project_access(query_subscription.project):
+            raise PermissionDenied
 
         data = get_anomaly_threshold_data_from_seer(
             subscription=query_subscription, start=start_float, end=end_float

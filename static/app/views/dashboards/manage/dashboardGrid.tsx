@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
@@ -18,7 +18,6 @@ import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -36,7 +35,6 @@ type Props = {
   api: Client;
   columnCount: number;
   dashboards: DashboardListItem[] | undefined;
-  location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   rowCount: number;
@@ -46,7 +44,6 @@ type Props = {
 function DashboardGrid({
   api,
   organization,
-  location,
   dashboards,
   onDashboardsChange,
   rowCount,
@@ -62,9 +59,7 @@ function DashboardGrid({
   });
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
-  const [currentDashboards, setCurrentDashboards] = useState<
-    DashboardListItem[] | undefined
-  >(dashboards);
+  const [currentDashboards, setCurrentDashboards] = useState(dashboards);
 
   useEffect(() => {
     if (dashboards?.length) {
@@ -133,8 +128,9 @@ function DashboardGrid({
     ];
 
     const disabledKeys = [];
-    if ((dashboards && dashboards.length <= 1) || disableDelete)
+    if (disableDelete) {
       disabledKeys.push('dashboard-delete');
+    }
     if (disableDuplicate) {
       disabledKeys.push('dashboard-duplicate');
     }
@@ -147,7 +143,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            priority="transparent"
+            variant="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -167,13 +163,6 @@ function DashboardGrid({
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
-  // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
-  // router 6 handles empty query objects without appending a trailing ?
-  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
-  const queryLocation = {
-    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
-  };
-
   function renderMiniDashboards() {
     // on pagination, render no dashboards to show placeholders while loading
     if (
@@ -189,10 +178,7 @@ function DashboardGrid({
           {dashboardLimitData => (
             <DashboardCard
               title={dashboard.title}
-              to={{
-                pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-                ...queryLocation,
-              }}
+              to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
               detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
               dateStatus={
                 dashboard.dateCreated ? (
@@ -236,9 +222,9 @@ function DashboardGrid({
         {renderMiniDashboards()}
         {isLoading &&
           rowCount * columnCount > numDashboards &&
-          new Array(rowCount * columnCount - numDashboards)
+          Array.from({length: rowCount * columnCount - numDashboards})
             .fill(0)
-            .map((_, index) => <Placeholder key={index} height="210px" />)}
+            .map((_, index) => <Placeholder key={index} height="208px" />)}
       </DashboardGridContainer>
     );
   }

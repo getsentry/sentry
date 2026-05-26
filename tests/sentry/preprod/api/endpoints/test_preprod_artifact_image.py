@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPreprodArtifactImageTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -104,7 +104,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
         mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
-    def test_endpoint_requires_project_access(self):
+    def test_endpoint_requires_project_access(self) -> None:
         other_user = self.create_user()
         self.login_as(user=other_user)
         self.api_token = self.create_user_auth_token(

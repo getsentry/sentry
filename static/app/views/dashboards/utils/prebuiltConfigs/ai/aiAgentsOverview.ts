@@ -3,7 +3,11 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {AI_AGENTS_OVERVIEW_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -41,6 +45,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-overview-agent-runs',
       title: t('Agent Runs'),
+      description: t('Number of agent runs captured over time.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -51,32 +56,34 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [`count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
           columns: [],
-          fieldAliases: [t('Count')],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
     {
-      id: 'ai-agents-overview-llm-calls-traffic',
-      title: t('LLM Calls'),
+      id: 'ai-agents-overview-estimated-cost',
+      title: t('Estimated Cost'),
+      description: t('Estimated cost of LLM calls with token and model data.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
       queries: [
         {
-          name: t('Count'),
+          name: t('Cost'),
           conditions: AI_CLIENT_FILTER,
-          fields: [`count(${SpanFields.SPAN_DURATION})`],
-          aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+          fields: [`sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`],
+          aggregates: [`sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`],
           columns: [],
-          fieldAliases: [t('Count')],
-          orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          fieldAliases: [t('Estimated Cost')],
+          orderby: `-sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         },
       ],
     },
     {
       id: 'ai-agents-overview-duration',
       title: t('Duration'),
+      description: t('Average and p95 duration for agent runs and LLM calls.'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -93,7 +100,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             `p95(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
-          fieldAliases: [t('Avg Duration'), t('P95 Duration')],
+          fieldAliases: [WIDGET_COLUMN_LABELS.avg, WIDGET_COLUMN_LABELS.p95],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -107,6 +114,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-overview-llm-calls-by-model',
       title: t('LLM Calls by Model'),
+      description: t('Number of LLM calls grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -115,15 +123,18 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: AI_CLIENT_FILTER,
-          fields: [SpanFields.GEN_AI_REQUEST_MODEL, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [
+            SpanFields.GEN_AI_RESPONSE_MODEL,
+            `count(${SpanFields.SPAN_DURATION})`,
+          ],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              field: SpanFields.GEN_AI_RESPONSE_MODEL,
               staticDashboardId: 17,
             },
           ],
@@ -134,6 +145,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-overview-tokens-used',
       title: t('Tokens Used'),
+      description: t('Total tokens used by LLM calls, grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -143,17 +155,17 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_CLIENT_FILTER,
           fields: [
-            SpanFields.GEN_AI_REQUEST_MODEL,
+            SpanFields.GEN_AI_RESPONSE_MODEL,
             `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              field: SpanFields.GEN_AI_RESPONSE_MODEL,
               staticDashboardId: 17,
             },
           ],
@@ -164,6 +176,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-overview-tool-calls',
       title: t('Tool Calls'),
+      description: t('Tool call volume grouped by tool name.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -196,6 +209,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const AGENTS_TRACES_TABLE = {
   id: 'ai-agents-traces-table',
   title: t('Traces'),
+  description: t('Agent traces with duration, token, cost, and tool usage.'),
   displayType: DisplayType.AGENTS_TRACES_TABLE,
   interval: '1h',
   tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
@@ -222,7 +236,7 @@ const AGENTS_TRACES_TABLE = {
 export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Overview',
+  title: AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
   filters: {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },

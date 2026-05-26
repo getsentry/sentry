@@ -40,7 +40,7 @@ import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -51,9 +51,15 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CopyLLMPromptButton,
-  LLM_ONBOARDING_INSTRUCTIONS,
-  LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE,
+  LLM_ONBOARDING_COPY_MARKDOWN,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  AGENT_INTEGRATION_ICONS,
+  AGENT_INTEGRATION_LABELS,
+  DENO_AGENT_INTEGRATIONS,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
@@ -64,13 +70,6 @@ import {
   SubTitle,
   useOnboardingProject,
 } from 'sentry/views/insights/pages/onboardingUtils';
-
-import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  NODE_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from './utils/agentIntegrations';
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
@@ -116,7 +115,7 @@ function WaitingIndicator({project}: {project: Project}) {
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button priority="primary" busy={fetching} onClick={reloadProjects}>
+    <Button variant="primary" busy={fetching} onClick={reloadProjects}>
       {t('View Agent Monitoring')}
     </Button>
   ) : (
@@ -240,10 +239,13 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const isDenoPlatform = project?.platform === 'deno';
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
-    : NODE_AGENT_INTEGRATIONS;
+    : isDenoPlatform
+      ? DENO_AGENT_INTEGRATIONS
+      : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
@@ -267,7 +269,7 @@ export function Onboarding() {
     return <div>{t('No project found')}</div>;
   }
 
-  if (!agentMonitoringPlatforms.has(project.platform as PlatformKey)) {
+  if (!agentMonitoringPlatforms.has(project.platform!)) {
     return (
       <UnsupportedPlatformOnboarding
         project={project}
@@ -350,7 +352,7 @@ export function Onboarding() {
                   borderless
                   steps={steps}
                   source="agent_monitoring_onboarding"
-                  postamble={`${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`}
+                  postamble={LLM_ONBOARDING_COPY_MARKDOWN}
                   onCopy={() => {
                     trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
                       organization,
@@ -378,7 +380,7 @@ function CopyInstructionsButton() {
     <CopyMarkdownButton
       title={t('Copies setup instructions as Markdown, optimized for use with an LLM.')}
       source="agent_monitoring_onboarding"
-      getMarkdown={() => LLM_ONBOARDING_INSTRUCTIONS}
+      getMarkdown={() => LLM_ONBOARDING_COPY_MARKDOWN}
       onCopy={() => {
         trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
           organization,

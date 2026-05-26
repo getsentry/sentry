@@ -148,7 +148,10 @@ export interface AutoCompleteProps<T> extends DefaultProps {
   resetInputOnClose?: boolean;
 }
 
-class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State<T>> {
+export class AutoComplete<T extends Item> extends Component<
+  AutoCompleteProps<T>,
+  State<T>
+> {
   static defaultProps = defaultProps;
 
   state: State<T> = this.getInitialState();
@@ -199,11 +202,11 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
   cancelCloseTimeout: number | undefined = undefined;
 
   get inputValueIsControlled() {
-    return typeof this.props.inputValue !== 'undefined';
+    return this.props.inputValue !== undefined;
   }
 
   get isOpenIsControlled() {
-    return typeof this.props.isOpen !== 'undefined';
+    return this.props.isOpen !== undefined;
   }
 
   get inputValue() {
@@ -516,7 +519,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
               const inputProps = this.getInputProps<E>(props);
 
               return inputIsActor
-                ? dropdownMenuProps.getActorProps<E>(inputProps as GetActorArgs<E>)
+                ? dropdownMenuProps.getActorProps<E>(inputProps)
                 : inputProps;
             },
 
@@ -536,5 +539,3 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     );
   }
 }
-
-export default AutoComplete;

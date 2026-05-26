@@ -1829,7 +1829,9 @@ function Section(props: CategorySectionProps) {
     const iconFilter = createIconFilter(props.searchTerm);
     filteredIcons = filteredIcons.filter(iconFilter);
   }
-  if (filteredIcons.length === 0) return null;
+  if (filteredIcons.length === 0) {
+    return null;
+  }
 
   return (
     <Flex as="section" direction="column" gap="xl">
@@ -1866,7 +1868,7 @@ function IconCard(props: IconCardProps) {
   };
   snippets.all = `${snippets.import}\n\n${snippets.element}`;
   const labels = {
-    import: `import statement`,
+    import: 'import statement',
     element: props.icon.id,
   };
   const action: keyof typeof snippets = shift ? 'import' : 'element';

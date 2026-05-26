@@ -274,7 +274,7 @@ export function ArchiveActions({
   if (isArchived) {
     return (
       <Button
-        priority="primary"
+        variant="primary"
         size="xs"
         tooltipProps={{title: t('Change status to unresolved')}}
         onClick={() =>

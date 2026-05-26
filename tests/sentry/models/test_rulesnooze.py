@@ -104,7 +104,7 @@ class RuleSnoozeTest(APITestCase):
 
 
 class GetSnoozedForAllDetectorIdsTest(TestCase):
-    def test_returns_snoozed_detector_ids(self):
+    def test_returns_snoozed_detector_ids(self) -> None:
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         detector = self.create_detector(project=self.project)
         self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
@@ -113,7 +113,7 @@ class GetSnoozedForAllDetectorIdsTest(TestCase):
         result = RuleSnooze.objects.get_snoozed_for_all_detector_ids({detector.id})
         assert result == {detector.id}
 
-    def test_excludes_user_specific_snooze(self):
+    def test_excludes_user_specific_snooze(self) -> None:
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         detector = self.create_detector(project=self.project)
         self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
@@ -122,7 +122,7 @@ class GetSnoozedForAllDetectorIdsTest(TestCase):
         result = RuleSnooze.objects.get_snoozed_for_all_detector_ids({detector.id})
         assert result == set()
 
-    def test_excludes_unsnoozed_detector(self):
+    def test_excludes_unsnoozed_detector(self) -> None:
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         detector = self.create_detector(project=self.project)
         self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
@@ -130,6 +130,6 @@ class GetSnoozedForAllDetectorIdsTest(TestCase):
         result = RuleSnooze.objects.get_snoozed_for_all_detector_ids({detector.id})
         assert result == set()
 
-    def test_empty_input(self):
+    def test_empty_input(self) -> None:
         result = RuleSnooze.objects.get_snoozed_for_all_detector_ids(set())
         assert result == set()

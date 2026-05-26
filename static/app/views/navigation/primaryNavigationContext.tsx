@@ -13,6 +13,7 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   explore: ['explore'],
   dashboards: ['dashboards', 'dashboard'],
   insights: ['insights'],
+  projects: ['projects'], // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
   monitors: ['monitors'],
   settings: ['settings'],
   prevent: ['prevent'],
@@ -21,8 +22,14 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
+interface PrimaryNavigationFeatures {
+  /** Whether the device supports hover interactions (false on touch-only devices) */
+  hover: boolean;
+}
+
 interface PrimaryNavigationContext {
   activeGroup: NavigationGroup;
+  features: PrimaryNavigationFeatures;
   layout: 'mobile' | 'sidebar';
   setActiveGroup: (group: NavigationGroup | null) => void;
 }
@@ -30,6 +37,7 @@ interface PrimaryNavigationContext {
 const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
   layout: 'sidebar',
   activeGroup: 'issues',
+  features: {hover: true},
   setActiveGroup: () => {},
 });
 
@@ -48,15 +56,17 @@ export function PrimaryNavigationContextProvider(
 
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
+  const hasHover = useMedia('(hover: hover)');
   const activeRouteGroup = useActiveNavigationGroup();
 
   const value = useMemo(
     () => ({
       layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
+      features: {hover: hasHover},
       activeGroup: activeGroupOverride ?? activeRouteGroup,
       setActiveGroup,
     }),
-    [isMobile, activeGroupOverride, activeRouteGroup]
+    [isMobile, hasHover, activeGroupOverride, activeRouteGroup]
   );
 
   return (

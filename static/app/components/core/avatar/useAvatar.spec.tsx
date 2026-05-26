@@ -1,6 +1,6 @@
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-// eslint-disable-next-line boundaries/entry-point
+// eslint-disable-next-line boundaries/dependencies
 import {Avatar} from './avatar';
 
 /**

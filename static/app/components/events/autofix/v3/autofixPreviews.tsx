@@ -1,9 +1,11 @@
 import {useMemo, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -11,6 +13,7 @@ import {
   getCodingAgentName,
 } from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -19,6 +22,7 @@ import {
   isSolutionArtifact,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -27,7 +31,6 @@ import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
-import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 interface ArtifactPreviewProps {
   section: AutofixSection;
@@ -42,9 +45,12 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
       {section.status === 'processing' ? (
-        <Placeholder height="3rem" />
+        <Flex direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text>{t('Finding the root cause\u2026')}</Text>
+        </Flex>
       ) : artifact?.data ? (
-        <Text>{artifact.data.one_line_description}</Text>
+        <Markdown raw={artifact.data.one_line_description} />
       ) : (
         <Text variant="muted">
           {t(
@@ -65,9 +71,12 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
   return (
     <ArtifactCard icon={<IconList />} title={t('Plan')}>
       {section.status === 'processing' ? (
-        <Placeholder height="3rem" />
+        <Flex direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text>{t('Formulating a plan\u2026')}</Text>
+        </Flex>
       ) : artifact?.data ? (
-        <Text>{artifact.data.one_line_summary}</Text>
+        <Markdown raw={artifact.data.one_line_summary} />
       ) : (
         <Text variant="muted">
           {t('Seer failed to generate a plan. This one is on us. Try running it again.')}
@@ -83,22 +92,14 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : [];
   }, [section]);
 
-  const patchesForRepos = useMemo(() => {
-    const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-    for (const patch of artifact) {
-      const existing = patchesByRepo.get(patch.repo_name) || [];
-      existing.push(patch);
-      patchesByRepo.set(patch.repo_name, existing);
-    }
-    return patchesByRepo;
-  }, [artifact]);
+  const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const summary = useMemo(() => {
-    const reposChanged = patchesForRepos.size;
+    const reposChanged = patchesByRepo.size;
 
     const filesChanged = new Set<string>();
 
-    for (const [repo, patchesForRepo] of patchesForRepos.entries()) {
+    for (const [repo, patchesForRepo] of patchesByRepo.entries()) {
       for (const patch of patchesForRepo) {
         filesChanged.add(`${repo}:${patch.patch.path}`);
       }
@@ -129,11 +130,18 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
     return (
       <Text>{t('%s files changed in %s repos', filesChanged.size, reposChanged)}</Text>
     );
-  }, [patchesForRepos]);
+  }, [patchesByRepo]);
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
-      {section.status === 'processing' ? <Placeholder height="1.5rem" /> : summary}
+      {section.status === 'processing' ? (
+        <Flex direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text>{t('Implementing changes\u2026')}</Text>
+        </Flex>
+      ) : (
+        summary
+      )}
     </ArtifactCard>
   );
 }
@@ -202,7 +210,7 @@ export function CodingAgentPreview({section}: ArtifactPreviewProps) {
               <Tag variant={statusVariant}>{codingAgent.status}</Tag>
               {codingAgent.agent_url ? (
                 <LinkButton
-                  priority="transparent"
+                  variant="transparent"
                   size="xs"
                   icon={<IconOpen />}
                   href={codingAgent.agent_url}
@@ -236,3 +244,7 @@ function ArtifactCard({children, icon, title}: ArtifactCardProps) {
     </Flex>
   );
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+`;

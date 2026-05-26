@@ -1,11 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
@@ -17,12 +18,12 @@ function initialize(query: Record<string, string>, additionalFeatures: string[] 
   });
   const initialData = initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {...query},
-      },
-    },
     projects: [],
+  });
+  const router = RouterFixture({
+    location: {
+      query: {...query},
+    },
   });
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -32,7 +33,7 @@ function initialize(query: Record<string, string>, additionalFeatures: string[] 
       fields: ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'],
       projects: [],
     },
-    initialData.router.location
+    router.location
   );
 
   const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
@@ -42,8 +43,9 @@ function initialize(query: Record<string, string>, additionalFeatures: string[] 
     ...initialData,
     spanOperationBreakdownFilter,
     transactionName,
-    location: initialData.router.location,
+    location: router.location,
     eventView,
+    router,
   };
 }
 
@@ -122,7 +124,7 @@ describe('Transaction Summary Content', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/profiling/functions/`,
+      url: '/projects/org-slug/project-slug/profiling/functions/',
       body: {functions: []},
     });
     MockApiClient.addMockResponse({

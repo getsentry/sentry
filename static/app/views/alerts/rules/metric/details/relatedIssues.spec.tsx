@@ -3,7 +3,7 @@ import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {RelatedIssues} from './relatedIssues';
 
@@ -11,7 +11,7 @@ describe('metric details -> RelatedIssues', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
 
-  it('adds environment to query parameters', async () => {
+  it('"Open in Issues" includes environment in the query params', async () => {
     const rule = MetricRuleFixture({
       projects: [project.slug],
       environment: 'production',
@@ -26,7 +26,7 @@ describe('metric details -> RelatedIssues', () => {
       body: [GroupFixture()],
     });
 
-    const {router} = render(
+    render(
       <RelatedIssues
         organization={organization}
         projects={[project]}
@@ -40,31 +40,12 @@ describe('metric details -> RelatedIssues', () => {
           usingPeriod: true,
         }}
       />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/mock-pathname/',
-            query: {environment: 'test-env'},
-          },
-        },
-      }
+      {organization}
     );
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
 
-    // The component's useEffect replaces the environment query param with the rule's environment
-    await waitFor(() => {
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: '/mock-pathname/',
-          query: {environment: 'production'},
-        })
-      );
-    });
-
-    // The link should now contain the updated environment from the router
-    expect(screen.getByRole('link', {name: /RequestError/})).toHaveAttribute(
+    expect(screen.getByTestId('issues-open')).toHaveAttribute(
       'href',
       expect.stringContaining('environment=production')
     );

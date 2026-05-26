@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -9,8 +8,11 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  getEquationAliasIndex,
+  isEquationAlias,
   parseFunction,
   RateUnit,
+  stripEquationPrefix,
   type AggregationOutputType,
   type DataUnit,
   type QueryFieldValue,
@@ -27,12 +29,12 @@ import {
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
-  extractTraceMetricFromAggregates,
   extractTraceMetricFromColumn,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -49,14 +51,14 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 // This is a placeholder that currently signals that no metric is selected
 // When the metrics are loaded up, the first metric is selected and this will be filled out
-export const EMPTY_METRIC_SELECTION = 'avg(value,,,-)';
+const EMPTY_METRIC_SELECTION = 'sum(value)';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -69,7 +71,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['avg', 'value', undefined, undefined],
+  function: ['sum', 'value', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 
@@ -85,30 +87,13 @@ function TraceMetricsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const {state: widgetBuilderState} = useWidgetBuilderContext();
-  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
-
-  const aggregateSource = getTraceMetricAggregateSource(
-    widgetBuilderState.displayType,
-    widgetBuilderState.yAxis,
-    widgetBuilderState.fields
-  );
-  const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
-
-  const hasMultipleMetrics = hasMultipleMetricsSelected(
-    traceMetrics,
-    hasMultiMetricSelection
-  );
+  const {attributeQuery, hasMultipleMetrics, traceMetrics} = useTraceMetricsSearchScope();
 
   // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: attributeQuery,
         enabled: defined(traceMetrics[0]), // Only enable if there is at least one metric
       },
       'string',
@@ -117,10 +102,7 @@ function TraceMetricsSearchBar({
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: attributeQuery,
         enabled: defined(traceMetrics[0]),
       },
       'number',
@@ -129,10 +111,7 @@ function TraceMetricsSearchBar({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: attributeQuery,
         enabled: defined(traceMetrics[0]),
       },
       'boolean',
@@ -158,6 +137,8 @@ function TraceMetricsSearchBar({
       }}
       namespace={hasMultipleMetrics ? undefined : traceMetrics?.[0]?.name}
       disableRecentSearches={hasMultipleMetrics}
+      hiddenAttributeKeys={HiddenTraceMetricSearchFields}
+      attributeQuery={attributeQuery}
     />
   );
 }
@@ -166,26 +147,25 @@ function useTraceMetricsSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
-  const {state: widgetBuilderState} = useWidgetBuilderContext();
-
-  const aggregateSource = getTraceMetricAggregateSource(
-    widgetBuilderState.displayType,
-    widgetBuilderState.yAxis,
-    widgetBuilderState.fields
-  );
-  const traceMetric = extractTraceMetricFromAggregates(aggregateSource) ?? {
-    name: '',
-    type: '',
-  };
+  const {attributeQuery, traceMetrics} = useTraceMetricsSearchScope();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'string');
+    useTraceMetricItemAttributes(
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      'string',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'number');
+    useTraceMetricItemAttributes(
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      'number',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
-      'boolean'
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      'boolean',
+      HiddenTraceMetricSearchFields
     );
 
   const {filterKeys, filterKeySections, getTagValues} =
@@ -200,6 +180,8 @@ function useTraceMetricsSearchBarDataProvider(
       searchSource: 'dashboards',
       initialQuery: widgetQuery?.conditions ?? '',
       projects: pageFilters.projects,
+      hiddenAttributeKeys: HiddenTraceMetricSearchFields,
+      attributeQuery,
     });
 
   return {
@@ -209,23 +191,30 @@ function useTraceMetricsSearchBarDataProvider(
   };
 }
 
-export function formatTraceMetricsFunction(
-  valueToParse: string | string[],
-  defaultValue?: string | ReactNode
-) {
-  if (Array.isArray(valueToParse)) {
-    const parsedFunctions = valueToParse.map(v => parseFunction(v));
-    const functionNames = parsedFunctions.map(f => f?.name).join(', ');
-    const firstFunction = parsedFunctions[0];
-    return `${functionNames}(${firstFunction?.arguments[1] ?? '…'})`;
-  }
+function useTraceMetricsSearchScope() {
+  const {state: widgetBuilderState} = useWidgetBuilderContext();
+  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
-  const parsedFunction = parseFunction(valueToParse);
-  if (parsedFunction) {
-    return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
-  }
-  return defaultValue ?? valueToParse;
+  const aggregateSource = getTraceMetricAggregateSource(
+    widgetBuilderState.displayType,
+    widgetBuilderState.yAxis,
+    widgetBuilderState.fields
+  );
+  const traceMetrics =
+    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+  const hasMultipleMetrics = hasMultipleMetricsSelected(
+    traceMetrics,
+    hasMultiMetricSelection
+  );
+  const attributeQuery =
+    !hasMultipleMetrics && traceMetrics[0]
+      ? createTraceMetricFilter(traceMetrics[0])
+      : undefined;
+
+  return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
+
+export {formatTraceMetricsFunction};
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
   props: Pick<SearchBarDataProviderProps, 'pageFilters'>
@@ -251,6 +240,7 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
       searchSource: 'dashboards',
       initialQuery: '',
       projects: pageFilters.projects,
+      hiddenAttributeKeys: HiddenTraceMetricSearchFields,
     });
 
   return {
@@ -267,7 +257,7 @@ export const TraceMetricsConfig: DatasetConfig<
   defaultCategoryField: 'project',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: false,
+  enableEquations: false, // TODO: Enable this when equations in dashboards is GA'd
   SearchBar: TraceMetricsSearchBar,
   useSearchBarDataProvider: useTraceMetricsSearchBarDataProvider,
   filterSeriesSortOptions,
@@ -277,10 +267,19 @@ export const TraceMetricsConfig: DatasetConfig<
   // We've forced the sort options to use the table sort options UI because
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
-    getTableSortOptions(organization, widgetQuery).map(option => ({
-      label: formatTraceMetricsFunction(option.value, option.label),
-      value: option.value,
-    })),
+    getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
+      if (isEquationAlias(value)) {
+        return {
+          label: `ƒ${getEquationAliasIndex(value) + 1}`,
+          value,
+        };
+      }
+
+      return {
+        label,
+        value,
+      };
+    }),
   getGroupByFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
@@ -330,38 +329,34 @@ export const TraceMetricsConfig: DatasetConfig<
   },
   getFieldHeaderMap: widgetQuery => {
     return (
-      widgetQuery?.aggregates.reduce(
-        (acc, aggregate) => {
-          acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
-          return acc;
-        },
-        {} as Record<string, string>
-      ) ?? {}
+      widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
+        acc[aggregate] = stripEquationPrefix(
+          formatTraceMetricsFunction(aggregate) as string
+        );
+        return acc;
+      }, {}) ?? {}
     );
   },
   getSeriesResultType(data, _widgetQuery) {
-    return data.timeSeries.reduce(
+    return data.timeSeries.reduce<Record<string, AggregationOutputType>>(
       (acc, timeSeries) => {
         acc[timeSeries.yAxis] = timeSeries.meta.valueType as AggregationOutputType;
         return acc;
       },
-      {} as Record<string, AggregationOutputType>
+      {}
     );
   },
   getSeriesResultUnit: (data, _widgetQuery) => {
-    return data.timeSeries.reduce(
-      (acc, timeSeries) => {
-        if (timeSeries.yAxis.includes('per_second(')) {
-          acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
-        } else if (timeSeries.yAxis.includes('per_minute(')) {
-          acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
-        } else {
-          acc[timeSeries.yAxis] = timeSeries.meta.valueUnit as DataUnit;
-        }
-        return acc;
-      },
-      {} as Record<string, DataUnit>
-    );
+    return data.timeSeries.reduce<Record<string, DataUnit>>((acc, timeSeries) => {
+      if (timeSeries.yAxis.includes('per_second(')) {
+        acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
+      } else if (timeSeries.yAxis.includes('per_minute(')) {
+        acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
+      } else {
+        acc[timeSeries.yAxis] = timeSeries.meta.valueUnit as DataUnit;
+      }
+      return acc;
+    }, {});
   },
 };
 
@@ -417,7 +412,7 @@ function formatMetricsTimeseriesLabel({
     ? `${func.name}(${func.arguments[1] ?? '…'})`
     : timeSeries.yAxis;
 
-  const multiYAxis = new Set(widgetQuery.aggregates ?? []).size > 1;
+  const multiYAxis = new Set(widgetQuery.aggregates).size > 1;
   const hasGroupings = new Set(widgetQuery.columns).size > 0;
 
   let baseName = formatTimeSeriesLabel({...timeSeries, yAxis: formattedYAxis});

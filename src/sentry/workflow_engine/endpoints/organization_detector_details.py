@@ -1,6 +1,7 @@
 from typing import Any
 
-from django.db import router, transaction
+from django.db.models import BigIntegerField
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -14,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -23,23 +25,46 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
+from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkDetectorWorkflowsValidator,
+from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
+    get_unknown_detector_type_error,
 )
-from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSource, Detector
+
+
+def _check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
+    """Raise ResourceDoesNotExist if this is a metric detector the org is not entitled to."""
+    if detector.type != MetricIssue.slug:
+        return
+
+    # Single query: DataSource -> (cast source_id) -> QuerySubscription -> SnubaQuery
+    dataset = (
+        SnubaQuery.objects.filter(
+            subscriptions__id__in=DataSource.objects.filter(
+                detector=detector,
+                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                organization=organization,
+            ).values(_source_int=Cast("source_id", output_field=BigIntegerField()))
+        )
+        .values_list("dataset", flat=True)
+        .first()
+    )
+    if dataset is None:
+        return
+    if not is_metric_subscription_allowed(dataset, organization):
+        raise ResourceDoesNotExist
 
 
 def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
@@ -127,7 +152,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
@@ -147,10 +172,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Return details on an individual monitor
         """
+        _check_metric_detector_allowed(detector, organization)
+
         serialized_detector = serialize(
             detector,
             request.user,
@@ -176,10 +201,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Update an existing monitor
         """
+        _check_metric_detector_allowed(detector, organization)
+
         if not can_edit_detector(detector, request):
             raise PermissionDenied
 
@@ -191,26 +216,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic(router.db_for_write(Detector)):
-            with in_test_hide_transaction_boundary():
-                updated_detector = validator.save()
-
-            workflow_ids = request.data.get("workflowIds")
-            if workflow_ids is not None:
-                bulk_validator = BulkDetectorWorkflowsValidator(
-                    data={
-                        "detector_id": detector.id,
-                        "workflow_ids": workflow_ids,
-                    },
-                    context={
-                        "organization": organization,
-                        "request": request,
-                    },
-                )
-                if not bulk_validator.is_valid():
-                    raise ValidationError({"workflowIds": bulk_validator.errors})
-
-                bulk_validator.save()
+        updated_detector = validator.save()
 
         return Response(serialize(updated_detector, request.user), status=status.HTTP_200_OK)
 
@@ -228,8 +234,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Delete a monitor
         """
+        # Intentionally no _check_metric_detector_allowed gate here:
+        # orgs should be able to delete detectors they can no longer use
+        # (e.g. after a plan downgrade).
         return remove_detector(request, organization, detector)

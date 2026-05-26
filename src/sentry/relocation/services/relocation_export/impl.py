@@ -22,18 +22,16 @@ from sentry.relocation.models.relocationtransfer import (
     RelocationTransferState,
 )
 from sentry.relocation.services.relocation_export.service import (
+    CellRelocationExportService,
     ControlRelocationExportService,
-    RegionRelocationExportService,
 )
-from sentry.relocation.tasks.process import fulfill_cross_region_export_request, uploading_complete
-from sentry.relocation.tasks.transfer import process_relocation_transfer_control
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.relocation")
 
 
-class DBBackedRelocationExportService(RegionRelocationExportService):
+class DBBackedRelocationExportService(CellRelocationExportService):
     def request_new_export(
         self,
         *,
@@ -43,6 +41,8 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
+        from sentry.relocation.tasks.process import fulfill_cross_region_export_request
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -52,11 +52,11 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         }
         logger.info("SaaS -> SaaS request received in exporting region", extra=logger_data)
 
-        # This task will do the actual work of performing the export and saving it to this regions
+        # This task will do the actual work of performing the export and saving it to this cell's
         # "relocation" GCS bucket. It is annotated with the appropriate retry, back-off etc logic
         # for robustness' sake. The last action performed by this task is to call an instance of
         # `ControlRelocationExportService.reply_with_export` via a manually-scheduled
-        # `RegionOutbox`, which will handle the task of asynchronously delivering the encrypted,
+        # `CellOutbox`, which will handle the task of asynchronously delivering the encrypted,
         # newly-exported bytes.
         fulfill_cross_region_export_request.apply_async(
             args=[
@@ -81,6 +81,8 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         encrypted_contents: bytes | None = None,
     ) -> None:
+        from sentry.relocation.tasks.process import uploading_complete
+
         with atomic_transaction(
             using=(
                 router.db_for_write(Relocation),
@@ -127,7 +129,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
 
             logger.info("SaaS -> SaaS relocation RelocationFile saved", extra=logger_data)
 
-            uploading_complete.apply_async(args=[relocation.uuid])
+            uploading_complete.apply_async(args=[str(relocation.uuid)])
             logger.info("SaaS -> SaaS relocation next task scheduled", extra=logger_data)
 
 
@@ -141,6 +143,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
+        from sentry.relocation.tasks.transfer import process_relocation_transfer_control
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -152,8 +156,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         transfer = ControlRelocationTransfer.objects.create(
             relocation_uuid=relocation_uuid,
             org_slug=org_slug,
-            requesting_region=requesting_region_name,
-            exporting_region=replying_region_name,
+            requesting_cell=requesting_region_name,
+            exporting_cell=replying_region_name,
             public_key=encrypt_with_public_key,
             state=RelocationTransferState.Request,
             # Set next runtime in the future to reduce races with scheduled tasks
@@ -173,6 +177,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         encrypted_contents: bytes | None = None,
     ) -> None:
+        from sentry.relocation.tasks.transfer import process_relocation_transfer_control
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -184,7 +190,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         logger.info("SaaS -> SaaS reply received on proxy", extra=logger_data)
 
         # Save the payload into the control silo's "relocation" GCS bucket. This bucket is only used
-        # for temporary storage of `encrypted_bytes` being shuffled between regions like this.
+        # for temporary storage of `encrypted_bytes` being shuffled between cells like this.
         path = f"runs/{relocation_uuid}/saas_to_saas_export/{org_slug}.tar"
         relocation_storage = get_relocation_storage()
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
@@ -192,12 +198,12 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         relocation_storage.save(path, fp)
         logger.info("SaaS -> SaaS export contents retrieved", extra=logger_data)
 
-        # Save transfer record so we can push state to the requesting region
+        # Save transfer record so we can push state to the requesting cell
         transfer = ControlRelocationTransfer.objects.create(
             relocation_uuid=relocation_uuid,
             org_slug=org_slug,
-            requesting_region=requesting_region_name,
-            exporting_region=replying_region_name,
+            requesting_cell=requesting_region_name,
+            exporting_cell=replying_region_name,
             state=RelocationTransferState.Reply,
             # Set next runtime in the future to reduce races with scheduled tasks
             scheduled_for=timezone.now() + RETRY_BACKOFF,

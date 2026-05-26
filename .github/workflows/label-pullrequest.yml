@@ -24,13 +24,13 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Add frontend label
-        uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
+        uses: getsentry/action-add-labels@ca568508c6e91387909cb3661e4cd965aa2f3a89
         if: steps.changes.outputs.frontend_all == 'true'
         with:
           labels: 'Scope: Frontend'
 
       - name: Add backend label
-        uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
+        uses: getsentry/action-add-labels@ca568508c6e91387909cb3661e4cd965aa2f3a89
         if: steps.changes.outputs.backend_src == 'true'
         with:
           labels: 'Scope: Backend'

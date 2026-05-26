@@ -10,7 +10,7 @@ from sentry.utils import json
 ENCRYPTION_METHODS = ("plaintext", "fernet")
 
 
-def test_encrypted_json_field_plaintext_encryption():
+def test_encrypted_json_field_plaintext_encryption() -> None:
     """Test EncryptedJSONField encryption with plaintext method."""
     with override_options({"database.encryption.method": "plaintext"}):
         field = EncryptedJSONField()
@@ -86,7 +86,7 @@ def test_encrypted_json_field_roundtrip(encryption_method, test_value, fernet_ke
         assert decrypted == test_value
 
 
-def test_encrypted_json_field_fallback_unencrypted():
+def test_encrypted_json_field_fallback_unencrypted() -> None:
     """Test that EncryptedJSONField falls back to unencrypted JSON."""
     field = EncryptedJSONField()
 
@@ -98,7 +98,7 @@ def test_encrypted_json_field_fallback_unencrypted():
     assert decrypted == {"legacy": "data", "from": "migration"}
 
 
-def test_encrypted_json_field_fallback_with_similar_structure():
+def test_encrypted_json_field_fallback_with_similar_structure() -> None:
     """Test fallback when JSON has similar but not exact encryption structure."""
     field = EncryptedJSONField()
 
@@ -157,7 +157,7 @@ def test_encrypted_json_field_fernet_end_to_end(fernet_keys_store):
 
 
 @pytest.mark.django_db
-def test_encrypted_json_field_plaintext_end_to_end():
+def test_encrypted_json_field_plaintext_end_to_end() -> None:
     """Test complete save/retrieve cycle with EncryptedJSONField and plaintext."""
     with override_options({"database.encryption.method": "plaintext"}):
         test_data = {"plain": "data", "numbers": [1, 2, 3]}

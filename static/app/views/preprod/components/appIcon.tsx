@@ -13,7 +13,7 @@ export function AppIcon({appName, appIconId, projectId}: AppIconProps) {
   const organization = useOrganization();
   const [imageError, setImageError] = useState(false);
 
-  let iconUrl = undefined;
+  let iconUrl: string | undefined;
   if (appIconId && projectId) {
     iconUrl = `/api/0/projects/${organization.slug}/${projectId}/files/images/${appIconId}/`;
   }

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +7,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 const TEST_RELEASE_NAME = 'test-project@1.0.0';
@@ -24,18 +25,16 @@ function initializeData({query} = {query: {}}) {
     ...query,
   };
 
-  const initialData = initializeOrg({
-    organization,
-    router: {
-      location: {
-        query: newQuery,
-      },
+  const initialData = initializeOrg({organization});
+  const router = RouterFixture({
+    location: {
+      query: newQuery,
     },
   });
 
   act(() => ProjectsStore.loadInitialData(initialData.projects));
 
-  return initialData;
+  return {...initialData, router};
 }
 
 const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
@@ -44,7 +43,7 @@ const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
     initialRouterConfig: {
       location: {
         pathname: '/performance/summary/tags/',
-        query: data.routerProps.location.query,
+        query: data.router.location.query,
       },
       route: '/performance/summary/',
       children: [
@@ -96,7 +95,7 @@ describe('Performance > Transaction Tags', () => {
           {
             tags_key: 'hardwareConcurrency',
             tags_value: '4',
-            sumdelta: 45773.0,
+            sumdelta: 45773,
             count: 83,
             frequency: 0.05,
             comparison: 1.45,
@@ -105,7 +104,7 @@ describe('Performance > Transaction Tags', () => {
           {
             tags_key: 'effectiveConnectionType',
             tags_value: '4g',
-            sumdelta: 45773.0,
+            sumdelta: 45773,
             count: 83,
             frequency: 0.05,
             comparison: 1.45,
@@ -114,7 +113,7 @@ describe('Performance > Transaction Tags', () => {
           {
             tags_key: 'release',
             tags_value: TEST_RELEASE_NAME,
-            sumdelta: 45773.0,
+            sumdelta: 45773,
             count: 83,
             frequency: 0.05,
             comparison: 1.45,
@@ -161,6 +160,15 @@ describe('Performance > Transaction Tags', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      match: [
+        (_url, options) => {
+          return options.query?.dataset === 'spans';
+        },
+      ],
     });
   });
 

@@ -1,13 +1,12 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {FormContext} from 'sentry/components/forms/formContext';
 import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
+import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
@@ -25,10 +24,6 @@ export class Subscriptions extends Component<Props> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
-
-  UNSAFE_componentWillMount(): void {
-    this.context.form.setValue('events', this.props.events);
-  }
 
   componentDidUpdate(prevProps: Props) {
     const {webhookDisabled, permissions, events} = this.props;
@@ -48,9 +43,6 @@ export class Subscriptions extends Component<Props> {
     }
   }
 
-  declare context: Required<React.ContextType<typeof FormContext>>;
-  static contextType = FormContext;
-
   onChange = (resource: Resource, checked: boolean) => {
     const events = new Set(this.props.events);
     if (checked) {
@@ -63,7 +55,6 @@ export class Subscriptions extends Component<Props> {
 
   save = (events: WebhookEvent[]) => {
     this.props.onChange(events);
-    this.context.form.setValue('events', events);
   };
 
   render() {

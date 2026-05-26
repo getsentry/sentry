@@ -60,14 +60,14 @@ interface ComboBoxProps {
   tabIndex?: number;
 }
 
-function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
+function useHiddenItems({
   items,
   filterValue,
   maxOptions,
   shouldFilterResults,
 }: {
   filterValue: string;
-  items: T[];
+  items: Array<SelectOptionOrSectionWithKey<string>>;
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {

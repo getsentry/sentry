@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {RelocationBadge} from 'admin/components/relocationBadge';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
 
@@ -57,7 +57,7 @@ export function Relocations() {
   return (
     <div>
       <PageHeader title="Relocations">
-        <LinkButton priority="primary" to="/_admin/relocations/new/" size="sm">
+        <LinkButton variant="primary" to="/_admin/relocations/new/" size="sm">
           Create New Relocation
         </LinkButton>
       </PageHeader>

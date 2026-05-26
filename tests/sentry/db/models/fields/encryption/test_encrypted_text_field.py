@@ -32,7 +32,7 @@ class EncryptedTextFieldWithDefaultModel(models.Model):
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_default_method():
+def test_encrypted_text_field_default_method() -> None:
     """Test that EncryptedTextField works with the default encryption method (plaintext)."""
     test_data = "This is sensitive data using default encryption method"
 
@@ -85,7 +85,7 @@ def test_encrypted_text_field_fernet_end_to_end(fernet_keys_store):
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_plaintext_end_to_end():
+def test_encrypted_text_field_plaintext_end_to_end() -> None:
     """Test complete save/retrieve cycle with EncryptedTextField using plaintext."""
     with override_options({"database.encryption.method": "plaintext"}):
         test_data = "This is plain text data"
@@ -109,7 +109,7 @@ def test_encrypted_text_field_plaintext_end_to_end():
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_null_value():
+def test_encrypted_text_field_null_value() -> None:
     """Test that null values are handled correctly."""
     with override_options({"database.encryption.method": "plaintext"}):
         model_instance = EncryptedTextFieldModel.objects.create(data=None)
@@ -128,7 +128,7 @@ def test_encrypted_text_field_null_value():
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_long_text():
+def test_encrypted_text_field_long_text() -> None:
     """Test that EncryptedTextField handles long text correctly (TextField behavior)."""
     with override_options({"database.encryption.method": "plaintext"}):
         # Create a long text that would exceed typical varchar limits
@@ -143,7 +143,7 @@ def test_encrypted_text_field_long_text():
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_empty_string():
+def test_encrypted_text_field_empty_string() -> None:
     """Test that empty strings are handled correctly."""
     with override_options({"database.encryption.method": "plaintext"}):
         model_instance = EncryptedTextFieldModel.objects.create(data="")
@@ -154,7 +154,7 @@ def test_encrypted_text_field_empty_string():
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_with_callable_default():
+def test_encrypted_text_field_with_callable_default() -> None:
     """Test that EncryptedTextField works with a callable default (like generate_token)."""
     with override_options({"database.encryption.method": "plaintext"}):
         # Create instance without providing 'secret' - should use callable default
@@ -181,7 +181,7 @@ def test_encrypted_text_field_with_callable_default():
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_with_static_default():
+def test_encrypted_text_field_with_static_default() -> None:
     """Test that EncryptedTextField works with a static default value."""
     with override_options({"database.encryption.method": "plaintext"}):
         # Create instance without providing 'static_default' - should use static default
@@ -206,7 +206,7 @@ def test_encrypted_text_field_with_static_default():
 
 
 @pytest.mark.django_db
-def test_encrypted_text_field_callable_default_generates_unique_values():
+def test_encrypted_text_field_callable_default_generates_unique_values() -> None:
     """Test that callable default generates unique values for each instance."""
     with override_options({"database.encryption.method": "plaintext"}):
         instance1 = EncryptedTextFieldWithDefaultModel.objects.create()

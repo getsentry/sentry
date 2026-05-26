@@ -24,12 +24,27 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
   [SectionKey.LOGS]: t('Logs'),
-  [SectionKey.METRICS]: t('Metrics'),
+  [SectionKey.METRICS]: t('Application Metrics'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
   [SectionKey.FEATURE_FLAGS]: t('Flags'),
 };
+
+type JumpToSectionConfig = SectionConfig & {key: SectionKey};
+
+// FoldSection is also used outside issue details with arbitrary string keys.
+// Jump To only supports issue-detail sections that have known SectionKey labels.
+function isJumpToSectionConfig(
+  config: SectionConfig | undefined,
+  excludedSectionKeys: SectionKey[]
+): config is JumpToSectionConfig {
+  return Boolean(
+    config &&
+    Object.hasOwn(sectionLabels, config.key) &&
+    !excludedSectionKeys.includes(config.key as SectionKey)
+  );
+}
 
 export function IssueDetailsJumpTo() {
   const {sectionData} = useIssueDetails();
@@ -51,8 +66,8 @@ export function IssueDetailsJumpTo() {
   }, [organization.features]);
 
   const eventSectionConfigs = useMemo(() => {
-    const configs = Object.values(sectionData ?? {}).filter(
-      config => sectionLabels[config.key] && !excludedSectionKeys.includes(config.key)
+    const configs = Object.values(sectionData ?? {}).filter(config =>
+      isJumpToSectionConfig(config, excludedSectionKeys)
     );
 
     // Build a position map by querying the DOM once
@@ -95,7 +110,7 @@ export function IssueDetailsJumpTo() {
   );
 }
 
-function JumpToLink({config}: {config: SectionConfig}) {
+function JumpToLink({config}: {config: JumpToSectionConfig}) {
   const theme = useTheme();
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(config.key),
@@ -121,7 +136,7 @@ function JumpToLink({config}: {config: SectionConfig}) {
             ?.scrollIntoView({block: 'start', behavior: 'smooth'});
         });
       }}
-      priority="transparent"
+      variant="transparent"
       size="xs"
       css={css`
         color: ${theme.tokens.content.secondary};

@@ -15,30 +15,26 @@ import {
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
-import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   ABYTE_UNITS,
   getAggregateAlias,
-  getAggregateArg,
   isEquation,
   isMeasurement,
-  RATE_UNIT_MULTIPLIERS,
   RateUnit,
-  SIZE_UNIT_MULTIPLIERS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -122,21 +118,6 @@ export function getThresholdUnitSelectOptions(
   return [];
 }
 
-export function normalizeUnit(value: number, unit: string, dataType: string): number {
-  const multiplier =
-    dataType === 'rate'
-      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        RATE_UNIT_MULTIPLIERS[unit]
-      : dataType === 'duration'
-        ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          DURATION_UNITS[unit]
-        : dataType === 'size'
-          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            SIZE_UNIT_MULTIPLIERS[unit]
-          : 1;
-  return value * multiplier;
-}
-
 export function getWidgetInterval(
   widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
@@ -211,8 +192,7 @@ export function getWidgetDiscoverUrl(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  index = 0,
-  isMetricsData = false
+  index = 0
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
@@ -274,10 +254,6 @@ export function getWidgetDiscoverUrl(
     dashboardFilters
   );
 
-  if (isMetricsData) {
-    discoverLocation.query.fromMetric = 'true';
-  }
-
   // Pass empty string when projects is empty to preserve "My Projects" selection in URL
   const projectParam =
     selection.projects.length === 0 ? '' : discoverLocation.query.project;
@@ -302,7 +278,11 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
+    query: applyDashboardFilters(
+      widget.queries?.[0]?.conditions,
+      dashboardFilters,
+      widget.widgetType
+    ),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
@@ -334,7 +314,7 @@ export function getWidgetReleasesUrl(
 }
 
 export function flattenErrors(
-  data: ValidationError | string,
+  data: Record<string, unknown> | string,
   update: FlatValidationError
 ): FlatValidationError {
   if (typeof data === 'string') {
@@ -368,32 +348,6 @@ export function getNumEquations(possibleEquations: string[]) {
 const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
 export function isCustomMeasurement(field: string) {
   return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
-}
-
-export function isWidgetUsingTransactionName(widget: Widget) {
-  return (
-    widget.widgetType === WidgetType.DISCOVER &&
-    widget.queries.some(({aggregates, columns, fields, conditions}) => {
-      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
-        const aggregateArg = getAggregateArg(aggregate);
-        if (aggregateArg) {
-          acc.push(aggregateArg);
-        }
-        return acc;
-      }, []);
-      const transactionSelected = [
-        ...aggregateArgs,
-        ...columns,
-        ...(fields ?? []),
-      ].includes('transaction');
-      const transactionUsedInFilter = parseSearch(conditions)?.some(
-        parsedCondition =>
-          parsedCondition.type === Token.FILTER &&
-          parsedCondition.key?.text === 'transaction'
-      );
-      return transactionSelected || transactionUsedInFilter;
-    })
-  );
 }
 
 export function hasSavedPageFilters(
@@ -485,11 +439,18 @@ export function getSavedPageFilters(dashboard: DashboardDetails) {
   };
 }
 
-export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
-  browserHistory.replace({
-    ...location,
-    query: getSavedPageFilters(dashboard),
-  });
+export function resetPageFilters(
+  dashboard: DashboardDetails,
+  location: Location,
+  navigate: ReactRouter3Navigate
+) {
+  navigate(
+    {
+      ...location,
+      query: getSavedPageFilters(dashboard),
+    },
+    {replace: true}
+  );
 }
 
 export function getCurrentPageFilters(
@@ -514,6 +475,19 @@ export function getCurrentPageFilters(
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
     utc: defined(utc) ? utc === 'true' : undefined,
   };
+}
+
+/**
+ * Merges saved dashboard filters with any overrides from the URL.
+ * URL filters take precedence per-key, but saved filters fill in
+ * keys that aren't present in the URL (e.g. globalFilter when only
+ * release is in the URL).
+ */
+export function getMergedDashboardFilters(
+  savedFilters: DashboardFilters | undefined,
+  location: Location
+): DashboardFilters {
+  return {...savedFilters, ...getDashboardFiltersFromURL(location)};
 }
 
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {

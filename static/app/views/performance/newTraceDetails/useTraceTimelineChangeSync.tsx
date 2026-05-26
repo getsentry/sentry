@@ -12,7 +12,7 @@ export function useTraceTimelineChangeSync(props: {
 }) {
   useLayoutEffect(() => {
     if (props.tree.type !== 'trace') {
-      return undefined;
+      return;
     }
 
     props.traceScheduler.dispatch('initialize trace space', [

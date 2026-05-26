@@ -13,7 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.integrations.tasks import create_comment, update_comment
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
@@ -155,6 +155,9 @@ class GroupAiPermission(GroupPermission):
         assert isinstance(group, Group)
         if is_demo_user(request.user):
             if not is_demo_mode_enabled() or request.method not in self.ALLOWED_METHODS:
+                return False
+
+            if not is_demo_org(group.project.organization):
                 return False
 
             return True

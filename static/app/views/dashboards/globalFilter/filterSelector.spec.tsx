@@ -1,5 +1,6 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
@@ -36,7 +37,9 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
     await userEvent.click(button);
 
     expect(screen.getByText('chrome')).toBeInTheDocument();
@@ -54,7 +57,9 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
     await userEvent.click(button);
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
@@ -63,7 +68,7 @@ describe('FilterSelector', () => {
 
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
-      value: 'browser:[firefox,chrome]',
+      value: `browser:${WildcardOperators.CONTAINS}[firefox,chrome]`,
     });
 
     await userEvent.click(button);
@@ -71,7 +76,7 @@ describe('FilterSelector', () => {
 
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
-      value: 'browser:chrome',
+      value: `browser:${WildcardOperators.CONTAINS}chrome`,
     });
   });
 
@@ -102,7 +107,9 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
     await userEvent.click(button);
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
 
@@ -154,6 +161,27 @@ describe('FilterSelector', () => {
     expect(screen.getByText('firefox')).toBeInTheDocument();
   });
 
+  it('shows selected value in trigger when tag values fail to load', async () => {
+    const emptySearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve([]),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'browser:firefox'}}
+        searchBarData={emptySearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    // Even with no fetched tag values, should show selected value, not "All"
+    expect(await screen.findByText('firefox')).toBeInTheDocument();
+    expect(screen.queryByText('All')).not.toBeInTheDocument();
+  });
+
   it('translates subregion codes to human-readable names for spans dataset', async () => {
     const subregionFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
@@ -181,13 +209,58 @@ describe('FilterSelector', () => {
     );
 
     const button = screen.getByRole('button', {
-      name: SpanFields.USER_GEO_SUBREGION + ' :',
+      name: `${SpanFields.USER_GEO_SUBREGION} contains`,
     });
     await userEvent.click(button);
 
-    expect(screen.getByRole('row', {name: 'North America'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Northern Europe'})).toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: '21'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: '154'})).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('gridcell', {name: /North America/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
+  });
+
+  it('allows searching for values over 70 characters', async () => {
+    // Create a long transaction name that exceeds 70 characters
+    const longValue =
+      'GET /api/organizations/{organization_slug}/projects/{project_slug}/events/{event_id}/committers/';
+    const shortValue = 'chrome';
+    const longValueSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve([longValue, shortValue]),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={mockGlobalFilter}
+        searchBarData={longValueSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains`,
+    });
+    await userEvent.click(button);
+
+    // Wait for options to load - both values should be visible initially
+    expect(await screen.findByText(shortValue)).toBeInTheDocument();
+    // Verify we have 2 checkboxes (one for each option)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+
+    // Search for the entire long value to test that search works on the full textValue
+    // even though the displayed label is truncated at 70 characters
+    const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
+    await userEvent.click(searchInput);
+    await userEvent.paste(longValue);
+
+    // After searching, only the long value should match
+    // Verify we now have only 1 checkbox (the matching long value)
+    await waitFor(() => {
+      expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+    });
+    // The short value should be filtered out
+    expect(screen.queryByText(shortValue)).not.toBeInTheDocument();
   });
 });

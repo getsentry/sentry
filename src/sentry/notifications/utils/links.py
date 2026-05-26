@@ -135,8 +135,8 @@ def get_rules_with_legacy_ids(
             NotificationRuleDetails(
                 rule_id,
                 rule.label,
-                f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule_id}/",
-                f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule_id}/details/",
+                f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/",
+                f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/details/",
             )
         )
     return rules_with_legacy_ids
@@ -171,4 +171,4 @@ def get_snooze_url(
     # should only be using rule
     if key == "workflow_id":
         rule_id = str(rule.id)
-    return f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule_id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+    return f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"

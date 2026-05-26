@@ -119,8 +119,8 @@ function createAnomalyMarkerSeries(
   const formatter = ({value}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
     return [
-      `<div class="tooltip-series"><div>`,
-      `</div>Anomaly Detected</div>`,
+      '<div class="tooltip-series"><div>',
+      '</div>Anomaly Detected</div>',
       `<div class="tooltip-footer">${time}</div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');

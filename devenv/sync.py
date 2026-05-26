@@ -9,7 +9,7 @@ import tempfile
 import urllib.request
 import zipfile
 
-from devenv.lib import colima, config, fs, limactl, proc
+from devenv.lib import brew, colima, config, fs, limactl, proc
 
 from devenv import constants
 
@@ -188,6 +188,14 @@ def main(context: dict[str, str]) -> int:
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
     IN_GIT_WORKTREE = os.path.isfile(f"{reporoot}/.git")
 
+    if constants.DARWIN:
+        brew.install()
+
+        proc.run(
+            (f"{constants.homebrew_bin}/brew", "bundle"),
+            cwd=reporoot,
+        )
+
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
         binroot = f"{reporoot}/.devenv/bin"
         colima.uninstall(binroot)
@@ -227,7 +235,7 @@ def main(context: dict[str, str]) -> int:
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled
 
-    # venv's still needed for frontend because repo-local devenv and pre-commit
+    # venv's still needed for frontend because repo-local devenv and prek
     # exist inside it
 
     venv_dir = f"{reporoot}/.venv"
@@ -266,7 +274,7 @@ def main(context: dict[str, str]) -> int:
         venv_dir,
         (
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
-            # and pre-commit were moved to inside devenv and not the sentry venv
+            # and prek were moved to inside devenv and not the sentry venv
             (
                 "python dependencies",
                 (
@@ -290,7 +298,7 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
+            ("prek dependencies", ("prek", "install", "--prepare-hooks", "-f"), {}),
             ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
         ),
         verbose,

@@ -1,6 +1,6 @@
 import {duration} from 'moment-timezone';
 
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 export function ReplayListFixture(
   replayListRecords: ReplayListRecord[] = []

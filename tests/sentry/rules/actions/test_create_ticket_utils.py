@@ -21,7 +21,7 @@ class CreateTicketUtilsTest(TestCase):
 
         description = build_description(self.event, self.rule.id, installation, generate_footer)
 
-        expected_url = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rule.id}/"
+        expected_url = f"/organizations/{self.organization.slug}/issues/alerts/rules/{self.project.slug}/{self.rule.id}/"
         assert (
             description == f"Test description\n\nThis issue was created by a rule: {expected_url}"
         )

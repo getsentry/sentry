@@ -1,162 +1,112 @@
-from collections.abc import Callable
+import time
+from typing import cast
 
-from sentry import ratelimits
+import sentry_sdk
+from django.db.models import Q
+from scm.providers.github.provider import GitHubProvider
+from scm.providers.gitlab.provider import GitLabProvider
+from scm.rate_limit import RateLimitProvider
+from scm.types import Provider, Repository, RepositoryId
+
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.errors import OrganizationIntegrationNotFound
+from sentry.integrations.github.client import GITHUB_RATE_LIMIT_WINDOW, REFERRER_ALLOCATION
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
-from sentry.scm.private.ipc import record_count_metric
-from sentry.scm.private.provider import Provider
-from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.private.providers.gitlab import GitLabProvider
-from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
-
-
-def is_rate_limited(
-    organization_id: int,
-    referrer: Referrer,
-    provider: str,
-    limit: int,
-    window: int,
-) -> bool:
-    return ratelimits.backend.is_limited(
-        f"scm_platform.{organization_id}.{referrer}.{provider}", limit=limit, window=window
-    )
-
-
-def is_rate_limited_with_allocation_policy(
-    organization_id: int,
-    referrer: Referrer,
-    provider: str,
-    window: int,
-    allocation_policy: dict[Referrer, int],
-) -> bool:
-    # Check if the referrer has reserved quota they have exclusive access to.
-    if referrer != "shared" and referrer in allocation_policy:
-        is_allocation_exhausted = is_rate_limited(
-            organization_id,
-            referrer,
-            provider,
-            limit=allocation_policy[referrer],
-            window=window,
-        )
-        if not is_allocation_exhausted:
-            return False
-
-    # Check if the shared pool has quota.
-    return is_rate_limited(
-        organization_id,
-        "shared",
-        provider,
-        limit=allocation_policy["shared"],
-        window=window,
-    )
-
-
-def map_integration_to_provider(
-    organization_id: int,
-    integration: Integration | RpcIntegration,
-    repository: Repository,
-    get_installation: Callable[
-        [Integration | RpcIntegration, int], IntegrationInstallation
-    ] = lambda i, oid: i.get_installation(organization_id=oid),
-) -> Provider:
-    client = get_installation(integration, organization_id).get_client()
-
-    if integration.provider == "github":
-        return GitHubProvider(client, organization_id, repository)
-    elif integration.provider == "gitlab":
-        return GitLabProvider(client, organization_id, repository)
-    else:
-        raise SCMCodedError(integration.provider, code="unsupported_integration")
-
-
-def map_repository_model_to_repository(repository: RepositoryModel) -> Repository:
-    return {
-        "integration_id": repository.integration_id,
-        "name": repository.name,
-        "organization_id": repository.organization_id,
-        "is_active": repository.status == ObjectStatus.ACTIVE,
-        "external_id": repository.external_id,
-    }
+from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.utils import metrics
 
 
 def fetch_service_provider(
     organization_id: int,
     repository: Repository,
-    map_to_provider: Callable[[Integration | RpcIntegration, int, Repository], Provider] = lambda i,
-    oid,
-    r: map_integration_to_provider(oid, i, r),
+    rate_limit_provider: RateLimitProvider | None = None,
 ) -> Provider | None:
     integration = integration_service.get_integration(
         integration_id=repository["integration_id"],
         organization_id=organization_id,
     )
-    return map_to_provider(integration, organization_id, repository) if integration else None
+    if not integration:
+        return None
+
+    try:
+        client = integration.get_installation(organization_id=organization_id).get_client()
+    except (IntegrationError, OrganizationIntegrationNotFound):
+        return None
+
+    if integration.provider in ("github", "github_enterprise"):
+        rate_limiter = DynamicRateLimiter(
+            get_time_in_seconds=lambda: int(time.time()),
+            integration_id=integration.id,
+            provider=integration.provider,
+            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
+            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
+            referrer_allocation=REFERRER_ALLOCATION,
+        )
+        return GitHubProvider(client, organization_id, repository, rate_limiter=rate_limiter)
+    elif integration.provider == "gitlab":
+        return GitLabProvider(client, organization_id, repository)
+    else:
+        return None
 
 
-def fetch_repository(
-    organization_id: int, repository_id: int | tuple[ProviderName, ExternalId]
-) -> Repository | None:
+def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repository | None:
     try:
         if isinstance(repository_id, int):
             repo = RepositoryModel.objects.get(organization_id=organization_id, id=repository_id)
         else:
             repo = RepositoryModel.objects.get(
+                Q(external_id=repository_id[1]) | Q(name=repository_id[1]),
                 organization_id=organization_id,
                 provider=f"integrations:{repository_id[0]}",
-                external_id=repository_id[1],
             )
     except RepositoryModel.DoesNotExist:
         return None
 
-    return map_repository_model_to_repository(repo)
+    # This state should be impossible, however, the invariant is not encoded into the data type.
+    # If we encounter a null integration_id the repository is useless. Return "None" and let the
+    # SCM fail gracefully. Failing to return "None" here could fetch _any_ integration belonging
+    # to the organization.
+    if not isinstance(repo.integration_id, int):
+        return None
+
+    # This state should be impossible, however, the invariant is not encoded into the data type.
+    # If we encounter a null provider the repository is functionally useless and there is a
+    # broader bug in the Sentry codebase. Return "None" and let the SCM fail gracefully.
+    if not isinstance(repo.provider, str):
+        return None
+
+    return cast(
+        Repository,
+        {
+            "external_id": repo.external_id,
+            "id": repo.id,
+            "integration_id": repo.integration_id,
+            "is_active": repo.status == ObjectStatus.ACTIVE,
+            "name": repo.name,
+            "organization_id": repo.organization_id,
+            "provider_name": repo.provider.removeprefix("integrations:"),
+            "web_base_url": None,
+        },
+    )
 
 
-def initialize_provider(
-    organization_id: int,
-    repository_id: RepositoryId,
-    *,
-    fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
-    fetch_service_provider: Callable[[int, Repository], Provider | None] = fetch_service_provider,
-) -> Provider:
-    repository = fetch_repository(organization_id, repository_id)
-    if not repository:
-        raise SCMCodedError(organization_id, repository_id, code="repository_not_found")
-    if not repository["is_active"]:
-        raise SCMCodedError(repository, code="repository_inactive")
-    if repository["organization_id"] != organization_id:
-        raise SCMCodedError(repository, code="repository_organization_mismatch")
-
-    provider = fetch_service_provider(organization_id, repository)
-    if provider is None:
-        raise SCMCodedError(code="integration_not_found")
-
-    return provider
+def report_error_to_sentry(e: Exception) -> None:
+    """Typing wrapper around sentry_sdk.capture_exception."""
+    sentry_sdk.capture_exception(e)
 
 
-def exec_provider_fn[P: Provider, T](
-    provider: P,
-    *,
-    referrer: Referrer = "shared",
-    provider_fn: Callable[[], T],
-    record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
-) -> T:
-    if provider.is_rate_limited(referrer):
-        raise SCMCodedError(provider, referrer, code="rate_limit_exceeded")
+def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.incr."""
+    metrics.incr(key, amount, tags=tags)
 
-    try:
-        result = provider_fn()
-        record_count(
-            "sentry.scm.actions.success_by_provider", 1, {"provider": provider.__class__.__name__}
-        )
-        record_count("sentry.scm.actions.success_by_referrer", 1, {"referrer": referrer})
-        return result
-    except SCMError:
-        raise
-    except Exception as e:
-        record_count("sentry.scm.actions.failed", 1, {})
-        raise SCMUnhandledException from e
+
+def record_distribution_metric(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
+    """Typing wrapper around metrics.distribution."""
+    metrics.distribution(key, amount, tags=tags, unit=unit)
+
+
+def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.distribution."""
+    metrics.distribution(key, amount, tags=tags)

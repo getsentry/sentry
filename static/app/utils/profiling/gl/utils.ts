@@ -830,11 +830,11 @@ export function useResizeCanvasObserver(
 ) {
   useLayoutEffect(() => {
     if (!canvas || !canvases.length) {
-      return undefined;
+      return;
     }
 
     if (canvases.includes(null)) {
-      return undefined;
+      return;
     }
 
     const observer = watchForResize(canvases as HTMLCanvasElement[], () => {

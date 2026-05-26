@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -5,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
@@ -26,17 +27,10 @@ function initialize(query: Record<string, string>, additionalFeatures = []) {
   const organization = OrganizationFixture({
     features,
   });
-  const initialOrgData = {
-    organization,
-    router: {
-      location: {
-        query: {...query},
-      },
-    },
-  };
-  const initialData = initializeOrg(initialOrgData);
+  const initialData = initializeOrg({organization});
+  const location = LocationFixture({query: {...query}});
   ProjectsStore.loadInitialData(initialData.projects);
-  const eventView = EventView.fromLocation(initialData.router.location);
+  const eventView = EventView.fromLocation(location);
 
   const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
   const transactionName = 'example-transaction';
@@ -45,7 +39,7 @@ function initialize(query: Record<string, string>, additionalFeatures = []) {
     ...initialData,
     spanOperationBreakdownFilter,
     transactionName,
-    location: initialData.router.location,
+    location,
     eventView,
   };
 }

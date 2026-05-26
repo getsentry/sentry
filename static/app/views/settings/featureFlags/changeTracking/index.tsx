@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -15,12 +16,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -49,7 +45,7 @@ type RemoveSecretQueryVariables = {
 
 export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
   [
-    getApiUrl(`/organizations/$organizationIdOrSlug/flags/signing-secrets/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
   ] as const;
@@ -135,7 +131,7 @@ function OrganizationFeatureFlagsChangeTracking() {
       disabled={hasAccess}
     >
       <LinkButton
-        priority="primary"
+        variant="primary"
         size="sm"
         to={`/settings/${organization.slug}/feature-flags/change-tracking/new-provider/`}
         data-test-id="create-new-provider"
@@ -155,9 +151,9 @@ function OrganizationFeatureFlagsChangeTracking() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Change Tracking')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Change Tracking')} />
-      <TextBlock>
-        {tct(
+      <SettingsPageHeader
+        title={t('Change Tracking')}
+        subtitle={tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
@@ -165,7 +161,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             ),
           }
         )}
-      </TextBlock>
+      />
 
       <Flex justify="between">
         <h5>{t('Providers')}</h5>

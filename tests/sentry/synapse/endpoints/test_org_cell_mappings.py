@@ -8,9 +8,9 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, RegionCategory
 
-us_region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de_region = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
-region_config = (us_region, de_region)
+us_cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de_cell = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+cell_config = (us_cell, de_cell)
 
 
 @control_silo_test
@@ -59,7 +59,7 @@ class OrgCellMappingsTest(APITestCase):
         assert "cell_to_locality" in res.data["metadata"]
         assert res.data["metadata"]["has_more"] is False
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_results_no_next(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
@@ -75,7 +75,7 @@ class OrgCellMappingsTest(APITestCase):
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_next_page(self) -> None:
         # newest orgs are in next page (ascending order by date_updated).
         org1 = self.create_organization()
@@ -97,12 +97,12 @@ class OrgCellMappingsTest(APITestCase):
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"]
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_multiple_pages_multiple_locales(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
-        org3 = self.create_organization(region=de_region)
-        org4 = self.create_organization(region=de_region)
+        org3 = self.create_organization(cell=de_cell)
+        org4 = self.create_organization(cell=de_cell)
 
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(
@@ -133,12 +133,12 @@ class OrgCellMappingsTest(APITestCase):
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
 
-    @override_cells(region_config)
+    @override_cells(cell_config)
     def test_get_locale_filter(self) -> None:
-        # Two orgs in the wrong region to check pagination response data
+        # Two orgs in the wrong cell to check pagination response data
         self.create_organization()
         self.create_organization()
-        org3 = self.create_organization(region=de_region)
+        org3 = self.create_organization(cell=de_cell)
 
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(

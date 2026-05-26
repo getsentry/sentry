@@ -1490,8 +1490,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'environment', kind: FieldValueKind.FIELD},
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1524,7 +1524,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1557,8 +1557,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'environment', kind: FieldValueKind.FIELD},
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1593,7 +1593,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['crash_free_rate', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1936,8 +1936,8 @@ describe('useWidgetBuilderState', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             field: ['project'],
-            yAxis: ['sum(value,my.metric,counter,-)'],
-            sort: ['-sum(value,my.metric,counter,-)'],
+            yAxis: ['sum(value,my.metric,counter,none)'],
+            sort: ['-sum(value,my.metric,counter,none)'],
           },
         })
       );
@@ -1953,13 +1953,7 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: [
-                'avg' as AggregationKeyWithAlias,
-                'value',
-                'other.metric',
-                'gauge',
-                '-',
-              ],
+              function: ['avg', 'value', 'other.metric', 'gauge', 'none'],
             },
           ] as Column[],
         });
@@ -1967,7 +1961,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should be updated to the new aggregate
       expect(result.current.state.sort).toEqual([
-        {kind: 'desc', field: 'avg(value,other.metric,gauge,-)'},
+        {kind: 'desc', field: 'avg(value,other.metric,gauge,none)'},
       ]);
     });
 
@@ -1978,8 +1972,8 @@ describe('useWidgetBuilderState', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             field: ['project'],
-            yAxis: ['sum(value,my.metric,counter,-)'],
-            sort: ['-sum(value,my.metric,counter,-)'],
+            yAxis: ['sum(value,my.metric,counter,none)'],
+            sort: ['-sum(value,my.metric,counter,none)'],
           },
         })
       );
@@ -1995,23 +1989,11 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: [
-                'sum' as AggregationKeyWithAlias,
-                'value',
-                'my.metric',
-                'counter',
-                '-',
-              ],
+              function: ['sum', 'value', 'my.metric', 'counter', 'none'],
             },
             {
               kind: 'function',
-              function: [
-                'avg' as AggregationKeyWithAlias,
-                'value',
-                'my.metric',
-                'counter',
-                '-',
-              ],
+              function: ['avg', 'value', 'my.metric', 'counter', 'none'],
             },
           ] as Column[],
         });
@@ -2019,7 +2001,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should remain on sum since it's still present
       expect(result.current.state.sort).toEqual([
-        {kind: 'desc', field: 'sum(value,my.metric,counter,-)'},
+        {kind: 'desc', field: 'sum(value,my.metric,counter,none)'},
       ]);
     });
 
@@ -2030,8 +2012,8 @@ describe('useWidgetBuilderState', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             yAxis: [
-              'sum(value,my.metric,counter,-)',
-              'per_second(value,my.metric,counter,-)',
+              'sum(value,my.metric,counter,none)',
+              'per_second(value,my.metric,counter,none)',
             ],
           },
         })
@@ -2046,12 +2028,12 @@ describe('useWidgetBuilderState', () => {
       // stores all args in the args array when there are more than 3.
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', 'my.metric', 'counter', '-'],
+          function: ['sum', 'value', 'my.metric', 'counter', 'none'],
           alias: undefined,
           kind: 'function',
         },
         {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
+          function: ['per_second', 'value', 'my.metric', 'counter', 'none'],
           alias: undefined,
           kind: 'function',
         },
@@ -2084,7 +2066,7 @@ describe('useWidgetBuilderState', () => {
               {kind: FieldValueKind.FIELD, field: 'project'},
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'my.metric', 'counter', '-'],
+                function: ['sum', 'value', 'my.metric', 'counter', 'none'],
               },
               {
                 kind: FieldValueKind.FUNCTION,
@@ -2093,7 +2075,7 @@ describe('useWidgetBuilderState', () => {
                   'value',
                   'my.metric',
                   'counter',
-                  '-',
+                  'none',
                 ],
               },
             ]),
@@ -2106,7 +2088,7 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: ['-per_second(value,my.metric,counter,-)'],
+            sort: ['-per_second(value,my.metric,counter,none)'],
           }),
         }),
         expect.anything()
@@ -2621,7 +2603,7 @@ describe('useWidgetBuilderState', () => {
       });
 
       // The URL description is moved into local textContent state
-      expect(result.current.state.textContent as string).toBe('existing description');
+      expect(result.current.state.textContent!).toBe('existing description');
       // And cleared from the URL-backed description field
       expect(result.current.state.description).toBeUndefined();
     });
@@ -2646,7 +2628,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.textContent as string).toBe('text widget content');
+      expect(result.current.state.textContent!).toBe('text widget content');
 
       act(() => {
         result.current.dispatch({
@@ -2680,7 +2662,7 @@ describe('useWidgetBuilderState', () => {
 
       jest.runAllTimers();
 
-      expect(result.current.state.textContent as string).toBe('new text content');
+      expect(result.current.state.textContent!).toBe('new text content');
       // Text content must not be written to the URL to avoid excessive URL length
       expect(mockNavigate).not.toHaveBeenCalled();
     });

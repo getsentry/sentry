@@ -1,11 +1,14 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
+
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -14,10 +17,9 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {Project, ProjectStats} from 'sentry/types/project';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,37 +32,38 @@ import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/cr
 import {ProjectStatsGraph} from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
+type ProjectListItem = Project & {stats?: ProjectStats};
 
 function OrganizationProjects() {
   const organization = useOrganization();
-
   const navigate = useNavigate();
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
   const {
-    data: projectList,
-    getResponseHeader,
+    data: projectListResponse,
     isPending,
     isError,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<ProjectListItem[]>()(
+      '/organizations/$organizationIdOrSlug/projects/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...location.query,
           query,
           per_page: ITEMS_PER_PAGE,
           statsPeriod: '24h',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
-      },
-    ],
-    {staleTime: 0}
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
 
-  const projectListPageLinks = getResponseHeader?.('Link');
+  const projectList = projectListResponse?.json;
+  const projectListPageLinks = projectListResponse?.headers.Link;
   const action = <CreateProjectButton />;
 
   const debouncedSearch = useMemo(
@@ -83,13 +86,21 @@ function OrganizationProjects() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Projects'), organization.slug, false)}
       />
-      <SettingsPageHeader title="Projects" action={action} />
+      <SettingsPageHeader title="Projects" />
       <SearchWrapper>
-        <SearchBar
-          placeholder={t('Search Projects')}
-          onChange={debouncedSearch}
-          query={query}
-        />
+        <Flex align="center" gap="md">
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                placeholder={t('Search Projects')}
+                onChange={debouncedSearch}
+                query={query}
+              />
+            )}
+          </Container>
+          {action}
+        </Flex>
       </SearchWrapper>
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>
@@ -103,7 +114,7 @@ function OrganizationProjects() {
                   <ProjectItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
-                  <ProjectStatsGraph project={project} />
+                  <ProjectStatsGraph stats={project.stats} />
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}

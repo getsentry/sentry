@@ -69,9 +69,9 @@ export const useResizable = ({
 } => {
   const [isHeld, setIsHeld] = useState(false);
 
-  const isDraggingRef = useRef<boolean>(false);
-  const startXRef = useRef<number>(0);
-  const startWidthRef = useRef<number>(0);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
 
   useEffect(() => {
     if (ref.current) {
@@ -106,7 +106,9 @@ export const useResizable = ({
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDraggingRef.current) return;
+      if (!isDraggingRef.current) {
+        return;
+      }
 
       const deltaX = e.clientX - startXRef.current;
       const newWidth = Math.max(

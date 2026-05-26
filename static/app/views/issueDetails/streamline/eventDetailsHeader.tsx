@@ -4,16 +4,16 @@ import styled from '@emotion/styled';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
 } from 'sentry/components/timeRangeSelector';
-import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
+import {getRelativeDate} from 'sentry/components/timeSince';
 import {TourElement} from 'sentry/components/tours/components';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -135,6 +135,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       />
                       <TimeRangeSelector
                         menuTitle={t('Filter Time Range')}
+                        menuWidth={
+                          shouldShowSinceFirstSeenOption ? 'fit-content' : undefined
+                        }
                         start={period?.start}
                         end={period?.end}
                         utc={location.query.utc === 'true'}
@@ -147,8 +150,10 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             shouldShowSinceFirstSeenOption
                               ? {
                                   [defaultStatsPeriod.statsPeriod]: t(
-                                    '%s (since first seen)',
-                                    getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                                    'Last %s (since first seen)',
+                                    getRelativeDate(group.firstSeen)
+                                      .replace(/^a (?=\w+$)/, '1 ')
+                                      .replace(/^an (?=\w+$)/, '1 ')
                                   ),
                                 }
                               : {}),
@@ -181,7 +186,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             {period === defaultStatsPeriod &&
                             !defaultStatsPeriod.isMaxRetention &&
                             shouldShowSinceFirstSeenOption
-                              ? t('Since First Seen')
+                              ? tct('Since First Seen ([period])', {
+                                  period: getRelativeDate(group.firstSeen)
+                                    .replace(/^a (?=\w+$)/, '1 ')
+                                    .replace(/^an (?=\w+$)/, '1 '),
+                                })
                               : triggerProps.children}
                           </TimeRangeSelectTrigger>
                         )}
@@ -283,8 +292,8 @@ const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.secondary};
-  padding-left: ${p => p.theme.space['2xl']};
-  padding-right: ${p => p.theme.space['2xl']};
+  padding-left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
+  padding-right: var(--issue-details-inset, ${p => p.theme.space['2xl']});
   padding-top: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -320,5 +329,6 @@ const PageErrorBoundary = styled(ErrorBoundary)`
   border: 0px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-width: 0 1px 1px 0;
   border-radius: 0;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
+  padding: ${p => p.theme.space.lg}
+    var(--issue-details-inset, ${p => p.theme.space['2xl']});
 `;

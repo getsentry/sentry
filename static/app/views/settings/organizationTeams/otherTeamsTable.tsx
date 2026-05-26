@@ -56,7 +56,7 @@ export function OtherTeamsTable({
         <Flex gap="sm">
           {t("You're a member of all teams.")}
           {canCreateTeams && (
-            <Button priority="link" onClick={() => openCreateTeamModal({organization})}>
+            <Button variant="link" onClick={() => openCreateTeamModal({organization})}>
               {t('Create another team')}
             </Button>
           )}
@@ -234,7 +234,7 @@ function TeamAction({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr 125px 150px 130px;
+  grid-template-columns: 1fr 125px 150px auto;
   margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='actions'] {
@@ -242,7 +242,7 @@ const StyledSimpleTable = styled(SimpleTable)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 125px 130px;
+    grid-template-columns: 1fr 125px auto;
 
     [data-column-name='projects'] {
       display: none;

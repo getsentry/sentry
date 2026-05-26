@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -13,12 +14,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 type Props = ModalRenderProps & {
@@ -34,7 +30,7 @@ export function MergeAccountsModal(props: Props) {
   const queryClient = useQueryClient();
 
   const makeMergeAccountsQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/users/$userId/merge-accounts/`, {
+    getApiUrl('/users/$userId/merge-accounts/', {
       path: {userId},
     }),
   ];
@@ -146,7 +142,7 @@ export function MergeAccountsModal(props: Props) {
         </Form>
       </Body>
       <Footer>
-        <Button onClick={() => doMergeMutation.mutate()} priority="primary">
+        <Button onClick={() => doMergeMutation.mutate()} variant="primary">
           Merge Account(s)
         </Button>
       </Footer>

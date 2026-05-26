@@ -58,7 +58,6 @@ describe('IntegrationOrganizationLink', () => {
     const org2Lite = pick(org2, ['slug', 'name', 'id']);
     getOrgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      match: [MockApiClient.matchQuery({include_feature_flags: 1})],
       body: [org1Lite, org2Lite],
     });
   });
@@ -87,13 +86,11 @@ describe('IntegrationOrganizationLink', () => {
     render(<IntegrationOrganizationLink />, {
       initialRouterConfig,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
     expect(getOrgsMock).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalled();
 
     // Select organization
-    await selectEvent.select(screen.getByRole('textbox'), org2.name);
+    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       generateOrgSlugUrl(org2.slug)
     );
@@ -116,10 +113,8 @@ describe('IntegrationOrganizationLink', () => {
     render(<IntegrationOrganizationLink />, {
       initialRouterConfig,
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
     // Select the same organization as the domain
-    await selectEvent.select(screen.getByRole('textbox'), org2.name);
+    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();

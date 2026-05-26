@@ -246,7 +246,11 @@ export function isContinuousProfiling(category: DataCategory | string) {
 }
 
 export function isByteCategory(category: DataCategory | string) {
-  return category === DataCategory.ATTACHMENTS || category === DataCategory.LOG_BYTE;
+  return (
+    category === DataCategory.ATTACHMENTS ||
+    category === DataCategory.LOG_BYTE ||
+    category === DataCategory.TRACE_METRIC_BYTE
+  );
 }
 
 /**
@@ -292,7 +296,7 @@ export function formatCategoryQuantityWithDisplayName({
   formattedQuantity,
   subscription,
   planOverride,
-  options = {},
+  options,
 }: {
   dataCategory: DataCategory;
   formattedQuantity: string;

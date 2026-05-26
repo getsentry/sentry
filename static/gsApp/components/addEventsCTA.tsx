@@ -84,7 +84,7 @@ function AddEventsCTA(props: Props) {
     'data-test-id'?: string;
   } = {
     size: 'xs',
-    priority: 'primary',
+    variant: 'primary',
     busy,
     disabled: busy,
     'data-test-id': `btn-${action}`,

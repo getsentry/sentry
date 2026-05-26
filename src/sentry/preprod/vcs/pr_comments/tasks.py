@@ -43,14 +43,14 @@ def create_preprod_pr_comment_task(
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.pr_comments.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id, "caller": caller},
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not artifact.commit_comparison:
         logger.info(
             "preprod.pr_comments.create.no_commit_comparison",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return
 
@@ -63,7 +63,7 @@ def create_preprod_pr_comment_task(
         logger.info(
             "preprod.pr_comments.create.no_pr_info",
             extra={
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "pr_number": commit_comparison.pr_number,
                 "head_repo_name": commit_comparison.head_repo_name,
             },
@@ -75,7 +75,7 @@ def create_preprod_pr_comment_task(
     ):
         logger.info(
             "preprod.pr_comments.create.project_disabled",
-            extra={"artifact_id": artifact.id, "project_id": artifact.project.id},
+            extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
         )
         return
 
@@ -83,7 +83,7 @@ def create_preprod_pr_comment_task(
     if not features.has("organizations:preprod-build-distribution-pr-comments", organization):
         logger.info(
             "preprod.pr_comments.create.feature_disabled",
-            extra={"artifact_id": artifact.id, "organization_id": organization.id},
+            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
         )
         return
 
@@ -93,7 +93,7 @@ def create_preprod_pr_comment_task(
     if not client:
         logger.info(
             "preprod.pr_comments.create.no_client",
-            extra={"artifact_id": artifact.id},
+            extra={"preprod_artifact_id": artifact.id},
         )
         return
 
@@ -127,10 +127,18 @@ def create_preprod_pr_comment_task(
         siblings = artifact.get_sibling_artifacts_for_commit()
         installable_siblings = [s for s in siblings if is_installable_artifact(s)]
         if not installable_siblings:
+            logger.info(
+                "preprod.pr_comments.create.no_installable_artifacts",
+                extra={
+                    "preprod_artifact_id": artifact.id,
+                    "project_id": artifact.project.id,
+                    "sibling_count": len(siblings),
+                },
+            )
             return
 
-        existing_comment_id = _find_existing_comment_id(all_for_pr)
-        comment_body = format_pr_comment(installable_siblings)
+        existing_comment_id = find_existing_comment_id(all_for_pr, "build_distribution")
+        comment_body = format_pr_comment(installable_siblings, project=artifact.project)
 
         try:
             if existing_comment_id:
@@ -143,7 +151,7 @@ def create_preprod_pr_comment_task(
                 comment_id = existing_comment_id
                 logger.info(
                     "preprod.pr_comments.create.updated",
-                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
+                    extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
                 )
             else:
                 resp = client.create_comment(
@@ -154,39 +162,41 @@ def create_preprod_pr_comment_task(
                 comment_id = str(resp["id"])
                 logger.info(
                     "preprod.pr_comments.create.created",
-                    extra={"artifact_id": artifact.id, "comment_id": comment_id},
+                    extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
                 )
         except Exception as e:
             extra: dict[str, Any] = {
-                "artifact_id": artifact.id,
+                "preprod_artifact_id": artifact.id,
                 "organization_id": organization.id,
                 "error_type": type(e).__name__,
             }
             if isinstance(e, ApiError):
                 extra["status_code"] = e.code
             logger.exception("preprod.pr_comments.create.failed", extra=extra)
-            _save_pr_comment_result(cc, success=False, error=e)
+            save_pr_comment_result(cc, "build_distribution", success=False, error=e)
             api_error = e
         else:
-            _save_pr_comment_result(cc, success=True, comment_id=comment_id)
+            save_pr_comment_result(cc, "build_distribution", success=True, comment_id=comment_id)
 
     if api_error is not None:
         raise api_error
 
 
-def _find_existing_comment_id(
+def find_existing_comment_id(
     comparisons: Sequence[CommitComparison],
+    comment_type: str,
 ) -> str | None:
     for cc in comparisons:
         extras = cc.extras or {}
-        comment_id = extras.get("pr_comments", {}).get("build_distribution", {}).get("comment_id")
+        comment_id = extras.get("pr_comments", {}).get(comment_type, {}).get("comment_id")
         if comment_id:
             return str(comment_id)
     return None
 
 
-def _save_pr_comment_result(
+def save_pr_comment_result(
     commit_comparison: CommitComparison,
+    comment_type: str,
     success: bool,
     comment_id: str | None = None,
     error: Exception | None = None,
@@ -201,7 +211,7 @@ def _save_pr_comment_result(
     # Preserve the existing comment_id on failure so retries use
     # update_comment instead of creating a duplicate.
     if not comment_id:
-        existing = extras.get("pr_comments", {}).get("build_distribution", {})
+        existing = extras.get("pr_comments", {}).get(comment_type, {})
         comment_id = existing.get("comment_id")
 
     result: dict[str, Any] = {"success": success}
@@ -211,7 +221,7 @@ def _save_pr_comment_result(
         result["error_type"] = _get_error_type(error)
 
     pr_comments = extras.setdefault("pr_comments", {})
-    pr_comments["build_distribution"] = result
+    pr_comments[comment_type] = result
     commit_comparison.extras = extras
     commit_comparison.save(update_fields=["extras"])
 

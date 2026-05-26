@@ -123,7 +123,7 @@ const Table = styled('table')`
   border-radius: ${p => p.theme.radius.md};
   border-collapse: separate;
   border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;

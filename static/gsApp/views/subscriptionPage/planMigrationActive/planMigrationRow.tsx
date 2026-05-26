@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -56,13 +55,10 @@ function formatCategoryRowString(
 ): string {
   const reservedWithUnits = formatReservedWithUnits(
     quantity,
-    DATA_CATEGORY_INFO[category].plural as DataCategory,
+    DATA_CATEGORY_INFO[category].plural,
     options
   );
-  if (
-    category === DataCategoryExact.ATTACHMENT ||
-    category === DataCategoryExact.LOG_BYTE
-  ) {
+  if (DATA_CATEGORY_INFO[category].formatting.unitType === 'bytes') {
     return reservedWithUnits;
   }
 

@@ -1,7 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -10,10 +13,9 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -25,32 +27,28 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
+import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import {MembersFilter} from './components/membersFilter';
 import {InviteRequestRow} from './inviteRequestRow';
 import {OrganizationMemberRow} from './organizationMemberRow';
 
-const MemberListHeader = HookOrDefault({
-  hookName: 'component:member-list-header',
+const MemberListHeader = OverrideOrDefault({
+  overrideName: 'component:member-list-header',
   defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
 });
 
-const InviteMembersButtonHook = HookOrDefault({
-  hookName: 'member-invite-button:customization',
+const InviteMembersButtonHook = OverrideOrDefault({
+  overrideName: 'member-invite-button:customization',
   defaultComponent: ({children, organization, onTriggerModal}) => {
     const isSsoRequired = organization.requiresSso;
     const disabled = isSsoRequired || !organization.features.includes('invite-members');
@@ -58,21 +56,22 @@ const InviteMembersButtonHook = HookOrDefault({
   },
 });
 
-const getMembersQueryKey = ({
+function membersApiOptions({
   orgSlug,
   query,
 }: {
   orgSlug: string;
-  query: Record<string, string>;
-}): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+  query?: Partial<Record<'query' | 'cursor', unknown>>;
+}) {
+  return apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
     path: {organizationIdOrSlug: orgSlug},
-  }),
-  {query},
-];
+    query,
+    staleTime: 0,
+  });
+}
 
 const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/invite-requests/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/', {
     path: {organizationIdOrSlug: organization.slug},
   }),
 ];
@@ -88,7 +87,7 @@ function OrganizationMembersList() {
   >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
   const {data: authProvider} = useApiQuery<OrganizationAuthProvider>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -96,39 +95,38 @@ function OrganizationMembersList() {
   );
   const {data: currentMember} = useApiQuery<Member>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
         path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
       }),
     ],
     {staleTime: 30000}
   );
+  const membersQueryOptions = membersApiOptions({
+    orgSlug: organization.slug,
+    query: {
+      query: location.query.query,
+      cursor: location.query.cursor,
+    },
+  });
   const {
-    data: members = [],
+    data: membersResponse,
     isPending: isPendingMembers,
     refetch: refetchMembers,
-    getResponseHeader,
-  } = useApiQuery<Member[]>(
-    getMembersQueryKey({
-      orgSlug: organization.slug,
-      query: {
-        query: location.query.query as string,
-        cursor: location.query.cursor as string,
-      },
-    }),
-    {staleTime: 0}
-  );
-  const {data: activeOwnerMembers = [], isPending: isPendingOwners} = useApiQuery<
-    Member[]
-  >(
-    getMembersQueryKey({
+  } = useQuery({
+    ...membersQueryOptions,
+    select: selectJsonWithHeaders,
+  });
+  const members = useMemo(() => membersResponse?.json ?? [], [membersResponse?.json]);
+  const {data: activeOwnerMembers = [], isPending: isPendingOwners} = useQuery({
+    ...membersApiOptions({
       orgSlug: organization.slug,
       // Ignore search queries since this isn't displayed, it's okay not to paginate.
       // This is only used to determine if the current user is the only owner.
       // We also filter out active invites, so only active users are included.
       query: {query: 'role:owner isInvited:false'},
     }),
-    {staleTime: 30000}
-  );
+    staleTime: 30_000,
+  });
 
   const [invited, setInvited] = useState<Record<string, 'loading' | 'success' | null>>(
     {}
@@ -140,16 +138,13 @@ function OrganizationMembersList() {
       data: {},
     });
 
-    setApiQueryData<Member[]>(
-      queryClient,
-      getMembersQueryKey({
-        orgSlug: organization.slug,
-        query: {
-          query: location.query.query as string,
-          cursor: location.query.cursor as string,
-        },
-      }),
-      currentMembers => currentMembers?.filter(member => member.id !== id)
+    queryClient.setQueryData(membersQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.filter(member => member.id !== id),
+          }
+        : prevData
     );
   };
 
@@ -305,14 +300,14 @@ function OrganizationMembersList() {
 
   const searchQuery = (location.query.query as string) || '';
 
-  const membersPageLinks = getResponseHeader?.('Link');
+  const membersPageLinks = membersResponse?.headers.Link;
 
   // hides other users in demo mode
   const membersToShow = useMemo(
     () =>
       isDemoModeActive()
-        ? members.filter(m => m).filter(({email}) => email === currentUser.email)
-        : members.filter(m => m),
+        ? members.filter(Boolean).filter(({email}) => email === currentUser.email)
+        : members.filter(Boolean),
     [members, currentUser.email]
   );
 
@@ -341,7 +336,7 @@ function OrganizationMembersList() {
 
   return (
     <Fragment>
-      <SettingsPageHeader title="Members" action={action} />
+      <SettingsPageHeader title="Members" />
       <InviteBanner
         onSendInvite={() => {
           refetchMembers();
@@ -378,16 +373,24 @@ function OrganizationMembersList() {
         </Panel>
       )}
       <SearchWrapperWithFilter>
-        <MembersFilter
-          roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
-          query={searchQuery}
-          onChange={handleQueryChange}
-        />
-        <SearchBar
-          placeholder={t('Search Members')}
-          query={searchQuery}
-          onSearch={handleQueryChange}
-        />
+        <Flex align="center" gap="lg">
+          <MembersFilter
+            roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
+            query={searchQuery}
+            onChange={handleQueryChange}
+          />
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                placeholder={t('Search Members')}
+                query={searchQuery}
+                onSearch={handleQueryChange}
+              />
+            )}
+          </Container>
+          {action}
+        </Flex>
       </SearchWrapperWithFilter>
       <Panel data-test-id="org-member-list">
         <MemberListHeader members={membersToShow} organization={organization} />
@@ -432,10 +435,6 @@ function OrganizationMembersList() {
 }
 
 const SearchWrapperWithFilter = styled('div')`
-  position: relative;
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
@@ -460,7 +459,7 @@ function InviteMembersButton({
 }) {
   const action = (
     <Button
-      priority="primary"
+      variant="primary"
       size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"
@@ -476,7 +475,7 @@ function InviteMembersButton({
       <Tooltip
         skipWrapper
         title={t(
-          `Your organization must use its single sign-on provider to register new members.`
+          'Your organization must use its single sign-on provider to register new members.'
         )}
       >
         {action}

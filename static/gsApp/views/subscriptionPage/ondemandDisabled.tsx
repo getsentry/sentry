@@ -56,7 +56,7 @@ export function OnDemandDisabled({organization, subscription}: Props) {
             budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
             lowerCaseBudgetTerm: displayBudgetName(subscription.planDetails),
             docs_link: (
-              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23622477256987-We-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract-What-happens" />
+              <ExternalLink href="https://www.sentry.help/en/articles/13964796-what-can-we-do-if-we-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract" />
             ),
           }
         )}

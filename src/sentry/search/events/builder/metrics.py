@@ -27,7 +27,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
@@ -119,7 +118,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         self.percentiles: list[CurriedFunction] = []
         self.metric_ids: set[int] = set()
         self._indexer_cache: dict[str, int | None] = {}
-        self._use_default_tags: bool | None = None
         self._has_nullable: bool = False
         self._is_spans_metrics_query_cache: bool | None = None
         # always true if this is being called
@@ -158,14 +156,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     def use_default_tags(self) -> bool:
         if self.is_spans_metrics_query:
             return False
-        if self._use_default_tags is None:
-            if self.params.organization is not None:
-                self._use_default_tags = features.has(
-                    "organizations:mep-use-default-tags", self.params.organization, actor=None
-                )
-            else:
-                self._use_default_tags = False
-        return self._use_default_tags
+        return True
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the

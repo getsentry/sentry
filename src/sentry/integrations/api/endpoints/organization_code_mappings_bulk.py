@@ -28,6 +28,7 @@ from sentry.integrations.source_code_management.repository import RepositoryInte
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 provider=repo_provider,
                 integration_id=org_int.integration_id,
-                external_id=repo_info.get("identifier", ""),
+                external_id=repo_info["external_id"],
             ), None
         except IntegrityError:
             # Race condition — repo was created between our lookup and now
@@ -141,7 +142,26 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            errors = serializer.errors
+            mapping_errors = errors.get("mappings")
+            invalid_indices: list[int] = []
+            if isinstance(mapping_errors, list):
+                invalid_indices = [
+                    i
+                    for i, item_errors in enumerate(mapping_errors)
+                    if isinstance(item_errors, dict) and item_errors
+                ]
+            if invalid_indices:
+                detail = (
+                    "Some of the submitted mappings have an invalid format. "
+                    f"Check the mappings at the following indices: {invalid_indices}. "
+                    "See the 'mappings' field below for per-mapping validation errors."
+                )
+                return Response(
+                    {"detail": detail, **errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
 
@@ -240,13 +260,19 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         has_errors = False
         last_saved_config = None
 
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+
         defaults = {
-            "repository": repo,
             "organization_integration_id": org_integration.id,
             "organization_id": organization.id,
             "integration_id": repo.integration_id,
             "default_branch": default_branch,
             "automatically_generated": False,
+            "project_repository": project_repo,
         }
 
         for mapping in mappings:
@@ -254,18 +280,15 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
                     try:
                         config = RepositoryProjectPathConfig.objects.select_for_update().get(
-                            project=project,
+                            project_repository__project=project,
                             stack_root=mapping["stack_root"],
+                            source_root=mapping["source_root"],
                         )
-                        for key, value in {
-                            **defaults,
-                            "source_root": mapping["source_root"],
-                        }.items():
+                        for key, value in defaults.items():
                             setattr(config, key, value)
                         created = False
                     except RepositoryProjectPathConfig.DoesNotExist:
                         config = RepositoryProjectPathConfig(
-                            project=project,
                             stack_root=mapping["stack_root"],
                             source_root=mapping["source_root"],
                             **defaults,

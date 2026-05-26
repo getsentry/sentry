@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.models.rule import Rule
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules import rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.services.eventstore.models import GroupEvent
@@ -68,7 +67,6 @@ def activate_downstream_actions(
     rule: Rule,
     event: GroupEvent,
     notification_uuid: str | None = None,
-    rule_fire_history: RuleFireHistory | None = None,
 ) -> MutableMapping[
     str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
 ]:
@@ -79,7 +77,7 @@ def activate_downstream_actions(
     instantiated_actions = 0
 
     for action in rule.data.get("actions", ()):
-        action_inst = instantiate_action(rule, action, rule_fire_history)
+        action_inst = instantiate_action(rule, action)
         if not action_inst:
             continue
 

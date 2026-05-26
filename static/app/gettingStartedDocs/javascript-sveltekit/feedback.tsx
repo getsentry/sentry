@@ -50,7 +50,7 @@ export const feedback: OnboardingConfig = {
               label: 'JavaScript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/sveltekit";`,
+                importStatement: 'import * as Sentry from "@sentry/sveltekit";',
                 dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),

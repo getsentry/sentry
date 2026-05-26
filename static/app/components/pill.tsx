@@ -139,7 +139,7 @@ const StyledPill = styled('li')<{type?: PillType}>`
   margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
   display: flex;
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.shadow.low};
   line-height: 1.2;
   max-width: 100%;
   :last-child {

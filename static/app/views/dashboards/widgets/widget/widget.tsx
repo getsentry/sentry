@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {defined} from 'sentry/utils';
 import {MIN_HEIGHT, MIN_WIDTH} from 'sentry/views/dashboards/widgets/common/settings';
 

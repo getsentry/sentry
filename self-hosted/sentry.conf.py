@@ -110,10 +110,10 @@ if memcached:
     memcached_port = env("SENTRY_MEMCACHED_PORT") or "11211"
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+            "BACKEND": "sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache",
             "LOCATION": [memcached + ":" + memcached_port],
             "TIMEOUT": 3600,
-            "OPTIONS": {"ignore_exc": True},
+            "OPTIONS": {"ignore_exc": True, "reconnect_age": 300},
         }
     }
 

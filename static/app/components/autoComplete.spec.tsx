@@ -3,7 +3,7 @@ import {useEffect} from 'react';
 import {act, fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {AutoCompleteProps} from 'sentry/components/autoComplete';
-import AutoComplete from 'sentry/components/autoComplete';
+import {AutoComplete} from 'sentry/components/autoComplete';
 
 const items = [
   {

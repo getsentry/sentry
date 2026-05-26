@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
-import Form from 'sentry/components/deprecatedforms/form';
+import {Form} from 'sentry/components/deprecatedforms/form';
 
 describe('BooleanField', () => {
   it('renders without form context', () => {

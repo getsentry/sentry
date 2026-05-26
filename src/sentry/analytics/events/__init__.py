@@ -8,6 +8,7 @@ from .api_token_created import *  # noqa: F401,F403
 from .api_token_deleted import *  # noqa: F401,F403
 from .auth_v2 import *  # noqa: F401,F403
 from .autofix_automation_events import *  # noqa: F401,F403
+from .autofix_events import *  # noqa: F401,F403
 from .checkin_processing_error_stored import *  # noqa: F401,F403
 from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403

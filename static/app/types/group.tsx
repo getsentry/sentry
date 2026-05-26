@@ -109,8 +109,6 @@ export enum IssueCategory {
 
   PREPROD = 'preprod',
 
-  INSTRUMENTATION = 'instrumentation',
-
   CONFIGURATION = 'configuration',
 }
 
@@ -148,9 +146,6 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
-  [IssueCategory.INSTRUMENTATION]: t(
-    'Improvements to your instrumentation and SDK usage.'
-  ),
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
   ),
@@ -203,6 +198,12 @@ export enum IssueType {
 
   LLM_DETECTED_EXPERIMENTAL = 'llm_detected_experimental',
   LLM_DETECTED_EXPERIMENTAL_V2 = 'llm_detected_experimental_v2',
+  AI_DETECTED_HTTP = 'ai_detected_http',
+  AI_DETECTED_DB = 'ai_detected_db',
+  AI_DETECTED_RUNTIME_PERFORMANCE = 'ai_detected_runtime_performance',
+  AI_DETECTED_SECURITY = 'ai_detected_security',
+  AI_DETECTED_CODE_HEALTH = 'ai_detected_code_health',
+  AI_DETECTED_GENERAL = 'ai_detected_general',
 
   // Preprod
   PREPROD_STATIC = 'preprod_static',
@@ -211,6 +212,7 @@ export enum IssueType {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
+  LOW_VALUE_SPAN_CONFIGURATION = 'low_value_span_configuration',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
@@ -218,7 +220,21 @@ export enum IssueType {
 const HIDDEN_ISSUE_TYPES: IssueType[] = [
   IssueType.LLM_DETECTED_EXPERIMENTAL,
   IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+  IssueType.AI_DETECTED_HTTP,
+  IssueType.AI_DETECTED_DB,
+  IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
+  IssueType.AI_DETECTED_SECURITY,
+  IssueType.AI_DETECTED_CODE_HEALTH,
+  IssueType.AI_DETECTED_GENERAL,
 ];
+
+export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
+  IssueType.AI_DETECTED_HTTP,
+  IssueType.AI_DETECTED_DB,
+  IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
+  IssueType.AI_DETECTED_SECURITY,
+  IssueType.AI_DETECTED_CODE_HEALTH,
+]);
 
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
   type => !HIDDEN_ISSUE_TYPES.includes(type)
@@ -269,6 +285,12 @@ export enum IssueTitle {
 
   LLM_DETECTED_EXPERIMENTAL = 'LLM Detected Issue',
   LLM_DETECTED_EXPERIMENTAL_V2 = 'LLM Detected Issue V2',
+  AI_DETECTED_HTTP = 'AI Detected HTTP Issue',
+  AI_DETECTED_DB = 'AI Detected Database Issue',
+  AI_DETECTED_RUNTIME_PERFORMANCE = 'AI Detected Runtime Performance Issue',
+  AI_DETECTED_SECURITY = 'AI Detected Security Issue',
+  AI_DETECTED_CODE_HEALTH = 'AI Detected Code Health Issue',
+  AI_DETECTED_GENERAL = 'AI Detected Issue',
 
   PREPROD_STATIC = 'Static Analysis',
   PREPROD_DELTA = 'Static Analysis Delta',
@@ -276,9 +298,10 @@ export enum IssueTitle {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
+  LOW_VALUE_SPAN_CONFIGURATION = 'AI Detected Low-Value Span',
 }
 
-export const ISSUE_TYPE_TO_ISSUE_TITLE = {
+const ISSUE_TYPE_TO_ISSUE_TITLE = {
   error: IssueTitle.ERROR,
 
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -316,12 +339,19 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   llm_detected_experimental: IssueTitle.LLM_DETECTED_EXPERIMENTAL,
   llm_detected_experimental_v2: IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2,
+  ai_detected_http: IssueTitle.AI_DETECTED_HTTP,
+  ai_detected_db: IssueTitle.AI_DETECTED_DB,
+  ai_detected_runtime_performance: IssueTitle.AI_DETECTED_RUNTIME_PERFORMANCE,
+  ai_detected_security: IssueTitle.AI_DETECTED_SECURITY,
+  ai_detected_code_health: IssueTitle.AI_DETECTED_CODE_HEALTH,
+  ai_detected_general: IssueTitle.AI_DETECTED_GENERAL,
 
   preprod_static: IssueTitle.PREPROD_STATIC,
   preprod_delta: IssueTitle.PREPROD_DELTA,
   preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
 
   sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
+  low_value_span_configuration: IssueTitle.LOW_VALUE_SPAN_CONFIGURATION,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -356,6 +386,12 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
   3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
   3502: IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+  3503: IssueType.AI_DETECTED_HTTP,
+  3504: IssueType.AI_DETECTED_DB,
+  3505: IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
+  3506: IssueType.AI_DETECTED_SECURITY,
+  3507: IssueType.AI_DETECTED_CODE_HEALTH,
+  3508: IssueType.AI_DETECTED_GENERAL,
   10001: IssueType.WEB_VITALS,
   11001: IssueType.PREPROD_STATIC,
   11002: IssueType.PREPROD_DELTA,
@@ -523,9 +559,18 @@ type SuggestedOwner = {
   type: SuggestedOwnerReason;
 };
 
+/**
+ * Mirrors OwnershipRuleOwnerResponse from the backend
+ */
+interface OwnershipRuleOwner {
+  name: string;
+  type: 'user' | 'team';
+  id?: string;
+}
+
 export interface ParsedOwnershipRule {
   matcher: {pattern: string; type: string};
-  owners: Actor[];
+  owners: OwnershipRuleOwner[];
 }
 
 export type IssueOwnership = {
@@ -548,6 +593,7 @@ export enum GroupActivityType {
   SET_RESOLVED_BY_AGE = 'set_resolved_by_age',
   SET_RESOLVED_IN_RELEASE = 'set_resolved_in_release',
   SET_RESOLVED_IN_COMMIT = 'set_resolved_in_commit',
+  REFERENCED_IN_COMMIT = 'referenced_in_commit',
   SET_RESOLVED_IN_PULL_REQUEST = 'set_resolved_in_pull_request',
   SET_UNRESOLVED = 'set_unresolved',
   SET_IGNORED = 'set_ignored',
@@ -567,7 +613,24 @@ export enum GroupActivityType {
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
   DELETED_ATTACHMENT = 'deleted_attachment',
+  SEER_RCA_STARTED = 'seer_rca_started',
+  SEER_RCA_COMPLETED = 'seer_rca_completed',
+  SEER_SOLUTION_STARTED = 'seer_solution_started',
+  SEER_SOLUTION_COMPLETED = 'seer_solution_completed',
+  SEER_CODING_STARTED = 'seer_coding_started',
+  SEER_CODING_COMPLETED = 'seer_coding_completed',
+  SEER_PR_CREATED = 'seer_pr_created',
 }
+
+export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SEER_RCA_STARTED,
+  GroupActivityType.SEER_RCA_COMPLETED,
+  GroupActivityType.SEER_SOLUTION_STARTED,
+  GroupActivityType.SEER_SOLUTION_COMPLETED,
+  GroupActivityType.SEER_CODING_STARTED,
+  GroupActivityType.SEER_CODING_COMPLETED,
+  GroupActivityType.SEER_PR_CREATED,
+]);
 
 interface GroupActivityBase {
   dateCreated: string;
@@ -715,6 +778,13 @@ interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
+interface GroupActivityReferencedInCommit extends GroupActivityBase {
+  data: {
+    commit?: Commit;
+  };
+  type: GroupActivityType.REFERENCED_IN_COMMIT;
+}
+
 interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest;
@@ -839,6 +909,65 @@ interface GroupActivityDeletedAttachment extends GroupActivityBase {
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
+interface GroupActivitySeerRcaStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_RCA_STARTED;
+}
+
+interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+    summary?: string;
+  };
+  type: GroupActivityType.SEER_RCA_COMPLETED;
+}
+
+interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_SOLUTION_STARTED;
+}
+
+interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+    summary?: string;
+  };
+  type: GroupActivityType.SEER_SOLUTION_COMPLETED;
+}
+
+interface GroupActivitySeerCodingStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_STARTED;
+}
+
+interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_COMPLETED;
+}
+
+interface GroupActivitySeerPrCreated extends GroupActivityBase {
+  data: {
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_PR_CREATED;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -851,6 +980,7 @@ export type GroupActivity =
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
+  | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
   | GroupActivityMerge
@@ -867,7 +997,14 @@ export type GroupActivity =
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
   | GroupActivitySetPriority
-  | GroupActivityDeletedAttachment;
+  | GroupActivityDeletedAttachment
+  | GroupActivitySeerRcaStarted
+  | GroupActivitySeerRcaCompleted
+  | GroupActivitySeerSolutionStarted
+  | GroupActivitySeerSolutionCompleted
+  | GroupActivitySeerCodingStarted
+  | GroupActivitySeerCodingCompleted
+  | GroupActivitySeerPrCreated;
 
 export type Activity = GroupActivity;
 
@@ -1019,6 +1156,7 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
   seerAutofixLastTriggered?: string | null;
+  seerExplorerAutofixLastTriggered?: string | null;
   seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;

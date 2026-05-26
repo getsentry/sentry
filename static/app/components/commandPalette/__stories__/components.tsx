@@ -1,54 +1,48 @@
-import {Fragment} from 'react';
-
-import {Button} from '@sentry/scraps/button';
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {
-  makeCommandPaletteCallback,
-  makeCommandPaletteGroup,
-  makeCommandPaletteLink,
-} from 'sentry/components/commandPalette/makeCommandPaletteAction';
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
-
-export function RegisterActions({actions}: {actions: CommandPaletteAction[]}) {
-  useCommandPaletteActions(actions);
-  return null;
-}
+  CMDKAction,
+  CommandPaletteProvider,
+} from 'sentry/components/commandPalette/ui/cmdk';
+import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 
 export function CommandPaletteDemo() {
-  const demoActions = [
-    makeCommandPaletteLink({
-      display: {label: 'Go to Flex story'},
-      to: '/stories/layout/flex/',
-      groupingKey: 'navigate',
-    }),
-    makeCommandPaletteCallback({
-      display: {label: 'Execute an action'},
-      groupingKey: 'help',
-      onAction: () => {
-        addSuccessMessage('Action executed');
-      },
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'add',
-      display: {label: 'Parent action'},
-      actions: [
-        makeCommandPaletteCallback({
-          display: {label: 'Child action'},
-          onAction: () => {
-            addSuccessMessage('Child action executed');
-          },
-        }),
-      ],
-    }),
-  ];
-
   return (
-    <Fragment>
-      <RegisterActions actions={demoActions} />
-      <Button onClick={() => openCommandPalette()}>Open Command Palette</Button>
-    </Fragment>
+    <CommandPaletteProvider>
+      <CMDKAction display={{label: 'Go to Flex story'}} to="/stories/layout/flex/" />
+      <CMDKAction
+        display={{label: 'Execute an action'}}
+        onAction={() => addSuccessMessage('Action executed')}
+      />
+      <CMDKAction display={{label: 'Parent action'}}>
+        <CMDKAction
+          display={{label: 'Child action'}}
+          onAction={() => addSuccessMessage('Child action executed')}
+        />
+      </CMDKAction>
+      <CMDKAction display={{label: 'Issues List'}}>
+        <CMDKAction
+          display={{label: 'Select all'}}
+          onAction={() => addSuccessMessage('Select all')}
+        />
+        <CMDKAction
+          display={{label: 'Deselect all'}}
+          onAction={() => addSuccessMessage('Deselect all')}
+        />
+      </CMDKAction>
+      <CommandPalette
+        Body={ModalBody}
+        Footer={ModalFooter}
+        Header={makeClosableHeader(() => {})}
+        CloseButton={makeCloseButton(() => {})}
+        closeModal={() => {}}
+      />
+    </CommandPaletteProvider>
   );
 }

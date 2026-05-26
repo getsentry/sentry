@@ -89,11 +89,11 @@ function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current;
     if (!el) {
-      return undefined;
+      return;
     }
 
     function onBlur() {
-      if (el!.hasAttribute('disabled')) {
+      if (el?.hasAttribute('disabled')) {
         hadFocusRef.current = true;
       }
     }
@@ -150,9 +150,13 @@ export function BaseField<T extends HTMLElement>(
 }
 
 function animateRowHighlight(node: HTMLElement | null) {
-  if (!node) return;
+  if (!node) {
+    return;
+  }
   const name = node.getAttribute('name');
-  if (!name) return;
+  if (!name) {
+    return;
+  }
   const fieldRow = node.closest<HTMLElement>(`#${CSS.escape(name)}`);
   if (fieldRow) {
     fieldRow.dataset.highlight = '';

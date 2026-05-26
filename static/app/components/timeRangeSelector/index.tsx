@@ -1,15 +1,16 @@
 import {Fragment, useCallback, useState} from 'react';
 import * as React from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,7 +28,6 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {DateRange} from './dateRange';
 import {SelectorItems} from './selectorItems';
@@ -41,13 +41,13 @@ import {
 
 const ABSOLUTE_OPTION_VALUE = 'absolute';
 
-const DateRangeHook = HookOrDefault({
-  hookName: 'component:header-date-range',
+const DateRangeHook = OverrideOrDefault({
+  overrideName: 'component:header-date-range',
   defaultComponent: DateRange,
 });
 
-const SelectorItemsHook = HookOrDefault({
-  hookName: 'component:header-selector-items',
+const SelectorItemsHook = OverrideOrDefault({
+  overrideName: 'component:header-selector-items',
   defaultComponent: SelectorItems,
 });
 
@@ -168,7 +168,7 @@ export function TimeRangeSelector({
   menuFooterMessage,
   ...selectProps
 }: TimeRangeSelectorProps) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const organization = useOrganization({allowNull: true});
 
   const defaultMaxPickableDays = useDefaultMaxPickableDays();
@@ -270,34 +270,31 @@ export function TimeRangeSelector({
     );
   }, [showRelative, onChange, internalValue, hasChanges]);
 
-  const handleChange = useCallback(
-    (option: SelectOption<string>) => {
-      // The absolute option was selected -> open absolute selector
-      if (option.value === ABSOLUTE_OPTION_VALUE) {
-        setInternalValue(current => {
-          const defaultStart = defaultAbsolute?.start
-            ? defaultAbsolute.start
-            : getPeriodAgo(
-                'hours',
-                parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-              ).toDate();
-          const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
-          return {
-            ...current,
-            // Update default values for absolute selector
-            start: start ? getInternalDate(start, utc) : defaultStart,
-            end: end ? getInternalDate(end, utc) : defaultEnd,
-          };
-        });
-        setShowAbsoluteSelector(true);
-        return;
-      }
+  const handleChange = (option: SelectOption<string>) => {
+    // The absolute option was selected -> open absolute selector
+    if (option.value === ABSOLUTE_OPTION_VALUE) {
+      setInternalValue(current => {
+        const defaultStart = defaultAbsolute?.start
+          ? defaultAbsolute.start
+          : getPeriodAgo(
+              'hours',
+              parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+            ).toDate();
+        const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
+        return {
+          ...current,
+          // Update default values for absolute selector
+          start: start ? getInternalDate(start, utc) : defaultStart,
+          end: end ? getInternalDate(end, utc) : defaultEnd,
+        };
+      });
+      setShowAbsoluteSelector(true);
+      return;
+    }
 
-      setInternalValue(current => ({...current, relative: option.value}));
-      onChange?.({relative: option.value, start: undefined, end: undefined});
-    },
-    [start, end, utc, defaultAbsolute, defaultPeriod, relative, onChange]
-  );
+    setInternalValue(current => ({...current, relative: option.value}));
+    onChange?.({relative: option.value, start: undefined, end: undefined});
+  };
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
 
@@ -387,7 +384,7 @@ export function TimeRangeSelector({
               <Fragment>
                 {!showAbsoluteSelector && (menuBody as React.ReactNode)}
                 {showAbsoluteSelector && (
-                  <AbsoluteDateRangeWrap>
+                  <Container overflow="auto">
                     <StyledDateRangeHook
                       start={internalValue.start ?? null}
                       end={internalValue.end ?? null}
@@ -420,7 +417,7 @@ export function TimeRangeSelector({
 
                           trackAnalytics('dateselector.utc_changed', {
                             utc: newUtc,
-                            path: getRouteStringFromRoutes(routes),
+                            path: getRouteStringFromRoutes({matches}),
                             organization,
                           });
 
@@ -439,7 +436,7 @@ export function TimeRangeSelector({
                       maxPickableDays={maxPickableDays}
                       maxDateRange={maxDateRange}
                     />
-                  </AbsoluteDateRangeWrap>
+                  </Container>
                 )}
               </Fragment>
             )
@@ -458,7 +455,7 @@ export function TimeRangeSelector({
                           {showRelative && (
                             <Button
                               size="xs"
-                              priority="transparent"
+                              variant="transparent"
                               icon={<IconArrow direction="left" />}
                               onClick={() => setShowAbsoluteSelector(false)}
                             >
@@ -485,17 +482,12 @@ export function TimeRangeSelector({
 export function TimeRangeSelectTrigger(props: TriggerProps) {
   return (
     <OverlayTrigger.Button {...props}>
-      <TriggerLabelWrap>
+      <Container as="span" minWidth="0" position="relative">
         <TriggerLabel>{props.children}</TriggerLabel>
-      </TriggerLabelWrap>
+      </Container>
     </OverlayTrigger.Button>
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;
@@ -518,10 +510,6 @@ const AbsoluteSummary = styled('span')`
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
-`;
-
-const AbsoluteDateRangeWrap = styled('div')`
-  overflow: auto;
 `;
 
 const StyledDateRangeHook = styled(DateRangeHook)`

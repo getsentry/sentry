@@ -101,7 +101,7 @@ function OperationDot({backgroundColor}: {backgroundColor: string}) {
 export function filterToField(option: SpanOperationBreakdownFilter) {
   switch (option) {
     case SpanOperationBreakdownFilter.NONE:
-      return undefined;
+      return;
     default: {
       return `spans.${option}`;
     }

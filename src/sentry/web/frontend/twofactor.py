@@ -63,7 +63,8 @@ class TwoFactorAuthView(BaseView):
     auth_required = False
 
     def perform_signin(self, request: HttpRequest, user, interface=None):
-        assert auth.login(request, user, passed_2fa=True)
+        if not auth.login(request, user, passed_2fa=True):
+            return HttpResponseRedirect(auth.get_login_url())
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
             interface.authenticator.mark_used()

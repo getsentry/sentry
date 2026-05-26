@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
@@ -19,8 +20,8 @@ import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
-import Hook from 'sentry/components/hook';
 import {LoadingError} from 'sentry/components/loadingError';
+import {Override} from 'sentry/components/override';
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
@@ -33,11 +34,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {DetailedProject, PlatformKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -51,7 +50,7 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 type Props = {
   onChangeSlug: (slug: string) => void;
-  project: Project;
+  project: DetailedProject;
 };
 
 function isPlatformAllowed({
@@ -79,11 +78,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 
-  const makeProjectSettingsQueryKey: ApiQueryKey = [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
-      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-    }),
-  ];
+  const projectSettingsQueryKey = makeDetailedProjectQueryKey({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
 
   const handleTransferFieldChange = (id: string, value: FieldValue) => {
     form[id] = value;
@@ -176,7 +174,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             }
           >
             <div>
-              <Button priority="danger">{t('Remove Project')}</Button>
+              <Button variant="danger">{t('Remove Project')}</Button>
             </div>
           </Confirm>
         )}
@@ -252,7 +250,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
           >
             <div>
-              <Button priority="danger">{t('Transfer Project')}</Button>
+              <Button variant="danger">{t('Transfer Project')}</Button>
             </div>
           </Confirm>
         )}
@@ -293,7 +291,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     apiMethod: 'PUT' as const,
     apiEndpoint: endpoint,
     onSubmitSuccess: resp => {
-      setApiQueryData(queryClient, makeProjectSettingsQueryKey, resp);
+      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
+        headers: prev?.headers ?? {},
+        json: resp,
+      }));
       if (project.slug !== resp.slug) {
         changeProjectSlug(project.slug, resp.slug);
         // Container will redirect after stores get updated with new slug
@@ -320,7 +321,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     ...fields.platform,
     options: fields.platform.options.filter(({value}) => {
       // Always include the current project's platform to display its icon and label
-      if (project.platform === value) return true;
+      if (project.platform === value) {
+        return true;
+      }
       return isPlatformAllowed({isSelfHosted, organization, platform: value});
     }),
     isOptionDisabled: (option: SelectOptionWithKey<string>) => {
@@ -345,7 +348,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         />
         <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
       </Form>
-      <Hook name="spend-visibility:spike-protection-project-settings" project={project} />
+      <Override
+        name="spend-visibility:spike-protection-project-settings"
+        project={project}
+      />
       <Form {...formProps}>
         <JsonForm
           {...jsonFormProps}
@@ -365,6 +371,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           fields={[
             fields.allowedDomains,
             fields.scrapeJavaScript,
+            fields.scmSourceContextEnabled,
             fields.securityToken,
             fields.securityTokenHeader,
             fields.verifySSL,

@@ -1,13 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PlatformKey} from 'sentry/types/project';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 
 type InitialOpts = {
   features?: string[];
@@ -21,18 +22,17 @@ function initializeData(opts?: InitialOpts) {
     features: features ?? [],
   });
 
-  const initialData = initializeOrg({
+  initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {
-          project: project.id,
-        },
-      },
-    },
     projects: [],
   });
-  const router = initialData.router;
+  const router = RouterFixture({
+    location: {
+      query: {
+        project: project.id,
+      },
+    },
+  });
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     version: 2,
@@ -51,6 +51,10 @@ function initializeData(opts?: InitialOpts) {
 describe('Performance > Transaction Summary Header', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
@@ -80,28 +84,8 @@ describe('Performance > Transaction Summary Header', () => {
     expect(await screen.findByRole('tab', {name: 'Overview'})).toBeInTheDocument();
   });
 
-  it('should show Tags tab by default', async () => {
+  it('should hide Tags tab', async () => {
     const {project, organization, router, eventView} = initializeData();
-
-    render(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TRANSACTION_SUMMARY}
-      />
-    );
-
-    expect(await screen.findByRole('tab', {name: 'Tags'})).toBeInTheDocument();
-  });
-
-  it('should hide Tags tab when EAP feature is enabled', async () => {
-    const {project, organization, router, eventView} = initializeData({
-      features: ['performance-transaction-summary-eap'],
-    });
 
     render(
       <TransactionHeader

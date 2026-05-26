@@ -1,15 +1,13 @@
 import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,14 +22,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   OnDemandExtractionState,
   WidgetType,
-  type LinkedDashboard,
   type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {correctDragOverlayOffset} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {LINK_FIELD_TOOLTIP} from 'sentry/views/dashboards/widgetBuilder/settings';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
@@ -49,7 +44,6 @@ interface Props {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
   disable?: boolean;
-  showDashboardLinkButton?: boolean;
   style?: React.CSSProperties;
   widgetType?: WidgetType;
 }
@@ -62,12 +56,12 @@ export function GroupBySelector({
   style,
   widgetType,
   disable,
-  showDashboardLinkButton,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
+  const theme = useTheme();
   const builderVersion = WidgetBuilderVersion.SLIDEOUT;
 
   function handleAdd() {
@@ -229,15 +223,16 @@ export function GroupBySelector({
                     canDrag={canDrag}
                     canDelete={canDelete}
                     disabled={disable}
-                    extraActions={
-                      showDashboardLinkButton && <LinkToDashboardAction column={column} />
-                    }
                     renderTagOverride={renderTagOverride}
                   />
                 ))}
               </SortableQueryFields>
             </SortableContext>
-            <DragOverlay dropAnimation={null}>
+            <DragOverlay
+              dropAnimation={null}
+              zIndex={theme.zIndex.modal}
+              modifiers={[correctDragOverlayOffset]}
+            >
               {activeId ? (
                 <Ghost>
                   <QueryField
@@ -261,7 +256,7 @@ export function GroupBySelector({
       {columns.length < GROUP_BY_LIMIT && (
         <Button
           size="sm"
-          priority="link"
+          variant="link"
           onClick={handleAdd}
           aria-label={t('Add Group')}
           disabled={disable}
@@ -292,47 +287,6 @@ function FieldValidationErrors(props: {
   ) : null;
 }
 
-function LinkToDashboardAction({column}: {column: QueryFieldValue}) {
-  const {state, dispatch} = useWidgetBuilderContext();
-  const source = useDashboardWidgetSource();
-
-  if (column.kind !== FieldValueKind.FIELD || !column.field) {
-    return null;
-  }
-
-  const field = column.field;
-  const currentLinkedDashboards = state.linkedDashboards ?? [];
-
-  return (
-    <Tooltip title={LINK_FIELD_TOOLTIP}>
-      <Button
-        priority="transparent"
-        icon={<IconLink />}
-        aria-label={t('Link field')}
-        size="zero"
-        onClick={() => {
-          openLinkToDashboardModal({
-            onLink: dashboardId => {
-              const newLinkedDashboards: LinkedDashboard[] = [
-                ...currentLinkedDashboards.filter(ld => ld.field !== field),
-                {dashboardId, field},
-              ];
-              dispatch({
-                type: BuilderStateAction.SET_LINKED_DASHBOARDS,
-                payload: newLinkedDashboards,
-              });
-            },
-            currentLinkedDashboard: currentLinkedDashboards.find(
-              ld => ld.field === field
-            ),
-            source,
-          });
-        }}
-      />
-    </Tooltip>
-  );
-}
-
 const StyledField = styled(FieldGroup)`
   padding-bottom: ${p => p.theme.space.md};
 `;
@@ -351,14 +305,9 @@ const Ghost = styled('div')`
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 
   button {
     cursor: grabbing;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 710px;
   }
 `;

@@ -1,5 +1,6 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
@@ -9,8 +10,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 type AutomationListConnectedDetectorsProps = {
   detectorIds: string[];
@@ -20,9 +22,12 @@ const MAX_DISPLAYED_DETECTORS = 5;
 
 function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
   const shownDetectors = detectorIds.slice(0, MAX_DISPLAYED_DETECTORS);
-  const {data, isPending, isError} = useDetectorsQuery({
-    ids: detectorIds.slice(0, MAX_DISPLAYED_DETECTORS),
-  });
+  const organization = useOrganization();
+  const {data, isPending, isError} = useQuery(
+    detectorListApiOptions(organization, {
+      ids: detectorIds.slice(0, MAX_DISPLAYED_DETECTORS),
+    })
+  );
   const hasMore = detectorIds.length > MAX_DISPLAYED_DETECTORS;
 
   if (isError) {

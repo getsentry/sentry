@@ -5,6 +5,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {Legend} from 'sentry/components/charts/components/legend';
@@ -22,7 +24,7 @@ import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -108,7 +110,7 @@ function getAbuseData(
   intervals: Array<string | number>,
   groups: StatsGroup[]
 ): AbuseData {
-  const abuseByInterval = new Array(intervals.length).fill(0) as number[];
+  const abuseByInterval = Array.from({length: intervals.length}).fill(0) as number[];
 
   for (const group of groups) {
     if (isAbuseWithoutReason(group.by)) {
@@ -185,7 +187,7 @@ function useAbuseMarkAreaSeries(
           ] as [{xAxis: string}, {xAxis: string}],
         ],
       }),
-    })) as SeriesItem[];
+    }));
   }, [regions, intervalMs, theme]);
 }
 
@@ -199,7 +201,7 @@ function zeroFillDates(start: number, end: number, {color}: {color: string}) {
   const numberOfIntervals = Math.ceil((end - start) / 86400);
 
   if (numberOfIntervals >= 0) {
-    zero.data = [...new Array(numberOfIntervals).keys()].map(i => ({
+    zero.data = [...Array.from({length: numberOfIntervals}).keys()].map(i => ({
       name: new Date((start + (i + 1) * 86400) * 1000).toString(),
       value: 0,
     }));
@@ -434,7 +436,7 @@ type Props = {
 
 export const CustomerStats = memo(
   ({orgSlug, projectId, dataType, onDemandPeriodStart, onDemandPeriodEnd}: Props) => {
-    const router = useRouter();
+    const location = useLocation();
 
     const dataDatetime = useMemo((): DateTimeObject => {
       const {
@@ -442,7 +444,7 @@ export const CustomerStats = memo(
         end,
         utc: utcString,
         statsPeriod,
-      } = normalizeDateTimeParams(router.location.query, {
+      } = normalizeDateTimeParams(location.query, {
         allowEmptyPeriod: true,
         allowAbsoluteDatetime: true,
         allowAbsolutePageDatetime: true,
@@ -474,9 +476,9 @@ export const CustomerStats = memo(
       return {
         period: statsPeriod ?? '90d',
       };
-    }, [router.location.query, onDemandPeriodStart, onDemandPeriodEnd]);
+    }, [location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
-    const statsEndpointUrl = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+    const statsEndpointUrl = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
       path: {organizationIdOrSlug: orgSlug},
     });
 
@@ -595,9 +597,9 @@ export const CustomerStats = memo(
       [updateAbuseRegionOpacity]
     );
 
-    const handleChartMouseLeave = useCallback(() => {
+    const handleChartMouseLeave = () => {
       dismissAbuseTooltip(chartInstanceRef.current ?? undefined);
-    }, [dismissAbuseTooltip]);
+    };
 
     const handleBarHighlight = useCallback(
       (
@@ -681,7 +683,10 @@ export const CustomerStats = memo(
       ),
     ];
 
-    const {legend, subLabels} = chartSeries.reduce(
+    const {legend, subLabels} = chartSeries.reduce<{
+      legend: string[];
+      subLabels: TooltipSubLabel[];
+    }>(
       (acc, serie) => {
         if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
           acc.legend.push(serie.seriesName);
@@ -702,8 +707,8 @@ export const CustomerStats = memo(
         return acc;
       },
       {
-        legend: [] as string[],
-        subLabels: [] as TooltipSubLabel[],
+        legend: [],
+        subLabels: [],
       }
     );
 
@@ -719,7 +724,7 @@ export const CustomerStats = memo(
             >
               {zoomRenderProps => (
                 <Fragment>
-                  <ChartContainer onMouseLeave={handleChartMouseLeave}>
+                  <Container position="relative" onMouseLeave={handleChartMouseLeave}>
                     <BarChart
                       onHighlight={handleBarHighlight}
                       onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
@@ -744,7 +749,7 @@ export const CustomerStats = memo(
                       <AbuseDot />
                       <span data-abuse-text />
                     </AbuseTooltip>
-                  </ChartContainer>
+                  </Container>
                   <Footer>
                     <FooterLegend points={stats} />
                   </Footer>
@@ -758,10 +763,6 @@ export const CustomerStats = memo(
     );
   }
 );
-
-const ChartContainer = styled('div')`
-  position: relative;
-`;
 
 const AbuseDot = styled('span')`
   width: 8px;

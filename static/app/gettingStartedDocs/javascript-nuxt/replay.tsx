@@ -36,7 +36,7 @@ export const replay: OnboardingConfig = {
               label: 'JavaScript',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/nuxt";`,
+                importStatement: 'import * as Sentry from "@sentry/nuxt";',
                 dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,

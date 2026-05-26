@@ -63,3 +63,112 @@ class BroadcastUpdateTest(APITestCase):
         assert broadcast1.message == "foobar"
         broadcast2 = Broadcast.objects.get(id=broadcast2.id)
         assert broadcast2.message == "foo"
+
+    def test_edit_changelog_broadcast_locks_sync(self) -> None:
+        broadcast = Broadcast.objects.create(
+            upstream_id="changelog-abc",
+            title="Orig",
+            message="Orig message",
+            link="https://sentry.io/changelog/orig/",
+            is_active=True,
+        )
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.put(
+            f"/api/0/broadcasts/{broadcast.id}/",
+            {
+                "title": "Fixed typo",
+                "message": broadcast.message,
+                "link": broadcast.link,
+            },
+        )
+        assert response.status_code == 200
+
+        broadcast.refresh_from_db()
+        assert broadcast.title == "Fixed typo"
+        assert broadcast.sync_locked is True
+
+    def test_edit_non_changelog_broadcast_does_not_lock(self) -> None:
+        broadcast = Broadcast.objects.create(
+            title="Manual",
+            message="Manual",
+            link="https://sentry.io/",
+            is_active=True,
+        )
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.put(
+            f"/api/0/broadcasts/{broadcast.id}/",
+            {"title": "Updated", "message": broadcast.message, "link": broadcast.link},
+        )
+        assert response.status_code == 200
+
+        broadcast.refresh_from_db()
+        assert broadcast.sync_locked is False
+
+    def test_hasseen_only_does_not_lock(self) -> None:
+        broadcast = Broadcast.objects.create(
+            upstream_id="changelog-xyz",
+            title="Orig",
+            message="Orig",
+            link="https://sentry.io/changelog/x/",
+            is_active=True,
+        )
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.put(f"/api/0/broadcasts/{broadcast.id}/", {"hasSeen": "1"})
+        assert response.status_code == 200
+
+        broadcast.refresh_from_db()
+        assert broadcast.sync_locked is False
+
+    def test_explicit_unlock_clears_sync_locked(self) -> None:
+        broadcast = Broadcast.objects.create(
+            upstream_id="changelog-unlock",
+            title="Orig",
+            message="Orig",
+            link="https://sentry.io/changelog/u/",
+            is_active=True,
+            sync_locked=True,
+        )
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.put(
+            f"/api/0/broadcasts/{broadcast.id}/",
+            {
+                "title": broadcast.title,
+                "message": broadcast.message,
+                "link": broadcast.link,
+                "syncLocked": False,
+            },
+        )
+        assert response.status_code == 200
+
+        broadcast.refresh_from_db()
+        assert broadcast.sync_locked is False
+
+    def test_serializer_exposes_sync_fields(self) -> None:
+        broadcast = Broadcast.objects.create(
+            upstream_id="changelog-serialize",
+            title="T",
+            message="M",
+            link="https://sentry.io/changelog/s/",
+            is_active=True,
+            sync_locked=True,
+        )
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.get(f"/api/0/broadcasts/{broadcast.id}/")
+        assert response.status_code == 200
+        assert response.data["upstreamId"] == "changelog-serialize"
+        assert response.data["syncLocked"] is True

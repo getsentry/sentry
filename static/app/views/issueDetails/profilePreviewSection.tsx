@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -19,17 +19,17 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
   ProfileGroupProvider,
   useProfileGroup,
-} from 'sentry/views/profiling/profileGroupProvider';
+} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {
   ProfileContext,
   ProfilesProvider,
   useProfiles,
-} from 'sentry/views/profiling/profilesProvider';
+} from 'sentry/views/explore/profiling/profilesProvider';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export function ProfilePreviewSection({
   event,
@@ -82,8 +82,8 @@ export function ProfilePreviewSection({
       >
         <ProfileContext.Consumer>
           {profiles => (
-            <InterimSection
-              type={SectionKey.PROFILE_PREVIEW}
+            <FoldSection
+              sectionKey={SectionKey.PROFILE_PREVIEW}
               title={
                 <span>
                   {sectionTitle}
@@ -117,7 +117,7 @@ export function ProfilePreviewSection({
                   />
                 </FlamegraphThemeProvider>
               </ProfileGroupProvider>
-            </InterimSection>
+            </FoldSection>
           )}
         </ProfileContext.Consumer>
       </ProfilesProvider>

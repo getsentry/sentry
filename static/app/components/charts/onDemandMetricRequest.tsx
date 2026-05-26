@@ -1,6 +1,6 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 

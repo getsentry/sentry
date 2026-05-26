@@ -479,6 +479,112 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.data["metadata"]["value"] == "actual error"
         assert event.group is not None
 
+    def test_compose_diagnostic_exception_correct_title(self) -> None:
+        """DiagnosticComposeException should not determine the title."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "main exception",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "main exception"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: main exception"
+
+    def test_compose_diagnostic_exception_no_parent_keeps_default_behavior(self) -> None:
+        """DiagnosticComposeException without parent_id should not change behavior."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "DiagnosticComposeException"
+        assert event.group is not None
+        assert "DiagnosticComposeException" in event.group.title
+
+    def test_compose_and_coroutine_diagnostic_exceptions_chained_correct_title(self) -> None:
+        """When both DiagnosticComposeException and DiagnosticCoroutineContextException
+        are chained on top of the real error, the title should walk past both wrappers."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "boom",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticComposeException",
+                            "value": "Composition stack when thrown:",
+                            "module": "androidx.compose.runtime.tooling",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 2,
+                                "parent_id": 1,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "boom"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: boom"
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
@@ -2913,7 +3019,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
             assert group.location() == "/books/"
             assert group.level == 40
-            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_category == GroupCategory.DB_QUERY
             assert group.issue_type == PerformanceNPlusOneGroupType
             assert isinstance(event, GroupEvent)
             assert event.occurrence
@@ -2957,7 +3063,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
             group = event.group
             assert group is not None
-            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_category == GroupCategory.DB_QUERY
             assert group.issue_type == PerformanceNPlusOneGroupType
             group.data["metadata"] = {
                 "location": "hi",
@@ -3650,7 +3756,7 @@ class DSLatestReleaseBoostTest(TestCase):
             f"ds::r:{release_2.id}:e:prod": str(ts),
             f"ds::r:{release_3.id}:e:dev": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,
@@ -3715,7 +3821,7 @@ class DSLatestReleaseBoostTest(TestCase):
         assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
             f"ds::r:{release_2.id}:e:{self.environment1.name}": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_2.id,
                 timestamp=ts,
@@ -3748,7 +3854,7 @@ class DSLatestReleaseBoostTest(TestCase):
         assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
             f"ds::r:{release.id}:e:{self.environment1.name}": str(ts_1)
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release.id,
                 timestamp=ts_1,
@@ -3782,9 +3888,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 f"ds::r:{release.id}:e:{self.environment1.name}": str(ts_1),
                 f"ds::r:{release.id}:e:{self.environment2.name}": str(ts_2),
             }
-            assert ProjectBoostedReleases(
-                project_id=project.id
-            ).get_extended_boosted_releases() == [
+            assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
                 ExtendedBoostedRelease(
                     id=release.id,
                     timestamp=ts_1,
@@ -3822,9 +3926,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 f"ds::r:{release.id}:e:{self.environment2.name}": str(ts_2),
                 f"ds::r:{release.id}": str(ts_3),
             }
-            assert ProjectBoostedReleases(
-                project_id=project.id
-            ).get_extended_boosted_releases() == [
+            assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
                 ExtendedBoostedRelease(
                     id=release.id,
                     timestamp=ts_1,
@@ -3869,7 +3971,7 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
         assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {}
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == []
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == []
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_deleted_release_after_event_received(self) -> None:
@@ -3910,7 +4012,7 @@ class DSLatestReleaseBoostTest(TestCase):
         }
         # We expect to not see the release 2 because it will not be in the database anymore, thus we mark it as
         # expired.
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,
@@ -3955,7 +4057,7 @@ class DSLatestReleaseBoostTest(TestCase):
             ts,
         )
 
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,
@@ -4043,9 +4145,7 @@ class DSLatestReleaseBoostTest(TestCase):
             assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
                 f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)
             }
-            assert ProjectBoostedReleases(
-                project_id=project.id
-            ).get_extended_boosted_releases() == [
+            assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
                 ExtendedBoostedRelease(
                     id=release_3.id,
                     timestamp=ts,
@@ -4125,7 +4225,7 @@ class DSLatestReleaseBoostTest(TestCase):
             f"ds::r:{release_2.id}": str(ts - 1),
             f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_2.id,
                 timestamp=ts - 1,
@@ -4194,7 +4294,7 @@ class DSLatestReleaseBoostTest(TestCase):
             f"ds::r:{release_1.id}:e:{self.environment2.name}": str(ts),
             f"ds::r:{release_1.id}": str(ts),
         }
-        assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == [
+        assert ProjectBoostedReleases(project).get_extended_boosted_releases() == [
             ExtendedBoostedRelease(
                 id=release_1.id,
                 timestamp=ts,
@@ -4383,6 +4483,7 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
                     group_id=event.group_id,
                     error_type="future_timestamp",
                     platform="python",
+                    sample_rate=1.0,
                     name="timestamp",
                     value=None,
                 ),
@@ -4390,10 +4491,53 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
             assert recorded_events == expected_events
 
     @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_recorded_at_one_percent_for_older_orgs(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Orgs older than 30 days record at 1% sample rate, surfaced on the analytics event."""
+        self.organization.date_added = timezone.now() - timedelta(days=60)
+        self.organization.save()
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            future = timezone.now() + timedelta(minutes=10)
+            event = self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            recorded_events = [
+                call[0][0]
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert recorded_events == [
+                EventProcessingErrorRecorded(
+                    organization_id=self.project.organization_id,
+                    project_id=self.project.id,
+                    event_id=event.event_id,
+                    group_id=event.group_id,
+                    error_type="future_timestamp",
+                    platform="python",
+                    sample_rate=0.01,
+                    name="timestamp",
+                    value=None,
+                ),
+            ]
+
+    @mock.patch("sentry.event_manager.random.random")
     def test_processing_errors_not_recorded_when_not_sampled(
         self, mock_random: mock.MagicMock
     ) -> None:
-        """Test that processing errors are not recorded when outside the 1% sample."""
+        """Test that processing errors are not recorded when the random draw is above the sample rate."""
+        # Age the org past the 30-day full-sample window so the rate is 1%, then 0.5 fails the check.
+        self.organization.date_added = timezone.now() - timedelta(days=60)
+        self.organization.save()
         mock_random.return_value = 0.5
         with (
             self.feature("organizations:processing-error-analytics"),

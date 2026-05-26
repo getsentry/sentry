@@ -1,15 +1,17 @@
 from typing import Optional
 
 import msgspec
-
-from sentry.scm.types import (
+from scm.types import (
     CheckRunAction,
-    CheckRunEvent,
     CommentAction,
-    CommentEvent,
-    EventType,
     EventTypeHint,
     PullRequestAction,
+)
+
+from sentry.scm.types import (
+    CheckRunEvent,
+    CommentEvent,
+    EventType,
     PullRequestEvent,
     SubscriptionEvent,
 )
@@ -73,6 +75,7 @@ class GitHubPullRequest(msgspec.Struct, gc=False):
     merge_commit_sha: str | None
     title: str
     user: GitHubUser
+    draft: bool = False
     merged: bool | None = None
 
 
@@ -89,6 +92,7 @@ class GitHubPullRequestHead(msgspec.Struct, gc=False):
 
 
 class GitHubPullRequestRepo(msgspec.Struct, gc=False):
+    id: int
     private: bool
 
 
@@ -143,9 +147,11 @@ def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullReque
             "author": {"id": str(e.pull_request.user.id), "username": e.pull_request.user.login},
             "base": {"ref": e.pull_request.base.ref, "sha": e.pull_request.base.sha},
             "description": e.pull_request.body,
+            "draft": e.pull_request.draft,
             "head": {"ref": e.pull_request.head.ref, "sha": e.pull_request.head.sha},
             "id": str(e.number),
             "is_private_repo": repo.private,
+            "repository_id": str(repo.id),
             "title": e.pull_request.title,
         },
         subscription_event=event,

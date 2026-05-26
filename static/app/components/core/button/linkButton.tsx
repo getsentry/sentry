@@ -96,7 +96,15 @@ const StyledLinkButton = styled(
     ...props
   }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
     if ('to' in props && props.to) {
-      return <Link {...props} to={props.to} role="button" />;
+      const {openInNewTab, ...linkProps} = props;
+      return (
+        <Link
+          {...linkProps}
+          to={props.to}
+          role="button"
+          {...(openInNewTab ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
+        />
+      );
     }
 
     if ('href' in props && props.href) {
@@ -110,8 +118,14 @@ const StyledLinkButton = styled(
       );
     }
 
-    // @ts-expect-error these props cannot be statically determined at this point
-    const {external: _e, replace: _r, preventScrollReset: _p, ...rest} = props;
+    const {
+      external: _e,
+      replace: _r,
+      preventScrollReset: _p,
+      openInNewTab: _o,
+      ...rest
+      // cast because props cannot be statically determined at this point
+    } = props as any;
     return <a {...rest} role="button" />;
   },
   {
@@ -119,6 +133,7 @@ const StyledLinkButton = styled(
       prop === 'external' ||
       prop === 'replace' ||
       prop === 'preventScrollReset' ||
+      prop === 'openInNewTab' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<Omit<LinkButtonProps, 'size'> & {size: NonNullable<LinkButtonProps['size']>}>`

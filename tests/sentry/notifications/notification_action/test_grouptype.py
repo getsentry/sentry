@@ -6,7 +6,7 @@ pytestmark = [requires_snuba]
 
 
 class TestGetTestNotificationEventData(TestCase):
-    def test_returns_group_event_with_occurrence(self):
+    def test_returns_group_event_with_occurrence(self) -> None:
         project = self.create_project()
         group_event = get_test_notification_event_data(project)
 
@@ -14,7 +14,7 @@ class TestGetTestNotificationEventData(TestCase):
         assert group_event.occurrence is not None
         assert group_event.occurrence.issue_title == "Test Issue"
 
-    def test_email_subject_uses_occurrence_title(self):
+    def test_email_subject_uses_occurrence_title(self) -> None:
         project = self.create_project()
         group_event = get_test_notification_event_data(project)
 

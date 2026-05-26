@@ -93,6 +93,7 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     email: str
     avatarUrl: str
     isActive: bool
+    isSuspended: bool
     hasPasswordAuth: bool
     isManaged: bool
     dateJoined: datetime
@@ -169,6 +170,7 @@ class UserSerializer(Serializer):
             "email": obj.email,
             "avatarUrl": get_gravatar_url(obj.email, size=32),
             "isActive": obj.is_active,
+            "isSuspended": obj.is_suspended,
             "hasPasswordAuth": obj.password not in ("!", ""),
             "isManaged": obj.is_managed,
             "dateJoined": obj.date_joined,

@@ -4,7 +4,7 @@ import logging
 import secrets
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.db.models import Q, Sum
@@ -29,6 +29,7 @@ class ArtifactInstallInfo:
 
     is_installable: bool
     install_url: str | None
+    install_url_expires_at: datetime | None
     download_count: int
     release_notes: str | None
     install_groups: list[str] | None
@@ -46,9 +47,10 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
     extras = artifact.extras or {}
     installable = is_installable_artifact(artifact)
     install_url: str | None = None
+    install_url_expires_at: datetime | None = None
 
     if installable:
-        install_url = get_download_url_for_artifact(artifact)
+        install_url, install_url_expires_at = get_download_url_for_artifact(artifact)
 
     download_count = get_download_count_for_artifact(artifact) if installable else 0
     release_notes = extras.get("release_notes")
@@ -66,6 +68,7 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
     return ArtifactInstallInfo(
         is_installable=installable,
         install_url=install_url,
+        install_url_expires_at=install_url_expires_at,
         download_count=download_count,
         release_notes=release_notes,
         install_groups=install_groups,
@@ -101,18 +104,16 @@ def get_download_count_for_artifact(artifact: PreprodArtifact) -> int:
     return int(download_count)
 
 
-def get_download_url_for_artifact(artifact: PreprodArtifact) -> str:
+def get_download_url_for_artifact(artifact: PreprodArtifact) -> tuple[str, datetime]:
     """
-    Generate a download URL for a PreprodArtifact.
+    Generate a download URL for a PreprodArtifact and the URL's expiration time.
 
     Args:
         artifact: The PreprodArtifact to generate a download URL for
-        request: The HTTP request object to build absolute URLs
 
     Returns:
-        A download URL string for the artifact
+        A tuple of (download URL, expiration datetime) for the artifact.
     """
-    # Create an installable artifact (this handles the URL path generation and expiration)
     installable = create_installable_preprod_artifact(artifact)
 
     # iOS apps (XCARCHIVE type) have a indirection via plist.
@@ -132,7 +133,9 @@ def get_download_url_for_artifact(artifact: PreprodArtifact) -> str:
         f"/api/0/projects/{artifact.project.organization.slug}/{artifact.project.slug}/files/installablepreprodartifact/{installable.url_path}/{url_params}"
     )
 
-    return download_url
+    # create_installable_preprod_artifact always sets expiration_date.
+    assert installable.expiration_date is not None
+    return download_url, installable.expiration_date
 
 
 def create_installable_preprod_artifact(

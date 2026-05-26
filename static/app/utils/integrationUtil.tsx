@@ -14,8 +14,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
-import type {Hooks} from 'sentry/types/hooks';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {
   AppOrProviderOrPlugin,
   CodeOwner,
@@ -25,11 +24,14 @@ import type {
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
+  IntegrationProvider,
   IntegrationType,
+  PluginNoProject,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {Overrides} from 'sentry/types/overrides';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
@@ -61,14 +63,15 @@ const generateIntegrationFeatures = (p: any) =>
     gatedFeatureGroups: [],
   });
 
-const defaultFeatureGateComponents: ReturnType<Hooks['integrations:feature-gates']> = {
-  IntegrationFeatures: generateIntegrationFeatures,
-  FeatureList: generateFeaturesList,
-};
+const defaultFeatureGateComponents: ReturnType<Overrides['integrations:feature-gates']> =
+  {
+    IntegrationFeatures: generateIntegrationFeatures,
+    FeatureList: generateFeaturesList,
+  };
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
-  const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
+  const featureHook = getOverride('integrations:feature-gates') || defaultHook;
   return featureHook();
 };
 
@@ -134,19 +137,37 @@ export function isSentryApp(
 export function isPlugin(
   integration: AppOrProviderOrPlugin
 ): integration is PluginWithProjectList {
-  return integration.hasOwnProperty('shortName');
+  return Object.hasOwn(integration, 'shortName');
 }
 
 export function isDocIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocIntegration {
-  return integration.hasOwnProperty('isDraft');
+  return Object.hasOwn(integration, 'isDraft');
+}
+
+/**
+ * True when the provider exposes the `commits` feature gate, which is the
+ * canonical marker for source-code-management integrations (GitHub, GitLab,
+ * Bitbucket, Azure DevOps, and their enterprise/server variants).
+ */
+export function isScmProvider(provider: IntegrationProvider): boolean {
+  return provider.metadata.features.some(f => f.featureGate.includes('commits'));
+}
+
+/**
+ * True when the plugin declares the `commits` feature gate. The legacy GitHub
+ * and Bitbucket plugins both declare this, so they must not be reported as
+ * non-SCM to analytics.
+ */
+export function isScmPlugin(plugin: PluginNoProject): boolean {
+  return plugin.features.includes('commits');
 }
 
 export function isExternalActorMapping(
   mapping: ExternalActorMappingOrSuggestion
 ): mapping is ExternalActorMapping {
-  return mapping.hasOwnProperty('id');
+  return Object.hasOwn(mapping, 'id');
 }
 
 export const getIntegrationType = (
@@ -184,7 +205,7 @@ export const safeGetQsParam = (param: string) => {
     const query = qs.parse(window.location.search) || {};
     return query[param];
   } catch {
-    return undefined;
+    return;
   }
 };
 

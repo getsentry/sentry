@@ -15,7 +15,7 @@ def wait_for_topics(admin_client: AdminClient, topics: list[str], timeout: int =
     """
     for topic in topics:
         start = time.time()
-        last_error = None
+        last_error: str | KafkaError | None = None
 
         while True:
             if time.time() > start + timeout:
@@ -25,10 +25,14 @@ def wait_for_topics(admin_client: AdminClient, topics: list[str], timeout: int =
 
             result = admin_client.list_topics(topic=topic, timeout=timeout)
             topic_metadata = result.topics.get(topic)
-            if topic_metadata and topic_metadata.partitions and not topic_metadata.error:
+            if topic_metadata is None:
+                last_error = "Topic metadata not found"
+                time.sleep(0.1)
+                continue
+            if topic_metadata.partitions and not topic_metadata.error:
                 logger.debug("Topic '%s' is ready", topic)
                 break
-            elif topic_metadata.error in {
+            elif topic_metadata.error is not None and topic_metadata.error.code() in {
                 KafkaError.UNKNOWN_TOPIC_OR_PART,
                 KafkaError.LEADER_NOT_AVAILABLE,
             }:

@@ -136,6 +136,19 @@ class ChangeDecimalToFloatTest(BaseSafeMigrationTest):
             self.run_migration()
 
 
+class AlterIndexedColumnTypeTest(BaseSafeMigrationTest):
+    app = "bad_flow_alter_indexed_column_type_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_alter_type"
+
+    def test(self) -> None:
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Altering the type of column TestTable.field .* is unsafe because the column is part of the following index",
+        ):
+            self.run_migration()
+
+
 class RenameTableTest(BaseSafeMigrationTest):
     app = "bad_flow_rename_table_app"
     migrate_from = "0001_initial"

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -84,154 +84,145 @@ export function TraceEventDataSection({
 
   const isMobile = isMobilePlatform(platform);
 
-  const handleFilterFramesChange = useCallback(
-    (val: 'full' | 'relevant') => {
-      const isFullOptionClicked = val === 'full';
+  const handleFilterFramesChange = (val: 'full' | 'relevant') => {
+    const isFullOptionClicked = val === 'full';
 
+    trackAnalytics(
+      isFullOptionClicked
+        ? 'stack-trace.full_stack_trace_clicked'
+        : 'stack-trace.most_relevant_clicked',
+      {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+      }
+    );
+
+    setIsFullStackTrace(isFullOptionClicked);
+  };
+
+  const handleSortByChange = (val: keyof typeof sortByOptions) => {
+    const isRecentFirst = val === 'recent-first';
+
+    trackAnalytics(
+      isRecentFirst
+        ? 'stack-trace.sort_option_recent_first_clicked'
+        : 'stack-trace.sort_option_recent_last_clicked',
+      {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+      }
+    );
+
+    setIsNewestFramesFirst(isRecentFirst);
+  };
+
+  const handleDisplayChange = (vals: typeof displayOptions) => {
+    if (vals.includes('raw-stack-trace')) {
+      trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('raw-stack-trace')) {
+      trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('absolute-addresses')) {
+      trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('absolute-addresses')) {
+      trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('absolute-file-paths')) {
+      trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('absolute-file-paths')) {
+      trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('minified')) {
       trackAnalytics(
-        isFullOptionClicked
-          ? 'stack-trace.full_stack_trace_clicked'
-          : 'stack-trace.most_relevant_clicked',
+        platform.startsWith('javascript')
+          ? 'stack-trace.display_option_minified_clicked'
+          : 'stack-trace.display_option_unsymbolicated_clicked',
         {
           organization,
           project_slug: projectSlug,
           platform,
           is_mobile: isMobile,
+          checked: true,
         }
       );
-
-      setIsFullStackTrace(isFullOptionClicked);
-    },
-    [organization, platform, projectSlug, isMobile, setIsFullStackTrace]
-  );
-
-  const handleSortByChange = useCallback(
-    (val: keyof typeof sortByOptions) => {
-      const isRecentFirst = val === 'recent-first';
-
+    } else if (displayOptions.includes('minified')) {
       trackAnalytics(
-        isRecentFirst
-          ? 'stack-trace.sort_option_recent_first_clicked'
-          : 'stack-trace.sort_option_recent_last_clicked',
+        platform.startsWith('javascript')
+          ? 'stack-trace.display_option_minified_clicked'
+          : 'stack-trace.display_option_unsymbolicated_clicked',
         {
           organization,
           project_slug: projectSlug,
           platform,
           is_mobile: isMobile,
+          checked: false,
         }
       );
+    }
 
-      setIsNewestFramesFirst(isRecentFirst);
-    },
-    [organization, platform, projectSlug, isMobile, setIsNewestFramesFirst]
-  );
+    if (vals.includes('verbose-function-names')) {
+      trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('verbose-function-names')) {
+      trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
 
-  const handleDisplayChange = useCallback(
-    (vals: typeof displayOptions) => {
-      if (vals.includes('raw-stack-trace')) {
-        trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('raw-stack-trace')) {
-        trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      if (vals.includes('absolute-addresses')) {
-        trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('absolute-addresses')) {
-        trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      if (vals.includes('absolute-file-paths')) {
-        trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('absolute-file-paths')) {
-        trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      if (vals.includes('minified')) {
-        trackAnalytics(
-          platform.startsWith('javascript')
-            ? 'stack-trace.display_option_minified_clicked'
-            : 'stack-trace.display_option_unsymbolicated_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: true,
-          }
-        );
-      } else if (displayOptions.includes('minified')) {
-        trackAnalytics(
-          platform.startsWith('javascript')
-            ? 'stack-trace.display_option_minified_clicked'
-            : 'stack-trace.display_option_unsymbolicated_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: false,
-          }
-        );
-      }
-
-      if (vals.includes('verbose-function-names')) {
-        trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('verbose-function-names')) {
-        trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      setDisplayOptions(vals);
-    },
-    [organization, platform, projectSlug, isMobile, displayOptions, setDisplayOptions]
-  );
+    setDisplayOptions(vals);
+  };
 
   const handleCopyRawStacktrace = useCallback(() => {
     trackAnalytics('stack-trace.copy_raw_clicked', {
@@ -423,7 +414,9 @@ export function TraceEventDataSection({
   const minified = displayOptions.includes('minified');
 
   // Apple crash report endpoint
-  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
+  const threadIdQuery =
+    activeThreadId === undefined ? '' : `&thread_id=${activeThreadId}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}${threadIdQuery}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
   const sortByTooltip = hasNewestFirst
@@ -432,106 +425,111 @@ export function TraceEventDataSection({
       : undefined
     : t('Not available on stack trace with single frame');
 
-  const SectionComponent = isNestedSection ? InlineThreadSection : InterimSection;
-
   const optionsToShow = getDisplayOptions();
   const displayValues = displayOptions.filter(value =>
     optionsToShow.some(opt => opt.value === value && !opt.disabled)
   );
 
+  const actions = !stackTraceNotFound && (
+    <Grid flow="column" align="center" gap="md">
+      {!displayOptions.includes('raw-stack-trace') && (
+        <SegmentedControl
+          size="xs"
+          aria-label={t('Filter frames')}
+          value={isFullStackTrace ? 'full' : 'relevant'}
+          onChange={handleFilterFramesChange}
+        >
+          <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
+            {t('Most Relevant')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="full">
+            {t('Full Stack Trace')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      )}
+      {displayOptions.includes('raw-stack-trace') && nativePlatform && (
+        <LinkButton
+          size="xs"
+          href={rawStackTraceDownloadLink}
+          tooltipProps={{title: t('Download raw stack trace file')}}
+          onClick={() => {
+            trackAnalytics('stack-trace.download_clicked', {
+              organization,
+              project_slug: projectSlug,
+              platform,
+              is_mobile: isMobile,
+            });
+          }}
+        >
+          {t('Download')}
+        </LinkButton>
+      )}
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            icon={<IconSort />}
+            size="xs"
+            tooltipProps={{title: sortByTooltip}}
+          />
+        )}
+        disabled={!!sortByTooltip}
+        position="bottom-end"
+        onChange={selectedOption => {
+          handleSortByChange(selectedOption.value);
+        }}
+        value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
+        options={Object.entries(sortByOptions).map(([value, label]) => ({
+          label,
+          value: value as keyof typeof sortByOptions,
+        }))}
+      />
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            size="xs"
+            icon={<IconEllipsis />}
+            aria-label={t('Display as')}
+          >
+            {t('Display as')}
+          </OverlayTrigger.IconButton>
+        )}
+        multiple
+        position="bottom-end"
+        value={displayValues}
+        onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
+        options={[{label: t('Display'), options: optionsToShow}]}
+      />
+
+      <CopyAsDropdown
+        size="xs"
+        items={CopyAsDropdown.makeDefaultCopyAsOptions({
+          text: handleCopyRawStacktrace,
+          json: undefined,
+          markdown: undefined,
+        })}
+      />
+    </Grid>
+  );
+
+  if (isNestedSection) {
+    return (
+      <InlineThreadSection title={title} actions={actions}>
+        {children}
+      </InlineThreadSection>
+    );
+  }
+
   return (
-    <SectionComponent
-      type={type}
-      showPermalink={false}
+    <FoldSection
+      sectionKey={type}
       title={title}
       disableCollapsePersistence
-      actions={
-        !stackTraceNotFound && (
-          <Grid flow="column" align="center" gap="md">
-            {!displayOptions.includes('raw-stack-trace') && (
-              <SegmentedControl
-                size="xs"
-                aria-label={t('Filter frames')}
-                value={isFullStackTrace ? 'full' : 'relevant'}
-                onChange={handleFilterFramesChange}
-              >
-                <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
-                  {t('Most Relevant')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="full">
-                  {t('Full Stack Trace')}
-                </SegmentedControl.Item>
-              </SegmentedControl>
-            )}
-            {displayOptions.includes('raw-stack-trace') && nativePlatform && (
-              <LinkButton
-                size="xs"
-                href={rawStackTraceDownloadLink}
-                tooltipProps={{title: t('Download raw stack trace file')}}
-                onClick={() => {
-                  trackAnalytics('stack-trace.download_clicked', {
-                    organization,
-                    project_slug: projectSlug,
-                    platform,
-                    is_mobile: isMobile,
-                  });
-                }}
-              >
-                {t('Download')}
-              </LinkButton>
-            )}
-            <CompactSelect
-              trigger={triggerProps => (
-                <OverlayTrigger.Button
-                  {...triggerProps}
-                  icon={<IconSort />}
-                  size="xs"
-                  tooltipProps={{title: sortByTooltip}}
-                />
-              )}
-              disabled={!!sortByTooltip}
-              position="bottom-end"
-              onChange={selectedOption => {
-                handleSortByChange(selectedOption.value);
-              }}
-              value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
-              options={Object.entries(sortByOptions).map(([value, label]) => ({
-                label,
-                value: value as keyof typeof sortByOptions,
-              }))}
-            />
-            <CompactSelect
-              trigger={triggerProps => (
-                <OverlayTrigger.IconButton
-                  {...triggerProps}
-                  size="xs"
-                  icon={<IconEllipsis />}
-                  aria-label={t('Display as')}
-                >
-                  {t('Display as')}
-                </OverlayTrigger.IconButton>
-              )}
-              multiple
-              position="bottom-end"
-              value={displayValues}
-              onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
-              options={[{label: t('Display'), options: optionsToShow}]}
-            />
-
-            <CopyAsDropdown
-              size="xs"
-              items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                text: handleCopyRawStacktrace,
-                json: undefined,
-                markdown: undefined,
-              })}
-            />
-          </Grid>
-        )
-      }
+      actions={actions}
     >
       {children}
-    </SectionComponent>
+    </FoldSection>
   );
 }
 
@@ -545,17 +543,15 @@ function InlineThreadSection({
   title: React.ReactNode;
 }) {
   return (
-    <Wrapper>
+    <Container>
       <Flex justify="between" align="center" marginBottom="md">
         <ThreadHeading>{title}</ThreadHeading>
         {actions}
       </Flex>
       {children}
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};

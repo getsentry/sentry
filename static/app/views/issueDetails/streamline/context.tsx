@@ -96,13 +96,14 @@ export const enum SectionKey {
 
   SPAN_LINKS = 'span-links',
 
+  INSIGHT_DIFF = 'insight-diff',
   XRAY_DIFF = 'xray-diff',
-
-  INSTRUMENTATION_FIX = 'instrumentation-fix',
 
   PROFILE_PREVIEW = 'profile-preview',
   STACKTRACE_FLAMEGRAPH = 'stacktrace-flamegraph',
 }
+
+export type FoldSectionKey = SectionKey | string;
 
 /**
  * This can be extended to create shared state for each section.
@@ -110,7 +111,7 @@ export const enum SectionKey {
  * the <ContextDataSection /> can update the config for other components to read from.
  */
 export interface SectionConfig {
-  key: SectionKey;
+  key: FoldSectionKey;
   initialCollapse?: boolean;
 }
 
@@ -155,11 +156,11 @@ interface IssueDetailsState {
   /**
    * Controls the state of each section.
    */
-  sectionData: Partial<Record<SectionKey, SectionConfig>>;
+  sectionData: Partial<Record<FoldSectionKey, SectionConfig>>;
 }
 
 type UpdateEventSectionAction = {
-  key: SectionKey;
+  key: FoldSectionKey;
   type: 'UPDATE_EVENT_SECTION';
   config?: Partial<SectionConfig>;
 };
@@ -176,7 +177,7 @@ type UpdateDetectorDetailsAction = {
 };
 
 type RemoveEventSectionAction = {
-  key: SectionKey;
+  key: FoldSectionKey;
   type: 'REMOVE_EVENT_SECTION';
 };
 
@@ -190,7 +191,7 @@ type IssueDetailsActions =
 
 function updateEventSection(
   state: IssueDetailsState,
-  sectionKey: SectionKey,
+  sectionKey: FoldSectionKey,
   updatedConfig: Partial<SectionConfig>
 ): IssueDetailsState {
   const existingConfig = state.sectionData[sectionKey] ?? {key: sectionKey};

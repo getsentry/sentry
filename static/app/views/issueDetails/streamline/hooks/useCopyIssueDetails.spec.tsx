@@ -2,15 +2,11 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {
-  AutofixStatus,
-  AutofixStepType,
-  type AutofixData,
-} from 'sentry/components/events/autofix/types';
-import * as autofixHooks from 'sentry/components/events/autofix/useAutofix';
+import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
@@ -39,46 +35,50 @@ describe('useCopyIssueDetails', () => {
     possibleCause: 'Missing parameter',
   };
 
-  // Create a mock AutofixData with steps that includes root cause and solution steps
-  const mockAutofixData: AutofixData = {
-    last_triggered_at: '2023-01-01T00:00:00Z',
-    request: {
-      repos: [],
-    },
-    codebases: {},
-    run_id: '123',
-    status: AutofixStatus.COMPLETED,
-    steps: [
+  const mockAutofixData: ExplorerAutofixState = {
+    run_id: 123,
+    status: 'completed',
+    updated_at: '2023-01-01T00:00:00Z',
+    blocks: [
       {
-        id: 'root-cause-step',
-        index: 0,
-        progress: [],
-        status: AutofixStatus.COMPLETED,
-        title: 'Root Cause',
-        type: AutofixStepType.ROOT_CAUSE_ANALYSIS,
-        causes: [
+        id: 'root-cause-block',
+        message: {
+          role: 'assistant' as const,
+          content: 'Found the root cause',
+          metadata: {step: 'root_cause'},
+        },
+        timestamp: '2023-01-01T00:00:00Z',
+        loading: false,
+        artifacts: [
           {
-            id: 'cause-1',
-            description: 'Root cause text',
+            key: 'root_cause',
+            reason: 'Root cause analysis',
+            data: {
+              one_line_description: 'Root cause text',
+              five_whys: ['Why 1'],
+            },
           },
         ],
-        selection: null,
       },
       {
-        id: 'solution-step',
-        index: 1,
-        progress: [],
-        status: AutofixStatus.COMPLETED,
-        title: 'Solution',
-        type: AutofixStepType.SOLUTION,
-        solution: [
+        id: 'solution-block',
+        message: {
+          role: 'assistant' as const,
+          content: 'Here is the solution',
+          metadata: {step: 'solution'},
+        },
+        timestamp: '2023-01-01T00:00:01Z',
+        loading: false,
+        artifacts: [
           {
-            timeline_item_type: 'internal_code',
-            title: 'Solution title',
-            code_snippet_and_analysis: 'Solution text',
+            key: 'solution',
+            reason: 'Solution plan',
+            data: {
+              one_line_summary: 'Solution title',
+              steps: [{title: 'Fix it', description: 'Solution text'}],
+            },
           },
         ],
-        solution_selected: true,
       },
     ],
   };
@@ -124,7 +124,7 @@ describe('useCopyIssueDetails', () => {
       );
 
       expect(result).toContain('## Root Cause');
-      expect(result).toContain('## Solution');
+      expect(result).toContain('## Plan');
     });
 
     it('includes tags when present in event', () => {
@@ -379,10 +379,17 @@ describe('useCopyIssueDetails', () => {
         isPending: false,
       });
 
-      jest.spyOn(autofixHooks, 'useAutofixData').mockReturnValue({
-        data: mockAutofixData,
-        isPending: false,
-      });
+      jest.spyOn(explorerAutofixHooks, 'useExplorerAutofix').mockReturnValue({
+        runState: mockAutofixData,
+        isLoading: false,
+        isPolling: false,
+        startStep: jest.fn(),
+        createPR: jest.fn(),
+        reset: jest.fn(),
+        triggerCodingAgentHandoff: jest.fn(),
+        codingAgentErrors: [],
+        dismissCodingAgentError: jest.fn(),
+      } as any);
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
@@ -397,25 +404,23 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
-      const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
+      const useHotkeysMock = jest.spyOn(
+        require('@sentry/scraps/hotkey/useHotkeys'),
+        'useHotkeys'
+      );
 
       renderHook(() => useCopyIssueDetails(group, event));
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
-          match: 'command+alt+c',
-          callback: expect.any(Function),
-          skipPreventDefault: expect.any(Boolean),
-        },
-        {
-          match: 'ctrl+alt+c',
+          match: 'mod+alt+c',
           callback: expect.any(Function),
           skipPreventDefault: expect.any(Boolean),
         },
       ]);
     });
 
-    it('provides partial data when event is undefined', () => {
+    it('provides partial data when event is undefined', async () => {
       let capturedText = '';
 
       mockCopy.mockImplementation((text: string) => {
@@ -425,25 +430,18 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, undefined));
 
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
       expect(capturedText).toContain(`**Project:** ${group.project?.slug}`);
       expect(capturedText).toContain('## Issue Summary');
       expect(capturedText).toContain('## Root Cause');
-      expect(capturedText).toContain('## Solution');
+      expect(capturedText).toContain('## Plan');
       expect(capturedText).not.toContain('## Exception');
     });
 
-    it('generates markdown with the correct data when event is provided', () => {
+    it('generates markdown with the correct data when event is provided', async () => {
       let capturedText = '';
 
       mockCopy.mockImplementation((text: string) => {
@@ -453,14 +451,7 @@ describe('useCopyIssueDetails', () => {
 
       renderHook(() => useCopyIssueDetails(group, event));
 
-      // Trigger the keyboard event (command+alt+c)
-      const keyboardEvent = new KeyboardEvent('keydown', {
-        keyCode: 67, // 'C'.charCodeAt(0)
-        metaKey: true,
-        altKey: true,
-        bubbles: true,
-      } as KeyboardEventInit);
-      document.dispatchEvent(keyboardEvent);
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);

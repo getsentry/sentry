@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
+import {useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -12,7 +13,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {getUserTimezone} from 'sentry/utils/dates';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
@@ -47,9 +47,7 @@ export function CohortComparison({
     dataset,
     extrapolate,
   });
-  const [searchQuery, setSearchQuery] = useQueryParamState({
-    fieldName: 'attributeBreakdownsSearch',
-  });
+  const [searchQuery, setSearchQuery] = useQueryState('attributeBreakdownsSearch');
   const theme = useTheme();
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.

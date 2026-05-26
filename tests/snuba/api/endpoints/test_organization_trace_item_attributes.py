@@ -2,13 +2,17 @@ from operator import itemgetter
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.api.endpoints.organization_trace_item_attributes import (
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap import constants
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import (
     APITestCase,
@@ -482,6 +486,18 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
             },
+            {
+                "key": "device.class",
+                "name": "device.class",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "span.module",
+                "name": "span.module",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
+            },
         ]
         assert sorted(
             response.data,
@@ -612,23 +628,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeSource": {"source_type": "user"},
             },
             {
-                "key": "baz",
-                "name": "baz",
-                "attributeType": "string",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "foo",
-                "name": "foo",
-                "attributeType": "string",
-                "attributeSource": {"source_type": "user"},
-            },
-            {
-                "key": "span.description",
-                "name": "span.description",
+                "key": "device.class",
+                "name": "device.class",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
-                "secondaryAliases": ["description", "message"],
+            },
+            {
+                "key": "span.module",
+                "name": "span.module",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
             },
             {
                 "key": "project",
@@ -661,48 +670,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         expected_2: list[TraceItemAttributeKey] = [
             {
-                "key": "span.description",
-                "name": "span.description",
-                "attributeType": "string",
-                "attributeSource": {"source_type": "sentry"},
-                "secondaryAliases": ["description", "message"],
-            },
-            {
-                "key": "transaction",
-                "name": "transaction",
-                "attributeType": "string",
-                "attributeSource": {"source_type": "sentry"},
-            },
-            {
-                "key": "project",
-                "name": "project",
-                "attributeType": "string",
-                "attributeSource": {"source_type": "sentry"},
-            },
-        ]
-        assert sorted(
-            response.data,
-            key=itemgetter("key"),
-        ) == sorted(
-            expected_2,
-            key=itemgetter("key"),
-        )
-
-        links = {}
-        for url, attrs in parse_link_header(response["Link"]).items():
-            links[attrs["rel"]] = attrs
-            attrs["href"] = url
-
-        assert links["previous"]["results"] == "true"
-        assert links["next"]["results"] == "false"
-
-        assert links["previous"]["href"] is not None
-        with self.feature(self.feature_flags):
-            response = self.client.get(links["previous"]["href"], format="json")
-        assert response.status_code == 200, response.content
-
-        expected_3: list[TraceItemAttributeKey] = [
-            {
                 "key": "bar",
                 "name": "bar",
                 "attributeType": "string",
@@ -727,9 +694,39 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeSource": {"source_type": "sentry"},
                 "secondaryAliases": ["description", "message"],
             },
+        ]
+        assert sorted(
+            response.data,
+            key=itemgetter("key"),
+        ) == sorted(
+            expected_2,
+            key=itemgetter("key"),
+        )
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "true"
+
+        assert links["next"]["href"] is not None
+        with self.feature(self.feature_flags):
+            response = self.client.get(links["next"]["href"], format="json")
+        assert response.status_code == 200, response.content
+
+        expected_3: list[TraceItemAttributeKey] = [
             {
-                "key": "project",
-                "name": "project",
+                "key": "span.description",
+                "name": "span.description",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
+                "secondaryAliases": ["description", "message"],
+            },
+            {
+                "key": "transaction",
+                "name": "transaction",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
             },
@@ -741,6 +738,15 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             expected_3,
             key=itemgetter("key"),
         )
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
+        assert links["previous"]["href"] is not None
 
     def test_tags_list_sentry_conventions(self) -> None:
         for tag in [
@@ -793,8 +799,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "attributeSource": {"source_type": "user"},
                 },
                 {
-                    "key": "measurements.fcp",
-                    "name": "measurements.fcp",
+                    "key": "browser.web_vital.fcp.value",
+                    "name": "browser.web_vital.fcp.value",
                     "attributeType": "number",
                     "attributeSource": {"source_type": "sentry"},
                 },
@@ -823,8 +829,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "attributeSource": {"source_type": "sentry"},
                 },
                 {
-                    "key": "measurements.lcp",
-                    "name": "measurements.lcp",
+                    "key": "browser.web_vital.lcp.value",
+                    "name": "browser.web_vital.lcp.value",
                     "attributeType": "number",
                     "attributeSource": {"source_type": "sentry"},
                 },
@@ -858,7 +864,19 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(query={"attributeType": "string"})
         assert response.status_code == 200, response.data
-        assert response.data == [
+        expected = [
+            {
+                "key": "device.class",
+                "name": "device.class",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
+            },
+            {
+                "key": "span.module",
+                "name": "span.module",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
+            },
             {
                 "key": "span.description",
                 "name": "span.description",
@@ -891,6 +909,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeSource": {"source_type": "sentry"},
             },
         ]
+        assert sorted(
+            response.data,
+            key=itemgetter("key"),
+        ) == sorted(
+            expected,
+            key=itemgetter("key"),
+        )
 
     def test_sentry_internal_attributes(self) -> None:
         self.store_spans(
@@ -979,7 +1004,74 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         keys = {item["key"] for item in response.data}
         assert len(keys) == 0
 
+    def test_aliased_attribute_project(self) -> None:
+        span1 = self.create_span(
+            {"sentry_tags": {"op": "foo"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"op": "bar"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        self.store_spans([span1, span2])
+
+        response = self.do_request(query={"attributeType": "string"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) > 1
+        assert "project" in keys
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "pro"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert all("pro" in key for key in keys)
+        assert "project" in keys
+
+    def test_aliased_attribute_boolean(self) -> None:
+        span1 = self.create_span(
+            {"sentry_tags": {"op": "foo"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"op": "bar"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        self.store_spans([span1, span2])
+
+        response = self.do_request(query={"attributeType": "boolean"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 1
+        assert "is_starred_transaction" in keys
+
+        response = self.do_request(
+            query={"attributeType": "boolean", "substringMatch": "is_starred"}
+        )
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 1
+        assert "is_starred_transaction" in keys
+
     def test_aliased_attribute_with_paging(self) -> None:
+        def matching_string_alias_count(substring: str) -> int:
+            column_count = sum(
+                1
+                for column in SPAN_DEFINITIONS.columns.values()
+                if column.proto_type == AttributeKey.Type.TYPE_STRING
+                and substring in column.public_alias
+                and not column.secondary_alias
+                and not column.private
+            )
+            context_count = sum(
+                1
+                for public_label, virtual_context in SPAN_DEFINITIONS.contexts.items()
+                if substring in public_label
+                and virtual_context.search_type is not None
+                and not virtual_context.secondary_alias
+                and constants.TYPE_MAP[virtual_context.search_type] == AttributeKey.Type.TYPE_STRING
+            )
+            return column_count + context_count
+
         span1 = self.create_span(
             {"tags": {"tag.op": "foo"}}, start_ts=before_now(days=0, minutes=10)
         )
@@ -1004,13 +1096,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             assert len(keys) == 21
             all_keys = all_keys.union(keys)
             assert len(all_keys) == (i + 1) * 20 + 1
-        # there's at least 64 total keys for this query, the next page should contain the first custom ones
+        hardcoded_alias_count = matching_string_alias_count(".")
         response = self.do_request(
             query={
                 "attributeType": "string",
                 "substringMatch": ".",
                 "per_page": 20,
-                "cursor": "0:60:0",
+                "cursor": f"0:{hardcoded_alias_count}:0",
             }
         )
         assert response.status_code == 200, response.content
@@ -2270,7 +2362,9 @@ class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
         assert "POST" in values
 
 
-class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestCase, SpanTestCase):
+class OrganizationTraceItemAttributeValidateEndpointTest(
+    APITestCase, BaseSpansTestCase, SpanTestCase
+):
     viewname = "sentry-api-0-organization-trace-item-attributes-validate"
     feature_flags = {
         "organizations:visibility-explore-view": True,
@@ -2281,7 +2375,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
         self.login_as(user=self.user)
         self.project = self.create_project()
 
-    def do_request(self, payload=None, features=None, **kwargs):
+    def do_request(self, payload=None, features=None, query_params=None, **kwargs):
         if features is None:
             features = self.feature_flags
 
@@ -2290,68 +2384,57 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.post(url, payload, format="json", **kwargs)
+            return self.client.post(
+                url, payload, format="json", query_params=query_params, **kwargs
+            )
 
     def test_no_feature(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
+            query_params={"itemType": "spans"},
             features={},
         )
         assert response.status_code == 404
 
     def test_missing_item_type(self):
         response = self.do_request(
-            payload={
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
         )
         assert response.status_code == 400
 
     def test_missing_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-            },
+            payload={},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_empty_attributes_list(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [],
-            },
+            payload={"attributes": []},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_too_many_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [f"attr{i}" for i in range(101)],
-            },
+            payload={"attributes": [f"attr{i}" for i in range(101)]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_unsupported_item_type(self):
         response = self.do_request(
-            payload={
-                "itemType": "uptime_results",
-                "attributes": ["some.attr"],
-            },
+            payload={"attributes": ["some.attr"]},
+            query_params={"itemType": "uptime_results"},
         )
         assert response.status_code == 400
         assert "Unsupported item type" in response.data["detail"]
 
     def test_well_known_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attr = response.data["attributes"]["span.duration"]
@@ -2360,52 +2443,100 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
 
     def test_virtual_context_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["project"],
-            },
+            payload={"attributes": ["project"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attr = response.data["attributes"]["project"]
         assert attr["valid"] is True
         assert attr["type"] == "string"
 
-    def test_user_tags(self):
+    def test_user_tags_not_in_storage(self):
         response = self.do_request(
             payload={
-                "itemType": "spans",
                 "attributes": [
                     "my.custom.tag",
                     "tags[x,string]",
                     "tags[numberAttr,number]",
-                    "tags[booleanAttr,boolean]",
-                ],
+                ]
             },
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+        for key in ["my.custom.tag", "tags[x,string]", "tags[numberAttr,number]"]:
+            assert response.data["attributes"][key]["valid"] is False
+            assert "error" in response.data["attributes"][key]
+
+    def test_user_tags_in_storage(self):
+        # Existing and nonexistent tags are validated in separate requests because
+        # the local test Snuba (used in CI) returns empty results for an OrFilter
+        # containing multiple ExistsFilters when some reference nonexistent
+        # attributes, even though real Snuba handles it fine.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"my.custom.tag": "hello"},
+        )
+
+        response = self.do_request(
+            payload={"attributes": ["my.custom.tag"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         tag1 = response.data["attributes"]["my.custom.tag"]
         assert tag1["valid"] is True
         assert tag1["type"] == "string"
 
-        tag2 = response.data["attributes"]["tags[x,string]"]
-        assert tag2["valid"] is True
-        assert tag2["type"] == "string"
+        response = self.do_request(
+            payload={"attributes": ["nonexistent.tag"]},
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+        tag2 = response.data["attributes"]["nonexistent.tag"]
+        assert tag2["valid"] is False
+        assert "error" in tag2
 
-        tag3 = response.data["attributes"]["tags[numberAttr,number]"]
-        assert tag3["valid"] is True
-        assert tag3["type"] == "number"
+    def test_user_tags_same_name_different_types(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"foo": "hello"},
+        )
 
-        tag4 = response.data["attributes"]["tags[booleanAttr,boolean]"]
-        assert tag4["valid"] is True
-        assert tag4["type"] == "boolean"
+        response = self.do_request(
+            payload={"attributes": ["tags[foo,string]", "tags[foo,number]"]},
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+
+        attrs = response.data["attributes"]
+        assert attrs["tags[foo,string]"]["valid"] is True
+        assert attrs["tags[foo,string]"]["type"] == "string"
+
+        assert attrs["tags[foo,number]"]["valid"] is False
+        assert "error" in attrs["tags[foo,number]"]
 
     def test_invalid_attributes(self):
         long_attr = "a" * 201
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [long_attr, "tags[foo,faketype]"],
-            },
+            payload={"attributes": [long_attr, "tags[foo,faketype]"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
 
@@ -2416,17 +2547,36 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
         assert "error" in response.data["attributes"]["tags[foo,faketype]"]
 
     def test_mixed_valid_and_invalid(self):
+        # Existing and nonexistent tags are validated in separate requests because
+        # the local test Snuba (used in CI) returns empty results for an OrFilter
+        # containing multiple ExistsFilters when some reference nonexistent
+        # attributes, even though real Snuba handles it fine.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"my.custom.tag": "hello"},
+        )
+
         long_attr = "a" * 201
+
         response = self.do_request(
             payload={
-                "itemType": "spans",
                 "attributes": [
                     "span.duration",
                     "project",
                     "my.custom.tag",
                     long_attr,
-                ],
+                ]
             },
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attrs = response.data["attributes"]
@@ -2442,3 +2592,44 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
 
         assert attrs[long_attr]["valid"] is False
         assert "error" in attrs[long_attr]
+
+        response = self.do_request(
+            payload={"attributes": ["nonexistent.tag"]},
+            query_params={"itemType": "spans"},
+        )
+        assert response.status_code == 200
+        attrs = response.data["attributes"]
+        assert attrs["nonexistent.tag"]["valid"] is False
+        assert "error" in attrs["nonexistent.tag"]
+
+    @pytest.mark.xfail(reason="Flaky test - PR #111993")  # noqa: F821
+    def test_stats_period_limits_time_range(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=2).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"old.tag": "hello"},
+        )
+
+        # Wide time range should find the tag
+        response = self.do_request(
+            payload={"attributes": ["old.tag"]},
+            query_params={"itemType": "spans", "statsPeriod": "7d"},
+        )
+        assert response.status_code == 200
+        assert response.data["attributes"]["old.tag"]["valid"] is True
+
+        # Narrow time range should not find the tag
+        response = self.do_request(
+            payload={"attributes": ["old.tag"]},
+            query_params={"itemType": "spans", "statsPeriod": "1h"},
+        )
+        assert response.status_code == 200
+        assert response.data["attributes"]["old.tag"]["valid"] is False

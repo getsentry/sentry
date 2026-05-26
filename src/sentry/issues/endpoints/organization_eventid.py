@@ -3,6 +3,8 @@ from typing import TypedDict
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -16,8 +18,9 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.services import eventstore
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
@@ -66,9 +69,13 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
-        project_slugs_by_id = dict(
-            Project.objects.filter(organization=organization).values_list("id", "slug")
-        )
+        # Scope to projects the caller can access; the endpoint's org-level
+        # permission_classes only check org membership, not project access.
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_slugs_by_id = {project.id: project.slug for project in projects}
+
+        if not project_slugs_by_id:
+            raise ResourceDoesNotExist()
 
         try:
             snuba_filter = eventstore.Filter(
@@ -76,8 +83,21 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 project_ids=list(project_slugs_by_id.keys()),
                 event_ids=[event_id],
             )
+            eap_conditions = and_trace_item_filters(
+                build_event_id_in_filter([event_id]),
+                TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(name="type", type=AttributeKey.TYPE_STRING),
+                        op=ComparisonFilter.OP_NOT_EQUALS,
+                        value=AttributeValue(val_str="transaction"),
+                    )
+                ),
+            )
             event = eventstore.backend.get_events(
-                filter=snuba_filter, limit=1, tenant_ids={"organization_id": organization.id}
+                filter=snuba_filter,
+                eap_conditions=eap_conditions,
+                limit=1,
+                tenant_ids={"organization_id": organization.id},
             )[0]
         except IndexError:
             raise ResourceDoesNotExist()

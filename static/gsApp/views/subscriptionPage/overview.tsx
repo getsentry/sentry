@@ -44,7 +44,7 @@ function Overview({subscription}: Props) {
     isError,
   } = useApiQuery<CustomerUsage>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/usage/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/usage/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -72,7 +72,7 @@ function Overview({subscription}: Props) {
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
-      <SubscriptionPageContainer background="primary">
+      <SubscriptionPageContainer>
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -81,7 +81,7 @@ function Overview({subscription}: Props) {
   return (
     <Fragment>
       <SubscriptionHeader organization={organization} subscription={subscription} />
-      <SubscriptionPageContainer background="primary" padding="0 2xl 3xl">
+      <SubscriptionPageContainer padding="0 2xl 3xl">
         {isPending ? (
           <LoadingIndicator />
         ) : isError ? (

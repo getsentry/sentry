@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -65,7 +65,7 @@ export function WidgetBuilderDatasetSelector() {
   if (organization.features.includes('tracemetrics-enabled')) {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
-      label: t('Metrics'),
+      label: t('Application Metrics'),
       details: t('Counters, gauges, and distributions'),
     });
   }
@@ -94,7 +94,7 @@ export function WidgetBuilderDatasetSelector() {
       <StyledSectionHeader
         title={t('Dataset')}
         tooltipText={tct(
-          `This reflects the type of information you want to use. To learn more, [link: read the docs].`,
+          'This reflects the type of information you want to use. To learn more, [link: read the docs].',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#choose-your-dataset" />

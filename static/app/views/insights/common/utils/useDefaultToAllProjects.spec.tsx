@@ -35,7 +35,7 @@ describe('useDefaultToAllProjects', () => {
     const nonMemberProject = ProjectFixture({isMember: false});
     ProjectsStore.loadInitialData([nonMemberProject]);
     renderHook(useDefaultToAllProjects);
-    expect(updateProjects).toHaveBeenCalledWith([-1], undefined, {
+    expect(updateProjects).toHaveBeenCalledWith([-1], undefined, undefined, {
       save: true,
     });
   });

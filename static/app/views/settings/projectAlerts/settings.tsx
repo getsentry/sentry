@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -11,8 +12,7 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PluginList} from 'sentry/components/pluginList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectAlerts';
-import {IconMail} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -29,7 +29,7 @@ function makeFetchProjectPluginsQueryKey(
   projectSlug: string
 ): ApiQueryKey {
   return [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/', {
       path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
     }),
   ];
@@ -38,7 +38,6 @@ function makeFetchProjectPluginsQueryKey(
 export default function ProjectAlertSettings() {
   const organization = useOrganization();
   const {canEditRule, project} = useProjectAlertsOutlet();
-
   const {
     data: pluginList = [],
     isPending: isPluginListLoading,
@@ -53,45 +52,28 @@ export default function ProjectAlertSettings() {
     return <LoadingError onRetry={refetchPluginList} />;
   }
 
+  const alertRulesTo = {
+    pathname: makeAlertsPathname({path: '/rules/', organization}),
+    query: {project: project?.id},
+  };
+
   return (
     <Fragment>
       <SentryDocumentTitle
         title={routeTitleGen(t('Alerts Settings'), project.slug, false)}
       />
-      <SettingsPageHeader
-        title={t('Alerts Settings')}
-        action={
-          <LinkButton
-            to={{
-              pathname: makeAlertsPathname({
-                path: `/rules/`,
-                organization,
-              }),
-              query: {project: project?.id},
-            }}
-            size="sm"
-          >
-            {t('View Alert Rules')}
-          </LinkButton>
-        }
-      />
+      <SettingsPageHeader title={t('Alerts Settings')} />
       <ProjectPermissionAlert project={project} />
-      <AlertLink.Container>
-        <AlertLink
-          to="/settings/account/notifications/"
-          trailingItems={<IconMail />}
-          variant="info"
-        >
-          {t(
-            'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
-          )}
-        </AlertLink>
-      </AlertLink.Container>
 
       {isPluginListLoading ? (
         <LoadingIndicator />
       ) : (
         <Fragment>
+          <Flex justify="end" paddingBottom="sm">
+            <LinkButton to={alertRulesTo} size="sm">
+              {t('View Alert Rules')}
+            </LinkButton>
+          </Flex>
           <Form
             saveOnBlur
             allowUndo
@@ -107,6 +89,14 @@ export default function ProjectAlertSettings() {
               disabled={!canEditRule}
               title={t('Email Settings')}
               fields={[fields.subjectTemplate]}
+              renderHeader={() => (
+                <PanelAlert variant="info">
+                  {tct(
+                    'Looking to fine-tune your personal notification preferences? Visit your [link:Account Settings].',
+                    {link: <Link to="/settings/account/notifications/" />}
+                  )}
+                </PanelAlert>
+              )}
             />
 
             <JsonForm

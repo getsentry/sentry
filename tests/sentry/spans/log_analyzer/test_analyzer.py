@@ -87,7 +87,7 @@ def test_get_summary_stats(sample_log_entries):
     assert stats["consumer_counts"]["process-spans-6"] == 2
 
 
-def test_trace_stats_duration_property():
+def test_trace_stats_duration_property() -> None:
     """Test duration calculation."""
     stats = TraceStats(
         project_id="123",

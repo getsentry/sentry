@@ -6,11 +6,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {Confirm} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
@@ -39,7 +38,6 @@ type ChildRenderProps = {
 type Props = {
   api: Client;
   children: (opts: ChildRenderProps) => React.ReactNode;
-  organization: Organization;
   source: string;
   subscription: Subscription;
   extraAnalyticsParams?: Record<string, any>;
@@ -63,7 +61,7 @@ function LoadingButton(props: {
   return (
     <Button
       autoFocus
-      priority="primary"
+      variant="primary"
       busy={busy}
       onClick={async () => {
         setBusy(true);
@@ -79,7 +77,6 @@ function LoadingButton(props: {
 function UpsellProvider({
   api,
   onTrialStarted,
-  organization,
   subscription,
   source,
   extraAnalyticsParams,
@@ -87,6 +84,8 @@ function UpsellProvider({
   showConfirmation,
   children,
 }: Props) {
+  const navigate = useNavigate();
+  const organization = useOrganization({allowNull: true});
   // if the org or subscription isn't loaded yet, don't render anything
   if (!organization || !subscription) {
     return null;
@@ -157,7 +156,7 @@ function UpsellProvider({
       return (
         <div data-test-id="confirm-content">
           {tct(
-            `Your organization is about to start a [trialLength]-day free trial. Click confirm to start your trial.`,
+            'Your organization is about to start a [trialLength]-day free trial. Click confirm to start your trial.',
             {
               trialLength,
             }
@@ -215,7 +214,7 @@ function UpsellProvider({
                 const baseUrl = subscription.canSelfServe
                   ? `/checkout/${organization.slug}/`
                   : `/settings/${organization.slug}/billing/overview/`;
-                browserHistory.push(`${normalizeUrl(baseUrl)}?referrer=upsell-${source}`);
+                navigate(`${normalizeUrl(baseUrl)}?referrer=upsell-${source}`);
               }
             } else {
               if (triggerMemberRequests) {
@@ -234,6 +233,4 @@ function UpsellProvider({
   );
 }
 
-export default withApi(
-  withOrganization(withSubscription(UpsellProvider, {noLoader: true}))
-);
+export default withApi(withSubscription(UpsellProvider, {noLoader: true}));

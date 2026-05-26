@@ -125,3 +125,32 @@ class TestActionSerializer(TestCase):
             },
             "status": "active",
         }
+
+    def test_serialize_ticketing_data_preserves_additional_fields_keys(self) -> None:
+        jira_integration = self.create_integration(
+            provider="jira",
+            name="jira-integration",
+            external_id="jira-123",
+            metadata={},
+            organization=self.organization,
+        )
+        action = self.create_action(
+            type=Action.Type.JIRA,
+            integration_id=jira_integration.id,
+            data={
+                "dynamic_form_fields": [{"name": "my_field", "label": "My Field"}],
+                "additional_fields": {
+                    "my_field": "my value",
+                },
+            },
+            config={"target_type": ActionTarget.SPECIFIC},
+        )
+
+        result = serialize(action)
+
+        assert result["data"] == {
+            "dynamicFormFields": [{"name": "my_field", "label": "My Field"}],
+            "additionalFields": {
+                "my_field": "my value",
+            },
+        }

@@ -8,8 +8,6 @@ export function CustomerUsageFixture(
   return {
     periodStart: '2022-06-01',
     periodEnd: '2022-06-30',
-    onDemandMaxSpend: 0,
-    onDemandEventsAllowed: 0,
     totals: {
       errors: UsageTotalFixture(),
       transactions: UsageTotalFixture(),

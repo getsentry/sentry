@@ -23,7 +23,7 @@ export function SampleEventAlert({
       trailingItems={
         <LinkButton
           size="xs"
-          priority="primary"
+          variant="primary"
           to={makeProjectsPathname({
             organization,
             path: `/${project.slug}/getting-started/`,

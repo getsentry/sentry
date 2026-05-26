@@ -93,7 +93,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             on_delivery=partial(
                 self.callback, committable=message.committable, timestamp=message.timestamp
             ),
-            headers=message.payload.headers,
+            headers=message.payload.headers,  # type: ignore[arg-type]
         )
 
     def callback(

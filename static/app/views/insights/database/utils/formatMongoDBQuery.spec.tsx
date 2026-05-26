@@ -88,7 +88,8 @@ describe('formatMongoDBQuery', () => {
   });
 
   it('handles truncated MongoDB query strings by repairing the JSON', () => {
-    const query = `{"_id":{},"test":"?","insert":"some_collection","address":"?","details":{"email":"?","nam*`;
+    const query =
+      '{"_id":{},"test":"?","insert":"some_collection","address":"?","details":{"email":"?","nam*';
     const tokenizedQuery = formatMongoDBQuery(query, 'insert');
     render(<Fragment>{tokenizedQuery}</Fragment>);
 
@@ -103,7 +104,8 @@ describe('formatMongoDBQuery', () => {
   });
 
   it('properly handles formatting MongoDB queries when the operation entry is the last entry', () => {
-    const query = `{"first_key":"first_value","second_key":"second_value","findOne":"my_collection"}`;
+    const query =
+      '{"first_key":"first_value","second_key":"second_value","findOne":"my_collection"}';
     const tokenizedQuery = formatMongoDBQuery(query, 'findOne');
     render(<Fragment>{tokenizedQuery}</Fragment>);
 

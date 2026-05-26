@@ -1,0 +1,36 @@
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {tct} from 'sentry/locale';
+
+interface Props {
+  errors?: Array<{detail: string}>;
+}
+
+export function APIUsageWarningBanner({errors}: Props) {
+  const hasUnsupportedError = errors?.some(
+    ({detail}) =>
+      detail.includes('Condition not supported') ||
+      detail.includes('Filter not supported') ||
+      detail.includes('Multiple if/then blocks are not supported')
+  );
+
+  if (!hasUnsupportedError) {
+    return null;
+  }
+
+  return (
+    <Alert.Container>
+      <Alert variant="warning">
+        {tct(
+          "The legacy alerts UI does not support all the same features as the [link:new monitors and alerts UI]. If you've created or modified an alert using the new API, those settings will be used during evaluation but aren't fully reflected in the legacy UI.",
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/new-monitors-and-alerts/" />
+            ),
+          }
+        )}
+      </Alert>
+    </Alert.Container>
+  );
+}

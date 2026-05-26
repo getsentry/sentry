@@ -8,7 +8,7 @@ interface Props {
   label?: string;
 }
 
-export function BaselineMarkLine({theme, value, label}: Props) {
+export function createBaselineMarkLine({theme, value, label}: Props) {
   return MarkLine({
     data: [
       {

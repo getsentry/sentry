@@ -71,6 +71,7 @@ describe('formatYAxisValue', () => {
       [0.00000153, '1/second', '0.00000153/s'],
       [0.35, '1/second', '0.35/s'],
       [10, '1/second', '10/s'],
+      // eslint-disable-next-line unicorn/no-zero-fractions
       [10.0, '1/second', '10/s'],
       [1231, '1/minute', '1.231K/min'],
       [110000, '1/second', '110K/s'],

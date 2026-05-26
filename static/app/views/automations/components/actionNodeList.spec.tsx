@@ -15,6 +15,7 @@ import {
 } from 'sentry/types/workflowEngine/actions';
 import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -151,6 +152,30 @@ describe('ActionNodeList', () => {
     expect(mockOnDeleteRow).toHaveBeenCalledWith(slackAction.id);
   });
 
+  it('shows an error for actions with unavailable handlers', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/available-actions/`,
+      body: [], // No available actions
+    });
+
+    const slackAction = ActionFixture();
+    render(
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
+
+    expect(
+      await screen.findByText(
+        'The Slack action is no longer available. Please remove and reconfigure this action.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
+  });
+
   it('shows a warning message for an incompatible action', async () => {
     const model = new FormModel();
     model.setInitialData({
@@ -162,11 +187,13 @@ describe('ActionNodeList', () => {
     });
     const jiraAction = ActionFixture({type: ActionType.JIRA});
     render(
-      <Form model={model}>
-        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-          <ActionNodeList {...defaultProps} actions={[jiraAction]} />
-        </AutomationBuilderErrorContext.Provider>
-      </Form>,
+      <AutomationFormProvider>
+        <Form model={model}>
+          <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+            <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+          </AutomationBuilderErrorContext.Provider>
+        </Form>
+      </AutomationFormProvider>,
       {
         organization,
       }

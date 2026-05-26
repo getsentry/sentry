@@ -1,8 +1,17 @@
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from sentry.models.organization import Organization
 
 from ..constants import PLATFORMS_CONFIG
+
+SourceRootsResolver = Callable[[str, Sequence[str] | None], tuple[str, str] | None]
+
+
+def noop_source_roots_resolver(
+    source_path: str, repo_files: Sequence[str] | None
+) -> tuple[str, str] | None:
+    return None
 
 
 def supported_platform(platform: str) -> bool:
@@ -45,3 +54,6 @@ class PlatformConfig:
 
     def creates_in_app_stack_trace_rules(self) -> bool:
         return self.config.get("create_in_app_stack_trace_rules", False)
+
+    def get_source_roots_resolver(self) -> SourceRootsResolver:
+        return self.config.get("source_roots_resolver", noop_source_roots_resolver)

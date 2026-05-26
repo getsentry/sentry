@@ -202,7 +202,7 @@ function FlamegraphZoomView({
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !textRenderer || !flamegraphRenderer) {
-      return undefined;
+      return;
     }
 
     const clearOverlayCanvas = () => {
@@ -364,7 +364,7 @@ function FlamegraphZoomView({
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
-      return undefined;
+      return;
     }
 
     const onResetZoom = () => {

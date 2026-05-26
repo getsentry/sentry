@@ -9,7 +9,6 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import * as RegionUtils from 'sentry/utils/regions';
 import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
@@ -22,8 +21,10 @@ describe('OrganizationSettingsForm', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
+    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(organization, {replace: true});
+    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -37,7 +38,11 @@ describe('OrganizationSettingsForm', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [],
+      body: [{user: UserFixture()}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [{user: UserFixture()}],
     });
     onSave.mockReset();
   });
@@ -154,6 +159,28 @@ describe('OrganizationSettingsForm', () => {
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     });
     expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+  });
+
+  it('shows field error when slug is already taken', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {slug: ['The slug "taken" is in use by another organization.']},
+    });
+
+    render(
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
+    );
+
+    const input = screen.getByRole('textbox', {name: 'Organization Slug'});
+    await userEvent.clear(input);
+    await userEvent.type(input, 'taken');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('The slug "taken" is in use by another organization.')
+    ).toBeInTheDocument();
   });
 
   it('can enable codecov', async () => {
@@ -417,7 +444,11 @@ describe('OrganizationSettingsForm', () => {
     });
 
     it('saves replayAccessMembers when a member is selected', async () => {
-      MemberListStore.loadInitialData([UserFixture()]);
+      const user = UserFixture();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [{user}],
+      });
       const replayPutMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
         method: 'PUT',

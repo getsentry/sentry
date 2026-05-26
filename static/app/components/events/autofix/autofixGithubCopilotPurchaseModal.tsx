@@ -34,7 +34,7 @@ export function AutofixGithubCopilotPurchaseModal({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Remind me later')}</Button>
-          <LinkButton href={GITHUB_COPILOT_URL} external priority="primary">
+          <LinkButton href={GITHUB_COPILOT_URL} external variant="primary">
             {t('Get GitHub Copilot')}
           </LinkButton>
         </Grid>

@@ -2,11 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {useErrorsSeriesQuery, useErrorsTableQuery} from './useErrorsWidgetQuery';
@@ -14,20 +13,6 @@ import {useErrorsSeriesQuery, useErrorsTableQuery} from './useErrorsWidgetQuery'
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useErrorsSeriesQuery', () => {
   const organization = OrganizationFixture();
@@ -64,15 +49,13 @@ describe('useErrorsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -126,15 +109,13 @@ describe('useErrorsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters: pageFiltersWithDates,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({
+        widget,
+        organization,
+        pageFilters: pageFiltersWithDates,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -172,18 +153,16 @@ describe('useErrorsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -251,15 +230,13 @@ describe('useErrorsSeriesQuery', () => {
       ],
     });
 
-    renderHook(
-      () =>
-        useErrorsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -301,15 +278,13 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -346,15 +321,13 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -391,18 +364,16 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -439,17 +410,15 @@ describe('useErrorsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useErrorsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-          cursor: '0:10:0',
-          limit: 50,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useErrorsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+        cursor: '0:10:0',
+        limit: 50,
+      })
     );
 
     await waitFor(() => {

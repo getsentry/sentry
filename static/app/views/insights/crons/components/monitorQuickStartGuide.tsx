@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
@@ -15,9 +16,8 @@ import {
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {PlatformKey, Project} from 'sentry/types/project';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';
 import {
@@ -208,14 +208,10 @@ export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const org = useOrganization();
   const guideContainerRef = useRef<HTMLDivElement>(null);
 
-  const {data: projectKeys} = useApiQuery<ProjectKey[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
-        path: {organizationIdOrSlug: org.slug, projectIdOrSlug: project.slug},
-      }),
-    ],
-    {staleTime: Infinity}
-  );
+  const {data: projectKeys} = useQuery({
+    ...projectKeysApiOptions({orgSlug: org.slug, projSlug: project.slug}),
+    staleTime: Infinity,
+  });
 
   const guideList = Object.entries(onboardingGuides).map(([key, guide]) => ({
     ...guide,

@@ -12,7 +12,7 @@ import {
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const NAMESPACE_SYMBOL = '\uf00d';
+export const NAMESPACE_SYMBOL = '\uF00D';
 
 const getRecentSearchUrl = (orgSlug: string) =>
   getApiUrl('/organizations/$organizationIdOrSlug/recent-searches/', {

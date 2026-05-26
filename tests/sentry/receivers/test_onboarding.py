@@ -33,7 +33,6 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -59,6 +58,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.samples import load_data
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -168,11 +168,24 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(fire_project_created=True)
 
         assert Rule.objects.filter(project=project).exists()
-        workflow = Workflow.objects.get(organization=project.organization, name=DEFAULT_RULE_LABEL)
+        workflow = Workflow.objects.get(
+            organization=project.organization,
+            name=DEFAULT_WORKFLOW_LABEL,
+        )
 
         assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
-        assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
-        assert DetectorWorkflow.objects.filter(workflow=workflow).count() == 2
+
+        issue_stream_detectors = Detector.objects.filter(
+            project=project,
+            type=IssueStreamGroupType.slug,
+        )
+
+        assert len(issue_stream_detectors) == 1
+
+        # Ensure we have 1 connection to the issue stream, this triggers for both monitors above.
+        result_connections = DetectorWorkflow.objects.filter(workflow=workflow)
+        assert result_connections.count() == 1
+        assert result_connections[0].detector_id == issue_stream_detectors[0].id
 
     @patch("sentry.analytics.record", wraps=record)
     def test_project_created_with_origin(self, record_analytics: MagicMock) -> None:

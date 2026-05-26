@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {SettingsBreadcrumb} from './settingsBreadcrumb';
-import {SettingsHeader} from './settingsHeader';
 import {SettingsSearch} from './settingsSearch';
 
 interface Props {
@@ -15,19 +14,20 @@ interface Props {
 
 export function SettingsLayout({children}: Props) {
   const params = useParams();
-  const routes = useRoutes();
 
   return (
     <SettingsColumn>
-      <SettingsHeader>
-        <Flex align="center" justify="between">
-          <StyledSettingsBreadcrumb params={params} routes={routes} />
-          <SettingsSearch />
-        </Flex>
-      </SettingsHeader>
+      <TopBar.Slot name="title">
+        <StyledSettingsBreadcrumb params={params} />
+      </TopBar.Slot>
+      <TopBar.Slot name="search">
+        <SettingsSearch />
+      </TopBar.Slot>
 
-      <Flex flex="1" maxWidth="1440px">
-        <Content>{children}</Content>
+      <Flex flex="1">
+        <Container flex="1" padding="xl" minWidth="0">
+          {children}
+        </Container>
       </Flex>
     </SettingsColumn>
   );
@@ -36,8 +36,8 @@ export function SettingsLayout({children}: Props) {
 const SettingsColumn = styled('div')`
   display: flex;
   flex-direction: column;
-  flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
-  min-width: 0; /* fixes problem when child content stretches beyond layout width */
+  flex: 1;
+  min-width: 0;
   footer {
     margin-top: 0;
   }
@@ -45,18 +45,4 @@ const SettingsColumn = styled('div')`
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
   flex: 1;
-`;
-
-/**
- * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to be cut off because it has negative margin.
- * Will also cut off tooltips.
- */
-const Content = styled('div')`
-  flex: 1;
-  padding: ${p => p.theme.space['3xl']};
-  min-width: 0; /* keep children from stretching container */
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.xl};
-  }
 `;

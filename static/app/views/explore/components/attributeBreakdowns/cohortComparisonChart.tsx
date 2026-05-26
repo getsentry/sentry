@@ -103,7 +103,9 @@ export function Chart({
   useLayoutEffect(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
 
-    if (!chartInstance) return;
+    if (!chartInstance) {
+      return;
+    }
 
     const width = chartInstance.getDom().offsetWidth;
 
@@ -145,7 +147,7 @@ export function Chart({
           </AttributeBreakdownsComponent.PopulationIndicator>
           <Button
             size="zero"
-            priority="transparent"
+            variant="transparent"
             icon={<IconExpand size="xs" />}
             aria-label={t('Expand chart')}
             onClick={() =>

@@ -12,10 +12,6 @@ from sentry.silo.base import SiloMode
 
 
 class TestGenerationService(RpcService):
-    """
-    Used in github webhooks to call regional seer for copilot requests.
-    """
-
     key = "test_generation"
     local_mode = SiloMode.CELL
 

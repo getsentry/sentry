@@ -835,7 +835,7 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
             om.save()
         return om
 
-    def test_scim_token_visible_immediately_after_creation(self):
+    def test_scim_token_visible_immediately_after_creation(self) -> None:
         """SCIM token is fully visible within 5 minutes of creation."""
         organization, auth_provider = self.create_org_and_auth_provider()
         self.create_om_and_link_sso(organization)
@@ -867,7 +867,7 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
             assert scim_token_display.is_visible is True
             assert scim_token_display.token is not None
 
-    def test_scim_token_masked_after_visibility_window(self):
+    def test_scim_token_masked_after_visibility_window(self) -> None:
         """SCIM token is masked after 5 minutes."""
         from datetime import timedelta
 

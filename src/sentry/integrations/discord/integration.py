@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
-from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import CharField
 
 from sentry import options
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
@@ -32,7 +32,8 @@ from sentry.notifications.platform.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -141,6 +142,64 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
             return
 
 
+class DiscordOAuthApiSerializer(CamelSnakeSerializer):
+    code = CharField(required=True)
+    state = CharField(required=True)
+    guild_id = CharField(required=True)
+
+
+class DiscordOAuthApiStep:
+    """API-mode OAuth step for Discord integration setup.
+
+    Discord's OAuth flow is unique: the authorize URL includes bot permissions,
+    and the callback returns a guild_id alongside the authorization code.
+    This step handles both, binding guild_id and code to pipeline state.
+    """
+
+    step_name = "oauth_login"
+
+    def __init__(
+        self,
+        client_id: str,
+        permissions: int,
+        scopes: frozenset[str],
+        redirect_url: str,
+    ) -> None:
+        self.client_id = client_id
+        self.permissions = permissions
+        self.scopes = scopes
+        self.redirect_url = redirect_url
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, str]:
+        params = urlencode(
+            {
+                "client_id": self.client_id,
+                "permissions": self.permissions,
+                "scope": " ".join(self.scopes),
+                "response_type": "code",
+                "state": pipeline.signature,
+                "redirect_uri": self.redirect_url,
+            }
+        )
+        return {"oauthUrl": f"https://discord.com/api/oauth2/authorize?{params}"}
+
+    def get_serializer_cls(self) -> type:
+        return DiscordOAuthApiSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        if validated_data["state"] != pipeline.signature:
+            return PipelineStepResult.error("An error occurred while validating your request.")
+
+        pipeline.bind_state("guild_id", validated_data["guild_id"])
+        pipeline.bind_state("code", validated_data["code"])
+        return PipelineStepResult.advance()
+
+
 class DiscordIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
@@ -173,8 +232,18 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [DiscordInstallPipeline(self.get_params_for_oauth())]
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            DiscordOAuthApiStep(
+                client_id=self.application_id,
+                permissions=self.bot_permissions,
+                scopes=self.oauth_scopes,
+                redirect_url=self.setup_url,
+            ),
+        ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         guild_id = str(state.get("guild_id"))
@@ -280,16 +349,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Failed to get Discord user ID from key.")
         return user_id
 
-    def get_params_for_oauth(
-        self,
-    ):
-        return {
-            "client_id": self.application_id,
-            "permissions": self.bot_permissions,
-            "scope": " ".join(self.oauth_scopes),
-            "response_type": "code",
-        }
-
     def _credentials_exist(self) -> bool:
         has_credentials = all(
             (self.application_id, self.public_key, self.bot_token, self.client_secret)
@@ -305,30 +364,3 @@ class DiscordIntegrationProvider(IntegrationProvider):
                 },
             )
         return has_credentials
-
-
-class DiscordInstallPipeline:
-    def __init__(self, params):
-        self.params = params
-        super().__init__()
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if "guild_id" not in request.GET or "code" not in request.GET:
-            state = pipeline.fetch_state(key=IntegrationProviderSlug.DISCORD.value) or {}
-            redirect_uri = (
-                absolute_uri("extensions/discord/configure/")
-                if state.get("use_configure") == "1"
-                else absolute_uri("extensions/discord/setup/")
-            )
-            params = urlencode(
-                {
-                    "redirect_uri": redirect_uri,
-                    **self.params,
-                }
-            )
-            redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
-            return HttpResponseRedirect(redirect_uri)
-
-        pipeline.bind_state("guild_id", request.GET["guild_id"])
-        pipeline.bind_state("code", request.GET["code"])
-        return pipeline.next_step()

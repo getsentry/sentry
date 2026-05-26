@@ -1,21 +1,22 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {SeerRepoDefinition} from 'sentry/components/events/autofix/types';
@@ -23,7 +24,7 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Panel} from 'sentry/components/panels/panel';
@@ -35,8 +36,12 @@ import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -116,12 +121,16 @@ function ProjectRowWithUpdate({
   projectStates: ProjectStateMap;
   repositories: Repository[];
 }) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   const handleProjectClick = useCallback(() => {
-    if (!repositories) return;
+    if (!repositories) {
+      return;
+    }
 
     const currentPreference = projectStates[project.id]?.preference;
     const currentRepoIds =
@@ -162,6 +171,7 @@ function ProjectRowWithUpdate({
     project.slug,
     onSuccess,
     onUpdateProjectState,
+    openModal,
   ]);
 
   return <ProjectRow onClick={handleProjectClick} project={project} />;
@@ -179,7 +189,8 @@ function ProjectPreferenceLoader({
   ) => void;
   project: Project;
 }) {
-  const {preference, isPending, codeMappingRepos} = useProjectSeerPreferences(project);
+  const {data, isPending} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   useEffect(() => {
     onUpdate(project, preference, isPending, codeMappingRepos);
@@ -202,8 +213,13 @@ function ProjectsWithoutRepos({
   onProjectSuccess: (projectId: string) => void;
   projects: Project[];
 }) {
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
+  const organization = useOrganization();
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
+    select: selectUniqueRepos,
+  });
+  useFetchAllPages({result: repositoriesQuery});
+  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
 
   const [projectStates, setProjectStates] = useState<ProjectStateMap>({});
   const [successfullyConnectedProjects, setSuccessfullyConnectedProjects] = useState(
@@ -286,13 +302,19 @@ function ProjectsWithoutRepos({
   }, [projects, projectStates]);
 
   const projectsWithoutRepos = useMemo(() => {
-    if (isLoading) return [];
+    if (isLoading) {
+      return [];
+    }
 
     const filtered = projects.filter(project => {
-      if (successfullyConnectedProjects.has(project.id)) return false;
+      if (successfullyConnectedProjects.has(project.id)) {
+        return false;
+      }
 
       const state = projectStates[project.id];
-      if (!state || state.isPending) return false;
+      if (!state || state.isPending) {
+        return false;
+      }
 
       let repoCount = state.preference?.repositories?.length || 0;
       if (repoCount === 0 && state.codeMappingRepos) {
@@ -302,7 +324,9 @@ function ProjectsWithoutRepos({
     });
 
     // Apply search filter
-    if (!searchQuery.trim()) return filtered;
+    if (!searchQuery.trim()) {
+      return filtered;
+    }
 
     const query = searchQuery.toLowerCase();
     return filtered.filter(
@@ -438,7 +462,7 @@ function AutoTriggerFixesButton({
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEnableAutoTriggerFixes = useCallback(async () => {
+  const handleEnableAutoTriggerFixes = async () => {
     if (projectsWithRepos.length === 0) {
       addErrorMessage(t('No projects with repositories found to update'));
       return;
@@ -491,19 +515,11 @@ function AutoTriggerFixesButton({
     } finally {
       setIsLoading(false);
     }
-  }, [
-    api,
-    organization.slug,
-    projectsWithRepos,
-    selectedThreshold,
-    queryClient,
-    getStepNumber,
-    setCurrentStep,
-  ]);
+  };
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableAutoTriggerFixes}
       disabled={fetching || projectsWithRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -526,7 +542,7 @@ function EnableIssueScansButton({
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEnableIssueScans = useCallback(async () => {
+  const handleEnableIssueScans = async () => {
     if (projectsWithoutRepos.length === 0) {
       addErrorMessage(t('No remaining projects found to update'));
       return;
@@ -573,18 +589,11 @@ function EnableIssueScansButton({
     } finally {
       setIsLoading(false);
     }
-  }, [
-    api,
-    organization.slug,
-    projectsWithoutRepos,
-    queryClient,
-    getStepNumber,
-    setCurrentStep,
-  ]);
+  };
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableIssueScans}
       disabled={fetching || projectsWithoutRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -612,7 +621,9 @@ export function SeerAutomationOnboarding() {
   const projectsWithoutRepos = useMemo(() => {
     return filteredProjects.filter(project => {
       // Exclude projects that have been successfully connected this session
-      if (successfullyConnectedProjects.has(project.id)) return false;
+      if (successfullyConnectedProjects.has(project.id)) {
+        return false;
+      }
 
       // Exclude projects that already have repositories
       const state = projectStates[project.id];
@@ -799,7 +810,7 @@ export function SeerAutomationOnboarding() {
 
             <GuidedSteps.StepButtons>
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => navigate(`/settings/${organization.slug}/seer/`)}
                 size="sm"
               >

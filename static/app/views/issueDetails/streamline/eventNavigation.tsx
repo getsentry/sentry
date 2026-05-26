@@ -2,6 +2,7 @@ import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import {keepPreviousData} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -11,7 +12,7 @@ import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
@@ -22,7 +23,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {keepPreviousData} from 'sentry/utils/queryClient';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -98,9 +98,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     options: {placeholderData: keepPreviousData},
   });
 
-  const attachmentPagination = parseLinkHeader(
-    attachments.getResponseHeader?.('Link') ?? null
-  );
+  const attachmentPagination = parseLinkHeader(attachments.pageLinks);
   // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
@@ -119,7 +117,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   // Get data for markdown copy functionality
   const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
+  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
 
   const handleCopyMarkdown = useCallback(() => {
     const markdownText = issueAndEventToMarkdown(
@@ -230,7 +228,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               <NavigationDropdownButton
                 {...triggerProps}
                 isOpen={isOpen}
-                priority="transparent"
+                variant="transparent"
                 size="sm"
                 disabled={hideDropdownButton}
                 aria-label={t('Select issue content')}

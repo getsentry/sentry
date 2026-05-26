@@ -583,7 +583,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         try:
             return self.snql_func(**kwargs)
         except TypeError as e:
-            raise InvalidParams(e)
+            raise InvalidParams(str(e))
 
     def get_default_null_values(self) -> int | list[tuple[float]] | None:
         return self.default_null_value

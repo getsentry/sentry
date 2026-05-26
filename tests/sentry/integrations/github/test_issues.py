@@ -67,8 +67,8 @@ class GitHubIssueBasicAllSiloTest(TestCase):
             json={
                 "total_count": 2,
                 "repositories": [
-                    {"full_name": "getsentry/sentry", "name": "sentry"},
-                    {"full_name": "getsentry/other", "name": "other", "archived": True},
+                    {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+                    {"id": 2, "full_name": "getsentry/other", "name": "other", "archived": True},
                 ],
             },
         )
@@ -642,8 +642,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             json={
                 "total_count": 2,
                 "repositories": [
-                    {"full_name": "getsentry/sentry", "name": "sentry"},
-                    {"full_name": "getsentry/other", "name": "other", "archived": True},
+                    {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+                    {"id": 2, "full_name": "getsentry/other", "name": "other", "archived": True},
                 ],
             },
         )
@@ -691,8 +691,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             json={
                 "total_count": 2,
                 "repositories": [
-                    {"full_name": "getsentry/sentry", "name": "sentry"},
-                    {"full_name": "getsentry/other", "name": "other", "archived": True},
+                    {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+                    {"id": 2, "full_name": "getsentry/other", "name": "other", "archived": True},
                 ],
             },
         )
@@ -745,7 +745,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/installation/repositories",
             json={
                 "total_count": 1,
-                "repositories": [{"name": "sentry", "full_name": "getsentry/sentry"}],
+                "repositories": [{"id": 1, "name": "sentry", "full_name": "getsentry/sentry"}],
             },
         )
         event = self.store_event(
@@ -774,7 +774,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/installation/repositories",
             json={
                 "total_count": 1,
-                "repositories": [{"name": "sentry", "full_name": "getsentry/sentry"}],
+                "repositories": [{"id": 1, "name": "sentry", "full_name": "getsentry/sentry"}],
             },
         )
         responses.add(

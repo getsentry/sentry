@@ -55,7 +55,7 @@ function renderToHTML(element: ReactElement): string {
   <style>${getFontFaceCSS()}</style>
   ${styleTags}
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
     body { font-family: 'Rubik', sans-serif; background: transparent; }
     #root { display: inline-block; }
   </style>
@@ -146,6 +146,7 @@ export async function takeSnapshot({
       display_name: displayName,
       group,
       ...metadata,
+      context: {test_file_path: relativePath},
     };
 
     await Promise.all([

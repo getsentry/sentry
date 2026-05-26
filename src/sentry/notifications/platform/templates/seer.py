@@ -17,7 +17,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
 # Inverted hierarchy for looking up stopping point by rank
 _RANK_TO_STOPPING_POINT = {rank: point for point, rank in STOPPING_POINT_HIERARCHY.items()}
@@ -75,6 +75,7 @@ class SeerAutofixUpdate(NotificationData):
     changes: list[SeerAutofixCodeChange] = Field(default_factory=list)
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
+    handoff_target: CodingAgentProviderType | None = None
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
@@ -161,46 +162,47 @@ class SeerAutofixTrigger(NotificationData):
         )
 
 
-class SeerExplorerError(NotificationData):
+class SeerAgentError(NotificationData):
     error_message: str
     error_title: str = "Seer had some trouble..."
-    source: NotificationSource = NotificationSource.SEER_EXPLORER_ERROR
+    source: NotificationSource = NotificationSource.SEER_AGENT_ERROR
 
 
-@template_registry.register(NotificationSource.SEER_EXPLORER_ERROR)
-class SeerExplorerErrorTemplate(NotificationTemplate[SeerExplorerError]):
+@template_registry.register(NotificationSource.SEER_AGENT_ERROR)
+class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
     category = NotificationCategory.SEER
-    example_data = SeerExplorerError(
+    example_data = SeerAgentError(
         error_title="Seer had some trouble...",
         error_message="Seer could not explore your organization.",
     )
     hide_from_debugger = True
 
-    def render(self, data: SeerExplorerError) -> NotificationRenderedTemplate:
+    def render(self, data: SeerAgentError) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=data.error_title,
             body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.error_message)])],
         )
 
 
-class SeerExplorerResponse(NotificationData):
-    """Notification data for Explorer completion response in Slack."""
+class SeerAgentResponse(NotificationData):
+    """Notification data for Agent completion response in Slack."""
 
     run_id: int
     organization_id: int
     summary: str
-    source: NotificationSource = NotificationSource.SEER_EXPLORER_RESPONSE
+    missing_scope_settings_url: str | None = None
+    source: NotificationSource = NotificationSource.SEER_AGENT_RESPONSE
 
 
-@template_registry.register(NotificationSource.SEER_EXPLORER_RESPONSE)
-class SeerExplorerResponseTemplate(NotificationTemplate[SeerExplorerResponse]):
+@template_registry.register(NotificationSource.SEER_AGENT_RESPONSE)
+class SeerAgentResponseTemplate(NotificationTemplate[SeerAgentResponse]):
     category = NotificationCategory.SEER
-    example_data = SeerExplorerResponse(
+    example_data = SeerAgentResponse(
         run_id=12345,
         organization_id=1,
         summary="I've finished analyzing your question.",
     )
     hide_from_debugger = True
 
-    def render(self, data: SeerExplorerResponse) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(subject="Seer Explorer Response", body=[])
+    def render(self, data: SeerAgentResponse) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(subject="Seer Agent Response", body=[])

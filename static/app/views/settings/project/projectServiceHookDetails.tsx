@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -9,7 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -21,7 +22,7 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -44,7 +45,7 @@ function HookStats() {
     refetch,
   } = useApiQuery<Array<{total: number; ts: number}>>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
@@ -123,7 +124,7 @@ export default function ProjectServiceHookDetails() {
     refetch,
   } = useApiQuery<ServiceHook>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
@@ -212,7 +213,7 @@ export default function ProjectServiceHookDetails() {
             help={t('Removing this hook is immediate and permanent.')}
           >
             <div>
-              <Button priority="danger" onClick={() => deleteMutation.mutate()}>
+              <Button variant="danger" onClick={() => deleteMutation.mutate()}>
                 {t('Delete Hook')}
               </Button>
             </div>

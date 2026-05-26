@@ -41,6 +41,10 @@ describe('StreamGroup', () => {
       url: '/organizations/org-slug/projects/',
       body: [ProjectFixture({slug: 'foo-project'})],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
   });
 
   afterEach(() => {

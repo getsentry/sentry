@@ -6,28 +6,26 @@ import classNames from 'classnames';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {StrictClick} from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
+import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 import {Context} from './context';
@@ -39,6 +37,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasPotentialSourceContext,
   isPotentiallyThirdPartyFrame,
 } from './utils';
 
@@ -81,11 +80,7 @@ export interface DeprecatedLineProps {
   registersMeta?: Record<any, any>;
 }
 
-interface Props extends DeprecatedLineProps {
-  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
-}
-
-function DeprecatedLine({
+export function DeprecatedLine({
   data,
   emptySourceNotation,
   event,
@@ -106,9 +101,14 @@ function DeprecatedLine({
   isSubFrame,
   onShowFramesToggle,
   registersMeta,
-  components,
-}: Props) {
+}: DeprecatedLineProps) {
+  const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
+    componentType: 'stacktrace-link',
+  });
+  const {openModal} = useModal();
+
   const organization = useOrganization();
+  const {hasScmSourceContext} = useStacktraceContext();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
@@ -119,9 +119,10 @@ function DeprecatedLine({
       (hasContextSource(data) && data.context) ||
       hasContextVars(data) ||
       hasContextRegisters(registers) ||
-      hasAssembly(data, platform)
+      hasAssembly(data, platform) ||
+      (hasScmSourceContext && hasPotentialSourceContext(data))
     );
-  }, [data, registers, platform]);
+  }, [data, registers, platform, hasScmSourceContext]);
 
   const toggleContext = (evt?: React.MouseEvent) => {
     evt?.preventDefault();
@@ -257,7 +258,7 @@ function DeprecatedLine({
                   is_frame_expanded: isShowFramesToggleExpanded,
                 }}
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 onClick={e => {
                   onShowFramesToggle?.(e);
                 }}
@@ -271,7 +272,7 @@ function DeprecatedLine({
               <Fragment>
                 <SourceMapDebuggerModalButton
                   size="zero"
-                  priority="default"
+                  variant="secondary"
                   tooltipProps={{
                     title: t(
                       'Click to learn how to show the original source code for this stack frame.'
@@ -324,7 +325,7 @@ function DeprecatedLine({
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
-                priority="transparent"
+                variant="transparent"
               >
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
@@ -344,6 +345,7 @@ function DeprecatedLine({
         hasContextRegisters={hasContextRegisters(registers)}
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(data, platform)}
+        hasScmSourceContext={hasScmSourceContext}
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
@@ -352,10 +354,6 @@ function DeprecatedLine({
     </li>
   );
 }
-
-export default withSentryAppComponents(DeprecatedLine, {
-  componentType: 'stacktrace-link',
-});
 
 function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
   if (!timesRepeated || timesRepeated <= 0) {

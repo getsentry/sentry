@@ -16,7 +16,7 @@ describe('PartnerPlanEndingModal', () => {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [
         MemberFixture({
@@ -36,7 +36,7 @@ describe('PartnerPlanEndingModal', () => {
     SubscriptionStore.set(org.slug, sub);
 
     const mockCall = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/partner-migration-request/?referrer=partner_plan_ending_modal`,
+      url: '/organizations/org-slug/partner-migration-request/?referrer=partner_plan_ending_modal',
       method: 'POST',
     });
 

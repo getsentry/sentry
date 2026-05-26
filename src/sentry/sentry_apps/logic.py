@@ -116,6 +116,7 @@ class SentryAppUpdater:
     allowed_origins: list[str] | None = None
     popularity: int | None = None
     features: list[int] | None = None
+    is_disabled: bool | None = None
 
     def run(self, user: User | RpcUser) -> SentryApp:
         with SentryAppInteractionEvent(
@@ -132,6 +133,7 @@ class SentryAppUpdater:
                 self._update_webhook_url()
                 self._update_redirect_url()
                 self._update_is_alertable()
+                self._update_is_disabled(user=user)
                 self._update_verify_install()
                 self._update_overview()
                 self._update_allowed_origins()
@@ -264,6 +266,10 @@ class SentryAppUpdater:
     def _update_is_alertable(self) -> None:
         if self.is_alertable is not None:
             self.sentry_app.is_alertable = self.is_alertable
+
+    def _update_is_disabled(self, user: User | RpcUser) -> None:
+        if self.is_disabled is not None and _is_elevated_user(user):
+            self.sentry_app.is_disabled = self.is_disabled
 
     def _update_verify_install(self) -> None:
         if self.verify_install is not None:

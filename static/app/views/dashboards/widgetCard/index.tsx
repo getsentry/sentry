@@ -1,13 +1,13 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 import omit from 'lodash/omit';
+import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
@@ -17,11 +17,10 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -31,14 +30,13 @@ import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/featu
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
@@ -49,19 +47,23 @@ import {
 } from 'sentry/views/dashboards/types';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {
+  LegendSelection,
+  TabularColumn,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
-  useIndexedEventsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
+import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
@@ -84,11 +86,9 @@ export const SESSION_DURATION_ALERT = (
   <PanelAlert variant="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
-type Props = WithRouterProps & {
+type Props = {
   api: Client;
   isEditingDashboard: boolean;
-  location: Location;
-  organization: Organization;
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -141,11 +141,34 @@ type Data = {
 };
 
 function WidgetCard(props: Props) {
+  const organization = useOrganization();
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Resolve TOP_N → AREA before capturing context (the render body mutates
+  // this later, but useLLMContext needs the resolved value on first render).
+  const resolvedDisplayType =
+    props.widget.displayType === DisplayType.TOP_N
+      ? DisplayType.AREA
+      : props.widget.displayType;
+
+  // Push widget metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    title: props.widget.title,
+    displayType: resolvedDisplayType,
+    widgetType: props.widget.widgetType,
+    queries: props.widget.queries.map(q => ({
+      name: q.name,
+      conditions: readableConditions(q.conditions),
+      aggregates: q.aggregates,
+      columns: q.columns,
+      orderby: q.orderby,
+    })),
+  });
 
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched) {
@@ -167,7 +190,6 @@ function WidgetCard(props: Props) {
 
   const {
     api,
-    organization,
     selection,
     widget,
     isMobile,
@@ -175,7 +197,6 @@ function WidgetCard(props: Props) {
     windowWidth,
     dashboardFilters,
     isWidgetInvalid,
-    location,
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
@@ -200,9 +221,7 @@ function WidgetCard(props: Props) {
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
   );
 
-  const {isMetricsData} = useDashboardsMEPContext();
   const extractionStatus = useExtractionStatus({queryKey: widget});
-  const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
     widget,
@@ -236,6 +255,26 @@ function WidgetCard(props: Props) {
       }
     };
   }, [timeoutRef]);
+
+  const onCopyUrlClick =
+    currentDashboardId && props.index !== undefined
+      ? () => {
+          const pathname = normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`
+          );
+          const params = qs.parse(location.search);
+          if (!params.interval && widgetInterval) {
+            params.interval = widgetInterval;
+          }
+          const query = qs.stringify(params);
+          const widgetUrl = `${window.location.origin}${pathname}${
+            query ? `?${query}` : ''
+          }`;
+          copyToClipboard(widgetUrl, {
+            successMessage: t('Widget URL copied to clipboard'),
+          });
+        }
+      : undefined;
 
   const onFullScreenViewClick = () => {
     if (isWidgetViewerPath(location.pathname)) {
@@ -284,9 +323,7 @@ function WidgetCard(props: Props) {
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
-
-  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
+  const badges = [onDemandExtractionBadge].filter(n => n !== undefined);
 
   const warnings = [
     onDemandWarning,
@@ -308,7 +345,6 @@ function WidgetCard(props: Props) {
         organization,
         selection,
         widget,
-        Boolean(isMetricsData),
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
@@ -339,6 +375,19 @@ function WidgetCard(props: Props) {
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
+    // Legend state requires a stable widget ID to persist to the URL.
+    // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
+    const legendSelectionForWidget = widget.id
+      ? widgetLegendState.getWidgetSelectionState(widget)
+      : undefined;
+
+    const handleLegendSelectionChange = widget.id
+      ? (legendState: LegendSelection) => {
+          widgetLegendState.setWidgetSelectionState(legendState, widget);
+          onLegendSelectChanged?.();
+        }
+      : undefined;
+
     return (
       <ErrorBoundary customComponent={errorBoundaryHandler}>
         <VisuallyCompleteWithData
@@ -358,6 +407,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             noVisualizationPadding={canUseTimeseriesVisualization}
+            onCopyUrlClick={onCopyUrlClick}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
@@ -373,6 +423,8 @@ function WidgetCard(props: Props) {
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
               showConfidenceWarning={showConfidenceWarning}
+              legendSelection={legendSelectionForWidget}
+              onLegendSelectionChange={handleLegendSelectionChange}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
@@ -400,6 +452,7 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
+          onCopyUrlClick={onCopyUrlClick}
           onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
@@ -435,7 +488,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
+export default registerLLMContext('widget', withApi(withPageFilters(WidgetCard)));
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();
@@ -478,7 +531,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     selection: {datetime},
   } = usePageFilters();
   const useRetentionLimit =
-    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ?? (() => null);
+    getOverride('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
@@ -503,7 +556,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
+      "You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.",
       {
         numDays: retentionLimitDays,
       }
@@ -522,7 +575,9 @@ function useConflictingFilterWarning({
   widget: TWidget;
 }) {
   const conflictingFilterKeys = useMemo(() => {
-    if (!dashboardFilters) return [];
+    if (!dashboardFilters) {
+      return [];
+    }
 
     const widgetFilterKeys = widget.queries.flatMap(query => {
       const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);

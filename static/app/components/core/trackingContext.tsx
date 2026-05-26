@@ -12,7 +12,7 @@ const defaultButtonTracking = (props: ButtonProps) => {
       console.log('buttonAnalyticsEvent', {
         eventKey: props.analyticsEventKey,
         eventName: props.analyticsEventName,
-        priority: props.priority,
+        variant: props.variant,
         href: 'href' in props ? props.href : undefined,
         ...props.analyticsParams,
       });

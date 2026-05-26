@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -25,27 +23,24 @@ export function SetSpendLimit({
   subscription,
   checkoutTier,
 }: StepProps) {
-  const handleBudgetChange = useCallback(
-    ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
-      const totalBudget = getTotalBudget(onDemandBudgets);
-      onUpdate({
-        ...formData,
-        onDemandBudget: onDemandBudgets,
-        onDemandMaxSpend: totalBudget,
-      });
+  const handleBudgetChange = ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
+    const totalBudget = getTotalBudget(onDemandBudgets);
+    onUpdate({
+      ...formData,
+      onDemandBudget: onDemandBudgets,
+      onDemandMaxSpend: totalBudget,
+    });
 
-      if (organization) {
-        trackGetsentryAnalytics('checkout.payg_changed', {
-          organization,
-          subscription,
-          plan: formData.plan,
-          cents: totalBudget || 0,
-          method: 'textbox',
-        });
-      }
-    },
-    [onUpdate, organization, subscription, formData]
-  );
+    if (organization) {
+      trackGetsentryAnalytics('checkout.payg_changed', {
+        organization,
+        subscription,
+        plan: formData.plan,
+        cents: totalBudget || 0,
+        method: 'textbox',
+      });
+    }
+  };
 
   return (
     <Flex direction="column" gap="2xl" id={`step${stepNumber}`}>

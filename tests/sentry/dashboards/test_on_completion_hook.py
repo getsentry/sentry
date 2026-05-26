@@ -8,7 +8,7 @@ from sentry.dashboards.on_completion_hook import (
     MAX_VALIDATION_RETRIES,
     DashboardOnCompletionHook,
 )
-from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
+from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.testutils.cases import TestCase
 
 
@@ -94,7 +94,7 @@ INVALID_SERIALIZER_ARTIFACT = {
 
 
 class DashboardOnCompletionHookTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project
 

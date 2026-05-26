@@ -1,9 +1,9 @@
 import {useMemo, useRef} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -68,21 +68,25 @@ export function useAttributeBreakdowns({
     return params;
   }, [pageFilters, queryString, cursor, substringMatch]);
 
-  const result = useApiQuery<AttributeBreakdowns>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/stats/', {
+  const {
+    data: response,
+    isLoading,
+    error,
+  } = useQuery({
+    ...apiOptions.as<AttributeBreakdowns>()(
+      '/organizations/$organizationIdOrSlug/trace-items/stats/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: Infinity,
-      enabled: pageFiltersReady,
-    }
-  );
+        query: queryParams,
+        staleTime: Infinity,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    enabled: pageFiltersReady,
+  });
 
   const data = useMemo((): AttributeDistributionData | undefined => {
-    const newData = result.data?.data[0]?.attribute_distributions?.data;
+    const newData = response?.json?.data[0]?.attribute_distributions?.data;
     if (newData) {
       accumulatedDataRef.current = {
         ...accumulatedDataRef.current,
@@ -92,10 +96,12 @@ export function useAttributeBreakdowns({
     return Object.keys(accumulatedDataRef.current).length > 0
       ? accumulatedDataRef.current
       : newData;
-  }, [result.data]);
+  }, [response?.json]);
 
   return {
-    ...result,
     data,
+    isLoading,
+    error,
+    pageLinks: response?.headers.Link ?? null,
   };
 }

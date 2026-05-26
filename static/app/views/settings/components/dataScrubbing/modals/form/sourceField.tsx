@@ -42,7 +42,7 @@ type State = {
   suggestions: SourceSuggestion[];
 };
 
-class SourceField extends Component<Props, State> {
+export class SourceField extends Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
@@ -451,12 +451,10 @@ class SourceField extends Component<Props, State> {
   }
 }
 
-export default SourceField;
-
 const Wrapper = styled('div')<{hideCaret?: boolean}>`
   position: relative;
   width: 100%;
-  ${p => p.hideCaret && `caret-color: transparent;`}
+  ${p => p.hideCaret && 'caret-color: transparent;'}
 `;
 
 const StyledInput = styled(Input)`

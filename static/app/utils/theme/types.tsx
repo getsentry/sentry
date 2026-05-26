@@ -33,9 +33,7 @@ export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';
  */
 export type MotionDuration = 'fast' | 'moderate' | 'slow';
 
-// -----------------------------------------------------------------------------
 // Theme Variants
-// -----------------------------------------------------------------------------
 
 /**
  * Background surface level for layered UI elements.
@@ -75,9 +73,7 @@ export type BorderVariant =
   | 'secondary'
   | 'muted';
 
-// -----------------------------------------------------------------------------
 // Component Variants (should be moved locally, aligned to SemanticVariant)
-// -----------------------------------------------------------------------------
 
 /**
  * Icon size constraint.
@@ -109,9 +105,7 @@ export type TagVariant =
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 
-// -----------------------------------------------------------------------------
 // Internal types
-// -----------------------------------------------------------------------------
 
 type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'];
 type Size = SizeKeys[number];

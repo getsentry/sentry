@@ -79,7 +79,7 @@ function findIndex(
  *    - copies outside canvas to iframe canvas
  *    - this avoids having to remove iframe sandbox
  */
-export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
+export function canvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
   const PRELOAD_SIZE = 50;
   const BUFFER_TIME = 20_000;
   const canvases = new Map<number, HTMLCanvasElement>();
@@ -160,14 +160,14 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
             return {...c, args};
           })
         );
-        if (status.isUnchanged === false) {
+        if (!status.isUnchanged) {
           canvasEventMap.set(event, {...data, commands});
         }
       } else {
         const args = await Promise.all(
           (data.args as CanvasArg[]).map(deserializeCanvasArg(imageMap, null, status))
         );
-        if (status.isUnchanged === false) {
+        if (!status.isUnchanged) {
           canvasEventMap.set(event, {...data, args});
         }
       }
@@ -218,7 +218,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         preloadQueue.add(event);
         // Deserialize and preload an event serially, otherwise for large event
         // counts, this can crash the browser
-        await deserializeAndPreloadCanvasEvents(event.data as canvasMutationData, event);
+        await deserializeAndPreloadCanvasEvents(event.data, event);
         preloadQueue.delete(event);
       }
     }

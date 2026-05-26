@@ -15,6 +15,12 @@ from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 logger = logging.getLogger("sentry")
 
+# Broadcast fields refreshed by the getsentry changelog sync job. Editing any of
+# these on a changelog-sourced broadcast locks it from future auto-updates.
+SYNC_MANAGED_FIELDS = frozenset(
+    {"title", "message", "link", "media_url", "category", "is_active", "date_expires"}
+)
+
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -93,8 +99,18 @@ class BroadcastDetailsEndpoint(Endpoint):
             update_kwargs["media_url"] = result["mediaUrl"]
         if result.get("category"):
             update_kwargs["category"] = result["category"]
+        if result.get("syncLocked") is not None:
+            update_kwargs["sync_locked"] = result["syncLocked"]
 
         if update_kwargs:
+            if (
+                broadcast.upstream_id
+                and not broadcast.sync_locked
+                and "sync_locked" not in update_kwargs
+                and SYNC_MANAGED_FIELDS & update_kwargs.keys()
+            ):
+                update_kwargs["sync_locked"] = True
+
             with transaction.atomic(using=router.db_for_write(Broadcast)):
                 broadcast.update(**update_kwargs)
                 logger.info(

@@ -1,4 +1,5 @@
 import {EntryRequestFixture} from 'sentry-fixture/eventEntry';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   MockSpan,
@@ -41,7 +42,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     parentSpan.addChild({
       startTimestamp: 2.1,
-      endTimestamp: 4.0,
+      endTimestamp: 4,
       op: 'db',
       description: 'SELECT * FROM books',
       hash: 'aaa',
@@ -66,7 +67,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -115,7 +116,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     parentSpan.addChild({
       startTimestamp: 2.1,
-      endTimestamp: 4.0,
+      endTimestamp: 4,
       op: 'db',
       description: 'SELECT * FROM books',
       hash: 'aaa',
@@ -140,7 +141,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -189,7 +190,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     parentSpan.addChild({
       startTimestamp: 2.1,
-      endTimestamp: 4.0,
+      endTimestamp: 4,
       op: 'db.sql.active_record',
       description: 'SELECT * FROM books WHERE id = %s',
       hash: 'bbb',
@@ -222,7 +223,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -311,7 +312,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -463,7 +464,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -604,15 +605,30 @@ describe('SpanEvidenceKeyValueList', () => {
       description: 'SELECT pokemon FROM pokedex',
       problemSpan: ProblemSpan.OFFENDER,
     });
+    parentSpan.children[0]!.span.data = {
+      'code.filepath': '/app/pokedex/queries.py',
+      'code.function': 'fetchPokemon',
+      'code.lineno': 42,
+    };
 
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+
       render(
         <SpanEvidenceKeyValueList
           event={builder.getEventFixture()}
           projectSlug={projectSlug}
-        />
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['visibility-explore-view'],
+          }),
+        }
       );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
@@ -623,7 +639,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -634,7 +650,64 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('/app/pokedex/queries.py in fetchPokemon at line 42');
       expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+
+      expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
+    });
+
+    it('renders span-specific missing query source copy', () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+
+      const builderWithoutCodeLocation = new TransactionEventBuilder(
+        'a1',
+        '/',
+        IssueType.PERFORMANCE_SLOW_DB_QUERY
+      );
+      builderWithoutCodeLocation.getEventFixture().projectID = '123';
+
+      const parentSpanWithoutCodeLocation = new MockSpan({
+        startTimestamp: 0,
+        endTimestamp: 200,
+        op: 'pageload',
+        problemSpan: ProblemSpan.PARENT,
+      });
+
+      parentSpanWithoutCodeLocation.addChild({
+        startTimestamp: 10,
+        endTimestamp: 10100,
+        op: 'db',
+        description: 'SELECT pokemon FROM pokedex',
+        problemSpan: ProblemSpan.OFFENDER,
+      });
+
+      builderWithoutCodeLocation.addSpan(parentSpanWithoutCodeLocation);
+
+      render(
+        <SpanEvidenceKeyValueList
+          event={builderWithoutCodeLocation.getEventFixture()}
+          projectSlug={projectSlug}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['visibility-explore-view'],
+          }),
+        }
+      );
+
+      const slowDbQuery = screen.getByTestId(
+        'span-evidence-key-value-list.slow-db-query'
+      );
+
+      expect(slowDbQuery).toHaveTextContent(
+        'Query source is not available for this span.'
+      );
+      expect(slowDbQuery).not.toHaveTextContent('selected date range');
     });
   });
 
@@ -652,7 +725,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 1.0,
+      endTimestamp: 1,
       op: 'resource.script',
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,
@@ -676,7 +749,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -740,7 +813,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
@@ -840,7 +913,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        `/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',

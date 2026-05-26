@@ -30,7 +30,7 @@ export function LatencyChart({currentFilter, ...props}: Props) {
         position="top"
         size="sm"
         title={t(
-          `Duration Distribution reflects the volume of transactions per median duration.`
+          'Duration Distribution reflects the volume of transactions per median duration.'
         )}
       />
     </HeaderTitleLegend>

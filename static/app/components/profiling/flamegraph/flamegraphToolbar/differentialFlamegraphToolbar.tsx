@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -22,9 +21,9 @@ interface DifferentialFlamegraphProps {
   onNegatedChange: (source: boolean) => void;
 }
 export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps) {
-  const onResetZoom = useCallback(() => {
+  const onResetZoom = () => {
     props.canvasPoolManager.dispatch('reset zoom', []);
-  }, [props.canvasPoolManager]);
+  };
 
   return (
     <DifferentialFlamegraphToolbarContainer>

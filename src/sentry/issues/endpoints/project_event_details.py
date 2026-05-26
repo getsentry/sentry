@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 
 import sentry_sdk
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,8 +14,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
-from sentry.api.serializers.models.event import IssueEventSerializerResponse
+from sentry.api.serializers.models.event import GroupEventDetailsResponse
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.event_examples import EventExamples
+from sentry.apidocs.parameters import EventParams, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
@@ -23,17 +32,13 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class GroupEventDetailsResponse(IssueEventSerializerResponse):
-    nextEventID: str | None
-    previousEventID: str | None
-
-
 def wrap_event_response(
     request_user: Any,
     event: Event | GroupEvent,
     environments: list[str],
     include_full_release_data: bool = False,
     conditions: list[Condition] | None = None,
+    legacy_conditions: list[Any] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEventDetailsResponse | None:
@@ -54,6 +59,8 @@ def wrap_event_response(
 
     if conditions is None:
         conditions = []
+    if legacy_conditions is None:
+        legacy_conditions = []
 
     if event.group_id:
         if options.get("eventstore.adjacent_event_ids_use_snql"):
@@ -68,12 +75,15 @@ def wrap_event_response(
                 end=end,
             )
         else:
-            legacy_conditions = []
+            filter_conditions: list[Any] = []
             if environments:
-                legacy_conditions.append(["environment", "IN", environments])
+                filter_conditions.append(["environment", "IN", environments])
+
+            if legacy_conditions:
+                filter_conditions.extend(legacy_conditions)
 
             _filter = eventstore.Filter(
-                conditions=legacy_conditions,
+                conditions=filter_conditions,
                 project_ids=[event.project_id],
                 group_ids=[event.group_id],
                 start=start,
@@ -90,11 +100,12 @@ def wrap_event_response(
     return event_data
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(
@@ -107,21 +118,27 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         }
     )
 
+    @extend_schema(
+        operation_id="Retrieve an Event for a Project",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            EventParams.EVENT_ID,
+            GlobalParams.ENVIRONMENT,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectEventDetailsResponse", GroupEventDetailsResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EventExamples.GROUP_EVENT_DETAILS,
+    )
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
-        Retrieve an Event for a Project
-        ```````````````````````````````
-
         Return details on an individual event.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          event belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project the event
-                                     belongs to.
-        :pparam string event_id: the id of the event to retrieve.
-                                 It is the hexadecimal id as
-                                 reported by the raven client)
-        :auth: required
         """
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)

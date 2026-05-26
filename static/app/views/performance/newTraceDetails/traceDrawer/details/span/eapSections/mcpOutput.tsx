@@ -34,13 +34,10 @@ export function MCPOutputSection({
   const toolOutput = attributeDict[TOOL_OUTPUT_ATTRIBUTE];
   const promptOutputDict = Object.entries(attributeDict)
     .filter(([key]) => key.startsWith(PROMPT_OUTPUT_PREFIX))
-    .reduce(
-      (acc, [key, value]) => {
-        acc[key.replace(PROMPT_OUTPUT_PREFIX, '')] = value;
-        return acc;
-      },
-      {} as Record<string, string | number | boolean>
-    );
+    .reduce<Record<string, string | number | boolean>>((acc, [key, value]) => {
+      acc[key.replace(PROMPT_OUTPUT_PREFIX, '')] = value;
+      return acc;
+    }, {});
   const hasPromptOutput = Object.keys(promptOutputDict).length > 0;
 
   if (!toolOutput && !hasPromptOutput) {

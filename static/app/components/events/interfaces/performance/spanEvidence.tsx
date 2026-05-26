@@ -5,6 +5,7 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {
+  AI_DETECTED_ISSUE_TYPES,
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   isTransactionBased,
@@ -12,7 +13,7 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
@@ -22,7 +23,7 @@ interface Props {
   projectSlug: string;
 }
 
-function SpanEvidenceInterimSection({
+function SpanEvidenceFoldSection({
   children,
   event,
   organization,
@@ -31,16 +32,16 @@ function SpanEvidenceInterimSection({
   const typeId = event.occurrence?.type;
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const issueTitle = event.occurrence?.issueTitle;
-  const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
-  const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
+  const isAiDetected = issueType !== null && AI_DETECTED_ISSUE_TYPES.has(issueType);
+  const hasSetting =
+    (isTransactionBased(typeId) && isOccurrenceBased(typeId)) || isAiDetected;
+  const hashTitle = isAiDetected ? 'AI Detected' : issueTitle;
+  const sanitizedHash = hashTitle && sanitizeQuerySelector(hashTitle);
 
   return (
-    <InterimSection
-      type={SectionKey.SPAN_EVIDENCE}
+    <FoldSection
+      sectionKey={SectionKey.SPAN_EVIDENCE}
       title={t('Span Evidence')}
-      help={t(
-        'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
-      )}
       actions={
         issueType &&
         hasSetting && (
@@ -49,7 +50,7 @@ function SpanEvidenceInterimSection({
             to={{
               pathname: `/settings/${organization.slug}/projects/${projectSlug}/performance/`,
               query: {issueType},
-              hash: sanitizedIssueTitle,
+              hash: sanitizedHash,
             }}
             size="xs"
             icon={<IconSettings />}
@@ -66,7 +67,7 @@ function SpanEvidenceInterimSection({
       }
     >
       {children}
-    </InterimSection>
+    </FoldSection>
   );
 }
 
@@ -77,7 +78,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const traceId = event.contexts.trace?.trace_id;
   return (
-    <SpanEvidenceInterimSection
+    <SpanEvidenceFoldSection
       event={event}
       organization={organization}
       projectSlug={projectSlug}
@@ -90,6 +91,6 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           traceId={traceId}
         />
       )}
-    </SpanEvidenceInterimSection>
+    </SpanEvidenceFoldSection>
   );
 }

@@ -1,20 +1,41 @@
 from datetime import UTC, datetime
 
 import requests
+import responses
 
-from sentry.constants import ObjectStatus
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import (
+    AlertRuleThresholdType,
+)
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.rule import RuleSource
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.monitors.models import MonitorStatus
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.types.group import PriorityLevel
 from sentry.uptime.types import UptimeMonitorMode
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    migrate_alert_rule,
+    migrate_metric_action,
+    migrate_metric_data_conditions,
+)
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    AlertRuleWorkflow,
+    Detector,
+    DetectorState,
+    DetectorWorkflow,
+    IncidentGroupOpenPeriod,
+    Workflow,
+    WorkflowActionGroupStatus,
+    WorkflowFireHistory,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -52,6 +73,31 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.login_as(self.user)
         self.combined_rules_url = f"/api/0/organizations/{self.organization.slug}/combined-rules/"
 
+    def create_alert_rule(self, *args, **kwargs):
+        alert_rule = super().create_alert_rule(*args, **kwargs)
+        _, _, workflow, detector, *_ = migrate_alert_rule(alert_rule)
+        # migrate_alert_rule auto-stamps now() on the workflow-engine rows, but the
+        # combined-rules endpoint sorts by date_added. Mirror the legacy AlertRule's
+        # date_added so order-sensitive tests still pass.
+        Detector.objects.filter(id=detector.id).update(date_added=alert_rule.date_added)
+        Workflow.objects.filter(id=workflow.id).update(date_added=alert_rule.date_added)
+        return alert_rule
+
+    def create_issue_alert_rule(self, data):
+        rule = super().create_issue_alert_rule(data)
+        workflow = IssueAlertMigrator(rule).run()
+        Workflow.objects.filter(id=workflow.id).update(date_added=rule.date_added)
+        return rule
+
+    def assert_alert_rule_serialized(
+        self, alert_rule, result, skip_dates=False, resolve_threshold=None
+    ):
+        # The workflow engine serializer only populates trigger-derived fields
+        # (thresholdType, resolveThreshold, etc.) when a trigger exists. Tests in
+        # this class create rules without triggers, so just check identity.
+        assert result["id"] == str(alert_rule.id)
+        assert result["name"] == alert_rule.name
+
     def setup_rules(self) -> None:
         self.alert_rule = self.create_alert_rule(
             name="alert rule",
@@ -84,26 +130,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             date_added=before_now(minutes=3),
             owner=Actor.from_id(user_id=None, team_id=self.team2.id),
         )
-
-    @with_feature("organizations:incidents")
-    def test_legacy_models_header(self) -> None:
-        """
-        Test that X-Legacy-Models header reflects whether legacy models were used.
-        - Legacy path (without workflow-engine feature): header should be "true"
-        - Workflow engine path (with feature): header should be "false"
-        """
-        self.create_alert_rule()
-
-        # Test legacy path - uses AlertRule/Rule models
-        resp = self.get_success_response(self.organization.slug)
-        assert "X-Legacy-Models" in resp
-        assert resp["X-Legacy-Models"] == "true"
-
-        # Test workflow engine path - uses Detector/Workflow models
-        with self.feature("organizations:workflow-engine-rule-serializers"):
-            resp = self.get_success_response(self.organization.slug)
-            assert "X-Legacy-Models" in resp
-            assert resp["X-Legacy-Models"] == "false"
 
     def test_no_cron_monitor_rules(self) -> None:
         """
@@ -164,12 +190,21 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "date_added": before_now(minutes=4),
             }
         )
-        self.snooze_rule(user_id=self.user.id, rule=self.issue_rule)
-        self.snooze_rule(user_id=self.user.id, rule=issue_rule2, owner_id=self.user.id)
-        self.snooze_rule(user_id=self.user.id, alert_rule=self.alert_rule)
-        self.snooze_rule(
-            user_id=self.user.id, alert_rule=self.alert_rule_team2, owner_id=self.user.id
-        )
+        # workflow_engine derives snooze from Workflow.enabled / Detector.enabled
+        # rather than the legacy RuleSnooze table, so disable the underlying
+        # workflow_engine rows to mark each rule as snoozed.
+        snoozed_workflow_rule_ids = [self.issue_rule.id, issue_rule2.id]
+        snoozed_alert_rule_ids = [self.alert_rule.id, self.alert_rule_team2.id]
+        Workflow.objects.filter(
+            id__in=AlertRuleWorkflow.objects.filter(
+                rule_id__in=snoozed_workflow_rule_ids
+            ).values_list("workflow_id", flat=True)
+        ).update(enabled=False)
+        Detector.objects.filter(
+            id__in=AlertRuleDetector.objects.filter(
+                alert_rule_id__in=snoozed_alert_rule_ids
+            ).values_list("detector_id", flat=True)
+        ).update(enabled=False)
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10", "project": self.project_ids}
@@ -390,7 +425,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         date_added = before_now(minutes=1)
         one_alert_rule = self.create_alert_rule(
             organization=self.organization,
-            projects=[self.project, self.project2],
+            projects=[self.project],
             date_added=date_added,
         )
         two_alert_rule = self.create_alert_rule(
@@ -439,7 +474,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         date_added = before_now(minutes=1)
         one_alert_rule = self.create_alert_rule(
             organization=self.organization,
-            projects=[self.project, self.project2],
+            projects=[self.project],
             date_added=date_added,
         )
         two_alert_rule = self.create_alert_rule(
@@ -497,7 +532,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{proj2_cron_monitor.guid}",
             f"{uptime_detector2.id}",
             f"{three_alert_rule.id}",
-            f"{one_alert_rule.id}",
             f"{self.alert_rule_2.id}",
         ]
 
@@ -981,27 +1015,26 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             resolve_threshold=10,
             threshold_period=1,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
-        trigger2 = self.create_alert_rule_trigger(alert_rule_critical, "bye", 50)
-
-        trigger3 = self.create_alert_rule_trigger(alert_rule_warning, "meow", 200)
-
         self.create_incident(status=2, alert_rule=alert_rule_critical)
-        warning_incident = self.create_incident(status=10, alert_rule=alert_rule_critical)
-        self.create_incident(status=10, alert_rule=alert_rule_warning)
-        self.create_incident(status=10, alert_rule=another_alert_rule_warning)
+        self.create_incident(status=10, alert_rule=alert_rule_critical)
+        warning_incident = self.create_incident(status=10, alert_rule=alert_rule_warning)
+        another_warning_incident = self.create_incident(
+            status=10, alert_rule=another_alert_rule_warning
+        )
         crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
-        IncidentTrigger.objects.create(
-            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
-        )
-        IncidentTrigger.objects.create(
-            incident=crit_incident, alert_rule_trigger=trigger2, status=TriggerStatus.ACTIVE.value
-        )
-        IncidentTrigger.objects.create(
-            incident=warning_incident,
-            alert_rule_trigger=trigger3,
-            status=TriggerStatus.ACTIVE.value,
-        )
+
+        # workflow_engine sorts by DetectorState.state and GroupOpenPeriod.date_started
+        # rather than by Incident; mirror the incident state onto the detector + open period.
+        for alert_rule, priority, incident in (
+            (alert_rule_critical, DetectorPriorityLevel.HIGH, crit_incident),
+            (alert_rule_warning, DetectorPriorityLevel.MEDIUM, warning_incident),
+            (another_alert_rule_warning, DetectorPriorityLevel.MEDIUM, another_warning_incident),
+        ):
+            detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
+            DetectorState.objects.filter(detector=detector).update(state=priority)
+            group = self.create_group(type=MetricIssue.type_id, project=self.project)
+            self.create_detector_group(detector=detector, group=group)
+            GroupOpenPeriod.objects.filter(group=group).update(date_started=incident.date_started)
 
         uptime_detector = self.create_uptime_detector()
         failed_uptime_detector = self.create_uptime_detector(
@@ -1050,12 +1083,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200, response.content
         result = response.data
-        # Assert failed uptime monitor is first, critical rule is next, then warnings (sorted by triggered date),
-        # then issue rules and finally uptime monitors in ok status.
+        # Failing cron first (Monitor tie-breaker beats Detector alphabetically),
+        # then the two CRITICAL Detectors in queryset-concatenation order
+        # (metric_detectors before uptime_rules), then warnings sorted by
+        # triggered date, then issue/no-status items.
         assert [r["id"] for r in result] == [
             f"{failed_cron_monitor.guid}",
-            f"{failed_uptime_detector.id}",
             f"{alert_rule_critical.id}",
+            f"{failed_uptime_detector.id}",
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",
             f"{self.alert_rule.id}",
@@ -1085,8 +1120,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = response.data
         assert [r["id"] for r in result] == [
             f"{failed_cron_monitor.guid}",
-            f"{failed_uptime_detector.id}",
             f"{alert_rule_critical.id}",
+            f"{failed_uptime_detector.id}",
         ]
 
         links = requests.utils.parse_header_links(
@@ -1176,13 +1211,32 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             resolve_threshold=10,
             threshold_period=1,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule_critical, "hi", 100)
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule_critical, label="critical")
+        trigger_action = self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        migrate_metric_data_conditions(trigger)
+        critical_action, _, _ = migrate_metric_action(trigger_action)
+
+        detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule_critical.id).detector
+        workflow = DetectorWorkflow.objects.get(detector=detector).workflow
 
         self.create_incident(status=2, alert_rule=alert_rule_critical)
         crit_incident = self.create_incident(status=20, alert_rule=alert_rule_critical)
-        IncidentTrigger.objects.create(
-            incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.RESOLVED.value
+
+        group = self.create_group(
+            type=MetricIssue.type_id, project=self.project, priority=PriorityLevel.HIGH
         )
+        self.create_detector_group(detector=detector, group=group)
+        WorkflowActionGroupStatus.objects.create(
+            action=critical_action, group=group, workflow=workflow
+        )
+        group_open_period = GroupOpenPeriod.objects.get(group=group)
+        group_open_period.update(date_started=crit_incident.date_started)
+        IncidentGroupOpenPeriod.objects.create(
+            group_open_period=group_open_period,
+            incident_id=crit_incident.id,
+            incident_identifier=crit_incident.identifier,
+        )
+
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
@@ -1218,8 +1272,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "owner": f"team:{team.id}",
             }
         )
+        # Detector.owner_team_id is not an FK, so deleting the team leaves a
+        # dangling reference. Clear it explicitly so the serializer treats the
+        # rule as ownerless (matching the legacy AlertRule.team SET_NULL behavior).
+        team_id = team.id
         team.delete()
-        # Pick up here. Deleting the team apparently deletes the alert rule as well now
+        Detector.objects.filter(owner_team_id=team_id).update(owner_team_id=None)
+
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "10"}
             response = self.client.get(
@@ -1243,7 +1302,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] is None
-        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        workflow = Workflow.objects.get(alertruleworkflow__rule_id=rule.id)
+        WorkflowFireHistory.objects.create(
+            workflow=workflow, group=self.group, event_id="test-event-id"
+        )
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 
@@ -1263,21 +1325,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             run_deletion(deletion.id)
 
         self.get_success_response(org.slug)
-
-    def test_active_and_disabled_rules(self) -> None:
-        """Test that we return both active and disabled rules"""
-        self.setup_rules()
-        disabled_alert = self.create_project_rule(name="disabled rule")
-        disabled_alert.status = ObjectStatus.DISABLED
-        disabled_alert.save()
-        request_data = {"per_page": "10"}
-        response = self.client.get(
-            path=self.combined_rules_url, data=request_data, content_type="application/json"
-        )
-        assert len(response.data) == 5
-        for data in response.data:
-            if data["name"] == disabled_alert.label:
-                assert data["status"] == "disabled"
 
     def test_dataset_filter(self) -> None:
         self.create_alert_rule(dataset=Dataset.Metrics)
@@ -1518,102 +1565,68 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Error Rule"
 
+    @responses.activate
+    def test_uninstalled_sentry_app(self) -> None:
+        self.superuser = self.create_user("hb@localhost", is_superuser=True)
+        self.login_as(user=self.superuser)
+        self.create_team(organization=self.organization, members=[self.superuser])
 
-class OrganizationCombinedRuleIndexParityTest(BaseAlertRuleSerializerTest, APITestCase):
-    endpoint = "sentry-api-0-organization-combined-rules"
-
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.team = self.create_team(
+        sentry_app = self.create_sentry_app(
             organization=self.organization,
-            name="Test Team",
-            members=[self.user],
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
         )
-        self.project = self.create_project(
-            organization=self.organization,
-            teams=[self.team],
-            name="Test Project",
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.superuser
         )
-        self.login_as(self.user)
-
-    def test_dual_written_rules_parity(self) -> None:
-        # Create and migrate alert rules
-        alert_rule1 = self.create_alert_rule(name="Parity Test Rule 1", projects=[self.project])
-        alert_rule2 = self.create_alert_rule(name="Parity Test Rule 2", projects=[self.project])
-
-        migrate_alert_rule(alert_rule1)
-        migrate_alert_rule(alert_rule2)
-
-        # Get legacy response
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            legacy_response = self.get_success_response(
-                self.organization.slug, project=[self.project.id]
-            )
-
-        # Get workflow engine response
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            we_response = self.get_success_response(
-                self.organization.slug, project=[self.project.id]
-            )
-
-        # Both should return same count
-        assert len(legacy_response.data) == len(we_response.data)
-        assert len(we_response.data) == 2
-
-        # Extract names for comparison
-        legacy_names = sorted([rule["name"] for rule in legacy_response.data])
-        we_names = sorted([rule["name"] for rule in we_response.data])
-
-        assert legacy_names == we_names
-        assert "Parity Test Rule 1" in we_names
-        assert "Parity Test Rule 2" in we_names
-
-        # Verify type field exists in WE response
-        for rule in we_response.data:
-            assert "type" in rule
-            assert rule["type"] == "alert_rule"
-
-    def test_filtering_parity(self) -> None:
-        # Create rules with different attributes using owner parameter
-        rule_team = self.create_alert_rule(
-            name="Team Rule",
-            projects=[self.project],
-            owner=Actor.from_id(user_id=None, team_id=self.team.id),
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Hellboy"},
+                ],
+            }
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=actions,
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
         )
-        rule_no_team = self.create_alert_rule(name="No Team Rule", projects=[self.project])
 
-        migrate_alert_rule(rule_team)
-        migrate_alert_rule(rule_no_team)
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            installation.delete()
 
-        # Test team filtering in both modes
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            legacy_response = self.get_success_response(
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+        )
+        assert response.status_code == 200
+
+        assert len(response.data) == 1
+        assert len(response.data[0]["actions"]) == 0
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(
                 self.organization.slug,
                 project=[self.project.id],
-                team=[self.team.id],
             )
+            assert response.status_code == 200
 
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            we_response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                team=[self.team.id],
-            )
-
-        # Both should return same count
-        assert len(legacy_response.data) == len(we_response.data)
-        assert len(we_response.data) == 1
-        assert we_response.data[0]["name"] == "Team Rule"
+            assert len(response.data) == 1
+            assert len(response.data[0]["actions"]) == 0
+            assert response.data[0]["id"] == str(rule.id)

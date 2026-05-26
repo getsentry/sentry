@@ -10,6 +10,10 @@ from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
+# Some Sentry IDs are 32-char hex, rather than the UUID dashed form.
+# Those cases match this pattern with OpenApiTypes.STR
+SENTRY_HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
+
 
 def build_typed_list(type: Any):
     """
@@ -184,7 +188,6 @@ Valid query fields include:
 - `slug`: The organization slug
 - `status`: The organization's current status (one of `active`, `pending_deletion`, or `deletion_in_progress`)
 - `email` or `member_id`: Filter your organizations by the emails or [organization member IDs](/api/organizations/list-an-organizations-members/) of specific members included
-- `platform`: Filter your organizations to those with at least one project using this platform
 - `query`: Filter your organizations by name, slug, and members that contain this substring
 
 Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,thing-two@example.com] AND query:bar)`
@@ -199,7 +202,6 @@ Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,th
 
 Valid fields include:
 - `members`: By number of members
-- `projects`: By number of projects
 - `events`: By number of events in the past 24 hours
 """,
     )
@@ -354,9 +356,9 @@ class IssueParams:
 
     VIEW_SORT = OpenApiParameter(
         name="sort",
-        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Date Added' (`inbox`).",
+        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), 'Date Added' (`inbox`), and 'Recommended' (`recommended`).",
         default="date",
-        enum=["date", "new", "trends", "freq", "user", "inbox"],
+        enum=["date", "new", "trends", "freq", "user", "inbox", "recommended"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -399,6 +401,33 @@ class IssueParams:
         required=False,
         many=True,
     )
+
+    GROUP_DETAILS_EXPAND = OpenApiParameter(
+        name="expand",
+        description="Additional data to include in the response.",
+        enum=[
+            "inbox",
+            "owners",
+            "forecast",
+            "integrationIssues",
+            "sentryAppIssues",
+            "latestEventHasAttachments",
+        ],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
+    GROUP_DETAILS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        description="Fields to remove from the response to improve query performance.",
+        enum=["release", "tags", "stats"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
     MUTATE_ISSUE_ID_LIST = OpenApiParameter(
         name="id",
         description="The list of issue IDs to mutate. It is optional for status updates, in which an implicit `update all` is assumed.",
@@ -431,7 +460,13 @@ class DetectorParams:
         location="query",
         required=False,
         type=str,
-        description="An optional search query for filtering monitors.",
+        description="""An optional search query for filtering monitors.
+
+Available fields are:
+- `name`
+- `type`: e.g. `error`, `metric_issue`, `issue_stream`
+- `assignee`: email, username, #team, me, none
+        """,
     )
 
     SORT = OpenApiParameter(
@@ -537,16 +572,6 @@ class IssueAlertParams:
     )
 
 
-class MetricAlertParams:
-    METRIC_RULE_ID = OpenApiParameter(
-        name="alert_rule_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the rule you'd like to query.",
-    )
-
-
 class DataForwarderParams:
     DATA_FORWARDER_ID = OpenApiParameter(
         name="data_forwarder_id",
@@ -644,10 +669,26 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         location="query",
         required=True,
         type=str,
-        description="Which dataset to query, changing datasets changes the available fields that can be queried",
-        # Hardcoding this since our full list of datasets includes some that probably will get deprecated as more stuff
-        # moves to EAP
-        enum=["profile_functions", "logs", "spans", "uptime_results"],
+        enum=[
+            "errors",
+            "logs",
+            "profile_functions",
+            "spans",
+            "tracemetrics",
+            "uptime_results",
+        ],
+        # Not every key in DATASET_OPTIONS is listed here — internal,
+        # metrics-layer, and deprecated aliases (e.g. "ourlogs",
+        # "metricsEnhanced", "spansIndexed") are intentionally omitted so
+        # the public API surface stays stable as backends migrate to EAP.
+        description="""Which dataset to query. The chosen dataset determines which fields are queryable.
+- `errors` - Error events.
+- `logs` - Structured log events.
+- `profile_functions` - Function-level Profiling data.
+- `spans` - Distributed tracing span events.
+- `tracemetrics` - Application Metrics.
+- `uptime_results` - Uptime monitoring check results.
+""",
     )
     INTERVAL = OpenApiParameter(
         name="interval",
@@ -741,8 +782,9 @@ class MonitorParams:
         name="processing_error_id",
         location="path",
         required=False,
-        type=OpenApiTypes.UUID,
-        description="The ID of the processing error.",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="The ID of the processing error. It is a 32-character hexadecimal string.",
     )
 
 
@@ -768,8 +810,9 @@ class EventParams:
         name="event_id",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="The ID of the event.",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="The ID of the event. It is a 32-character hexadecimal string as reported by the client.",
     )
 
     FRAME_IDX = OpenApiParameter(
@@ -915,8 +958,9 @@ class ReplayParams:
         name="replay_id",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="""The ID of the replay you'd like to retrieve.""",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="""The ID of the replay you'd like to retrieve. It is a 32-character hexadecimal string.""",
     )
 
     SEGMENT_ID = OpenApiParameter(
@@ -925,6 +969,14 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.INT,
         description="""The ID of the segment you'd like to retrieve.""",
+    )
+
+    JOB_ID = OpenApiParameter(
+        name="job_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.INT,
+        description="""The ID of the replay deletion job you'd like to retrieve.""",
     )
 
 

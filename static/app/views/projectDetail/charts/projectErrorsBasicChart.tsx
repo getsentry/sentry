@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
 import type {BarSeriesOption} from 'echarts';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
@@ -8,13 +9,13 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {LoadingError} from 'sentry/components/loadingError';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {Project, ProjectStats} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
+type ProjectErrorsResponse = Project & {stats?: ProjectStats};
 
 type Props = {
   onTotalValuesChange: (value: number | null) => void;
@@ -35,23 +36,20 @@ export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props)
     isLoading,
     isError,
     isSuccess,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<ProjectErrorsResponse[]>()(
+      '/organizations/$organizationIdOrSlug/projects/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           statsPeriod,
           query: `id:${projectId}`,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: defined(projectId),
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled: defined(projectId),
+  });
   const stats = useMemo(() => {
     return projects?.[0]?.stats ?? [];
   }, [projects]);

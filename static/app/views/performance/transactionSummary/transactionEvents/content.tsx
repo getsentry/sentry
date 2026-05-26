@@ -19,7 +19,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -27,17 +27,13 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {
   Filter,
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
@@ -45,8 +41,7 @@ import {
 } from 'sentry/views/performance/utils';
 
 import {EventsTable} from './eventsTable';
-import type {EventsDisplayFilterName} from './utils';
-import {getEventsFilterOptions} from './utils';
+import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -87,7 +82,6 @@ export function EventsContent(props: Props) {
     projectId,
     projects,
   } = props;
-  const routes = useRoutes();
   const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
 
@@ -141,10 +135,12 @@ export function EventsContent(props: Props) {
       }
 
       if (organization.features.includes('continuous-profiling')) {
-        fields.push({field: 'profiler.id'});
-        fields.push({field: 'thread.id'});
-        fields.push({field: 'precise.start_ts'});
-        fields.push({field: 'precise.finish_ts'});
+        fields.push(
+          {field: 'profiler.id'},
+          {field: 'thread.id'},
+          {field: 'precise.start_ts'},
+          {field: 'precise.finish_ts'}
+        );
       }
     }
 
@@ -173,20 +169,11 @@ export function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const shouldUseEAP = useTransactionSummaryEAP();
-
-  const table = shouldUseEAP ? (
-    <OverviewSpansTable
-      eventView={eventView}
-      totalValues={null}
-      transactionName={transactionName}
-    />
-  ) : (
+  const table = (
     <EventsTable
       theme={theme}
       eventView={eventView}
       organization={organization}
-      routes={routes}
       location={location}
       setError={setError}
       columnTitles={titles}
@@ -213,7 +200,6 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
-    transactionName,
   } = props;
 
   const navigate = useNavigate();
@@ -247,7 +233,6 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.TRANSACTIONS],
@@ -256,15 +241,11 @@ function Search(props: Props) {
 
   return (
     <FilterActions>
-      {shouldUseEAP ? (
-        <SpanCategoryFilter segmentSpanName={transactionName} />
-      ) : (
-        <Filter
-          organization={organization}
-          currentFilter={spanOperationBreakdownFilter}
-          onChangeFilter={onChangeSpanOperationBreakdownFilter}
-        />
-      )}
+      <Filter
+        organization={organization}
+        currentFilter={spanOperationBreakdownFilter}
+        onChangeFilter={onChangeSpanOperationBreakdownFilter}
+      />
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />

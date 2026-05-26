@@ -16,7 +16,7 @@ from sentry.users.models.user import User
 from sentry.utils import snowflake
 from sentry.utils.snowflake import (
     _TTL,
-    MAX_AVAILABLE_REGION_SEQUENCES,
+    MAX_AVAILABLE_CELL_SEQUENCES,
     SnowflakeBitSegment,
     generate_snowflake_id,
     get_redis_cluster,
@@ -36,8 +36,8 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self) -> None:
-        region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([region], region):
+        cell = Cell("test-cell", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([cell], cell):
             snowflake_id = generate_snowflake_id("test_redis_key")
             expected_value = (16 << 48) + (
                 int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
@@ -46,12 +46,12 @@ class SnowflakeUtilsTest(TestCase):
             assert snowflake_id == expected_value
 
     @freeze_time(CURRENT_TIME)
-    def test_generate_correct_ids_with_region_sequence(self) -> None:
-        region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([region], region):
+    def test_generate_correct_ids_with_cell_sequence(self) -> None:
+        cell = Cell("test-cell", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([cell], cell):
             snowflake_id = generate_snowflake_id("test_redis_key")
 
-            for _ in range(MAX_AVAILABLE_REGION_SEQUENCES - 1):
+            for _ in range(MAX_AVAILABLE_CELL_SEQUENCES - 1):
                 new_snowflake_id = generate_snowflake_id("test_redis_key")
 
                 assert new_snowflake_id - snowflake_id == 1
@@ -67,7 +67,7 @@ class SnowflakeUtilsTest(TestCase):
             assert snowflake_id == expected_value
 
     @freeze_time(CURRENT_TIME)
-    def test_out_of_region_sequences(self) -> None:
+    def test_out_of_cell_sequences(self) -> None:
         cluster = get_redis_cluster()
         current_timestamp = int(datetime.now().timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START)
         redis_key = "test_redis_key"
@@ -82,15 +82,15 @@ class SnowflakeUtilsTest(TestCase):
         assert str(context.value) == "No available ID"
 
     @freeze_time(CURRENT_TIME)
-    def test_generate_correct_ids_with_region_id(self) -> None:
-        regions = [
-            r1 := Cell("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
-            r2 := Cell("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
+    def test_generate_correct_ids_with_cell_id(self) -> None:
+        cells = [
+            c1 := Cell("test-cell-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
+            c2 := Cell("test-cell-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
         with override_settings(SILO_MODE=SiloMode.CELL):
-            with override_cells(regions, r1):
+            with override_cells(cells, c1):
                 snowflake1 = generate_snowflake_id("test_redis_key")
-            with override_cells(regions, r2):
+            with override_cells(cells, c2):
                 snowflake2 = generate_snowflake_id("test_redis_key")
 
             def recover_segment_value(segment: SnowflakeBitSegment, value: int) -> int:
@@ -100,5 +100,5 @@ class SnowflakeUtilsTest(TestCase):
                     value >>= s.length
                 raise AssertionError("unreachable")
 
-            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == r1.snowflake_id
-            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == r2.snowflake_id
+            assert recover_segment_value(snowflake.CELL_ID, snowflake1) == c1.snowflake_id
+            assert recover_segment_value(snowflake.CELL_ID, snowflake2) == c2.snowflake_id

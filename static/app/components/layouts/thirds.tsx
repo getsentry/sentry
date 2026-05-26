@@ -1,11 +1,16 @@
-import {useContext, type HTMLAttributes} from 'react';
+import {type HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Stack,
+  type FlexProps,
+  type ContainerProps,
+} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
@@ -13,35 +18,17 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
  */
 export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   const hasPageFrame = useHasPageFrameFeature();
-  const secondaryNavigation = useContext(SecondaryNavigationContext);
 
   const {withPadding, ...rest} = props;
 
   if (hasPageFrame) {
-    return (
-      <StyledPageFrameStack
-        flex="1"
-        as="main"
-        padding={props.withPadding ? '2xl 3xl' : undefined}
-        radius={secondaryNavigation?.view === 'expanded' ? 'lg 0 0 0' : undefined}
-        borderTop={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
-        borderLeft={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
-        background="secondary"
-        {...rest}
-      />
-    );
+    return <Stack as="main" flex="1" background="primary" {...rest} />;
   }
 
   return (
     <Stack flex="1" padding={withPadding ? '2xl 3xl' : undefined} as="main" {...rest} />
   );
 }
-
-const StyledPageFrameStack = styled(Stack)`
-  > :first-child {
-    border-top-left-radius: ${p => p.theme.radius.lg};
-  }
-`;
 
 /**
  * Header container for header content and header actions.
@@ -52,7 +39,22 @@ const StyledPageFrameStack = styled(Stack)`
  *
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('header')<{
+export const Header = styled((props: ContainerProps<'header'>) => {
+  const hasPageFrame = useHasPageFrameFeature();
+
+  return (
+    <Container
+      as="header"
+      background={hasPageFrame ? undefined : 'primary'}
+      padding={
+        hasPageFrame
+          ? {sm: 'md lg 0 lg', md: 'lg xl 0 xl'}
+          : {sm: 'xl xl 0 xl', md: 'xl 3xl 0 3xl'}
+      }
+      {...props}
+    />
+  );
+})<{
   borderStyle?: 'dashed' | 'solid';
   noActionWrap?: boolean;
   /**
@@ -66,9 +68,6 @@ export const Header = styled('header')<{
   grid-template-columns: ${p =>
     p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.tokens.background.primary};
-
   ${p =>
     !p.unified &&
     css`
@@ -76,8 +75,6 @@ export const Header = styled('header')<{
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']} 0
-      ${p => p.theme.space['3xl']};
     grid-template-columns: minmax(0, 1fr) auto;
   }
 `;
@@ -90,14 +87,8 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${p => p.theme.space.md};
+  margin-bottom: ${p => (p.unified ? 0 : p.theme.space.md)};
   max-width: 100%;
-
-  ${p =>
-    p.unified &&
-    css`
-      margin-bottom: 0;
-    `}
 `;
 
 /**
@@ -129,7 +120,16 @@ export const HeaderActions = styled('div')`
  * Includes flex gap for additional items placed with the text (such as feature
  * badges or ID badges)
  */
-export const Title = styled('h1')<{withMargins?: boolean}>`
+export function Title(props: React.ComponentProps<typeof LegacyTitle>) {
+  const hasPageFrame = useHasPageFrameFeature();
+
+  if (hasPageFrame) {
+    return <TopBar.Slot name="title">{props.children}</TopBar.Slot>;
+  }
+
+  return <LegacyTitle {...props} />;
+}
+const LegacyTitle = styled('h1')<{withMargins?: boolean}>`
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
@@ -158,18 +158,21 @@ export const HeaderTabs = styled(Tabs)`
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled('div')<{noRowGap?: boolean}>`
-  padding: ${p => p.theme.space.xl};
-  margin: 0;
-  background-color: ${p => p.theme.tokens.background.primary};
+export const Body = styled((props: ContainerProps & {noRowGap?: boolean}) => {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Container
+      as="div"
+      margin="0"
+      background="primary"
+      padding={
+        hasPageFrame ? 'lg xl' : {sm: 'xl', md: props.noRowGap ? 'xl 3xl' : '2xl 3xl'}
+      }
+      {...props}
+    />
+  );
+})<{noRowGap?: boolean}>`
   flex-grow: 1;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p =>
-      p.noRowGap
-        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
-        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
-  }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
@@ -216,6 +219,6 @@ export function Main({children, width = 'twothirds', ...props}: MainProps) {
 /**
  * Container for the right column the 66/33 layout
  */
-export const Side = styled('aside')`
-  grid-column: 2/3;
-`;
+export function Side(props: ContainerProps<'aside'>) {
+  return <Container as="aside" column="2/3" {...props} />;
+}

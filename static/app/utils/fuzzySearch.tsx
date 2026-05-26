@@ -11,10 +11,10 @@ const DEFAULT_FUSE_OPTIONS: Fuse.IFuseOptions<any> = {
   minMatchCharLength: 2,
 };
 
-export async function createFuzzySearch<
-  T = string,
-  Options extends Fuse.IFuseOptions<T> = Fuse.IFuseOptions<T>,
->(objects: T[], options: Options): Promise<Fuse<T>> {
+export async function createFuzzySearch<T = string>(
+  objects: T[],
+  options: Fuse.IFuseOptions<T>
+): Promise<Fuse<T>> {
   if (!options.keys) {
     throw new Error('You need to define `options.keys`');
   }
@@ -31,10 +31,10 @@ export async function createFuzzySearch<
 // re-export fuse type to make it easier to use
 export type {Fuse};
 
-export function useFuzzySearch<
-  T = string,
-  Options extends Fuse.IFuseOptions<T> = Fuse.IFuseOptions<T>,
->(objects: T[], options: Options): Fuse<T> | null {
+export function useFuzzySearch<T = string>(
+  objects: T[],
+  options: Fuse.IFuseOptions<T>
+): Fuse<T> | null {
   const [fuse, setFuse] = useState<Fuse<T> | null>(null);
 
   useEffect(() => {

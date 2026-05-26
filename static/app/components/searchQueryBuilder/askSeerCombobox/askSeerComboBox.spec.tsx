@@ -1,4 +1,5 @@
 import {destroyAnnouncer} from '@react-aria/live-announcer';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 const defaultProps = {
   enableAISearch: true,
@@ -25,7 +26,7 @@ const askSeerMutationOptions = mutationOptions({
       status: string;
       unsupported_reason: string | null;
     }>({
-      url: `/organizations/org-slug/trace-explorer-ai/query/`,
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
       data: {},
     });
@@ -67,8 +68,6 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -88,8 +87,6 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -108,8 +105,6 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -127,8 +122,6 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       ) : (
         <div>
@@ -164,8 +157,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -188,8 +179,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={applySeerSearchQuery}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {
@@ -226,8 +215,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -251,8 +238,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>
     );
@@ -266,8 +251,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
-          feedbackSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization: {...organization, hideAiFeatures: true}}

@@ -2,20 +2,18 @@ import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import type {FormPanelProps} from './formPanel';
 import {FormPanel} from './formPanel';
 import type {Field, FieldObject, JsonFormObject} from './types';
 
-interface JsonFormProps
-  extends
-    WithRouterProps,
-    Omit<FormPanelProps, 'highlighted' | 'fields' | 'additionalFieldProps'> {
+interface JsonFormProps extends Omit<
+  FormPanelProps,
+  'highlighted' | 'fields' | 'additionalFieldProps'
+> {
   additionalFieldProps?: Record<string, any>;
 
   /**
@@ -35,21 +33,6 @@ interface JsonFormProps
   nested?: boolean;
 }
 
-interface ChildFormPanelProps extends Pick<
-  FormPanelProps,
-  | 'access'
-  | 'disabled'
-  | 'features'
-  | 'nested'
-  | 'additionalFieldProps'
-  | 'renderFooter'
-  | 'renderHeader'
-  | 'initiallyCollapsed'
-  | 'collapsible'
-> {
-  highlighted?: string;
-}
-
 function JsonForm({
   access,
   collapsible,
@@ -63,12 +46,10 @@ function JsonForm({
   additionalFieldProps,
   renderFooter,
   renderHeader,
-  location,
-  params,
-  router,
-  routes,
   ...otherProps
 }: JsonFormProps) {
+  const location = useLocation();
+
   const scrollToHash = (toHash?: string): void => {
     // location.hash is optional because of tests.
     const hash = toHash || location?.hash;
@@ -116,10 +97,6 @@ function JsonForm({
             features,
             renderFooter,
             renderHeader,
-            location,
-            params,
-            router,
-            routes,
             ...otherProps,
             ...additionalFieldProps,
           });
@@ -178,11 +155,27 @@ function JsonForm({
       {forms?.map((formGroup, i) => (
         <Fragment key={i}>{renderForm({formPanelProps, ...formGroup})}</Fragment>
       ))}
-      {typeof forms === 'undefined' &&
-        typeof propFields !== 'undefined' &&
+      {forms === undefined &&
+        propFields !== undefined &&
         renderForm({fields: propFields, formPanelProps, title})}
     </div>
   );
 }
 
-export default withSentryRouter(JsonForm);
+interface ChildFormPanelProps extends Pick<
+  FormPanelProps,
+  | 'access'
+  | 'disabled'
+  | 'features'
+  | 'nested'
+  | 'additionalFieldProps'
+  | 'renderFooter'
+  | 'renderHeader'
+  | 'initiallyCollapsed'
+  | 'collapsible'
+> {
+  highlighted?: string;
+}
+
+// eslint-disable-next-line @sentry/no-default-exports
+export default JsonForm;

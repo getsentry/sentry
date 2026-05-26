@@ -35,6 +35,7 @@ describe('ProjectDetail > ProjectApdex', () => {
         ],
       },
       status: 200,
+      match: [MockApiClient.matchQuery({statsPeriodStart: '28d'})],
     });
 
     currentDataEndpointMock = MockApiClient.addMockResponse({
@@ -86,8 +87,8 @@ describe('ProjectDetail > ProjectApdex', () => {
           field: ['apdex()'],
           project: ['1'],
           query: 'event.type:transaction count():>0',
-          start: '2017-09-19T02:41:20',
-          end: '2017-10-03T02:41:20',
+          statsPeriodStart: '28d',
+          statsPeriodEnd: '14d',
         },
       })
     );

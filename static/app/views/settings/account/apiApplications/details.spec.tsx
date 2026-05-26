@@ -8,6 +8,8 @@ import {
 import ApiApplicationDetails from 'sentry/views/settings/account/apiApplications/details';
 
 describe('ApiApplicationDetails', () => {
+  const oauthBaseUrl = 'https://sentry-jest-tests.example.com/oauth';
+
   it('renders basic details for confidential client', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/abcd/',
@@ -34,10 +36,7 @@ describe('ApiApplicationDetails', () => {
       },
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Application Details'})
-    ).toBeInTheDocument();
-    expect(screen.getByDisplayValue('http://example.com')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('http://example.com')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/redirect')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/privacy')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/terms')).toBeInTheDocument();
@@ -55,6 +54,10 @@ describe('ApiApplicationDetails', () => {
     expect(screen.getByLabelText('Client Secret')).toBeInTheDocument();
     expect(screen.getByLabelText('Authorization URL')).toBeInTheDocument();
     expect(screen.getByLabelText('Token URL')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/authorize/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/token/`)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Authorization URL')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Verification URL')).not.toBeInTheDocument();
   });
 
   it('handles client secret rotation', async () => {
@@ -136,12 +139,8 @@ describe('ApiApplicationDetails', () => {
       },
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Application Details'})
-    ).toBeInTheDocument();
-
     // Should show public client tag
-    expect(screen.getByText('Public Client')).toBeInTheDocument();
+    expect(await screen.findByText('Public Client')).toBeInTheDocument();
 
     // Should show info alert about public clients
     expect(
@@ -160,6 +159,10 @@ describe('ApiApplicationDetails', () => {
     expect(screen.getByLabelText('Client ID')).toBeInTheDocument();
     expect(screen.getByDisplayValue('public-app')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Public CLI App')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/authorize/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/token/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/device/code/`)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(`${oauthBaseUrl}/device/`)).toBeInTheDocument();
   });
 
   it('renders confidential client with client secret section', async () => {
@@ -188,12 +191,8 @@ describe('ApiApplicationDetails', () => {
       },
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Application Details'})
-    ).toBeInTheDocument();
-
     // Should show confidential client tag
-    expect(screen.getByText('Confidential Client')).toBeInTheDocument();
+    expect(await screen.findByText('Confidential Client')).toBeInTheDocument();
 
     // Should show client secret field
     expect(screen.getByLabelText('Client Secret')).toBeInTheDocument();
@@ -202,5 +201,7 @@ describe('ApiApplicationDetails', () => {
     expect(
       screen.queryByText(/This is a public client, designed for CLIs/)
     ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Authorization URL')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Device Verification URL')).not.toBeInTheDocument();
   });
 });

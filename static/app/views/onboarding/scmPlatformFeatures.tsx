@@ -1,12 +1,16 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
+import {LayoutGroup, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
+import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/modal';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -15,15 +19,29 @@ import {
   getDisabledProducts,
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
+import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
 import {platforms} from 'sentry/data/platforms';
-import {t} from 'sentry/locale';
+import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Team} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useTeams} from 'sentry/utils/useTeams';
+import {ScmFeatureInfoCards} from 'sentry/views/onboarding/components/scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCard';
+import {useScmFeatureMeta} from 'sentry/views/onboarding/components/useScmFeatureMeta';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
+import {ScmSearchControl} from './components/scmSearchControl';
+import {ScmVirtualizedMenuList} from './components/scmVirtualizedMenuList';
 import {
   useScmPlatformDetection,
   type DetectedPlatform,
@@ -34,6 +52,15 @@ interface ResolvedPlatform extends DetectedPlatform {
   info: PlatformIntegration;
 }
 
+const FEATURE_DISPLAY_ORDER: ProductSolution[] = [
+  ProductSolution.ERROR_MONITORING,
+  ProductSolution.LOGS,
+  ProductSolution.SESSION_REPLAY,
+  ProductSolution.PERFORMANCE_MONITORING,
+  ProductSolution.PROFILING,
+  ProductSolution.METRICS,
+];
+
 const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
@@ -42,7 +69,7 @@ const platformOptions = platforms.map(platform => ({
   value: platform.id,
   label: platform.name,
   textValue: `${platform.name} ${platform.id}`,
-  leadingItems: () => <PlatformIcon platform={platform.id} size={16} />,
+  leadingItems: <PlatformIcon platform={platform.id} size={16} />,
 }));
 
 function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
@@ -66,7 +93,16 @@ function shouldSuggestFramework(platformKey: PlatformKey): boolean {
   );
 }
 
-export function ScmPlatformFeatures({onComplete}: StepProps) {
+function getPlatformName(platformKey: PlatformKey | undefined) {
+  if (!platformKey) {
+    return;
+  }
+  return getPlatformInfo(platformKey)?.name;
+}
+
+export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const {
     selectedRepository,
@@ -74,9 +110,29 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
+    setProjectDetailsForm,
+    createdProjectSlug,
+    setCreatedProjectSlug,
   } = useOnboardingContext();
 
+  const {teams, fetching: isLoadingTeams} = useTeams();
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const createProject = useCreateProject();
+  // Fetch feature meta at step entry so billing-config is in flight (or cached)
+  // before the user reaches the feature cards below.
+  const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
+  // Exposure is reported upstream in onboarding.tsx when the user enters SCM
+  // onboarding; skip it here to avoid double-counting on step mount.
+  const {inExperiment: hasProjectDetailsStep} = useExperiment({
+    feature: 'onboarding-scm-project-details-experiment',
+    reportExposure: false,
+  });
+
   const [showManualPicker, setShowManualPicker] = useState(false);
+
+  useEffect(() => {
+    trackAnalytics('onboarding.scm_platform_features_step_viewed', {organization});
+  }, [organization]);
 
   const setPlatform = useCallback(
     (platformKey: PlatformKey) => {
@@ -90,9 +146,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
   const hasScmConnected = !!selectedRepository;
 
-  const {detectedPlatforms, isPending: isDetecting} = useScmPlatformDetection(
-    hasScmConnected ? selectedRepository.id : undefined
-  );
+  const {
+    detectedPlatforms,
+    isPending: isDetecting,
+    isError: isDetectionError,
+  } = useScmPlatformDetection(selectedRepository);
 
   const currentFeatures = useMemo(
     () => selectedFeatures ?? [ProductSolution.ERROR_MONITORING],
@@ -115,18 +173,58 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   // Derive platform from explicit selection, falling back to first detected
   const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
 
-  const availableFeatures = useMemo(
-    () =>
-      currentPlatformKey
-        ? [
-            ...new Set([
-              ProductSolution.ERROR_MONITORING,
-              ...(platformProductAvailability[currentPlatformKey] ?? []),
-            ]),
-          ]
-        : [],
-    [currentPlatformKey]
-  );
+  const currentPlatformName = getPlatformName(currentPlatformKey);
+
+  // Fire scm_platform_selected once when detection auto-resolves a platform
+  // and the user hasn't explicitly chosen one. Otherwise a user who accepts
+  // the recommendation and clicks Continue never emits the event, leaving
+  // the funnel without a platform-selected step.
+  const autoDetectionTrackedRef = useRef(false);
+  useEffect(() => {
+    if (
+      autoDetectionTrackedRef.current ||
+      !detectedPlatformKey ||
+      selectedPlatform?.key
+    ) {
+      return;
+    }
+    autoDetectionTrackedRef.current = true;
+    trackAnalytics('onboarding.scm_platform_selected', {
+      organization,
+      platform: detectedPlatformKey,
+      source: 'detected',
+    });
+  }, [detectedPlatformKey, selectedPlatform?.key, organization]);
+
+  // Wizard-driven platforms render an informational variant since the wizard CLI
+  // owns product configuration and toggles aren't actionable.
+  const featureMode = useMemo<'toggleable' | 'informational' | 'none'>(() => {
+    if (!currentPlatformKey) {
+      return 'none';
+    }
+    if (currentPlatformKey in platformProductAvailability) {
+      return 'toggleable';
+    }
+    if (currentPlatformKey in PLATFORM_PRODUCT_INFO) {
+      return 'informational';
+    }
+    return 'none';
+  }, [currentPlatformKey]);
+
+  const availableFeatures = useMemo(() => {
+    if (!currentPlatformKey || featureMode === 'none') {
+      return [];
+    }
+    const sourceProducts =
+      featureMode === 'toggleable'
+        ? platformProductAvailability[currentPlatformKey]
+        : PLATFORM_PRODUCT_INFO[currentPlatformKey];
+    const features = new Set<ProductSolution>([
+      ProductSolution.ERROR_MONITORING,
+      ...(sourceProducts ?? []),
+    ]);
+    return FEATURE_DISPLAY_ORDER.filter(f => features.has(f));
+  }, [currentPlatformKey, featureMode]);
 
   const disabledProducts = useMemo(
     () => getDisabledProducts(organization),
@@ -140,8 +238,9 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         return;
       }
 
+      const wasEnabled = currentFeatures.includes(feature);
       const newFeatures = new Set(
-        currentFeatures.includes(feature)
+        wasEnabled
           ? currentFeatures.filter(f => f !== feature)
           : [...currentFeatures, feature]
       );
@@ -162,94 +261,227 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       }
 
       setSelectedFeatures(Array.from(newFeatures));
-    },
-    [currentFeatures, setSelectedFeatures, disabledProducts, availableFeatures]
-  );
 
-  const applyPlatformSelection = useCallback(
-    (sdk: OnboardingSelectedSDK) => {
-      setSelectedPlatform(sdk);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    },
-    [setSelectedPlatform, setSelectedFeatures]
-  );
-
-  const handleManualPlatformSelect = useCallback(
-    async (option: {value: string}) => {
-      const platformKey = option.value as PlatformKey;
-      if (platformKey === selectedPlatform?.key) {
-        return;
-      }
-
-      // Block disabled gaming/console platforms
-      const platformInfo = getPlatformInfo(platformKey);
-      if (
-        platformInfo &&
-        isDisabledGamingPlatform({
-          platform: platformInfo,
-          enabledConsolePlatforms: organization.enabledConsolePlatforms,
-        })
-      ) {
-        openConsoleModal({
-          organization,
-          selectedPlatform: toSelectedSdk(platformInfo),
-          origin: 'onboarding',
-        });
-        return;
-      }
-
-      // For base languages (JavaScript, Python, etc.), show a modal suggesting
-      // specific frameworks — matching the legacy onboarding behavior.
-      if (platformInfo && shouldSuggestFramework(platformKey)) {
-        const baseSdk = toSelectedSdk(platformInfo);
-
-        const {FrameworkSuggestionModal, modalCss} =
-          await import('sentry/components/onboarding/frameworkSuggestionModal');
-
-        openModal(
-          deps => (
-            <FrameworkSuggestionModal
-              {...deps}
-              organization={organization}
-              selectedPlatform={baseSdk}
-              onConfigure={selectedFramework => {
-                applyPlatformSelection(selectedFramework);
-                closeModal();
-              }}
-              onSkip={() => {
-                applyPlatformSelection(baseSdk);
-                closeModal();
-              }}
-              newOrg
-            />
-          ),
-          {modalCss}
-        );
-        return;
-      }
-
-      setPlatform(platformKey);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+      trackAnalytics('onboarding.scm_platform_feature_toggled', {
+        organization,
+        feature,
+        enabled: !wasEnabled,
+        platform: currentPlatformKey ?? '',
+      });
     },
     [
-      selectedPlatform?.key,
-      setPlatform,
+      currentFeatures,
       setSelectedFeatures,
-      applyPlatformSelection,
+      disabledProducts,
+      availableFeatures,
       organization,
+      currentPlatformKey,
     ]
   );
 
-  const handleSelectDetectedPlatform = useCallback(
-    (platformKey: PlatformKey) => {
-      if (platformKey === selectedPlatform?.key) {
+  const applyPlatformSelection = (sdk: OnboardingSelectedSDK) => {
+    setSelectedPlatform(sdk);
+    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
+  };
+
+  const handleManualPlatformSelect = async (option: {value: string}) => {
+    const platformKey = option.value as PlatformKey;
+    if (platformKey === selectedPlatform?.key) {
+      return;
+    }
+
+    // Block disabled gaming/console platforms
+    const platformInfo = getPlatformInfo(platformKey);
+    if (
+      platformInfo &&
+      isDisabledGamingPlatform({
+        platform: platformInfo,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
+    ) {
+      openConsoleModal({
+        organization,
+        selectedPlatform: toSelectedSdk(platformInfo),
+        origin: 'onboarding',
+      });
+      return;
+    }
+
+    // For base languages (JavaScript, Python, etc.), show a modal suggesting
+    // specific frameworks — matching the legacy onboarding behavior.
+    if (platformInfo && shouldSuggestFramework(platformKey)) {
+      const baseSdk = toSelectedSdk(platformInfo);
+
+      const {FrameworkSuggestionModal, modalCss} =
+        await import('sentry/components/onboarding/frameworkSuggestionModal');
+
+      openModal(
+        deps => (
+          <FrameworkSuggestionModal
+            {...deps}
+            organization={organization}
+            selectedPlatform={baseSdk}
+            onConfigure={selectedFramework => {
+              applyPlatformSelection(selectedFramework);
+              closeModal();
+            }}
+            onSkip={() => {
+              applyPlatformSelection(baseSdk);
+              closeModal();
+            }}
+            newOrg
+            hasScmOnboarding
+          />
+        ),
+        {modalCss}
+      );
+      return;
+    }
+
+    setPlatform(platformKey);
+    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
+
+    trackAnalytics('onboarding.scm_platform_selected', {
+      organization,
+      platform: platformKey,
+      source: 'manual',
+    });
+  };
+
+  const handleSelectDetectedPlatform = (platformKey: PlatformKey) => {
+    if (platformKey === selectedPlatform?.key) {
+      return;
+    }
+    setPlatform(platformKey);
+    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
+
+    trackAnalytics('onboarding.scm_platform_selected', {
+      organization,
+      platform: platformKey,
+      source: 'detected',
+    });
+  };
+
+  function handleChangePlatformClick() {
+    setShowManualPicker(true);
+    if (!isDetecting) {
+      trackAnalytics('onboarding.scm_platform_change_platform_clicked', {
+        organization,
+      });
+    }
+  }
+
+  function handleBackToRecommended() {
+    setShowManualPicker(false);
+    if (detectedPlatformKey) {
+      setPlatform(detectedPlatformKey);
+      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+      setProjectDetailsForm(undefined);
+    }
+  }
+
+  const existingProject = createdProjectSlug
+    ? projects.find(p => p.slug === createdProjectSlug)
+    : undefined;
+
+  // When the project-details step is skipped, Continue auto-creates the
+  // project, which needs the teams and projects stores loaded.
+  const autoCreateDataPending =
+    !hasProjectDetailsStep && (isLoadingTeams || !projectsLoaded);
+
+  async function handleContinue() {
+    // Persist derived defaults to context if user accepted them
+    if (currentPlatformKey && !selectedPlatform?.key) {
+      setPlatform(currentPlatformKey);
+    }
+    if (!selectedFeatures) {
+      setSelectedFeatures(currentFeatures);
+    }
+
+    if (!hasProjectDetailsStep) {
+      // Auto-create project with defaults when SCM_PROJECT_DETAILS step is skipped
+      if (!currentPlatformKey) {
         return;
       }
-      setPlatform(platformKey);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    },
-    [selectedPlatform?.key, setPlatform, setSelectedFeatures]
-  );
+      const info = getPlatformInfo(currentPlatformKey);
+      if (!info) {
+        return;
+      }
+      const platform = selectedPlatform ?? toSelectedSdk(info);
+
+      // If a project was already created for this platform (e.g. the user
+      // went back after the project received its first event), reuse it.
+      // If the platform changed, abandon the old project and create a new
+      // one — matching legacy onboarding behavior.
+      // `platform` is forwarded because setPlatform's context update has not
+      // propagated to the captured onComplete closure yet, and goNextStep's
+      // SETUP_DOCS guard would otherwise block navigation.
+      if (existingProject?.platform === platform.key) {
+        onComplete(platform, {product: currentFeatures});
+        return;
+      }
+
+      const firstAdminTeam = teams.find((team: Team) =>
+        team.access.includes('team:admin')
+      );
+
+      try {
+        const project = await createProject.mutateAsync({
+          name: platform.key,
+          platform,
+          default_rules: true,
+          firstTeamSlug: firstAdminTeam?.slug,
+        });
+        setCreatedProjectSlug(project.slug);
+
+        if (selectedRepository?.id) {
+          try {
+            await fetchMutation({
+              url: `/projects/${organization.slug}/${project.slug}/repo/`,
+              method: 'POST',
+              data: {repositoryId: selectedRepository.id},
+            });
+          } catch (error) {
+            Sentry.captureException(error);
+          }
+        }
+
+        onComplete(platform, {product: currentFeatures});
+      } catch (error) {
+        addErrorMessage(t('Failed to create project'));
+        Sentry.captureException(error);
+      }
+      return;
+    }
+
+    onComplete();
+  }
+
+  // Ensure the selected platform is always present in the dropdown options
+  // so the Select can resolve and display it. When the framework suggestion
+  // modal picks a key not in the static list, prepend it.
+  const manualPickerOptions = useMemo(() => {
+    const key = currentPlatformKey;
+    if (!key || platformOptions.some(o => o.value === key)) {
+      return platformOptions;
+    }
+    const info = getPlatformInfo(key);
+    if (!info) {
+      return platformOptions;
+    }
+    return [
+      {
+        value: info.id,
+        label: info.name,
+        textValue: `${info.name} ${info.id}`,
+        leadingItems: <PlatformIcon platform={info.id} size={16} />,
+      },
+      ...platformOptions,
+    ];
+  }, [currentPlatformKey]);
 
   // If the user previously selected a platform manually (not in the detected
   // list), show the manual picker so their selection is visible.
@@ -257,109 +489,213 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     p => p.platform === currentPlatformKey
   );
   const hasDetectedPlatforms = resolvedPlatforms.length > 0 || isDetecting;
+  // Fall through to manual picker on detection error
   const showDetectedPlatforms =
     hasScmConnected &&
     !showManualPicker &&
+    !isDetectionError &&
     hasDetectedPlatforms &&
     (!currentPlatformKey || currentPlatformIsDetected);
 
   return (
-    <Flex direction="column" align="center" gap="xl" flexGrow={1}>
-      <Stack align="center" gap="md">
-        <Heading as="h2">{t('Platform & features')}</Heading>
-        <Text variant="muted">
-          {t('Select your SDK first, then choose the features to enable.')}
-        </Text>
-      </Stack>
-
-      <Stack gap="lg" width="100%" maxWidth="600px">
-        {showDetectedPlatforms ? (
-          <Stack gap="md">
-            <Heading as="h3">{t('Recommended SDK')}</Heading>
-            {isDetecting ? (
-              <Flex justify="center" padding="xl">
-                <LoadingIndicator mini />
-              </Flex>
-            ) : (
-              <Stack gap="sm">
-                <Flex gap="md" wrap="wrap" role="radiogroup">
-                  {resolvedPlatforms.map(({platform, info}) => (
-                    <ScmPlatformCard
-                      key={platform}
-                      platform={platform}
-                      name={info.name}
-                      type={info.type}
-                      isSelected={currentPlatformKey === platform}
-                      onClick={() => handleSelectDetectedPlatform(platform)}
-                    />
-                  ))}
-                </Flex>
-                <Button
-                  size="zero"
-                  priority="transparent"
-                  onClick={() => setShowManualPicker(true)}
-                >
-                  {t("Doesn't look right? Change platform")}
-                </Button>
-              </Stack>
-            )}
+    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+      <Stack gap="3xl" maxWidth={SCM_STEP_CONTENT_WIDTH}>
+        <Heading as="h2" size="4xl">
+          {t('Create your first project')}
+        </Heading>
+        <LayoutGroup>
+          <Stack gap="md" paddingTop="sm">
+            <Heading as="h3" size="lg">
+              {t('Choose your SDK')}
+            </Heading>
+            <Container>
+              <Text variant="muted" size="md" density="comfortable">
+                {t(
+                  'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
+                )}
+              </Text>
+            </Container>
           </Stack>
-        ) : (
-          <Stack gap="md">
-            <Heading as="h3">{t('Select a platform')}</Heading>
-            <CompactSelect
-              search={{
-                placeholder: t('Search SDKs by name...'),
-              }}
-              options={platformOptions}
-              value={currentPlatformKey ?? ''}
-              onChange={handleManualPlatformSelect}
-              virtualizeThreshold={50}
-            />
-            {hasScmConnected && (
-              <Button
-                size="zero"
-                priority="transparent"
-                onClick={() => {
-                  setShowManualPicker(false);
-                  if (detectedPlatformKey) {
-                    setPlatform(detectedPlatformKey);
-                    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+          {showDetectedPlatforms ? (
+            <MotionStack
+              key="detected"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              gap="md"
+              width="100%"
+            >
+              <Flex justify="between" align="center">
+                <Flex align="center" gap="sm">
+                  <IconBroadcast size="sm" variant="secondary" />
+                  <Text
+                    variant="secondary"
+                    bold
+                    size="sm"
+                    density="comfortable"
+                    uppercase
+                  >
+                    {t('Auto-detected from your repository')}
+                  </Text>
+                </Flex>
+                <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
+                  {isDetecting
+                    ? t('Skip detection and select manually')
+                    : t("Doesn't look right? Change platform")}
+                </Button>
+              </Flex>
+              <Stack gap="lg" width="100%">
+                {isDetecting ? (
+                  <Flex justify="center">
+                    <LoadingIndicator mini />
+                  </Flex>
+                ) : (
+                  <Grid
+                    columns={{
+                      xs: '1fr',
+                      md: `repeat(${resolvedPlatforms.length}, minmax(200px, 1fr))`,
+                    }}
+                    width="100%"
+                    justify="center"
+                    gap="md"
+                    role="radiogroup"
+                  >
+                    {resolvedPlatforms.map(({platform, info}) => (
+                      <ScmPlatformCard
+                        key={platform}
+                        platform={platform}
+                        name={info.name}
+                        type={info.type}
+                        isSelected={currentPlatformKey === platform}
+                        onClick={() => handleSelectDetectedPlatform(platform)}
+                      />
+                    ))}
+                  </Grid>
+                )}
+              </Stack>
+            </MotionStack>
+          ) : (
+            <MotionStack
+              key="manual"
+              gap="md"
+              width="100%"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+            >
+              <Flex justify="between" align="center">
+                <Flex align="center" gap="sm">
+                  <IconGeneric size="sm" variant="secondary" />
+                  <Text
+                    variant="secondary"
+                    bold
+                    size="sm"
+                    density="comfortable"
+                    uppercase
+                  >
+                    {t('Select a platform')}
+                  </Text>
+                </Flex>
+                {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
+                  <Button size="xs" variant="link" onClick={handleBackToRecommended}>
+                    {t('Back to recommended platforms')}
+                  </Button>
+                )}
+              </Flex>
+              <Select<(typeof platformOptions)[number]>
+                placeholder={t('Search SDKs...')}
+                options={manualPickerOptions}
+                value={currentPlatformKey ?? null}
+                onChange={option => {
+                  if (option) {
+                    handleManualPlatformSelect(option);
                   }
                 }}
+                searchable
+                components={{
+                  Control: ScmSearchControl,
+                  MenuList: ScmVirtualizedMenuList,
+                }}
+                styles={{container: base => ({...base, width: '100%'})}}
+              />
+            </MotionStack>
+          )}
+          {featureMode !== 'none' && (
+            <MotionStack layout="position" width="100%">
+              <Stack gap="2xl" paddingTop="xs">
+                <Flex
+                  padding="lg"
+                  background="secondary"
+                  border="secondary"
+                  radius="md"
+                  gap="lg"
+                >
+                  <IconBusiness size="lg" variant="accent" />
+                  <Text size="md" density="comfortable">
+                    {tct(
+                      'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                      {
+                        bold: (
+                          <Text as="span" bold variant="accent">
+                            {null}
+                          </Text>
+                        ),
+                      }
+                    )}
+                  </Text>
+                </Flex>
+                {featureMode === 'toggleable' ? (
+                  <ScmFeatureSelectionCards
+                    availableFeatures={availableFeatures}
+                    selectedFeatures={currentFeatures}
+                    disabledProducts={disabledProducts}
+                    onToggleFeature={handleToggleFeature}
+                    featureMeta={featureMeta}
+                    isVolumeLoading={isFeatureMetaLoading}
+                  />
+                ) : (
+                  <ScmFeatureInfoCards
+                    availableFeatures={availableFeatures}
+                    disabledProducts={disabledProducts}
+                    featureMeta={featureMeta}
+                    platformName={currentPlatformName}
+                    isVolumeLoading={isFeatureMetaLoading}
+                  />
+                )}
+              </Stack>
+            </MotionStack>
+          )}
+          <MotionFlex
+            layout="position"
+            align="center"
+            justify="between"
+            width="100%"
+            paddingTop="sm"
+          >
+            <Flex align="center">{genBackButton?.()}</Flex>
+            <Flex align="center" gap="md">
+              <Button
+                variant="primary"
+                analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
+                analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
+                analyticsParams={{
+                  platform: currentPlatformKey ?? '',
+                  source: showDetectedPlatforms ? 'detected' : 'manual',
+                  features: currentFeatures,
+                }}
+                onClick={handleContinue}
+                disabled={
+                  !currentPlatformKey || createProject.isPending || autoCreateDataPending
+                }
+                busy={createProject.isPending}
               >
-                {t('Back to recommended platforms')}
+                {t('Continue')}
               </Button>
-            )}
-          </Stack>
-        )}
-
-        {availableFeatures.length > 0 && (
-          <ScmFeatureSelectionCards
-            availableFeatures={availableFeatures}
-            selectedFeatures={currentFeatures}
-            disabledProducts={disabledProducts}
-            onToggleFeature={handleToggleFeature}
-          />
-        )}
+            </Flex>
+          </MotionFlex>
+        </LayoutGroup>
       </Stack>
-
-      <Button
-        priority="primary"
-        onClick={() => {
-          // Persist derived defaults to context if user accepted them
-          if (currentPlatformKey && !selectedPlatform?.key) {
-            setPlatform(currentPlatformKey);
-          }
-          if (!selectedFeatures) {
-            setSelectedFeatures(currentFeatures);
-          }
-          onComplete();
-        }}
-        disabled={!currentPlatformKey}
-      >
-        {t('Continue')}
-      </Button>
     </Flex>
   );
 }
+
+const MotionStack = motion.create(Stack);
+const MotionFlex = motion.create(Flex);

@@ -120,10 +120,13 @@ export function BaseChartActionDropdown({
 }: BaseProps) {
   const organization = useOrganization();
   const hasDashboardEdit = organization.features.includes('dashboards-edit');
+  const hasExploreView = organization.features.includes('visibility-explore-view');
   const {addToSpanDashboard} = useAddToSpanDashboard();
 
-  const menuOptions: MenuItemProps[] = [
-    {
+  const menuOptions: MenuItemProps[] = [];
+
+  if (hasExploreView) {
+    menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
       to: exploreUrl,
@@ -133,15 +136,15 @@ export function BaseChartActionDropdown({
           referrer,
         });
       },
-    },
-  ];
+    });
+  }
 
   if (addToDashboardOptions) {
     const menuOption: MenuItemProps = {
       key: 'add-to-dashboard',
       label: (
         <Feature
-          hookName="feature-disabled:dashboards-edit"
+          overrideName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
         >
@@ -197,7 +200,7 @@ export function BaseChartActionDropdown({
       triggerProps={{
         'aria-label': t('Widget actions'),
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         icon: <IconEllipsis direction="down" size="sm" />,
       }}

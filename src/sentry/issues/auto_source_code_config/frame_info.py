@@ -14,7 +14,12 @@ from .errors import (
     NeedsExtension,
     UnsupportedFrameInfo,
 )
-from .utils.platform import PlatformConfig, supported_platform
+from .utils.platform import (
+    PlatformConfig,
+    SourceRootsResolver,
+    noop_source_roots_resolver,
+    supported_platform,
+)
 
 NOT_FOUND = -1
 
@@ -24,12 +29,14 @@ UNSUPPORTED_FRAME_PATH_PATTERN = re.compile(r"^[\[<]|https?://", re.IGNORECASE)
 
 def create_frame_info(frame: Mapping[str, Any], platform: str | None = None) -> FrameInfo:
     """Factory function to create the appropriate FrameInfo instance."""
+    source_roots_resolver: SourceRootsResolver = noop_source_roots_resolver
     if platform and supported_platform(platform):
         platform_config = PlatformConfig(platform)
+        source_roots_resolver = platform_config.get_source_roots_resolver()
         if platform_config.extracts_filename_from_module():
-            return ModuleBasedFrameInfo(frame)
+            return ModuleBasedFrameInfo(frame, source_roots_resolver)
 
-    return PathBasedFrameInfo(frame)
+    return PathBasedFrameInfo(frame, source_roots_resolver)
 
 
 class FrameInfo(ABC):
@@ -37,7 +44,12 @@ class FrameInfo(ABC):
     normalized_path: str
     stack_root: str
 
-    def __init__(self, frame: Mapping[str, Any]) -> None:
+    def __init__(
+        self,
+        frame: Mapping[str, Any],
+        source_roots_resolver: SourceRootsResolver = noop_source_roots_resolver,
+    ) -> None:
+        self._source_roots_resolver = source_roots_resolver
         self.process_frame(frame)
 
     def __repr__(self) -> str:
@@ -52,6 +64,24 @@ class FrameInfo(ABC):
     def process_frame(self, frame: Mapping[str, Any]) -> None:
         """Process the frame and set the necessary attributes."""
         raise NotImplementedError("Subclasses must implement process_frame")
+
+    def has_source_roots_override(self, source_path: str, repo_files: Sequence[str] | None) -> bool:
+        return self._source_roots_resolver(source_path, repo_files) is not None
+
+    def resolve_source_roots(
+        self,
+        source_path: str,
+        source_prefix: str,
+        stack_root_prefix: str = "",
+        repo_files: Sequence[str] | None = None,
+    ) -> tuple[str, str]:
+        if source_roots_override := self._source_roots_resolver(source_path, repo_files):
+            return source_roots_override
+
+        return (
+            f"{stack_root_prefix}{self.stack_root}/".replace("//", "/"),
+            f"{source_prefix}{self.stack_root}/".replace("//", "/"),
+        )
 
 
 class ModuleBasedFrameInfo(FrameInfo):

@@ -1,13 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeEAPError,
   makeEAPOccurrence,
   makeEAPSpan,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
-import type {TraceTreeNodeExtra} from './baseNode';
+import type {BaseNode, TraceTreeNodeExtra} from './baseNode';
 import {EapSpanNode} from './eapSpanNode';
 
 const createMockExtra = (
@@ -79,7 +80,7 @@ describe('EapSpanNode', () => {
       expect(node.opsBreakdown).toEqual([]);
     });
 
-    it('should reparent transaction under closest EAP transaction parent', () => {
+    it('should preserve the actual parent for transaction spans', () => {
       const extra = createMockExtra();
       const rootTransactionValue = makeEAPSpan({
         event_id: 'root-transaction',
@@ -100,11 +101,11 @@ describe('EapSpanNode', () => {
       const rootTransaction = new EapSpanNode(null, rootTransactionValue, extra);
       const span = new EapSpanNode(rootTransaction, spanValue, extra);
 
-      // Child transaction should be reparented under root transaction, not the span
       const childTransaction = new EapSpanNode(span, childTransactionValue, extra);
 
-      expect(childTransaction.parent).toBe(rootTransaction);
-      expect(rootTransaction.children).toContain(childTransaction);
+      expect(childTransaction.parent).toBe(span);
+      expect(span.children).toContain(childTransaction);
+      expect(rootTransaction.children).toEqual([span]);
     });
 
     it('should add itself to parent children and sort chronologically', () => {
@@ -407,6 +408,74 @@ describe('EapSpanNode', () => {
       expect(transaction.directVisibleChildren).toEqual([childTransaction]);
     });
 
+    it('should surface nested transactions for collapsed EAP transactions', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeEAPSpan({
+        event_id: 'transaction',
+        is_transaction: true,
+      });
+      const childSpanValue = makeEAPSpan({
+        event_id: 'child-span',
+        is_transaction: false,
+      });
+      const nestedTransactionValue = makeEAPSpan({
+        event_id: 'nested-transaction',
+        is_transaction: true,
+        parent_span_id: 'child-span',
+      });
+
+      const transaction = new EapSpanNode(null, transactionValue, extra);
+      const childSpan = new EapSpanNode(transaction, childSpanValue, extra);
+      const nestedTransaction = new EapSpanNode(childSpan, nestedTransactionValue, extra);
+
+      transaction.expanded = false;
+
+      expect(transaction.directVisibleChildren).toEqual([nestedTransaction]);
+      expect(nestedTransaction.parent).toBe(childSpan);
+    });
+
+    it('should surface nested transactions beneath parent autogroups', () => {
+      const extra = createMockExtra();
+      const transactionValue = makeEAPSpan({
+        event_id: 'transaction',
+        is_transaction: true,
+      });
+      const groupHeadValue = makeEAPSpan({
+        event_id: 'group-head',
+        is_transaction: false,
+        op: 'db.query',
+      });
+      const groupTailValue = makeEAPSpan({
+        event_id: 'group-tail',
+        is_transaction: false,
+        op: 'db.query',
+      });
+      const childSpanValue = makeEAPSpan({
+        event_id: 'child-span',
+        is_transaction: false,
+        op: 'http.client',
+      });
+      const nestedTransactionValue = makeEAPSpan({
+        event_id: 'nested-transaction',
+        is_transaction: true,
+        parent_span_id: 'child-span',
+        op: 'rpc.call',
+      });
+
+      const transaction = new EapSpanNode(null, transactionValue, extra);
+      const groupHead = new EapSpanNode(transaction, groupHeadValue, extra);
+      const groupTail = new EapSpanNode(groupHead, groupTailValue, extra);
+      const childSpan = new EapSpanNode(groupTail, childSpanValue, extra);
+      const nestedTransaction = new EapSpanNode(childSpan, nestedTransactionValue, extra);
+
+      expect(TraceTree.AutogroupDirectChildrenSpanNodes(transaction)).toBe(1);
+
+      transaction.expanded = false;
+
+      expect(transaction.directVisibleChildren).toEqual([nestedTransaction]);
+      expect(nestedTransaction.parent).toBe(childSpan);
+    });
+
     it('should return all children for expanded EAP transactions', () => {
       const extra = createMockExtra();
       const transactionValue = makeEAPSpan({
@@ -505,7 +574,7 @@ describe('EapSpanNode', () => {
 
   describe('expand method', () => {
     const createMockTraceTree = () => ({
-      list: [] as EapSpanNode[],
+      list: [] as BaseNode[],
     });
 
     it('should handle expanding transaction with reparenting', () => {
@@ -516,30 +585,58 @@ describe('EapSpanNode', () => {
         op: 'http.server',
       });
       const spanValue = makeEAPSpan({
-        event_id: 'span',
+        event_id: 'span-a',
         is_transaction: false,
         op: 'db.query',
+        start_timestamp: 1,
       });
       const childTransactionValue = makeEAPSpan({
-        event_id: 'child-transaction',
+        event_id: 'child-transaction-a',
         is_transaction: true,
-        parent_span_id: 'span',
+        parent_span_id: 'span-a',
+        start_timestamp: 2,
+      });
+      const siblingSpanValue = makeEAPSpan({
+        event_id: 'span-b',
+        is_transaction: false,
+        op: 'db.query',
+        start_timestamp: 3,
+      });
+      const siblingTransactionValue = makeEAPSpan({
+        event_id: 'child-transaction-b',
+        is_transaction: true,
+        parent_span_id: 'span-b',
+        start_timestamp: 4,
       });
 
       const transaction = new EapSpanNode(null, transactionValue, extra);
       const span = new EapSpanNode(transaction, spanValue, extra);
-      const childTransaction = new EapSpanNode(transaction, childTransactionValue, extra);
+      const childTransaction = new EapSpanNode(span, childTransactionValue, extra);
+      const siblingSpan = new EapSpanNode(transaction, siblingSpanValue, extra);
+      const siblingTransaction = new EapSpanNode(
+        siblingSpan,
+        siblingTransactionValue,
+        extra
+      );
 
-      transaction.children = [span, childTransaction];
       transaction.expanded = false;
 
       const tree = createMockTraceTree();
-      tree.list = [transaction];
+      tree.list = [transaction, ...transaction.visibleChildren];
+
+      expect(transaction.directVisibleChildren).toEqual([
+        childTransaction,
+        siblingTransaction,
+      ]);
+      expect(childTransaction.parent).toBe(span);
+      expect(siblingTransaction.parent).toBe(siblingSpan);
 
       const result = transaction.expand(true, tree as any);
 
       expect(result).toBe(true);
       expect(transaction.expanded).toBe(true);
+      expect(childTransaction.parent).toBe(span);
+      expect(siblingTransaction.parent).toBe(siblingSpan);
 
       // Test that tree.list is updated to include visible children after expansion
       expect(tree.list).toContain(transaction);
@@ -554,6 +651,19 @@ describe('EapSpanNode', () => {
           transactionIndex + 1 + transaction.visibleChildren.length
         )
       ).toEqual(transaction.visibleChildren);
+
+      expect(tree.list).toEqual([
+        transaction,
+        span,
+        childTransaction,
+        siblingSpan,
+        siblingTransaction,
+      ]);
+
+      transaction.expand(false, tree as any);
+      expect(childTransaction.parent).toBe(span);
+      expect(siblingTransaction.parent).toBe(siblingSpan);
+      expect(tree.list).toEqual([transaction, childTransaction, siblingTransaction]);
     });
 
     it('should handle collapsing transaction with reparenting', () => {

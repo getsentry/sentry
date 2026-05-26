@@ -184,9 +184,9 @@ class Authenticator(ControlOutboxProducingModel):
         unique_together = (("user", "type"),)
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = find_cells_for_user(self.user_id)
+        cells = find_cells_for_user(self.user_id)
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            cell_names=regions,
+            cell_names=cells,
             shard_identifier=self.user_id,
             object_identifier=self.user_id,
         )

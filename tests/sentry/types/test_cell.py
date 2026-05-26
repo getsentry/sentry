@@ -27,6 +27,7 @@ from sentry.types.cell import (
     get_cell_by_name,
     get_cell_for_organization,
     get_local_cell,
+    get_new_org_cell_for_locality,
     load_from_config,
     subdomain_is_locality,
 )
@@ -39,7 +40,7 @@ class CellDirectoryTest(TestCase):
     CellDirectory, it uses a lot of `override_settings` in ways that most test
     cases shouldn't. If you are having difficulty with cell setup in other test
     cases, please don't follow this class as an example, but instead use the
-    utilities in testutils/silo.py and testutils/region.py.
+    utilities in testutils/silo.py and testutils/cell.py.
     """
 
     _INPUTS: list[CellConfig] = [
@@ -95,7 +96,7 @@ class CellDirectoryTest(TestCase):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
-    @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us")
+    @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us")
     def test_get_local_cell(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
@@ -142,12 +143,12 @@ class CellDirectoryTest(TestCase):
             cell.validate()
 
     def test_locality_to_url(self) -> None:
-        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
+        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
+        with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us"):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
-        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_LOCAL_CELL=""):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
-        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
+        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_LOCAL_CELL=""):
             assert locality.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     @patch("sentry.types.cell.sentry_sdk")
@@ -167,7 +168,7 @@ class CellDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            organization = self.create_organization(name="test name", region="us")
+            organization = self.create_organization(name="test name", cell="us")
 
             user = self.create_user()
             organization_service.add_organization_member(
@@ -189,8 +190,8 @@ class CellDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            us_org_1 = self.create_organization(name="us test name 1", region="us")
-            us_org_2 = self.create_organization(name="us test name 2", region="us")
+            us_org_1 = self.create_organization(name="us test name 1", cell="us")
+            us_org_2 = self.create_organization(name="us test name 2", cell="us")
 
             sentry_app = self.create_sentry_app(
                 organization=self.organization,
@@ -204,8 +205,8 @@ class CellDirectoryTest(TestCase):
             actual_cells = find_cells_for_sentry_app(sentry_app=sentry_app)
             assert actual_cells == {"us"}
 
-            eu_org_1 = self.create_organization(name="eu test name", region="eu")
-            eu_org_2 = self.create_organization(name="eu test name", region="eu")
+            eu_org_1 = self.create_organization(name="eu test name", cell="eu")
+            eu_org_2 = self.create_organization(name="eu test name", cell="eu")
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_1)
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_2)
             actual_cells = find_cells_for_sentry_app(sentry_app=sentry_app)
@@ -272,3 +273,60 @@ class CellDirectoryTest(TestCase):
             req = rf.get("/")
             setattr(req, "subdomain", "acme")
             assert not subdomain_is_locality(req)
+
+    def test_get_new_org_cell_for_locality(self) -> None:
+        cells = [
+            Cell(
+                name="us",
+                snowflake_id=1,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.1",
+                visible=True,
+            ),
+            Cell(
+                name="us2",
+                snowflake_id=3,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.2",
+                visible=True,
+            ),
+            Cell(
+                name="de1",
+                snowflake_id=2,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.3",
+                visible=True,
+            ),
+            Cell(
+                name="de2",
+                snowflake_id=4,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.4",
+                visible=True,
+            ),
+        ]
+        localities = [
+            Locality(
+                name="us",
+                cells=frozenset(["us", "us2"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="us2",
+                visible=True,
+            ),
+            Locality(
+                name="de",
+                cells=frozenset(["de1", "de2"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="de2",
+                visible=True,
+            ),
+        ]
+        with get_test_env_directory().swap_state(cells=cells, localities=localities):
+            org_cell = get_new_org_cell_for_locality("de")
+            assert org_cell.name == "de2"
+
+            org_cell = get_new_org_cell_for_locality("us")
+            assert org_cell.name == "us2"
+
+            with pytest.raises(CellResolutionError):
+                get_new_org_cell_for_locality("derp")

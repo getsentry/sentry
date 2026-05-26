@@ -49,7 +49,7 @@ type State = {
   searchTerm: string;
 };
 
-class Candidates extends Component<Props, State> {
+export class Candidates extends Component<Props, State> {
   state: State = {
     searchTerm: '',
     filterOptions: [],
@@ -244,11 +244,11 @@ class Candidates extends Component<Props, State> {
       return {
         emptyMessage: t('Sorry, no debug files match your search query'),
         emptyAction: hasActiveFilter ? (
-          <Button onClick={this.handleResetFilter} priority="primary">
+          <Button onClick={this.handleResetFilter} variant="primary">
             {t('Reset filter')}
           </Button>
         ) : (
-          <Button onClick={this.handleResetSearchBar} priority="primary">
+          <Button onClick={this.handleResetSearchBar} variant="primary">
             {t('Clear search bar')}
           </Button>
         ),
@@ -369,8 +369,6 @@ class Candidates extends Component<Props, State> {
     );
   }
 }
-
-export default Candidates;
 
 const Wrapper = styled('div')`
   display: grid;

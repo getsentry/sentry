@@ -1,15 +1,13 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseProfileTopEventsStatsOptions<F> {
@@ -38,51 +36,43 @@ export function useProfileTopEventsStats<F extends string>({
   topEvents,
   yAxes,
   enabled = true,
-}: UseProfileTopEventsStatsOptions<F>): UseApiQueryResult<
-  EventsStatsSeries<F>,
-  RequestError
-> {
+}: UseProfileTopEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const endpointOptions = {
-    query: {
-      dataset,
-      field: fields,
-      referrer,
-      project: projects ?? selection.projects,
-      environment: selection.environments,
-      ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      yAxis: yAxes,
-      interval,
-      query,
-      topEvents,
-      excludeOther: others ? '0' : '1',
-    },
-  };
-
-  const result = useApiQuery<any>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      endpointOptions,
-    ],
-    {
+  const {data, isPending, isLoading, isError, error} = useQuery({
+    ...apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/events-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        dataset,
+        field: fields,
+        referrer,
+        project: projects ?? selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        yAxis: yAxes,
+        interval,
+        query,
+        topEvents,
+        excludeOther: others ? '0' : '1',
+      },
       staleTime: Infinity,
-      enabled,
-    }
-  );
+    }),
+    enabled,
+  });
 
   const transformed = useMemo(
-    () => transformTopEventsStatsResponse(dataset, yAxes, result.data),
-    [yAxes, result.data, dataset]
+    () => transformTopEventsStatsResponse(dataset, yAxes, data),
+    [yAxes, data, dataset]
   );
 
   return {
-    ...result,
     data: transformed,
-  } as UseApiQueryResult<EventsStatsSeries<F>, RequestError>;
+    isPending,
+    isLoading,
+    isError,
+    error,
+  };
 }
 
 function transformTopEventsStatsResponse<F extends string>(

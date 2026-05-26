@@ -13,7 +13,7 @@ import type {
 import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 
-import type SpanTreeModel from './spanTreeModel';
+import type {SpanTreeModel} from './spanTreeModel';
 import type {
   AggregateSpanType,
   GapSpanType,
@@ -575,10 +575,7 @@ function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
   return 1;
 }
 
-export function isEventFromBrowserJavaScriptSDK(
-  event: EventTransaction | AggregateEventTransaction
-): boolean {
-  const sdkName = event.sdk?.name;
+export function isBrowserJavaScriptSDKName(sdkName: string | null | undefined): boolean {
   if (!sdkName) {
     return false;
   }

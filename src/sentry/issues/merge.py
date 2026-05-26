@@ -32,7 +32,7 @@ def handle_merge(
 
     Returns a dict with the primary group id and a list of the merged group ids.
     """
-    if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
+    if any(group.issue_category != GroupCategory.ERROR for group in group_list):
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be merged.")
 
     # Sort by:

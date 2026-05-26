@@ -463,8 +463,8 @@ def save_to_storage(destination_bucket: str, filename: str, contents: str) -> No
 )
 def export_replay_row_set_async(
     project_id: int,
-    start: datetime,
-    end: datetime,
+    start: str,
+    end: str,
     destination_bucket: str,
     max_rows_to_export: int,
     limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
@@ -489,15 +489,18 @@ def export_replay_row_set_async(
         never overlap with previous runs.
     :param num_pages: The maximum number of pages to query per task.
     """
+    start_dt = datetime.fromisoformat(start)
+    end_dt = datetime.fromisoformat(end)
+
     assert limit > 0, "Limit must be greater than 0."
     assert offset >= 0, "Offset must be greater than or equal to 0."
-    assert start < end, "Start must be before end date."
+    assert start_dt < end_dt, "Start must be before end date."
     assert num_pages > 0, "num_pages must be greater than 0."
 
     next_offset = export_replay_row_set(
         project_id,
-        start,
-        end,
+        start_dt,
+        end_dt,
         limit,
         offset,
         lambda filename, contents: save_to_storage(destination_bucket, filename, contents),
@@ -558,8 +561,8 @@ def export_replay_project_async(
     for start, end, max_rows_to_export in get_replay_date_query_ranges(project_id):
         export_replay_row_set_async.delay(
             project_id=project_id,
-            start=start,
-            end=end,
+            start=start.isoformat(),
+            end=end.isoformat(),
             destination_bucket=destination_bucket,
             max_rows_to_export=max_rows_to_export,
             limit=limit,

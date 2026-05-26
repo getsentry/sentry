@@ -74,5 +74,5 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         detail_view_page.uninstall()
 
         assert (
-            self.browser.element('[data-test-id="integration-status"]').text == "Pending Deletion"
+            self.browser.element('[data-test-id="integration-status"]').text == "pending deletion"
         )

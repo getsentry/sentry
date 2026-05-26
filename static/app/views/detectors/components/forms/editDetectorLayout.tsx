@@ -8,7 +8,7 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
@@ -18,18 +18,18 @@ import {
   DeleteDetectorAction,
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
-import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   children: React.ReactNode;
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
-  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -46,11 +46,11 @@ export function EditDetectorLayout<
   formDataToEndpointPayload,
   savedDetectorToFormData,
   mapFormErrors,
-  environment,
   extraFooterButton,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const hasPageFrame = useHasPageFrameFeature();
   const [formModel] = useState(() => new FormModel());
   const {onFieldChange} = useFormEagerValidation(formModel);
 
@@ -72,29 +72,38 @@ export function EditDetectorLayout<
   };
 
   return (
-    <EditLayout formProps={formProps}>
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
-          <EditDetectorBreadcrumbs detector={detector} />
-        </EditLayout.HeaderContent>
+    <EditLayoutDeprecated formProps={formProps}>
+      <EditLayoutDeprecated.Header maxWidth={maxWidth}>
+        <EditLayoutDeprecated.HeaderContent>
+          {hasPageFrame ? (
+            <TopBar.Slot name="title">
+              <DetectorFormBreadcrumbs />
+            </TopBar.Slot>
+          ) : (
+            <DetectorFormBreadcrumbs />
+          )}
+        </EditLayoutDeprecated.HeaderContent>
 
         <div>
-          <EditLayout.Actions>
+          <EditLayoutDeprecated.Actions>
             <MonitorFeedbackButton />
-          </EditLayout.Actions>
+          </EditLayoutDeprecated.Actions>
         </div>
 
-        <EditLayout.HeaderFields>
-          <DetectorBaseFields environment={environment} />
-          {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
-      </EditLayout.Header>
+        {previewChart && (
+          <EditLayoutDeprecated.HeaderFields>
+            {previewChart}
+          </EditLayoutDeprecated.HeaderFields>
+        )}
+      </EditLayoutDeprecated.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+      <EditLayoutDeprecated.Body maxWidth={maxWidth}>
+        {children}
+      </EditLayoutDeprecated.Body>
 
       <FormContext.Consumer>
         {({form}) => (
-          <EditLayout.Footer maxWidth={maxWidth}>
+          <EditLayoutDeprecated.Footer maxWidth={maxWidth}>
             <DisableDetectorAction detector={detector} />
             <DeleteDetectorAction detector={detector} />
             {extraFooterButton}
@@ -102,18 +111,19 @@ export function EditDetectorLayout<
               {() => (
                 <Button
                   type="submit"
-                  priority="primary"
+                  variant="primary"
                   size="sm"
-                  disabled={form?.isFormIncomplete || form?.isError || form?.isSaving}
+                  busy={form?.isSaving}
+                  disabled={form?.isFormIncomplete || form?.isError}
                   tooltipProps={{title: form ? getSubmitButtonTitle(form) : undefined}}
                 >
                   {t('Save')}
                 </Button>
               )}
             </Observer>
-          </EditLayout.Footer>
+          </EditLayoutDeprecated.Footer>
         )}
       </FormContext.Consumer>
-    </EditLayout>
+    </EditLayoutDeprecated>
   );
 }

@@ -41,7 +41,7 @@ export function OrganizationSelectHeader({
         styles={{
           container: (provided: Record<string, string>) => ({
             ...provided,
-            minWidth: `200px`,
+            minWidth: '200px',
           }),
         }}
       />

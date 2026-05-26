@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel
+
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -39,7 +41,7 @@ def fetch_threshold_type(
     return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[condition_type]
 
 
-def fetch_alert_threshold(condition: dict[str, Any], group_status: GroupStatus) -> float | None:
+def fetch_alert_threshold(condition: dict[str, Any], group_status: int) -> float | None:
     condition_type = condition["type"]
     if condition_type == Condition.ANOMALY_DETECTION:
         return 0
@@ -50,7 +52,7 @@ def fetch_alert_threshold(condition: dict[str, Any], group_status: GroupStatus) 
         return comparison_value
 
 
-def fetch_resolve_threshold(condition: dict[str, Any], group_status: GroupStatus) -> float | None:
+def fetch_resolve_threshold(condition: dict[str, Any], group_status: int) -> float | None:
     """
     This is the opposite of `fetch_alert_threshold`.
     We keep it explicitly separate to make it clear that we are fetching the resolve threshold and to consolidate tech debt.
@@ -112,7 +114,7 @@ class AlertContext:
         cls,
         detector: Detector,
         evidence_data: MetricIssueEvidenceData,
-        group_status: GroupStatus,
+        group_status: int,
         detector_priority_level: DetectorPriorityLevel,
     ) -> AlertContext:
         try:
@@ -281,15 +283,17 @@ class MetricIssueContext:
         )
 
 
-@dataclass
-class OpenPeriodContext:
+class OpenPeriodContext(BaseModel):
     """
     We want to eventually delete this class. it serves as a way to pass data around
     that we used to use `incident` for.
     """
 
+    class Config:
+        frozen = True
+
     date_started: datetime
-    date_closed: datetime | None
+    date_closed: datetime | None = None
     id: int
 
     @classmethod

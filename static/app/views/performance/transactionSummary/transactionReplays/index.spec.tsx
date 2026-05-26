@@ -13,7 +13,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
-import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 
 type InitializeOrgProps = {
@@ -76,11 +76,11 @@ const renderComponent = ({
 };
 
 describe('TransactionReplays', () => {
-  let eventsMockApi: jest.Mock<any, any>;
+  let eventsMockApi: jest.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/sdk-updates/`,
+      url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -156,7 +156,14 @@ describe('TransactionReplays', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(mockApi).toHaveBeenCalledWith(
+        mockEventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
+          }),
+        })
+      );
     });
   });
 

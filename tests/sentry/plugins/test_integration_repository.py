@@ -70,10 +70,14 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].provider == "integrations:github"
 
     def test_create_repository__repo_exists(self, get_jwt: MagicMock) -> None:
-        self._create_repo(external_id=self.config["external_id"])
+        existing = self._create_repo(external_id=self.config["external_id"])
 
-        with pytest.raises(RepoExistsError):
+        with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
+
+        assert exc_info.value.existing_repo is not None
+        assert exc_info.value.existing_repo.id == existing.id
+        assert Repository.objects.count() == 1
 
     def test_create_repository__transfer_repo_in_org(self, get_jwt: MagicMock) -> None:
         # can transfer a disabled repo from one integration to another in a single org
@@ -95,9 +99,13 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repository__repo_exists_update_name(self, get_jwt: MagicMock) -> None:
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
 
-        with pytest.raises(RepoExistsError):
+        with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
 
+        existing = exc_info.value.existing_repo
+        assert existing is not None
+        assert existing.id == repo.id
+        assert existing.name == self.repo_name
         repo.refresh_from_db()
         assert repo.name == self.repo_name
 
@@ -111,8 +119,25 @@ class IntegrationRepositoryTestCase(TestCase):
         mock_repo.side_effect = IntegrityError
         mock_on_delete.side_effect = IntegrationError
 
-        with pytest.raises(RepoExistsError):
+        with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
+
+        # Pre-existing repo is under the default external_id=123456, not the
+        # config's 654321 — the lookup by (integration_id, external_id) misses,
+        # so the race fallback has nothing to surface.
+        assert exc_info.value.existing_repo is None
+
+    def test_create_repository__integrity_error_attaches_existing(self, get_jwt: MagicMock) -> None:
+        existing = self._create_repo(external_id=self.config["external_id"])
+
+        with (
+            patch("sentry.models.Repository.objects.create", side_effect=IntegrityError),
+            pytest.raises(RepoExistsError) as exc_info,
+        ):
+            self.provider.create_repository(self.config, self.organization)
+
+        assert exc_info.value.existing_repo is not None
+        assert exc_info.value.existing_repo.id == existing.id
 
     @patch("sentry.plugins.providers.integration_repository.metrics")
     def test_create_repository__activates_existing_hidden_repo(
@@ -132,8 +157,9 @@ class IntegrationRepositoryTestCase(TestCase):
         repo.status = ObjectStatus.PENDING_DELETION
         repo.save()
 
-        with pytest.raises(RepoExistsError):
+        with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
 
+        assert exc_info.value.existing_repo is None
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION

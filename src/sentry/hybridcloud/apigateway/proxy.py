@@ -14,7 +14,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpRe
 from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import request as external_request
-from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
@@ -32,7 +32,7 @@ from sentry.types.cell import (
     get_cell_for_organization,
 )
 from sentry.utils import metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-project-preprod-artifact-download": 90.0,
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-download": 90.0,
 }
 
 # stream 0.5 MB at a time
@@ -129,8 +130,11 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if options.get("apigateway.proxy.circuit-breaker.enabled"):
         try:
             circuit_breaker = CircuitBreaker(
-                f"apigateway.proxy.{cell.name}",
-                options.get("apigateway.proxy.circuit-breaker.config"),
+                key=f"apigateway.proxy.{cell.name}",
+                config=options.get("apigateway.proxy.circuit-breaker.config"),
+                trip_strategy=CountBasedTripStrategy.from_config(
+                    options.get("apigateway.proxy.circuit-breaker.config")
+                ),
             )
         except Exception as e:
             logger.warning("apigateway.invalid-breaker-config", extra={"message": str(e)})
@@ -146,6 +150,9 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 return JsonResponse(body, status=503)
 
     target_url = urljoin(cell.address, request.path)
+
+    if settings.APIGW_WARN_REQS:
+        logger.warning("apigateway.legacy-sync-request", extra={"endpoint": target_url})
 
     content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
@@ -190,18 +197,22 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
             )
     except Timeout:
         metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
-        try:
-            if circuit_breaker is not None:
-                circuit_breaker.record_error()
-        except Exception:
-            logger.exception("Failed to record circuitbreaker failure")
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
+    except ConnectionError:
+        metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
-    if resp.status_code >= 500 and circuit_breaker is not None:
+        raise
+
+    if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
-        circuit_breaker.record_error()
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
 
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()

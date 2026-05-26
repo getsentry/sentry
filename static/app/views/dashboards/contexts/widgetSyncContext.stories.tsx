@@ -24,7 +24,7 @@ const sampleDurationTimeSeries2 = {
 
 export default Storybook.story('WidgetSyncContext', story => {
   story('Getting Started', () => {
-    const [visible, setVisible] = useState<boolean>(false);
+    const [visible, setVisible] = useState(false);
 
     return (
       <Fragment>

@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
-    feature_name = "organizations:discover"
+    feature_name = "organizations:discover-query"
 
     def setUp(self) -> None:
         super().setUp()
@@ -624,3 +624,20 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         query = DiscoverSavedQuery.objects.get(id=self.query.id)
         assert query.visits == 1
         assert query.last_visited == last_visited
+
+    def test_visit_disallow_when_no_project_access(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(user=user_no_team, organization=self.org, role="member", teams=[])
+        self.login_as(user_no_team)
+
+        with self.feature("organizations:discover-query"):
+            response = self.client.post(self.url(self.query.id))
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
+        query = DiscoverSavedQuery.objects.get(id=self.query.id)
+        assert query.visits == 1

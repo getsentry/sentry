@@ -15,7 +15,7 @@ describe('DomainViewHeader', () => {
       pathname: `/organizations/${organization.slug}/insights/frontend/`,
       query: {},
     },
-    route: `/organizations/:orgId/insights/frontend/`,
+    route: '/organizations/:orgId/insights/frontend/',
   };
 
   it('renders', () => {

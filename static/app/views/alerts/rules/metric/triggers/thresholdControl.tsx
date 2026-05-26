@@ -27,7 +27,7 @@ type State = {
   currentValue: string | null;
 };
 
-class ThresholdControl extends Component<Props, State> {
+export class ThresholdControl extends Component<Props, State> {
   state: State = {
     currentValue: null,
   };
@@ -186,5 +186,3 @@ const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonTyp
 const PercentWrapper = styled('div')`
   margin-left: ${p => p.theme.space.md};
 `;
-
-export default ThresholdControl;

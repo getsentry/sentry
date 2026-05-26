@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, timedelta
 from time import time
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
+from rest_framework.request import Request
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
@@ -106,6 +108,14 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
 
+def _wrap_request(http_request: Any, data: dict[str, Any] | None = None) -> Request:
+    drf_request = Request(http_request)
+    drf_request.user = http_request.user
+    if data is not None:
+        setattr(drf_request, "_full_data", data)
+    return drf_request
+
+
 class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
@@ -113,10 +123,9 @@ class UpdateGroupsTest(TestCase):
         resolved_group = self.create_group(status=GroupStatus.RESOLVED)
         assert resolved_group.status == GroupStatus.RESOLVED
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "unresolved", "substatus": "ongoing"}
-        request.GET = QueryDict(query_string=f"id={resolved_group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={resolved_group.id}")
+        request = _wrap_request(http_request, data={"status": "unresolved", "substatus": "ongoing"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -134,10 +143,9 @@ class UpdateGroupsTest(TestCase):
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "resolved", "substatus": None}
-        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
+        request = _wrap_request(http_request, data={"status": "resolved", "substatus": None})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -154,10 +162,11 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "ignored", "substatus": "archived_forever"}
-        request.GET = QueryDict(query_string=f"id={group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(
+            http_request, data={"status": "ignored", "substatus": "archived_forever"}
+        )
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -180,14 +189,16 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {
-            "status": "ignored",
-            "substatus": "archived_until_condition_met",
-            "statusDetails": {"ignoreDuration": 1},
-        }
-        request.GET = QueryDict(query_string=f"id={group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(
+            http_request,
+            data={
+                "status": "ignored",
+                "substatus": "archived_until_condition_met",
+                "statusDetails": {"ignoreDuration": 1},
+            },
+        )
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -226,10 +237,9 @@ class UpdateGroupsTest(TestCase):
             },
         ]:
             group = data["group"]
-            request = self.make_request(user=self.user, method="GET")
-            request.user = self.user
-            request.data = data["request_data"]
-            request.GET = QueryDict(query_string=f"id={group.id}")
+            http_request = self.make_request(user=self.user, method="GET")
+            http_request.GET = QueryDict(query_string=f"id={group.id}")
+            request = _wrap_request(http_request, data=data["request_data"])
 
             group_list = get_group_list(
                 self.organization.id, [self.project], request.GET.getlist("id")
@@ -247,10 +257,9 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"inbox": False}
-        request.GET = QueryDict(query_string=f"id={group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"inbox": False})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -265,10 +274,11 @@ class UpdateGroupsTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "ignored", "substatus": "archived_until_escalating"}
-        request.GET = QueryDict(query_string=f"id={group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(
+            http_request, data={"status": "ignored", "substatus": "archived_until_escalating"}
+        )
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -284,13 +294,13 @@ class UpdateGroupsTest(TestCase):
     def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        request = self.make_request(
+        http_request = self.make_request(
             user=self.user,
             method="GET",
             # The UI calls the endpoint with the short ID, not the group ID
             GET={"id": group.qualified_short_id},
         )
-        request.data = {"status": "resolved", "substatus": None}
+        request = _wrap_request(http_request, data={"status": "resolved", "substatus": None})
 
         assert request.GET.getlist("id")[0] == group.qualified_short_id
         assert request.GET.getlist("id")[0].isdigit() is False
@@ -372,10 +382,9 @@ class UpdateGroupsTest(TestCase):
         assert serialized["statusDetails"]["inCommit"] is not None
 
         # Step 2: Mark as unresolved
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string=f"id={group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "unresolved"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -389,7 +398,7 @@ class UpdateGroupsTest(TestCase):
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
 
-        request.data = {"status": "resolved"}
+        request = _wrap_request(http_request, data={"status": "resolved"})
         update_groups(request, group_list)
 
         group.refresh_from_db()
@@ -405,10 +414,9 @@ class UpdateGroupsTest(TestCase):
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "resolvedInNextRelease"}
-        request.GET = QueryDict(query_string=f"id={group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -430,10 +438,9 @@ class UpdateGroupsTest(TestCase):
         )
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "resolvedInNextRelease"}
-        request.GET = QueryDict(query_string=f"id={group.id}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         update_groups(request, group_list)
@@ -450,10 +457,12 @@ class MergeGroupsTest(TestCase):
         group_ids = [self.create_group().id, self.create_group().id]
         project = self.project
 
-        request = self.make_request(method="PUT")
-        request.user = self.user
-        request.data = {"merge": 1}
-        request.GET = {"id": group_ids, "project": [project.id]}
+        http_request = self.make_request(user=self.user, method="PUT")
+        qd = QueryDict(mutable=True)
+        qd.setlist("id", [str(i) for i in group_ids])
+        qd.setlist("project", [str(project.id)])
+        setattr(http_request, "GET", qd)
+        request = _wrap_request(http_request, data={"merge": 1})
 
         group_list = get_group_list(self.organization.id, [project], group_ids)
         update_groups(request, group_list)
@@ -478,10 +487,12 @@ class MergeGroupsTest(TestCase):
             self.create_group(project2).id,
         ]
 
-        request = self.make_request(method="PUT")
-        request.user = self.user
-        request.data = {"merge": 1}
-        request.GET = {"id": group_ids, "project": project_ids}
+        http_request = self.make_request(user=self.user, method="PUT")
+        qd = QueryDict(mutable=True)
+        qd.setlist("id", [str(i) for i in group_ids])
+        qd.setlist("project", [str(i) for i in project_ids])
+        setattr(http_request, "GET", qd)
+        request = _wrap_request(http_request, data={"merge": 1})
 
         group_list = get_group_list(self.organization.id, projects, group_ids)
         response = update_groups(request, group_list)
@@ -499,12 +510,14 @@ class MergeGroupsTest(TestCase):
         group_ids = [g.id for g in groups]
         project_ids = [p.id for p in projects]
 
-        request = self.make_request(method="PUT")
-        request.user = self.user
-        request.data = {"merge": 1}
+        http_request = self.make_request(user=self.user, method="PUT")
+        qd = QueryDict(mutable=True)
+        qd.setlist("id", [str(i) for i in group_ids])
         # The two groups belong to the same project, so we should be able to merge them, even though
         # we're passing multiple project ids
-        request.GET = {"id": group_ids, "project": project_ids}
+        qd.setlist("project", [str(i) for i in project_ids])
+        setattr(http_request, "GET", qd)
+        request = _wrap_request(http_request, data={"merge": 1})
 
         group_list = get_group_list(self.organization.id, projects, group_ids)
         update_groups(request, group_list)
@@ -524,10 +537,11 @@ class MergeGroupsTest(TestCase):
         group_ids = [self.create_group().id, self.create_group().id]
         project = self.project
 
-        request = self.make_request(method="PUT")
-        request.user = self.user
-        request.data = {"merge": 1}
-        request.GET = {"id": group_ids}
+        http_request = self.make_request(user=self.user, method="PUT")
+        qd = QueryDict(mutable=True)
+        qd.setlist("id", [str(i) for i in group_ids])
+        setattr(http_request, "GET", qd)
+        request = _wrap_request(http_request, data={"merge": 1})
 
         group_list = get_group_list(self.organization.id, [project], group_ids)
         update_groups(request, group_list)
@@ -577,11 +591,13 @@ class MergeGroupsTest(TestCase):
             ]
             project = self.project
 
-            request = self.make_request(method="PUT")
-            request.user = self.user
-            request.data = {"merge": 1}
-            request.GET = {"id": group_ids, "project": [project.id]}
-            request.META = {"HTTP_REFERER": referer}
+            http_request = self.make_request(user=self.user, method="PUT")
+            http_request.META = {"HTTP_REFERER": referer}
+            qd = QueryDict(mutable=True)
+            qd.setlist("id", [str(i) for i in group_ids])
+            qd.setlist("project", [str(project.id)])
+            setattr(http_request, "GET", qd)
+            request = _wrap_request(http_request, data={"merge": 1})
 
             with patch("sentry.api.helpers.group_index.update.metrics.incr") as mock_metrics_incr:
                 group_list = get_group_list(self.organization.id, [project], group_ids)
@@ -619,7 +635,9 @@ class TestHandleIsSubscribed(TestCase):
 
         subscription = GroupSubscription.objects.filter(group=self.group, user_id=self.user.id)
         assert subscription.exists()
-        assert subscription.first().is_active
+        sub = subscription.first()
+        assert sub is not None
+        assert sub.is_active
         assert resp["reason"] == "unknown"
 
 
@@ -1170,9 +1188,9 @@ class DeleteGroupsTest(TestCase):
     def test_delete_groups_simple(self, send_robust: Mock) -> None:
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        request = _wrap_request(http_request)
         hashes = ["0" * 32, "1" * 32]
         for i, group in enumerate(groups):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
@@ -1192,7 +1210,7 @@ class DeleteGroupsTest(TestCase):
         assert send_robust.called
 
     @patch(
-        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     @patch("sentry.signals.issue_deleted.send_robust")
     def test_delete_groups_deletes_seer_records_by_hash(
@@ -1202,9 +1220,9 @@ class DeleteGroupsTest(TestCase):
 
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        request = _wrap_request(http_request)
         hashes = ["0" * 32, "1" * 32]
         for i, group in enumerate(groups):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])

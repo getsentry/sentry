@@ -109,10 +109,7 @@ export class UserEmailLog extends Component<Props, State> {
           <td>
             {data.email}
             {data.event === 'bounce' && !this.state.hideButton && (
-              <Button
-                priority="danger"
-                onClick={this.removeBounce.bind(this, data.email)}
-              >
+              <Button variant="danger" onClick={this.removeBounce.bind(this, data.email)}>
                 remove bounce
               </Button>
             )}

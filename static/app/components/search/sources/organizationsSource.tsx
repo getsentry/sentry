@@ -29,18 +29,15 @@ export function OrganizationsSource({children, query, searchOptions}: Props) {
     const resolvedTs = makeResolvedTs();
     setFuzzy(
       await createFuzzySearch<ResultItem>(
-        organizations.map(
-          org =>
-            ({
-              title: org.name,
-              description: t('Switch to the %s organization', org.slug),
-              to: `/${org.slug}/`,
-              model: org,
-              sourceType: 'organization',
-              resultType: 'route',
-              resolvedTs,
-            }) as ResultItem
-        ),
+        organizations.map(org => ({
+          title: org.name,
+          description: t('Switch to the %s organization', org.slug),
+          to: `/${org.slug}/`,
+          model: org,
+          sourceType: 'organization',
+          resultType: 'route',
+          resolvedTs,
+        })),
         {
           ...searchOptions,
           keys: ['title', 'description', 'model.slug'],

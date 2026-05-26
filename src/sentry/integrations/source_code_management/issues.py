@@ -35,7 +35,7 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         params: Mapping[str, Any],
         lifecycle: EventLifecycle,
         page_number_limit: int | None = None,
-    ) -> tuple[str, list[tuple[str, str | int]]]:
+    ) -> tuple[str, list[tuple[str, str]]]:
         try:
             repos = self.get_repositories(page_number_limit=page_number_limit)
         except ApiError as exc:
@@ -67,7 +67,7 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
 
     def get_repository_choices(
         self, group: Group | None, params: Mapping[str, Any], page_number_limit: int | None = None
-    ) -> tuple[str, list[tuple[str, str | int]]]:
+    ) -> tuple[str, list[tuple[str, str]]]:
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """

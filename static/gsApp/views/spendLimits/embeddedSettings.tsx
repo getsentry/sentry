@@ -18,7 +18,7 @@ interface EmbeddedSpendLimitSettingsProps extends Omit<
 export function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
   const {initialOnDemandBudgets, onUpdate} = props;
   const [currentOnDemandBudgets, setCurrentOnDemandBudgets] =
-    useState<OnDemandBudgets>(initialOnDemandBudgets);
+    useState(initialOnDemandBudgets);
 
   const handleUpdate = ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
     setCurrentOnDemandBudgets(onDemandBudgets);

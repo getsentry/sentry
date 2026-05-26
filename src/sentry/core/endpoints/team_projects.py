@@ -31,8 +31,8 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
-    set_default_project_auto_open_prs,
     set_default_project_autofix_automation_tuning,
+    set_default_project_seer_preferences,
     set_default_project_seer_scanner_automation,
 )
 from sentry.signals import project_created
@@ -56,7 +56,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)
-    set_default_project_auto_open_prs(organization, project)
+    set_default_project_seer_preferences(organization, project)
 
 
 class ProjectPostSerializer(serializers.Serializer):
@@ -138,7 +138,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (TeamProjectPermission,)
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
         operation_id="List a Team's Projects",
@@ -162,9 +162,13 @@ class TeamProjectsEndpoint(TeamEndpoint):
         Return a list of projects bound to a team.
         """
         if request.auth and hasattr(request.auth, "project"):
-            queryset = Project.objects.filter(id=request.auth.project.id)
+            queryset = Project.objects.filter(id=request.auth.project.id).select_related(
+                "organization"
+            )
         else:
-            queryset = Project.objects.filter(teams=team, status=ObjectStatus.ACTIVE)
+            queryset = Project.objects.filter(
+                teams=team, status=ObjectStatus.ACTIVE
+            ).select_related("organization")
 
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d", "30d"):

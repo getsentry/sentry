@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from snuba_sdk import DeleteQuery, Request
 from taskbroker_client.retry import Retry
 
@@ -13,12 +14,17 @@ from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.search.eap.occurrences.query_utils import (
+    build_group_id_in_filter,
+    build_keyset_pagination_filter,
+)
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -39,13 +45,14 @@ class RetryTask(Exception):
     namespace=deletion_tasks,
     processing_deadline_duration=60 * 20,
     retry=Retry(
-        on=(RetryTask,),
+        on=(Exception,),
         times=MAX_RETRIES,
         delay=60 * 5,
+        ignore=(DeleteAborted,),
     ),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(DeleteAborted,),
 )
-@retry(exclude=(DeleteAborted,))
 @track_group_async_operation
 def delete_events_for_groups_from_nodestore_and_eventstore(
     organization_id: int,
@@ -155,12 +162,20 @@ def fetch_events_from_eventstore(
 ) -> list[Event]:
     logger.info("Fetching %s events for deletion.", limit)
     conditions = []
+    eap_conditions: TraceItemFilter | None = build_group_id_in_filter(group_ids)
     if last_event_id and last_event_timestamp:
         conditions.extend(
             [
                 ["timestamp", "<=", last_event_timestamp],
                 [["timestamp", "<", last_event_timestamp], ["event_id", "<", last_event_id]],
             ]
+        )
+        eap_conditions = and_trace_item_filters(
+            eap_conditions,
+            build_keyset_pagination_filter(
+                timestamp_value=last_event_timestamp,
+                event_id=last_event_id,
+            ),
         )
 
     events = eventstore.backend.get_unfetched_events(
@@ -169,6 +184,7 @@ def fetch_events_from_eventstore(
             project_ids=[project_id],
             group_ids=group_ids,
         ),
+        eap_conditions=eap_conditions,
         limit=limit,
         referrer=referrer,
         orderby=["-timestamp", "-event_id"],

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from rest_framework import serializers
 
+from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
@@ -58,14 +59,20 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
     Raises:
         serializers.ValidationError: If the aggregate is invalid
     """
-    try:
-        trace_metric = extract_trace_metric_from_aggregate(aggregate)
-        if trace_metric is None:
-            raise InvalidSearchQuery(
-                f"Trace metrics aggregate {aggregate} must specify metric name, type, and unit"
+    if is_equation(aggregate):
+        _, _, terms = parse_arithmetic(strip_equation(aggregate))
+    else:
+        terms = [aggregate]
+
+    for term in terms:
+        try:
+            trace_metric = extract_trace_metric_from_aggregate(term)
+            if trace_metric is None:
+                raise InvalidSearchQuery(
+                    f"Trace metrics aggregate {term} must specify metric name, type, and unit"
+                )
+        except InvalidSearchQuery as e:
+            logger.exception(f"Invalid trace metrics aggregate: {term} {e}")
+            raise serializers.ValidationError(
+                {"aggregate": f"Invalid trace metrics aggregate: {term}"}
             )
-    except InvalidSearchQuery as e:
-        logger.exception("Invalid trace metrics aggregate: %s %s", aggregate, e)
-        raise serializers.ValidationError(
-            {"aggregate": f"Invalid trace metrics aggregate: {aggregate}"}
-        )

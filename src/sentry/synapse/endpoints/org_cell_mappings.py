@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import Endpoint, internal_control_silo_endpoint
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.synapse.endpoints.authentication import (
     SynapseAuthPermission,
@@ -13,7 +13,7 @@ from sentry.synapse.paginator import SynapsePaginator
 from sentry.types.cell import get_global_directory
 
 
-@control_silo_endpoint
+@internal_control_silo_endpoint
 class OrgCellMappingsEndpoint(Endpoint):
     """
     Returns the organization-to-cell mappings for all orgs in pages.

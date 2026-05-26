@@ -89,7 +89,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            sentry_url = f"/api/0/issues/{group.id}/plugins/{self.slug}/autocomplete"
+            sentry_url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/plugins/{self.slug}/autocomplete"
             fkwargs["url"] = "{}?jira_url={}".format(
                 sentry_url,
                 quote_plus(field_meta["autoCompleteUrl"]),

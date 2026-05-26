@@ -17,7 +17,7 @@ type Props = {
 
 export function SharedGroupHeader({group}: Props) {
   const date = new Date(
-    (group.latestEvent?.dateCreated ?? group.latestEvent?.dateReceived) as string
+    (group.latestEvent?.dateCreated ?? group.latestEvent?.dateReceived)!
   );
   const event = group.latestEvent;
 

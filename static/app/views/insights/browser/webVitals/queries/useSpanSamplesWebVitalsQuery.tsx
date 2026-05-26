@@ -137,7 +137,7 @@ export function useSpanSamplesWebVitalsQuery({
               row[SpanFields.USER_IP],
             replayId: row[SpanFields.REPLAY_ID] ?? row[SpanFields.REPLAYID],
             'profile.id': row[SpanFields.PROFILEID] ?? row[SpanFields.PROFILE_ID],
-            totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
+            totalScore: Math.round((row['measurements.score.total'] ?? 0) * 100),
             inpScore: Math.round((row[SpanFields.INP_SCORE_RATIO] ?? 0) * 100),
             lcpScore: Math.round((row[SpanFields.LCP_SCORE_RATIO] ?? 0) * 100),
             clsScore: Math.round((row[SpanFields.CLS_SCORE_RATIO] ?? 0) * 100),

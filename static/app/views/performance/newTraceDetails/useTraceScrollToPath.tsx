@@ -29,7 +29,7 @@ export function getScrollToPath(): UseTraceScrollToPath {
 
   if (scrollToNode && (scrollToNode.path || scrollToNode.eventId)) {
     return {
-      eventId: scrollToNode.eventId as string,
+      eventId: scrollToNode.eventId!,
       path: scrollToNode.path,
     };
   }

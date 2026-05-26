@@ -47,7 +47,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import resolve_column, resolve_conditions
+from sentry.utils.snuba import get_snuba_column_name, resolve_column, resolve_conditions
 
 
 def get_actions(group: Group) -> list[tuple[str, str]]:
@@ -281,7 +281,7 @@ class _Filtered(TypedDict):
 class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
-    shareId: NotRequired[str]
+    shareId: NotRequired[str | None]
     shortId: NotRequired[str]
     title: NotRequired[str]
     culprit: NotRequired[str | None]
@@ -297,13 +297,14 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     priorityLockedAt: NotRequired[datetime | None]
     seerFixabilityScore: NotRequired[float | None]
     seerAutofixLastTriggered: NotRequired[datetime | None]
+    seerExplorerAutofixLastTriggered: NotRequired[datetime | None]
     project: NotRequired[GroupProjectResponse]
     type: NotRequired[str]
     issueType: NotRequired[str]
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     numComments: NotRequired[int]
-    assignedTo: NotRequired[ActorSerializerResponse]
+    assignedTo: NotRequired[ActorSerializerResponse | None]
     isBookmarked: NotRequired[bool]
     isSubscribed: NotRequired[bool]
     subscriptionDetails: NotRequired[SubscriptionDetails | None]
@@ -489,8 +490,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item]["sentryAppIssues"] = sentry_app_issues
 
-        if self._expand("latestEventHasAttachments") and features.has(
-            "organizations:event-attachments", item.project.organization
+        if (
+            self._expand("latestEventHasAttachments")
+            and item_list
+            and features.has("organizations:event-attachments", item_list[0].project.organization)
         ):
             for item in item_list:
                 latest_event = item.get_latest_event()
@@ -596,7 +599,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 generic_issue_ids.append(group.id)
 
         error_conditions = resolve_conditions(conditions, resolve_column(Dataset.Discover))
-        issue_conditions = resolve_conditions(conditions, resolve_column(Dataset.IssuePlatform))
+        issue_conditions = resolve_conditions(
+            conditions,
+            functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform),
+        )
 
         get_range = functools.partial(
             snuba_tsdb.get_range,

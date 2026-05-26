@@ -1,4 +1,5 @@
-import * as Layout from 'sentry/components/layouts/thirds';
+import {Stack} from '@sentry/scraps/layout';
+
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -13,7 +14,7 @@ import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/sett
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
-export type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
+type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 interface Props {
   children: React.ReactNode;
@@ -54,11 +55,11 @@ export function ModulePageProviders({
       storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <Layout.Page>
+        <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
           </NoProjectMessage>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

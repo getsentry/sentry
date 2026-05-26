@@ -32,6 +32,7 @@ from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
+from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
@@ -296,7 +297,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
                 slug=slug_reservation.slug,
                 organization_id=slug_reservation.organization_id,
                 user_id=slug_reservation.user_id,
-                cell_name=slug_reservation.region_name,
+                cell_name=slug_reservation.cell_name,
                 reservation_type=slug_reservation.reservation_type,
                 organization_slug_reservation_id=slug_reservation.id,
             )
@@ -397,3 +398,15 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         ProjectKeyMapping.objects.filter(
             project_key_id=project_key_id, cell_name=cell_name
         ).delete()
+
+    def upsert_organization_avatar_replica(
+        self, *, organization_id: int, avatar_type: int, avatar_ident: str
+    ) -> None:
+        with transaction.atomic(router.db_for_write(OrganizationAvatarReplica)):
+            OrganizationAvatarReplica.objects.update_or_create(
+                organization_id=organization_id,
+                defaults={"avatar_type": avatar_type, "avatar_ident": avatar_ident},
+            )
+
+    def delete_organization_avatar_replica(self, *, organization_id: int) -> None:
+        OrganizationAvatarReplica.objects.filter(organization_id=organization_id).delete()

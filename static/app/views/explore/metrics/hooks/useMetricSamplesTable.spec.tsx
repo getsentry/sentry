@@ -54,21 +54,18 @@ describe('useMetricSamplesTable', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(
-      () =>
-        useMetricSamplesTable({
-          traceMetric: {
-            name: 'test metric',
-            type: 'counter',
-          },
-          fields: [],
-          limit: 100,
-          ingestionDelaySeconds: 0,
-        }),
-      {
-        additionalWrapper: MockMetricQueryParamsContext,
-      }
-    );
+    renderHookWithProviders(useMetricSamplesTable, {
+      additionalWrapper: MockMetricQueryParamsContext,
+      initialProps: {
+        traceMetric: {
+          name: 'test metric',
+          type: 'counter',
+        },
+        fields: [],
+        limit: 100,
+        ingestionDelaySeconds: 0,
+      },
+    });
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
@@ -105,21 +102,18 @@ describe('useMetricSamplesTable', () => {
       method: 'GET',
     });
 
-    renderHookWithProviders(
-      () =>
-        useMetricSamplesTable({
-          traceMetric: {
-            name: 'test.metric',
-            type: 'counter',
-          },
-          fields: ['trace', 'timestamp'],
-          limit: 50,
-          ingestionDelaySeconds: 0,
-        }),
-      {
-        additionalWrapper: MockMetricQueryParamsContext,
-      }
-    );
+    renderHookWithProviders(useMetricSamplesTable, {
+      additionalWrapper: MockMetricQueryParamsContext,
+      initialProps: {
+        traceMetric: {
+          name: 'test.metric',
+          type: 'counter',
+        },
+        fields: ['trace', 'timestamp'],
+        limit: 50,
+        ingestionDelaySeconds: 0,
+      },
+    });
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledTimes(1);
@@ -150,6 +144,49 @@ describe('useMetricSamplesTable', () => {
           referrer: 'api.explore.metric-samples-table',
           sampling: SAMPLING_MODE.NORMAL,
           sort: '-timestamp',
+        }),
+      })
+    );
+  });
+
+  it('uses relative delayed periods for ingestion delay windows', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          fields: {},
+        },
+      },
+      method: 'GET',
+    });
+
+    renderHookWithProviders(useMetricSamplesTable, {
+      additionalWrapper: MockMetricQueryParamsContext,
+      initialProps: {
+        traceMetric: {
+          name: 'test.metric',
+          type: 'counter',
+        },
+        fields: ['trace'],
+        limit: 50,
+        ingestionDelaySeconds: 120,
+      },
+    });
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriodStart: '24h',
+          statsPeriodEnd: '120s',
+          statsPeriod: undefined,
+          start: undefined,
+          end: undefined,
         }),
       })
     );

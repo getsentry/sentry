@@ -128,9 +128,9 @@ describe('AddFilter', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
-    await userEvent.click(screen.getByText('Metrics'));
+    await userEvent.click(screen.getByText('Application Metrics'));
 
-    expect(screen.getByText('Select Metrics Tag')).toBeInTheDocument();
+    expect(screen.getByText('Select Application Metrics Tag')).toBeInTheDocument();
     expect(screen.getByText(mockFilterKeys['browser.name']!.key)).toBeInTheDocument();
     expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
   });
@@ -146,7 +146,7 @@ describe('AddFilter', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
-    await userEvent.click(screen.getByText('Metrics'));
+    await userEvent.click(screen.getByText('Application Metrics'));
     await userEvent.click(
       screen.getByRole('option', {name: mockFilterKeys.environment!.key})
     );

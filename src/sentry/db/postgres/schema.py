@@ -76,10 +76,53 @@ class MakeBtreeGistSchemaEditor(PostgresDatabaseSchemaEditor):
 
 class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):
     add_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.add_field)
-    alter_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.alter_field)
     alter_db_tablespace = translate_unsafeoperation_exception(
         PostgresDatabaseSchemaEditor.alter_db_tablespace
     )
+
+    @translate_unsafeoperation_exception
+    def alter_field(
+        self, model: type[Model], old_field: Field, new_field: Field, strict: bool = False
+    ) -> None:
+        self._check_alter_indexed_column_type(model, old_field, new_field)
+        PostgresDatabaseSchemaEditor.alter_field(self, model, old_field, new_field, strict)
+
+    def _check_alter_indexed_column_type(
+        self, model: type[Model], old_field: Field, new_field: Field
+    ) -> None:
+        """
+        Block column type changes (including varchar length changes) when the column is
+        part of any index, unique constraint, or primary key. Postgres does not rewrite
+        the table when a varchar length is increased, but the column's statistics get
+        invalidated on every index referencing it. The planner can then fall back to
+        bad plans — e.g. scanning the primary key index — which has caused hard
+        production downtime for us.
+        """
+        old_type = old_field.db_parameters(connection=self.connection)["type"]
+        new_type = new_field.db_parameters(connection=self.connection)["type"]
+        if old_type is None or new_type is None or old_type == new_type:
+            return
+
+        column = old_field.column
+        with self.connection.cursor() as cursor:
+            constraints = self.connection.introspection.get_constraints(
+                cursor, model._meta.db_table
+            )
+        index_names = sorted(
+            name
+            for name, info in constraints.items()
+            if (info["index"] or info["unique"] or info["primary_key"])
+            and column in info["columns"]
+        )
+        if index_names:
+            raise UnsafeOperationException(
+                f"Altering the type of column {model.__name__}.{old_field.name} "
+                f"from `{old_type}` to `{new_type}` is unsafe because the column is "
+                f"part of the following index(es): {', '.join(index_names)}. "
+                f"Changing the column type invalidates Postgres' column statistics, "
+                f"which can cause the planner to pick bad plans and has resulted in hard downtime for us.\n"
+                f"More info: https://develop.sentry.dev/database-migrations/#altering-column-types"
+            )
 
     def alter_db_table(self, model, old_db_table, new_db_table):
         """

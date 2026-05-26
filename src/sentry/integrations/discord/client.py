@@ -137,7 +137,7 @@ class DiscordClient(ApiClient):
         code: str | int,
         error: Exception | None = None,
         resp: Response | None = None,
-        extra: Mapping[str, str] | None = None,
+        extra: Mapping[str, str | int] | None = None,
     ) -> None:
         """
         Handle response from Discord by logging and capturing metrics

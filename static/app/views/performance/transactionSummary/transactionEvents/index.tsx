@@ -8,6 +8,7 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
@@ -20,6 +21,7 @@ import {
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 import {EventsContent} from './content';
+import {EAPSampledEventsTab} from './eapSampledEventsTab';
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,
@@ -33,6 +35,11 @@ import {
 type PercentileValues = Record<EventsDisplayFilterName, number>;
 
 function TransactionEvents() {
+  const shouldUseEAP = useTransactionSummaryEAP();
+  return shouldUseEAP ? <EAPSampledEventsTab /> : <LegacyTransactionEvents />;
+}
+
+function LegacyTransactionEvents() {
   const {organization, eventView, transactionName, setError, projectId, projects} =
     useTransactionSummaryContext();
 

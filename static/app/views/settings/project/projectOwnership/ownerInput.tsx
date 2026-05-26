@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
   dateUpdated: string | null;
@@ -82,30 +83,30 @@ export function OwnerInput({
           page,
           organization,
           net_change:
-            (text?.split('\n').filter(x => x).length ?? 0) -
-            initialText.split('\n').filter(x => x).length,
+            (text?.split('\n').filter(Boolean).length ?? 0) -
+            initialText.split('\n').filter(Boolean).length,
         });
       })
       .catch(caught => {
-        setError(caught.responseJSON);
-        if (caught.status === 403) {
-          addErrorMessage(
-            t(
-              "You don't have permission to modify issue ownership rules for this project"
-            )
-          );
-        } else if (
-          caught.status === 400 &&
-          caught.responseJSON.raw?.[0].startsWith('Invalid rule owners:')
-        ) {
-          addErrorMessage(
-            t(
-              'Unable to save issue ownership rule changes: %s',
-              caught.responseJSON.raw[0]
-            )
-          );
-        } else {
-          addErrorMessage(t('Unable to save issue ownership rule changes'));
+        if (caught instanceof RequestError) {
+          const inputError = caught.responseJSON as InputError;
+          setError(inputError);
+          if (caught.status === 403) {
+            addErrorMessage(
+              t(
+                "You don't have permission to modify issue ownership rules for this project"
+              )
+            );
+          } else if (
+            caught.status === 400 &&
+            inputError.raw?.[0]?.startsWith('Invalid rule owners:')
+          ) {
+            addErrorMessage(
+              t('Unable to save issue ownership rule changes: %s', inputError.raw[0])
+            );
+          } else {
+            addErrorMessage(t('Unable to save issue ownership rule changes'));
+          }
         }
       });
 
@@ -166,7 +167,7 @@ export function OwnerInput({
             </Button>
             <Button
               size="sm"
-              priority="primary"
+              variant="primary"
               onClick={handleUpdateOwnership}
               disabled={disabled || !hasChanges}
             >

@@ -1,12 +1,14 @@
 import {useMemo} from 'react';
+import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {
-  getAggregateAlias,
   type AggregationOutputType,
+  getAggregateAlias,
 } from 'sentry/utils/discover/fields';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   Dataset,
@@ -28,14 +30,14 @@ interface UseMetricDetectorSeriesProps {
   comparisonDelta?: number;
   end?: string | null;
   extrapolationMode?: ExtrapolationMode;
-  options?: Partial<UseApiQueryOptions<any>>;
+  options?: {enabled?: boolean};
   start?: string | null;
   statsPeriod?: string | null;
 }
 
 interface UseMetricDetectorSeriesResult {
   comparisonSeries: Series[];
-  error: RequestError | null;
+  error: Error | null;
   isLoading: boolean;
   outputType: AggregationOutputType | undefined;
   series: Series[];
@@ -90,14 +92,17 @@ export function useMetricDetectorSeries({
     extrapolationMode,
   });
 
-  const {data, isLoading, error} = useApiQuery<
-    Parameters<typeof datasetConfig.transformSeriesQueryData>[0]
-  >(seriesQueryOptions, {
-    // 5 minutes
-    staleTime: 5 * 60 * 1000,
-    retry: (failureCount, apiError: RequestError) => {
+  type SeriesData = Parameters<typeof datasetConfig.transformSeriesQueryData>[0];
+  const {data, isLoading, error} = useQuery({
+    ...(seriesQueryOptions as UseQueryOptions<
+      ApiResponse<SeriesData>,
+      Error,
+      SeriesData,
+      ApiQueryKey
+    >),
+    retry: (failureCount, err) => {
       // Disable retries for 400 status code
-      if (apiError?.status === 400) {
+      if (err instanceof RequestError && err.status === 400) {
         return false;
       }
 

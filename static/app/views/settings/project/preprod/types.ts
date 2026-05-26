@@ -10,13 +10,19 @@ const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const
 
 export type MeasurementType = (typeof ALL_MEASUREMENTS)[number];
 
-export const ALL_ARTIFACT_TYPES = [
-  'all_artifacts',
+/**
+ * Canonical list of metrics artifact types.
+ * Keep in sync with PreprodArtifactSizeMetrics.MetricsArtifactType.as_choices() in
+ * src/sentry/preprod/models.py
+ */
+export const METRICS_ARTIFACT_TYPES = [
   'main_artifact',
   'watch_artifact',
   'android_dynamic_feature_artifact',
   'app_clip_artifact',
 ] as const;
+
+const ALL_ARTIFACT_TYPES = ['all_artifacts', ...METRICS_ARTIFACT_TYPES] as const;
 
 export type ArtifactType = (typeof ALL_ARTIFACT_TYPES)[number];
 
@@ -124,12 +130,21 @@ export function getMetricLabelForPlatform(
   platform: Platform | undefined
 ): string {
   if (platform === 'android' && metric === 'install_size') {
-    return 'Uncompressed size';
+    return 'Uncompressed Size';
   }
   if (platform === 'apple' && metric === 'install_size') {
-    return 'Install size';
+    return 'Install Size';
   }
   return getMetricLabel(metric);
+}
+
+export function getMetricLabelForArtifactType(
+  metric: MetricType,
+  artifactType: string | undefined
+): string {
+  const platform =
+    artifactType === 'xcarchive' ? 'apple' : artifactType ? 'android' : undefined;
+  return getMetricLabelForPlatform(metric, platform);
 }
 
 export function getMeasurementLabel(measurement: MeasurementType): string {
@@ -175,4 +190,8 @@ export function bytesToMB(bytes: number): number {
 
 export function mbToBytes(mb: number): number {
   return mb * 1000 * 1000;
+}
+
+export function isDiffThreshold(thresholdType: MeasurementType): boolean {
+  return thresholdType === 'absolute_diff' || thresholdType === 'relative_diff';
 }

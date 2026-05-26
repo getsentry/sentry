@@ -26,6 +26,7 @@ from sentry.api.paginator import (
     OffsetPaginator,
 )
 from sentry.api.release_search import (
+    ENVIRONMENT_KEY,
     FINALIZED_KEY,
     RELEASE_CREATED_KEY,
     RELEASE_FREE_TEXT_KEY,
@@ -134,7 +135,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             elif value_o == "latest":
                 latest_releases = get_latest_release(
                     projects=filter_params["project_id"],
-                    environments=filter_params.get("environment"),
+                    environments=filter_params.get("environment_objects"),
                     organization_id=organization.id,
                 )
                 query_q = Q(version__in=latest_releases)
@@ -178,6 +179,17 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                 **{
                     f"date_added__{OPERATOR_TO_DJANGO[search_filter.operator]}": search_filter.value.raw_value
                 }
+            )
+
+        if search_filter.key.name == ENVIRONMENT_KEY:
+            negated = search_filter.operator in ("!=", "NOT IN")
+            kind, value_o = search_filter.value.classify_and_format_wildcard()
+            lookup_map = {"infix": "icontains", "prefix": "istartswith", "suffix": "iendswith"}
+            queryset = queryset.filter_by_environment(
+                value_o,
+                filter_params["project_id"],
+                lookup=lookup_map.get(kind, "in"),
+                negated=negated,
             )
 
     return queryset
@@ -323,10 +335,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         parameters=[CursorQueryParam],
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        if (
-            features.has("organizations:releases-serializer-v2", organization, actor=request.user)
-            or request.headers.get("X-Performance-Optimizations") == "enabled"
-        ):
+        if request.headers.get("X-Performance-Optimizations") == "enabled":
             return self.__get_new(request, organization)
         else:
             return self.__get_old(request, organization)

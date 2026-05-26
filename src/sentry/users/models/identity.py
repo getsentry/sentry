@@ -115,7 +115,7 @@ class IdentityManager(BaseManager["Identity"]):
             SlackIntegrationIdentityLinked(
                 provider=IntegrationProviderSlug.SLACK.value,
                 # Note that prior to circa March 2023 this was user.actor_id. It changed
-                # when actor ids were no longer stable between regions for the same user
+                # when actor ids were no longer stable between cells for the same user
                 actor_id=user.id,
                 actor_type="user",
             )
@@ -218,15 +218,15 @@ class Identity(Model):
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         with outbox_context(transaction.atomic(router.db_for_write(Identity))):
-            # Fan out to all regions to ensure HybridCloudForeignKey cascade works even without org memberships
-            region_names = find_all_cell_names()
-            for region_name in region_names:
+            # Fan out to all cells to ensure HybridCloudForeignKey cascade works even without org memberships
+            cell_names = find_all_cell_names()
+            for cell_name in cell_names:
                 ControlOutbox(
                     shard_scope=OutboxScope.USER_SCOPE,
                     shard_identifier=self.user_id,
                     object_identifier=self.id,
                     category=OutboxCategory.IDENTITY_UPDATE,
-                    cell_name=region_name,
+                    cell_name=cell_name,
                 ).save()
             return super().delete(*args, **kwargs)
 

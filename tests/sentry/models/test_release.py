@@ -1557,12 +1557,12 @@ class ClearCommitsTestCase(TestCase):
 class ReleaseGetUnusedFilterTestCase(TestCase):
     """Test the Release.get_unused_filter() method logic"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.cutoff_date = timezone.now() - timedelta(days=30)
 
-    def test_get_unused_filter_includes_old_releases_without_dependencies(self):
+    def test_get_unused_filter_includes_old_releases_without_dependencies(self) -> None:
         """Old releases with no dependencies should be included in unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1575,7 +1575,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_recently_added_releases(self):
+    def test_get_unused_filter_excludes_recently_added_releases(self) -> None:
         """Recently added releases should be excluded from unused filter"""
         recent_release = self.create_release(
             project=self.project,
@@ -1588,7 +1588,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert recent_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_groups(self):
+    def test_get_unused_filter_excludes_releases_with_groups(self) -> None:
         """Releases referenced by groups should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1602,7 +1602,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_group_environments(self):
+    def test_get_unused_filter_excludes_releases_with_group_environments(self) -> None:
         """Releases referenced by GroupEnvironment should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1622,7 +1622,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_group_history(self):
+    def test_get_unused_filter_excludes_releases_with_group_history(self) -> None:
         """Releases referenced by GroupHistory should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1642,7 +1642,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_group_resolutions(self):
+    def test_get_unused_filter_excludes_releases_with_group_resolutions(self) -> None:
         """Releases referenced by GroupResolution should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1660,7 +1660,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_distributions(self):
+    def test_get_unused_filter_excludes_releases_with_distributions(self) -> None:
         """Releases with distributions should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1678,7 +1678,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_deploys(self):
+    def test_get_unused_filter_excludes_releases_with_deploys(self) -> None:
         """Releases with deploys should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1697,7 +1697,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_ignores_safe_child_relations(self):
+    def test_get_unused_filter_ignores_safe_child_relations(self) -> None:
         """Safe child relations should not prevent inclusion in unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1730,7 +1730,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         # These relations should not prevent the release from being considered unused
         assert old_release in unused_releases
 
-    def test_get_unused_filter_multiple_releases_mixed_dependencies(self):
+    def test_get_unused_filter_multiple_releases_mixed_dependencies(self) -> None:
         """Test filter correctly handles multiple releases with different dependency patterns"""
         # Create various releases with different dependency patterns
         unused_old_release = self.create_release(
@@ -1773,7 +1773,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         assert release_with_group not in unused_releases
         assert release_with_deploy not in unused_releases
 
-    def test_get_unused_filter_with_latest_repo_release_environment(self):
+    def test_get_unused_filter_with_latest_repo_release_environment(self) -> None:
         """Test that LatestRepoReleaseEnvironment subquery works correctly"""
         old_release = self.create_release(
             project=self.project,
@@ -1799,7 +1799,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_with_recent_activity(self):
+    def test_get_unused_filter_with_recent_activity(self) -> None:
         """Test that ReleaseProjectEnvironment last_seen subquery works correctly"""
         old_release = self.create_release(
             project=self.project,
@@ -1825,7 +1825,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_release_that_is_first_release_of_group(self):
+    def test_get_unused_filter_excludes_release_that_is_first_release_of_group(self) -> None:
         """Test that a release is not considered unused if it is the first_release of any group"""
         old_release = self.create_release(
             project=self.project,
@@ -1851,7 +1851,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert Group.objects.filter(first_release=old_release).exists() is True
 
-    def test_get_unused_filter_excludes_releases_with_recent_deploys(self):
+    def test_get_unused_filter_excludes_releases_with_recent_deploys(self) -> None:
         """Test that releases with recent deploys are not considered unused"""
         old_release = self.create_release(
             project=self.project,
@@ -1879,7 +1879,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_allows_cleanup_with_old_deploys(self):
+    def test_get_unused_filter_allows_cleanup_with_old_deploys(self) -> None:
         """Test that releases with old deploys can be cleaned up"""
         old_release = self.create_release(
             project=self.project,
@@ -1902,7 +1902,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_recent_distributions(self):
+    def test_get_unused_filter_excludes_releases_with_recent_distributions(self) -> None:
         """Test that releases with recent distributions are not considered unused"""
         old_release = self.create_release(
             project=self.project,
@@ -1929,7 +1929,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_allows_cleanup_with_old_distributions(self):
+    def test_get_unused_filter_allows_cleanup_with_old_distributions(self) -> None:
         """Test that releases with old distributions can be cleaned up"""
         old_release = self.create_release(
             project=self.project,
@@ -1951,7 +1951,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_recent_group_releases(self):
+    def test_get_unused_filter_excludes_releases_with_recent_group_releases(self) -> None:
         """Test that releases with recent group releases are not considered unused"""
         old_release = self.create_release(
             project=self.project,
@@ -1981,7 +1981,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_allows_cleanup_with_old_group_releases(self):
+    def test_get_unused_filter_allows_cleanup_with_old_group_releases(self) -> None:
         """Test that releases with old group releases can be cleaned up"""
         old_release = self.create_release(
             project=self.project,
@@ -2007,7 +2007,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_old_group_resolutions(self):
+    def test_get_unused_filter_excludes_releases_with_old_group_resolutions(self) -> None:
         """Test that releases with old GroupResolutions are still protected"""
         old_release = self.create_release(
             project=self.project,

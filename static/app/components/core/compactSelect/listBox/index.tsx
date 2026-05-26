@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -12,7 +12,8 @@ import {
   ListWrap,
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect';
-import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -21,11 +22,7 @@ import type {FormSize} from 'sentry/utils/theme';
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
 
-// explicitly using object here because Record<PropertyKey, unknown> requires an index signature
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type ObjectLike = object;
-
-interface ListBoxProps<T extends ObjectLike>
+interface ListBoxProps<T extends ListItemBase>
   extends
     Omit<
       React.HTMLAttributes<HTMLUListElement>,
@@ -69,19 +66,15 @@ interface ListBoxProps<T extends ObjectLike>
    */
   label?: React.ReactNode;
   /**
-   * To be called when the user toggle-selects a whole section (applicable when sections
-   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
-   * and before `onChange`.
-   */
-  onSectionToggle?: (
-    section: SelectSection<SelectKey>,
-    type: 'select' | 'unselect'
-  ) => void;
-  /**
    * Used to determine whether to render the list box items or not
    */
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
+  /**
+   * Ref forwarded to the inner scroll container div (the element the virtualizer
+   * uses as its scroll element). Useful for callers that need to reset scrollTop.
+   */
+  scrollContainerRef?: React.Ref<HTMLDivElement>;
   /**
    * Whether the select has a search input field.
    */
@@ -107,6 +100,10 @@ interface ListBoxProps<T extends ObjectLike>
    * If true, virtualization will be enabled for the list
    */
   virtualized?: boolean;
+  /**
+   * Vertical padding (in px) added to the virtualizer height. Defaults to 4 (theme.space.xs).
+   */
+  virtualizedListPadding?: number;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -122,23 +119,25 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-export function ListBox<T extends ObjectLike>({
+export function ListBox<T extends ListItemBase>({
   ref,
   listState,
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
-  onSectionToggle,
   sizeLimitMessage,
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
+  hasSearch,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
   onAction,
   virtualized,
+  virtualizedListPadding = listPaddingVertical,
+  scrollContainerRef,
   className,
   ...props
 }: ListBoxProps<T>) {
@@ -185,18 +184,36 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
+  const virtualizer = useVirtualizedItems({
+    listItems,
+    virtualized,
+    size,
+    listPadding: virtualizedListPadding,
+  });
+
+  useEffect(() => {
+    if (!virtualized || listState.selectionManager.focusedKey === null) {
+      return;
+    }
+
+    const focusedIndex = listItems.findIndex(
+      item => item.key === listState.selectionManager.focusedKey
+    );
+    if (focusedIndex !== -1) {
+      virtualizer.scrollToIndex(focusedIndex);
+    }
+  }, [virtualized, listItems, listState.selectionManager.focusedKey, virtualizer]);
 
   const refs = useMemo(() => {
-    const scrollContainerRef = (scrollContainer: HTMLDivElement | null) => {
+    const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
       if (hasEverOverflowed || listItems.length === 0 || !scrollContainer) {
         return;
       }
 
       setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
     };
-    return mergeRefs(scrollContainerRef, virtualizer.scrollElementRef);
-  }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems]);
+    return mergeRefs(overflowTracker, virtualizer.scrollElementRef, scrollContainerRef);
+  }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (
     <Fragment>
@@ -222,7 +239,10 @@ export function ListBox<T extends ObjectLike>({
           >
             {overlayIsOpen &&
               virtualizer.items.map(row => {
-                const item = listItems[row.index]!;
+                const item = listItems[row.index];
+                if (!item) {
+                  return null;
+                }
                 if (item.type === 'section') {
                   return (
                     <ListBoxSection
@@ -231,7 +251,6 @@ export function ListBox<T extends ObjectLike>({
                       item={item}
                       listState={listState}
                       hiddenOptions={hiddenOptions}
-                      onToggle={onSectionToggle}
                       size={size}
                       showSectionHeaders={showSectionHeaders}
                       showDetails={showDetails}
@@ -251,7 +270,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!searchable && hiddenOptions.size > 0 && (
+            {!searchable && !hasSearch && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>
@@ -276,12 +295,14 @@ const heightEstimations = {
  */
 const listPaddingVertical = 4;
 
-function useVirtualizedItems<T extends ObjectLike>({
+function useVirtualizedItems<T extends ListItemBase>({
   listItems,
   virtualized = false,
   size,
+  listPadding,
 }: {
   listItems: Array<Node<T>>;
+  listPadding: number;
   size: FormSize;
   virtualized: boolean | undefined;
 }) {
@@ -293,7 +314,8 @@ function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
-      if (item?.value && 'details' in item.value) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (item?.props?.details) {
         return heightEstimation.large;
       }
       return heightEstimation.regular;
@@ -305,6 +327,9 @@ function useVirtualizedItems<T extends ObjectLike>({
     const virtualizedItems = virtualizer.getVirtualItems();
     return {
       items: virtualizedItems,
+      scrollToIndex: (index: number) => {
+        virtualizer.scrollToIndex(index, {align: 'auto'});
+      },
       scrollElementRef,
       itemProps: (index: number) => ({
         ref: virtualizer.measureElement,
@@ -313,7 +338,7 @@ function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
+          height: virtualizer.getTotalSize() + listPadding * 2,
           width: '100%',
           position: 'relative',
         },
@@ -330,8 +355,9 @@ function useVirtualizedItems<T extends ObjectLike>({
 
   return {
     items: listItems.map((_, index) => ({index, start: 0})),
+    scrollToIndex: () => {},
     scrollElementRef: undefined,
-    itemProps: () => undefined,
+    itemProps: () => {},
     wrapperProps: {
       'data-is-virtualized': false,
     },

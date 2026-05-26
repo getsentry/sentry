@@ -5,7 +5,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -34,11 +34,6 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
     ) -> Response:
         """Delete a preprod artifact and all associated data"""
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"error": "Feature not enabled"}, status=403)
-
         analytics.record(
             PreprodArtifactApiDeleteEvent(
                 organization_id=project.organization_id,
@@ -50,33 +45,10 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
 
         try:
             result = delete_artifacts_and_eap_data([head_artifact])
-
-            logger.info(
-                "preprod_artifact.deleted",
-                extra={
-                    "artifact_id": int(head_artifact_id),
-                    "user_id": request.user.id,
-                    "files_deleted": result.files_deleted,
-                    "size_metrics_deleted": result.size_metrics_deleted,
-                    "installable_artifacts_deleted": result.installable_artifacts_deleted,
-                },
-            )
-
-            return Response(
-                {
-                    "success": True,
-                    "message": f"Artifact {head_artifact_id} deleted successfully.",
-                    "artifact_id": str(head_artifact_id),
-                    "files_deleted_count": result.files_deleted,
-                    "size_metrics_deleted": result.size_metrics_deleted,
-                    "installable_artifacts_deleted": result.installable_artifacts_deleted,
-                }
-            )
-
         except Exception:
             logger.exception(
                 "preprod_artifact.delete_failed",
-                extra={"artifact_id": int(head_artifact_id), "user_id": request.user.id},
+                extra={"preprod_artifact_id": int(head_artifact_id), "user_id": request.user.id},
             )
             return Response(
                 {
@@ -85,3 +57,25 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
                 },
                 status=500,
             )
+
+        logger.info(
+            "preprod_artifact.deleted",
+            extra={
+                "preprod_artifact_id": int(head_artifact_id),
+                "user_id": request.user.id,
+                "files_deleted": result.files_deleted,
+                "size_metrics_deleted": result.size_metrics_deleted,
+                "installable_artifacts_deleted": result.installable_artifacts_deleted,
+            },
+        )
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Artifact {head_artifact_id} deleted successfully.",
+                "artifact_id": str(head_artifact_id),
+                "files_deleted_count": result.files_deleted,
+                "size_metrics_deleted": result.size_metrics_deleted,
+                "installable_artifacts_deleted": result.installable_artifacts_deleted,
+            }
+        )

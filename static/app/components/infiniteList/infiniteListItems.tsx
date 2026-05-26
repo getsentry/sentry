@@ -31,7 +31,7 @@ interface Props<ListItem, Response = Array<ApiResult<ListItem[]>>> {
   }) => React.ReactNode;
   queryResult: Overwrite<
     Pick<
-      UseInfiniteQueryResult<InfiniteData<Response>, Error>,
+      UseInfiniteQueryResult<InfiniteData<Response>>,
       'data' | 'hasNextPage' | 'isFetchingNextPage' | 'fetchNextPage'
     >,
     {fetchNextPage: () => Promise<unknown>}

@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotFound} from 'sentry/components/errors/notFound';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -28,7 +28,7 @@ export default function ViewEditDashboard() {
   const orgSlug = organization.slug;
 
   useEffect(() => {
-    if (dashboardId && dashboardId !== 'default-overview') {
+    if (dashboardId) {
       updateDashboardVisit(api, orgSlug, dashboardId);
     }
   }, [api, orgSlug, dashboardId]);
@@ -40,7 +40,7 @@ export default function ViewEditDashboard() {
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards initialDashboard={optimisticDashboard}>
-        {({dashboard, dashboards, error, onDashboardUpdate}) => {
+        {({dashboard, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
           ) : dashboard ? (
@@ -49,7 +49,6 @@ export default function ViewEditDashboard() {
                 key={dashboard.id}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
-                dashboards={dashboards}
                 onDashboardUpdate={onDashboardUpdate}
               />
             </ErrorBoundary>
@@ -69,18 +68,18 @@ type FeatureProps = {
 
 export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (
-    <Layout.Page withPadding>
+    <Stack flex={1} padding="2xl 3xl">
       <Alert.Container>
         <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>
-    </Layout.Page>
+    </Stack>
   );
 
   return (
     <Feature
-      hookName="feature-disabled:dashboards-page"
+      overrideName="feature-disabled:dashboards-page"
       features="organizations:dashboards-basic"
       organization={organization}
       renderDisabled={renderDisabled}

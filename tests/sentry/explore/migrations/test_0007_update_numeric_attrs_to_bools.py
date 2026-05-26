@@ -118,7 +118,7 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase, SpanTestCase):
 
         return super().setup_before_migration(apps)
 
-    def test_migration(self):
+    def test_migration(self) -> None:
         # Test state after migration
         self.query_1.refresh_from_db()
         assert self.query_1.query == {

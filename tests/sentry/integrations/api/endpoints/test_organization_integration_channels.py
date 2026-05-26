@@ -160,11 +160,11 @@ class OrganizationIntegrationChannelsMsTeamsTest(OrganizationIntegrationChannels
 
 @control_silo_test
 class OrganizationIntegrationChannelsErrorTest(OrganizationIntegrationChannelsTest):
-    def test_integration_not_found(self):
+    def test_integration_not_found(self) -> None:
         response = self.get_error_response(self.organization.slug, 9999, status_code=404)
         assert response.status_code == 404
 
-    def test_unsupported_provider(self):
+    def test_unsupported_provider(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",

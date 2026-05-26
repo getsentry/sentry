@@ -46,7 +46,12 @@ class AutofixPrWebhookTest(APITestCase):
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "opened",
-            {"id": 1, "merged": False},
+            {
+                "id": 1,
+                "merged": False,
+                "created_at": "2025-01-15T10:30:00Z",
+                "updated_at": "2025-01-15T10:30:00Z",
+            },
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
@@ -60,6 +65,7 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="seer",
+                sent_at=1736937000000,
             ),
         )
 
@@ -89,7 +95,12 @@ class AutofixPrWebhookTest(APITestCase):
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "opened",
-            {"id": 1, "merged": False},
+            {
+                "id": 1,
+                "merged": False,
+                "created_at": "2025-01-15T10:30:00Z",
+                "updated_at": "2025-01-15T10:30:00Z",
+            },
             {"id": settings.SENTRY_GITHUB_APP_USER_ID},
         )
 
@@ -103,6 +114,7 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="sentry",
+                sent_at=1736937000000,
             ),
         )
 
@@ -132,7 +144,12 @@ class AutofixPrWebhookTest(APITestCase):
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "closed",
-            {"id": 1, "merged": False},
+            {
+                "id": 1,
+                "merged": False,
+                "closed_at": "2025-01-15T12:00:00Z",
+                "updated_at": "2025-01-15T12:00:00Z",
+            },
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
@@ -146,6 +163,7 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="seer",
+                sent_at=1736942400000,
             ),
         )
 
@@ -175,7 +193,12 @@ class AutofixPrWebhookTest(APITestCase):
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "closed",
-            {"id": 1, "merged": True},
+            {
+                "id": 1,
+                "merged": True,
+                "merged_at": "2025-01-15T14:00:00Z",
+                "updated_at": "2025-01-15T14:00:00Z",
+            },
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
         mock_metrics_incr.assert_called_with("ai.autofix.pr.merged")
@@ -188,6 +211,7 @@ class AutofixPrWebhookTest(APITestCase):
                 group_id=3,
                 run_id=1,
                 github_app="seer",
+                sent_at=1736949600000,
             ),
         )
 
@@ -204,7 +228,12 @@ class AutofixPrWebhookTest(APITestCase):
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "closed",
-            {"id": 1, "merged": True},
+            {
+                "id": 1,
+                "merged": True,
+                "merged_at": "2025-01-15T14:00:00Z",
+                "updated_at": "2025-01-15T14:00:00Z",
+            },
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
@@ -228,7 +257,12 @@ class AutofixPrWebhookTest(APITestCase):
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "closed",
-            {"id": 1, "merged": True},
+            {
+                "id": 1,
+                "merged": True,
+                "merged_at": "2025-01-15T14:00:00Z",
+                "updated_at": "2025-01-15T14:00:00Z",
+            },
             {"id": "5655"},
         )
 
@@ -249,7 +283,12 @@ class AutofixPrWebhookTest(APITestCase):
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "closed",
-            {"id": 1, "merged": True},
+            {
+                "id": 1,
+                "merged": True,
+                "merged_at": "2025-01-15T14:00:00Z",
+                "updated_at": "2025-01-15T14:00:00Z",
+            },
             {"id": "321"},
         )
 

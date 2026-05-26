@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sentry.taskworker.runtime import app
 
 # Namespaces for taskworker tasks
@@ -18,11 +20,6 @@ auth_tasks = app.taskregistry.create_namespace(
 
 auth_control_tasks = app.taskregistry.create_namespace(
     "auth.control",
-    app_feature="shared",
-)
-
-autopilot_tasks = app.taskregistry.create_namespace(
-    "autopilot",
     app_feature="shared",
 )
 
@@ -87,6 +84,11 @@ hybridcloud_control_tasks = app.taskregistry.create_namespace(
 
 ingest_profiling_tasks = app.taskregistry.create_namespace(
     "ingest.profiling",
+    app_feature="profiles",
+)
+
+ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
+    "ingest.profiling.passthrough",
     app_feature="profiles",
 )
 
@@ -260,6 +262,9 @@ workflow_engine_tasks = app.taskregistry.create_namespace(
     app_feature="workflow_engine",
 )
 
+
+# External namespaces for tasks belonging to other applications
+launchpad_tasks = app.create_external_namespace(name="default", application="launchpad")
 
 # Namespaces for testing taskworker tasks
 exampletasks = app.taskregistry.create_namespace(name="examples")

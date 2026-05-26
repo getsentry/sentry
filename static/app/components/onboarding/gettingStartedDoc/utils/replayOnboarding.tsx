@@ -106,7 +106,7 @@ export const getReplayConfigOptions = ({
   mask?: boolean;
 } = {}) => {
   if (mask && block) {
-    return ``;
+    return '';
   }
   if (mask) {
     return `{

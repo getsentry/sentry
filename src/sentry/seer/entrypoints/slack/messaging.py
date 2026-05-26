@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
+from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
 from slack_sdk.models.blocks.blocks import Block
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import (
     NotificationService,
@@ -27,9 +29,15 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentMessageCachePayload,
+)
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.silo.base import all_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.utils.http import absolute_uri
 from sentry.utils.registry import NoRegistrationExistsError
 
 if TYPE_CHECKING:
@@ -76,11 +84,23 @@ def send_thread_update(
                     slack_user_id=ephemeral_user_id,
                 )
             else:
-                install.send_threaded_message(
+                response = install.send_threaded_message(
                     channel_id=thread["channel_id"],
                     thread_ts=thread["thread_ts"],
                     renderable=renderable,
                 )
+                message_ts = response.get("ts") if response else None
+                run_id = getattr(data, "run_id", None)
+                if message_ts and run_id is not None:
+                    SlackSeerAgentMessageCache.set(
+                        integration_id=install.model.id,
+                        channel_id=thread["channel_id"],
+                        message_ts=message_ts,
+                        payload=SlackSeerAgentMessageCachePayload(
+                            thread_ts=thread["thread_ts"],
+                            run_id=run_id,
+                        ),
+                    )
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
         except IntegrationError as e:
@@ -125,7 +145,6 @@ def process_thread_update(
         integration = integration_service.get_integration(
             integration_id=integration_id,
             organization_id=organization_id,
-            provider=IntegrationProviderSlug.SLACK.value,
             status=ObjectStatus.ACTIVE,
         )
         if not integration:
@@ -205,8 +224,13 @@ def update_existing_message(
 ) -> None:
     from sentry.integrations.slack.message_builder.types import SlackAction
 
+    autofix_button_prefixes = (
+        SlackAction.SEER_AUTOFIX_START.value,
+        SlackAction.SEER_AUTOFIX_HANDOFF.value,
+    )
+
     def remove_autofix_button_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
-        if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
+        if elem.get("action_id", "").startswith(autofix_button_prefixes):
             return None
         return elem
 
@@ -226,14 +250,14 @@ def update_existing_message(
             }
         )
 
+        transformer: Callable[[dict[str, Any]], dict[str, Any] | None]
         # The RCA button is on an issue alert, so we just remove the button from the list of actions.
         # Later updates only have autofix buttons (View, Start), so we remove the whole actions block.
         # This is because we add the View button back to the footer, along with some status text.
-        transformer = (
-            remove_autofix_button_transformer
-            if data.current_point == AutofixStoppingPoint.ROOT_CAUSE
-            else remove_all_buttons_transformer
-        )
+        transformer = remove_all_buttons_transformer
+        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE and data.handoff_target is None:
+            transformer = remove_autofix_button_transformer
+
         try:
             message_data = request.data["message"]
             original_blocks = message_data["blocks"]
@@ -260,5 +284,95 @@ def update_existing_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
+
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)
+
+
+@all_silo_function
+def send_halt_message(
+    *,
+    integration: RpcIntegration,
+    slack_user_id: str,
+    channel_id: str,
+    thread_ts: str | None,
+    halt_reason: SeerSlackHaltReason,
+) -> None:
+    from sentry.integrations.slack.message_builder.types import SlackAction
+    from sentry.integrations.slack.views.link_identity import build_linking_url
+    from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
+
+    link_button: LinkButtonElement
+    message: str
+    logging_ctx = {
+        "integration_id": integration.id,
+        "channel_id": channel_id,
+        "thread_ts": thread_ts,
+        "slack_user_id": slack_user_id,
+        "halt_reason": halt_reason,
+    }
+
+    match halt_reason:
+        case SeerSlackHaltReason.IDENTITY_NOT_LINKED:
+            message = "I'd love to help, but I don't know you like that — link your Slack account to Sentry first."
+            associate_url = build_linking_url(
+                integration=integration,
+                slack_id=slack_user_id,
+                channel_id=channel_id,
+                response_url=None,
+            )
+            link_button = LinkButtonElement(
+                text="Connect to Sentry",
+                url=associate_url,
+                style="primary",
+                action_id=SlackAction.LINK_IDENTITY.value,
+            )
+        case SeerSlackHaltReason.NO_VALID_ORGANIZATION:
+            message = "Couldn't find an organization you belong to with Seer Agent access."
+            reinstall_url = absolute_uri("/settings/seer/")
+            link_button = LinkButtonElement(
+                text="Check Settings",
+                url=reinstall_url,
+                style="primary",
+                action_id=SlackAction.LINK_TO_SEER.value,
+            )
+        case SeerSlackHaltReason.NO_VALID_INTEGRATION:
+            message = (
+                "It doesn't look like things are set up correctly, try re-installing from Sentry."
+            )
+            reinstall_url = absolute_uri(f"/settings/integrations/{integration.provider}/")
+            link_button = LinkButtonElement(
+                text="Re-Install",
+                style="primary",
+                url=reinstall_url,
+                action_id=SlackAction.LINK_TO_INTEGRATION.value,
+            )
+        case SeerSlackHaltReason.MISSING_MEMBERSHIP:
+            # TODO(leander): Handle this case when implementing link parsing
+            return
+        case SeerSlackHaltReason.MISSING_EVENT_DATA:
+            # This assumes the slack event is malformed, or unexpected.
+            # Avoid sending irrelevant messages for what could be inconsequential.
+            return
+        case _:
+            assert_never(halt_reason)
+
+    renderable = SlackRenderable(
+        blocks=[
+            MarkdownBlock(text=message),
+            ActionsBlock(elements=[ButtonElement(text="Cancel", value="ignore"), link_button]),
+        ],
+        text=message,
+    )
+    try:
+        send_threaded_ephemeral_message(
+            integration_id=integration.id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
+            slack_user_id=slack_user_id,
+        )
+    except Exception:
+        logger.exception("send_halt_message.error", extra=logging_ctx)
+    else:
+        logger.info("send_halt_message.success", extra=logging_ctx)

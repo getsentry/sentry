@@ -5,7 +5,7 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -176,7 +176,7 @@ describe('Performance > Table', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/key-transactions-list/`,
+      url: '/organizations/org-slug/key-transactions-list/',
       body: [],
     });
   });
@@ -331,7 +331,7 @@ describe('Performance > Table', () => {
         {
           query: 'event.type:transaction transaction:/api*',
         },
-        ['performance-use-metrics']
+        ['dynamic-sampling']
       );
 
       render(

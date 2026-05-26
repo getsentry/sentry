@@ -1,9 +1,14 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
 from django.urls import reverse
 
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import (
@@ -14,8 +19,13 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 
+if TYPE_CHECKING:
+    from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration  # NOQA
 
-class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
+
+class BitbucketServerRepositoryProvider(
+    IntegrationRepositoryProvider["BitbucketServerIntegration"]
+):
     name = "Bitbucket Server"
     repo_provider = IntegrationProviderSlug.BITBUCKET_SERVER.value
 
@@ -28,22 +38,40 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config["external_id"] = str(repo["id"])
+            config["external_id"] = installation.get_repo_external_id(repo)
             config["name"] = repo["project"]["key"] + "/" + repo["name"]
             config["project"] = repo["project"]["key"]
             config["repo"] = repo["name"]
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: dict[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         installation = self.get_installation(data.get("installation"), organization.id)
-        client = installation.get_client()
+        return {
+            "name": data["identifier"],
+            "external_id": data["external_id"],
+            "url": installation.model.metadata["base_url"]
+            + "/projects/{project}/repos/{repo}/browse".format(
+                project=data["project"], repo=data["repo"]
+            ),
+            "config": {
+                "name": data["identifier"],
+                "project": data["project"],
+                "repo": data["repo"],
+            },
+            "integration_id": data["installation"],
+        }
 
+    def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
+        if repo.config.get("webhook_id"):
+            return
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
+        client = installation.get_client()
         try:
             resp = client.create_hook(
-                data["project"],
-                data["repo"],
+                repo.config["project"],
+                repo.config["repo"],
                 {
                     "name": "sentry-bitbucket-server-repo-hook",
                     "url": absolute_uri(
@@ -51,7 +79,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                             "sentry-extensions-bitbucketserver-webhook",
                             kwargs={
                                 "organization_id": organization.id,
-                                "integration_id": data.get("installation"),
+                                "integration_id": repo.integration_id,
                             },
                         )
                     ),
@@ -61,22 +89,8 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
             )
         except Exception as e:
             installation.raise_error(e)
-        else:
-            return {
-                "name": data["identifier"],
-                "external_id": data["external_id"],
-                "url": installation.model.metadata["base_url"]
-                + "/projects/{project}/repos/{repo}/browse".format(
-                    project=data["project"], repo=data["repo"]
-                ),
-                "config": {
-                    "name": data["identifier"],
-                    "project": data["project"],
-                    "repo": data["repo"],
-                    "webhook_id": resp["id"],
-                },
-                "integration_id": data["installation"],
-            }
+        repo.config["webhook_id"] = resp["id"]
+        repository_service.update_repository(organization_id=organization.id, update=repo)
 
     def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)

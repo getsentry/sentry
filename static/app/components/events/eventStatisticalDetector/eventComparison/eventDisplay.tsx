@@ -18,7 +18,7 @@ import {
   MINIMAP_HEIGHT,
   MinimapBackground,
 } from 'sentry/components/events/interfaces/spans/minimap';
-import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
+import {WaterfallModel} from 'sentry/components/events/interfaces/spans/waterfallModel';
 import {OpsBreakdown} from 'sentry/components/events/opsBreakdown';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -29,7 +29,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -40,7 +40,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const BUTTON_ICON_SIZE = 'sm';
 const BUTTON_SIZE = 'sm';
 
-export function getSampleEventQuery({
+function getSampleEventQuery({
   transaction,
   durationBaseline,
   addUpperBound = true,
@@ -149,7 +149,7 @@ function EventDisplay({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [selectedEventId, setSelectedEventId] = useState('');
 
   const {data, isPending, isError} = useFetchSampleEvents({
     start,
@@ -183,7 +183,7 @@ function EventDisplay({
     }
   }, [eventIds, selectedEventId]);
 
-  const eventIdIndex = eventIds?.findIndex(eventId => eventId === selectedEventId);
+  const eventIdIndex = eventIds?.indexOf(selectedEventId);
   const hasNext =
     defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
   const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;

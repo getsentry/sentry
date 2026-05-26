@@ -59,7 +59,7 @@ function TeamKeyTransactionField({
           <OverlayTrigger.IconButton
             {...triggerProps}
             disabled={disabled}
-            priority="transparent"
+            variant="transparent"
             size="zero"
             icon={
               <IconStar
@@ -99,7 +99,7 @@ export function TeamKeyTransactionFieldWrapper({
     return (
       <Button
         disabled
-        priority="transparent"
+        variant="transparent"
         size="zero"
         icon={<IconStar variant="muted" />}
         aria-label={t('Toggle star for team')}

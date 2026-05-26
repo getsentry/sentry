@@ -6,12 +6,13 @@ from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
+from asgiref.sync import sync_to_async
 from django.http import HttpRequest, StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.utils.http import BodyWithLength
+from sentry.utils.http import BodyAsyncWrapper, BodyWithLength
 
 # TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
 uwsgi: Any = None
@@ -20,18 +21,23 @@ try:
 except ImportError:
     pass
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases import OrganizationEndpoint
-from sentry.api.bases.organization import OrganizationReleasePermission
-from sentry.models.organization import Organization
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.objectstore import parse_accept_encoding
+from sentry.ratelimits.config import RateLimitConfig
 
 
 @cell_silo_endpoint
-class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
+class ObjectstoreEndpoint(Endpoint):
+    """
+    Transparent proxy to Objectstore.
+
+    This endpoint is unauthenticated at the Django level, as authentication is performed by Objectstore via the `Authorization` or the `X-Os-Auth` header.
+    The `organization_id_or_slug` parameter in the view path and URL kwarg is needed by the API Gateway for cell routing, even though this endpoint does not validate it.
+    """
+
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -39,45 +45,29 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
-    permission_classes = (OrganizationReleasePermission,)
+    authentication_classes = ()
+    permission_classes = ()
+    rate_limits = RateLimitConfig(group="CLI")
     parser_classes = ()  # don't attempt to parse request data, so we can access the raw body in wsgi.input
 
-    def _check_flag(self, request: Request, organization: Organization) -> Response | None:
-        if not features.has("organizations:objectstore-endpoint", organization, actor=request.user):
-            return Response(
-                {
-                    "error": "This endpoint requires the organizations:objectstore-endpoint feature flag."
-                },
-                status=403,
-            )
-        return None
-
     def get(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def put(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def post(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def delete(
-        self, request: Request, organization: Organization, path: str
+        self, request: Request, organization_id_or_slug: str, path: str
     ) -> Response | StreamingHttpResponse:
-        if response := self._check_flag(request, organization):
-            return response
         return self._proxy(request, path)
 
     def _proxy(
@@ -145,6 +135,32 @@ def get_raw_body(
         and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
     ):
         return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+
+    # wsgiref and the request has been already proxied through control silo
+    return BodyWithLength(request)
+
+
+def get_raw_body_async(
+    request: HttpRequest,
+) -> BodyAsyncWrapper | ChunkedEncodingAsyncDecoder | BodyWithLength:
+    if request.body:
+        return BodyAsyncWrapper(request.body)
+
+    wsgi_input = request.META.get("wsgi.input")
+    if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
+        return BodyAsyncWrapper(wsgi_input)
+
+    # wsgiref will raise an exception and hang when attempting to read wsgi.input while there's no body.
+    # For now, support bodies only on PUT and POST requests when not using Granian.
+    if request.method not in ("PUT", "POST"):
+        return BodyAsyncWrapper(b"")
+
+    # wsgiref (dev/test server)
+    if (
+        hasattr(wsgi_input, "_read")
+        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
+    ):
+        return ChunkedEncodingAsyncDecoder(wsgi_input._read)  # type: ignore[union-attr]
 
     # wsgiref and the request has been already proxied through control silo
     return BodyWithLength(request)
@@ -248,3 +264,13 @@ class ChunkedEncodingDecoder:
                         raise ValueError("Malformed chunk encoded stream")
 
         return b"".join(buffer)
+
+
+class ChunkedEncodingAsyncDecoder(ChunkedEncodingDecoder):
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self) -> bytes:
+        if self._done:
+            raise StopAsyncIteration
+        return await sync_to_async(self.read)()

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 import missionControl from 'getsentry-images/missionControl.jpg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -13,12 +14,10 @@ import {IconClose, IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-
 export default function DataConsentModal({closeModal}: ModalRenderProps) {
   const organization = useOrganization();
   const api = useApi();
@@ -46,7 +45,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         analyticsEventKey="data_consent_banner.dismissed"
         analyticsEventName="Data Consent Banner: Dismissed"
         size="zero"
-        priority="transparent"
+        variant="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => closeModal()}
@@ -140,7 +139,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
           onClick={() => {
             updateOrganizationOption();
           }}
-          priority="primary"
+          variant="primary"
           busy={isPending}
         >
           {t('I agree')}

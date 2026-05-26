@@ -37,6 +37,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
             )
 
         symbolicated = request.GET.get("minified") not in ("1", "true")
+        prioritized_thread_id = request.GET.get("thread_id") or None
 
         apple_crash_report_string = str(
             AppleCrashReport(
@@ -45,6 +46,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
                 debug_images=get_path(event.data, "debug_meta", "images", filter=True),
                 exceptions=get_path(event.data, "exception", "values", filter=True),
                 symbolicated=symbolicated,
+                prioritized_thread_id=prioritized_thread_id,
             )
         )
 

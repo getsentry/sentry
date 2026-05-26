@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import NamedTuple
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,6 +11,33 @@ from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
+
+
+class _ExtractionPattern(NamedTuple):
+    """Extraction pattern for component type and path from span.description.
+    group(1) = kind/type (mapped through kind_map when present), group(2) = path.
+    """
+
+    regex: re.Pattern[str]
+    kind_map: dict[str, str] | None = None
+
+
+# SDK <10.32.0: '{component_type} ({path})'
+# e.g. 'Page Server Component (/dashboard)'
+_ParenthesisPattern = _ExtractionPattern(
+    regex=re.compile(r"^(.*?)\s+\((.*?)\)$"),
+)
+
+# SDK >=10.32.0: 'resolve {page|root layout|layout} server component "{route_or_segment}"'
+# e.g. 'resolve page server component "/dashboard"'
+_ResolvePattern = _ExtractionPattern(
+    regex=re.compile(r'^resolve (page|root layout|layout) server component(?:\s+"(.*)")?$'),
+    kind_map={
+        "page": "Page Server Component",
+        "layout": "Layout Server Component",
+        "root layout": "Layout Server Component",
+    },
+)
 
 
 @cell_silo_endpoint
@@ -41,22 +69,27 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         response = super().get(request, organization)
         return self._separate_span_description_info(response)
 
+    _EXTRACTION_PATTERNS = (_ParenthesisPattern, _ResolvePattern)
+
+    @staticmethod
+    def _parse_path(path: str | None) -> list[str]:
+        if not path:
+            return []
+        parts = path.strip("/").split("/")
+        return parts if parts != [""] else []
+
     def _separate_span_description_info(self, response):
-        # Regex to split string into '{component_type}{space}({path})'
-        pattern = re.compile(r"^(.*?)\s+\((.*?)\)$")
-
         for line in response.data["data"]:
-            match = pattern.match(line["span.description"])
-            if match:
-                component_type = match.group(1)
-                path = match.group(2)
-                path_components = path.strip("/").split("/")
-                if not path_components or (len(path_components) == 1 and path_components[0] == ""):
-                    path_components = []  # Handle root path case
+            component_type = None
+            path_components: list[str] = []
 
-            else:
-                component_type = None
-                path_components = []
+            for pattern, kind_map in self._EXTRACTION_PATTERNS:
+                match = pattern.match(line["span.description"])
+                if match:
+                    component_type = kind_map[match.group(1)] if kind_map else match.group(1)
+                    path_components = self._parse_path(match.group(2))
+                    break
+
             line["function.nextjs.component_type"] = component_type
             line["function.nextjs.path"] = path_components
 

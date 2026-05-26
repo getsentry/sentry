@@ -3,12 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
-
-jest.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', () => {
   const {organization, project} = initializeOrg();
@@ -86,9 +89,23 @@ describe('Project Ownership', () => {
         await screen.findByRole('button', {name: 'Import CODEOWNERS'})
       ).toBeInTheDocument();
 
+      // The Add CODEOWNERS modal fetches unfiltered code mappings and
+      // integrations on mount.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/code-mappings/`,
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/`,
+        method: 'GET',
+        body: [GitHubIntegrationConfigFixture()],
+      });
+
       // Opens modal
+      renderGlobalModal();
       await userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
-      expect(openModal).toHaveBeenCalled();
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
     });
   });
 

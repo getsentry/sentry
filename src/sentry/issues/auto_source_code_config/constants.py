@@ -5,6 +5,8 @@ from typing import Any
 
 from sentry.integrations.types import IntegrationProviderSlug
 
+from .utils.java import find_java_source_roots
+
 METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
 SUPPORTED_INTEGRATIONS = [IntegrationProviderSlug.GITHUB.value]
@@ -19,6 +21,7 @@ PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
         # e.g. com.foo.bar.Baz$handle$1, Baz.kt -> com/foo/bar/Baz.kt
         "extract_filename_from_module": True,
         "create_in_app_stack_trace_rules": True,
+        "source_roots_resolver": find_java_source_roots,
         "extensions": ["kt", "kts", "java", "jsp", "scala", "sc"],
     },
     "javascript": {"extensions": ["js", "jsx", "mjs", "tsx", "ts"]},

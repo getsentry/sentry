@@ -135,14 +135,14 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       try {
         setLoading(true);
 
-        const results = await getTraceItemAttributeValues(
-          {
+        const results = await getTraceItemAttributeValues({
+          tag: {
             key: SpanFields.TRANSACTION,
             name: SpanFields.TRANSACTION,
             kind: undefined,
           },
-          query
-        );
+          searchQuery: query,
+        });
 
         const parsedResults = results.reduce(
           (searchGroup: SearchGroup, item: string) => {

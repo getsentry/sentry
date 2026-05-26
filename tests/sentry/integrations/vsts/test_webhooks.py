@@ -20,9 +20,11 @@ from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 class VstsWebhookWorkItemTest(APITestCase):
@@ -295,3 +297,49 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
             # no change happened. no activity should be created here
             assert len(Activity.objects.filter(group_id=group.id)) == 0
+
+    @responses.activate
+    @override_options({"viewer-context.enabled": True})
+    def test_status_change_sets_viewer_context(self) -> None:
+        """ViewerContext is set with correct org_id and actor_type during status sync."""
+        captured_contexts: list = []
+
+        original_sync = VstsIntegration.sync_status_inbound
+
+        def capturing_sync(self_integration, *args, **kwargs):
+            captured_contexts.append(get_viewer_context())
+            return original_sync(self_integration, *args, **kwargs)
+
+        work_item_id = 33
+        ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.model.id,
+            key=work_item_id,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
+            json=WORK_ITEM_STATES,
+        )
+
+        work_item = self.set_workitem_state("Active", "Resolved")
+
+        with (
+            patch.object(VstsIntegration, "sync_status_inbound", capturing_sync),
+            self.feature("organizations:integrations-issue-sync"),
+            self.tasks(),
+        ):
+            resp = self.client.post(
+                absolute_uri("/extensions/vsts/issue-updated/"),
+                data=work_item,
+                HTTP_SHARED_SECRET=self.shared_secret,
+            )
+
+        assert resp.status_code == 200
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert ctx is not None
+        assert ctx.organization_id == self.organization.id
+        assert ctx.actor_type == ActorType.INTEGRATION
+        assert ctx.user_id is None

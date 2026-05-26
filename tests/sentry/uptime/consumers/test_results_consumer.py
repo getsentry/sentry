@@ -806,9 +806,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
             mock.patch("sentry.uptime.autodetect.result_handler.metrics") as onboarding_metrics,
-            mock.patch(
-                "sentry.uptime.autodetect.result_handler.send_auto_detected_notifications"
-            ) as mock_email_task,
             self.tasks(),
             self.feature(features),
         ):
@@ -841,7 +838,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                     ),
                 ]
             )
-            mock_email_task.delay.assert_called_once_with(self.detector.id)
         assert not redis.exists(key)
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
@@ -1413,7 +1409,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=5,
         )
 
-    def test_out_of_order_result_queued(self):
+    def test_out_of_order_result_queued(self) -> None:
         """Out-of-order results should be queued when feature flag is enabled."""
         cluster = get_cluster()
         base_time = datetime.now()
@@ -1446,7 +1442,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert call_kwargs["countdown"] == 10
             assert call_kwargs["kwargs"]["attempt"] == 1
 
-    def test_feature_flag_disabled_processes_normally(self):
+    def test_feature_flag_disabled_processes_normally(self) -> None:
         """When feature flag is disabled, results should process normally without queueing."""
         cluster = get_cluster()
         base_time = datetime.now()
@@ -1467,7 +1463,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         backlog_key = build_backlog_key(str(self.subscription.id))
         assert cluster.zcard(backlog_key) == 0
 
-    def test_task_scheduling_deduplication(self):
+    def test_task_scheduling_deduplication(self) -> None:
         """Multiple out-of-order results shouldn't schedule duplicate tasks."""
         cluster = get_cluster()
         base_time = datetime.now()

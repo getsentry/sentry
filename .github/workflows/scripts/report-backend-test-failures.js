@@ -1,3 +1,21 @@
+// Backend test failure reporter — per-shard, append-only PR comment model.
+//
+// Design goals:
+//   - Failures appear on the PR immediately as each shard finishes, not after
+//     all shards complete. Each shard calls reportShard() independently.
+//   - A single PR comment accumulates all failures for a given commit. Shards
+//     append to it; nodeids already present are skipped (idempotent appends).
+//   - A new push (new SHA) triggers cleanup: stale comments from the previous
+//     commit are deleted and a fresh comment is started.
+//
+// Concurrency: the workflow uses cancel-in-progress, so when a new push lands
+// all prior shards are killed before new ones start. Stale comment deletion is
+// therefore safe: multiple new-push shards may all attempt to delete the same
+// old comment, but the first wins and the rest receive a 404 (caught and
+// swallowed). The one remaining race is two shards from the same push both
+// finding no existing comment and each calling createComment — this produces a
+// short-lived duplicate that subsequent shard appends will converge onto.
+
 import {readFileSync} from 'node:fs';
 import {basename, dirname} from 'node:path';
 
@@ -139,6 +157,30 @@ export async function reportShard({github, context, core}) {
   }
 
   const rawFailures = parseFailures([jsonPath], core);
+
+  const {owner, repo} = context.repo;
+  const prNumber = context.payload.pull_request.number;
+  const {sha} = context;
+  const marker = commitMarker(sha);
+
+  const comments = await github.paginate(github.rest.issues.listComments, {
+    owner,
+    repo,
+    issue_number: prNumber,
+  });
+
+  // Delete stale comments from previous commits on every run so a new push cleans up.
+  const stale = comments.filter(
+    c => c.body?.includes(COMMENT_MARKER) && !c.body.includes(marker)
+  );
+  await Promise.all(
+    stale.map(c =>
+      github.rest.issues.deleteComment({owner, repo, comment_id: c.id}).catch(e => {
+        core.warning(`Could not delete stale comment ${c.id}: ${e.message}`);
+      })
+    )
+  );
+
   if (rawFailures.length === 0) {
     core.info('No failures in this shard — skipping.');
     return;
@@ -156,16 +198,6 @@ export async function reportShard({github, context, core}) {
   }
   const failures = shardFailures.map(f => ({...f, jobUrl: jobUrls[f.artifactDir]}));
 
-  const {owner, repo} = context.repo;
-  const prNumber = context.payload.pull_request.number;
-  const {sha} = context;
-  const marker = commitMarker(sha);
-
-  const comments = await github.paginate(github.rest.issues.listComments, {
-    owner,
-    repo,
-    issue_number: prNumber,
-  });
   // Only match comments for the same commit — a new push gets a fresh comment.
   const existing = comments.find(c => c.body?.includes(marker));
 

@@ -8,9 +8,9 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {WebVital} from 'sentry/utils/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
@@ -25,6 +25,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
@@ -34,6 +35,7 @@ import {
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
+  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -50,14 +52,15 @@ function TransactionOverview() {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const {addAlert} = useGlobalAlerts();
 
   useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
+    loadOrganizationTags(api, organization.slug, selection, addAlert);
     addRoutePerformanceContext(selection);
     trackAnalytics('performance_views.transaction_summary.view', {
       organization,
     });
-  }, [selection, organization, api]);
+  }, [selection, organization, api, addAlert]);
 
   const shouldUseTransactionSummaryEAP = useTransactionSummaryEAP();
 
@@ -75,7 +78,7 @@ function TransactionOverview() {
 function CardinalityLoadingWrapper() {
   const mepCardinalityContext = useMetricsCardinalityContext();
 
-  if (mepCardinalityContext.isLoading) {
+  if (mepCardinalityContext?.isLoading) {
     return <LoadingContainer isLoading />;
   }
 
@@ -85,7 +88,7 @@ function CardinalityLoadingWrapper() {
 function EAPCardinalityLoadingWrapper() {
   const mepCardinalityContext = useMetricsCardinalityContext();
 
-  if (mepCardinalityContext.isLoading) {
+  if (mepCardinalityContext?.isLoading) {
     return <LoadingContainer isLoading />;
   }
 
@@ -370,6 +373,8 @@ function getEAPTotalsEventView(
   _organization: Organization,
   eventView: EventView
 ): EventView {
+  const vitals = EAP_WEB_VITALS;
+
   const totalsColumns: QueryFieldValue[] = [
     {
       kind: 'function',
@@ -381,7 +386,16 @@ function getEAPTotalsEventView(
     },
   ];
 
-  return eventView.withColumns([...totalsColumns]);
+  return eventView.withColumns([
+    ...totalsColumns,
+    ...vitals.map(
+      vital =>
+        ({
+          kind: 'function',
+          function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
+        }) as Column
+    ),
+  ]);
 }
 
 export default TransactionOverview;

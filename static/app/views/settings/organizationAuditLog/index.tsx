@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {CursorHandler} from '@sentry/scraps/pagination';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
-import type {CursorHandler} from 'sentry/components/pagination';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import type {DateString} from 'sentry/types/core';
 import type {AuditLog} from 'sentry/types/organization';

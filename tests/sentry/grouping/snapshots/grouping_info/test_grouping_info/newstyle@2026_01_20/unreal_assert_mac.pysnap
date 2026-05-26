@@ -32,7 +32,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "id": "value",
                 "name": null,
                 "values": [
-                  "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+                  "p__commonOp__fn__fn__makeReturn__fn__<int>_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
                 ]
               },
               {
@@ -1074,7 +1074,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "id": "value",
                 "name": null,
                 "values": [
-                  "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+                  "p__commonOp__fn__fn__makeReturn__fn__<int>_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
                 ]
               },
               {

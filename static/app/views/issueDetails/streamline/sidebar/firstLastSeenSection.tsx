@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -12,22 +13,21 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
-import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
-  return useApiQuery<Group>(
-    makeFetchGroupQueryKey({
+  return useQuery({
+    ...groupApiOptions({
       organizationSlug: organization.slug,
       groupId: group.id,
       environments: [],
     }),
-    {staleTime: 30000, gcTime: 30000}
-  );
+    gcTime: 30_000,
+  });
 }
 
 export function FirstLastSeenSection({group}: {group: Group}) {

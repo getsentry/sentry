@@ -60,7 +60,10 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
 
     def test_update_config(self) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
-        self.get_success_response(self.organization.slug, self.integration.id, **config)
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ):
+            self.get_success_response(self.organization.slug, self.integration.id, **config)
 
         org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.organization.id

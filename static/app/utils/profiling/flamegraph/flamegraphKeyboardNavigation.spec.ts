@@ -33,7 +33,7 @@ function addChild(frame: FlamegraphFrame) {
 
 function addChildrenToDepth(frame: FlamegraphFrame, n: number) {
   let node = frame;
-  Array.from(new Array(n)).forEach(() => {
+  Array.from(Array.from({length: n})).forEach(() => {
     node = addChild(node);
   });
   return node;

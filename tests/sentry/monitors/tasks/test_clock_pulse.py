@@ -3,7 +3,7 @@ from unittest import mock
 
 from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
-from confluent_kafka.admin import PartitionMetadata
+from confluent_kafka.admin import PartitionMetadata  # type: ignore[attr-defined]
 from django.test import override_settings
 
 from sentry.monitors.tasks.clock_pulse import MONITOR_CODEC, clock_pulse

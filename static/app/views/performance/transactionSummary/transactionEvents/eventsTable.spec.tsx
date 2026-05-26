@@ -1,11 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 import {
@@ -26,19 +27,19 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   });
   const initialData = initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {
-          transaction: '/performance',
-          project: '1',
-          transactionCursor: '1:0:0',
-        },
-      },
-    },
     projects: [],
   });
+  const router = RouterFixture({
+    location: {
+      query: {
+        transaction: '/performance',
+        project: '1',
+        transactionCursor: '1:0:0',
+      },
+    },
+  });
   ProjectsStore.loadInitialData(initialData.projects);
-  return initialData;
+  return {...initialData, router};
 }
 
 describe('Performance GridEditable Table', () => {
@@ -155,7 +156,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -200,7 +200,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -234,7 +233,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -273,7 +271,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -317,7 +314,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -352,7 +348,6 @@ describe('Performance GridEditable Table', () => {
         theme={theme}
         eventView={eventView}
         organization={organization}
-        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}

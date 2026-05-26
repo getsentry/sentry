@@ -1,11 +1,13 @@
+import {queryOptions} from '@tanstack/react-query';
+
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Tag as GroupTag, TagValue} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {QueryParamValue} from 'sentry/utils/useLocation';
 
 type ParamsType = {
   environment?: string | string[] | null;
@@ -205,72 +207,59 @@ export function mergeGroups(
 
 type FetchIssueTagValuesParameters = {
   groupId: string;
-  orgSlug: string;
+  organization: Organization;
   tagKey: string;
-  cursor?: string;
+  cursor?: QueryParamValue;
   environment?: string[];
   sort?: string | string[];
 };
 
-const makeFetchIssueTagValuesQueryKey = ({
-  orgSlug,
+export function issueTagValuesApiOptions({
+  organization,
   groupId,
   tagKey,
   environment,
   sort,
   cursor,
-}: FetchIssueTagValuesParameters): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/values/', {
-    path: {
-      organizationIdOrSlug: orgSlug,
-      issueId: groupId,
-      key: tagKey,
-    },
-  }),
-  {query: {environment, sort, cursor}},
-];
-
-export function useFetchIssueTagValues(
-  parameters: FetchIssueTagValuesParameters,
-  options: Partial<UseApiQueryOptions<TagValue[]>> = {}
-) {
-  return useApiQuery<TagValue[]>(makeFetchIssueTagValuesQueryKey(parameters), {
-    staleTime: 0,
+}: FetchIssueTagValuesParameters) {
+  return queryOptions({
+    ...apiOptions.as<TagValue[]>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/values/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          issueId: groupId,
+          key: tagKey,
+        },
+        query: {environment, sort, cursor},
+        staleTime: 0,
+      }
+    ),
     retry: false,
-    ...options,
   });
 }
 
 type FetchIssueTagParameters = {
   groupId: string;
-  orgSlug: string;
+  organization: Organization;
   tagKey: string;
 };
 
-const makeFetchIssueTagQueryKey = ({
-  orgSlug,
-  groupId,
-  tagKey,
-  environment,
-  sort,
-}: FetchIssueTagValuesParameters): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/', {
-    path: {
-      organizationIdOrSlug: orgSlug,
-      issueId: groupId,
-      key: tagKey,
-    },
-  }),
-  {query: {environment, sort}},
-];
-
-export function useFetchIssueTag(
-  parameters: FetchIssueTagParameters,
-  options: Partial<UseApiQueryOptions<GroupTag>> = {}
+export function fetchIssueTagApiOptions<TData = GroupTag>(
+  parameters: FetchIssueTagParameters
 ) {
-  return useApiQuery<GroupTag>(makeFetchIssueTagQueryKey(parameters), {
-    staleTime: 0,
+  return queryOptions({
+    ...apiOptions.as<TData>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/',
+      {
+        path: {
+          organizationIdOrSlug: parameters.organization.slug,
+          issueId: parameters.groupId,
+          key: parameters.tagKey,
+        },
+        staleTime: 0,
+      }
+    ),
     retry: false,
-    ...options,
   });
 }

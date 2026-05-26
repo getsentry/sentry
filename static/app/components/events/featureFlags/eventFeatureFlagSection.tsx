@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -20,9 +22,8 @@ import {
   OrderBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
-import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';
@@ -36,8 +37,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -72,19 +73,21 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     />
   );
 
-  const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
+  const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
   const eventView = useIssueDetailsEventView({group});
-  const {data: rawFlagData} = useOrganizationFlagLog({
-    organization,
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-  });
+  const {data: rawFlagData} = useQuery(
+    organizationFlagLogOptions({
+      organization,
+      query: {
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+      },
+    })
+  );
   const location = useLocation();
 
   // issue list params we want to preserve in the search
@@ -167,39 +170,36 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     });
   }, [suspectFlagNames, eventFlags, generateAction]);
 
-  const onViewAllFlags = useCallback(
-    (focusControl?: FlagControlOptions) => {
-      trackAnalytics('flags.view-all-clicked', {
-        organization,
-      });
-      openDrawer(
-        () => (
-          <EventFeatureFlagDrawer
-            group={group}
-            event={event}
-            project={project}
-            hydratedFlags={hydratedFlags}
-            initialOrderBy={orderBy}
-            focusControl={focusControl}
-          />
-        ),
-        {
-          ariaLabel: t('Feature flags drawer'),
-          drawerKey: 'feature-flags-drawer',
-          // We prevent a click on the 'View All' button from closing the drawer so that
-          // we don't reopen it immediately, and instead let the button handle this itself.
-          shouldCloseOnInteractOutside: element => {
-            const viewAllButton = viewAllButtonRef.current;
-            if (viewAllButton?.contains(element)) {
-              return false;
-            }
-            return true;
-          },
-        }
-      );
-    },
-    [openDrawer, event, group, project, hydratedFlags, organization, orderBy]
-  );
+  const onViewAllFlags = (focusControl?: FlagControlOptions) => {
+    trackAnalytics('flags.view-all-clicked', {
+      organization,
+    });
+    openDrawer(
+      () => (
+        <EventFeatureFlagDrawer
+          group={group}
+          event={event}
+          project={project}
+          hydratedFlags={hydratedFlags}
+          initialOrderBy={orderBy}
+          focusControl={focusControl}
+        />
+      ),
+      {
+        ariaLabel: t('Feature flags drawer'),
+        drawerKey: 'feature-flags-drawer',
+        // We prevent a click on the 'View All' button from closing the drawer so that
+        // we don't reopen it immediately, and instead let the button handle this itself.
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = viewAllButtonRef.current;
+          if (viewAllButton?.contains(element)) {
+            return false;
+          }
+          return true;
+        },
+      }
+    );
+  };
 
   useEffect(() => {
     if (hasFlags) {
@@ -271,13 +271,9 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
 
   return (
-    <InterimSection
-      help={t(
-        "The last 100 flags evaluated in the user's session leading up to this event."
-      )}
-      isHelpHoverable
+    <FoldSection
+      sectionKey={SectionKey.FEATURE_FLAGS}
       title={t('Feature Flags')}
-      type={SectionKey.FEATURE_FLAGS}
       actions={actions}
     >
       {hasFlags ? (
@@ -302,7 +298,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           {label}
         </Button>
       )}
-    </InterimSection>
+    </FoldSection>
   );
 }
 

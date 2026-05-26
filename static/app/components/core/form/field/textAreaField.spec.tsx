@@ -141,7 +141,7 @@ describe('TextAreaField auto-save', () => {
     await userEvent.tab();
 
     expect(await screen.findByRole('status', {name: 'Saving bio'})).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'});
+    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'}, expect.anything());
   });
 
   it('shows checkmark when auto-save succeeds', async () => {
@@ -157,7 +157,7 @@ describe('TextAreaField auto-save', () => {
     await waitFor(() => {
       expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
     });
-    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'});
+    expect(mutationFn).toHaveBeenCalledWith({bio: 'test'}, expect.anything());
   });
 
   it('disables textarea while auto-save is pending', async () => {

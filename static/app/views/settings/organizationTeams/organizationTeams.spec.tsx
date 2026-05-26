@@ -69,7 +69,7 @@ describe('OrganizationTeams', () => {
         ProjectFixture({slug: 'project-2', teams: [team]}),
       ]);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
       expect(screen.getByLabelText('Join Team')).toBeInTheDocument();
 
@@ -98,7 +98,7 @@ describe('OrganizationTeams', () => {
       const mockTeams = [team];
       TeamStore.loadInitialData(mockTeams, false, null);
 
-      createWrapper({access: new Set([])});
+      createWrapper({access: new Set()});
       await userEvent.click(screen.getByLabelText('Join Team'));
 
       await waitFor(() => {
@@ -120,7 +120,7 @@ describe('OrganizationTeams', () => {
       ];
       TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByRole('button', {name: 'Join Team'})).toBeDisabled();
@@ -139,8 +139,8 @@ describe('OrganizationTeams', () => {
       render(
         <OrganizationTeams
           organization={organization}
-          access={new Set([])}
-          features={new Set([])}
+          access={new Set()}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
           {...props}
@@ -155,7 +155,7 @@ describe('OrganizationTeams', () => {
         }),
       ];
       TeamStore.loadInitialData(mockTeams, false, null);
-      createWrapper({access: new Set([])});
+      createWrapper({access: new Set()});
 
       expect(screen.getByLabelText('Request Access')).toBeInTheDocument();
 
@@ -172,7 +172,7 @@ describe('OrganizationTeams', () => {
       ];
       TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
@@ -184,7 +184,7 @@ describe('OrganizationTeams', () => {
       ];
       TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
@@ -194,7 +194,7 @@ describe('OrganizationTeams', () => {
       const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
       TeamStore.loadInitialData(mockTeams, false, null);
       createWrapper({
-        access: new Set([]),
+        access: new Set(),
       });
 
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
@@ -225,8 +225,8 @@ describe('OrganizationTeams', () => {
       render(
         <OrganizationTeams
           organization={organization}
-          access={new Set([])}
-          features={new Set([])}
+          access={new Set()}
+          features={new Set()}
           requestList={requestList}
           onRemoveAccessRequest={() => {}}
           {...props}
@@ -312,7 +312,7 @@ describe('OrganizationTeams', () => {
         <OrganizationTeams
           organization={organization}
           access={new Set(['project:admin'])}
-          features={new Set([])}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
         />
@@ -336,7 +336,7 @@ describe('OrganizationTeams', () => {
         <OrganizationTeams
           organization={organization}
           access={new Set(['project:admin'])}
-          features={new Set([])}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
         />
@@ -360,7 +360,7 @@ describe('OrganizationTeams', () => {
         <OrganizationTeams
           organization={organization}
           access={new Set(['project:admin'])}
-          features={new Set([])}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
         />
@@ -381,8 +381,8 @@ describe('OrganizationTeams', () => {
       render(
         <OrganizationTeams
           organization={organization}
-          access={new Set([])}
-          features={new Set([])}
+          access={new Set()}
+          features={new Set()}
           requestList={[]}
           onRemoveAccessRequest={() => {}}
         />

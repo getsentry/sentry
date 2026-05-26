@@ -8,8 +8,10 @@ from typing import Any, TypedDict, TypeVar
 import sentry_sdk
 from tokenizers import Tokenizer
 
-from sentry import features, options
-from sentry.constants import DATA_ROOT
+from sentry import options
+from sentry.constants import (
+    DATA_ROOT,
+)
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant
@@ -18,12 +20,13 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
-    AutofixStoppingPoint,
+    get_org_default_seer_automation_handoff,
     is_seer_seat_based_tier_enabled,
-    set_project_seer_preference,
     write_preference_to_sentry_db,
 )
-from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models import (
+    SeerProjectPreference,
+)
 from sentry.seer.similarity.types import GroupingVersion
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
@@ -343,13 +346,13 @@ def stacktrace_exceeds_limits(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
-    model_version: GroupingVersion | None = None,
+    model_version: GroupingVersion,
 ) -> bool:
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
     For V1, platforms that bypass length checks (to maintain consistency with backfilled data)
-    have all stacktraces pass through. For V2, all platforms are subject to length checks.
+    have all stacktraces pass through. For non-V1 models, all platforms are subject to length checks.
 
     If we dont bypass length checks, we use a two-step approach:
     1. First check raw string length - if shorter than token limit, pass immediately
@@ -377,7 +380,7 @@ def stacktrace_exceeds_limits(
     # matching with existing data, we bypass the filter for them (their stacktraces will be truncated).
     # For V2 we apply length checks to all platforms since we're re-embedding everything anyway.
     if (
-        model_version != GroupingVersion.V2
+        model_version == GroupingVersion.V1
         and platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK
     ):
         metrics.incr(
@@ -563,36 +566,27 @@ def set_default_project_seer_scanner_automation(
             project.update_option("sentry:seer_scanner_automation", org_default)
 
 
-def set_default_project_auto_open_prs(organization: Organization, project: Project) -> None:
-    """Called once at project creation time to set the initial auto open PRs."""
+def set_default_project_seer_preferences(organization: Organization, project: Project) -> None:
+    """Called once at project creation time to set the initial automated run stopping
+    point and automation handoff.
+    """
     if not is_seer_seat_based_tier_enabled(organization):
         return
 
-    stopping_point = AutofixStoppingPoint.CODE_CHANGES
-    if organization.get_option("sentry:auto_open_prs"):
-        stopping_point = AutofixStoppingPoint.OPEN_PR
+    stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)
 
-    # We need to make an API call to Seer to set this preference
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
         repositories=[],
         automated_run_stopping_point=stopping_point,
+        automation_handoff=automation_handoff,
     )
+
     try:
-        set_project_seer_preference(preference)
+        write_preference_to_sentry_db(project, preference)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        return
-
-    if features.has("organizations:seer-project-settings-dual-write", organization):
-        try:
-            write_preference_to_sentry_db(project, preference)
-        except Exception:
-            logger.exception(
-                "seer.write_preferences.failed",
-                extra={"project_id": project.id, "organization_id": organization.id},
-            )
 
 
 def report_token_count_metric(

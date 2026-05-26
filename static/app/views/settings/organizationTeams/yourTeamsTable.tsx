@@ -53,7 +53,7 @@ export function YourTeamsTable({
               tct('Get started by [link:creating your first team].', {
                 link: (
                   <Button
-                    priority="link"
+                    variant="link"
                     onClick={() => openCreateTeamModal({organization})}
                     aria-label={t('Create team')}
                   />
@@ -72,7 +72,7 @@ export function YourTeamsTable({
             tct('You can always [link:create one].', {
               link: (
                 <Button
-                  priority="link"
+                  variant="link"
                   onClick={() => openCreateTeamModal({organization})}
                   aria-label={t('Create team')}
                 />
@@ -208,7 +208,7 @@ function YourTeamRow({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr 125px 150px 130px;
+  grid-template-columns: 1fr 125px 150px auto;
   margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='actions'] {
@@ -216,7 +216,7 @@ const StyledSimpleTable = styled(SimpleTable)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 125px 130px;
+    grid-template-columns: 1fr 125px auto;
 
     [data-column-name='projects'] {
       display: none;

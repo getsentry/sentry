@@ -13,6 +13,7 @@ import {
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Configuration for confirmation dialogs before applying changes.
@@ -31,25 +32,28 @@ type ConfirmConfig<TValue = unknown> =
   | React.ReactNode
   | ((value: TValue) => React.ReactNode | undefined);
 
-/** Form data type coming from the schema */
-type SchemaFieldName<TSchema extends z.ZodObject<z.ZodRawShape>> = Extract<
-  DeepKeys<z.infer<TSchema>>,
+type SchemaInput<TSchema extends z.ZodObject> = z.input<TSchema>;
+type SchemaOutput<TSchema extends z.ZodObject> = z.output<TSchema>;
+
+/** Form data type coming from the schema input */
+type SchemaFieldName<TSchema extends z.ZodObject> = Extract<
+  DeepKeys<SchemaInput<TSchema>>,
   string
 >;
 
 /** FieldApi’s TData must be DeepValue<TParentData, TName> */
-type SchemaFieldValue<
-  TSchema extends z.ZodObject<z.ZodRawShape>,
+type SchemaFieldInputValue<
+  TSchema extends z.ZodObject,
   TFieldName extends SchemaFieldName<TSchema>,
-> = DeepValue<z.infer<TSchema>, TFieldName>;
+> = DeepValue<SchemaInput<TSchema>, TFieldName>;
 
 type AutoSaveFormRenderArg<
-  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TSchema extends z.ZodObject,
   TFieldName extends SchemaFieldName<TSchema>,
 > = FieldApi<
-  z.infer<TSchema>,
+  SchemaInput<TSchema>,
   TFieldName,
-  SchemaFieldValue<TSchema, TFieldName>,
+  SchemaFieldInputValue<TSchema, TFieldName>,
   // Field validators (all can be undefined to satisfy the constraints)
   undefined, // TOnMount
   undefined, // TOnChange
@@ -104,8 +108,8 @@ type AutoSaveFormRenderArg<
 interface AutoSaveFormProps<
   TData,
   TContext,
-  TSchema extends z.ZodObject<z.ZodRawShape>,
-  TFieldName extends Extract<keyof z.infer<TSchema>, string>,
+  TSchema extends z.ZodObject,
+  TFieldName extends Extract<keyof SchemaInput<TSchema>, string>,
 > {
   /**
    * Render prop that receives field props and additional props
@@ -117,7 +121,7 @@ interface AutoSaveFormProps<
   /**
    * Initial value - must match the schema's type for this field
    */
-  initialValue: z.infer<TSchema>[TFieldName];
+  initialValue: SchemaInput<TSchema>[TFieldName];
 
   /**
    * TanStack Query mutation options - mutationFn receives single-field data
@@ -125,7 +129,7 @@ interface AutoSaveFormProps<
   mutationOptions: UseMutationOptions<
     TData,
     Error,
-    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>,
+    NoInfer<Record<TFieldName, SchemaOutput<TSchema>[TFieldName]>>,
     TContext
   >;
 
@@ -155,14 +159,16 @@ interface AutoSaveFormProps<
    * // Function with conditional confirmation
    * confirm={(value) => value === 'dangerous' ? "This is irreversible!" : undefined}
    */
-  confirm?: ConfirmConfig<z.infer<TSchema>[TFieldName]>;
+  confirm?: ConfirmConfig<SchemaInput<TSchema>[TFieldName]>;
 }
 
 export function AutoSaveForm<
   TData,
   TContext,
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   TSchema extends z.ZodObject<z.ZodRawShape>,
-  TFieldName extends Extract<keyof z.infer<TSchema>, string>,
+  TFieldName extends Extract<keyof SchemaInput<TSchema>, string>,
 >(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
@@ -175,7 +181,7 @@ export function AutoSaveForm<
     formId: `${name}-${id}-(auto-save)`,
     defaultValues: {[name]: initialValue} as Record<
       TFieldName,
-      z.infer<TSchema>[TFieldName]
+      SchemaInput<TSchema>[TFieldName]
     >,
     validators: {
       onChange: schema.pick({[name]: true}) as never,
@@ -192,17 +198,33 @@ export function AutoSaveForm<
         return Promise.resolve();
       }
 
-      const onError = () => {
+      const onError = (error: Error) => {
         if (resetOnErrorRef.current) {
           formApi.reset();
         }
-        setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
+        const hasBackendErrors =
+          error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+        if (!hasBackendErrors) {
+          setFieldErrors(formApi, {
+            [name]: {message: t('Failed to save')},
+          } as never);
+        }
       };
 
       const onSuccess = () => {
         formApi.reset();
       };
 
+      const parsedValue = schema.pick({[name]: true} as never).safeParse(value);
+
+      if (!parsedValue.success) {
+        return Promise.resolve();
+      }
+
+      const submittedValue = parsedValue.data as Record<
+        TFieldName,
+        SchemaOutput<TSchema>[TFieldName]
+      >;
       const fieldValue = value[name];
 
       // Determine confirmation message
@@ -219,7 +241,7 @@ export function AutoSaveForm<
               pendingConfirmRef.current = false;
               // Resolve on both success and failure - error handling is done by
               // TanStack Query (onError callback, mutation.isError state)
-              mutation.mutateAsync(value, {onError, onSuccess}).then(() => {
+              mutation.mutateAsync(submittedValue, {onError, onSuccess}).then(() => {
                 resolve();
               }, resolve);
             },
@@ -239,7 +261,7 @@ export function AutoSaveForm<
 
       // Resolve on both success and failure - error handling is done by
       // TanStack Query (onError callback, mutation.isError state)
-      return mutation.mutateAsync(value, {onError, onSuccess}).catch(() => {});
+      return mutation.mutateAsync(submittedValue, {onError, onSuccess}).catch(() => {});
     },
   });
 

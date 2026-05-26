@@ -33,7 +33,7 @@ export function AiPrivacyNotice({linkProps = {}}: AiPrivacyNoticeProps) {
  * A shortened version of the privacy noice, useful for tooltips or places where space is limited.
  */
 function AiPrivacyNoticeShort({linkProps = {}}: AiPrivacyNoticeProps) {
-  return tct(`Powered by genAI. [link:Learn more.]`, {
+  return tct('Powered by genAI. [link:Learn more.]', {
     link: <ExternalLink href={AI_PRIVACY_NOTICE_LINK} {...linkProps} />,
   });
 }

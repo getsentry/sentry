@@ -10,7 +10,6 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {
   EventListTable,
@@ -33,7 +32,6 @@ export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const location = useLocation();
   const organization = useOrganization();
-  const routes = useRoutes();
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
   const eventView = useIssueDetailsEventView({
@@ -83,7 +81,6 @@ export function EventList({group}: EventListProps) {
         issueId={group.id}
         isRegressionIssue={isRegressionIssue}
         organization={organization}
-        routes={routes}
         excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
         projectSlug={group.project.slug}
         customColumns={['minidump']}
@@ -118,7 +115,7 @@ export function EventList({group}: EventListProps) {
                 <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    priority="transparent"
+                    variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -132,7 +129,7 @@ export function EventList({group}: EventListProps) {
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    priority="transparent"
+                    variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{

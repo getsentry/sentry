@@ -58,7 +58,7 @@ describe('UserDropdown', () => {
 
     expect(screen.getByRole('menuitemradio', {name: 'Admin'})).toHaveAttribute(
       'href',
-      `/manage/`
+      '/manage/'
     );
   });
 });

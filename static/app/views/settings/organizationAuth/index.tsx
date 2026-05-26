@@ -20,7 +20,7 @@ function OrganizationAuth() {
     error: errorProviders,
   } = useApiQuery<AuthProvider[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/auth-providers/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/auth-providers/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -32,7 +32,7 @@ function OrganizationAuth() {
     error: errorProvider,
   } = useApiQuery<AuthProvider>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

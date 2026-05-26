@@ -26,6 +26,7 @@ map_issue_args = make_type_coercer(
     {
         "issue_id": int,
         "event_id": str,
+        "org_slug": str,
     }
 )
 
@@ -85,11 +86,11 @@ def _unfurl_issues(
 
 
 issue_link_regex = re.compile(
-    r"^https?\://(?#url_prefix)[^/]+/organizations/(?#organization_slug)[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
 )
 
 customer_domain_issue_link_regex = re.compile(
-    r"^https?\://(?#url_prefix)[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
 )
 
 issues_handler = Handler(

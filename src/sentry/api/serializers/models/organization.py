@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -33,18 +33,16 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     AUTO_ENABLE_CODE_REVIEW,
     AUTO_OPEN_PRS_DEFAULT,
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
+    DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
-    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
-    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_COMMENT_BOT_DEFAULT,
-    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
@@ -57,6 +55,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
@@ -71,20 +70,26 @@ from sentry.dynamic_sampling.utils import (
 )
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
+from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
+from sentry.types.cell import get_locality_name_for_cell
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.display_name_filter import is_spam_display_name
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
@@ -128,15 +133,14 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON objec
 
 
-class OrganizationSerializerResponseOptional(TypedDict, total=False):
+class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     features: list[str]  # Only included if include_feature_flags is True
     extraOptions: dict[str, dict[str, Any]]
     access: frozenset[str]  # Only if access=... is passed
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
 
 
-@extend_schema_serializer(exclude_fields=["requireEmailVerification"])
-class OrganizationSerializerResponse(OrganizationSerializerResponseOptional):
+class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
     id: str
     slug: str
     status: _Status
@@ -144,7 +148,6 @@ class OrganizationSerializerResponse(OrganizationSerializerResponseOptional):
     dateCreated: datetime
     isEarlyAdopter: bool
     require2FA: bool
-    requireEmailVerification: bool
     avatar: SerializedAvatarFields
     links: _Links
     hasAuthProvider: bool
@@ -166,7 +169,39 @@ class BaseOrganizationSerializer(serializers.Serializer):
         max_length=DEFAULT_SLUG_MAX_LENGTH,
     )
 
-    def validate_slug(self, value: str) -> str:
+    def _log_name_blocked(self, name: str, reason: str) -> None:
+        extra: dict[str, object] = {"attempted_name": name, "reason": reason}
+        request = self.context.get("request")
+        if request is not None:
+            extra["user_id"] = getattr(request.user, "id", None)
+            extra["user_ip"] = request.META.get("REMOTE_ADDR")
+            extra["user_agent"] = request.META.get("HTTP_USER_AGENT")
+        org = self.context.get("organization")
+        if org is not None:
+            extra["org_id"] = org.id
+            extra["org_slug"] = org.slug
+        logging.getLogger("sentry.security").warning("spam.display-name-blocked", extra=extra)
+
+    def validate_name(self, value: str) -> str:
+        if "://" in value:
+            self._log_name_blocked(value, "url_scheme")
+            raise serializers.ValidationError(
+                "Organization name cannot contain URL schemes (e.g. http:// or https://)."
+            )
+
+        if is_spam_display_name(value):
+            self._log_name_blocked(value, "spam_filter")
+            raise serializers.ValidationError(
+                "This name contains disallowed content. Please choose a different name."
+            )
+
+        return value
+
+    def _validate_slug_shape(self, value: str) -> str:
+        """
+        Validate slug values without any DB queries.
+        This method is re-used across cell + control silos.
+        """
         # Historically, the only check just made sure there was more than 1
         # character for the slug, but since then, there are many slugs that
         # fit within this new imposed limit. We're not fixing existing, but
@@ -181,17 +216,20 @@ class BaseOrganizationSerializer(serializers.Serializer):
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
-        qs = Organization.objects.filter(slug=value)
-        if "organization" in self.context:
-            qs = qs.exclude(id=self.context["organization"].id)
-        if qs.exists():
-            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
-
         contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
         if contains_whitespace:
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
+        return value
+
+    def validate_slug(self, value: str) -> str:
+        value = self._validate_slug_shape(value)
+        qs = Organization.objects.filter(slug=value)
+        if "organization" in self.context:
+            qs = qs.exclude(id=self.context["organization"].id)
+        if qs.exists():
+            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
         return value
 
 
@@ -282,8 +320,96 @@ class ControlSiloOrganizationSerializer(Serializer):
         )
 
 
+class ControlSiloOrganizationMappingSerializerResponse(TypedDict):
+    # Mirror of `OrganizationSummarySerializerResponse`, populated from
+    # `OrganizationMapping` so the listing endpoint can serve responses without
+    # crossing into a cell. Fields are added incrementally as data becomes
+    # available on the control silo.
+    id: str
+    slug: str
+    name: str
+    status: _Status
+    dateCreated: datetime
+    isEarlyAdopter: bool
+    require2FA: bool
+    allowMemberInvite: bool
+    allowMemberProjectCreation: bool
+    allowSuperuserAccess: bool
+    avatar: SerializedAvatarFields
+    links: _Links
+    hasAuthProvider: bool
+
+
+class ControlSiloOrganizationMappingSerializer(Serializer):
+    _AVATAR_TYPE_BY_ID: ClassVar[dict[int, str]] = dict(OrganizationAvatar.AVATAR_TYPES)
+
+    def get_attrs(
+        self,
+        item_list: Sequence[OrganizationMapping],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[OrganizationMapping, MutableMapping[str, Any]]:
+        org_ids = [m.organization_id for m in item_list]
+        org_ids_with_auth_provider = set(
+            AuthProvider.objects.filter(organization_id__in=org_ids).values_list(
+                "organization_id", flat=True
+            )
+        )
+        avatars_by_org_id = {
+            a.organization_id: a
+            for a in OrganizationAvatarReplica.objects.filter(organization_id__in=org_ids)
+        }
+        return {
+            m: {
+                "has_auth_provider": m.organization_id in org_ids_with_auth_provider,
+                "avatar": avatars_by_org_id.get(m.organization_id),
+            }
+            for m in item_list
+        }
+
+    def serialize(
+        self,
+        obj: OrganizationMapping,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ControlSiloOrganizationMappingSerializerResponse:
+        status = OrganizationStatus(obj.status)
+        avatar_replica: OrganizationAvatarReplica | None = attrs["avatar"]
+        if avatar_replica is not None:
+            avatar_type = self._AVATAR_TYPE_BY_ID[avatar_replica.avatar_type]
+            # The avatar file is served by the cell that owns the org, so the
+            # URL must point at that cell's locality rather than the local
+            # control silo.
+            avatar: SerializedAvatarFields = {
+                "avatarType": avatar_type,
+                "avatarUuid": avatar_replica.avatar_ident if avatar_type == "upload" else None,
+                "avatarUrl": avatar_replica.absolute_url(),
+            }
+        else:
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
+        return dict(
+            id=str(obj.organization_id),
+            slug=obj.slug,
+            name=obj.name or obj.slug,
+            status={"id": status.name.lower(), "name": status.label},
+            dateCreated=obj.date_created,
+            isEarlyAdopter=obj.early_adopter,
+            require2FA=obj.require_2fa,
+            allowMemberInvite=not obj.disable_member_invite,
+            allowMemberProjectCreation=not obj.disable_member_project_creation,
+            allowSuperuserAccess=not obj.prevent_superuser_access,
+            avatar=avatar,
+            links={
+                "organizationUrl": generate_organization_url(obj.slug),
+                "regionUrl": generate_locality_url(get_locality_name_for_cell(obj.cell_name)),
+            },
+            hasAuthProvider=attrs["has_auth_provider"],
+        )
+
+
 @register(Organization)
-class OrganizationSerializer(Serializer):
+class OrganizationSummarySerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -344,8 +470,12 @@ class OrganizationSerializer(Serializer):
         feature_set = set()
 
         with sentry_sdk.start_span(op="features.check", name="check batch features"):
-            # Check features in batch using the entity handler
-            batch_features = features.batch_has(org_features, actor=user, organization=obj)
+            # Evaluate flags purely to populate the response — the user has not
+            # actually encountered any experiments yet, so suppress the auto
+            # exposure events the entity handler would otherwise log.
+            batch_features = features.batch_has(
+                org_features, actor=user, organization=obj, skip_experiment_exposure=True
+            )
 
             # batch_has has found some features
             if batch_features:
@@ -407,7 +537,7 @@ class OrganizationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> OrganizationSerializerResponse:
+    ) -> OrganizationSummarySerializerResponse:
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
@@ -423,7 +553,7 @@ class OrganizationSerializer(Serializer):
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
-        context: OrganizationSerializerResponse = {
+        context: OrganizationSummarySerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
@@ -431,8 +561,6 @@ class OrganizationSerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            # requireEmailVerification has been deprecated
-            "requireEmailVerification": False,
             "avatar": avatar,
             "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
@@ -501,7 +629,7 @@ class OnboardingTasksSerializer(Serializer):
         }
 
 
-class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
+class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerResponse, total=False):
     role: Any  # TODO: replace with enum/literal
     orgRole: str
     targetSampleRate: float
@@ -511,10 +639,11 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
+    dashboardsAsyncQueueParallelLimit: int
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
-class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
+class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     experiments: dict[str, str]
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
@@ -541,9 +670,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     codecovAccess: bool
     hideAiFeatures: bool
-    githubPRBot: bool
-    githubNudgeInvite: bool
-    gitlabPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -554,10 +680,10 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
-    defaultCodingAgent: str | None
-    defaultCodingAgentIntegrationId: int | None
+    defaultCodingAgent: str
+    defaultCodingAgentIntegrationId: str | None
+    defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -565,7 +691,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     replayAccessMembers: list[int]
 
 
-class DetailedOrganizationSerializer(OrganizationSerializer):
+class OrganizationSerializer(OrganizationSummarySerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -597,6 +723,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         return attrs
 
+    def _get_default_automated_run_stopping_point(self, obj: Organization) -> str:
+        stopping_point = obj.get_option(
+            "sentry:default_automated_run_stopping_point",
+            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        )
+        if stopping_point not in get_valid_automated_run_stopping_points(obj):
+            return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        return stopping_point
+
     def serialize(  # type: ignore[override]
         self,
         obj: Organization,
@@ -604,7 +739,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         user: User | RpcUser | AnonymousUser,
         access: Access,
         **kwargs: Any,
-    ) -> DetailedOrganizationSerializerResponse:
+    ) -> OrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
         include_feature_flags = kwargs.get("include_feature_flags", True)
@@ -636,7 +771,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
-        context: DetailedOrganizationSerializerResponse = {
+        coding_agent_integration_id = obj.get_option(
+            "sentry:seer_default_coding_agent_integration_id", None
+        )
+
+        context: OrganizationSerializerResponse = {
             **base,
             "experiments": features.get_experiment_assignments(obj, actor=user),
             "isDefault": obj.is_default,
@@ -650,8 +789,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "openMembership": bool(obj.flags.allow_joinleave),
             "require2FA": bool(obj.flags.require_2fa),
-            # The requireEmailVerification feature has been removed, this field is deprecated.
-            "requireEmailVerification": False,
             "allowSharedIssues": not obj.flags.disable_shared_issues,
             "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
             "dataScrubber": bool(
@@ -691,11 +828,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
-            "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubNudgeInvite": bool(
-                obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
-            "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -713,17 +845,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "defaultAutofixAutomationTuning": obj.get_option(
                 "sentry:default_autofix_automation_tuning",
-                DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+                AUTOFIX_AUTOMATION_TUNING_DEFAULT,
             ),
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "enableSeerEnhancedAlerts": bool(
-                obj.get_option(
-                    "sentry:enable_seer_enhanced_alerts",
-                    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
-                )
             ),
             "enableSeerCoding": bool(
                 obj.get_option(
@@ -732,13 +858,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 )
             ),
             "defaultCodingAgent": obj.get_option(
-                "sentry:seer_default_coding_agent",
-                SEER_DEFAULT_CODING_AGENT_DEFAULT,
+                "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
             ),
-            "defaultCodingAgentIntegrationId": obj.get_option(
-                "sentry:seer_default_coding_agent_integration_id",
-                None,
+            "defaultCodingAgentIntegrationId": (
+                str(coding_agent_integration_id) if coding_agent_integration_id else None
             ),
+            "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
             "autoOpenPrs": bool(
                 obj.get_option(
                     "sentry:auto_open_prs",
@@ -793,6 +918,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             CONSOLE_SDK_INVITE_QUOTA_DEFAULT,
         )
 
+        context["dashboardsAsyncQueueParallelLimit"] = obj.get_option(
+            "sentry:dashboards-async-queue-parallel-limit",
+            DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT,
+        )
+
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
@@ -816,7 +946,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 @extend_schema_serializer(
     exclude_fields=[
         "availableRoles",
-        "requireEmailVerification",
         "genAIConsent",
         "quota",
         "rollbackEnabled",
@@ -824,18 +953,17 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "ingestThroughTrustedRelaysOnly",
         "enabledConsolePlatforms",
         "consoleSdkInviteQuota",
+        "dashboardsAsyncQueueParallelLimit",
         "hasGranularReplayPermissions",
         "replayAccessMembers",
     ]
 )
-class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
-    DetailedOrganizationSerializerResponse
-):
+class OrganizationWithProjectsAndTeamsSerializerResponse(OrganizationSerializerResponse):
     teams: list[TeamSerializerResponse]
     projects: list[OrganizationProjectResponse]
 
 
-class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
+class OrganizationWithProjectsAndTeamsSerializer(OrganizationSerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -872,7 +1000,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         user: User | RpcUser | AnonymousUser,
         access: Access,
         **kwargs: Any,
-    ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
+    ) -> OrganizationWithProjectsAndTeamsSerializerResponse:
         from sentry.api.serializers.models.project import (
             LATEST_DEPLOYS_KEY,
             ProjectSummarySerializer,
@@ -880,7 +1008,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         from sentry.api.serializers.models.team import TeamSerializer
 
         context = cast(
-            DetailedOrganizationSerializerWithProjectsAndTeamsResponse,
+            OrganizationWithProjectsAndTeamsSerializerResponse,
             super().serialize(obj, attrs, user, access, **kwargs),
         )
 

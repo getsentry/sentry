@@ -17,19 +17,18 @@ export function combineBaseFieldsWithTags(
     aggregations,
   });
 
-  const processedTags = Object.values(tags ?? {}).reduce(
-    (acc, tag) => {
-      acc[`${tag.kind}:${tag.key}`] = {
-        label: tag.name,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
-        },
-      };
-      return acc;
-    },
-    {} as Record<string, FieldValueOption>
-  );
+  const processedTags = Object.values(tags ?? {}).reduce<
+    Record<string, FieldValueOption>
+  >((acc, tag) => {
+    acc[`${tag.kind}:${tag.key}`] = {
+      label: tag.name,
+      value: {
+        kind: FieldValueKind.TAG,
+        meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+      },
+    };
+    return acc;
+  }, {});
 
   return {...baseFieldOptions, ...processedTags};
 }

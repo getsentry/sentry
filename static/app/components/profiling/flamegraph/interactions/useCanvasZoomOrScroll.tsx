@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import type {vec2} from 'gl-matrix';
 
-import {requestAnimationFrameTimeout} from 'sentry/views/profiling/utils';
+import {requestAnimationFrameTimeout} from 'sentry/views/explore/profiling/utils';
 
 export function useCanvasZoomOrScroll({
   handleWheel,
@@ -20,7 +20,7 @@ export function useCanvasZoomOrScroll({
 }) {
   useEffect(() => {
     if (!canvas) {
-      return undefined;
+      return;
     }
 
     let wheelStopTimeoutId: {current: number | undefined} = {current: undefined};

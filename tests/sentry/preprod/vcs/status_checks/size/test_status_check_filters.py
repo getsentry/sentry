@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest import mock
+
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
@@ -7,12 +9,12 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
+from sentry.preprod.vcs.status_checks.size.rules import get_status_check_rules
 from sentry.preprod.vcs.status_checks.size.tasks import (
     _compute_overall_status,
     _evaluate_rule_threshold,
     _fetch_base_size_metrics,
     _get_artifact_filter_context,
-    _get_status_check_rules,
     _rule_matches_artifact,
 )
 from sentry.preprod.vcs.status_checks.size.types import RuleArtifactType, StatusCheckRule
@@ -22,7 +24,7 @@ from sentry.testutils.silo import cell_silo_test
 
 @cell_silo_test
 class StatusCheckFiltersTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -51,7 +53,7 @@ class StatusCheckFiltersTest(TestCase):
             name="Release",
         )
 
-    def test_filter_context_includes_build_configuration(self):
+    def test_filter_context_includes_build_configuration(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -68,7 +70,7 @@ class StatusCheckFiltersTest(TestCase):
         assert context["app_id"] == "com.example.app"
         assert context["build_configuration_name"] == "Debug"
 
-    def test_filter_context_without_build_configuration(self):
+    def test_filter_context_without_build_configuration(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -84,7 +86,7 @@ class StatusCheckFiltersTest(TestCase):
         assert context["app_id"] == "com.example.android"
         assert "build_configuration_name" not in context
 
-    def test_rule_matches_build_configuration_single_value(self):
+    def test_rule_matches_build_configuration_single_value(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -115,7 +117,7 @@ class StatusCheckFiltersTest(TestCase):
         assert _rule_matches_artifact(rule_debug, context) is True
         assert _rule_matches_artifact(rule_release, context) is False
 
-    def test_rule_matches_build_configuration_multiple_values(self):
+    def test_rule_matches_build_configuration_multiple_values(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -137,7 +139,7 @@ class StatusCheckFiltersTest(TestCase):
 
         assert _rule_matches_artifact(rule, context) is True
 
-    def test_rule_matches_build_configuration_negated(self):
+    def test_rule_matches_build_configuration_negated(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -168,7 +170,7 @@ class StatusCheckFiltersTest(TestCase):
         assert _rule_matches_artifact(rule_not_release, context) is True
         assert _rule_matches_artifact(rule_not_debug, context) is False
 
-    def test_rule_matches_combined_filters(self):
+    def test_rule_matches_combined_filters(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -208,7 +210,44 @@ class StatusCheckFiltersTest(TestCase):
         assert _rule_matches_artifact(rule_android_release, context) is False
         assert _rule_matches_artifact(rule_ios_debug, context) is False
 
-    def test_status_check_fails_when_rule_matches_and_exceeds_threshold(self):
+    def test_rule_matches_same_key_positive_and_negated_filters(self) -> None:
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id="com.example.app",
+            commit_comparison=self.commit_comparison,
+        )
+
+        context = _get_artifact_filter_context(artifact)
+
+        satisfiable_rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="app_id:com.example.app !app_id:bad* platform_name:apple",
+        )
+        contradictory_rule = StatusCheckRule(
+            id="rule2",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="app_id:com.example.app !app_id:com.example.app platform_name:apple",
+        )
+        platform_mismatch_rule = StatusCheckRule(
+            id="rule3",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="app_id:com.example.app !app_id:bad* platform_name:android",
+        )
+
+        assert _rule_matches_artifact(satisfiable_rule, context) is True
+        assert _rule_matches_artifact(contradictory_rule, context) is False
+        assert _rule_matches_artifact(platform_mismatch_rule, context) is False
+
+    def test_status_check_fails_when_rule_matches_and_exceeds_threshold(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -247,7 +286,7 @@ class StatusCheckFiltersTest(TestCase):
         assert len(triggered_rules) == 1
         assert triggered_rules[0].rule == rule
 
-    def test_status_check_succeeds_when_rule_matches_but_under_threshold(self):
+    def test_status_check_succeeds_when_rule_matches_but_under_threshold(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -285,7 +324,7 @@ class StatusCheckFiltersTest(TestCase):
         assert status == StatusCheckStatus.SUCCESS
         assert triggered_rules == []
 
-    def test_status_check_succeeds_when_rule_does_not_match(self):
+    def test_status_check_succeeds_when_rule_does_not_match(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -323,7 +362,7 @@ class StatusCheckFiltersTest(TestCase):
         assert status == StatusCheckStatus.SUCCESS
         assert triggered_rules == []
 
-    def test_parse_rules_from_project_options(self):
+    def test_parse_rules_from_project_options(self) -> None:
         self.project.update_option(
             "sentry:preprod_size_status_checks_enabled",
             True,
@@ -335,7 +374,7 @@ class StatusCheckFiltersTest(TestCase):
             '"artifactType": "watch_artifact"}]',
         )
 
-        rules = _get_status_check_rules(self.project)
+        rules = get_status_check_rules(self.project)
 
         assert len(rules) == 1
         assert rules[0].id == "rule1"
@@ -345,30 +384,106 @@ class StatusCheckFiltersTest(TestCase):
         assert rules[0].filter_query == "build_configuration_name:Debug"
         assert rules[0].artifact_type == "watch_artifact"
 
-    def test_parse_rules_defaults_missing_artifact_type_to_main(self):
+    def test_parse_rules_defaults_missing_artifact_type_to_main(self) -> None:
         self.project.update_option(
             "sentry:preprod_size_status_checks_rules",
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100}]',
         )
 
-        rules = _get_status_check_rules(self.project)
+        rules = get_status_check_rules(self.project)
 
         assert len(rules) == 1
         assert rules[0].artifact_type == "main_artifact"
 
-    def test_parse_rules_with_app_clip_artifact_type(self):
+    def test_parse_rules_with_app_clip_artifact_type(self) -> None:
         self.project.update_option(
             "sentry:preprod_size_status_checks_rules",
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", '
             '"value": 100, "artifactType": "app_clip_artifact"}]',
         )
 
-        rules = _get_status_check_rules(self.project)
+        rules = get_status_check_rules(self.project)
 
         assert len(rules) == 1
         assert rules[0].artifact_type == RuleArtifactType.APP_CLIP_ARTIFACT
 
-    def test_evaluate_absolute_diff_threshold_exceeds(self):
+    def test_parse_rules_from_bytes_project_option(self) -> None:
+        with mock.patch.object(
+            self.project,
+            "get_option",
+            return_value=(
+                b'[{"id": "rule1", "metric": "download_size", "measurement": "relative_diff", '
+                b'"value": 10.5}]'
+            ),
+        ):
+            rules = get_status_check_rules(self.project)
+
+        assert len(rules) == 1
+        assert rules[0].id == "rule1"
+        assert rules[0].metric == "download_size"
+        assert rules[0].measurement == "relative_diff"
+        assert rules[0].value == 10.5
+
+    def test_parse_rules_from_list_project_option_skips_invalid_dict_entries(self) -> None:
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            [
+                {
+                    "id": "bad-value",
+                    "metric": "install_size",
+                    "measurement": "absolute",
+                    "value": "1",
+                },
+                {"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100},
+            ],
+        )
+
+        rules = get_status_check_rules(self.project)
+
+        assert len(rules) == 1
+        assert rules[0].id == "rule1"
+
+    def test_parse_rules_preserves_unknown_metric_and_measurement_for_task_compatibility(
+        self,
+    ) -> None:
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            [
+                {
+                    "id": "unknown-metric",
+                    "metric": "unknown",
+                    "measurement": "absolute",
+                    "value": 1,
+                },
+                {
+                    "id": "unknown-measurement",
+                    "metric": "install_size",
+                    "measurement": "unknown",
+                    "value": 2,
+                },
+            ],
+        )
+
+        rules = get_status_check_rules(self.project)
+
+        assert [rule.id for rule in rules] == ["unknown-metric", "unknown-measurement"]
+        assert rules[0].metric == "unknown"
+        assert rules[1].measurement == "unknown"
+
+    def test_parse_rules_non_dict_entry_returns_empty_rules_for_task_compatibility(self) -> None:
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            [
+                "not-a-rule",
+                {"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100},
+            ],
+        )
+
+        rules = get_status_check_rules(self.project)
+
+        assert rules == []
+
+    def test_evaluate_absolute_diff_threshold_exceeds(self) -> None:
         head_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -416,7 +531,7 @@ class StatusCheckFiltersTest(TestCase):
 
         assert _evaluate_rule_threshold(rule, head_metrics, base_metrics) is True
 
-    def test_evaluate_absolute_diff_threshold_under(self):
+    def test_evaluate_absolute_diff_threshold_under(self) -> None:
         head_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -464,7 +579,7 @@ class StatusCheckFiltersTest(TestCase):
 
         assert _evaluate_rule_threshold(rule, head_metrics, base_metrics) is False
 
-    def test_evaluate_relative_diff_threshold_exceeds(self):
+    def test_evaluate_relative_diff_threshold_exceeds(self) -> None:
         head_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -512,7 +627,7 @@ class StatusCheckFiltersTest(TestCase):
 
         assert _evaluate_rule_threshold(rule, head_metrics, base_metrics) is True
 
-    def test_evaluate_relative_diff_threshold_under(self):
+    def test_evaluate_relative_diff_threshold_under(self) -> None:
         head_artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -560,7 +675,7 @@ class StatusCheckFiltersTest(TestCase):
 
         assert _evaluate_rule_threshold(rule, head_metrics, base_metrics) is False
 
-    def test_evaluate_rule_with_no_base_metrics_returns_false(self):
+    def test_evaluate_rule_with_no_base_metrics_returns_false(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -594,7 +709,7 @@ class StatusCheckFiltersTest(TestCase):
         assert _evaluate_rule_threshold(rule_absolute_diff, size_metrics, None) is False
         assert _evaluate_rule_threshold(rule_relative_diff, size_metrics, None) is False
 
-    def test_fetch_base_size_metrics_with_matching_build_config(self):
+    def test_fetch_base_size_metrics_with_matching_build_config(self) -> None:
         base_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="b" * 40,
@@ -648,7 +763,7 @@ class StatusCheckFiltersTest(TestCase):
         assert len(metrics_list) == 1
         assert metrics_list[0].id == base_metrics.id
 
-    def test_fetch_base_size_metrics_with_different_build_config(self):
+    def test_fetch_base_size_metrics_with_different_build_config(self) -> None:
         base_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="b" * 40,
@@ -696,7 +811,7 @@ class StatusCheckFiltersTest(TestCase):
 
         assert base_size_metrics_map == {}
 
-    def test_status_check_with_absolute_diff_rule(self):
+    def test_status_check_with_absolute_diff_rule(self) -> None:
         base_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="b" * 40,
@@ -774,7 +889,7 @@ class StatusCheckFiltersTest(TestCase):
         assert len(triggered_rules) == 1
         assert triggered_rules[0].rule == rule
 
-    def test_rules_only_evaluate_main_artifact_not_watch_app(self):
+    def test_rules_only_evaluate_main_artifact_not_watch_app(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -815,7 +930,7 @@ class StatusCheckFiltersTest(TestCase):
         assert status == StatusCheckStatus.SUCCESS
         assert triggered_rules == []
 
-    def test_rules_evaluate_watch_artifact_when_explicitly_selected(self):
+    def test_rules_evaluate_watch_artifact_when_explicitly_selected(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -861,7 +976,7 @@ class StatusCheckFiltersTest(TestCase):
             == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
         )
 
-    def test_rules_evaluate_app_clip_artifact_when_explicitly_selected(self):
+    def test_rules_evaluate_app_clip_artifact_when_explicitly_selected(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -907,7 +1022,7 @@ class StatusCheckFiltersTest(TestCase):
             == PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT
         )
 
-    def test_rules_evaluate_all_app_clips_with_all_artifacts_rule(self):
+    def test_rules_evaluate_all_app_clips_with_all_artifacts_rule(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -966,7 +1081,7 @@ class StatusCheckFiltersTest(TestCase):
             "com.example.app.clip.b",
         }
 
-    def test_rules_with_missing_targeted_artifact_type_do_not_fail(self):
+    def test_rules_with_missing_targeted_artifact_type_do_not_fail(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -1000,7 +1115,7 @@ class StatusCheckFiltersTest(TestCase):
         assert status == StatusCheckStatus.SUCCESS
         assert triggered_rules == []
 
-    def test_rules_evaluate_all_artifacts_when_all_selected(self):
+    def test_rules_evaluate_all_artifacts_when_all_selected(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -1046,7 +1161,7 @@ class StatusCheckFiltersTest(TestCase):
             == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
         )
 
-    def test_rules_evaluate_dynamic_feature_by_identifier(self):
+    def test_rules_evaluate_dynamic_feature_by_identifier(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -1095,7 +1210,7 @@ class StatusCheckFiltersTest(TestCase):
         )
         assert triggered_rules[0].identifier == "feature.b"
 
-    def test_filters_on_missing_fields_do_not_match(self):
+    def test_filters_on_missing_fields_do_not_match(self) -> None:
         artifact_no_build_config = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -1133,7 +1248,7 @@ class StatusCheckFiltersTest(TestCase):
         assert _rule_matches_artifact(negated_rule, context) is False
         assert _rule_matches_artifact(negated_in_rule, context) is False
 
-    def test_negated_filters_still_work_when_field_present(self):
+    def test_negated_filters_still_work_when_field_present(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -1163,7 +1278,7 @@ class StatusCheckFiltersTest(TestCase):
         assert _rule_matches_artifact(rule_not_release, context) is True
         assert _rule_matches_artifact(rule_not_debug, context) is False
 
-    def test_combined_filters_fail_when_any_field_missing(self):
+    def test_combined_filters_fail_when_any_field_missing(self) -> None:
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,

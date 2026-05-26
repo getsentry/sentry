@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type OpenPeriodTimelineSectionProps = {
   eventId: string;
@@ -68,9 +68,9 @@ function getOpenPeriodActivityIcon(activity: GroupOpenPeriod['activities'][numbe
 
 function TimelineSection({children}: {children: ReactNode}) {
   return (
-    <InterimSection title={t('Timeline')} type="timeline">
+    <FoldSection title={t('Timeline')} sectionKey="timeline">
       {children}
-    </InterimSection>
+    </FoldSection>
   );
 }
 
@@ -78,7 +78,11 @@ export function OpenPeriodTimelineSection({
   groupId,
   eventId,
 }: OpenPeriodTimelineSectionProps) {
-  const {openPeriod, isPending, isError} = useEventOpenPeriod({
+  const {
+    data: openPeriod,
+    isPending,
+    isError,
+  } = useEventOpenPeriod({
     groupId,
     eventId,
   });

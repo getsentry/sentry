@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CanCompareSizeMetricsTest(TestCase):
-    def test_can_compare_when_metrics_match(self):
+    def test_can_compare_when_metrics_match(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -32,7 +32,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is None
         assert result.error_type is None
 
-    def test_cannot_compare_empty_lists(self):
+    def test_cannot_compare_empty_lists(self) -> None:
         result = can_compare_size_metrics([], [])
 
         assert result.can_compare is False
@@ -40,7 +40,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "no completed size metrics" in result.error_message
 
-    def test_cannot_compare_empty_head(self):
+    def test_cannot_compare_empty_head(self) -> None:
         base_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=2,
@@ -58,7 +58,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
         assert result.error_message is not None
 
-    def test_cannot_compare_empty_base(self):
+    def test_cannot_compare_empty_base(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -76,7 +76,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
         assert result.error_message is not None
 
-    def test_different_length_error_type(self):
+    def test_different_length_error_type(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -113,7 +113,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "Head has 2 metric(s), base has 1 metric(s)" in result.error_message
 
-    def test_different_app_ids_error_type(self):
+    def test_different_app_ids_error_type(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -144,7 +144,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert "com.example.app" in result.error_message
         assert "com.example.app.debug" in result.error_message
 
-    def test_different_build_configurations_error_type(self):
+    def test_different_build_configurations_error_type(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -175,7 +175,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "mismatched metrics" in result.error_message
 
-    def test_cannot_compare_when_metrics_not_completed(self):
+    def test_cannot_compare_when_metrics_not_completed(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -204,7 +204,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "not completed" in result.error_message
 
-    def test_cannot_compare_when_all_metrics_pending(self):
+    def test_cannot_compare_when_all_metrics_pending(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -233,7 +233,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "2 metric(s)" in result.error_message
 
-    def test_cannot_compare_when_metric_failed(self):
+    def test_cannot_compare_when_metric_failed(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -262,7 +262,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "failed" in result.error_message
 
-    def test_cannot_compare_when_metric_not_ran(self):
+    def test_cannot_compare_when_metric_not_ran(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -291,7 +291,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_message is not None
         assert "failed" in result.error_message
 
-    def test_failed_takes_priority_over_pending(self):
+    def test_failed_takes_priority_over_pending(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -318,7 +318,7 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.can_compare is False
         assert result.error_type == ComparisonValidationResult.ErrorType.METRICS_FAILED
 
-    def test_different_metrics_error_type(self):
+    def test_different_metrics_error_type(self) -> None:
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,

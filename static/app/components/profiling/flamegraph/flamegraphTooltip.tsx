@@ -97,7 +97,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
       : `${relative > 0 ? '+' : ''}${formatPercentage(relative)}`
     : props.flamegraph.negated
       ? t('removed function')
-      : t(`new function`);
+      : t('new function');
 
   return (
     <BoundTooltip

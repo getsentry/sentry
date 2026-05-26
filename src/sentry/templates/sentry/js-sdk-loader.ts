@@ -78,7 +78,7 @@ declare const __LOADER__IS_LAZY__: any;
         (queueIsFunction(item) && item.f.indexOf('showReportDialog') > -1))
     ) {
       // We only want to lazy inject/load the sdk bundle if
-      // an error or promise rejection occured
+      // an error or promise rejection occurred
       // OR someone called `capture...` on the SDK
       injectCDNScriptTag();
     }

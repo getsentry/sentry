@@ -9,8 +9,6 @@ class ActionPriority:
     UNKNOWN = 4
 
 
-fileNameBlocklist = ["@webkit-masked-url"]
-
 priority_ranking = {
     # Low Priority
     EventErrorType.CLOCK_DRIFT: ActionPriority.LOW,

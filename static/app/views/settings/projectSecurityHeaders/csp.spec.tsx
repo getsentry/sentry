@@ -37,10 +37,8 @@ describe('ProjectCspReports', () => {
       initialRouterConfig,
     });
 
-    // Heading
-    expect(
-      await screen.findByText('Content Security Policy', {selector: 'h1'})
-    ).toBeInTheDocument();
+    // Panel heading
+    expect(await screen.findByText('About')).toBeInTheDocument();
   });
 
   it('renders loading error', async () => {
@@ -118,7 +116,7 @@ describe('ProjectCspReports', () => {
         data: {
           // XXX: Org details endpoints accept these multiline inputs as a list, where as it looks like project details accepts it as a string with newlines
           options: {
-            'sentry:csp_ignored_sources': `test\ntest2`,
+            'sentry:csp_ignored_sources': 'test\ntest2',
           },
         },
       })

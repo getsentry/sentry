@@ -10,8 +10,8 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {
   ProjectScore,
   WebVitals,
@@ -85,10 +85,8 @@ function WebVitalLabel({
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
-      ? Math.round((projectData?.[0]?.['p75(measurements.cls)'] as number) * 100) / 100
-      : getFormattedDuration(
-          (projectData?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
-        );
+      ? Math.round(projectData?.[0]?.['p75(measurements.cls)']! * 100) / 100
+      : getFormattedDuration(projectData?.[0]?.[`p75(measurements.${webVital})`]! / 1000);
 
   const diffValue = differenceToPreviousPeriod?.[`${webVital}Score`];
 
@@ -254,7 +252,7 @@ export function PerformanceScoreRingWithTooltips({
                     {...commonWebVitalLabelProps}
                     key={`webVitalLabel-${key}-${index}`}
                     webVital={webVital}
-                    coordinates={coordinates[webVital] as Coordinates}
+                    coordinates={coordinates[webVital]}
                   />
                 );
               }
@@ -383,6 +381,7 @@ const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
 // Hover element on mouse
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
+  z-index: ${p => p.theme.zIndex.tooltip};
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};

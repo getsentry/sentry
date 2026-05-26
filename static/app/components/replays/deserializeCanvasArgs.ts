@@ -24,7 +24,7 @@ function variableListFor(ctx: CanvasContexts, ctor: string) {
     contextMap.set(ctor, []);
   }
 
-  return contextMap.get(ctor) as any[];
+  return contextMap.get(ctor)!;
 }
 
 export function deserializeCanvasArg(

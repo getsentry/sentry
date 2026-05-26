@@ -16,7 +16,7 @@ import {
   AgentIntegration,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
-export const MIN_REQUIRED_VERSION = '10.28.0';
+export const MIN_REQUIRED_VERSION = '10.53.0';
 
 export function getAgentIntegration(params: DocsParams): AgentIntegration {
   return (params.platformOptions?.integration ??
@@ -145,12 +145,18 @@ export function getManualConfigureStep(
     packageName = '@sentry/node',
     importMode,
     configFileName,
+    sentryImport,
+    docUrl = 'https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation',
   }: {
     configFileName?: string;
+    docUrl?: string;
     importMode?: 'esm' | 'cjs' | 'esm-only';
     packageName?: `@sentry/${string}`;
+    sentryImport?: string;
   } = {}
 ): OnboardingStep[] {
+  const importStatement = sentryImport ?? getImport(packageName, importMode).join('\n');
+
   return [
     {
       title: t('Configure'),
@@ -165,12 +171,13 @@ export function getManualConfigureStep(
             {
               label: configFileName ?? 'JavaScript',
               language: 'javascript',
-              code: `${getImport(packageName, importMode).join('\n')}
+              code: `${importStatement}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
+  streamGenAiSpans: true,
   // Add data like inputs and responses to/from LLMs and tools;
   // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
   sendDefaultPii: true,
@@ -181,11 +188,7 @@ Sentry.init({
         {
           type: 'custom',
           content: (
-            <ManualInstrumentationNote
-              docsLink={
-                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-              }
-            />
+            <ManualInstrumentationNote docsLink={<ExternalLink href={docUrl} />} />
           ),
         },
       ],
@@ -247,11 +250,14 @@ function getConfigureStep({
           {
             type: 'text',
             text: tct(
-              'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+              'When using [code:generateText], [code:generateObject], or [code:streamText], pass the [code:experimental_telemetry] object to correctly capture spans. For the [code:ToolLoopAgent] class, telemetry is configured via the constructor. For more details, see the [telemetryLink:AI SDK Telemetry Metadata docs] and the [agentLink:ToolLoopAgent docs].',
               {
                 code: <code />,
-                link: (
+                telemetryLink: (
                   <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+                ),
+                agentLink: (
+                  <ExternalLink href="https://ai-sdk.dev/docs/agents/overview#toolloopagent-class" />
                 ),
               }
             ),
@@ -260,7 +266,7 @@ function getConfigureStep({
             type: 'code',
             tabs: [
               {
-                label: 'JavaScript',
+                label: 'generateText',
                 language: 'javascript',
                 code: `const { generateText } = require('ai');
 const { openai } = require('@ai-sdk/openai');
@@ -274,6 +280,38 @@ const result = await generateText({
     recordInputs: true,
     recordOutputs: true,
   },
+});`,
+              },
+              {
+                label: 'ToolLoopAgent',
+                language: 'javascript',
+                code: `const { ToolLoopAgent, tool } = require("ai");
+const { z } = require("zod");
+
+const agent = new ToolLoopAgent({
+  model: "openai/gpt-5.4",
+  tools: {
+    weather: tool({
+      description: "Get the weather in a location",
+      inputSchema: z.object({
+        location: z.string().describe("The location to get the weather for"),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  telemetry: {
+    isEnabled: true,
+    functionId: "weather_agent",
+    recordInputs: true,
+    recordOutputs: true,
+  },
+});
+
+const result = await agent.generate({
+  prompt: "What is the weather in San Francisco?",
 });`,
               },
             ],
@@ -309,6 +347,7 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
+  streamGenAiSpans: true,
   // Add data like inputs and responses to/from LLMs and tools;
   // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
   sendDefaultPii: true,

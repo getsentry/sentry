@@ -17,8 +17,8 @@ interface UseTimePeriodSelectionResult {
 function mapIntervalToTimeWindow(intervalSeconds: number): TimeWindow | undefined {
   const intervalMinutes = Math.floor(intervalSeconds / 60);
 
-  if (Object.values(TimeWindow).includes(intervalMinutes as TimeWindow)) {
-    return intervalMinutes as TimeWindow;
+  if (Object.values(TimeWindow).includes(intervalMinutes)) {
+    return intervalMinutes;
   }
 
   return undefined;
@@ -32,9 +32,7 @@ export function useTimePeriodSelection({
   dataset,
   interval,
 }: UseTimePeriodSelectionProps): UseTimePeriodSelectionResult {
-  const [preferredTimePeriod, setPreferredTimePeriod] = useState<TimePeriod>(
-    TimePeriod.SEVEN_DAYS
-  );
+  const [preferredTimePeriod, setPreferredTimePeriod] = useState(TimePeriod.SEVEN_DAYS);
 
   // Get available time period options based on dataset and interval
   const timePeriodOptions = useMemo(() => {

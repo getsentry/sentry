@@ -25,7 +25,7 @@ export function StoryHeading(props: HeadingProps) {
     <Flex gap="md" align="center">
       <Heading {...props} id={id} />
       <StyledLinkButton
-        priority="transparent"
+        variant="transparent"
         size="xs"
         href={`#${id}`}
         icon={<IconLink />}

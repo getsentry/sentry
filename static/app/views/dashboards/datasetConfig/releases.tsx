@@ -3,7 +3,6 @@ import omit from 'lodash/omit';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import type {SessionsMeta} from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -83,7 +82,7 @@ export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiRespons
   useSearchBarDataProvider: useReleasesSearchBarDataProvider,
   getTableFieldOptions: getReleasesTableFieldOptions,
   getGroupByFieldOptions: (_organization: Organization) =>
-    generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
+    generateReleaseWidgetFieldOptions([], SESSIONS_TAGS),
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
   filterSeriesSortOptions,

@@ -3,7 +3,7 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -68,8 +68,8 @@ function DetectorOwner({owner}: {owner: Detector['owner']}) {
 
 export function DetectorDetailsAssignee({owner}: {owner: Detector['owner']}) {
   return (
-    <Section title={t('Assign')}>
+    <DetailSection title={t('Assign')}>
       <DetectorOwner owner={owner} />
-    </Section>
+    </DetailSection>
   );
 }

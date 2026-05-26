@@ -113,5 +113,5 @@ const ButtonGrid = styled('div')<{isCompact: boolean}>`
   gap: 0 ${p => p.theme.space.xl};
   flex-direction: row;
   justify-content: space-between;
-  ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
+  ${p => (p.isCompact ? 'flex-wrap: wrap;' : '')}
 `;

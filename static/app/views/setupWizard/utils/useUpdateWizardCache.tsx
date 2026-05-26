@@ -1,7 +1,7 @@
-import {Client} from 'sentry/api';
-import {useMutation} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {useMutation} from '@tanstack/react-query';
 
+import {Client} from 'sentry/api';
+import {useApi} from 'sentry/utils/useApi';
 const BASE_API_CLIENT = new Client({baseUrl: ''});
 
 export function useUpdateWizardCache(hash: string) {

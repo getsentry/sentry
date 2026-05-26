@@ -77,7 +77,10 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
                 return Response({"detail": str(e)}, status=400)
             return Response(
                 [
-                    {"label": project["name_with_namespace"], "value": project["id"]}
+                    {
+                        "label": project["name_with_namespace"],
+                        "value": project["path_with_namespace"],
+                    }
                     for project in response
                 ]
             )

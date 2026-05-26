@@ -16,7 +16,7 @@ from sentry.spans.log_analyzer.fetchers import (
 from sentry.utils import json
 
 
-def test_parse_top_traces_valid():
+def test_parse_top_traces_valid() -> None:
     """Test parsing valid trace entries."""
     operations = [
         "789789789:6a499a5de1f6e3b412adb0ef76009876:2303:26557",
@@ -37,7 +37,7 @@ def test_parse_top_traces_valid():
     assert result[1].cumulative_latency_ms == 6
 
 
-def test_parse_top_traces_empty_list():
+def test_parse_top_traces_empty_list() -> None:
     """Test parsing empty traces list."""
     result = parse_top_traces([])
     assert len(result) == 0
@@ -131,7 +131,7 @@ def test_fetch_logs_from_file_filter_by_consumer(sample_log_data):
     assert logs[0].consumer == "process-spans-6"
 
 
-def test_fetch_logs_from_gcp_with_filters():
+def test_fetch_logs_from_gcp_with_filters() -> None:
     """Test fetching logs with filters applied."""
     try:
         import google.cloud.logging as gcp_logging

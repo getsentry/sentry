@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -11,7 +13,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -54,6 +56,8 @@ export function LogsTabSeerComboBox() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useQueryParams();
+  const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryContext();
   const {
     currentInputValueRef,
     query,
@@ -81,10 +85,12 @@ export function LogsTabSeerComboBox() {
     ?.join(' ')
     ?.trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails?.queryToUse) {
+  } else if (!inputValue && queryDetails?.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 
@@ -132,8 +138,10 @@ export function LogsTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
-      if (!result) return;
+    (result: AskSeerSearchQuery, runId?: number) => {
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         groupBys,
@@ -240,32 +248,30 @@ export function LogsTabSeerComboBox() {
         mode,
       });
 
-      trackAnalytics('logs.ai_query_applied', {
+      trackAnalytics('ai_query.applied', {
         organization,
+        area: analyticsArea,
         query: queryToUse,
         group_by_count: groupBys.length,
       });
+
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
 
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
       organization,
       pageFilters.selection,
       queryParams.aggregateFields,
+      setRunId,
     ]
-  );
-
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
-  const usePollingEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
   );
 
   // Get selected project IDs for the polling variant
@@ -311,32 +317,18 @@ export function LogsTabSeerComboBox() {
     []
   );
 
-  if (!areAiFeaturesAllowed) {
+  if (!enableAISearch) {
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<AskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Logs"
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        analyticsSource="logs"
-        feedbackSource="logs_ai_query"
-        fallbackMutationOptions={logsTabAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerComboBox
+    <AskSeerPollingComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={logsTabAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Logs"
       applySeerSearchQuery={applySeerSearchQuery}
-      analyticsSource="logs"
-      feedbackSource="logs_ai_query"
+      transformResponse={transformResponse}
+      fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );
 }

@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -30,7 +31,6 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,11 +46,8 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {
-    preference,
-    isPending: isLoadingPreferences,
-    codeMappingRepos,
-  } = useProjectSeerPreferences(project);
+  const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (
@@ -232,7 +229,9 @@ export function SeerAutomationProjectList() {
         await Promise.all(
           batch.map(projectId => {
             const project = projects.find(p => p.id === projectId);
-            if (!project) return Promise.resolve();
+            if (!project) {
+              return Promise.resolve();
+            }
 
             const updateData: any = {autofixAutomationTuning: value};
             if (value !== 'off') {
@@ -252,7 +251,9 @@ export function SeerAutomationProjectList() {
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
-        if (!project) return;
+        if (!project) {
+          return;
+        }
         queryClient.invalidateQueries({
           queryKey: makeDetailedProjectQueryKey({
             orgSlug: organization.slug,
@@ -274,7 +275,9 @@ export function SeerAutomationProjectList() {
         await Promise.all(
           batch.map(projectId => {
             const project = projects.find(p => p.id === projectId);
-            if (!project) return Promise.resolve();
+            if (!project) {
+              return Promise.resolve();
+            }
             return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
               method: 'PUT',
               data: {seerScannerAutomation: value},
@@ -288,7 +291,9 @@ export function SeerAutomationProjectList() {
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
-        if (!project) return;
+        if (!project) {
+          return;
+        }
         queryClient.invalidateQueries({
           queryKey: makeDetailedProjectQueryKey({
             orgSlug: organization.slug,
@@ -330,7 +335,7 @@ export function SeerAutomationProjectList() {
         </SearchBarWrapper>
         <Button
           size="md"
-          priority="primary"
+          variant="primary"
           onClick={() => navigate(`/settings/${organization.slug}/seer/onboarding`)}
         >
           {t('Open Setup Wizard')}

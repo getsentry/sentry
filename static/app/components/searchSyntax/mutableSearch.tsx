@@ -188,10 +188,10 @@ function parseToFlatTokens(query: string): Token[] {
         let rawVal: string;
         let valueWasQuoted = false;
         let listValues: string[] | undefined;
-        if (t.value && t.value.type === ParserToken.VALUE_TEXT) {
+        if (t.value?.type === ParserToken.VALUE_TEXT) {
           rawVal = t.value.value;
           valueWasQuoted = t.value.quoted;
-        } else if (t.value && t.value.type === ParserToken.VALUE_TEXT_LIST) {
+        } else if (t.value?.type === ParserToken.VALUE_TEXT_LIST) {
           // Extract individual list items from the AST
           listValues = t.value.items
             .map(item => item.value?.value ?? '')
@@ -400,11 +400,7 @@ export class MutableSearch {
       if (value === EMPTY_OPTION_VALUE) {
         query.addFilterValue('!has', key);
       } else if (Array.isArray(value)) {
-        query.addFilterValues(
-          key,
-          value.map(v => String(v)),
-          !ALLOWED_WILDCARD_FIELDS.has(key)
-        );
+        query.addFilterValues(key, value.map(String), !ALLOWED_WILDCARD_FIELDS.has(key));
       } else {
         query.addFilterValue(key, String(value), !ALLOWED_WILDCARD_FIELDS.has(key));
       }

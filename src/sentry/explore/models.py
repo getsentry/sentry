@@ -222,6 +222,54 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             )
             return True
 
+    def insert_starred_query_alphabetically(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: ExploreSavedQuery,
+    ) -> bool:
+        """
+        Inserts a starred query at the position of the next prebuilt starred query
+        whose name sorts after this one, shifting later positions by 1. Falls back
+        to appending at the end when nothing sorts later.
+        """
+        with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
+            if self.get_starred_query(organization, user_id, query):
+                return False
+
+            next_prebuilt = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    starred=True,
+                    position__isnull=False,
+                    explore_saved_query__prebuilt_id__isnull=False,
+                    explore_saved_query__name__gt=query.name,
+                )
+                .order_by("position")
+                .first()
+            )
+
+            position: int
+            if next_prebuilt is None or next_prebuilt.position is None:
+                position = self.get_last_position(organization, user_id) + 1
+            else:
+                position = next_prebuilt.position
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    position__gte=position,
+                ).update(position=models.F("position") + 1)
+
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                explore_saved_query=query,
+                position=position,
+                starred=True,
+            )
+            return True
+
     def delete_starred_query(
         self, organization: Organization, user_id: int, query: ExploreSavedQuery
     ) -> bool:

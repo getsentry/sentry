@@ -17,30 +17,30 @@ def _make_image(pixels: list[tuple[int, int, int, int]], mode: str = "RGBA") -> 
 
 
 class TestIsBlackAlphaOnly:
-    def test_all_black_opaque(self):
+    def test_all_black_opaque(self) -> None:
         buf = _make_image([(0, 0, 0, 255), (0, 0, 0, 255)])
         assert is_black_alpha_only(buf) is True
 
-    def test_all_black_transparent(self):
+    def test_all_black_transparent(self) -> None:
         buf = _make_image([(0, 0, 0, 0), (0, 0, 0, 128)])
         assert is_black_alpha_only(buf) is True
 
-    def test_one_non_black_pixel(self):
+    def test_one_non_black_pixel(self) -> None:
         buf = _make_image([(0, 0, 0, 255), (1, 0, 0, 255)])
         assert is_black_alpha_only(buf) is False
 
-    def test_colored_pixel(self):
+    def test_colored_pixel(self) -> None:
         buf = _make_image([(255, 0, 0, 255)])
         assert is_black_alpha_only(buf) is False
 
-    def test_non_rgba_mode_returns_false(self):
+    def test_non_rgba_mode_returns_false(self) -> None:
         img = Image.new("RGB", (2, 1), color=(0, 0, 0))
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         buf.seek(0)
         assert is_black_alpha_only(buf) is False
 
-    def test_resets_file_position(self):
+    def test_resets_file_position(self) -> None:
         buf = _make_image([(0, 0, 0, 255)])
         is_black_alpha_only(buf)
         assert buf.tell() == 0

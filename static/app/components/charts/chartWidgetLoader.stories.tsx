@@ -31,7 +31,7 @@ export default Storybook.story('ChartWidgetLoader', story => {
           render these chart widgets).
         </p>
 
-        <CodeBlock language="tsx">{`<ChartWidgetLoader id="chart-id" />`}</CodeBlock>
+        <CodeBlock language="tsx">{'<ChartWidgetLoader id="chart-id" />'}</CodeBlock>
       </Fragment>
     );
   });

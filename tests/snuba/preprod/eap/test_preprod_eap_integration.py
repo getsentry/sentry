@@ -98,8 +98,8 @@ class PreprodEAPIntegrationTest(TestCase, SnubaTestCase):
             response.column_values[columns["size_metric_id"]].results[0].val_int == size_metric.id
         )
         assert (
-            response.column_values[columns["metrics_artifact_type"]].results[0].val_int
-            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+            response.column_values[columns["metrics_artifact_type"]].results[0].val_str
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT.to_choice_label()
         )
         assert response.column_values[columns["max_install_size"]].results[0].val_int == 5000
         assert response.column_values[columns["max_download_size"]].results[0].val_int == 3000

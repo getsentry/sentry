@@ -8,7 +8,6 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.models import (
     GithubCopilotTask,
     GithubCopilotTaskRequest,
-    GithubCopilotTaskResponse,
     GithubPRFromGraphQL,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
@@ -98,11 +97,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             },
         )
 
-        response_json = api_response.json
-        if isinstance(response_json, dict) and "task" in response_json:
-            task = GithubCopilotTaskResponse.validate(response_json).task
-        else:
-            task = GithubCopilotTask.validate(response_json)
+        task = GithubCopilotTask.validate(api_response.json)
 
         agent_id = self.encode_agent_id(owner, repo, task.id)
 

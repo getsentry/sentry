@@ -6,5 +6,5 @@ from typing import TypedDict
 class ObjectstoreUploadOptions(TypedDict):
     url: str
     scopes: list[tuple[str, str]]
-    # TODO: add authToken
+    authToken: str | None
     expirationPolicy: str

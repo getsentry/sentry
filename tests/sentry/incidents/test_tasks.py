@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class AutoResolveSnapshotIncidentsTest(TestCase):
-    def test_resolves_open_incidents(self):
+    def test_resolves_open_incidents(self) -> None:
         alert_rule = self.create_alert_rule()
         AlertRule.objects.filter(id=alert_rule.id).update(status=AlertRuleStatus.SNAPSHOT.value)
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.OPEN.value)

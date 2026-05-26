@@ -76,7 +76,7 @@ export function PartnerPlanEndingBanner({
             )}
           </div>
           <LinkButton
-            priority="primary"
+            variant="primary"
             analyticsEventKey="partner_plan_ending_banner.manage_subscription"
             analyticsEventName="Partner Plan Ending Banner: Manage Subscription"
             size="md"

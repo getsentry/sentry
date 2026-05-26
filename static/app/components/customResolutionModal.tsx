@@ -1,9 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -14,12 +15,11 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Release} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isVersionInfoSemver} from 'sentry/views/releases/utils';
+import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 
 function makeReleaseOption(
   release: Release,
@@ -67,47 +67,46 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
-  const releaseListUrl = props.projectSlug
-    ? getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: props.projectSlug,
-        },
-      })
-    : getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+  const releaseListOptions = props.projectSlug
+    ? apiOptions.as<Release[]>()(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: props.projectSlug,
+          },
+          query: {query: debouncedSearch},
+          staleTime: 60_000,
+        }
+      )
+    : apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
         path: {organizationIdOrSlug: organization.slug},
+        query: {query: debouncedSearch},
+        staleTime: 60_000,
       });
 
-  const {data: releases = [], isFetching} = useApiQuery<Release[]>(
-    [
-      releaseListUrl,
-      {
-        query: {
-          query: debouncedSearch,
-        },
-      },
-    ],
-    {
-      staleTime: 60_000,
-      retry: false,
-    }
-  );
+  const {data: releases = [], isFetching} = useQuery({
+    ...releaseListOptions,
+    retry: false,
+  });
 
   const shouldLookupExact = debouncedSearch.trim().length > 0;
 
   // Attempt to find the exact release, the list is capped at the most recent 100 releases
-  const {data: exactRelease} = useApiQuery<Release>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
-        path: {organizationIdOrSlug: organization.slug, version: debouncedSearch.trim()},
-      }),
-    ],
-    {
-      enabled: shouldLookupExact,
-      staleTime: 30_000,
-      retry: false,
-    }
-  );
+  const {data: exactRelease} = useQuery({
+    ...apiOptions.as<Release>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          version: debouncedSearch.trim(),
+        },
+        staleTime: 30_000,
+      }
+    ),
+    enabled: shouldLookupExact,
+    retry: false,
+  });
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const baseOptions = releases.map(release =>
@@ -180,7 +179,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
           onClose={() => setSearchQuery('')}
         />
         {selectionError ? <ErrorText role="alert">{selectionError}</ErrorText> : null}
-        <ReleaseLinkWrapper>
+        <Container marginTop="md">
           {version ? (
             // Open release in new tab to avoid closing the modal
             <ExternalLink
@@ -197,14 +196,19 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
             </ExternalLink>
           ) : (
             // Placeholder to maintain layout when no version is selected
-            <PlaceholderLink aria-hidden="true" />
+            <Container
+              as="span"
+              display="inline-block"
+              minHeight="1.2em"
+              aria-hidden="true"
+            />
           )}
-        </ReleaseLinkWrapper>
+        </Container>
       </Body>
       <Footer>
         <Flex gap="sm" align="center" justify="end">
           <Button onClick={props.closeModal}>{t('Cancel')}</Button>
-          <Button type="submit" priority="primary">
+          <Button type="submit" variant="primary">
             {t('Resolve')}
           </Button>
         </Flex>
@@ -219,15 +223,6 @@ const StyledCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
-`;
-
-const ReleaseLinkWrapper = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-`;
-
-const PlaceholderLink = styled('span')`
-  display: inline-block;
-  min-height: 1.2em;
 `;
 
 const ErrorText = styled('div')`

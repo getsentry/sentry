@@ -24,11 +24,13 @@ class TestServiceHooks(TestCase):
         event = self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
+        group_id = event.group_id
+        assert group_id is not None
 
         process_service_hook(
             self.hook.id,
             project_id=self.project.id,
-            group_id=event.group_id,
+            group_id=group_id,
             event_id=event.event_id,
         )
 
@@ -50,10 +52,12 @@ class TestServiceHooks(TestCase):
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
+        group_id = event.group_id
+        assert group_id is not None
         process_service_hook(
             self.hook.id,
             project_id=self.project.id,
-            group_id=event.group_id,
+            group_id=group_id,
             event_id=event.event_id,
         )
 
@@ -77,12 +81,13 @@ class TestServiceHooks(TestCase):
         event = self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
-        assert event.group
+        group_id = event.group_id
+        assert group_id is not None
 
         process_service_hook(
             self.hook.id,
             project_id=event.project_id,
-            group_id=event.group.id,
+            group_id=group_id,
             event_id=event.event_id,
         )
 
@@ -105,20 +110,21 @@ class TestServiceHooks(TestCase):
         event = self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
-        assert event.group is not None
+        group_id = event.group_id
+        assert group_id is not None
 
         process_service_hook(
             self.hook.id,
             project_id=self.project.id,
-            group_id=event.group_id,
+            group_id=group_id,
             event_id=event.event_id,
         )
         body = get_payload_v0(event)
         assert (
             body["group"]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{group_id}/"
         )
         assert (
             body["event"]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/events/{event.event_id}/"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{group_id}/events/{event.event_id}/"
         )

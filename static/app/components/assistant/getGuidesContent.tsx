@@ -26,7 +26,7 @@ export function getGuidesContent(): GuidesContent {
           title: t('Find problematic releases'),
           target: 'issue_sidebar_releases',
           description: t(
-            `See which release introduced the issue and which release it last appeared in.`
+            'See which release introduced the issue and which release it last appeared in.'
           ),
         },
         {
@@ -42,7 +42,7 @@ export function getGuidesContent(): GuidesContent {
           title: t('Pinpoint hotspots'),
           target: 'issue_sidebar_tags',
           description: t(
-            `Tags are key/value string pairs that are automatically indexed and searchable in Sentry.`
+            'Tags are key/value string pairs that are automatically indexed and searchable in Sentry.'
           ),
         },
         {
@@ -98,14 +98,14 @@ export function getGuidesContent(): GuidesContent {
           title: t('Event Breakdown'),
           target: 'trace_view_guide_breakdown',
           description: t(
-            `The event breakdown shows you the breakdown of event types within a trace.`
+            'The event breakdown shows you the breakdown of event types within a trace.'
           ),
         },
         {
           title: t('Events'),
           target: 'trace_view_guide_row',
           description: t(
-            `You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.`
+            'You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.'
           ),
         },
         {

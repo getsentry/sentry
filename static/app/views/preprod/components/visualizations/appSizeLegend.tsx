@@ -100,7 +100,9 @@ export function AppSizeLegend({
 
     const resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
-      if (!entry) return;
+      if (!entry) {
+        return;
+      }
 
       const currentWidth = entry.contentRect.width;
 
@@ -169,7 +171,9 @@ export function AppSizeLegend({
     }
   ) => {
     const categoryInfo = getCategoryInfo(categoryType);
-    if (!categoryInfo) return null;
+    if (!categoryInfo) {
+      return null;
+    }
 
     return (
       <LegendItem
@@ -313,7 +317,7 @@ const MoreDropdown = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.shadow.high};
   padding: ${p => p.theme.space.xs};
   display: flex;
   flex-direction: column;

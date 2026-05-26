@@ -1,4 +1,4 @@
-export type RelocationState = {
+type RelocationState = {
   orgSlugs: string;
   promoCode: string;
   regionUrl: string;

@@ -1,7 +1,13 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
@@ -13,15 +19,8 @@ import {
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -40,12 +39,12 @@ import {
 /**
  * Available autofix steps that can be triggered via the Explorer.
  */
-export type AutofixExplorerStep =
-  | 'root_cause'
-  | 'solution'
-  | 'code_changes'
-  | 'impact_assessment'
-  | 'triage';
+interface CodingAgentError {
+  id: number;
+  message: string;
+}
+
+export type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes';
 
 /**
  * Artifact data types matching the backend Pydantic schemas.
@@ -120,7 +119,7 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
-interface ExplorerAutofixState {
+export interface ExplorerAutofixState {
   blocks: Block[];
   run_id: number;
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
@@ -141,15 +140,18 @@ interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
-const POLL_INTERVAL = 500;
-const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
+const POLL_INTERVAL = 1000;
 
-const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
-    path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-  }),
-  {query: {mode: 'explorer'}},
-];
+function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+  return apiOptions.as<ExplorerAutofixResponse>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+      query: {mode: 'explorer'},
+      staleTime: 0,
+    }
+  );
+}
 
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
   autofix: null,
@@ -190,10 +192,17 @@ const isActivelyProcessing = (
     state => state.pr_creation_status === 'creating'
   );
 
+  const anyCodingAgentsRunning = Object.values(autofixState.coding_agents ?? {}).some(
+    codingAgent =>
+      codingAgent.status === CodingAgentStatus.PENDING ||
+      codingAgent.status === CodingAgentStatus.RUNNING
+  );
+
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
-    anyPRCreating
+    anyPRCreating ||
+    anyCodingAgentsRunning
   );
 };
 
@@ -205,81 +214,20 @@ const getPollInterval = (
   autofixState: ExplorerAutofixState | null,
   runStarted: boolean
 ): number | false => {
-  // No run and nothing started - don't poll
-  if (!autofixState && !runStarted) {
-    return false;
-  }
-
   // Actively processing - poll fast
   if (isActivelyProcessing(autofixState, runStarted)) {
     return POLL_INTERVAL;
   }
 
-  // Has a run but not actively processing - poll slow to catch external updates
-  if (autofixState) {
-    return IDLE_POLL_INTERVAL;
-  }
-
   return false;
 };
 
-/**
- * Extract artifacts from Explorer blocks.
- * Returns the latest artifact for each key (later blocks override earlier ones).
- */
-export function getArtifactsFromBlocks(blocks: Block[]): Record<string, Artifact> {
-  const artifacts: Record<string, Artifact> = {};
-
-  for (const block of blocks) {
-    if (block.artifacts) {
-      for (const artifact of block.artifacts) {
-        artifacts[artifact.key] = artifact;
-      }
-    }
-  }
-
-  return artifacts;
-}
-
-/**
- * Get the ordered list of artifact keys based on their first appearance in blocks.
- * Returns keys sorted by the index of the first block where each artifact appeared.
- */
-export function getOrderedArtifactKeys(
-  blocks: Block[],
-  artifacts: Record<string, Artifact>
-): string[] {
-  // Map artifact key to the index of the first block where it appeared
-  const firstAppearanceIndex: Record<string, number> = {};
-
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    if (block?.artifacts) {
-      for (const artifact of block.artifacts) {
-        // Only record the first appearance
-        if (!(artifact.key in firstAppearanceIndex)) {
-          firstAppearanceIndex[artifact.key] = i;
-        }
-      }
-    }
-  }
-
-  // Get all artifact keys that exist in artifacts
-  const artifactKeys = Object.keys(artifacts).filter(key => key in firstAppearanceIndex);
-
-  // Sort by first appearance index
-  return artifactKeys.sort((a, b) => {
-    const indexA = firstAppearanceIndex[a] ?? Infinity;
-    const indexB = firstAppearanceIndex[b] ?? Infinity;
-    return indexA - indexB;
-  });
-}
-
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
-  messages: Array<Block['message']>;
+  blocks: Block[];
   status: 'processing' | 'completed';
   step: string;
+  index?: number;
 }
 
 /**
@@ -309,20 +257,24 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   let section: AutofixSection = {
     step: 'unknown',
     artifacts: [],
-    messages: [],
+    blocks: [],
     status: 'processing',
   };
 
   // Closes the current section and pushes it to `sections` (if non-empty).
-  function finalizeSection() {
-    if (section.messages.length) {
-      // Mark the section as completed if the last message is a terminal marker.
-      const lastMessage = section.messages[section.messages.length - 1];
-      if (isLastMessageOfSection(lastMessage)) {
+  function finalizeSection({forceCompletion}: {forceCompletion: boolean}) {
+    if (section.blocks.length) {
+      if (
+        forceCompletion ||
+        // Mark the section as completed if the last message is a terminal marker.
+        isLastBlockOfSection(section.blocks[section.blocks.length - 1]) ||
+        // We have an artifact for the section so good enough to mark it as completed
+        section.artifacts.length > 0
+      ) {
         section.status = 'completed';
       }
 
-      if (section.step === 'code_changes') {
+      if (section.status === 'completed' && section.step === 'code_changes') {
         // Snapshot the accumulated file patches as an artifact for this section.
         section.artifacts.push(Array.from(mergedByFile.values()));
       }
@@ -331,7 +283,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     }
   }
 
-  for (const block of blocks) {
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
     // Accumulate file patches globally — they need to be merged across all
     // blocks regardless of section boundaries so later patches win per file.
     if (block.merged_file_patches?.length) {
@@ -348,24 +301,29 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     const metadata = message.metadata;
     if (defined(metadata) && defined(metadata.step)) {
       if (metadata.step !== section.step) {
-        finalizeSection();
+        // since there's a new section coming up, this section must be compelete
+        finalizeSection({forceCompletion: true});
       }
 
       section = {
+        index: i,
         step: metadata.step,
         artifacts: [],
-        messages: [],
+        blocks: [],
         status: 'processing',
       };
     }
 
     // Append the block's message and any inline artifacts to the current section.
-    section.messages.push(message);
+    section.blocks.push(block);
     section.artifacts.push(...(block.artifacts ?? []));
   }
 
   // Finalize the last in-progress section.
-  finalizeSection();
+  finalizeSection({
+    // run is complete so last section must be complete as well
+    forceCompletion: runState?.status !== 'processing',
+  });
 
   // If there are any PR states, append a synthetic "pull_request" section.
   const pullRequests = Object.values(runState?.repo_pr_states ?? {});
@@ -373,7 +331,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     sections.push({
       step: 'pull_request',
       artifacts: [pullRequests],
-      messages: [],
+      blocks: [],
       status: pullRequests.some(
         pullRequest => pullRequest.pr_creation_status === 'creating'
       )
@@ -387,7 +345,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     sections.push({
       step: 'coding_agents',
       artifacts: [codingAgents],
-      messages: [],
+      blocks: [],
       status: codingAgents.some(
         codingAgent =>
           codingAgent.status === CodingAgentStatus.PENDING ||
@@ -430,14 +388,17 @@ export type AutofixArtifact =
 export function getAutofixArtifactFromSection(
   section: AutofixSection
 ): AutofixArtifact | null {
-  if (isRootCauseSection(section)) {
-    return section.artifacts.findLast(isRootCauseArtifact) ?? null;
-  }
-  if (isSolutionSection(section)) {
-    return section.artifacts.findLast(isSolutionArtifact) ?? null;
-  }
-  if (isCodeChangesSection(section)) {
-    return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+  if (section.status === 'completed') {
+    // these artifacts are only usable once the section has completed running
+    if (isRootCauseSection(section)) {
+      return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+    }
+    if (isSolutionSection(section)) {
+      return section.artifacts.findLast(isSolutionArtifact) ?? null;
+    }
+    if (isCodeChangesSection(section)) {
+      return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+    }
   }
   if (isPullRequestsSection(section)) {
     return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
@@ -448,39 +409,11 @@ export function getAutofixArtifactFromSection(
   return null;
 }
 
-function isLastMessageOfSection(message?: Block['message']): boolean {
+function isLastBlockOfSection(block?: Block): boolean {
   return (
-    message?.role === 'assistant' &&
-    message?.content !== 'Thinking...' &&
-    !message?.tool_calls?.length
-  );
-}
-
-/**
- * Extract merged file patches from Explorer blocks.
- * Returns the latest merged patch (original → current) for each file.
- */
-export function getMergedFilePatchesFromBlocks(blocks: Block[]): ExplorerFilePatch[] {
-  const mergedByFile = new Map<string, ExplorerFilePatch>();
-
-  for (const block of blocks) {
-    if (block.merged_file_patches) {
-      for (const patch of block.merged_file_patches) {
-        const key = `${patch.repo_name}:${patch.patch.path}`;
-        mergedByFile.set(key, patch);
-      }
-    }
-  }
-
-  return Array.from(mergedByFile.values());
-}
-
-/**
- * Check if there are code changes in the state.
- */
-export function hasCodeChanges(blocks: Block[]): boolean {
-  return blocks.some(
-    block => block.merged_file_patches && block.merged_file_patches.length > 0
+    block?.message?.role === 'assistant' &&
+    block?.message?.content !== 'Thinking...' &&
+    !block?.message?.tool_calls?.length
   );
 }
 
@@ -505,6 +438,8 @@ export function useExplorerAutofix(
   groupId: string,
   options: UseExplorerAutofixOptions = {}
 ) {
+  const {openModal} = useModal();
+
   const {enabled = true} = options;
   const api = useApi();
   const queryClient = useQueryClient();
@@ -521,45 +456,62 @@ export function useExplorerAutofix(
    */
   const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
-  const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
-    makeExplorerAutofixQueryKey(orgSlug, groupId),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled,
-      refetchInterval: query => {
-        if (!enabled) {
-          return false;
-        }
-        return getPollInterval(
-          query.state.data?.[0]?.autofix || null,
-          waitingForResponse
-        );
-      },
-    } as UseApiQueryOptions<ExplorerAutofixResponse, RequestError>
-  );
+  const [codingAgentErrors, setCodingAgentErrors] = useState<CodingAgentError[]>([]);
+  const nextCodingAgentErrorId = useRef(0);
+  const appendCodingAgentErrors = useCallback((messages: string[]) => {
+    setCodingAgentErrors(prev => [
+      ...prev,
+      ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
+    ]);
+  }, []);
+
+  const {data: apiData, isPending} = useQuery({
+    ...explorerAutofixApiOptions(orgSlug, groupId),
+    retry: false,
+    enabled,
+    refetchInterval: query => {
+      if (!enabled) {
+        return false;
+      }
+      return getPollInterval(query.state.data?.json?.autofix || null, waitingForResponse);
+    },
+  });
 
   const runState = apiData?.autofix ?? null;
 
-  /**
-   * Start or continue an autofix step.
-   *
-   * @param step - The step to run (root_cause, solution, code_changes, etc.)
-   * @param runId - Optional run ID to continue an existing run
-   */
   const startStep = useCallback(
-    async (step: AutofixExplorerStep, runId?: number, userContext?: string) => {
+    async (
+      step: AutofixExplorerStep,
+      startStepOptions?: {
+        /**
+         * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
+         */
+        insertIndex?: number;
+        /**
+         * The run id where we want to start the step. If not specified, a new run is created
+         */
+        runId?: number;
+        /**
+         * Additional context from the user. If specified, it is added to the builtin prompt
+         */
+        userContext?: string;
+      }
+    ) => {
       setWaitingForResponse(true);
 
       try {
-        const data: Record<string, any> = {step};
+        const data: Record<string, any> = {step, referrer: 'api.web'};
 
-        if (defined(runId)) {
-          data.run_id = runId;
+        if (defined(startStepOptions?.insertIndex)) {
+          data.insert_index = startStepOptions.insertIndex;
         }
 
-        if (userContext) {
-          data.user_context = userContext;
+        if (defined(startStepOptions?.runId)) {
+          data.run_id = startStepOptions.runId;
+        }
+
+        if (startStepOptions?.userContext) {
+          data.user_context = startStepOptions.userContext;
         }
 
         const response = await api.requestPromise(
@@ -575,16 +527,20 @@ export function useExplorerAutofix(
 
         // Invalidate to fetch fresh data
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
 
         return response.run_id as number;
       } catch (e: any) {
         setWaitingForResponse(false);
-        setApiQueryData<ExplorerAutofixResponse>(
-          queryClient,
-          makeExplorerAutofixQueryKey(orgSlug, groupId),
-          makeErrorExplorerAutofixData(e?.responseJSON?.detail ?? 'An error occurred')
+        queryClient.setQueryData(
+          explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+          prev => ({
+            headers: prev?.headers ?? {},
+            json: makeErrorExplorerAutofixData(
+              e?.responseJSON?.detail ?? 'An error occurred'
+            ),
+          })
         );
         throw e;
       }
@@ -601,24 +557,28 @@ export function useExplorerAutofix(
   const createPR = useCallback(
     async (runId: number, repoName?: string) => {
       try {
+        const data: Record<string, any> = {
+          step: 'open_pr',
+          run_id: runId,
+          referrer: 'api.web',
+        };
+        if (repoName) {
+          data.repo_name = repoName;
+        }
         await api.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
-            path: {organizationIdOrSlug: orgSlug, runId},
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
           {
             method: 'POST',
-            data: {
-              payload: {
-                type: 'create_pr',
-                repo_name: repoName,
-              },
-            },
+            query: {mode: 'explorer'},
+            data,
           }
         );
 
         // Invalidate to trigger polling for status updates
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
@@ -634,10 +594,9 @@ export function useExplorerAutofix(
   const reset = useCallback(() => {
     setWaitingForResponse(false);
     setWaitingForCodingAgent(false);
-    setApiQueryData<ExplorerAutofixResponse>(
-      queryClient,
-      makeExplorerAutofixQueryKey(orgSlug, groupId),
-      makeInitialExplorerAutofixData()
+    queryClient.setQueryData(
+      explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+      prev => ({headers: prev?.headers ?? {}, json: makeInitialExplorerAutofixData()})
     );
   }, [queryClient, orgSlug, groupId]);
 
@@ -661,6 +620,7 @@ export function useExplorerAutofix(
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
         run_id: runId,
+        referrer: 'api.web',
       };
 
       if (integration.id === null) {
@@ -728,14 +688,16 @@ export function useExplorerAutofix(
             openModal(deps => <AutofixCursorGithubAccessModal {...deps} />);
           }
 
-          otherFailures.forEach(failure => {
-            addErrorMessage(failure.error_message ?? 'Failed to launch coding agent');
-          });
+          if (otherFailures.length > 0) {
+            appendCodingAgentErrors(
+              otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
+            );
+          }
         }
 
         // Invalidate to fetch fresh data
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
         if (needsGitHubAuth(e)) {
@@ -743,13 +705,25 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
+        appendCodingAgentErrors([
+          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
+        ]);
         throw e;
       } finally {
+        clearIndicators();
         setWaitingForCodingAgent(false);
       }
     },
-    [api, orgSlug, groupId, queryClient, organization, user.id]
+    [
+      api,
+      orgSlug,
+      groupId,
+      queryClient,
+      organization,
+      user.id,
+      appendCodingAgentErrors,
+      openModal,
+    ]
   );
 
   // Clear waiting state when we get a response
@@ -790,5 +764,56 @@ export function useExplorerAutofix(
      * Trigger coding agent handoff for an existing run.
      */
     triggerCodingAgentHandoff,
+    /**
+     * Errors from coding agent launch attempts, accumulated across launches and
+     * persisted for the lifetime of the hook mount. Displayed inline in the panel.
+     */
+    codingAgentErrors,
+    /**
+     * Dismiss a single coding agent error by its id.
+     */
+    dismissCodingAgentError: (id: number) =>
+      setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
   };
+}
+
+export function collectPatches(
+  patches: ExplorerFilePatch[]
+): Map<string, ExplorerFilePatch[]> {
+  const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
+
+  for (const patch of patches) {
+    const existing = patchesByRepo.get(patch.repo_name) || [];
+    existing.push(patch);
+    patchesByRepo.set(patch.repo_name, existing);
+  }
+
+  for (const [repoName, repoPatches] of patchesByRepo) {
+    const cleanedPatches = cleanPatches(repoPatches);
+    if (cleanedPatches.length) {
+      patchesByRepo.set(repoName, cleanedPatches);
+    } else {
+      patchesByRepo.delete(repoName);
+    }
+  }
+
+  return patchesByRepo;
+}
+
+function cleanPatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
+  const cleanedPatches: ExplorerFilePatch[] = [];
+
+  const patchedFiles = new Set<string>();
+
+  patches.toReversed().forEach(patch => {
+    if (patchedFiles.has(patch.patch.path)) {
+      return;
+    }
+    patchedFiles.add(patch.patch.path);
+    cleanedPatches.push(patch);
+  });
+
+  return cleanedPatches.reverse().filter(patch => {
+    return patch.patch.added > 0 || patch.patch.removed > 0;
+  });
 }

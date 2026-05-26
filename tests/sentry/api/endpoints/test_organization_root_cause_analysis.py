@@ -91,6 +91,79 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 400, response.content
 
+    def test_rejects_quote_in_transaction(self) -> None:
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": 'foo" OR project.id:>0 OR transaction:"bar',
+                "project": self.project.id,
+                "breakpoint": self.now - timedelta(days=1),
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert "transaction" in response.json()
+
+    def test_rejects_backslash_in_transaction(self) -> None:
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo\\bar",
+                "project": self.project.id,
+                "breakpoint": self.now - timedelta(days=1),
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert "transaction" in response.json()
+
+    def test_rejects_non_integer_project(self) -> None:
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+                "project": "not-an-int",
+                "breakpoint": self.now - timedelta(days=1),
+            },
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_rejects_invalid_breakpoint(self) -> None:
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+                "project": self.project.id,
+                "breakpoint": "not-a-date",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert "breakpoint" in response.json()
+
+    def test_rejects_per_page_over_max(self) -> None:
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+                "project": self.project.id,
+                "breakpoint": self.now - timedelta(days=1),
+                "per_page": 1000,
+            },
+        )
+
+        assert response.status_code == 400, response.content
+
     def test_transaction_must_exist(self) -> None:
         response = self.client.get(
             self.url,

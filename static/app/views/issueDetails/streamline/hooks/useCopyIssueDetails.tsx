@@ -1,11 +1,16 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
 
-import type {AutofixData} from 'sentry/components/events/autofix/types';
-import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {useHotkeys} from '@sentry/scraps/hotkey';
+
 import {
-  getRootCauseCopyText,
-  getSolutionCopyText,
-} from 'sentry/components/events/autofix/utils';
+  type ExplorerAutofixState,
+  getAutofixArtifactFromSection,
+  getOrderedAutofixSections,
+  isRootCauseSection,
+  isSolutionSection,
+  useExplorerAutofix,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {
   useGroupSummaryData,
   type GroupSummaryData,
@@ -17,7 +22,6 @@ import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Simple store for active thread ID from the UI with subscription support
@@ -41,8 +45,8 @@ export function useActiveThreadId() {
 }
 
 function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
-  let markdownText = `#### Stacktrace\n\n`;
-  markdownText += `\`\`\`\n`;
+  let markdownText = '#### Stacktrace\n\n';
+  markdownText += '```\n';
 
   // Process frames (show at most 16 frames, similar to Python example)
   const maxFrames = 16;
@@ -68,25 +72,22 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
 
     // Add variables if available
     if (frame.vars) {
-      markdownText += `---\nVariable values:\n`;
+      markdownText += '---\nVariable values:\n';
       markdownText += JSON.stringify(frame.vars, null, 2) + '\n';
-      markdownText += `\n=======\n`;
+      markdownText += '\n=======\n';
     }
   });
 
-  markdownText += `\`\`\`\n`;
+  markdownText += '```\n';
   return markdownText;
 }
 
-export function formatEventToMarkdown(
-  event: Event,
-  activeThreadId: number | undefined
-): string {
+function formatEventToMarkdown(event: Event, activeThreadId: number | undefined): string {
   let markdownText = '';
 
   // Add tags
   if (event && Array.isArray(event.tags) && event.tags.length > 0) {
-    markdownText += `\n## Tags\n\n`;
+    markdownText += '\n## Tags\n\n';
     event.tags.forEach(tag => {
       if (tag && typeof tag.key === 'string') {
         markdownText += `- **${tag.key}:** ${tag.value}\n`;
@@ -113,7 +114,7 @@ export function formatEventToMarkdown(
           if (exception.stacktrace?.frames && exception.stacktrace.frames.length > 0) {
             markdownText += formatStacktraceToMarkdown(exception.stacktrace);
             if (index < arr.length - 1) {
-              markdownText += `------\n`;
+              markdownText += '------\n';
             }
           }
         }
@@ -126,12 +127,12 @@ export function formatEventToMarkdown(
       if (activeThread?.stacktrace) {
         markdownText += `\n## Thread: ${activeThread.name || ` Thread ${activeThread.id}`}`;
         if (activeThread.crashed) {
-          markdownText += ` (crashed)`;
+          markdownText += ' (crashed)';
         }
         if (activeThread.current) {
-          markdownText += ` (current)`;
+          markdownText += ' (current)';
         }
-        markdownText += `\n\n`;
+        markdownText += '\n\n';
         markdownText += formatStacktraceToMarkdown(activeThread.stacktrace);
       }
     }
@@ -144,7 +145,7 @@ export const issueAndEventToMarkdown = (
   group: Group,
   event: Event | null | undefined,
   groupSummaryData: GroupSummaryData | null | undefined,
-  autofixData: AutofixData | null | undefined,
+  autofixData: ExplorerAutofixState | null | undefined,
   activeThreadId: number | undefined
 ): string => {
   // Format the basic issue information
@@ -171,14 +172,29 @@ export const issueAndEventToMarkdown = (
   }
 
   if (autofixData) {
-    const rootCauseCopyText = getRootCauseCopyText(autofixData);
-    const solutionCopyText = getSolutionCopyText(autofixData);
+    const sections = getOrderedAutofixSections(autofixData);
+    const rootCauseSection = sections.find(isRootCauseSection);
+    const solutionSection = sections.find(isSolutionSection);
+
+    const rootCauseArtifact = rootCauseSection
+      ? getAutofixArtifactFromSection(rootCauseSection)
+      : null;
+    const solutionArtifact = solutionSection
+      ? getAutofixArtifactFromSection(solutionSection)
+      : null;
+
+    const rootCauseCopyText = rootCauseArtifact
+      ? artifactToMarkdown(rootCauseArtifact, 2)
+      : null;
+    const solutionCopyText = solutionArtifact
+      ? artifactToMarkdown(solutionArtifact, 2)
+      : null;
 
     if (rootCauseCopyText) {
-      markdownText += `\n## Root Cause\n\`\`\`\n${rootCauseCopyText}\n\`\`\`\n`;
+      markdownText += `\n${rootCauseCopyText}\n`;
     }
     if (solutionCopyText) {
-      markdownText += `\n## Solution\n\`\`\`\n${solutionCopyText}\n\`\`\`\n`;
+      markdownText += `\n${solutionCopyText}\n`;
     }
   }
 
@@ -192,9 +208,8 @@ export const issueAndEventToMarkdown = (
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
-  // These aren't guarded by useAiConfig because they are both non fetching, and should only return data when it's fetched elsewhere.
   const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
+  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {
@@ -223,12 +238,7 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
 
   useHotkeys([
     {
-      match: 'command+alt+c',
-      callback: handleCopyIssueDetailsAsMarkdown,
-      skipPreventDefault: NODE_ENV === 'development',
-    },
-    {
-      match: 'ctrl+alt+c',
+      match: 'mod+alt+c',
       callback: handleCopyIssueDetailsAsMarkdown,
       skipPreventDefault: NODE_ENV === 'development',
     },

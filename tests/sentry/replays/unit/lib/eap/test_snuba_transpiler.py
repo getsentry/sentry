@@ -238,7 +238,7 @@ def test_column_expressions(column, eap_type):  # type: ignore[no-untyped-def]
     )
 
 
-def test_literal_expressions():  # type: ignore[no-untyped-def]
+def test_literal_expressions() -> None:
     assert expression(1, SETTINGS) == EAPColumn(literal=Literal(val_double=1.0))
     assert expression(1.0, SETTINGS) == EAPColumn(literal=Literal(val_double=1.0))
     assert expression(True, SETTINGS) == EAPColumn(literal=Literal(val_double=1.0))
@@ -338,7 +338,7 @@ def test_orderby(snuba_fn, direction):  # type: ignore[no-untyped-def]
     ]
 
 
-def test_groupby():  # type: ignore[no-untyped-def]
+def test_groupby() -> None:
     cols = [Column("int"), Column("float"), Column("bool"), Column("str")]
     assert groupby(cols, SETTINGS) == [
         AttributeKey(type=AttributeKey.TYPE_INT, name="int"),

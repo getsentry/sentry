@@ -37,8 +37,8 @@ function parsePlatform(platform: string): ParsedPlatform {
 
 export function getCustomInstrumentationLink(project: Project | undefined): string {
   // Default to JavaScript guide if project or platform is not available
-  if (!project || !project.platform) {
-    return `https://docs.sentry.io/platforms/javascript/tracing/instrumentation/custom-instrumentation/`;
+  if (!project?.platform) {
+    return 'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/custom-instrumentation/';
   }
 
   const {platformName, framework} = parsePlatform(project.platform);

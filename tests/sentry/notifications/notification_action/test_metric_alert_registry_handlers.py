@@ -262,7 +262,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         date_started: datetime,
         date_closed: datetime | None,
     ):
-        assert asdict(open_period_context) == {
+        assert open_period_context.dict() == {
             "id": id,
             "date_started": date_started,
             "date_closed": date_closed,
@@ -291,7 +291,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         super().setUp()
         self.action = self.create_action(
             type=Action.Type.DISCORD,
-            integration_id="1234567890",
+            integration_id=1234567890,
             config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
@@ -311,6 +311,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 action=self.action,
                 detector=self.detector,
                 notification_uuid=notification_uuid,
+                workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)
 
@@ -368,45 +369,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             == IncidentStatus.CLOSED
         )
 
-    def test_build_notification_context(self) -> None:
-        notification_context = self.handler.build_notification_context(self.action)
-        assert isinstance(notification_context, NotificationContext)
-        assert notification_context.target_identifier == "channel456"
-        assert notification_context.integration_id == "1234567890"
-        assert notification_context.sentry_app_config is None
-
-    def test_build_alert_context(self) -> None:
-        assert self.group_event.occurrence is not None
-        assert self.group_event.occurrence.priority is not None
-        alert_context = self.handler.build_alert_context(
-            self.detector,
-            self.evidence_data,
-            self.group_event.group.status,
-            DetectorPriorityLevel(self.group_event.occurrence.priority),
-        )
-        assert isinstance(alert_context, AlertContext)
-        assert alert_context.name == self.detector.name
-        assert alert_context.action_identifier_id == self.detector.id
-        assert alert_context.threshold_type == AlertRuleThresholdType.ABOVE
-        assert alert_context.comparison_delta is None
-
-    def test_build_alert_context_anomaly_detection(self) -> None:
-        assert self.group_event.occurrence is not None
-        assert self.group_event.occurrence.priority is not None
-        alert_context = self.handler.build_alert_context(
-            self.detector,
-            self.anomaly_detection_evidence_data,
-            self.group_event.group.status,
-            DetectorPriorityLevel(self.group_event.occurrence.priority),
-        )
-        assert isinstance(alert_context, AlertContext)
-        assert alert_context.name == self.detector.name
-        assert alert_context.action_identifier_id == self.detector.id
-        assert alert_context.threshold_type == AnomalyDetectionThresholdType.ABOVE_AND_BELOW
-        assert alert_context.comparison_delta is None
-        assert alert_context.alert_threshold == 0
-        assert alert_context.resolve_threshold == 0
-
     def test_get_new_status(self) -> None:
         assert self.group_event.occurrence is not None
         assert self.group_event.occurrence.priority is not None
@@ -438,6 +400,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -522,6 +485,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -596,6 +560,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
         self.handler.invoke_legacy_registry(invocation)
 
@@ -666,6 +631,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 action=self.action,
                 detector=self.detector,
                 notification_uuid=notification_uuid,
+                workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)
 
@@ -695,5 +661,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 action=self.action,
                 detector=self.detector,
                 notification_uuid=notification_uuid,
+                workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)

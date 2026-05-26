@@ -59,7 +59,7 @@ import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -145,7 +145,7 @@ function SubtitleWithCopyButton({
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={clipboardText}
           tooltipProps={{disabled: true}}
@@ -176,7 +176,7 @@ function TitleOp({text}: {text: string}) {
           {text}
           <CopyToClipboardButton
             aria-label={t('Copy to clipboard')}
-            priority="transparent"
+            variant="transparent"
             size="zero"
             text={text}
             tooltipProps={{disabled: true}}
@@ -321,15 +321,15 @@ const getDurationComparison = (
 
   const deltaText =
     status === 'equal'
-      ? tct(`equal to avg [formattedBaseDuration]`, {
+      ? tct('equal to avg [formattedBaseDuration]', {
           formattedBaseDuration,
         })
       : status === 'faster'
-        ? tct(`[deltaPct] faster than avg [formattedBaseDuration]`, {
+        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           })
-        : tct(`[deltaPct] slower than avg [formattedBaseDuration]`, {
+        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           });
@@ -1146,7 +1146,7 @@ function CopyableCardValueWithLink({
         {value}
         {typeof value === 'string' ? (
           <StyledCopyToClipboardButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             text={value}
             aria-label={t('Copy to clipboard')}
@@ -1202,13 +1202,13 @@ function MultilineText({
   children: string;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
   return (
     <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
+      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
           <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
@@ -1315,11 +1315,11 @@ function MultilineJSON({
   value: any;
   maxDefaultDepth?: number;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
-  const json = useMemo(() => tryParseJson(value), [value]);
+  const json = useMemo(() => tryParseJsonRecursive(value), [value]);
 
   // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
   const computedExpandedPaths = useMemo(() => {

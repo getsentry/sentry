@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
+from uuid import uuid4
 
 import pytest
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -23,9 +25,9 @@ from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.rpc_dataset_common import RPCBase
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, TestCase
 
 
 class OccurrencesRPCTest(TestCase):
@@ -323,3 +325,145 @@ class OccurrencesTimeseriesTest(TestCase):
                 referrer="test",
                 config=self.config,
             )
+
+
+class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.now = datetime.now(timezone.utc)
+
+    def _query_stats(
+        self,
+        query_string: str = "",
+        stats_types: set[str] | None = None,
+        attributes: list[AttributeKey] | None = None,
+        max_buckets: int = 75,
+        occurrence_category: OccurrenceCategory | None = None,
+        skip_translate_internal_to_public_alias: bool = False,
+    ) -> list[dict[str, Any]]:
+        snuba_params = SnubaParams(
+            start=self.now - timedelta(hours=1),
+            end=self.now + timedelta(hours=1),
+            organization=self.organization,
+            projects=[self.project],
+        )
+        return Occurrences.run_stats_query(
+            params=snuba_params,
+            stats_types=stats_types or {"attributeDistributions"},
+            query_string=query_string,
+            referrer="test.eap_occurrences_stats",
+            config=SearchResolverConfig(),
+            attributes=attributes,
+            max_buckets=max_buckets,
+            skip_translate_internal_to_public_alias=skip_translate_internal_to_public_alias,
+            occurrence_category=occurrence_category,
+        )
+
+    def test_stats_returns_attribute_distributions(self) -> None:
+        group = self.create_group(project=self.project)
+        for level in ["error", "error", "warning"]:
+            occ = self.create_eap_occurrence(
+                group_id=group.id,
+                level=level,
+                timestamp=self.now - timedelta(minutes=5),
+            )
+            self.store_eap_items([occ])
+
+        result = self._query_stats()
+        assert len(result) == 1
+        assert "attribute_distributions" in result[0]
+        data = result[0]["attribute_distributions"]["data"]
+        assert "level" in data
+        level_buckets = data["level"]
+        labels = {bucket["label"] for bucket in level_buckets}
+        assert "error" in labels
+        assert "warning" in labels
+
+    def test_stats_with_query_filter(self) -> None:
+        group = self.create_group(project=self.project)
+        for level in ["error", "warning"]:
+            occ = self.create_eap_occurrence(
+                group_id=group.id,
+                level=level,
+                timestamp=self.now - timedelta(minutes=5),
+            )
+            self.store_eap_items([occ])
+
+        result = self._query_stats(query_string="level:error")
+        assert len(result) == 1
+        data = result[0]["attribute_distributions"]["data"]
+        # With the filter, only error occurrences are included
+        assert "level" in data
+        labels = {bucket["label"] for bucket in data["level"]}
+        assert "error" in labels
+        assert "warning" not in labels
+
+    def test_stats_with_specific_attributes(self) -> None:
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            group_id=group.id,
+            level="error",
+            timestamp=self.now - timedelta(minutes=5),
+        )
+        self.store_eap_items([occ])
+
+        result = self._query_stats(
+            attributes=[AttributeKey(name="level", type=AttributeKey.TYPE_STRING)],
+        )
+        assert len(result) == 1
+        data = result[0]["attribute_distributions"]["data"]
+        assert "level" in data
+
+    def test_stats_excludes_private_attributes(self) -> None:
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            group_id=group.id,
+            level="error",
+            timestamp=self.now - timedelta(minutes=5),
+        )
+        self.store_eap_items([occ])
+
+        result = self._query_stats()
+        assert len(result) == 1
+        data = result[0]["attribute_distributions"]["data"]
+        # Private attributes should not appear
+        assert "sentry.item_type" not in data
+        assert "sentry.organization_id" not in data
+
+    def test_stats_with_occurrence_category_filter(self) -> None:
+        group_error = self.create_group(project=self.project)
+        group_generic = self.create_group(project=self.project)
+
+        # Error events have no issue_occurrence_id
+        error_occ = self.create_eap_occurrence(
+            group_id=group_error.id,
+            level="error",
+            timestamp=self.now - timedelta(minutes=5),
+        )
+        # Issue platform events have an issue_occurrence_id
+        generic_occ = self.create_eap_occurrence(
+            group_id=group_generic.id,
+            level="warning",
+            issue_occurrence_id=uuid4().hex,
+            timestamp=self.now - timedelta(minutes=5),
+        )
+        self.store_eap_items([error_occ, generic_occ])
+
+        # Filter to only error category
+        result = self._query_stats(occurrence_category=OccurrenceCategory.ERROR)
+        assert len(result) == 1
+        data = result[0]["attribute_distributions"]["data"]
+        assert "level" in data
+        labels = {bucket["label"] for bucket in data["level"]}
+        assert "error" in labels
+        assert "warning" not in labels
+
+    def test_stats_unsupported_stats_type(self) -> None:
+        result = self._query_stats(stats_types={"unsupported"})
+        assert result == []
+
+    def test_stats_empty_results(self) -> None:
+        result = self._query_stats(query_string="level:nonexistent")
+        assert len(result) == 1
+        data = result[0]["attribute_distributions"]["data"]
+        assert len(data) == 0

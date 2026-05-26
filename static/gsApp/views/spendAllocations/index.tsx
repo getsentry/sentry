@@ -1,27 +1,25 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -41,7 +39,7 @@ import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/compon
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 import {hasPermissions} from 'getsentry/views/subscriptionPage/utils';
 
-import AllocationForm from './components/allocationForm';
+import {AllocationForm} from './components/allocationForm';
 import type {SpendAllocation} from './components/types';
 import {EnableSpendAllocations} from './enableSpendAllocations';
 import {ProjectAllocationsTable} from './projectAllocationsTable';
@@ -49,20 +47,21 @@ import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits} from './utils';
 
 type Props = {
-  organization: Organization;
   subscription: Subscription;
 };
 
-export function SpendAllocationsRoot({organization, subscription}: Props) {
-  const theme = useTheme();
+export function SpendAllocationsRoot({subscription}: Props) {
+  const organization = useOrganization();
+  const {openModal} = useModal();
+
   const [errors, setErrors] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [orgEnabledFlag, setOrgEnabledFlag] = useState<boolean>(true);
-  const [selectedMetric, setSelectedMetric] = useState<DataCategory>(DataCategory.ERRORS);
-  const [shouldRetry, setShouldRetry] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [orgEnabledFlag, setOrgEnabledFlag] = useState(true);
+  const [selectedMetric, setSelectedMetric] = useState(DataCategory.ERRORS);
+  const [shouldRetry, setShouldRetry] = useState(true);
   const [rootAllocations, setRootAllocations] = useState<SpendAllocation[]>([]);
   const [spendAllocations, setSpendAllocations] = useState<SpendAllocation[]>([]); // NOTE: we default to fetching 1 period
-  const [viewNextPeriod, _setViewNextPeriod] = useState<boolean>(false);
+  const [viewNextPeriod, _setViewNextPeriod] = useState(false);
   const [currentCursor, setCurrentCursor] = useState<string | undefined>('');
   const [pageLinks, setPageLinks] = useState<string | null>();
   const {planDetails} = subscription;
@@ -134,7 +133,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   const fetchSpendAllocations = useCallback(
     // Target timestamp allows us to specify a period
     // Periods allows us to specify how many periods we want to fetch
-    async (targetTimestamp: number | undefined = undefined, periods = 1) => {
+    async (targetTimestamp?: number, periods = 1) => {
       try {
         setIsLoading(true);
         // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
@@ -291,7 +290,6 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           {...modalProps}
           fetchSpendAllocations={fetchSpendAllocations}
           initializedData={formData}
-          organization={organization}
           selectedMetric={selectedMetric}
           rootAllocation={rootAllocationForMetric}
           spendAllocations={currentAllocations}
@@ -306,7 +304,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (!organization.features.includes('spend-allocations')) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <PlanFeature organization={organization} features={['spend-allocations']}>
           {({plan}) => (
             <Panel dashedBorder data-test-id="disabled-allocations">
@@ -353,26 +351,25 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (isDisabledByPartner(subscription)) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <PartnershipNote subscription={subscription} />
       </SubscriptionPageContainer>
     );
   }
 
   return (
-    <SubscriptionPageContainer background="secondary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Spend Allocations')}
         action={
           !isLoading &&
           orgEnabledFlag && (
-            <div>
+            <Flex gap="md">
               {subscription.canSelfServe && hasBillingPerms && (
                 <LinkButton
                   aria-label={t('Manage Subscription')}
                   size="sm"
-                  style={{marginRight: theme.space.md}}
                   to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
@@ -380,7 +377,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               )}
               <Button
                 aria-label={t('New Allocation')}
-                priority="primary"
+                variant="primary"
                 size="sm"
                 data-test-id="new-allocation"
                 icon={<IconAdd size="xs" />}
@@ -388,13 +385,13 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               >
                 {t('New Allocation')}
               </Button>
-            </div>
+            </Flex>
           )
         }
       />
       <div>
         {tct(
-          `Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]`,
+          "Allocate a portion of your subscription's reserved quota to your projects and guarantee a minimum volume for them. Read the [docsLink: docs]",
           {
             docsLink: (
               <ExternalLink href="https://docs.sentry.io/pricing/quotas/spend-allocation/" />
@@ -514,7 +511,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           <Button
             aria-label={t('Disable Spend Allocations')}
             size="sm"
-            priority="danger"
+            variant="danger"
             data-test-id="disable"
             disabled={!orgEnabledFlag}
           >
@@ -526,7 +523,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   );
 }
 
-export default withOrganization(withSubscription(SpendAllocationsRoot));
+export default withSubscription(SpendAllocationsRoot);
 
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;

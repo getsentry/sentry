@@ -22,7 +22,7 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -33,6 +33,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
+import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
@@ -43,9 +46,6 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
-import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -116,9 +116,7 @@ export function EventGraph({
   const navigate = useNavigate();
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
-  const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
-    EventGraphSeries.EVENT
-  );
+  const [visibleSeries, setVisibleSeries] = useState(EventGraphSeries.EVENT);
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();
@@ -326,7 +324,7 @@ export function EventGraph({
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
-    minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
+    minTime: eventSeries.length && eventSeries.at(0)?.name,
     maxTime:
       lastEventSeriesTimestamp && eventSeriesInterval
         ? lastEventSeriesTimestamp + eventSeriesInterval

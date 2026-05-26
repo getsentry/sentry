@@ -42,10 +42,10 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
-        self.gen_ai_chat_spans: list[str] = [
+        self.gen_ai_spans: list[str] = [
             span.get("span_id")
             for span in event.get("spans", [])
-            if span.get("op") == "gen_ai.chat"
+            if (span.get("op") or "").startswith("gen_ai.")
         ]
 
         lcp_value = get_path(self.event(), "measurements", "lcp", "value")
@@ -179,7 +179,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if not op.startswith("http.client"):
             return False
 
-        if span.get("parent_span_id") in self.gen_ai_chat_spans:
+        if span.get("parent_span_id") in self.gen_ai_spans:
             return False
 
         if (

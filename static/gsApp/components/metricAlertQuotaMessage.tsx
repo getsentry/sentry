@@ -8,14 +8,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
+import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit';
 
 function UpgradeLink({children}: {children?: React.ReactNode}) {
   const organization = useOrganization();
 
   return (
     <Button
-      priority="link"
+      variant="link"
       onClick={() => {
         openUpsellModal({
           organization,

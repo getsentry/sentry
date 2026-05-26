@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
@@ -16,20 +16,20 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {AutofixSection} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import {FirstLastSeenSection} from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {PeopleSection} from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
-import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
+import {SupergroupSection} from 'sentry/views/issueDetails/streamline/sidebar/supergroupSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
@@ -95,11 +95,7 @@ export function StreamlinedSidebar({group, event, project}: Props) {
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>
-              {organization.features.includes('autofix-on-explorer') ? (
-                <AutofixSection group={group} project={project} event={event} />
-              ) : (
-                <SeerSection group={group} project={project} event={event} />
-              )}
+              <AutofixSection group={group} project={project} event={event} />
             </ErrorBoundary>
           )}
           {event && (
@@ -107,7 +103,7 @@ export function StreamlinedSidebar({group, event, project}: Props) {
               <ExternalIssueSidebarList group={group} event={event} project={project} />
             </ErrorBoundary>
           )}
-          <StreamlinedActivitySection group={group} />
+          <ActivitySection group={group} />
           {showPeopleSection && (
             <PeopleSection
               userParticipants={userParticipants}
@@ -130,6 +126,9 @@ export function StreamlinedSidebar({group, event, project}: Props) {
           {issueTypeConfig.detector.enabled && (
             <DetectorSection group={group} project={project} />
           )}
+          <ErrorBoundary mini>
+            <SupergroupSection group={group} />
+          </ErrorBoundary>
         </Side>
       )}
     </SharedTourElement>

@@ -2,34 +2,36 @@ import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
-import {CheckInStatus} from './types';
+import {CheckInStatus, type Monitor} from './types';
 
-export function makeMonitorListQueryKey(
+export function monitorListApiOptions(
   organization: Organization,
-  params: Record<string, any>
+  queryParams: Partial<
+    Record<
+      'asc' | 'cursor' | 'environment' | 'owner' | 'project' | 'query' | 'sort',
+      unknown
+    >
+  >
 ) {
-  const {query, project, environment, owner, cursor, sort, asc} = params;
-
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/monitors/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-    {
-      query: {
-        cursor,
-        query,
-        project,
-        environment,
-        owner,
-        includeNew: true,
-        per_page: 20,
-        sort,
-        asc,
-      },
+  const {query, project, environment, owner, cursor, sort, asc} = queryParams;
+  return apiOptions.as<Monitor[]>()('/organizations/$organizationIdOrSlug/monitors/', {
+    path: {organizationIdOrSlug: organization.slug},
+    query: {
+      cursor,
+      query,
+      project,
+      environment,
+      owner,
+      includeNew: true,
+      per_page: 20,
+      sort,
+      asc,
     },
-  ] as const;
+    staleTime: 0,
+  });
 }
 
 export function makeMonitorDetailsQueryKey(

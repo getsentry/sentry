@@ -63,7 +63,7 @@ class ReplayExamples:
     GET_REPLAY_DETAILS = [
         OpenApiExample(
             "Get single replay details",
-            value=replay_example,
+            value={"data": replay_example},
             status_codes=["200"],
             response_only=True,
         ),
@@ -196,6 +196,71 @@ class ReplayExamples:
             "Retrieve a replay video",
             value=b"hello, world!",
             status_codes=[200],
+            response_only=True,
+        )
+    ]
+
+    GET_REPLAY_DELETION_JOBS = [
+        OpenApiExample(
+            "List replay batch deletion jobs",
+            value={
+                "data": [
+                    {
+                        "id": 1,
+                        "dateCreated": "2024-01-01T00:00:00Z",
+                        "dateUpdated": "2024-01-01T00:05:00Z",
+                        "rangeStart": "2023-12-01T00:00:00Z",
+                        "rangeEnd": "2024-01-01T00:00:00Z",
+                        "environments": ["production"],
+                        "status": "pending",
+                        "query": "user.email:test@example.com",
+                        "countDeleted": 0,
+                    }
+                ]
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    CREATE_REPLAY_DELETION_JOB = [
+        OpenApiExample(
+            "Create an async job to batch delete replay instances",
+            value={
+                "data": {
+                    "id": 1,
+                    "dateCreated": "2024-01-01T00:00:00Z",
+                    "dateUpdated": "2024-01-01T00:05:00Z",
+                    "rangeStart": "2023-12-01T00:00:00Z",
+                    "rangeEnd": "2024-01-01T00:00:00Z",
+                    "environments": ["production"],
+                    "status": "pending",
+                    "query": "user.email:test@example.com",
+                    "countDeleted": 0,
+                }
+            },
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
+    GET_REPLAY_DELETION_JOB = [
+        OpenApiExample(
+            "Get a replay batch deletion job",
+            value={
+                "data": {
+                    "id": 1,
+                    "dateCreated": "2024-01-01T00:00:00Z",
+                    "dateUpdated": "2024-01-01T00:05:00Z",
+                    "rangeStart": "2023-12-01T00:00:00Z",
+                    "rangeEnd": "2024-01-01T00:00:00Z",
+                    "environments": ["production"],
+                    "status": "pending",
+                    "query": "user.email:test@example.com",
+                    "countDeleted": 0,
+                }
+            },
+            status_codes=["200"],
             response_only=True,
         )
     ]

@@ -16,7 +16,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 class TestRegionApp(TestCase):
     def setUp(self) -> None:
         self.user = Factories.create_user()
-        self.org = Factories.create_organization(owner=self.user, region="us")
+        self.org = Factories.create_organization(owner=self.user, cell="us")
         self.app = Factories.create_sentry_app(
             name="demo-app",
             user=self.user,

@@ -30,11 +30,11 @@ function MockMetricQueryParamsContextWithMultiVisualize({
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
     aggregateFields: [
-      new VisualizeFunction('p50(value,test_metric,distribution,-)'),
-      new VisualizeFunction('p75(value,test_metric,distribution,-)'),
-      new VisualizeFunction('p99(value,test_metric,distribution,-)'),
+      new VisualizeFunction('p50(value,test_metric,distribution,none)'),
+      new VisualizeFunction('p75(value,test_metric,distribution,none)'),
+      new VisualizeFunction('p99(value,test_metric,distribution,none)'),
     ],
-    aggregateSortBys: [{field: 'p50(value,test_metric,distribution,-)', kind: 'desc'}],
+    aggregateSortBys: [{field: 'p50(value,test_metric,distribution,none)', kind: 'desc'}],
   });
 
   return (
@@ -67,7 +67,7 @@ describe('useMetricTimeseries', () => {
         timeSeries: [
           {
             ...mockTimeSeries,
-            yAxis: 'per_second(value)',
+            yAxis: 'sum(value)',
             values: [
               {
                 ...mockTimeSeries.values[0]!,
@@ -140,15 +140,15 @@ describe('useMetricTimeseries', () => {
         timeSeries: [
           {
             ...mockTimeSeries1,
-            yAxis: 'p50(value,test_metric,distribution,-)',
+            yAxis: 'p50(value,test_metric,distribution,none)',
           },
           {
             ...mockTimeSeries2,
-            yAxis: 'p75(value,test_metric,distribution,-)',
+            yAxis: 'p75(value,test_metric,distribution,none)',
           },
           {
             ...mockTimeSeries3,
-            yAxis: 'p99(value,test_metric,distribution,-)',
+            yAxis: 'p99(value,test_metric,distribution,none)',
           },
         ],
       },
@@ -172,9 +172,9 @@ describe('useMetricTimeseries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           yAxis: [
-            'p50(value,test_metric,distribution,-)',
-            'p75(value,test_metric,distribution,-)',
-            'p99(value,test_metric,distribution,-)',
+            'p50(value,test_metric,distribution,none)',
+            'p75(value,test_metric,distribution,none)',
+            'p99(value,test_metric,distribution,none)',
           ],
         }),
       })
@@ -190,7 +190,7 @@ describe('useMetricTimeseries', () => {
         timeSeries: [
           {
             ...mockTimeSeries,
-            yAxis: 'p50(value,test_metric,distribution,-)',
+            yAxis: 'p50(value,test_metric,distribution,none)',
             values: [
               {
                 ...mockTimeSeries.values[0]!,
@@ -204,7 +204,7 @@ describe('useMetricTimeseries', () => {
           },
           {
             ...mockTimeSeries,
-            yAxis: 'p75(value,test_metric,distribution,-)',
+            yAxis: 'p75(value,test_metric,distribution,none)',
             values: [
               {
                 ...mockTimeSeries.values[0]!,
@@ -218,7 +218,7 @@ describe('useMetricTimeseries', () => {
           },
           {
             ...mockTimeSeries,
-            yAxis: 'p99(value,test_metric,distribution,-)',
+            yAxis: 'p99(value,test_metric,distribution,none)',
             values: [
               {
                 ...mockTimeSeries.values[0]!,
@@ -270,9 +270,9 @@ describe('useMetricTimeseries', () => {
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
           yAxis: [
-            'p50(value,test_metric,distribution,-)',
-            'p75(value,test_metric,distribution,-)',
-            'p99(value,test_metric,distribution,-)',
+            'p50(value,test_metric,distribution,none)',
+            'p75(value,test_metric,distribution,none)',
+            'p99(value,test_metric,distribution,none)',
           ],
         }),
       })

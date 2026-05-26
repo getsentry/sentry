@@ -1,0 +1,85 @@
+import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
+
+import {tct} from 'sentry/locale';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useSubscription} from 'getsentry/hooks/useSubscription';
+
+interface UseDashboardsLimitResult {
+  dashboardsLimit: number;
+  hasReachedDashboardLimit: boolean;
+  isLoading: boolean;
+  limitMessage?: React.ReactNode;
+}
+
+const UNLIMITED_DASHBOARDS_LIMIT = -1;
+// 10 is the lowest plan limit, used as a fallback if plan details don't come back
+const DEFAULT_DASHBOARDS_LIMIT = 10;
+
+export function useDashboardsLimit(): UseDashboardsLimitResult {
+  const organization = useOrganization();
+  const subscription = useSubscription();
+
+  // If there is no subscription, block dashboard creation
+  const dashboardsLimit =
+    subscription?.planDetails?.dashboardLimit ?? DEFAULT_DASHBOARDS_LIMIT;
+
+  const isUnlimitedPlan = dashboardsLimit === UNLIMITED_DASHBOARDS_LIMIT;
+
+  // Request up to the limited # of dashboards to get an idea of whether a user
+  // has reached the dashboard limit
+  const {data: dashboardsTotalCount, isLoading: isLoadingDashboardsTotalCount} = useQuery(
+    {
+      ...dashboardsApiOptions(organization, {
+        query: {
+          filter: 'excludePrebuilt',
+          // We only need to know there are at most the limited # of dashboards.
+          per_page: dashboardsLimit,
+        },
+      }),
+      enabled: !isUnlimitedPlan && dashboardsLimit !== 0,
+    }
+  );
+
+  const hasReachedDashboardLimit =
+    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit &&
+      dashboardsLimit !== UNLIMITED_DASHBOARDS_LIMIT) ||
+    dashboardsLimit === 0;
+  const limitMessage = hasReachedDashboardLimit
+    ? tct(
+        'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
+        {
+          link: <Link to="/checkout/?referrer=dashboards-limit-upsell" />,
+        }
+      )
+    : null;
+
+  return {
+    hasReachedDashboardLimit,
+    dashboardsLimit,
+    isLoading: isLoadingDashboardsTotalCount,
+    limitMessage,
+  };
+}
+
+type DashboardsLimitProviderProps = {
+  children: ((data: UseDashboardsLimitResult & any) => React.ReactNode) | React.ReactNode;
+};
+
+export function DashboardsLimitProvider({
+  children,
+  ...props
+}: DashboardsLimitProviderProps & any) {
+  const dashboardLimitData = useDashboardsLimit();
+
+  return (
+    <Fragment>
+      {typeof children === 'function'
+        ? children({...props, ...dashboardLimitData})
+        : children}
+    </Fragment>
+  );
+}

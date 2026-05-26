@@ -39,8 +39,8 @@ export function SearchBarAction({
           onChange={onFilterChange}
           trigger={props => (
             <StyledTrigger
-              priority={
-                filterSelections && filterSelections.length > 0 ? 'primary' : 'default'
+              variant={
+                filterSelections && filterSelections.length > 0 ? 'primary' : 'secondary'
               }
               {...props}
             >

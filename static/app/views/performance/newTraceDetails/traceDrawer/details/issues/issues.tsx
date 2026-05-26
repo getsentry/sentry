@@ -57,7 +57,7 @@ function Issue(props: IssueProps) {
     error,
   } = useApiQuery<Group>(
     [
-      getApiUrl(`/issues/$issueId/`, {path: {issueId: props.issue.issue_id}}),
+      getApiUrl('/issues/$issueId/', {path: {issueId: props.issue.issue_id}}),
       {
         query: {
           collapse: 'release',
@@ -201,7 +201,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
           <Flex align="center" marginLeft="2xs" gap="xs">
             <IconOpen />
             {t(
-              `Open %s more in Issues`,
+              'Open %s more in Issues',
               uniqueIssues.length - MAX_DISPLAYED_ISSUES_COUNT
             )}
           </Flex>

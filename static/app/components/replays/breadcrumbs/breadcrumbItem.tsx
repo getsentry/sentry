@@ -3,7 +3,7 @@ import {isValidElement, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbCodeSnippet} from 'sentry/components/replays/breadcrumbs/breadcrumbCodeSnippet';
 import {BreadcrumbComparisonButton} from 'sentry/components/replays/breadcrumbs/breadcrumbComparisonButton';
 import {BreadcrumbDescription} from 'sentry/components/replays/breadcrumbs/breadcrumbDescription';
@@ -17,8 +17,8 @@ import {useExtractDomNodes} from 'sentry/utils/replays/hooks/useExtractDomNodes'
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
-import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
-import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
@@ -153,30 +153,29 @@ export function BreadcrumbItem({
 
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
-  position: relative;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin: 0;
   &:hover {
-    background: ${p => p.theme.colors.surface200};
+    background-color: ${p => p.theme.colors.surface200};
     .timeline-icon-wrapper {
-      background: ${p => p.theme.colors.surface200};
+      background-color: ${p => p.theme.colors.surface200};
     }
   }
   cursor: pointer;
   /* vertical line connecting items */
-  &:not(:last-child)::before {
-    content: '';
-    position: absolute;
-    left: 16.5px;
-    width: 1px;
-    top: -2px;
-    bottom: -9px;
+  &:not(:last-child) {
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    background: ${p => p.theme.tokens.border.primary};
-    z-index: 0;
+    background-image: linear-gradient(
+      ${p => p.theme.tokens.border.primary},
+      ${p => p.theme.tokens.border.primary}
+    );
+    background-position: 16.5px -2px;
+    background-repeat: no-repeat;
+    background-size: 1px calc(100% + 11px);
   }
-  &:first-child::before {
-    top: 4px;
+  &:first-child {
+    background-position: 16.5px 4px;
+    background-size: 1px calc(100% + 5px);
   }
 `;
 

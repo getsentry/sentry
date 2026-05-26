@@ -8,7 +8,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -119,11 +118,6 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         - `COMPLETED`: Analysis finished successfully with full size data.
         """
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             head_artifact = PreprodArtifact.objects.select_related(
                 "mobile_app_info", "build_configuration", "commit_comparison"
@@ -153,7 +147,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.invalid_state",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "state": main_metric.state},
+                extra={"preprod_artifact_id": head_artifact.id, "state": main_metric.state},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -205,7 +199,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.no_file_id",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
+                extra={"preprod_artifact_id": head_artifact.id, "size_metric_id": main_metric.id},
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500
@@ -217,7 +211,10 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             sentry_sdk.capture_message(
                 "preprod.public_api.size_analysis.file_not_found",
                 level="warning",
-                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "analysis_file_id": analysis_file_id,
+                },
             )
             return Response({"detail": "Analysis file not found"}, status=404)
 
@@ -229,7 +226,10 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "preprod.public_api.size_analysis.parse_error",
-                extra={"artifact_id": head_artifact.id, "analysis_file_id": analysis_file_id},
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "analysis_file_id": analysis_file_id,
+                },
             )
             return Response(
                 {"detail": "There was an error retrieving size analysis results"}, status=500

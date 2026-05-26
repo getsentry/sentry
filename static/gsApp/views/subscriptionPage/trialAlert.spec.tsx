@@ -134,7 +134,7 @@ describe('Subscription > TrialAlert', () => {
     expect(screen.getByText('Performance Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        `With your trial you have access to Sentry's performance features.`
+        "With your trial you have access to Sentry's performance features."
       )
     ).toBeInTheDocument();
   });

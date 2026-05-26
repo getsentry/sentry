@@ -12,7 +12,11 @@ describe('DATA_CATEGORY_INFO', () => {
     });
 
     it('byte categories have correct formatting', () => {
-      const byteCategories = [DataCategoryExact.ATTACHMENT, DataCategoryExact.LOG_BYTE];
+      const byteCategories = [
+        DataCategoryExact.ATTACHMENT,
+        DataCategoryExact.LOG_BYTE,
+        DataCategoryExact.TRACE_METRIC_BYTE,
+      ];
 
       for (const category of byteCategories) {
         const {formatting} = DATA_CATEGORY_INFO[category];
@@ -72,7 +76,11 @@ describe('DATA_CATEGORY_INFO', () => {
     });
 
     it('formatting unitType matches expected categories', () => {
-      const bytesCategories = [DataCategoryExact.ATTACHMENT, DataCategoryExact.LOG_BYTE];
+      const bytesCategories = [
+        DataCategoryExact.ATTACHMENT,
+        DataCategoryExact.LOG_BYTE,
+        DataCategoryExact.TRACE_METRIC_BYTE,
+      ];
       const durationHoursCategories = [
         DataCategoryExact.PROFILE_DURATION,
         DataCategoryExact.PROFILE_DURATION_UI,

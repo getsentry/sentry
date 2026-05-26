@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {CreateSampleEventButton} from 'sentry/views/onboarding/createSampleEventButton';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
@@ -55,7 +55,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
     ) : (
       <p>
         <CreateSampleEventButton
-          priority="link"
+          variant="link"
           project={project}
           source="issues_list"
           disabled={!project}
@@ -82,7 +82,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
           {project && (
             <LinkButton
               data-test-id="install-instructions"
-              priority="primary"
+              variant="primary"
               to={makeProjectsPathname({
                 path: `/${project.slug}/getting-started/`,
                 organization: org,

@@ -9,11 +9,11 @@ import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStarte
 const getIntegrations = (params: DocsParams): string[] => {
   const integrations = [];
   if (params.isPerformanceSelected) {
-    integrations.push(`solidRouterBrowserTracingIntegration()`);
+    integrations.push('solidRouterBrowserTracingIntegration()');
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isReplaySelected) {
@@ -106,7 +106,7 @@ export const installSnippetBlock: ContentBlock = {
     {
       label: 'pnpm',
       language: 'bash',
-      code: `pnpm add @sentry/solidstart`,
+      code: 'pnpm add @sentry/solidstart',
     },
   ],
 };

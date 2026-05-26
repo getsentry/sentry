@@ -67,7 +67,7 @@ export const metricsVerify = <
   ],
 });
 
-export const metrics: OnboardingConfig<BasePlatformOptions> = {
+export const metrics: OnboardingConfig = {
   install: params => {
     const docsPlatform = params.platformKey.split('java-')[1] ?? 'java';
 
@@ -78,7 +78,7 @@ export const metrics: OnboardingConfig<BasePlatformOptions> = {
           {
             type: 'text',
             text: tct(
-              "To start using metrics, make sure your Sentry Java SDK version is [version:8.30.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
+              "To start using metrics, make sure your Sentry Java SDK version is [version:8.34.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
               {
                 version: <code />,
                 link: (
@@ -98,7 +98,7 @@ export const metrics: OnboardingConfig<BasePlatformOptions> = {
     ];
   },
   configure: () => [],
-  verify: (params: DocsParams<BasePlatformOptions>) => {
+  verify: (params: DocsParams) => {
     const docsPlatform = params.platformKey.split('java-')[1] ?? 'java';
 
     return [

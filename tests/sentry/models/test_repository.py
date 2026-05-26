@@ -77,7 +77,7 @@ class RepositoryDeleteEmailTest(TestCase):
 class RepositoryCodeReviewSettingsTest(TestCase):
     """Tests for auto-enabling code review settings on repository creation."""
 
-    def test_settings_created_when_no_auto_enable(self):
+    def test_settings_created_when_no_auto_enable(self) -> None:
         org = self.create_organization()
 
         repo = Repository.objects.create(
@@ -90,7 +90,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         assert settings.enabled_code_review is False
         assert settings.code_review_triggers == DEFAULT_CODE_REVIEW_TRIGGERS
 
-    def test_settings_created_when_auto_enable_disabled(self):
+    def test_settings_created_when_auto_enable_disabled(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -114,7 +114,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         assert settings.enabled_code_review is False
         assert settings.code_review_triggers == ["on_new_commit"]
 
-    def test_settings_created_when_auto_enable_enabled(self):
+    def test_settings_created_when_auto_enable_enabled(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -133,7 +133,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         assert settings.enabled_code_review is True
         assert settings.code_review_triggers == DEFAULT_CODE_REVIEW_TRIGGERS
 
-    def test_settings_created_with_triggers(self):
+    def test_settings_created_with_triggers(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -157,7 +157,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         assert settings.enabled_code_review is True
         assert settings.code_review_triggers == ["on_new_commit", "on_ready_for_review"]
 
-    def test_no_settings_for_unsupported_provider(self):
+    def test_no_settings_for_unsupported_provider(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -174,7 +174,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
 
         assert not RepositorySettings.objects.filter(repository=repo).exists()
 
-    def test_invalid_triggers_type_defaults_to_empty_list(self):
+    def test_invalid_triggers_type_defaults_to_empty_list(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -198,7 +198,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         settings = RepositorySettings.objects.get(repository=repo)
         assert settings.code_review_triggers == DEFAULT_CODE_REVIEW_TRIGGERS
 
-    def test_settings_not_duplicated_on_update(self):
+    def test_settings_not_duplicated_on_update(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -218,7 +218,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
 
         assert RepositorySettings.objects.filter(repository=repo).count() == 1
 
-    def test_transaction_rollback_on_auto_enable_failure(self):
+    def test_transaction_rollback_on_auto_enable_failure(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(
@@ -245,7 +245,7 @@ class RepositoryCodeReviewSettingsTest(TestCase):
         assert Repository.objects.filter(organization_id=org.id).count() == initial_repo_count
         assert not RepositorySettings.objects.filter(repository__organization_id=org.id).exists()
 
-    def test_both_repository_and_settings_saved_atomically(self):
+    def test_both_repository_and_settings_saved_atomically(self) -> None:
         org = self.create_organization()
 
         OrganizationOption.objects.set_value(

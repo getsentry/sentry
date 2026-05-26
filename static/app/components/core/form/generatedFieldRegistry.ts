@@ -114,6 +114,48 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Verify New Password'),
     hintText: t('Verify your new password'),
   },
+  'details.name': {
+    name: 'name',
+    formId: 'details',
+    route: '/settings/account/api/applications/:appId/',
+    label: t('Name'),
+    hintText: t('e.g. My Application'),
+  },
+  'details.homepageUrl': {
+    name: 'homepageUrl',
+    formId: 'details',
+    route: '/settings/account/api/applications/:appId/',
+    label: t('Homepage'),
+    hintText: t("An optional link to your application's homepage"),
+  },
+  'details.privacyUrl': {
+    name: 'privacyUrl',
+    formId: 'details',
+    route: '/settings/account/api/applications/:appId/',
+    label: t('Privacy Policy'),
+    hintText: t('An optional link to your Privacy Policy'),
+  },
+  'details.termsUrl': {
+    name: 'termsUrl',
+    formId: 'details',
+    route: '/settings/account/api/applications/:appId/',
+    label: t('Terms of Service'),
+    hintText: t('An optional link to your Terms of Service agreement'),
+  },
+  'details.redirectUris': {
+    name: 'redirectUris',
+    formId: 'details',
+    route: '/settings/account/api/applications/:appId/',
+    label: t('Authorized Redirect URIs'),
+    hintText: t('Separate multiple entries with a newline.'),
+  },
+  'details.allowedOrigins': {
+    name: 'allowedOrigins',
+    formId: 'details',
+    route: '/settings/account/api/applications/:appId/',
+    label: t('Authorized JavaScript Origins'),
+    hintText: t('Separate multiple entries with a newline.'),
+  },
   'project-ownership.autoAssignment': {
     name: 'autoAssignment',
     formId: 'project-ownership',
@@ -144,12 +186,14 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Crash Report Notifications'),
+    hintText: '',
   },
   'project-user-feedback.sentry:feedback_ai_spam_detection': {
     name: 'sentry:feedback_ai_spam_detection',
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Spam Detection'),
+    hintText: '',
   },
   'project-toolbar.sentry:toolbar_allowed_origins': {
     name: 'sentry:toolbar_allowed_origins',
@@ -157,6 +201,64 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/:orgId/projects/:projectId/toolbar/',
     label: t('Allowed Origins'),
     hintText: '',
+  },
+  'project-filters-settings.filters:blacklisted_ips': {
+    name: 'filters:blacklisted_ips',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('IP Addresses'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:releases': {
+    name: 'filters:releases',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Releases'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:error_messages': {
+    name: 'filters:error_messages',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Error Message'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:log_messages': {
+    name: 'filters:log_messages',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Log Message'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:trace_metric_names': {
+    name: 'filters:trace_metric_names',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Application Metrics'),
+    hintText: '',
+  },
+  'project-filters-settings.legacy-browsers': {
+    name: 'legacy-browsers',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out legacy browsers'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:react-hydration-errors': {
+    name: 'filters:react-hydration-errors',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out hydration errors'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:chunk-load-error': {
+    name: 'filters:chunk-load-error',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out ChunkLoadError(s)'),
+    hintText: t(
+      "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+    ),
   },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',
@@ -171,6 +273,24 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/:orgId/projects/:projectId/replays/',
     label: t('Create Hydration Error Issues'),
     hintText: '',
+  },
+  'csp.sentry:csp_ignored_sources_defaults': {
+    name: 'sentry:csp_ignored_sources_defaults',
+    formId: 'csp',
+    route: '/settings/:orgId/projects/:projectId/security-headers/csp/',
+    label: t('Use default ignored sources'),
+    hintText: t(
+      'Our default list will attempt to ignore common issues and reduce noise.'
+    ),
+  },
+  'csp.sentry:csp_ignored_sources': {
+    name: 'sentry:csp_ignored_sources',
+    formId: 'csp',
+    route: '/settings/:orgId/projects/:projectId/security-headers/csp/',
+    label: t('Additional ignored sources'),
+    hintText: t(
+      'Discard reports about requests from the given sources. Separate multiple entries with a newline.'
+    ),
   },
   'organization-settings-form.replayAccessMembers': {
     name: 'replayAccessMembers',

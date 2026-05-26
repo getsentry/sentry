@@ -23,7 +23,7 @@ class ReplayDetailsPermission(ProjectPermission):
         "GET": ["project:read", "project:write", "project:admin"],
         "POST": ["project:write", "project:admin"],
         "PUT": ["project:write", "project:admin"],
-        "DELETE": ["project:read", "project:write", "project:admin"],
+        "DELETE": ["project:write", "project:admin"],
     }
 
 

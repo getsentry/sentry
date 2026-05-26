@@ -85,7 +85,7 @@ class TraceExplorerAISetupTest(APITestCase):
             },
         )
 
-    def test_requires_feature_flag(self):
+    def test_requires_feature_flag(self) -> None:
         self.login_as(self.user)
 
         response = self.get_error_response(
@@ -127,7 +127,7 @@ class TraceExplorerAISetupTest(APITestCase):
         mock_fire_setup_request.assert_not_called()
 
     @with_feature("organizations:gen-ai-features")
-    def test_requires_authentication(self):
+    def test_requires_authentication(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             status_code=401,

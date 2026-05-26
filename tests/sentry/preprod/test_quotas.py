@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ShouldRunSizeTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.artifact = self.create_preprod_artifact(project=self.project)
 
@@ -46,7 +46,7 @@ class ShouldRunSizeTest(TestCase):
 
 
 class ShouldRunDistributionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.artifact = self.create_preprod_artifact(project=self.project)
 

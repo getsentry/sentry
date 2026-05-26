@@ -14,8 +14,10 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
@@ -26,7 +28,6 @@ from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
@@ -136,9 +137,21 @@ class CommitContextIntegration(ABC):
     def integration_id(self) -> int:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def org_integration(self) -> RpcOrganizationIntegration:
+        raise NotImplementedError
+
     @abstractmethod
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
+
+    def get_organization_id(self) -> int | None:
+        """
+        Return the organization ID when available on the installation instance.
+        Some unit-test mocks don't inherit IntegrationInstallation and won't have it.
+        """
+        return getattr(self, "organization_id", None)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -152,6 +165,7 @@ class CommitContextIntegration(ABC):
             interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
             provider_key=self.integration_name,
             integration_id=self.integration_id,
+            organization_id=self.get_organization_id(),
         ).capture() as lifecycle:
             try:
                 client = self.get_client()
@@ -214,11 +228,11 @@ class CommitContextIntegration(ABC):
         except NotImplementedError:
             return
 
-        if not OrganizationOption.objects.get_value(
-            organization=project.organization,
-            key=pr_comment_workflow.organization_option_key,
-            default=False,
-        ):
+        try:
+            pr_comments_enabled = self.org_integration.config.get("pr_comments", False)
+        except OrganizationIntegrationNotFound:
+            pr_comments_enabled = False
+        if not pr_comments_enabled:
             return
 
         repo_query = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
@@ -442,11 +456,6 @@ class PRCommentWorkflow(ABC):
 
     @property
     @abstractmethod
-    def organization_option_key(self) -> str:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
     def referrer(self) -> Referrer:
         raise NotImplementedError
 
@@ -585,7 +594,7 @@ class PRCommentWorkflow(ABC):
                 snuba_results,
                 eap_results,
                 "integrations.pr_comment.get_top_5_issues_by_count",
-                is_experimental_data_a_null_result=len(eap_results) == 0,
+                is_experimental_data_nullish=len(eap_results) == 0,
                 reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
                     snuba_rows,
                     eap_rows,

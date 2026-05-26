@@ -163,6 +163,12 @@ export interface ControlProps
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   menuHeight?: number | string;
   /**
+   * Minimum width for the menu overlay. When unset, the overlay's min-width matches
+   * the trigger's width (popper default). When set, this value is used instead —
+   * useful when the trigger is intentionally narrow but the options need more room.
+   */
+  menuMinWidth?: number | string;
+  /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
   menuTitle?: React.ReactNode;
@@ -217,6 +223,7 @@ export function Control({
   menuTitle,
   maxMenuHeight = '32rem',
   menuWidth,
+  menuMinWidth,
   menuHeight,
   menuHeaderTrailingItems,
   menuBody,
@@ -422,7 +429,9 @@ export function Control({
     const values = Array.isArray(value) ? value : [value];
     const options = items
       .flatMap(item => {
-        if ('options' in item) return item.options;
+        if ('options' in item) {
+          return item.options;
+        }
         return item;
       })
       .filter(item => values.includes(item.value));
@@ -454,8 +463,12 @@ export function Control({
   });
 
   const hasSelection = useMemo(() => {
-    if (value === undefined) return false;
-    if (Array.isArray(value)) return value.length > 0;
+    if (value === undefined) {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
     return true;
   }, [value]);
 
@@ -497,13 +510,13 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={overlayProps.style!.minWidth}
+              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
                   : undefined
               }
-              maxHeight={overlayProps.style!.maxHeight}
+              maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
               data-menu-has-search={searchEnabled}
@@ -524,7 +537,7 @@ export function Control({
                         <ClearButton
                           onClick={() => onClear?.({overlayState})}
                           size="zero"
-                          priority="transparent"
+                          variant="transparent"
                         >
                           {t('Clear')}
                         </ClearButton>
@@ -643,7 +656,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   }
 `;
 
-const ClearButton = styled(Button)`
+export const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
@@ -683,7 +696,7 @@ const StyledOverlay = styled(Overlay, {
   ${p => p.width && `width: ${withUnits(p.width)};`}
   ${p => p.height && `height: ${withUnits(p.height)};`}
   ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
-  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
   max-height: ${p =>
     p.maxHeight
       ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`

@@ -530,7 +530,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]
 
     def test_debug_meta(self) -> None:
-        debug_meta_cases = [
+        debug_meta_cases: list[dict[str, Any]] = [
             {"debug_meta": {}},
             {"debug_meta": None},
             {"debug_meta": {"images": []}},

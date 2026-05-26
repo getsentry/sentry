@@ -23,8 +23,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {DeprecatedAsyncComponent} from 'sentry/components/deprecatedAsyncComponent';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
@@ -60,10 +60,11 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {withProjects} from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -80,7 +81,7 @@ import {
 } from 'sentry/views/alerts/utils/constants';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-import RuleNodeList from './ruleNodeList';
+import {RuleNodeList} from './ruleNodeList';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -127,8 +128,6 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
-type RouteParams = {projectId?: string; ruleId?: string};
-
 type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
@@ -137,13 +136,14 @@ type IncompatibleRule = {
 type Props = {
   location: Location;
   members: Member[] | undefined;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   project: Project;
   projects: Project[];
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams>;
+} & RouteComponentProps;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
@@ -159,7 +159,7 @@ type State = DeprecatedAsyncComponent['state'] & {
 };
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
-  return rule?.hasOwnProperty('id') ?? false;
+  return Object.hasOwn(rule ?? {}, 'id');
 }
 
 /**
@@ -438,7 +438,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           success: true,
         });
       })
-      .catch(error => {
+      .catch((error: any) => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
         this.setState({detailedError: error.responseJSON || null});
         trackAnalytics('edit_alert_rule.notification_test', {
@@ -580,12 +580,13 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       });
 
       addSuccessMessage(t('Deleted alert rule'));
-      browserHistory.replace(
+      this.props.navigate(
         recreateRoute('', {
           ...this.props,
           params: {...this.props.params, orgId: organization.slug},
           stepBack: -2,
-        })
+        }),
+        {replace: true}
       );
     } catch (err: any) {
       this.setState({
@@ -600,7 +601,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     router.push(
       makeAlertsPathname({
-        path: `/rules/`,
+        path: '/rules/',
         organization,
       })
     );
@@ -613,7 +614,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       return false;
     }
 
-    return detailedError.hasOwnProperty(field);
+    return Object.hasOwn(detailedError, field);
   };
 
   handleEnvironmentChange = (val: string) => {
@@ -800,18 +801,6 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     if (conditions === null) {
       return null;
-    }
-
-    if (
-      !organization.features.includes(
-        'event-unique-user-frequency-condition-with-conditions'
-      )
-    ) {
-      conditions = conditions?.filter(
-        condition =>
-          condition.id !==
-          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
-      );
     }
 
     conditions = conditions?.map(condition =>
@@ -1229,7 +1218,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   rule.name
                 )}
               >
-                <Button priority="danger">{t('Delete Rule')}</Button>
+                <Button variant="danger">{t('Delete Rule')}</Button>
               </Confirm>
             ) : null
           }
@@ -1507,7 +1496,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   }
 }
 
-export default withOrganization(withProjects(IssueRuleEditor));
+function IssueRuleEditorWithNavigate(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <IssueRuleEditor {...props} navigate={navigate} />;
+}
+
+export default withOrganization(withProjects(IssueRuleEditorWithNavigate));
 
 export const findIncompatibleRules = (
   rule: IssueAlertRule | UnsavedIssueAlertRule | null | undefined
@@ -1593,7 +1587,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...new Array(filters.length).keys()],
+        filterIndices: [...Array.from({length: filters.length}).keys()],
       };
     }
   }

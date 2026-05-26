@@ -27,7 +27,7 @@ import {
   getExceptionGroupWidth,
 } from 'sentry/utils/eventExceptionGroup';
 import {getDaysSinceDate, getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
-import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
 const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
@@ -77,21 +77,6 @@ export function getMessage(
     default:
       return culprit || '';
   }
-}
-
-/**
- * Get the location from an event.
- */
-export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
-  if (isTombstone(event)) {
-    return undefined;
-  }
-
-  if (event.type === EventOrGroupType.ERROR && isNativePlatform(event.platform)) {
-    return event.metadata.filename || undefined;
-  }
-
-  return undefined;
 }
 
 export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | SimpleGroup) {

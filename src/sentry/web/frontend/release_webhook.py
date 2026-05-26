@@ -109,6 +109,7 @@ class ReleaseWebhookView(View):
             return HttpResponse(status=403)
 
         cls = plugin.get_release_hook()
+        assert cls is not None
         hook = cls(project)
         try:
             hook.handle(request)

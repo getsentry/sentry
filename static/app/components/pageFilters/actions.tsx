@@ -23,12 +23,12 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 type EnvironmentId = Environment['id'];
 
@@ -74,11 +74,6 @@ type PageFiltersUpdate = {
 type DateTimeUpdate = Pick<PageFiltersUpdate, 'start' | 'end' | 'period' | 'utc'>;
 
 /**
- * This can be null which will not perform any router side effects, and instead updates store.
- */
-type Router = InjectedRouter | null | undefined;
-
-/**
  * Reset values in the page filters store
  */
 export function resetPageFilters() {
@@ -108,13 +103,17 @@ function mergeDatetime(
 }
 
 export type InitializeUrlStateParams = {
+  location: Location;
   memberProjects: Project[];
+  navigate: ReactRouter3Navigate;
   nonMemberProjects: Project[];
   organization: Organization;
-  queryParams: Location['query'];
-  router: InjectedRouter;
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
+  /**
+   * the maximum number of sequential days that can be selected on the date page filter
+   */
+  maxDateRange?: number;
   /**
    * When set, the stats period will fallback to the `maxPickableDays` days if the stored selection exceeds the limit.
    */
@@ -155,13 +154,14 @@ export type InitializeUrlStateParams = {
 
 export function initializeUrlState({
   organization,
-  queryParams,
-  router,
+  location,
+  navigate,
   memberProjects,
   nonMemberProjects,
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   maxPickableDays,
+  maxDateRange,
   shouldPersist = true,
   shouldForceProject,
   defaultSelection,
@@ -171,6 +171,7 @@ export function initializeUrlState({
   storageNamespace,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
+  const queryParams = location.query;
 
   const parsed = getStateFromQuery(queryParams, {
     allowAbsoluteDatetime: showAbsolute,
@@ -312,6 +313,7 @@ export function initializeUrlState({
   }
 
   let shouldUseMaxPickableDays = false;
+  let shouldUseMaxDateRange = false;
 
   if (maxPickableDays && pageFilters.datetime) {
     let {start, end} = pageFilters.datetime;
@@ -324,16 +326,33 @@ export function initializeUrlState({
 
     if (start && end) {
       const periodStart = new Date(start);
+      const periodEnd = new Date(end);
       const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
+      const maxTimeRange = (maxDateRange ?? maxPickableDays) * 24 * 60 * 60 * 1000;
       const maxStart = new Date(maxPeriod.start);
-      if (periodStart.getTime() < maxStart.getTime()) {
-        shouldUseMaxPickableDays = true;
-        pageFilters.datetime = {
-          period: `${maxPickableDays}d`,
-          start: null,
-          end: null,
-          utc: datetime.utc,
-        };
+      if (maxDateRange) {
+        if (
+          periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
+          periodStart.getTime() < maxStart.getTime()
+        ) {
+          shouldUseMaxDateRange = true;
+          pageFilters.datetime = {
+            period: `${maxDateRange}d`,
+            start: null,
+            end: null,
+            utc: datetime.utc,
+          };
+        }
+      } else {
+        if (periodStart.getTime() < maxStart.getTime()) {
+          shouldUseMaxPickableDays = true;
+          pageFilters.datetime = {
+            period: `${maxPickableDays}d`,
+            start: null,
+            end: null,
+            utc: datetime.utc,
+          };
+        }
       }
     }
   }
@@ -347,24 +366,34 @@ export function initializeUrlState({
     );
   }
 
-  const newDatetime = shouldUseMaxPickableDays
-    ? {
-        period: `${maxPickableDays}d`,
-        start: null,
-        end: null,
-        utc: datetime.utc,
-      }
-    : {
-        ...datetime,
-        period:
-          parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
-            ? datetime.period
-            : null,
-        utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
-      };
+  let newDatetime: PageFiltersUpdate;
+  if (shouldUseMaxDateRange) {
+    newDatetime = {
+      period: `${maxDateRange}d`,
+      start: null,
+      end: null,
+      utc: datetime.utc,
+    };
+  } else if (shouldUseMaxPickableDays) {
+    newDatetime = {
+      period: `${maxPickableDays}d`,
+      start: null,
+      end: null,
+      utc: datetime.utc,
+    };
+  } else {
+    newDatetime = {
+      ...datetime,
+      period:
+        parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
+          ? datetime.period
+          : null,
+      utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
+    };
+  }
 
   if (!skipInitializeUrlParams) {
-    updateParams({project, environment, ...newDatetime}, router, {
+    updateParams({project, environment, ...newDatetime}, location, navigate, {
       replace: true,
       keepCursor: true,
     });
@@ -376,7 +405,7 @@ function isProjectsValid(projects: number[]) {
 }
 
 /**
- * Updates store and selection URL param if `router` is supplied
+ * Updates store and selection URL param if `location` and `navigate` is supplied
  *
  * This accepts `environments` from `options` to also update environments
  * simultaneously as environments are tied to a project, so if you change
@@ -384,7 +413,8 @@ function isProjectsValid(projects: number[]) {
  */
 export function updateProjects(
   projects: number[],
-  router?: Router,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
   options?: Options & {environments?: EnvironmentId[]}
 ) {
   if (!isProjectsValid(projects)) {
@@ -396,7 +426,12 @@ export function updateProjects(
   }
 
   PageFiltersStore.updateProjects(projects, options?.environments ?? null);
-  updateParams({project: projects, environment: options?.environments}, router, options);
+  updateParams(
+    {project: projects, environment: options?.environments},
+    location,
+    navigate,
+    options
+  );
   persistPageFilters('projects', options);
 
   if (options?.environments) {
@@ -405,39 +440,31 @@ export function updateProjects(
 }
 
 /**
- * Updates store and updates global environment selection URL param if `router` is supplied
- *
- * @param {String[]} environments List of environments
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ * Updates store and updates global environment selection URL param if `location` and `navigate` is supplied
  */
 export function updateEnvironments(
   environment: EnvironmentId[] | null,
-  router?: Router,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
   options?: Options
 ) {
   PageFiltersStore.updateEnvironments(environment);
-  updateParams({environment}, router, options);
+  updateParams({environment}, location, navigate, options);
   persistPageFilters('environments', options);
 }
 
 /**
- * Updates store and global datetime selection URL param if `router` is supplied
- *
- * @param {Object} datetime Object with start, end, range keys
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ * Updates store and global datetime selection URL param if `location` and `navigate` is supplied
  */
 export function updateDateTime(
   datetime: DateTimeUpdate,
-  router?: Router,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
   options?: Options
 ) {
   const {selection} = PageFiltersStore.getState();
   PageFiltersStore.updateDateTime({...selection.datetime, ...datetime});
-  updateParams(datetime, router, options);
+  updateParams(datetime, location, navigate, options);
   persistPageFilters('datetime', options);
 }
 
@@ -450,27 +477,27 @@ export function updatePersistence(shouldPersist: boolean) {
 
 /**
  * Updates router/URL with new query params
- *
- * @param obj New query params
- * @param [router] React router object
- * @param [options] Options object
  */
-function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
+function updateParams(
+  obj: PageFiltersUpdate,
+  location?: Location,
+  navigate?: ReactRouter3Navigate,
+  options?: Options
+) {
   // Allow another component to handle routing
-  if (!router) {
+  if (!location || !navigate) {
     return;
   }
 
-  const newQuery = getNewQueryParams(obj, router.location.query, options);
+  const newQuery = getNewQueryParams(obj, location.query, options);
 
   // Only push new location if query params has changed because this will cause a heavy re-render
-  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
+  if (qs.stringify(newQuery) === qs.stringify(location.query)) {
     return;
   }
 
-  const routerAction = options?.replace ? router.replace : router.push;
-
-  routerAction({pathname: router.location.pathname, query: newQuery});
+  const to = {pathname: location.pathname, query: newQuery};
+  navigate(to, {replace: !!options?.replace});
 }
 
 /**
@@ -510,10 +537,6 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  *
  * Preserves the old query params, except for `cursor` (can be overridden with
  * keepCursor option)
- *
- * @param obj New query params
- * @param currentQuery The current query parameters
- * @param [options] Options object
  */
 function getNewQueryParams(
   obj: PageFiltersUpdate,

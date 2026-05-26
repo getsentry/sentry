@@ -5,7 +5,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
+import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 
@@ -16,7 +16,8 @@ interface Props {
 }
 
 export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
-  const isSupportedProvider = isSupportedAutofixProvider(repo.provider);
+  const isSeerSupportedProvider = useIsSeerSupportedProvider();
+  const isSupportedProvider = isSeerSupportedProvider(repo.provider);
 
   return (
     <RepoListItemContainer

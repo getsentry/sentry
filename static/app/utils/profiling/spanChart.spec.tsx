@@ -1,51 +1,35 @@
-import type {EntrySpans, EventTransaction} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import type {SpanNodeData, TransactionSpanData} from 'sentry/utils/profiling/spanTree';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {Rect} from './speedscope';
 
-function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
+function s(partial: Partial<SpanNodeData> = {}): SpanNodeData {
   return {
-    timestamp: 0,
-    start_timestamp: 0,
-    exclusive_time: 0,
-    description: '',
-    op: '',
-    span_id: '',
-    parent_span_id: '',
-    trace_id: '',
-    hash: '',
-    data: {},
+    [SpanFields.PRECISE_FINISH_TS]: 0,
+    [SpanFields.PRECISE_START_TS]: 0,
+    [SpanFields.SPAN_DESCRIPTION]: '',
+    [SpanFields.SPAN_OP]: '',
+    [SpanFields.SPAN_ID]: '',
+    [SpanFields.TRACE_PARENT_SPAN]: '',
+    [SpanFields.TRACE]: '',
+    [SpanFields.TRACE_STATUS]: '',
+    [SpanFields.TRANSACTION_EVENT_ID]: '',
     ...partial,
   };
 }
 
-function txn(partial: Partial<EventTransaction>): EventTransaction {
+function txn(partial: Partial<TransactionSpanData> = {}): TransactionSpanData {
   return {
-    id: '',
-    projectID: '',
-    user: {},
-    contexts: {},
-    entries: [],
-    errors: [],
-    dateCreated: '',
-    startTimestamp: Date.now(),
-    endTimestamp: Date.now() + 1000,
-    title: '',
-    type: EventOrGroupType.TRANSACTION,
-    culprit: '',
-    dist: null,
-    eventID: '',
-    fingerprints: [],
-    dateReceived: new Date().toISOString(),
-    message: '',
-    metadata: {},
-    size: 0,
-    tags: [],
-    occurrence: null,
-    location: '',
-    crashFile: null,
+    [SpanFields.SPAN_DESCRIPTION]: '',
+    [SpanFields.PRECISE_START_TS]: Date.now(),
+    [SpanFields.PRECISE_FINISH_TS]: Date.now() + 1000,
+    [SpanFields.SPAN_ID]: '',
+    [SpanFields.SPAN_SELF_TIME]: 0,
+    [SpanFields.TRACE]: '',
+    [SpanFields.SDK_NAME]: '',
+    [SpanFields.TRANSACTION_EVENT_ID]: '',
     ...partial,
   };
 }
@@ -55,49 +39,49 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 0,
-        endTimestamp: start + 1,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 0,
+        [SpanFields.PRECISE_FINISH_TS]: start + 1,
       }),
       [
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 1,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 1,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '2',
-          parent_span_id: '1',
-          timestamp: start + 0.5,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '2',
+          [SpanFields.TRACE_PARENT_SPAN]: '1',
+          [SpanFields.PRECISE_FINISH_TS]: start + 0.5,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '3',
-          parent_span_id: '2',
-          timestamp: start + 0.2,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '3',
+          [SpanFields.TRACE_PARENT_SPAN]: '2',
+          [SpanFields.PRECISE_FINISH_TS]: start + 0.2,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '4',
-          parent_span_id: '1',
-          timestamp: start + 1,
-          start_timestamp: start + 0.5,
+          [SpanFields.SPAN_ID]: '4',
+          [SpanFields.TRACE_PARENT_SPAN]: '1',
+          [SpanFields.PRECISE_FINISH_TS]: start + 1,
+          [SpanFields.PRECISE_START_TS]: start + 0.5,
         }),
       ]
     );
 
-    expect(tree.root.children[0]!.children[1]!.span.span_id).toBe('4');
+    expect(tree.root.children[0]!.children[1]!.span[SpanFields.SPAN_ID]).toBe('4');
     const chart = new SpanChart(tree);
 
     chart.forEachSpanOfTree(chart.spanTrees[0]!, 0, span => {
-      if (span.node.span.span_id === '1') {
+      if (span.node.span[SpanFields.SPAN_ID] === '1') {
         expect(span.depth).toBe(1);
-      } else if (span.node.span.span_id === '2') {
+      } else if (span.node.span[SpanFields.SPAN_ID] === '2') {
         expect(span.depth).toBe(2);
-      } else if (span.node.span.span_id === '3') {
+      } else if (span.node.span[SpanFields.SPAN_ID] === '3') {
         expect(span.depth).toBe(3);
-      } else if (span.node.span.span_id === '4') {
+      } else if (span.node.span[SpanFields.SPAN_ID] === '4') {
         expect(span.depth).toBe(2);
       }
     });
@@ -107,28 +91,28 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 0,
-        endTimestamp: start + 10,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 0,
+        [SpanFields.PRECISE_FINISH_TS]: start + 10,
       }),
       [
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 10,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 10,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '2',
-          parent_span_id: '1',
-          timestamp: start + 5,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '2',
+          [SpanFields.TRACE_PARENT_SPAN]: '1',
+          [SpanFields.PRECISE_FINISH_TS]: start + 5,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '3',
-          parent_span_id: '2',
-          timestamp: start + 1,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '3',
+          [SpanFields.TRACE_PARENT_SPAN]: '2',
+          [SpanFields.PRECISE_FINISH_TS]: start + 1,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
       ]
     );
@@ -141,34 +125,34 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 0,
-        endTimestamp: start + 1,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 0,
+        [SpanFields.PRECISE_FINISH_TS]: start + 1,
       }),
       [
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 1,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 1,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '2',
-          parent_span_id: '1',
-          timestamp: start + 0.5,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '2',
+          [SpanFields.TRACE_PARENT_SPAN]: '1',
+          [SpanFields.PRECISE_FINISH_TS]: start + 0.5,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '3',
-          parent_span_id: '2',
-          timestamp: start + 0.2,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '3',
+          [SpanFields.TRACE_PARENT_SPAN]: '2',
+          [SpanFields.PRECISE_FINISH_TS]: start + 0.2,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '4',
-          parent_span_id: '3',
-          timestamp: start + 0.1,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '4',
+          [SpanFields.TRACE_PARENT_SPAN]: '3',
+          [SpanFields.PRECISE_FINISH_TS]: start + 0.1,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
       ]
     );
@@ -181,28 +165,28 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 0,
-        endTimestamp: start + 10,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 0,
+        [SpanFields.PRECISE_FINISH_TS]: start + 10,
       }),
       [
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 10,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 10,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '2',
-          parent_span_id: '1',
-          timestamp: start + 5,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '2',
+          [SpanFields.TRACE_PARENT_SPAN]: '1',
+          [SpanFields.PRECISE_FINISH_TS]: start + 5,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '3',
-          parent_span_id: '2',
-          timestamp: start + 1,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '3',
+          [SpanFields.TRACE_PARENT_SPAN]: '2',
+          [SpanFields.PRECISE_FINISH_TS]: start + 1,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
       ]
     );
@@ -215,22 +199,22 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 5,
-        endTimestamp: start + 10,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 5,
+        [SpanFields.PRECISE_FINISH_TS]: start + 10,
       }),
       [
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 10,
-          start_timestamp: start + 6,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 10,
+          [SpanFields.PRECISE_START_TS]: start + 6,
         }),
         s({
-          span_id: '2',
-          parent_span_id: '1',
-          timestamp: start + 9,
-          start_timestamp: start + 8,
+          [SpanFields.SPAN_ID]: '2',
+          [SpanFields.TRACE_PARENT_SPAN]: '1',
+          [SpanFields.PRECISE_FINISH_TS]: start + 9,
+          [SpanFields.PRECISE_START_TS]: start + 8,
         }),
       ]
     );
@@ -247,16 +231,16 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 1,
-        endTimestamp: start + 11,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 1,
+        [SpanFields.PRECISE_FINISH_TS]: start + 11,
       }),
       [
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 4,
-          start_timestamp: start + 2,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 4,
+          [SpanFields.PRECISE_START_TS]: start + 2,
         }),
       ]
     );
@@ -274,25 +258,25 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 0,
-        endTimestamp: start + 10,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 0,
+        [SpanFields.PRECISE_FINISH_TS]: start + 10,
       }),
       [
         // If a span belongs to nothing, we dont render it,
         // for now we only render spans that ultimately belong
         // to the transaction when the parent_span_id is followed
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 10,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 10,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '2',
-          parent_span_id: undefined,
-          timestamp: start + 10,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '2',
+          [SpanFields.TRACE_PARENT_SPAN]: '',
+          [SpanFields.PRECISE_FINISH_TS]: start + 10,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
       ]
     );
@@ -305,25 +289,25 @@ describe('spanChart', () => {
     const start = Date.now();
     const tree = new SpanTree(
       txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 0,
-        endTimestamp: start + 10,
+        [SpanFields.SPAN_ID]: 'root',
+        [SpanFields.PRECISE_START_TS]: start + 0,
+        [SpanFields.PRECISE_FINISH_TS]: start + 10,
       }),
       [
         // These two spans overlap and as first is inserted,
         // the 2nd span can no longer be inserted and the parent_span_id
         // edge is no longer satisfied
         s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 10,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '1',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 10,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
         s({
-          span_id: '2',
-          parent_span_id: 'root',
-          timestamp: start + 10,
-          start_timestamp: start,
+          [SpanFields.SPAN_ID]: '2',
+          [SpanFields.TRACE_PARENT_SPAN]: 'root',
+          [SpanFields.PRECISE_FINISH_TS]: start + 10,
+          [SpanFields.PRECISE_START_TS]: start,
         }),
       ]
     );

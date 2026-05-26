@@ -79,7 +79,7 @@ class GroupMetaManager(BaseManager["GroupMeta"]):
             pass
 
     def set_value(self, instance, key, value):
-        self.create_or_update(group=instance, key=key, values={"value": value})
+        self.update_or_create(group=instance, key=key, defaults={"value": value})
         self.__cache.setdefault(instance.id, {})
         self.__cache[instance.id][key] = value
 

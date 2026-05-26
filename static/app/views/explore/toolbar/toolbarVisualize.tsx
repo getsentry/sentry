@@ -26,7 +26,7 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
@@ -63,41 +63,25 @@ export function ToolbarVisualize({
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
-  const replaceOverlay = useCallback(
-    (group: number, newVisualize: Visualize) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          return newVisualize.serialize();
-        }
-        return visualize.serialize();
-      });
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
+  const replaceOverlay = (group: number, newVisualize: Visualize) => {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === group) {
+        return newVisualize.serialize();
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  };
 
-  const toggleVisibility = useCallback(
-    (group: number) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          visualize = visualize.replace({visible: !visualize.visible});
-        }
-        return visualize.serialize();
-      });
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
-
-  const handleOnDelete = useCallback(
-    (group: number) => {
-      const newVisualizes = visualizes
-        .toSpliced(group, 1)
-        .map(visualize => visualize.serialize());
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
+  const toggleVisibility = (group: number) => {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === group) {
+        visualize = visualize.replace({visible: !visualize.visible});
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  };
 
   const setVisualizesWithOp = useCallback(
     (columns: Visualize[]) => {
@@ -108,7 +92,7 @@ export function ToolbarVisualize({
 
   return (
     <DragNDropContext columns={[...visualizes]} setColumns={setVisualizesWithOp}>
-      {({editableColumns}) => (
+      {({editableColumns, deleteColumnAtIndex}) => (
         <ToolbarSection data-test-id="section-visualizes">
           <ToolbarVisualizeHeader />
           {editableColumns.map((column, i) => {
@@ -122,12 +106,12 @@ export function ToolbarVisualize({
               />
             );
             const onDelete =
-              editableColumns.length > 1 ? () => handleOnDelete(i) : undefined;
+              editableColumns.length > 1 ? () => deleteColumnAtIndex(i) : undefined;
 
             if (isVisualizeEquation(visualize)) {
               return (
                 <VisualizeEquationInput
-                  key={column.id}
+                  key={column.uniqueId}
                   dragColumnId={dragColumnId}
                   onDelete={onDelete}
                   onReplace={newVisualize => replaceOverlay(i, newVisualize)}
@@ -139,7 +123,7 @@ export function ToolbarVisualize({
 
             return (
               <ToolbarVisualizeItem
-                key={column.id}
+                key={column.uniqueId}
                 dragColumnId={dragColumnId}
                 onDelete={onDelete}
                 onReplace={newVisualize => replaceOverlay(i, newVisualize)}
@@ -272,12 +256,20 @@ interface VisualizeLabelProps {
   visualize: Visualize;
 }
 
-export function getVisualizeLabel(index: number) {
+export function getFunctionLabel(index: number) {
   return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
-function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
-  const label = visualize.visible ? getVisualizeLabel(index) : <IconHide />;
+function getEquationLabel(index: number) {
+  return `ƒ${index}`;
+}
+
+export function getVisualizeLabel(labelIndex: number, isEquation: boolean): string {
+  return isEquation ? getEquationLabel(labelIndex) : getFunctionLabel(labelIndex);
+}
+
+export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+  const label = visualize.visible ? getFunctionLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;
 }

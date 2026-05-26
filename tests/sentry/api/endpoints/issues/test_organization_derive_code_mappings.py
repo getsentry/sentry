@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import router
 from django.urls import reverse
@@ -8,6 +8,7 @@ from rest_framework import status
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -57,6 +58,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["stack/root/file.py"],
             )
@@ -89,8 +91,53 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["app/src/main/java/com/waffleware/billing/Billing.kt"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_frame_with_module_multiple_same_repo_matches(
+        self, mock_get_trees_for_org: Any
+    ) -> None:
+        config_data = {
+            "absPath": "GraphQLFetcher.java",
+            "module": "io.sentry.graphql.GraphQLFetcher",
+            "platform": "java",
+            "stacktraceFilename": "GraphQLFetcher.java",
+        }
+        expected_matches = [
+            {
+                "filename": "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "io/sentry/graphql/",
+                "source_path": "sentry-graphql/src/main/java/io/sentry/graphql/",
+            },
+            {
+                "filename": "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "io/sentry/graphql/",
+                "source_path": "sentry-graphql-core/src/main/java/io/sentry/graphql/",
+            },
+        ]
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                    external_id="1",
+                ),
+                files=[
+                    "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                    "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                ],
             )
         }
         response = self.client.get(self.url, data=config_data, format="json")
@@ -115,6 +162,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["stack/root/file.py"],
             )
@@ -151,6 +199,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["stack/root/file.py"],
             ),
@@ -158,6 +207,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/foobar",
                     branch="master",
+                    external_id="2",
                 ),
                 files=["stack/root/file.py"],
             ),
@@ -200,6 +250,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["top_level_file.py"],
             )
@@ -224,7 +275,13 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.data == {"text": "Could not find project"}
 
-    def test_non_project_member_permissions(self) -> None:
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[
+            {"name": "codemap", "identifier": "getsentry/codemap", "external_id": "99999"}
+        ],
+    )
+    def test_non_project_member_permissions(self, mock_get_repos: MagicMock) -> None:
         config_data = {
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
@@ -244,7 +301,13 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
-    def test_post_simple(self) -> None:
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[
+            {"name": "codemap", "identifier": "getsentry/codemap", "external_id": "99999"}
+        ],
+    )
+    def test_post_simple(self, mock_get_repos: MagicMock) -> None:
         config_data = {
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
@@ -299,16 +362,24 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
 
-    def test_post_existing_code_mapping(self) -> None:
-        RepositoryProjectPathConfig.objects.create(
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[{"name": "name", "identifier": "name", "external_id": "88888"}],
+    )
+    def test_post_existing_code_mapping(self, mock_get_repos: MagicMock) -> None:
+        project_repo, _ = ProjectRepository.objects.get_or_create(
             project=self.project,
+            repository=self.repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        RepositoryProjectPathConfig.objects.create(
             stack_root="/stack/root",
             source_root="/source/root/wrong",
             default_branch="master",
-            repository=self.repo,
             organization_integration_id=self.organization_integration.id,
             organization_id=self.organization_integration.organization_id,
             integration_id=self.organization_integration.integration_id,
+            project_repository=project_repo,
         )
 
         config_data = {
@@ -321,7 +392,12 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 201, response.content
 
-        new_code_mapping = RepositoryProjectPathConfig.objects.get(
-            project=self.project, stack_root="/stack/root"
+        # Both mappings should coexist: the original and the newly derived one
+        mappings = RepositoryProjectPathConfig.objects.filter(
+            project_repository__project=self.project, stack_root="/stack/root"
         )
-        assert new_code_mapping.source_root == "/source/root"
+        assert mappings.count() == 2
+        assert set(mappings.values_list("source_root", flat=True)) == {
+            "/source/root/wrong",
+            "/source/root",
+        }

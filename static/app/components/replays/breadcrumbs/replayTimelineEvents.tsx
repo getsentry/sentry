@@ -216,6 +216,6 @@ const IconNode = styled('button')<{
   border-radius: 50%;
   color: ${p => p.theme.colors.white};
   ${getBackgroundGradient}
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.shadow.low};
   user-select: none;
 `;

@@ -2,7 +2,13 @@ import {DataConditionFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {IssueType} from 'sentry/types/group';
 import type {DataConditionHandler} from 'sentry/types/workflowEngine/dataConditions';
@@ -165,11 +171,86 @@ describe('DataConditionNodeList', () => {
       {organization}
     );
 
-    // Wait until the request for tags is completed
+    // Wait until the request for tags is completed and the select is no longer disabled
     const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
+    await waitFor(() => {
+      expect(tagInput).toBeEnabled();
+    });
     await userEvent.type(tagInput, 'names{enter}');
-    expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
-      comparison: {key: 'names', match: MatchType.CONTAINS, value: 'moo deng'},
+    await waitFor(() => {
+      expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
+        comparison: {key: 'names', match: MatchType.CONTAINS, value: 'moo deng'},
+      });
+    });
+  });
+
+  it('clears value when switching tagged event to is set match type', async () => {
+    render(
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList
+              {...defaultProps}
+              conditions={[
+                DataConditionFixture({
+                  type: DataConditionType.TAGGED_EVENT,
+                  comparison: {key: 'name', match: MatchType.CONTAINS, value: 'foo'},
+                }),
+              ]}
+            />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
+      {organization}
+    );
+
+    expect(screen.getByRole('textbox', {name: 'Value'})).toBeInTheDocument();
+
+    const matchInput = await screen.findByRole('textbox', {name: 'Match type'});
+    await userEvent.click(matchInput);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'is set'}));
+
+    await waitFor(() => {
+      expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
+        comparison: {key: 'name', match: MatchType.IS_SET},
+      });
+    });
+  });
+
+  it('clears value when switching event attribute to is set match type', async () => {
+    render(
+      <AutomationBuilderContext.Provider value={defaultContextProps}>
+        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+          <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
+            <DataConditionNodeList
+              {...defaultProps}
+              conditions={[
+                DataConditionFixture({
+                  type: DataConditionType.EVENT_ATTRIBUTE,
+                  comparison: {
+                    attribute: 'message',
+                    match: MatchType.CONTAINS,
+                    value: 'foo',
+                  },
+                }),
+              ]}
+            />
+          </AutomationBuilderConflictContext.Provider>
+        </AutomationBuilderErrorContext.Provider>
+      </AutomationBuilderContext.Provider>,
+      {organization}
+    );
+
+    expect(screen.getByRole('textbox', {name: 'Value'})).toBeInTheDocument();
+
+    const matchInput = await screen.findByRole('textbox', {name: 'Match type'});
+    await userEvent.click(matchInput);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'is set'}));
+
+    await waitFor(() => {
+      expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
+        comparison: {attribute: 'message', match: MatchType.IS_SET},
+      });
     });
   });
 

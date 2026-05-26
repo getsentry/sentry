@@ -217,7 +217,9 @@ class UserEmailsEndpoint(UserEndpoint):
 
         has_new_username = old_email == user.username
 
-        update_kwargs = {"email": new_email}
+        # email_unique mirrors email under a DB-level unique constraint.
+        # It is normally synced by User.save(), which this update() bypasses.
+        update_kwargs = {"email": new_email, "email_unique": new_email}
 
         if has_new_username and not User.objects.filter(username__iexact=new_email).exists():
             update_kwargs["username"] = new_email

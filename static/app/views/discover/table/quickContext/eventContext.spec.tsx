@@ -14,8 +14,7 @@ import type {
   Frame,
 } from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import type {EventData} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventData, EventView} from 'sentry/utils/discover/eventView';
 
 import {EventContext} from './eventContext';
 
@@ -172,6 +171,6 @@ describe('Quick Context Content: Event ID Column', () => {
 
     renderEventContext(mockedLocation);
 
-    expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
+    expect(await screen.findByTestId('core-stacktrace-frame-row')).toBeInTheDocument();
   });
 });

@@ -17,7 +17,7 @@ type Props = ModalRenderProps & {
 };
 
 export function CustomIgnoreDurationModal(props: Props) {
-  const [dateWarning, setDateWarning] = useState<boolean>(false);
+  const [dateWarning, setDateWarning] = useState(false);
   const {Header, Body, Footer, onSelected, closeModal} = props;
 
   const snoozeDateInputRef = useRef<HTMLInputElement>(null);
@@ -105,10 +105,10 @@ export function CustomIgnoreDurationModal(props: Props) {
       )}
       <Footer>
         <Grid flow="column" align="center" gap="md">
-          <Button priority="default" onClick={closeModal}>
+          <Button variant="secondary" onClick={closeModal}>
             {t('Cancel')}
           </Button>
-          <Button priority="primary" onClick={snoozeClicked}>
+          <Button variant="primary" onClick={snoozeClicked}>
             {t('Archive')}
           </Button>
         </Grid>

@@ -9,7 +9,8 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {
@@ -212,7 +213,7 @@ export function AssertionOpGroup({
         <CompositeSelect
           size="xs"
           trigger={props => (
-            <OverlayTrigger.Button {...props} size="zero" priority="transparent">
+            <OverlayTrigger.Button {...props} size="zero" variant="transparent">
               {triggerLabel}
             </OverlayTrigger.Button>
           )}
@@ -231,10 +232,7 @@ export function AssertionOpGroup({
             options={[{value: 'negated', label: t('Negate result')}]}
           />
         </CompositeSelect>
-        <Button
-          size="zero"
-          priority="transparent"
-          icon={<IconGrabbable size="xs" />}
+        <DragReorderButton
           aria-label={t('Reorder assertion group')}
           ref={setActivatorNodeRef}
           {...listeners}
@@ -244,7 +242,7 @@ export function AssertionOpGroup({
         {onRemove && (
           <Button
             size="sm"
-            priority="transparent"
+            variant="transparent"
             icon={<IconDelete />}
             aria-label={t('Remove Group')}
             onClick={onRemove}
@@ -269,7 +267,7 @@ export function AssertionOpGroup({
           <AddOpButton
             size="xs"
             triggerProps={{
-              priority: 'transparent',
+              variant: 'transparent',
               size: 'zero',
               icon: <IconAdd size="xs" />,
               tooltipProps: {title: t('Add assertion to group')},

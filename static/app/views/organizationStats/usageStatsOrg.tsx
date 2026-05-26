@@ -149,7 +149,7 @@ export function getChartProps({
     | 'cardStats'
   >;
   dataCategory: DataCategory;
-  error: RequestError | null;
+  error: Error | null;
   handleChangeState: (state: {
     clientDiscard?: boolean;
     dataCategory?: DataCategory;
@@ -372,7 +372,7 @@ export function UsageStatsOrganization({
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -708,7 +708,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
           <StyledSettingsButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             icon={<IconSettings variant="muted" />}
             tooltipProps={{title: t('Dynamic Sampling Settings')}}

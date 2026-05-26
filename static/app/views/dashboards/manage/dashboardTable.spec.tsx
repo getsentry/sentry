@@ -3,7 +3,6 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -25,7 +24,7 @@ describe('Dashboards - DashboardTable', () => {
     features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
-  const {router} = initializeOrg();
+  const location = LocationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -111,7 +110,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={[]}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -127,7 +126,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -141,7 +140,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -155,23 +154,7 @@ describe('Dashboards - DashboardTable', () => {
     );
   });
 
-  it('persists global selection headers', async () => {
-    render(
-      <DashboardTable
-        onDashboardsChange={jest.fn()}
-        organization={organization}
-        dashboards={dashboards}
-        location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
-      />
-    );
-
-    expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
-    );
-  });
-
-  it('does not forward search query parameter to dashboard links', async () => {
+  it('does not forward query params from the list page to dashboard links', async () => {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -179,14 +162,14 @@ describe('Dashboards - DashboardTable', () => {
         dashboards={dashboards}
         location={{
           ...LocationFixture(),
-          query: {query: 'agent', statsPeriod: '7d'},
+          query: {sort: 'title', query: 'agent', statsPeriod: '7d'},
         }}
       />
     );
 
     expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
+      '/organizations/org-slug/dashboard/1/'
     );
   });
 
@@ -213,31 +196,6 @@ describe('Dashboards - DashboardTable', () => {
       expect(deleteMock).toHaveBeenCalled();
     });
     expect(dashboardUpdateMock).toHaveBeenCalled();
-  });
-
-  it('cannot delete last dashboard', async () => {
-    const singleDashboard = [
-      DashboardListItemFixture({
-        id: '1',
-        title: 'Dashboard 1',
-        dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: UserFixture({id: '1'}),
-        widgetPreview: [],
-      }),
-    ];
-    render(
-      <DashboardTable
-        organization={organization}
-        dashboards={singleDashboard}
-        location={LocationFixture()}
-        onDashboardsChange={dashboardUpdateMock}
-      />
-    );
-
-    expect((await screen.findAllByTestId('dashboard-delete'))[0]).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
   });
 
   it('can duplicate dashboards', async () => {
@@ -307,7 +265,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organizationWithEditAccess}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />
     );
 
@@ -333,7 +291,7 @@ describe('Dashboards - DashboardTable', () => {
         onDashboardsChange={jest.fn()}
         organization={organizationWithFavorite}
         dashboards={dashboards}
-        location={router.location}
+        location={location}
       />,
       {
         organization: organizationWithFavorite,

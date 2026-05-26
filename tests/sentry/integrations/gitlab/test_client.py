@@ -300,7 +300,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
 
         assert result == GITLAB_CODEOWNERS
@@ -322,6 +322,29 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
         assert resp == orjson.loads(GET_COMMIT_RESPONSE)
+
+    @responses.activate
+    def test_get_repository_tree(self) -> None:
+        tree_response = [
+            {
+                "id": "a1e8f8d7",
+                "name": "html",
+                "type": "tree",
+                "path": "files/html",
+                "mode": "040000",
+            },
+        ]
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/tree",
+            json=tree_response,
+        )
+        resp = self.gitlab_client.get_repository_tree(
+            str(self.gitlab_id), ref="main", recursive=True
+        )
+        assert resp == tree_response
+        assert "ref=main" in responses.calls[0].request.url
+        assert "recursive=true" in responses.calls[0].request.url
 
     @responses.activate
     def test_get_rate_limit_info_from_response(self) -> None:

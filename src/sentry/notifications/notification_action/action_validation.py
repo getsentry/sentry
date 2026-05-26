@@ -47,6 +47,11 @@ class SlackActionValidatorHandler(BaseActionValidatorHandler):
         return self.validated_data
 
 
+@action_validator_registry.register(Action.Type.SLACK_STAGING)
+class SlackStagingActionValidatorHandler(SlackActionValidatorHandler):
+    provider = Action.Type.SLACK_STAGING
+
+
 @action_validator_registry.register(Action.Type.MSTEAMS)
 class MSTeamsActionValidatorHandler(BaseActionValidatorHandler):
     provider = Action.Type.MSTEAMS

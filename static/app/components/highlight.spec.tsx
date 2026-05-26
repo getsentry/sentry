@@ -13,6 +13,27 @@ describe('Highlight', () => {
     expect(wrapper.container.childNodes[2]).toHaveTextContent('y@sentry.io');
   });
 
+  it('highlights with a case-insensitive match when caseSensitive is falsy', () => {
+    const wrapper = render(
+      <HighlightComponent text="Apple">apple Apple APPLE</HighlightComponent>
+    );
+    expect(wrapper.container.childNodes).toHaveLength(2);
+    expect(wrapper.container.childNodes[0]).toHaveTextContent('apple');
+    expect(wrapper.container.childNodes[1]).toHaveTextContent('Apple APPLE');
+  });
+
+  it('highlights with a case-sensitive match when caseSensitive is true', () => {
+    const wrapper = render(
+      <HighlightComponent caseSensitive text="Apple">
+        apple Apple APPLE
+      </HighlightComponent>
+    );
+    expect(wrapper.container.childNodes).toHaveLength(3);
+    expect(wrapper.container.childNodes[0]).toHaveTextContent('apple');
+    expect(wrapper.container.childNodes[1]).toHaveTextContent('Apple');
+    expect(wrapper.container.childNodes[2]).toHaveTextContent('APPLE');
+  });
+
   it('does not have highlighted text if `text` prop is not found in main text', () => {
     render(<HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>);
 

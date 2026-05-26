@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
 import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
@@ -36,7 +36,7 @@ function SetupReleasesPrompt() {
         )}
       </div>
       <LinkButton
-        priority="primary"
+        variant="primary"
         external
         size="xs"
         href="https://docs.sentry.io/product/releases/setup/"
@@ -88,6 +88,8 @@ export function ResolveActions({
   hasSemverReleaseFeature,
   onUpdate,
 }: ResolveActionsProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   // resolve in semver release is eligible if the flag is enabled,
@@ -174,7 +176,7 @@ export function ResolveActions({
         }
       >
         <Button
-          priority="primary"
+          variant="primary"
           size="xs"
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
@@ -291,7 +293,7 @@ export function ResolveActions({
           <Button
             {...triggerProps}
             size={size}
-            priority={priority}
+            variant={priority}
             aria-label={t('More resolve options')}
             icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
             disabled={isDisabled}
@@ -350,7 +352,7 @@ export function ResolveActions({
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
       <ButtonBar>
         <Button
-          priority={priority}
+          variant={priority}
           size={size}
           tooltipProps={{
             delay: 1000,

@@ -28,6 +28,7 @@ def format_choices_text(choices: Sequence[tuple[int, str]]):
 INTEGRATION_SERVICES = {
     ActionService.PAGERDUTY.value,
     ActionService.SLACK.value,
+    ActionService.SLACK_STAGING.value,
     ActionService.MSTEAMS.value,
     ActionService.OPSGENIE.value,
 }
@@ -208,7 +209,8 @@ Required if **service_type** is `slack` or `opsgenie`.
         NOTE: Reaches out to via slack integration to verify channel
         """
         if (
-            data["service_type"] != ActionService.SLACK.value
+            data["service_type"]
+            not in (ActionService.SLACK.value, ActionService.SLACK_STAGING.value)
             or data["target_type"] != ActionTarget.SPECIFIC.value
         ):
             return data

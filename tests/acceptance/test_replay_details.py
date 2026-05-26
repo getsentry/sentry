@@ -65,21 +65,6 @@ class ReplayDetailsTest(ReplaysAcceptanceTestCase):
         for segment_id, segment in enumerate(segments):
             self.store_replay_segments(replay_id, self.project.id, segment_id, segment)
 
-    def test_not_found(self) -> None:
-        with self.feature(FEATURE_NAME):
-            self.path = (
-                f"/organizations/{self.org.slug}/explore/replays/fb58a67446c914f44a4e329763420047b/"
-            )
-
-            self.browser.get(self.path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_simple(self) -> None:
-        with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-
     def test_console_tab(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)

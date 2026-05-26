@@ -16,10 +16,9 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {useApi} from 'sentry/utils/useApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
@@ -37,7 +36,6 @@ import type {SpendAllocation} from './types';
 
 type AllocationFormProps = {
   fetchSpendAllocations: () => Promise<void>;
-  organization: Organization;
   rootAllocation: SpendAllocation | undefined;
   selectedMetric: DataCategory;
   spendAllocations: SpendAllocation[];
@@ -45,29 +43,29 @@ type AllocationFormProps = {
   initializedData?: SpendAllocation;
 } & ModalRenderProps;
 
-function AllocationForm({
+export function AllocationForm({
   Footer,
   Header,
   closeModal,
   fetchSpendAllocations,
   initializedData,
-  organization,
   selectedMetric: initialMetric,
   rootAllocation,
   spendAllocations,
   subscription,
 }: AllocationFormProps) {
-  const [allocationVolume, setAllocationVolume] = useState<number>(0);
+  const organization = useOrganization();
+  const [allocationVolume, setAllocationVolume] = useState(0);
   const [errorFields, setErrorFields] = useState<string[]>([]);
-  const [showPrice, setShowPrice] = useState<boolean>(false);
-  const [selectedMetric, setSelectedMetric] = useState<DataCategory>(
+  const [showPrice, setShowPrice] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState(
     initializedData
       ? normalizeBillingMetric(initializedData.billingMetric)
       : initialMetric && getCategoryInfoFromPlural(initialMetric)?.canAllocate
         ? initialMetric
         : DataCategory.ERRORS // default to errors
   );
-  const [targetId, setTargetId] = useState<string | undefined>(
+  const [targetId, setTargetId] = useState(
     initializedData && String(initializedData.targetId)
   );
   const api = useApi();
@@ -185,7 +183,7 @@ function AllocationForm({
       return;
     }
     let METHOD = 'POST';
-    let [start, end] = (rootAllocation as SpendAllocation).period;
+    let [start, end] = rootAllocation!.period;
     if (initializedData) {
       METHOD = 'PUT';
       [start, end] = initializedData.period;
@@ -493,7 +491,7 @@ function AllocationForm({
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button
             data-test-id="spend-allocation-submit"
-            priority="primary"
+            variant="primary"
             onClick={onSubmit}
             disabled={overBudgetedEvents || !rootAllocation}
           >
@@ -504,8 +502,6 @@ function AllocationForm({
     </div>
   );
 }
-
-export default withOrganization(AllocationForm);
 
 const FancyInput = styled('input')`
   line-height: 1.4;

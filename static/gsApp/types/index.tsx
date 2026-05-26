@@ -242,7 +242,7 @@ enum VatStatus {
   OTHER = 'other',
 }
 
-export type GDPRDetails = {
+type GDPRDetails = {
   dpoAddress: string;
   dpoEmail: string;
   dpoName: string;
@@ -360,6 +360,7 @@ export type Subscription = {
   hadCustomDynamicSampling: boolean;
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
+  hasMigratedToBillingPlatform: boolean;
   hasOverageNotificationsDisabled: boolean;
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
@@ -481,7 +482,7 @@ export type Subscription = {
   vatStatus?: VatStatus | null;
 };
 
-export type DiscountInfo = {
+type DiscountInfo = {
   amount: number;
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;
@@ -571,8 +572,6 @@ export type BillingStatTotal = {
 };
 
 export type CustomerUsage = {
-  onDemandEventsAllowed: number;
-  onDemandMaxSpend: number;
   periodEnd: string;
   periodStart: string;
   stats: Record<string, BillingStats>;

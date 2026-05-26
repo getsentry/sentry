@@ -14,7 +14,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   disabled: boolean;
-  filteredIdList: string[];
+  filteredIdList: string[] | undefined;
   onChange: (option: SelectValue<string>) => void;
   value: string; // project ID
 };

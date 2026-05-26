@@ -1,7 +1,7 @@
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream
 
 
-def test_listener_registration():
+def test_listener_registration() -> None:
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")

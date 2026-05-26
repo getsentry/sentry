@@ -1,43 +1,47 @@
-import type {TransformOptions} from '@babel/core';
 import type {Config} from '@jest/types';
+import type {Options as SwcOptions} from '@swc/core';
 
-const babelConfig: TransformOptions = {
-  presets: [
-    [
-      '@babel/preset-react',
-      {
+const swcConfig: SwcOptions = {
+  isModule: true,
+  module: {
+    type: 'commonjs',
+  },
+  sourceMaps: 'inline',
+  jsc: {
+    target: 'esnext',
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      dynamicImport: true,
+    },
+    transform: {
+      react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
-    ],
-    [
-      '@babel/preset-env',
-      {
-        useBuiltIns: 'usage',
-        corejs: '3.41',
-        targets: {
-          node: 'current',
-        },
-      },
-    ],
-    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
-  ],
-  plugins: [
-    [
-      '@emotion/babel-plugin',
-      {
-        sourceMap: false,
-      },
-    ],
-  ],
+    },
+    experimental: {
+      plugins: [
+        ['@swc-contrib/mut-cjs-exports', {}],
+        [
+          '@swc/plugin-emotion',
+          {
+            sourceMap: false,
+            autoLabel: 'never',
+          },
+        ],
+      ],
+    },
+  },
 };
 
 /**
- * ESM packages that need to be transformed by babel-jest.
+ * ESM packages that need to be transformed.
  */
 const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
 
 const config: Config.InitialOptions = {
+  cacheDirectory: '.cache/jest-snapshots',
   // testEnvironment and testMatch are the core differences between this and the main config
   testEnvironment: 'node',
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
@@ -63,9 +67,7 @@ const config: Config.InitialOptions = {
   },
 
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.mjs?$': ['babel-jest', babelConfig as any],
+    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length

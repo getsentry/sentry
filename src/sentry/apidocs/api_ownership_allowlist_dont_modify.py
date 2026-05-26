@@ -56,7 +56,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/keys/{key_id}/",
     "/api/0/organizations/{organization_id_or_slug}/recent-searches/",
     "/api/0/organizations/{organization_id_or_slug}/projects/",
-    "/api/0/accept-invite/{member_id}/{token}/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/environments/{environment}/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/token/",
     "/api/0/organizations/{organization_id_or_slug}/searches/{search_id}/",

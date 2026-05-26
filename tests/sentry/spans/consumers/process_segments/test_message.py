@@ -4,14 +4,14 @@ from typing import Any
 from unittest import mock
 
 import pytest
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.environment import Environment
 from sentry.models.release import Release
+from sentry.spans.consumers.process_segments import message as message_module
 from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
+from sentry.spans.consumers.process_segments.shim import build_shim_event_data
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
@@ -115,6 +115,17 @@ class TestSpansTask(TestCase):
             assert span["op"]
             assert span["hash"]
 
+    def test_build_shim_event_data_supports_legacy_profile_id(self) -> None:
+        segment_span = build_mock_span(project_id=self.project.id, is_segment=True)
+        segment_span["hash"] = "hashed-segment"
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["contexts"]["profile"] == {
+            "profile_id": "dbae2b82559649a1a34a2878134a007b",
+            "type": "profile",
+        }
+
     def test_create_models(self) -> None:
         spans = self.generate_basic_spans()
         assert process_segment(spans)
@@ -129,6 +140,17 @@ class TestSpansTask(TestCase):
             version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
         )
         assert release.date_added.timestamp() == spans[0]["end_timestamp"]
+
+    def test_create_models_trim_environment_name(self) -> None:
+        spans = self.generate_basic_spans()
+        spans[1]["attributes"]["sentry.environment"]["value"] = "a" * 100
+        assert process_segment(spans)
+
+        # Environment is trimmed
+        Environment.objects.get(
+            organization_id=self.organization.id,
+            name="a" * 64,
+        )
 
     @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
@@ -261,7 +283,7 @@ class TestSpansTask(TestCase):
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_agent_monitoring"]
 
-    def test_segment_name_propagation(self):
+    def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         segment_span["name"] = "my segment name"
 
@@ -280,7 +302,7 @@ class TestSpansTask(TestCase):
             "value": "my segment name",
         }
 
-    def test_segment_name_propagation_when_name_missing(self):
+    def test_segment_name_propagation_when_name_missing(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         del segment_span["name"]
 
@@ -293,51 +315,8 @@ class TestSpansTask(TestCase):
         child_attributes = child_span["attributes"] or {}
         assert child_attributes.get("sentry.segment.name") is None
 
-    @mock.patch("sentry.spans.consumers.process_segments.message.record_segment_name")
-    def test_segment_name_normalization_with_feature(
-        self, mock_record_segment_name: mock.MagicMock
-    ):
-        _, segment_span = self.generate_basic_spans()
-        segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
 
-        with self.feature("organizations:normalize_segment_names_in_span_enrichment"):
-            processed_spans = process_segment([segment_span])
-
-        assert processed_spans[0]["name"] == "/foo/*/user/*/0"
-        mock_record_segment_name.assert_called_once()
-
-    @mock.patch("sentry.spans.consumers.process_segments.message.record_segment_name")
-    def test_segment_name_normalization_without_feature(
-        self, mock_record_segment_name: mock.MagicMock
-    ):
-        _, segment_span = self.generate_basic_spans()
-        segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
-
-        with Feature({"organizations:normalize_segment_names_in_span_enrichment": False}):
-            processed_spans = process_segment([segment_span])
-
-        assert (
-            processed_spans[0]["name"] == "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
-        )
-        mock_record_segment_name.assert_not_called()
-
-    def test_segment_name_normalization_checks_source(self):
-        _, segment_span = self.generate_basic_spans()
-        segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
-        segment_span["attributes"][ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE] = {
-            "type": "string",
-            "value": "route",
-        }
-
-        with self.feature("organizations:normalize_segment_names_in_span_enrichment"):
-            processed_spans = process_segment([segment_span])
-
-        assert (
-            processed_spans[0]["name"] == "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
-        )
-
-
-def test_verify_compatibility():
+def test_verify_compatibility() -> None:
     spans: list[dict[str, Any]] = [
         # regular span:
         {"data": {"foo": 1}},
@@ -405,6 +384,45 @@ class TestSkipEnrichmentKillswitch(TestCase):
 
         mock_enrich.assert_called_once()
 
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+        wraps=None,
+    )
+    def test_skip_enrichment_flag(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment is skipped when skip_enrichment=True is passed."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        processed_spans = process_segment([child_span, segment_span], skip_enrichment=True)
+
+        mock_enrich.assert_not_called()
+        assert len(processed_spans) == 2
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+    )
+    def test_no_skip_enrichment_when_flag_is_false(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment runs normally when skip_enrichment=False."""
+        mock_enrich.return_value = (None, [])
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        process_segment([child_span, segment_span], skip_enrichment=False)
+
+        mock_enrich.assert_called_once()
+
 
 @exclude_experimental_detectors
 class TestSegmentDropKillswitch(TestCase):
@@ -431,3 +449,155 @@ class TestSegmentDropKillswitch(TestCase):
         ):
             processed_spans = process_segment([child_span, segment_span])
             assert len(processed_spans) == 0
+
+
+@exclude_experimental_detectors
+class TestProcessSegmentCaching(TestCase):
+    def setUp(self):
+        self.project = self.create_project()
+        self.base_ts = 1707953018.972  # Default `end_timestamp` generated by `build_mock_span`
+        message_module.cache = None
+
+    def tearDown(self):
+        message_module.cache = None
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_first_segment_calls_create_models(self, mock_create, mock_bump):
+        segment = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([segment])
+
+        mock_create.assert_called_once()
+        mock_bump.assert_not_called()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_duplicate_segment_is_noop(self, mock_create, mock_bump):
+        segment = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([segment])
+        mock_create.reset_mock()
+
+        process_segment([segment])
+
+        mock_create.assert_not_called()
+        mock_bump.assert_not_called()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_segment_within_interval_is_noop(self, mock_create, mock_bump):
+        segment = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([segment])
+        mock_create.reset_mock()
+
+        later = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            end_timestamp=self.base_ts + 59,
+        )
+        process_segment([later])
+
+        mock_create.assert_not_called()
+        mock_bump.assert_not_called()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_segment_exceeding_interval_calls_bump(self, mock_create, mock_bump):
+        segment = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([segment])
+        mock_create.reset_mock()
+
+        later = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            end_timestamp=self.base_ts + 61,
+        )
+        process_segment([later])
+
+        mock_create.assert_not_called()
+        mock_bump.assert_called_once()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_bump_advances_cached_timestamp(self, mock_create, mock_bump):
+        segment = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([segment])
+        mock_create.reset_mock()
+
+        # Trigger a bump at T+61.
+        bump_ts = self.base_ts + 61
+        process_segment(
+            [build_mock_span(project_id=self.project.id, is_segment=True, end_timestamp=bump_ts)]
+        )
+        mock_bump.reset_mock()
+
+        # T+90 is only 29s after the bump — should be noop.
+        process_segment(
+            [
+                build_mock_span(
+                    project_id=self.project.id, is_segment=True, end_timestamp=self.base_ts + 90
+                )
+            ]
+        )
+        mock_create.assert_not_called()
+        mock_bump.assert_not_called()
+
+        # T+122 is 61s after the bump — should trigger another bump.
+        process_segment(
+            [
+                build_mock_span(
+                    project_id=self.project.id, is_segment=True, end_timestamp=bump_ts + 61
+                )
+            ]
+        )
+        mock_bump.assert_called_once()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_different_release_triggers_create_models(self, mock_create, mock_bump):
+        segment = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([segment])
+        mock_create.reset_mock()
+
+        segment = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            attributes={"sentry.release": {"value": "v2.0.0", "type": "string"}},
+        )
+        process_segment([segment])
+
+        mock_create.assert_called_once()
+        mock_bump.assert_not_called()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_different_environment_triggers_create_models(self, mock_create, mock_bump):
+        segment = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([segment])
+        mock_create.reset_mock()
+
+        segment = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            attributes={"sentry.environment": {"value": "production", "type": "string"}},
+        )
+        process_segment([segment])
+
+        mock_create.assert_called_once()
+        mock_bump.assert_not_called()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message._bump_release_last_seen")
+    @mock.patch("sentry.spans.consumers.process_segments.message._create_models")
+    def test_out_of_order_old_event_is_noop(self, mock_create, mock_bump):
+        later = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            end_timestamp=self.base_ts + 200,
+        )
+        process_segment([later])
+        mock_create.reset_mock()
+
+        earlier = build_mock_span(project_id=self.project.id, is_segment=True)
+        process_segment([earlier])
+
+        mock_create.assert_not_called()
+        mock_bump.assert_not_called()

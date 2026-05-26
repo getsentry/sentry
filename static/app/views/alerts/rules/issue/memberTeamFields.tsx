@@ -27,7 +27,7 @@ type Props = {
   teamValue: string | number;
 };
 
-class MemberTeamFields extends Component<Props> {
+export class MemberTeamFields extends Component<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {
     const {onChange, ruleData} = this.props;
     if (newValue === ruleData[attribute]) {
@@ -51,7 +51,7 @@ class MemberTeamFields extends Component<Props> {
     this.handleChange('targetType', optionRecord.value);
   };
 
-  handleChangeActorId = (optionRecord: OptionRecord & Record<string, any>) => {
+  handleChangeActorId = (optionRecord: Pick<OptionRecord, 'value'>) => {
     this.handleChange('targetIdentifier', optionRecord.value);
   };
 
@@ -108,6 +108,7 @@ class MemberTeamFields extends Component<Props> {
                 disabled={disabled}
                 key={teamSelected ? teamValue : memberValue}
                 organization={organization}
+                projectIds={[project.id]}
                 // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
                 value={`${ruleData.targetIdentifier}`}
                 styles={selectControlStyles}
@@ -131,5 +132,3 @@ const PanelItemGrid = styled(PanelItem)`
 const SelectWrapper = styled('div')`
   width: 200px;
 `;
-
-export default MemberTeamFields;

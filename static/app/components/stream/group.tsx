@@ -9,6 +9,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
@@ -38,7 +39,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -290,6 +291,7 @@ export function StreamGroup({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const area = useAnalyticsArea();
   const selectionEnabled =
     canSelect && !!issueSelectionSummary && !!issueSelectionActions;
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
@@ -334,6 +336,7 @@ export function StreamGroup({
                 assigned_suggestion_reason:
                   newAssignee.suggestedAssignee?.suggestedReason,
                 assigned_type: newAssignee.type,
+                area,
               });
             }
             onAssigneeChange?.(newAssignee);
@@ -341,7 +344,15 @@ export function StreamGroup({
         }
       );
     },
-    [assignMutate, groupId, onAssigneeChange, organization.slug, query, sharedAnalytics]
+    [
+      area,
+      assignMutate,
+      groupId,
+      onAssigneeChange,
+      organization.slug,
+      query,
+      sharedAnalytics,
+    ]
   );
 
   const clickHasBeenHandled = useCallback((evt: React.MouseEvent<HTMLDivElement>) => {
@@ -810,7 +821,7 @@ const Wrapper = styled(PanelItem)<{
     `};
 `;
 
-export const GroupSummary = styled('div')<{canSelect: boolean}>`
+const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
   margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
   margin-right: ${p => p.theme.space['3xl']};

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Query} from 'history';
 
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -16,7 +16,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -63,7 +63,9 @@ export function TrendChart({
   const api = useApi();
   const theme = useTheme();
 
-  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+  const metricsCardinality = useMetricsCardinalityContext();
+  const isCardinalityCheckLoading = metricsCardinality?.isLoading;
+  const outcome = metricsCardinality?.outcome;
   const shouldGetBreakpoint =
     withBreakpoint && !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
@@ -247,7 +249,7 @@ export function TrendChart({
               <Content
                 series={timeSeriesMetricsData}
                 errored={!trendsData && !isLoading}
-                loading={isLoading || isCardinalityCheckLoading}
+                loading={isLoading || !!isCardinalityCheckLoading}
                 reloading={isLoading}
                 timeFrame={metricsTimeFrame}
                 withBreakpoint
@@ -273,7 +275,7 @@ export function TrendChart({
               <Content
                 series={timeseriesData}
                 errored={errored}
-                loading={loading || isCardinalityCheckLoading}
+                loading={loading || !!isCardinalityCheckLoading}
                 reloading={reloading}
                 timeFrame={timeFrame}
                 {...contentCommonProps}

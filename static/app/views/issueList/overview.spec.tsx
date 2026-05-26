@@ -121,6 +121,11 @@ describe('IssueList', () => {
       body: [MemberFixture({projects: [project.slug]})],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      method: 'GET',
+      body: [MemberFixture()],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sent-first-event/',
       body: {sentFirstEvent: true},
     });
@@ -231,7 +236,9 @@ describe('IssueList', () => {
     it('caches the search results', async () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: [...new Array(25)].map((_, i) => GroupFixture({id: `${i}`, project})),
+        body: [...Array.from({length: 25})].map((_, i) =>
+          GroupFixture({id: `${i}`, project})
+        ),
         headers: {
           Link: DEFAULT_LINKS_HEADER,
           'X-Hits': '500',
@@ -804,7 +811,9 @@ describe('IssueList', () => {
   it('displays a count that represents the current page', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: [...new Array(25)].map((_, i) => GroupFixture({id: `${i}`, project})),
+      body: [...Array.from({length: 25})].map((_, i) =>
+        GroupFixture({id: `${i}`, project})
+      ),
       headers: {
         Link: DEFAULT_LINKS_HEADER,
         'X-Hits': '500',

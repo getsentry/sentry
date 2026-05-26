@@ -24,7 +24,7 @@ export function AddCredentialsButton({project, origin}: AddCredentialsButtonProp
       disabled={hasWriteAccess}
     >
       <Button
-        priority="primary"
+        variant="primary"
         size="sm"
         data-test-id="create-new-credentials"
         disabled={!hasWriteAccess}

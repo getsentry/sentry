@@ -1,15 +1,15 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {DeprecatedLineProps} from 'sentry/components/events/interfaces/frame/deprecatedLine';
-import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
+import {
+  DeprecatedLine,
+  type DeprecatedLineProps,
+} from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {
   getHiddenFrameIndices,
   getLastFrameIndex,
   isRepeatedFrame,
-  stackTracePlatformIcon,
 } from 'sentry/components/events/interfaces/utils';
 import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
@@ -18,7 +18,6 @@ import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace'
 import {defined} from 'sentry/utils';
 
 import {OmittedFrames} from './omittedFrames';
-import {StacktracePlatformIcon} from './platformIcon';
 
 type DefaultProps = {
   expandFirstFrame: boolean;
@@ -32,7 +31,6 @@ type Props = {
   platform: PlatformKey;
   className?: string;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
-  hideIcon?: boolean;
   hideSourceMapDebugger?: boolean;
   isHoverPreviewed?: boolean;
   lockAddress?: string;
@@ -53,7 +51,6 @@ export function Content({
   isHoverPreviewed = false,
   maxDepth,
   meta,
-  hideIcon,
   threadId,
   lockAddress,
   frameSourceMapDebuggerData,
@@ -202,15 +199,11 @@ export function Content({
     includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
   }`;
 
-  const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
-
   return (
     <Wrapper>
-      {hideIcon ? null : <StacktracePlatformIcon platform={platformIcon} />}
       <StackTraceContentPanel
         className={wrapperClassName}
         data-test-id="stack-trace-content"
-        hideIcon={hideIcon}
       >
         <StyledList data-test-id="frames">
           {newestFirst ? [...convertedFrames].reverse() : convertedFrames}
@@ -224,18 +217,9 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-export const StackTraceContentPanel = styled(Panel)<{hideIcon?: boolean}>`
+const StackTraceContentPanel = styled(Panel)`
   position: relative;
   overflow: hidden;
-
-  ${p =>
-    !p.hideIcon &&
-    css`
-      border-top-left-radius: 0;
-      @media (max-width: ${p.theme.breakpoints.md}) {
-        border-top-left-radius: ${p.theme.radius.md};
-      }
-    `}
 `;
 
 const StyledList = styled('ul')`

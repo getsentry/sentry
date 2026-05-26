@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -49,16 +50,18 @@ export function SpanIdCell({
   );
 
   return (
-    <Link
-      onClick={() =>
-        trackAnalytics('performance_views.sample_spans.span_clicked', {
-          organization,
-          source: moduleName,
-        })
-      }
-      to={url}
-    >
-      {spanId.slice(0, SPAN_ID_DISPLAY_LENGTH)}
-    </Link>
+    <Text ellipsis>
+      <Link
+        onClick={() =>
+          trackAnalytics('performance_views.sample_spans.span_clicked', {
+            organization,
+            source: moduleName,
+          })
+        }
+        to={url}
+      >
+        {spanId.slice(0, SPAN_ID_DISPLAY_LENGTH)}
+      </Link>
+    </Text>
   );
 }

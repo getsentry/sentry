@@ -45,7 +45,7 @@ export function AddIntegrationRow({onClick}: Props) {
           return isSelfHosted ? (
             <LinkButton
               href={`https://develop.sentry.dev/integrations/${provider.slug}`}
-              priority="primary"
+              variant="primary"
               external
             >
               Add {provider.metadata.noun}

@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import {isAppleDevice} from '@react-aria/utils';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
@@ -29,10 +30,10 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRouter} from 'sentry/utils/useRouter';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 /**
@@ -74,8 +75,9 @@ export function ProjectPageFilter({
   ...selectProps
 }: ProjectPageFilterProps) {
   // External context/state
-  const router = useRouter();
-  const routes = useRoutes();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const matches = useMatches();
   const organization = useOrganization();
   // Project data s
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -108,7 +110,7 @@ export function ProjectPageFilter({
   const dispatchRef = useRef<React.Dispatch<any> | undefined>(undefined);
 
   // We need to backpropagate the staged value to the options so that we can update the UI.
-  const [stagedValue, setStagedValue] = useState<number[]>(committedSelectionIntent.ids);
+  const [stagedValue, setStagedValue] = useState(committedSelectionIntent.ids);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
     const optionSelectionIntent = selectionToIntent({
@@ -167,7 +169,7 @@ export function ProjectPageFilter({
                 <Fragment>
                   <LinkButton
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconOpen variant="muted" />}
                     aria-label={t('Open Project Details')}
                     tooltipProps={{title: t('Open Project Details'), delay: 400}}
@@ -180,7 +182,7 @@ export function ProjectPageFilter({
                   />
                   <LinkButton
                     size="xs"
-                    priority="transparent"
+                    variant="transparent"
                     icon={<IconSettings variant="muted" />}
                     tooltipProps={{title: t('Open Project Settings'), delay: 400}}
                     aria-label={t('Open Project Settings')}
@@ -374,7 +376,7 @@ export function ProjectPageFilter({
     organization,
   ]);
 
-  const routePath = useMemo(() => getRouteStringFromRoutes(routes), [routes]);
+  const routePath = useMemo(() => getRouteStringFromRoutes({matches}), [matches]);
 
   // Selection staging and commit behavior
   const selectionLimitExceeded = useMemo(() => {
@@ -443,7 +445,8 @@ export function ProjectPageFilter({
         // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
         value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
       }),
-      router,
+      location,
+      navigate,
       {
         save: true,
         resetParams: resetParamsOnChange,
@@ -538,7 +541,7 @@ export function ProjectPageFilter({
         {selectionLimitExceeded && (
           <MenuComponents.Alert variant="warning">
             {tct(
-              `You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.`,
+              "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
               {
                 limit: SELECTION_COUNT_LIMIT,
                 count: stagedSelect.value.length,

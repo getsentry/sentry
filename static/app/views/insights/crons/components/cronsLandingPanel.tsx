@@ -5,12 +5,12 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {
   CopyMarkdownButton,
   CopySetupInstructionsGate,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconChevron} from 'sentry/icons';
@@ -64,8 +64,8 @@ export function CronsLandingPanel() {
     }
   };
 
-  const OnboardingPanelHook = HookOrDefault({
-    hookName: 'component:crons-onboarding-panel',
+  const OnboardingPanelHook = OverrideOrDefault({
+    overrideName: 'component:crons-onboarding-panel',
     defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
   });
 
@@ -95,7 +95,7 @@ export function CronsLandingPanel() {
         <BackButton
           icon={<IconChevron direction="left" />}
           onClick={() => setPlatformGuide(null)}
-          priority="transparent"
+          variant="transparent"
         >
           {t('Back to Platforms')}
         </BackButton>

@@ -4,7 +4,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
+from sentry.hybridcloud.rpc import CELL_NAME_LENGTH
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
 
 
@@ -20,7 +20,7 @@ class OrganizationSlugReservationReplica(Model):
     slug = models.SlugField(unique=True, db_index=True)
     organization_id = BoundedBigIntegerField(db_index=True)
     user_id = BoundedBigIntegerField(db_index=True, null=True)
-    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False, db_column="region_name")
+    cell_name = models.CharField(max_length=CELL_NAME_LENGTH, null=False, db_column="region_name")
     reservation_type = BoundedBigIntegerField(
         choices=OrganizationSlugReservationType.as_choices(),
         null=False,

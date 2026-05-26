@@ -523,6 +523,11 @@ urlpatterns += [
         name="sentry-api-docs-redirect",
     ),
     re_path(
+        r"^scraps/?$",
+        RedirectView.as_view(pattern_name="stories", permanent=False),
+        name="sentry-scraps-redirect",
+    ),
+    re_path(
         r"^api/$",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
         name="sentry-api-redirect",
@@ -551,11 +556,6 @@ urlpatterns += [
         r"^accept-transfer/$",
         react_page_view,
         name="sentry-accept-project-transfer",
-    ),
-    re_path(
-        r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        GenericReactPageView.as_view(auth_required=False),
-        name="sentry-accept-invite",
     ),
     re_path(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
@@ -1105,6 +1105,11 @@ urlpatterns += [
                     name="sentry-organization-project-event-redirect",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
+                    GroupTagExportView.as_view(),
+                    name="sentry-organization-group-tag-export",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",
                     react_page_view,
                     name="sentry-organization-api-keys",
@@ -1220,9 +1225,15 @@ urlpatterns += [
         name="sentry-user-avatar-url",
     ),
     re_path(
-        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        r"^organization-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
+    ),
+    # Deprecated because it lacks an organization slug
+    re_path(
+        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        OrganizationAvatarPhotoView.as_view(),
+        name="sentry-organization-avatar-url-deprecated",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",
@@ -1296,6 +1307,10 @@ urlpatterns += [
                 re_path(
                     r"^slack/",
                     include("sentry.integrations.slack.urls"),
+                ),
+                re_path(
+                    r"^slack-staging/",
+                    include("sentry.integrations.slack.staging.urls"),
                 ),
                 re_path(
                     r"^github/",

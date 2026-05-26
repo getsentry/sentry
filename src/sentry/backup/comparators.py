@@ -856,8 +856,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardfavoriteuser": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
-            "sentry.dashboardlastvisited": [
-                DateUpdatedComparator("last_visited", "date_added", "date_updated"),
+            "sentry.dashboardrevision": [
+                DateUpdatedComparator("date_added", "date_updated"),
             ],
             "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.dataforwarderproject": [DateUpdatedComparator("date_updated", "date_added")],
@@ -872,7 +872,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
-            "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
@@ -1000,6 +999,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "monitors.monitor": [UUID4Comparator("guid")],
             "replays.organizationmemberreplayaccess": [
                 DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "sentry.projectrepository": [
+                DateUpdatedComparator("date_updated", "date_added"),
             ],
             "seer.seerprojectrepository": [
                 DateUpdatedComparator("date_updated", "date_added"),

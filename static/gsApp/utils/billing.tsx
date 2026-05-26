@@ -1040,13 +1040,15 @@ export function productIsEnabled(
   if (!metricHistory) {
     return false;
   }
-  const isPaygOnly = metricHistory.reserved === 0;
-  return (
-    !isPaygOnly ||
+  const hasNonPaygAccess =
+    (metricHistory.prepaid ?? 0) !== 0 ||
+    !!metricHistory.softCapType ||
+    !!subscription.hasSoftCap;
+  const hasPaygBudget =
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
-      subscription.onDemandBudgets.sharedMaxBudget > 0)
-  );
+      subscription.onDemandBudgets.sharedMaxBudget > 0);
+  return hasNonPaygAccess || hasPaygBudget;
 }
 
 /**

@@ -96,7 +96,7 @@ function NotesField() {
     <AutomationBuilderInput
       name={`${actionId}.data.notes`}
       aria-label={t('Notes')}
-      placeholder={t('example notes')}
+      placeholder={t('e.g. @jane, @on-call-team')}
       value={action.data.notes ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({

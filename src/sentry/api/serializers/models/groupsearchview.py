@@ -1,6 +1,8 @@
 from collections.abc import MutableMapping
 from typing import Any, TypedDict
 
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
@@ -33,6 +35,7 @@ class GroupSearchViewSerializer(Serializer):
         super().__init__(*args, **kwargs)
 
     def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
+        prefetch_related_objects(item_list, "projects")
         attrs: MutableMapping[Any, Any] = {}
 
         last_visited_views = GroupSearchViewLastVisited.objects.filter(
@@ -68,7 +71,7 @@ class GroupSearchViewSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
-        projects = [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
+        projects = [-1] if obj.is_all_projects else [p.id for p in obj.projects.all()]
 
         return {
             "id": str(obj.id),

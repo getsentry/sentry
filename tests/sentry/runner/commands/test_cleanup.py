@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from io import BytesIO
+from typing import Any
 from unittest.mock import patch
 
 import click
@@ -9,9 +11,15 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.runner.commands.cleanup import (
     _cleanup,
+    generate_bulk_query_deletes,
+    models_which_use_expiry_deletions,
     prepare_deletes_by_project,
+    remove_cross_project_bulk_query_models,
+    remove_old_notification_messages,
     run_bulk_deletes_by_project,
     task_execution,
 )
@@ -20,6 +28,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 
 class SynchronousTaskQueue:
@@ -230,6 +239,19 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         assert project2.id in project_ids_seen
 
 
+class RemoveCrossProjectBulkQueryModelsTest(TestCase):
+    def test_removes_cross_project_models(self) -> None:
+        bulk_query_deletes = generate_bulk_query_deletes()
+        models_before = {m for m, _, _ in bulk_query_deletes}
+        assert GroupOpenPeriodActivity in models_before
+        assert WorkflowFireHistory in models_before
+
+        remove_cross_project_bulk_query_models(bulk_query_deletes)
+        models_after = {m for m, _, _ in bulk_query_deletes}
+        assert GroupOpenPeriodActivity not in models_after
+        assert WorkflowFireHistory not in models_after
+
+
 class UptimeResponseCaptureCleanupTest(TestCase):
     def test_cleanup_deletes_file(self) -> None:
         """Test that UptimeResponseCapture cleanup also deletes the associated File."""
@@ -307,3 +329,143 @@ class PartitionValidationTest(TestCase):
     def test_partition_zero_total(self) -> None:
         with pytest.raises(click.ClickException, match="--partition-total: must be greater than 0"):
             self._run_cleanup_with_partition(partition_bucket=0, partition_total=0)
+
+
+class ExpiryDeletionsCodePathTest(TestCase):
+    def test_event_attachment_in_expiry_path(self) -> None:
+        from sentry.models.eventattachment import EventAttachment
+
+        expiry_deletes = models_which_use_expiry_deletions()
+        models = [m for m, _, _ in expiry_deletes]
+        assert EventAttachment in models
+
+    def test_event_attachment_not_in_age_based_path(self) -> None:
+        from sentry.models.eventattachment import EventAttachment
+        from sentry.runner.commands.cleanup import models_which_use_deletions_code_path
+
+        age_deletes = models_which_use_deletions_code_path()
+        models = [m for m, _, _ in age_deletes]
+        assert EventAttachment not in models
+
+    def test_expiry_path_uses_date_expires_field(self) -> None:
+        expiry_deletes = models_which_use_expiry_deletions()
+        for _, dtfield, _ in expiry_deletes:
+            assert dtfield == "date_expires", f"Expected date_expires, got {dtfield}"
+
+    def test_expiry_cleanup_ignores_days_flag(self) -> None:
+        """Expiry-based models are deleted when expired regardless of --days."""
+        from django.utils import timezone
+
+        from sentry.models.eventattachment import EventAttachment
+        from sentry.runner.commands.cleanup import run_bulk_deletes_in_deletes
+
+        project = self.create_project()
+        event = self.store_event(data={}, project_id=project.id)
+
+        # Attachment that expired yesterday
+        expired = EventAttachment.objects.create(
+            project_id=project.id,
+            event_id=event.event_id,
+            name="expired.txt",
+            content_type="text/plain",
+            type="event.attachment",
+            date_expires=timezone.now() - timedelta(days=1),
+        )
+        # Attachment that expires in the future
+        fresh = EventAttachment.objects.create(
+            project_id=project.id,
+            event_id=event.event_id,
+            name="fresh.txt",
+            content_type="text/plain",
+            type="event.attachment",
+            date_expires=timezone.now() + timedelta(days=90),
+        )
+
+        queue = SynchronousTaskQueue()
+        run_bulk_deletes_in_deletes(
+            queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
+            models_which_use_expiry_deletions(),
+            lambda model: False,  # nothing filtered
+            0,  # days=0: delete anything with date_expires < now()
+            None,
+            None,
+            set(),
+        )
+
+        assert not EventAttachment.objects.filter(id=expired.id).exists()
+        assert EventAttachment.objects.filter(id=fresh.id).exists()
+
+
+class RemoveOldNotificationMessagesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.NOTIFICATION_MESSAGE_TTL_IN_DAYS = 90
+        self.NotificationMessage = NotificationMessage
+        self.action = self.create_action()
+        self.group = self.create_group()
+
+    def _create_message(self, days_old: int, **kwargs: Any) -> NotificationMessage:
+        from django.utils import timezone
+
+        kwargs.setdefault("action", self.action)
+        kwargs.setdefault("group", self.group)
+        message = self.NotificationMessage.objects.create(**kwargs)
+        self.NotificationMessage.objects.filter(id=message.id).update(
+            date_added=timezone.now() - timedelta(days=days_old)
+        )
+        message.refresh_from_db()
+        return message
+
+    def test_deletes_messages_older_than_retention(self) -> None:
+        self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 1)
+        self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 365)
+        recent = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS - 1)
+        brand_new = self._create_message(days_old=0)
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        remaining_ids = set(self.NotificationMessage.objects.values_list("id", flat=True))
+        assert remaining_ids == {recent.id, brand_new.id}
+
+    def test_no_op_when_nothing_to_delete(self) -> None:
+        recent = self._create_message(days_old=1)
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        assert self.NotificationMessage.objects.filter(id=recent.id).exists()
+
+    def test_cascades_self_reference(self) -> None:
+        parent = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 5)
+        child = self._create_message(
+            days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 5,
+            parent_notification_message=parent,
+        )
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        assert not self.NotificationMessage.objects.filter(id__in=[parent.id, child.id]).exists()
+
+    def test_keeps_old_parent_with_in_retention_child(self) -> None:
+        parent = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 5)
+        child = self._create_message(
+            days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS - 1,
+            parent_notification_message=parent,
+        )
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        remaining_ids = set(self.NotificationMessage.objects.values_list("id", flat=True))
+        assert remaining_ids == {parent.id, child.id}
+
+    def test_respects_is_filtered(self) -> None:
+        old = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 1)
+
+        remove_old_notification_messages(lambda model: True, set())
+
+        assert self.NotificationMessage.objects.filter(id=old.id).exists()
+
+    def test_records_models_attempted(self) -> None:
+        models_attempted: set[str] = set()
+        remove_old_notification_messages(lambda model: False, models_attempted)
+
+        assert "notificationmessage" in models_attempted

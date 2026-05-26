@@ -13,7 +13,7 @@ from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
+from sentry.hybridcloud.rpc import CELL_NAME_LENGTH
 
 
 class OrganizationSlugReservationType(IntEnum):
@@ -35,7 +35,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
     slug = models.SlugField(unique=True, null=False)
     organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="CASCADE")
     user_id = BoundedBigIntegerField(db_index=True, null=True)
-    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False, db_column="region_name")
+    cell_name = models.CharField(max_length=CELL_NAME_LENGTH, null=False, db_column="region_name")
     reservation_type = BoundedBigIntegerField(
         choices=OrganizationSlugReservationType.as_choices(),
         null=False,

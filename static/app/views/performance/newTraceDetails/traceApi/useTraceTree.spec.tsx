@@ -14,7 +14,7 @@ import {useTraceTree} from './useTraceTree';
 
 const getMockedTraceResults = (
   status: string,
-  data: TraceSplitResults<TraceTree.Transaction> | undefined = undefined
+  data?: TraceSplitResults<TraceTree.Transaction>
 ) =>
   ({
     status,

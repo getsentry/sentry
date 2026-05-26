@@ -112,7 +112,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">
-            {tct(`Your promotional plan with [partnerName] ends soon`, {
+            {tct('Your promotional plan with [partnerName] ends soon', {
               partnerName,
             })}
           </h2>
@@ -134,7 +134,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         </PartnerPlanHeading>
         <Flex justify="between">
           <PathContainer>
-            <SubHeading>{tct(`New Plan on [endDate]`, {endDate})}</SubHeading>
+            <SubHeading>{tct('New Plan on [endDate]', {endDate})}</SubHeading>
             <PathHeading>{t('Developer')}</PathHeading>
             <p>{t('For solo devs working on small projects')}</p>
             <Bullets>{leftColumnItems.map(DeveloperItem)}</Bullets>
@@ -142,7 +142,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
 
           <PathContainer>
             <SubHeading>{t('Recommended Plan')}</SubHeading>
-            <PathHeading>{tct(`[returnPlan]`, {returnPlan})}</PathHeading>
+            <PathHeading>{tct('[returnPlan]', {returnPlan})}</PathHeading>
             <p>{t('For multiple teams that operate at scale')}</p>
             <Bullets data-test-id="partner-plan-ending-bullet">
               {rightColumnItems.map(UpgradeItem)}
@@ -151,7 +151,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         </Flex>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
-            <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
+            <Button data-test-id="maybe-later" variant="secondary" onClick={closeModal}>
               {t('Remind Me Later')}
             </Button>
             {hasBillingAccess ? (
@@ -159,7 +159,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
                 size="md"
                 to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_modal`}
                 aria-label="Upgrade Now"
-                priority="primary"
+                variant="primary"
                 onClick={() =>
                   trackGetsentryAnalytics('partner_billing_migration.modal.clicked_cta', {
                     subscription,
@@ -175,7 +175,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               <Button
                 size="md"
                 aria-label="Request to Upgrade"
-                priority="primary"
+                variant="primary"
                 onClick={handleRequest}
               >
                 {t('Request to Upgrade')}

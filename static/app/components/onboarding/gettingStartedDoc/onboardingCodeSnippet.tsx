@@ -26,7 +26,7 @@ export function replaceTokensWithSpan(element: HTMLElement) {
   );
 
   return Array.from<HTMLSpanElement>(
-    element.querySelectorAll(`[data-token="___ORG_AUTH_TOKEN___"]`)
+    element.querySelectorAll('[data-token="___ORG_AUTH_TOKEN___"]')
   );
 }
 

@@ -4,7 +4,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 
@@ -17,8 +16,10 @@ describe('OwnershipRulesTable', () => {
   beforeEach(() => {
     ConfigStore.init();
     ConfigStore.set('user', user1);
-    MemberListStore.init();
-    MemberListStore.loadInitialData([user1, user2]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [user1, user2].map(user => ({user})),
+    });
   });
 
   it('should render empty state', async () => {
@@ -168,12 +169,40 @@ describe('OwnershipRulesTable', () => {
     expect(screen.getByRole('button', {name: 'Everyone'})).toBeInTheDocument();
   });
 
+  it('should render owners without an id', async () => {
+    const rules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: 'src/app/*', type: 'path'},
+        owners: [{type: 'user', name: 'unresolved-user@example.com'}],
+      },
+      {
+        matcher: {pattern: 'src/utils/*', type: 'path'},
+        owners: [
+          {type: 'user', id: user1.id, name: user1.name},
+          {type: 'team', name: 'backend'},
+        ],
+      },
+    ];
+
+    render(<OwnershipRulesTable projectRules={rules} codeowners={[]} />);
+
+    // Clear the "My Teams" filter to see all rules
+    await userEvent.click(screen.getByRole('button', {name: 'My Teams'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+
+    expect(screen.getByText('src/app/*')).toBeInTheDocument();
+    expect(screen.getByText('unresolved-user@example.com')).toBeInTheDocument();
+    expect(screen.getByText('src/utils/*')).toBeInTheDocument();
+  });
+
   it('should paginate results', async () => {
     const owners: Actor[] = [{type: 'user', id: user1.id, name: user1.name}];
-    const rules: ParsedOwnershipRule[] = new Array(100).fill(0).map((_, i) => ({
-      matcher: {pattern: `mytag${i}`, type: 'tag'},
-      owners,
-    }));
+    const rules: ParsedOwnershipRule[] = Array.from({length: 100})
+      .fill(0)
+      .map((_, i) => ({
+        matcher: {pattern: `mytag${i}`, type: 'tag'},
+        owners,
+      }));
 
     render(<OwnershipRulesTable projectRules={rules} codeowners={[]} />);
 
@@ -182,5 +211,91 @@ describe('OwnershipRulesTable', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Next page'}));
     expect(screen.getByText('mytag30')).toBeInTheDocument();
     expect(screen.queryByText('mytag1')).not.toBeInTheDocument();
+  });
+
+  it('should render codeowner exclusion rules with no owners', async () => {
+    const codeownerRules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: '/apps/github', type: 'codeowners'},
+        owners: [],
+      },
+      {
+        matcher: {pattern: 'src/utils/*', type: 'codeowners'},
+        owners: [{type: 'user', id: user1.id, name: user1.name}],
+      },
+    ];
+
+    render(
+      <OwnershipRulesTable
+        projectRules={[]}
+        codeowners={[CodeOwnerFixture({schema: {rules: codeownerRules, version: 1}})]}
+      />
+    );
+
+    // Clear the "My Teams" filter to see all rules
+    await userEvent.click(screen.getByRole('button', {name: 'My Teams'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+
+    expect(screen.getByText('/apps/github')).toBeInTheDocument();
+    expect(screen.getByText('No Owner')).toBeInTheDocument();
+    expect(screen.getByText('src/utils/*')).toBeInTheDocument();
+    expect(screen.getAllByText(user1.name).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should show exclusion rules even when My Teams filter is active', async () => {
+    const codeownerRules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: '/apps/github', type: 'codeowners'},
+        owners: [],
+      },
+    ];
+    const projectRules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: 'src/app/*', type: 'path'},
+        owners: [{type: 'user', id: user1.id, name: user1.name}],
+      },
+    ];
+
+    render(
+      <OwnershipRulesTable
+        projectRules={projectRules}
+        codeowners={[CodeOwnerFixture({schema: {rules: codeownerRules, version: 1}})]}
+      />
+    );
+
+    // Both rules should be visible with My Teams active (default)
+    expect(screen.getByText('/apps/github')).toBeInTheDocument();
+    expect(screen.getByText('No Owner')).toBeInTheDocument();
+    expect(await screen.findByText('src/app/*')).toBeInTheDocument();
+    expect(screen.getAllByText(user1.name).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should render multiple exclusion rules', async () => {
+    const codeownerRules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: '/apps/github', type: 'codeowners'},
+        owners: [],
+      },
+      {
+        matcher: {pattern: '/vendor/*', type: 'codeowners'},
+        owners: [],
+      },
+      {
+        matcher: {pattern: '/build/*', type: 'codeowners'},
+        owners: [],
+      },
+    ];
+
+    render(
+      <OwnershipRulesTable
+        projectRules={[]}
+        codeowners={[CodeOwnerFixture({schema: {rules: codeownerRules, version: 1}})]}
+      />
+    );
+
+    expect(await screen.findByText('/apps/github')).toBeInTheDocument();
+    expect(screen.getByText('/vendor/*')).toBeInTheDocument();
+    expect(screen.getByText('/build/*')).toBeInTheDocument();
+    expect(screen.getAllByText('No Owner')).toHaveLength(3);
   });
 });

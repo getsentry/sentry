@@ -2,20 +2,19 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, YAXisComponentOption} from 'echarts';
+import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import groupBy from 'lodash/groupBy';
-import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
+import unescape from 'lodash/unescape';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
+import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {
   useChartXRangeSelection,
@@ -32,8 +31,6 @@ import type {
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
-import {uniq} from 'sentry/utils/array/uniq';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -45,19 +42,21 @@ import type {
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
+import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {ReleaseSeries} from './releaseSeries';
-import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
+import {FALLBACK_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn} = Sentry.logger;
+const {warn} = Sentry.logger;
 
 export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChartWidgetProps> {
   /**
@@ -86,6 +85,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
+  /**
+   * Whether new options fully replace previous chart options.
+   */
+  notMerge?: boolean;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -123,10 +127,21 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showXAxis?: 'auto' | 'never';
+
+  /**
+   * Defines the Y axis visibility.
+   *
+   * - `auto`: Show the Y axis (or axes when multiple scales are used).
+   * - `never`: Hide the Y axis while keeping axes in the option so series
+   *   `yAxisIndex` references remain valid.
+   *
+   * Default: `auto`
+   */
+  showYAxis?: 'auto' | 'never';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
-  if (props.plottables.every(plottable => plottable.isEmpty)) {
+  if (!plottablesCanBeVisualized(props.plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
@@ -170,85 +185,18 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     ...props.chartXRangeSelection,
   });
 
-  const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
-
-  // Count up the field types of all the plottables
-  const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
-
-  // Sort the field types by how many plottables use each one
-  const axisTypes = Object.keys(fieldTypeCounts)
-    .toSorted(
-      // `dataTypes` is extracted from `dataTypeCounts`, so the counts are guaranteed to exist
-      (a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!
-    )
-    .filter(axisType => !!axisType); // `TimeSeries` allows for a `null` data type , though it's not likely
-
-  // Partition the types between the two axes
-  let leftYAxisDataTypes: string[] = [];
-  let rightYAxisDataTypes: string[] = [];
-
-  if (axisTypes.length === 1) {
-    // The simplest case, there is just one type. Assign it to the left axis
-    leftYAxisDataTypes = axisTypes;
-  } else if (axisTypes.length === 2) {
-    // Also a simple case. If there are only two types, split them evenly
-    leftYAxisDataTypes = axisTypes.slice(0, 1);
-    rightYAxisDataTypes = axisTypes.slice(1, 2);
-  } else if (axisTypes.length > 2 && axisTypes.at(0) === FALLBACK_TYPE) {
-    // There are multiple types, and the most popular one is the fallback. Don't
-    // bother creating a second fallback axis, plot everything on the left
-    leftYAxisDataTypes = axisTypes;
-  } else {
-    // There are multiple types. Assign the most popular type to the left axis,
-    // the rest to the right axis
-    leftYAxisDataTypes = axisTypes.slice(0, 1);
-    rightYAxisDataTypes = axisTypes.slice(1);
-  }
-
-  // The left Y axis might be responsible for 1 or more types. If there's just
-  // one, use that type. If it's responsible for more than 1 type, use the
-  // fallback type
-  const leftYAxisType =
-    leftYAxisDataTypes.length === 1 ? leftYAxisDataTypes.at(0)! : FALLBACK_TYPE;
-
-  // The right Y axis might be responsible for 0, 1, or more types. If there are
-  // none, don't set a type at all. If there is 1, use that type. If there are
-  // two or more, use fallback type
-  const rightYAxisType =
-    rightYAxisDataTypes.length === 0
-      ? undefined
-      : rightYAxisDataTypes.length === 1
-        ? rightYAxisDataTypes.at(0)
-        : FALLBACK_TYPE;
-
-  // Create a map of used units by plottable data type
-  const unitsByType = mapValues(plottablesByType, plottables =>
-    uniq(plottables.map(plottable => plottable.dataUnit))
-  );
-
-  // Narrow down to just one unit for each plottable data type
-  const unitForType = mapValues(unitsByType, (relevantUnits, type) => {
-    if (relevantUnits.length === 1) {
-      // All plottables of this type have the same unit
-      return relevantUnits[0]!;
-    }
-
-    if (relevantUnits.length === 0) {
-      // None of the plottables of this type supplied a unit
-      return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
-    }
-
-    // Plottables of this type has mismatched units. Return a fallback. It
-    // would also be acceptable to return the unit of the _first_ plottable,
-    // probably
-    return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
-  });
+  // Partition plottables across left/right Y axes by data type. Shared with
+  // the Slack dashboards-widget unfurl chart so unfurls render multi-aggregate
+  // widgets (e.g. `count` + `avg(duration)`) the same way the UI does.
+  const {leftYAxisType, rightYAxisType, unitForType, getYAxisPosition} =
+    assignPlottablesToYAxes(props.plottables);
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
   const leftYAxis = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
+        hideOverlap: true,
         formatter: (value: number) =>
           formatYAxisValue(value, leftYAxisType, unitForType[leftYAxisType] ?? undefined),
       },
@@ -262,6 +210,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     ? TimeSeriesWidgetYAxis(
         {
           axisLabel: {
+            hideOverlap: true,
             formatter: (value: number) =>
               formatYAxisValue(
                 value,
@@ -346,7 +295,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        const alias = aliases[seriesName];
+        // seriesName may be HTML-escaped, so we need to unescape it before looking up the alias
+        // to ensure the lookup works correctly for series with characters that are escaped.
+        const alias = aliases[unescape(seriesName)];
         if (alias) {
           // The alias value comes from `plottable.label` and is not
           // HTML-escaped. Escape it for safe insertion into raw HTML
@@ -381,7 +332,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
+        return escape(
+          formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
+        );
       },
       truncate: false,
       utc: utc ?? false,
@@ -390,10 +343,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
-  // find min/max timestamp of *all* timeSeries
+  // find min/max timestamp of *all* timeSeries. Drop null boundaries from
+  // non-time-bounded plottables (e.g. `Thresholds`) before sorting —
+  // `Array.prototype.sort`'s default lexicographic comparator stringifies
+  // `null` to `"null"`, which sorts after any timestamp and would end up as
+  // `latestTimeStamp`, leaving release bubbles with no `maxTime` to bucket.
   const allBoundaries = props.plottables
     .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
+    .filter(defined)
+    .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
 
@@ -416,6 +374,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   if (releaseBubbleYAxis) {
     yAxes.push(releaseBubbleYAxis);
   }
+
+  const showYAxisProp = props.showYAxis ?? 'auto';
+  const showYAxis = showYAxisProp === 'auto';
+  const chartYAxes = showYAxis ? yAxes : yAxes.map(() => HIDDEN_AXIS);
 
   const releaseSeries =
     props.releases && props.showReleaseAs !== 'none'
@@ -481,7 +443,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         splitNumber: 5,
         ...releaseBubbleXAxis,
       }
-    : HIDDEN_X_AXIS;
+    : HIDDEN_AXIS;
 
   // Hiding the X axis removes all chart elements under the X axis line. This
   // will cut off the bottom of the lowest Y axis label. To create space for
@@ -519,36 +481,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       seriesColorIndex += 1;
     }
 
-    let yAxisPosition: 'left' | 'right' = 'left';
-
-    if (leftYAxisDataTypes.includes(plottable.dataType)) {
-      // This plottable is assigned to the left axis
-      yAxisPosition = 'left';
-    } else if (rightYAxisDataTypes.includes(plottable.dataType)) {
-      // This plottable is assigned to the right axis
-      yAxisPosition = 'right';
-    } else {
-      // This plottable's type isn't assignned to either axis! Mysterious.
-      // There's no graceful way to handle this.
-      Sentry.withScope(scope => {
-        const message =
-          '`TimeSeriesWidgetVisualization` Could not assign Plottable to an axis';
-
-        scope.setFingerprint(['could-not-assign-plottable-to-an-axis']);
-        Sentry.captureException(new Error(message));
-
-        error(message, {
-          dataType: plottable.dataType,
-          leftAxisType: leftYAxisType,
-          rightAxisType: rightYAxisType,
-        });
-      });
-    }
-
     // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
     const seriesOfPlottable = plottable.toSeries({
       color,
-      yAxisPosition,
+      yAxisPosition: getYAxisPosition(plottable),
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
       theme,
       maxOffset: thresholdMaxOffset,
@@ -677,6 +613,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
+          notMerge={props.notMerge}
+          replaceMerge={['xAxis', 'yAxis']}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -710,7 +648,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             formatter: formatTooltip,
           }}
           xAxis={xAxis}
-          yAxes={yAxes}
+          yAxes={chartYAxes}
           {...chartZoomProps}
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
@@ -764,12 +702,13 @@ function getPlottableEventDataIndex(
 
 // Hide every part of the axis so ECharts will remove those elements and also
 // remove the visual space they would take up if they were there.
-const HIDDEN_X_AXIS = {
+const HIDDEN_AXIS = {
   show: false,
   splitLine: {show: false},
   axisLine: {show: false},
   axisTick: {show: false},
   axisLabel: {show: false},
-};
+  axisPointer: {label: {show: false}},
+} satisfies XAXisComponentOption | YAXisComponentOption;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

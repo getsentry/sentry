@@ -4,10 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from datetime import datetime
-from typing import Any
 
 from django.utils import timezone
-from pydantic import root_validator
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
@@ -25,19 +23,6 @@ class RpcOrganizationMapping(RpcOrganizationSummary):
     status: int | None = None
     flags: RpcOrganizationMappingFlags = Field(default_factory=RpcOrganizationMappingFlags)
 
-    # TODO(cells): remove once region_name -> cell_name rename is complete
-    @property
-    def region_name(self) -> str:
-        return self.cell_name
-
-    # TODO(cells): temporary code to accept `cell_name` and `region_name` before property rename is complete
-    @root_validator(pre=True)
-    @classmethod
-    def _accept_region_name(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if "region_name" in values and "cell_name" not in values:
-            values["cell_name"] = values.pop("region_name")
-        return values
-
 
 class CustomerId(RpcModel):
     value: str | None
@@ -48,19 +33,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     status: int = 0
     slug: str = ""
     cell_name: str = ""
-
-    # TODO(cells): remove once region_name -> cell_name rename is complete
-    @property
-    def region_name(self) -> str:
-        return self.cell_name
-
-    # TODO(cells): temporary code to accept `cell_name` and `region_name` before property rename is complete
-    @root_validator(pre=True)
-    @classmethod
-    def _accept_region_name(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if "region_name" in values and "cell_name" not in values:
-            values["cell_name"] = values.pop("region_name")
-        return values
+    date_created: datetime = Field(default_factory=timezone.now)
 
     # When not set, no change to customer id performed,
     # when set with a CustomerId, the customer_id set to either None or string
@@ -72,6 +45,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     allow_joinleave: bool = False
     disable_new_visibility_features: bool = False
     enhanced_privacy: bool = False
+    # Deprecated: the require_email_verification feature has been removed.
     require_email_verification: bool = False
     disable_member_project_creation: bool = False
     prevent_superuser_access: bool = False

@@ -4,7 +4,9 @@ import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/
 import {
   convertTokenTypeToValueType,
   escapeTagValue,
+  escapeTagValueForSearch,
   getArgsToken,
+  unescapeAsteriskSearchValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
@@ -185,6 +187,7 @@ type UpdateTokenValueAction = {
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_TOKEN_VALUE';
   value: string;
+  op?: TermOperator;
 };
 
 type MultiSelectFilterValueAction = {
@@ -280,6 +283,32 @@ function deleteQueryTokens(
   };
 }
 
+function termOperatorToInternal(op: TermOperator): {
+  internalOp: TermOperator;
+  negated: boolean;
+} {
+  const negated =
+    op === TermOperator.NOT_EQUAL ||
+    op === TermOperator.DOES_NOT_CONTAIN ||
+    op === TermOperator.DOES_NOT_START_WITH ||
+    op === TermOperator.DOES_NOT_END_WITH;
+
+  let internalOp: TermOperator;
+  if (op === TermOperator.DOES_NOT_CONTAIN) {
+    internalOp = TermOperator.CONTAINS;
+  } else if (op === TermOperator.DOES_NOT_START_WITH) {
+    internalOp = TermOperator.STARTS_WITH;
+  } else if (op === TermOperator.DOES_NOT_END_WITH) {
+    internalOp = TermOperator.ENDS_WITH;
+  } else if (op === TermOperator.NOT_EQUAL) {
+    internalOp = TermOperator.DEFAULT;
+  } else {
+    internalOp = op;
+  }
+
+  return {negated, internalOp};
+}
+
 export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
@@ -289,23 +318,10 @@ export function modifyFilterOperatorQuery(
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
+  const {negated, internalOp} = termOperatorToInternal(newOperator);
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.negated =
-    newOperator === TermOperator.NOT_EQUAL ||
-    newOperator === TermOperator.DOES_NOT_CONTAIN ||
-    newOperator === TermOperator.DOES_NOT_START_WITH ||
-    newOperator === TermOperator.DOES_NOT_END_WITH;
-
-  if (newOperator === TermOperator.DOES_NOT_CONTAIN) {
-    newToken.operator = TermOperator.CONTAINS;
-  } else if (newOperator === TermOperator.DOES_NOT_START_WITH) {
-    newToken.operator = TermOperator.STARTS_WITH;
-  } else if (newOperator === TermOperator.DOES_NOT_END_WITH) {
-    newToken.operator = TermOperator.ENDS_WITH;
-  } else {
-    newToken.operator =
-      newOperator === TermOperator.NOT_EQUAL ? TermOperator.DEFAULT : newOperator;
-  }
+  newToken.negated = negated;
+  newToken.operator = internalOp;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
@@ -605,7 +621,8 @@ function replaceTokensWithText(
 export function modifyFilterValue(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newValue: string
+  newValue: string,
+  newOp?: TermOperator
 ): string {
   if (isDateToken(token)) {
     return modifyFilterValueDate(query, token, newValue);
@@ -614,7 +631,18 @@ export function modifyFilterValue(
   // stop the user from entering multiple wildcards by themselves
   newValue = newValue.replace(/\*\*+/g, '*');
 
-  return replaceQueryToken(query, token.value, newValue);
+  // No operator change — just replace the value (existing behavior)
+  if (newOp === undefined) {
+    return replaceQueryToken(query, token.value, newValue);
+  }
+
+  // Operator change — replace the entire filter token atomically
+  const {negated, internalOp} = termOperatorToInternal(newOp);
+
+  const prefix = negated ? '!' : '';
+  const keyStr = stringifyToken(token.key);
+  const replacement = `${prefix}${keyStr}:${internalOp}${newValue}`;
+  return replaceQueryToken(query, token, replacement);
 }
 
 function updateFilterMultipleValues(
@@ -622,9 +650,22 @@ function updateFilterMultipleValues(
   token: TokenResult<Token.FILTER>,
   values: string[]
 ) {
-  const uniqNonEmptyValues = Array.from(
-    new Set(values.filter(value => value.length > 0))
-  );
+  // Deduplicate by canonical form while preserving the original text of the
+  // first occurrence (so the query string keeps the user's original formatting)
+  const seen = new Set<string>();
+  const uniqNonEmptyValues = values.filter(value => {
+    if (value.length === 0) {
+      return false;
+    }
+
+    const canonical = canonicalizeSearchValue(value);
+    if (seen.has(canonical)) {
+      return false;
+    }
+
+    seen.add(canonical);
+    return true;
+  });
   if (uniqNonEmptyValues.length === 0) {
     return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
@@ -637,25 +678,78 @@ function updateFilterMultipleValues(
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
 
-function multiSelectTokenValue(
+// Normalizes a filter value so that different surface representations of the
+// same logical value compare as equal. This is needed because values arrive
+// from two different sources that use different formats:
+//
+//   1. `action.value` (from the suggestion checkbox) is pre-escaped by
+//      `escapeTagValueForSearch`, which quotes values containing spaces,
+//      parens, or commas (e.g. `1.0.0+build 1` → `"1.0.0+build 1"`)
+//      and escapes wildcards (e.g. `test*` → `test\*`).
+//
+//   2. `item.value?.value` (from the parsed token) is the unquoted semantic
+//      value produced by the parser (e.g. `"1.0.0+build 1"` → `1.0.0+build 1`).
+//
+// To compare them we strip quotes, unescape wildcards, then re-escape through
+// `escapeTagValueForSearch` so both sides end up in the same canonical form.
+function canonicalizeSearchValue(value: string) {
+  const unquotedValue =
+    value.startsWith('"') && value.endsWith('"')
+      ? value.slice(1, -1).replace(/\\"/g, '"')
+      : value;
+
+  return escapeTagValueForSearch(unescapeAsteriskSearchValue(unquotedValue));
+}
+
+export function multiSelectTokenValue(
   state: QueryBuilderState,
   action: MultiSelectFilterValueAction
 ) {
   const tokenValue = action.token.value;
 
+  // Suggestions already pass escaped search syntax, while parsed tokens expose
+  // semantic values. Canonicalize before comparing so toggling treats both
+  // representations as the same value.
+  const normalizedActionValue = canonicalizeSearchValue(action.value);
+
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      const values = tokenValue.items.map(item => item.value?.text ?? '');
-      const containsValue = values.includes(action.value);
-      const newValues = containsValue
-        ? values.filter(value => value !== action.value)
-        : [...values, action.value];
+      // Compare against canonical values, but keep each token's raw text for
+      // reconstruction so quotes and escaping already in the query are preserved.
+      const values = tokenValue.items.map(item => ({
+        canonicalValue: canonicalizeSearchValue(item.value?.value ?? ''),
+        text: item.value?.text ?? '',
+      }));
+
+      const containsValue = values.some(
+        ({canonicalValue}) => canonicalValue === normalizedActionValue
+      );
+
+      if (!containsValue) {
+        return updateFilterMultipleValues(state, action.token, [
+          ...values.map(({text}) => text),
+          action.value,
+        ]);
+      }
+
+      // The selected value was already present, so this is a deselect. Filter it
+      // by canonical value instead of raw text because the same value may appear
+      // quoted/escaped differently depending on whether it came from the parser
+      // or the suggestion list.
+      const newValues: string[] = [];
+      for (const value of values) {
+        if (value.canonicalValue !== normalizedActionValue) {
+          newValues.push(value.text);
+        }
+      }
 
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
-      if (tokenValue.text === action.value) {
+      // Single values use the same toggle semantics as lists: if the canonical
+      // value is already selected, clear it; otherwise expand it into a list.
+      if (canonicalizeSearchValue(tokenValue.value ?? '') === normalizedActionValue) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
       const newValue = tokenValue.value
@@ -751,7 +845,7 @@ export function replaceFreeTextTokens(
     replaceRawSearchKeys.length === 0 ||
     (replaceRawSearchKeys.length !== 0 && replaceRawSearchKeys[0] === '')
   ) {
-    return undefined;
+    return;
   }
 
   const currentQueryTokens = parseQuery(currentQuery) ?? [];
@@ -760,7 +854,7 @@ export function replaceFreeTextTokens(
   );
 
   if (!foundFreeTextToken) {
-    return undefined;
+    return;
   }
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
@@ -1049,7 +1143,7 @@ export function useQueryBuilderState({
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
-            query: modifyFilterValue(state.query, action.token, action.value),
+            query: modifyFilterValue(state.query, action.token, action.value, action.op),
           };
         case 'UPDATE_LOGIC_OPERATOR':
           return updateLogicOperator(state, action);

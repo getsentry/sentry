@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.integrations.github.repository import GitHubRepositoryProvider
@@ -29,7 +30,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         return repo_data
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: dict[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         integration = integration_service.get_integration(
             integration_id=data["integration_id"], provider=self.repo_provider

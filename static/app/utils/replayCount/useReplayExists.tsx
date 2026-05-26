@@ -10,7 +10,9 @@ export function useReplayExists({start, end}: {end?: string; start?: string} = {
   const organization = useOrganization();
   const {hasOne, hasMany} = useReplayCount({
     bufferLimit: 100,
-    dataSource: 'discover',
+    // The dataSource doesn't matter here - queries on `replay_id` skip the
+    // given dataSource and go straight to `replays`.
+    dataSource: 'events',
     fieldName: 'replay_id',
     organization,
     statsPeriod: '90d',

@@ -6,7 +6,7 @@ from sentry.codecov.client import CodecovApiClient, ConfigurationError, GitProvi
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 
 logger = logging.getLogger(__name__)
@@ -17,11 +17,11 @@ account_unlink_endpoint = "/sentry/internal/account/unlink/"
 @instrumented_task(
     name="sentry.integrations.github.tasks.codecov_account_unlink",
     namespace=integrations_control_tasks,
-    retry=Retry(times=3),
+    retry=Retry(times=3, on=(Exception,), ignore=(ConfigurationError,)),
     processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(ConfigurationError,),
 )
-@retry(exclude=(ConfigurationError,))
 def codecov_account_unlink(
     integration_id: int,
     organization_ids: list[int],

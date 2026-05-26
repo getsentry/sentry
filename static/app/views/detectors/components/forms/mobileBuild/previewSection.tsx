@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
+import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {
   PREPROD_DETECTOR_FORM_FIELDS,
   usePreprodDetectorFormField,
@@ -10,7 +11,7 @@ import {
   guessPlatformForProject,
 } from 'sentry/views/settings/project/preprod/types';
 
-export function MobileBuildPreviewSection() {
+export function MobileBuildPreviewSection({step}: {step: number}) {
   const measurement =
     usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.measurement) ??
     'install_size';
@@ -38,10 +39,12 @@ export function MobileBuildPreviewSection() {
   const thresholdDisplay = highThreshold ? `${threshold} ${thresholdUnit}` : '\u2026';
 
   return (
-    <DetectorIssuePreview
-      issueTitle={t('%s threshold exceeded', metricLabel)}
-      project={project}
-      subtitle={t('%s > %s Threshold', actualDisplay, thresholdDisplay)}
-    />
+    <IssuePreviewSection step={step}>
+      <DetectorIssuePreview
+        issueTitle={t('%s threshold exceeded', metricLabel)}
+        project={project}
+        subtitle={t('%s > %s Threshold', actualDisplay, thresholdDisplay)}
+      />
+    </IssuePreviewSection>
   );
 }

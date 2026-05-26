@@ -34,9 +34,9 @@ export function useFindAdjacentTrace({
     hasAdjacentTraceLink,
     adjacentTraceSampled,
   } = useMemo(() => {
-    let _projectId: number | undefined = undefined;
+    let _projectId: number | undefined;
     let _currentTraceId: string | undefined;
-    let _adjacentTraceAttribute: TraceItemResponseAttribute | undefined = undefined;
+    let _adjacentTraceAttribute: TraceItemResponseAttribute | undefined;
 
     for (const a of attributes ?? []) {
       if (a.name === 'project_id' && a.type === 'int') {
@@ -60,7 +60,9 @@ export function useFindAdjacentTrace({
     // So all in all, this should be safe and we don't have to do further validation on the
     // attribute content.
     const [_adjacentTraceId, _adjacentTraceSpanId, _adjacentTraceSampledFlag] =
-      _hasAdjacentTraceLink ? _adjacentTraceAttribute?.value.split('-') || [] : [];
+      _hasAdjacentTraceLink
+        ? (_adjacentTraceAttribute?.value as string).split('-') || []
+        : [];
 
     return {
       projectId: _projectId,

@@ -4,19 +4,28 @@ import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {NotFound} from 'sentry/components/errors/notFound';
-import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import {Footer} from 'sentry/components/footer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
+import {SharedEventContent} from './sharedEventContent';
 import {SharedGroupHeader} from './sharedGroupHeader';
+
+// TODO(shared-issues): Give this endpoint its own response type instead of
+// treating the shared issue payload as a full Group.
+type SharedGroupDetailsResponse = Group & {
+  project: Group['project'] & {
+    organization: SharedViewOrganization;
+  };
+};
 
 function SharedGroupDetails() {
   const {shareId, orgId} = useParams<{orgId: string | undefined; shareId: string}>();
@@ -43,9 +52,9 @@ function SharedGroupDetails() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<Group>(
+  } = useApiQuery<SharedGroupDetailsResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/shared/issues/$shareId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/shared/issues/$shareId/', {
         path: {organizationIdOrSlug: orgSlug!, shareId},
       }),
     ],
@@ -67,13 +76,14 @@ function SharedGroupDetails() {
     return <NotFound />;
   }
 
-  // project.organization is not a real organization, it's just the slug and name
-  // Add the features array to avoid errors when using OrganizationContext
-  const org = {...group.project.organization, features: []};
+  const org: SharedViewOrganization = {
+    ...group.project.organization,
+    features: [],
+  };
 
   return (
     <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
-      <OrganizationContext value={org}>
+      <OrganizationContext value={org as Organization}>
         <div className="app">
           <div className="pattern-bg" />
           <div className="container">
@@ -94,12 +104,11 @@ function SharedGroupDetails() {
                   padding="3xl"
                   className="group-overview event-details-container"
                 >
-                  <BorderlessEventEntries
+                  <SharedEventContent
                     organization={org}
                     group={group}
                     event={group.latestEvent}
                     project={group.project}
-                    isShare
                   />
                 </Container>
                 <Footer />

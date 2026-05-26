@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -97,7 +97,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                     <LinkedIssueName>{linkedIssue.title}</LinkedIssueName>
                     <HorizontalSeparator />
                     <UnlinkButton
-                      priority="link"
+                      variant="link"
                       size="zero"
                       onClick={linkedIssue.onUnlink}
                     >
@@ -126,7 +126,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
             const sharedButtonProps: ButtonProps = {
               size: 'zero',
               icon: integration.displayIcon,
-              priority: 'transparent',
+              variant: 'transparent',
               children: <IssueActionName>{integration.displayName}</IssueActionName>,
             };
 

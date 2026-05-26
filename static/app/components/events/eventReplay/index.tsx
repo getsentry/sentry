@@ -1,6 +1,6 @@
 import {lazy} from 'react';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import type {Event} from 'sentry/types/event';

@@ -37,7 +37,7 @@ export function usePerformanceUsageStats({
     : '';
   const end = traceNode ? new Date(traceEndDate.getTime() + ONE_HOUR).toISOString() : '';
 
-  const pathname = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+  const pathname = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 

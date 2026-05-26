@@ -12,6 +12,7 @@ import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
+  Table,
   TableBody,
   TableBodyCell,
   TableHeadCell,
@@ -22,7 +23,9 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  highlighted?: boolean;
   isClickable?: boolean;
+  pinned?: boolean;
 }
 
 const StyledPanel = styled(Panel)`
@@ -30,6 +33,9 @@ const StyledPanel = styled(Panel)`
 `;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
+  margin-right: -1rem;
+  padding-right: 1rem;
+
   &:not(thead > &) {
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
@@ -56,14 +62,30 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     height: 24px;
   }
 
-  &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
-    color: ${p => p.theme.tokens.content.danger};
+  ${p =>
+    p.highlighted &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      color: ${p.theme.tokens.content.danger};
 
-    &:hover {
-      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+      &:hover {
+        background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      }
     }
-  }
+  `}
+
+  ${p =>
+    p.pinned &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
+
+      &:hover {
+        background-color: ${p.theme.tokens.interactive.transparent.accent.selected.background.active};
+      }
+    }
+  `}
 
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
@@ -121,8 +143,22 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 2px ${p => p.theme.space.xl};
+    padding: 0 ${p => p.theme.space.md};
   }
+`;
+
+function ContentsTable(props: React.ComponentProps<typeof Table>) {
+  return <Table contentsBody {...props} />;
+}
+
+export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  overflow-x: hidden;
+  min-width: ${p => p.minWidth};
 `;
 
 export const LogTableBody = styled(TableBody)<{
@@ -138,6 +174,12 @@ export const LogTableBody = styled(TableBody)<{
     padding-top: ${p.theme.space.md};
     padding-bottom: ${p.theme.space.md};
     `}
+  align-content: start;
+  overflow-x: hidden;
+  overflow-anchor: none;
+
+  /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
+  min-height: 1px;
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
@@ -157,15 +199,12 @@ export const LogDetailTableActionsCell = styled(TableBodyCell)`
     padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   }
   &:last-child {
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
+    padding: ${p => p.theme.space.xs} 0;
   }
 `;
 export const LogDetailTableActionsButtonBar = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
-  & button {
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-  }
 `;
 
 export const DetailsWrapper = styled('tr')`
@@ -188,7 +227,7 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
-export function LogFirstCellContent(props: FlexProps<'div'>) {
+export function LogFirstCellContent(props: FlexProps) {
   return <Flex align="center" {...props} />;
 }
 
@@ -259,6 +298,26 @@ export const LogsFilteredHelperText = styled('span')`
   background-color: ${p => p.theme.colors.gray200};
 `;
 
+export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
+  position: absolute;
+  right: calc(-1 * var(--logsPinButtonArea));
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  ${LogTableRow}:focus-within &,
+  ${LogTableRow}:hover & {
+    background: none;
+    opacity: 1;
+  }
+
+  &:focus-within svg,
+  &:hover svg {
+    fill: ${p => p.theme.tokens.content.accent};
+    transition: fill ${p => p.theme.motion.smooth.fast};
+  }
+`;
+
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
   white-space: ${p => (p.wrapText ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
@@ -286,27 +345,39 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${p => p.theme.space.md};
 `;
 
-export function TableActionsContainer(props: FlexProps<'div'>) {
+export function TableActionsContainer(props: FlexProps) {
   return <Flex justify="end" align="center" gap="md" {...props} />;
 }
 
-export const LogsItemContainer = styled('div')`
-  flex: 1 1 auto;
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-`;
+export function LogsItemContainer(props: FlexProps) {
+  return (
+    <Flex
+      direction="column"
+      minHeight="0"
+      overflow="hidden"
+      position="relative"
+      {...props}
+    />
+  );
+}
 
-export const LogsTableActionsContainer = styled(LogsItemContainer)`
-  margin-bottom: 0;
-  display: flex;
-  justify-content: space-between;
-`;
+export function LogsTableActionsContainer(props: FlexProps) {
+  return (
+    <Flex
+      direction="row"
+      flex="0 0 auto"
+      overflow="visible"
+      justify="between"
+      {...props}
+    />
+  );
+}
 
-export const LogsGraphContainer = styled(LogsItemContainer)`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
+export function LogsGraphContainer(props: FlexProps) {
+  return (
+    <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
+  );
+}
 
 export const AutoRefreshLabel = styled('label')`
   display: flex;
@@ -417,15 +488,15 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
-  tableLeft?: number;
+  position?: 'absolute' | 'fixed';
   tableWidth?: number;
 }>`
-  position: ${p => (p.inReplay ? 'absolute' : 'fixed')};
+  --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  position: ${p => p.position};
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  ${p => (p.inReplay ? 'top: 90px;' : 'top: 20px;')}
-  ${p => (p.inReplay ? '' : p.tableLeft ? `left: ${p.tableLeft}px;` : 'left: 0;')}
-  width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
+  width: var(--floatingWidth);
   display: flex;
   justify-content: center;
 

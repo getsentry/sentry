@@ -1,20 +1,19 @@
 import styled from '@emotion/styled';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -27,15 +26,14 @@ const replaySchema = z.object({
 
 type ReplaySchema = z.infer<typeof replaySchema>;
 
-const ReplaySettingsAlert = HookOrDefault({
-  hookName: 'component:replay-settings-alert',
+const ReplaySettingsAlert = OverrideOrDefault({
+  overrideName: 'component:replay-settings-alert',
   defaultComponent: null,
 });
 
 export default function ProjectReplaySettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
   const hasAccess = hasWriteAccess || hasAdminAccess;
@@ -52,28 +50,20 @@ export default function ProjectReplaySettings() {
     onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
   };
 
-  const {getParamValue, setParamValue} = useUrlParams(
+  const [tab, setTab] = useQueryState(
     'replaySettingsTab',
-    'replay-issues'
+    parseAsStringLiteral(['replay-issues', 'bulk-delete'] as const).withDefault(
+      'replay-issues'
+    )
   );
 
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/replays/">
       <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
-        <SettingsPageHeader
-          title={t('Replays')}
-          action={
-            <LinkButton
-              external
-              href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
-            >
-              {t('Read the Docs')}
-            </LinkButton>
-          }
-        />
+        <SettingsPageHeader title={t('Replays')} />
         <TabsWithGap
-          defaultValue={getParamValue()}
-          onChange={value => setParamValue(String(value))}
+          value={tab}
+          onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
         >
           <TabList>
             <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>

@@ -1,5 +1,4 @@
 import type {ComponentProps} from 'react';
-import {useCallback} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,10 +17,7 @@ export function GroupPreviewHovercard({
   ...props
 }: GroupPreviewHovercardProps) {
   const theme = useTheme();
-  const handleStackTracePreviewClick = useCallback(
-    (e: React.MouseEvent) => e.stopPropagation(),
-    []
-  );
+  const handleStackTracePreviewClick = (e: React.MouseEvent) => e.stopPropagation();
 
   // No need to preview on hover for small devices
   const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.lg})`);

@@ -2,14 +2,12 @@ import React, {useEffect} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {Organization} from 'sentry/types/organization';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
-  organization: Organization;
   Component?: typeof ExternalLink;
   address?: string;
   children?: React.ReactNode;
@@ -18,8 +16,7 @@ type Props = {
   subject?: string;
 };
 
-function ZendeskLink({
-  organization,
+export function ZendeskLink({
   source,
   Component,
   subject,
@@ -27,6 +24,7 @@ function ZendeskLink({
   children,
   ...props
 }: Props) {
+  const organization = useOrganization();
   useEffect(() => {
     if (organization) {
       trackGetsentryAnalytics('zendesk_link.viewed', {organization, source});
@@ -55,5 +53,3 @@ function ZendeskLink({
     </LinkComponent>
   );
 }
-
-export default withOrganization(ZendeskLink);

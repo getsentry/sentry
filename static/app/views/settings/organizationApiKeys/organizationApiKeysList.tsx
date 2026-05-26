@@ -44,22 +44,23 @@ export function OrganizationApiKeysList({
 }: Props) {
   const hasKeys = Boolean(keys?.length);
 
-  const action = (
-    <Button
-      priority="primary"
-      size="sm"
-      icon={<IconAdd />}
-      busy={busy}
-      disabled={busy}
-      onClick={onAddApiKey}
-    >
-      {t('New API Key')}
-    </Button>
-  );
-
   return (
     <div>
-      <SettingsPageHeader title={t('API Keys')} action={action} />
+      <SettingsPageHeader
+        title={t('API Keys')}
+        action={
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<IconAdd />}
+            busy={busy}
+            disabled={busy}
+            onClick={onAddApiKey}
+          >
+            {t('New API Key')}
+          </Button>
+        }
+      />
 
       <TextBlock>
         {tct(
@@ -104,7 +105,7 @@ export function OrganizationApiKeysList({
                   onConfirm={() => onRemove(id)}
                   message={t('Are you sure you want to remove this API key?')}
                 >
-                  <Button priority="danger" size="sm" icon={<IconDelete />}>
+                  <Button variant="danger" size="sm" icon={<IconDelete />}>
                     {t('Remove API Key')}
                   </Button>
                 </Confirm>

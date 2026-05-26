@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Kbd} from '@sentry/scraps/hotkey';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {IconLink} from 'sentry/icons';
@@ -14,7 +15,7 @@ export default Storybook.story('CopyToClipboardButton', story => {
       <p>
         By default the button will stick the{' '}
         <Storybook.JSXProperty name="text" value={String} /> value onto your clipboard; as
-        if you typed <kbd>CTRL+C</kbd> or <kbd>CMD+C</kbd>. It'll show toast messages, and
+        if you typed <Kbd>CTRL+C</Kbd> or <Kbd>CMD+C</Kbd>. It'll show toast messages, and
         includes <Storybook.JSXProperty name="onCopy" value={Function} /> &
         <Storybook.JSXProperty name="onError" value={Function} /> callbacks.
       </p>

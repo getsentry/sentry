@@ -83,7 +83,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
               <LinkButton
                 href={PRODUCT_DOC_URL}
                 external
-                priority="primary"
+                variant="primary"
                 size="md"
                 onClick={() => onDocsClick?.('product')}
               >

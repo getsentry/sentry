@@ -1,5 +1,6 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import invariant from 'invariant';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -13,31 +14,29 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {useReplayBulkDeleteAuditLogQueryKey} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import {type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {
-  useDeleteReplays,
   type ReplayBulkDeletePayload,
+  useDeleteReplays,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
-  queryOptions:
-    | QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
-    | undefined;
+  queryOptions: QueryKeyEndpointOptions | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
@@ -64,9 +63,9 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
           ? projects[0]?.id
           : undefined,
   });
-  const hasOneProjectSelected = Boolean(project);
 
-  const oneProjectEligible = hasOneProjectSelected || hasOnlyOneProject;
+  // Only allow bulk delete if we have successfully resolved a project
+  const oneProjectEligible = Boolean(project);
 
   const {bulkDelete, hasAccess, queryOptionsToPayload} = useDeleteReplays({
     projectSlug: project?.slug ?? '',
@@ -75,13 +74,14 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
 
   const settingsPath = `/settings/${organization.slug}/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 
-  const queryKey = useReplayBulkDeleteAuditLogQueryKey({
-    projectSlug: project?.slug ?? '',
-    query: {referrer: analyticsArea},
-  });
-  const refetchAuditLog = useCallback(() => {
-    queryClient.invalidateQueries({queryKey});
-  }, [queryClient, queryKey]);
+  const refetchAuditLog = () => {
+    queryClient.invalidateQueries({
+      queryKey: replayBulkDeleteAuditLogApiOptions(organization, {
+        projectSlug: project?.slug ?? '',
+        query: {referrer: analyticsArea},
+      }).queryKey,
+    });
+  };
 
   return (
     <Tooltip
@@ -90,7 +90,9 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
     >
       <Tooltip
         disabled={!oneProjectEligible || hasAccess}
-        title={t('You must have project:write or project:admin access to delete replays')}
+        title={t(
+          'You must have project:write, project:admin, or org:admin access to delete replays'
+        )}
       >
         <Button
           disabled={!oneProjectEligible || !hasAccess}
@@ -114,7 +116,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
                   </ErrorBoundary>
                 ),
               renderConfirmButton: ({defaultOnClick}) => (
-                <Button onClick={defaultOnClick} priority="danger">
+                <Button onClick={defaultOnClick} variant="danger">
                   {t('Delete')}
                 </Button>
               ),
@@ -194,7 +196,7 @@ function ReplayPreviewTable({
         <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {selectedIds.map(id => {
-        const replay = replays.find(r => r.id === id) as ReplayListRecord;
+        const replay = replays.find(r => r.id === id)!;
         if (replay.is_archived) {
           return null;
         }

@@ -77,7 +77,7 @@ class BitbucketSearchEndpointTest(APITestCase):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/meredithanya",
-            json={"values": [{"full_name": "meredithanya/apples"}]},
+            json={"values": [{"full_name": "meredithanya/apples", "uuid": "{abc-001}"}]},
         )
         resp = self.client.get(self.path, data={"field": "repo", "query": "apple"})
 

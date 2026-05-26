@@ -5,15 +5,19 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {Highlights} from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
@@ -39,15 +43,29 @@ export interface TraceMetadataHeaderProps {
   project?: Project;
 }
 
+const traceViewFeedbackOptions = {
+  messagePlaceholder: t('How can we make the trace view better for you?'),
+  tags: {
+    ['feedback.source']: 'trace-view',
+    ['feedback.owner']: 'performance',
+  },
+};
+
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
+  const logsEnabled = isLogsEnabled(props.organization);
+  const metricsEnabled = canUseMetricsUI(props.organization);
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {hasLogs, hasMetrics} = useTraceContextSections({
     tree: props.tree,
     logs: props.logs,
     metrics: props.metrics,
+    meta: props.metaResults.data,
+    logsEnabled,
+    metricsEnabled,
   });
 
   const isLoading =
@@ -78,27 +96,45 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <TraceHeaderComponents.HeaderRow>
-          <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs({
-              organization: props.organization,
-              location,
-              moduleURLBuilder,
-              traceSlug: props.traceSlug,
-              project,
-              view,
-            })}
-          />
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton
-              size="xs"
-              feedbackOptions={{
-                messagePlaceholder: t('How can we make the trace view better for you?'),
-                tags: {
-                  ['feedback.source']: 'trace-view',
-                  ['feedback.owner']: 'performance',
-                },
-              }}
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={getTraceViewBreadcrumbs({
+                  organization: props.organization,
+                  location,
+                  moduleURLBuilder,
+                  traceSlug: props.traceSlug,
+                  project,
+                  view,
+                })}
+              />
+            </TopBar.Slot>
+          ) : (
+            <Breadcrumbs
+              crumbs={getTraceViewBreadcrumbs({
+                organization: props.organization,
+                location,
+                moduleURLBuilder,
+                traceSlug: props.traceSlug,
+                project,
+                view,
+              })}
             />
+          )}
+          <Grid flow="column" align="center" gap="md">
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton
+                  feedbackOptions={traceViewFeedbackOptions}
+                  aria-label={t('Give Feedback')}
+                  tooltipProps={{title: t('Give Feedback')}}
+                >
+                  {null}
+                </FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton size="xs" feedbackOptions={traceViewFeedbackOptions} />
+            )}
           </Grid>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
@@ -110,6 +146,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             representativeEvent={rep}
             logs={props.logs}
             metrics={props.metrics}
+            logsEnabled={logsEnabled}
+            metricsEnabled={metricsEnabled}
           />
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.StyledBreak />

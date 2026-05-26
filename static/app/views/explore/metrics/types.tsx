@@ -65,6 +65,19 @@ export type TraceMetricFieldKey = TraceMetricCustomFieldKey | TraceMetricKnownFi
 
 export type TraceMetricTypeValue = 'counter' | 'gauge' | 'distribution';
 
+export function isTraceMetricTypeValue(
+  metricType: string
+): metricType is TraceMetricTypeValue {
+  switch (metricType) {
+    case 'counter':
+    case 'distribution':
+    case 'gauge':
+      return true;
+    default:
+      return false;
+  }
+}
+
 type TraceMetricsKnownFieldResponseMap = Record<
   TraceMetricKnownFieldKey,
   string | number
@@ -98,15 +111,16 @@ export interface TraceMetricEventsResult {
 }
 
 /**
- * These are the columns that are virtual and will be displayed in the table, but may not be backed by a table row.
- * eg. telemetry data columns (logs, spans, errors) are backed by a separate query.
+ * These are UI-only sample table columns that are not raw trace metric fields.
  */
 export enum VirtualTableSampleColumnKey {
   EXPAND_ROW = 'expand_row', // Chevron acts as an additional column
   PROJECT_BADGE = 'project_badge',
-  LOGS = 'logs',
-  SPANS = 'spans',
-  ERRORS = 'errors',
 }
 
 export type SampleTableColumnKey = TraceMetricFieldKey | VirtualTableSampleColumnKey;
+
+export const SORTABLE_SAMPLE_COLUMNS = new Set<SampleTableColumnKey>([
+  TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
+]);

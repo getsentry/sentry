@@ -110,7 +110,7 @@ Each batch (via `process_outbox_backfill_batch`):
 
 1. Calls `_chunk_processing_batch` to determine the ID range `(low, up)` for this batch
 2. For each instance in `model.objects.filter(id__gte=low, id__lte=up)`:
-   - Region models: `inst.outbox_for_update().save()` inside `outbox_context(flush=False)`
+   - Cell models: `inst.outbox_for_update().save()` inside `outbox_context(flush=False)`
    - Control models: saves all `inst.outboxes_for_update()` inside `outbox_context(flush=False)`
 3. If no more rows: sets cursor to `(0, replication_version + 1)` (marks complete)
 4. Otherwise: advances cursor to `(up + 1, version)`
@@ -141,7 +141,7 @@ options.get("outbox_replication.sentry_mymodel.replication_version")
 ### Check Outbox Queue Depth
 
 ```sql
--- Region outboxes for a specific category
+-- Cell outboxes for a specific category
 SELECT count(*) FROM sentry_regionoutbox
 WHERE category = <category_value>;
 

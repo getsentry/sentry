@@ -1,6 +1,9 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -10,7 +13,7 @@ import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -73,6 +76,8 @@ export function SpansTabSeerComboBox() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryContext();
   const {
     currentInputValueRef,
     query,
@@ -103,10 +108,12 @@ export function SpansTabSeerComboBox() {
     ?.join(' ')
     ?.trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails?.queryToUse) {
+  } else if (!inputValue && queryDetails?.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 
@@ -185,8 +192,10 @@ export function SpansTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
-      if (!result) return;
+    (result: AskSeerSearchQuery, runId?: number) => {
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         visualizations,
@@ -257,24 +266,30 @@ export function SpansTabSeerComboBox() {
         sort,
         mode,
       });
-      trackAnalytics('trace.explorer.ai_query_applied', {
+      trackAnalytics('ai_query.applied', {
         organization,
+        area: analyticsArea,
         query: queryToUse,
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
       navigate(url, {replace: true, preventScrollReset: true});
     },
-    [askSeerSuggestedQueryRef, navigate, organization, pageFilters.selection]
+    [
+      analyticsArea,
+      askSeerSuggestedQueryRef,
+      navigate,
+      organization,
+      pageFilters.selection,
+      setRunId,
+    ]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
   useTraceExploreAiQuerySetup({
-    enableAISearch: areAiFeaturesAllowed && !useTranslateEndpoint,
+    enableAISearch: enableAISearch && !useTranslateEndpoint,
   });
 
   // Get selected project IDs for the polling variant
@@ -341,8 +356,6 @@ export function SpansTabSeerComboBox() {
         strategy="Traces"
         applySeerSearchQuery={applySeerSearchQuery}
         transformResponse={transformResponse}
-        analyticsSource="trace.explorer"
-        feedbackSource="trace_explorer_ai_query"
         fallbackMutationOptions={spansTabAskSeerMutationOptions}
       />
     );
@@ -353,8 +366,6 @@ export function SpansTabSeerComboBox() {
       initialQuery={initialSeerQuery}
       askSeerMutationOptions={spansTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
-      analyticsSource="trace.explorer"
-      feedbackSource="trace_explorer_ai_query"
     />
   );
 }

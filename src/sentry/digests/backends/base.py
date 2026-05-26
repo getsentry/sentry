@@ -19,7 +19,7 @@ class ScheduleEntry(NamedTuple):
     timestamp: float
 
 
-def load(options: Mapping[str, str]) -> Any:
+def load(options: Mapping[str, Any]) -> Any:
     return import_string(options["path"])(**options.get("options", {}))
 
 

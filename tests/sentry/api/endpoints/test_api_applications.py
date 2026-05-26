@@ -18,7 +18,9 @@ class ApiApplicationsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]["id"] == app1.client_id
+        assert response.data[0]["dateCreated"] == app1.date_added
         assert response.data[1]["id"] == app2.client_id
+        assert response.data[1]["dateCreated"] == app2.date_added
 
 
 @control_silo_test
@@ -28,7 +30,8 @@ class ApiApplicationsCreateTest(APITestCase):
         url = reverse("sentry-api-0-api-applications")
         response = self.client.post(url, data={})
         assert response.status_code == 201
-        assert ApiApplication.objects.get(client_id=response.data["id"], owner=self.user)
+        app = ApiApplication.objects.get(client_id=response.data["id"], owner=self.user)
+        assert response.data["dateCreated"] == app.date_added
 
     def test_create_confidential_client(self) -> None:
         """Creating an app without isPublic flag creates a confidential client with secret."""

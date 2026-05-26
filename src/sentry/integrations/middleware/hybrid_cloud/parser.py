@@ -2,17 +2,15 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-import sentry.options as options
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
@@ -33,7 +31,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
-from sentry.utils.options import sample_modulo
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -147,7 +145,7 @@ class BaseRequestParser(ABC):
 
         cell_to_response_map = {}
 
-        with ThreadPoolExecutor(max_workers=len(cells)) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=len(cells)) as executor:
             future_to_cell = {
                 executor.submit(self.get_response_from_cell_silo, cell): cell for cell in cells
             }
@@ -164,16 +162,14 @@ class BaseRequestParser(ABC):
 
     def get_response_from_webhookpayload(
         self,
-        cells: list[Cell] | None = None,  # TODO(cells): make required once getsentry is updated
+        cells: list[Cell],
         identifier: int | str | None = None,
         integration_id: int | None = None,
-        regions: list[Cell] | None = None,  # TODO(cells): remove once getsentry is updated
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        cells = cells or regions or []
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
@@ -182,7 +178,7 @@ class BaseRequestParser(ABC):
         # this loop. Create all payloads first, then trigger a single drain.
         payloads = [
             WebhookPayload.create_from_request(
-                destination_type=DestinationType.SENTRY_REGION,
+                destination_type=DestinationType.SENTRY_CELL,
                 cell=cell.name,
                 provider=self.provider,
                 identifier=shard_identifier,
@@ -380,45 +376,3 @@ class BaseRequestParser(ABC):
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
-
-    # Forwarding Helpers
-
-    def forward_to_codecov(
-        self,
-        external_id: str | None = None,
-    ):
-        if options.get("codecov.forward-webhooks.disabled"):
-            return
-
-        rollout_rate = options.get("codecov.forward-webhooks.rollout")
-
-        # we don't want to emit metrics unless we've started to roll this out
-        if not rollout_rate:
-            return
-
-        if not settings.CODECOV_API_BASE_URL:
-            metrics.incr("codecov.forward-webhooks.no-base-url")
-            return
-
-        if not external_id:
-            metrics.incr("codecov.forward-webhooks.missing-external")
-            return
-
-        try:
-            installation_id = int(external_id)
-        except ValueError:
-            metrics.incr("codecov.forward-webhooks.installation-id-not-integer")
-            return
-
-        if sample_modulo("codecov.forward-webhooks.rollout", installation_id, granularity=100000):
-            shard_identifier = f"codecov:{external_id}"
-
-            # create webhookpayloads for each service
-            WebhookPayload.create_from_request(
-                destination_type=DestinationType.CODECOV,
-                cell=None,
-                provider=self.provider,
-                identifier=shard_identifier,
-                integration_id=None,
-                request=self.request,
-            )

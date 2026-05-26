@@ -9,13 +9,13 @@ describe('useSyncedLocalStorageState', () => {
   });
 
   function Toggle() {
-    const [value, setValue] = useSyncedLocalStorageState<boolean>('key', false);
+    const [value, setValue] = useSyncedLocalStorageState('key', false);
 
     return <button onClick={() => setValue(!value)}>{value ? 'On' : 'Off'}</button>;
   }
 
   function Text() {
-    const [value] = useSyncedLocalStorageState<boolean>('key', false);
+    const [value] = useSyncedLocalStorageState('key', false);
 
     return <div>{value ? 'Value is on' : 'Value is off'}</div>;
   }

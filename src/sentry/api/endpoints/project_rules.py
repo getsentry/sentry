@@ -1,9 +1,9 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Literal, NotRequired, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.conf import settings
-from django.db import router, transaction
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from drf_spectacular.utils import extend_schema
@@ -18,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import (
     RuleSerializer,
@@ -30,8 +31,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
-from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
@@ -51,10 +51,6 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition_group impor
 from sentry.workflow_engine.endpoints.validators.base.workflow import (
     ActionFilterInput,
     WorkflowInput,
-    WorkflowValidator,
-)
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkWorkflowDetectorsValidator,
 )
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition_data,
@@ -62,12 +58,14 @@ from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
 from sentry.workflow_engine.migration_helpers.rule_action import (
     translate_rule_data_actions_to_notification_actions,
 )
-from sentry.workflow_engine.models import DataConditionGroup, Workflow
+from sentry.workflow_engine.models import AlertRuleWorkflow, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def clean_rule_data(data):
@@ -819,6 +817,11 @@ def format_request_data(
     }
     workflow_payload["actionFilters"] = [action_filters]
 
+    issue_stream_detector = Detector.get_issue_stream_detector_for_project(project.id)
+    if issue_stream_detector is None:
+        raise serializers.ValidationError("Could not find issue stream detector for project")
+    workflow_payload["detectorIds"] = [issue_stream_detector.id]
+
     return workflow_payload
 
 
@@ -826,8 +829,8 @@ def format_request_data(
 @cell_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
@@ -845,6 +848,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rules")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-workflow-index"
+    )
     def get(self, request: Request, project: Project) -> Response:
         """
         ## Deprecated
@@ -860,24 +866,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         """
         expand = request.GET.getlist("expand", ["lastTriggered"])
 
-        queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
-        serializer: WorkflowEngineRuleSerializer | RuleSerializer
-        if features.has(
-            "organizations:workflow-engine-projectrulesendpoint-get", project.organization
-        ) or features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            queryset = Workflow.objects.filter(
-                detectorworkflow__detector__project=project,
-                status=ObjectStatus.ACTIVE,
-            ).distinct()
-            serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
-        else:
-            queryset = Rule.objects.filter(
-                project=project,
-                status=ObjectStatus.ACTIVE,
-            ).select_related("project")
-            # Mark that we're using legacy Rule models
-            report_used_legacy_models()
-            serializer = RuleSerializer(expand=expand, project_slug=project.slug)
+        queryset = Workflow.objects.filter(
+            detectorworkflow__detector__project=project,
+            status=ObjectStatus.ACTIVE,
+        ).distinct()
+        serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
 
         return self.paginate(
             request=request,
@@ -902,6 +895,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-index",
+    )
     def post(self, request: Request, project) -> Response:
         """
         ## Deprecated
@@ -915,36 +912,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast(ProjectRulePostData, request.data), project)
-            validator = WorkflowValidator(
-                data=request_data,
-                context={"organization": project.organization, "request": request},
-            )
-            validator.is_valid(raise_exception=True)
-
-            with transaction.atomic(router.db_for_write(Workflow)):
-                workflow = validator.create(validator.validated_data)
-                issue_stream_detector = Detector.get_issue_stream_detector_for_project(project.id)
-                if issue_stream_detector is None:
-                    raise serializers.ValidationError(
-                        "Could not find issue stream detector for project"
-                    )
-                bulk_validator = BulkWorkflowDetectorsValidator(
-                    data={
-                        "workflow_id": workflow.id,
-                        "detector_ids": [issue_stream_detector.id],
-                    },
-                    context={"organization": project.organization, "request": request},
-                )
-                bulk_validator.is_valid(raise_exception=True)
-                bulk_validator.save()
-
-            return Response(
-                serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
-                status=201,
-            )
-
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization, "request": request},
             data=request.data,
@@ -1091,5 +1058,19 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
+        if features.has(
+            "organizations:workflow-engine-rule-serializers", project.organization
+        ) or features.has(
+            "organizations:workflow-engine-issue-alert-endpoints-post", project.organization
+        ):
+            try:
+                workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+                return Response(
+                    serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
+                    status=201,
+                )
+            except AlertRuleWorkflow.DoesNotExist:
+                logger.info("alertruleworkflow-doesnotexist", extra={"rule_id": rule.id})
+                return Response(serialize(rule, request.user))
 
         return Response(serialize(rule, request.user))

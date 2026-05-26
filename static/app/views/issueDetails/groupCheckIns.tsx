@@ -1,15 +1,17 @@
+import {useQuery} from '@tanstack/react-query';
 import uniq from 'lodash/uniq';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {MonitorCheckInsGrid} from 'sentry/views/insights/crons/components/monitorCheckInsGrid';
-import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
+import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useCronIssueAlertId} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -31,21 +33,19 @@ export default function GroupCheckIns() {
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(cronAlertId);
 
   const {cursor, ...locationQuery} = location.query;
-  const {
-    data: checkIns = [],
-    isPending: isDataPending,
-    getResponseHeader,
-  } = useMonitorCheckIns(
-    {
+  const {data, isPending: isDataPending} = useQuery({
+    ...monitorCheckInsApiOptions({
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',
       monitorIdOrSlug: cronAlertId ?? '',
       limit: 50,
       cursor: decodeScalar(cursor),
       queryParams: locationQuery,
-    },
-    {enabled: canFetchMonitorCheckIns}
-  );
+    }),
+    select: selectJsonWithHeaders,
+    enabled: canFetchMonitorCheckIns,
+  });
+  const checkIns = data?.json ?? [];
 
   if (isGroupError) {
     return <LoadingError onRetry={refetchGroup} />;
@@ -55,7 +55,7 @@ export default function GroupCheckIns() {
     return <LoadingIndicator />;
   }
 
-  const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
+  const links = parseLinkHeader(data?.headers.Link ?? '');
   const previousDisabled = links?.previous?.results === false;
   const nextDisabled = links?.next?.results === false;
   const pageCount = checkIns.length;

@@ -17,7 +17,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
 
     endpoint = "sentry-api-0-organization-detector-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.monitor = Monitor.objects.create(
@@ -47,7 +47,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
             detector=self.detector,
         )
 
-    def test_get_monitor_incident_detector_details(self):
+    def test_get_monitor_incident_detector_details(self) -> None:
         """Test getting a monitor incident detector details with proper monitor serialization."""
         response = self.get_success_response(
             self.organization.slug,
@@ -91,7 +91,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
             "openIssues": 0,
         }
 
-    def test_update_monitor_incident_detector(self):
+    def test_update_monitor_incident_detector(self) -> None:
         """Test updating a monitor incident detector name and owner."""
         team = self.create_team(organization=self.organization)
 
@@ -138,7 +138,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
         assert self.monitor.name == original_monitor_name
         assert self.monitor.config == original_monitor_config
 
-    def test_update_monitor_incident_detector_with_data_sources(self):
+    def test_update_monitor_incident_detector_with_data_sources(self) -> None:
         """Test updating a monitor detector with dataSources field (including existing slug)."""
         data = {
             "name": "Updated Name",
@@ -174,7 +174,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
         assert self.monitor.slug == "test-monitor"  # Slug unchanged
         assert self.monitor.config["schedule"] == "0 0 * * 5"
 
-    def test_delete_monitor_incident_detector(self):
+    def test_delete_monitor_incident_detector(self) -> None:
         """Test deleting a monitor incident detector."""
         with outbox_runner():
             self.get_success_response(

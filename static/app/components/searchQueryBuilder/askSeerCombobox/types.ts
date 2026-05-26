@@ -49,7 +49,7 @@ export interface AskSeerStartResponse {
 /**
  * Session data returned from the /search-agent/state/ endpoint.
  */
-export interface AskSeerSession<T extends QueryTokensProps> {
+interface AskSeerSession<T extends QueryTokensProps> {
   completed_steps: AskSeerStep[];
   created_at: string;
   current_step: AskSeerStep | null;

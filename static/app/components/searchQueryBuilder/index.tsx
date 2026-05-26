@@ -31,10 +31,18 @@ import type {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-export type GetTagValues = (
-  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
-  searchQuery: string
-) => Promise<string[]>;
+export interface GetTagValuesParams {
+  /**
+   * The search query to use to fetch tag values.
+   */
+  searchQuery: string;
+  /**
+   * The tag to fetch values for.
+   */
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined};
+}
+
+export type GetTagValues = (params: GetTagValuesParams) => Promise<string[]>;
 
 export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 
@@ -126,6 +134,12 @@ export interface SearchQueryBuilderProps {
    * and display the returned keys alongside any static filterKeys.
    */
   getTagKeys?: GetTagKeys;
+  /**
+   * List of filter key strings that are invalid.
+   * When provided, tokens with matching keys will display a warning state.
+   * The parent component is responsible for fetching and determining invalid keys.
+   */
+  invalidFilterKeys?: string[];
 
   /**
    * Allows for customization of the invalid token messages.
@@ -174,11 +188,11 @@ export interface SearchQueryBuilderProps {
    */
   portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
+
   /**
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
-
   /**
    * When set, provided keys will override default raw search capabilities, while
    * replacing it with options that include the provided keys, and the user's input
@@ -203,15 +217,8 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {
-    dispatch,
-    handleSearch,
-    disabled,
-    query,
-    setDisplayAskSeerFeedback,
-    caseInsensitive,
-    onCaseInsensitiveClick,
-  } = useSearchQueryBuilder();
+  const {clearSearchQuery, disabled, query, caseInsensitive, onCaseInsensitiveClick} =
+    useSearchQueryBuilder();
 
   if (disabled) {
     return null;
@@ -230,7 +237,7 @@ function ActionButtons({
             aria-pressed={isCaseInsensitive}
             size="zero"
             icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
-            priority="transparent"
+            variant="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
               onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
@@ -243,12 +250,8 @@ function ActionButtons({
           aria-label={t('Clear search query')}
           size="zero"
           icon={<IconClose />}
-          priority="transparent"
-          onClick={() => {
-            setDisplayAskSeerFeedback(false);
-            dispatch({type: 'CLEAR'});
-            handleSearch('');
-          }}
+          variant="transparent"
+          onClick={() => clearSearchQuery()}
         />
       )}
     </ButtonsWrapper>

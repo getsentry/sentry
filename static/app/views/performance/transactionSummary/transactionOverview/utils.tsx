@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -31,15 +31,15 @@ export function canUseTransactionMetricsData(
 
 export function getTransactionMEPParamsIfApplicable(
   mepSetting: MetricsEnhancedSettingContext,
-  mepCardinality: MetricsCardinalityContext,
+  mepCardinality: MetricsCardinalityContext | undefined,
   organization: Organization
 ) {
   if (!canUseMetricsData(organization)) {
-    return undefined;
+    return;
   }
 
-  if (mepCardinality.outcome?.forceTransactionsOnly) {
-    return undefined;
+  if (mepCardinality?.outcome?.forceTransactionsOnly) {
+    return;
   }
 
   return getMEPQueryParams(mepSetting, true);

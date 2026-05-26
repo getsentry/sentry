@@ -13,7 +13,7 @@ export function ProjectPerformanceScoreCard({organization}: Props) {
   return (
     <Button
       size="sm"
-      priority="primary"
+      variant="primary"
       onClick={() => openUpsellModal({organization, source: 'project-details'})}
     >
       {t('Learn More')}

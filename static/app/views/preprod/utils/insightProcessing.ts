@@ -35,6 +35,7 @@ export interface ProcessedInsight {
   name: string;
   percentage: number;
   totalSavings: number;
+  timedOut?: boolean;
 }
 
 interface InsightConfig {
@@ -211,6 +212,7 @@ export function processInsights(
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
+        timedOut: insight.timed_out ?? false,
         files: optimizableFiles.map((file: OptimizableImageFile) => {
           const maxSavings = Math.max(
             file.minify_savings || 0,
@@ -247,6 +249,7 @@ export function processInsights(
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
+        timedOut: insight.timed_out ?? false,
         files: optimizableFiles.map((file: OptimizableImageFile) => {
           const maxSavings = Math.max(
             file.minify_savings || 0,

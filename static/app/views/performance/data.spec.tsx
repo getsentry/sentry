@@ -1,5 +1,4 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   MEPState,
@@ -11,15 +10,8 @@ import {
 } from 'sentry/views/performance/data';
 
 describe('generatePerformanceEventView()', () => {
-  const organization = OrganizationFixture();
-
   it('generates default values', () => {
-    const result = generatePerformanceEventView(
-      LocationFixture({query: {}}),
-      [],
-      {},
-      organization
-    );
+    const result = generatePerformanceEventView(LocationFixture({query: {}}), [], {});
 
     expect(result.id).toBeUndefined();
     expect(result.name).toBe('Performance');
@@ -34,8 +26,7 @@ describe('generatePerformanceEventView()', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {sort: ['-p50', '-count']}}),
       [],
-      {},
-      organization
+      {}
     );
 
     expect(result.sorts).toEqual([{kind: 'desc', field: 'p50'}]);
@@ -46,8 +37,7 @@ describe('generatePerformanceEventView()', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {statsPeriod: ['90d', '45d']}}),
       [],
-      {},
-      organization
+      {}
     );
     expect(result.start).toBeUndefined();
     expect(result.end).toBeUndefined();
@@ -60,8 +50,7 @@ describe('generatePerformanceEventView()', () => {
         query: {start: '2020-04-25T12:00:00', end: '2020-05-25T12:00:00'},
       }),
       [],
-      {},
-      organization
+      {}
     );
     expect(result.start).toBe('2020-04-25T12:00:00.000');
     expect(result.end).toBe('2020-05-25T12:00:00.000');
@@ -72,8 +61,7 @@ describe('generatePerformanceEventView()', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'things.update'}}),
       [],
-      {},
-      organization
+      {}
     );
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
     expect(result.getQueryWithAdditionalConditions()).toEqual(
@@ -85,8 +73,7 @@ describe('generatePerformanceEventView()', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'things.update transaction:thing.gone'}}),
       [],
-      {},
-      organization
+      {}
     );
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
     expect(result.getQueryWithAdditionalConditions()).toEqual(
@@ -99,8 +86,7 @@ describe('generatePerformanceEventView()', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'key:value tag:value'}}),
       [],
-      {},
-      organization
+      {}
     );
     expect(result.query).toEqual(expect.stringContaining('key:value'));
     expect(result.query).toEqual(expect.stringContaining('tag:value'));
@@ -113,8 +99,7 @@ describe('generatePerformanceEventView()', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'key:value tag:value'}}),
       [],
-      {},
-      organization
+      {}
     );
     expect(result.fields).toEqual(
       expect.arrayContaining([expect.objectContaining({field: 'user_misery()'})])
@@ -136,8 +121,7 @@ describe('generatePerformanceEventView()', () => {
         },
       }),
       [],
-      {withStaticFilters: true},
-      organization
+      {withStaticFilters: true}
     );
     expect(result.query).toBe('transaction:*auth*');
   });

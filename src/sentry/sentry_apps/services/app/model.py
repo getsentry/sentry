@@ -86,6 +86,7 @@ class RpcSentryApp(RpcModel):
     events: list[str] = Field(default_factory=list)
     webhook_url: str | None = None
     is_alertable: bool = False
+    is_disabled: bool = False
     is_published: bool = False
     is_unpublished: bool = False
     is_internal: bool = True
@@ -93,6 +94,7 @@ class RpcSentryApp(RpcModel):
     status: str = ""
     metadata: dict[str, Any] = Field(repr=False, default_factory=dict)
     avatars: list[RpcSentryAppAvatar] = Field(default_factory=list)
+    creator_label: str | None = None
 
     def show_auth_info(self, access: Any) -> bool:
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -13,12 +13,13 @@ from sentry.incidents.endpoints.utils import translate_data_condition_type
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.migration_helpers.utils import get_resolve_threshold
+from sentry.workflow_engine.migration_helpers.utils import get_resolve_thresholds
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
     DataCondition,
     DataConditionAlertRuleTrigger,
+    DataConditionGroup,
     DataConditionGroupAction,
     Detector,
     DetectorWorkflow,
@@ -34,19 +35,19 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         item_list: Sequence[DataCondition],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> defaultdict[DataCondition, dict[str, list[str]]]:
+    ) -> MutableMapping[DataCondition, Any]:
         # Build the chain: trigger → detector → workflows → workflow DCGs,
         # keeping per-detector scoping so actions don't bleed across detectors.
 
         # trigger.condition_group → detector
         condition_group_ids = {t.condition_group_id for t in item_list}
-        cg_to_detector_id: dict[int, int] = {
-            d.workflow_condition_group_id: d.id
+        detectors_by_cg: dict[int, Detector] = {
+            d.workflow_condition_group_id: d
             for d in Detector.objects.filter(workflow_condition_group__in=condition_group_ids)
         }
 
         # detector → workflow IDs
-        detector_ids = set(cg_to_detector_id.values())
+        detector_ids = {d.id for d in detectors_by_cg.values()}
         detector_to_workflow_ids: dict[int, set[int]] = defaultdict(set)
         for det_id, wf_id in DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
             "detector_id", "workflow_id"
@@ -80,10 +81,12 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         # Map (condition_group_id, comparison) → action-filter DC exists in that DCG
         # We need: for a given detector's DCGs + priority level → matching DCG IDs
         # NOTE: Assumes DataConditions are limited to what would be dual written.
-        dcg_comparison_pairs: dict[int, set[int]] = defaultdict(set)
+        dcg_comparison_pairs: dict[int, set[int | float]] = defaultdict(set)
         for dc in DataCondition.objects.filter(condition_group__in=all_dcg_ids):
-            # Map comparison value → set of DCG IDs that have an action filter at that level
-            dcg_comparison_pairs[dc.condition_group_id].add(dc.comparison)
+            # Only collect numeric comparison values; non-numeric values (e.g. dicts
+            # from anomaly detection conditions) don't match condition_result levels.
+            if isinstance(dc.comparison, (int, float)):
+                dcg_comparison_pairs[dc.condition_group_id].add(dc.comparison)
 
         # Bulk-fetch all DCG → action mappings
         dcg_to_action_ids: dict[int, list[int]] = defaultdict(list)
@@ -103,10 +106,24 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             )
         )
 
-        result: defaultdict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
+        # Bulk-fetch alert_rule_id mappings
+        alert_rule_id_map: dict[int, int | None] = dict(
+            AlertRuleDetector.objects.filter(detector__in=detector_ids).values_list(
+                "detector_id", "alert_rule_id"
+            )
+        )
+
+        # Bulk-fetch resolve thresholds for all condition groups
+        condition_groups_by_id = {
+            cg.id: cg for cg in DataConditionGroup.objects.filter(id__in=condition_group_ids)
+        }
+        resolve_thresholds = get_resolve_thresholds(list(condition_groups_by_id.values()))
+
+        result: defaultdict[DataCondition, dict[str, Any]] = defaultdict(dict)
 
         for trigger in item_list:
-            detector_id = cg_to_detector_id.get(trigger.condition_group_id)
+            detector = detectors_by_cg.get(trigger.condition_group_id)
+            detector_id = detector.id if detector else None
             trigger_dcg_ids = detector_to_dcg_ids.get(detector_id, set()) if detector_id else set()
 
             # Find DCGs in this detector's workflows that match the trigger's priority level
@@ -127,8 +144,8 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 key=lambda a: a.id,
             )
 
-            alert_rule_trigger_id = trigger_id_map.get(
-                trigger.id, get_fake_id_from_object_id(trigger.id)
+            alert_rule_trigger_id = trigger_id_map.get(trigger.id) or get_fake_id_from_object_id(
+                trigger.id
             )
 
             serialized_actions = serialize(
@@ -137,7 +154,20 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 WorkflowEngineActionSerializer(),
                 alert_rule_trigger_id=alert_rule_trigger_id,
             )
+
+            alert_rule_id = (
+                alert_rule_id_map.get(detector_id, get_fake_id_from_object_id(detector_id))
+                if detector_id
+                else None
+            )
+
             result[trigger]["actions"] = serialized_actions
+            result[trigger]["detector"] = detector
+            result[trigger]["alert_rule_trigger_id"] = alert_rule_trigger_id
+            result[trigger]["alert_rule_id"] = alert_rule_id
+            result[trigger]["resolve_threshold"] = resolve_thresholds.get(
+                trigger.condition_group_id
+            )
 
         return result
 
@@ -149,22 +179,11 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         **kwargs: Any,
     ) -> dict[str, Any]:
         # XXX: we are assuming that the obj/DataCondition is a detector trigger
-        detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
-        try:
-            alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
-                "alert_rule_trigger_id", flat=True
-            ).get(data_condition=obj)
-        except DataConditionAlertRuleTrigger.DoesNotExist:
-            # this data condition does not have an analog in the old system,
-            # but we need to return *something*
-            alert_rule_trigger_id = get_fake_id_from_object_id(obj.id)
-        try:
-            alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
-                detector=detector.id
-            )
-        except AlertRuleDetector.DoesNotExist:
-            # this detector does not have an analog in the old system
-            alert_rule_id = get_fake_id_from_object_id(detector.id)
+        detector: Detector | None = attrs["detector"]
+        alert_rule_trigger_id: int = attrs["alert_rule_trigger_id"]
+        alert_rule_id: int | None = attrs["alert_rule_id"]
+
+        comparison_delta = detector.config.get("comparison_delta") if detector else None
 
         if obj.type == Condition.ANOMALY_DETECTION:
             threshold_type = obj.comparison["threshold_type"]
@@ -172,25 +191,24 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         else:
             threshold_type = (
                 AlertRuleThresholdType.ABOVE.value
-                if obj.type == Condition.GREATER
+                if obj.type in (Condition.GREATER, Condition.GREATER_OR_EQUAL)
                 else AlertRuleThresholdType.BELOW.value
             )
             # For static/metric rules, calculate resolve threshold from the resolve condition
             resolve_threshold = translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                comparison_delta,
                 obj.type,
-                get_resolve_threshold(obj.condition_group),
+                attrs["resolve_threshold"],
             )
-
         return {
             "id": str(alert_rule_trigger_id),
-            "alertRuleId": str(alert_rule_id),
+            "alertRuleId": str(alert_rule_id) if alert_rule_id is not None else None,
             "label": (
                 "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
             ),
             "thresholdType": threshold_type,
             "alertThreshold": translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                comparison_delta,
                 obj.type,
                 (
                     0 if obj.type == Condition.ANOMALY_DETECTION else obj.comparison

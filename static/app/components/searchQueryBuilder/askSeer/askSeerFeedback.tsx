@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer, IconThumb} from 'sentry/icons';
@@ -12,15 +13,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AskSeerFeedback() {
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const {setDisplayAskSeerFeedback, askSeerNLQueryRef, askSeerSuggestedQueryRef} =
     useSearchQueryBuilder();
 
-  const handleClick = (correct: 'yes' | 'no') => {
-    trackAnalytics('trace.explorer.ai_query_feedback', {
+  const handleClick = (type: 'positive' | 'negative') => {
+    trackAnalytics('ai_query.feedback', {
       organization,
-      correct_query_results: correct,
+      area: analyticsArea,
+      type,
       natural_language_query: askSeerNLQueryRef.current ?? '',
-      query: askSeerSuggestedQueryRef.current ?? '',
+      suggested_query: askSeerSuggestedQueryRef.current ?? '',
     });
     askSeerNLQueryRef.current = null;
     askSeerSuggestedQueryRef.current = null;
@@ -37,7 +40,7 @@ export function AskSeerFeedback() {
         <Button
           size="zero"
           icon={<IconThumb />}
-          onClick={() => handleClick('yes')}
+          onClick={() => handleClick('positive')}
           aria-label="Yep, correct results"
         >
           Yep
@@ -45,7 +48,7 @@ export function AskSeerFeedback() {
         <Button
           size="zero"
           icon={<IconThumb direction="down" />}
-          onClick={() => handleClick('no')}
+          onClick={() => handleClick('negative')}
           aria-label="Nope, incorrect results"
         >
           Nope

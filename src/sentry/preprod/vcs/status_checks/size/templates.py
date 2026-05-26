@@ -20,6 +20,15 @@ def format_no_quota_messages() -> tuple[str, str, str]:
     return str(title), str(subtitle), str(summary)
 
 
+def format_all_skipped_messages(project: Project) -> tuple[str, str, str]:
+    """Format status check messages when all artifacts are filtered/skipped."""
+    title = _SIZE_ANALYZER_TITLE_BASE
+    subtitle = _("Size analysis skipped")
+    settings_url = _get_settings_url(project)
+    summary = str(_format_configure_link(project, settings_url))
+    return str(title), str(subtitle), str(summary)
+
+
 def format_status_check_messages(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
@@ -322,11 +331,12 @@ def _get_settings_url(
 ) -> str:
     """Build the settings URL for the project's preprod settings page."""
     base_url = f"/settings/projects/{project.slug}/mobile-builds/"
+    query = "tab=size"
     if triggered_rules:
         unique_rule_ids = list(dict.fromkeys(tr.rule.id for tr in triggered_rules))
         expanded_params = "&".join(f"expanded={rule_id}" for rule_id in unique_rule_ids)
-        return project.organization.absolute_url(base_url, query=expanded_params)
-    return project.organization.absolute_url(base_url)
+        query += "&" + expanded_params
+    return project.organization.absolute_url(base_url, query=query)
 
 
 def _format_failed_checks_details(
@@ -568,24 +578,8 @@ def _calculate_size_change(head_size: int | None, base_size: int | None) -> str:
 
 def _format_file_size(size_bytes: int | None) -> str:
     """Format file size with null handling for display in templates."""
+    from sentry.preprod.utils import format_bytes_base10
+
     if size_bytes is None:
         return "Unknown"
-    return _format_bytes_base10(size_bytes)
-
-
-def _format_bytes_base10(size_bytes: int) -> str:
-    """Format file size using decimal (base-10) units. Matches the frontend implementation of formatBytesBase10."""
-    units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
-    threshold = 1000
-
-    if size_bytes < threshold:
-        return f"{size_bytes} {units[0]}"
-
-    u = 0
-    number = float(size_bytes)
-    max_unit = len(units) - 1
-    while number >= threshold and u < max_unit:
-        number /= threshold
-        u += 1
-
-    return f"{number:.1f} {units[u]}"
+    return format_bytes_base10(size_bytes)

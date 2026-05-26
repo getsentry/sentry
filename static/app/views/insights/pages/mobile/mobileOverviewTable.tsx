@@ -1,8 +1,9 @@
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
+
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
@@ -14,6 +15,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/headerTooltips/headerTooltips';
@@ -169,7 +171,7 @@ export function MobileOverviewTable({response, sort}: Props) {
               location,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, theme),
+            renderBodyCell(column, row, meta, location, navigate, organization, theme),
           onResizeColumn: handleResizeColumn,
         }}
       />
@@ -201,6 +203,7 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
+  navigate: ReactRouter3Navigate,
   organization: Organization,
   theme: Theme
 ) {
@@ -227,6 +230,7 @@ function renderBodyCell(
 
   return renderer(row, {
     location,
+    navigate,
     organization,
     unit: meta.units?.[column.key],
     theme,

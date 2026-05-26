@@ -30,7 +30,7 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -243,17 +243,16 @@ export function IssueTagsPreview({
   });
 
   const highlightTagKeys = useMemo(() => {
-    const tagKeys = detailedProject?.highlightTags ?? project?.highlightTags ?? [];
-    const highlightDefaults =
-      detailedProject?.highlightPreset?.tags ?? project?.highlightPreset?.tags ?? [];
+    const tagKeys = detailedProject?.highlightTags ?? [];
+    const highlightDefaults = detailedProject?.highlightPreset?.tags ?? [];
     return tagKeys.filter(tag => !highlightDefaults.includes(tag));
-  }, [detailedProject, project]);
+  }, [detailedProject]);
 
   const {
     isError,
     isPending,
     data: tags,
-  } = useGroupTagsReadable({
+  } = useGroupTags({
     groupId,
     environment: environments,
   });

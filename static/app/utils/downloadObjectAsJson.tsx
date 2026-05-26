@@ -1,11 +1,8 @@
-export function downloadObjectAsJson(exportObj: any, exportName: any) {
-  const dataStr = `data:text/json;charset=utf-8,${encodeURIComponent(
-    JSON.stringify(exportObj)
-  )}`;
-  const downloadAnchorNode = document.createElement('a');
-  downloadAnchorNode.setAttribute('href', dataStr);
-  downloadAnchorNode.setAttribute('download', `${exportName}.json`);
-  document.body.appendChild(downloadAnchorNode); // required for firefox
-  downloadAnchorNode.click();
-  downloadAnchorNode.remove();
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+
+export function downloadObjectAsJson(exportObj: unknown, exportName: string) {
+  downloadFromHref(
+    `${exportName}.json`,
+    `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(exportObj))}`
+  );
 }

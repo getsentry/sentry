@@ -1,7 +1,7 @@
-import React, {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useMemo, useState} from 'react';
 import classNames from 'classnames';
 
+import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {
@@ -27,7 +27,7 @@ import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {CheckoutType, PlanTier} from 'getsentry/types';
 
-const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
+const ALLOWED_TIERS = [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
 type Props = {
   onSuccess: () => void;
@@ -43,9 +43,9 @@ function ChangePlanAction({
   onSuccess,
   closeModal,
 }: Props) {
-  const [billingInterval, setBillingInterval] = useState<string>(MONTHLY);
-  const [contractInterval, setContractInterval] = useState<string>(MONTHLY);
-  const [activeTier, setActiveTier] = useState<PlanTier>(PlanTier.AM3);
+  const [billingInterval, setBillingInterval] = useState(MONTHLY);
+  const [contractInterval, setContractInterval] = useState(MONTHLY);
+  const [activeTier, setActiveTier] = useState(PlanTier.AM3);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
   const orgId = organization.slug;
@@ -57,7 +57,7 @@ function ChangePlanAction({
     isError,
   } = useApiQuery<BillingConfig>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: orgId},
       }),
       {query: {tier: 'all'}},
@@ -206,20 +206,6 @@ function ChangePlanAction({
       return;
     }
 
-    if (activeTier === PlanTier.MM2) {
-      try {
-        await api.requestPromise(`/customers/${orgId}/`, {
-          method: 'PUT',
-          data,
-        });
-        onSubmitSuccess(data);
-      } catch (error) {
-        onSubmitError(error);
-      }
-      return;
-    }
-
-    // AM plans use a different endpoint to update plans
     try {
       await api.requestPromise(`/customers/${orgId}/subscription/`, {
         method: 'PUT',
@@ -248,18 +234,14 @@ function ChangePlanAction({
       tier: PlanTier.AM1,
     },
     {
-      label: 'MM2',
-      tier: PlanTier.MM2,
-    },
-    {
       label: 'TEST',
       tier: PlanTier.TEST,
     },
   ];
 
   const header = partnerPlanId ? null : (
-    <React.Fragment>
-      <TabsContainer>
+    <Fragment>
+      <Container marginBottom="xl">
         <Tabs
           value={activeTier}
           onChange={tab => {
@@ -277,7 +259,7 @@ function ChangePlanAction({
             ))}
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
       <ul className="nav nav-pills">
         <li
           className={classNames({
@@ -293,22 +275,6 @@ function ChangePlanAction({
             Monthly
           </a>
         </li>
-        {activeTier === PlanTier.MM2 && (
-          <li
-            className={classNames({
-              active: contractInterval === ANNUAL && billingInterval === MONTHLY,
-            })}
-          >
-            <a
-              onClick={() => {
-                setBillingInterval(MONTHLY);
-                setContractInterval(ANNUAL);
-              }}
-            >
-              Annual (Contract)
-            </a>
-          </li>
-        )}
         <li
           className={classNames({
             active: contractInterval === ANNUAL && billingInterval === ANNUAL,
@@ -324,7 +290,7 @@ function ChangePlanAction({
           </a>
         </li>
       </ul>
-    </React.Fragment>
+    </Fragment>
   );
 
   return (
@@ -362,7 +328,3 @@ type Options = {
 
 export const triggerChangePlanAction = (opts: Options) =>
   openModal(deps => <ChangePlanAction {...deps} {...opts} />);
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

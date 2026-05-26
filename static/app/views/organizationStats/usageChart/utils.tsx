@@ -97,13 +97,13 @@ const MAX_NUMBER_OF_LABELS = 10;
 export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[]) {
   if (dataPeriod <= 24) {
     return {
-      xAxisLabelVisibility: new Array(intervals.length).fill(false),
+      xAxisLabelVisibility: Array.from<boolean>({length: intervals.length}).fill(false),
     };
   }
 
   const uniqueLabels = new Set<string>();
   const labelToPositionMap = new Map<string, number>();
-  const labelVisibility: boolean[] = new Array(intervals.length).fill(false);
+  const labelVisibility = Array.from<boolean>({length: intervals.length}).fill(false);
 
   // Collect unique labels and their positions
   intervals.forEach((label, index) => {

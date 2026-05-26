@@ -46,7 +46,7 @@ class BackfillPreprodArtifactMobileAppInfoTest(TestMigrations):
             state=0,
         )
 
-    def test_backfills_mobile_app_info(self):
+    def test_backfills_mobile_app_info(self) -> None:
         # Check artifact with all fields
         mobile_app_info_all = PreprodArtifactMobileAppInfo.objects.get(
             preprod_artifact_id=self.artifact_all_fields.id

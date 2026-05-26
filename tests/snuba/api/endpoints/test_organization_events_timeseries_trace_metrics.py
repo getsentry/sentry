@@ -3,7 +3,9 @@ from datetime import timedelta
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
-from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.snuba.api.endpoints.test_organization_events import (
+    OrganizationEventsEndpointTestBase,
+)
 from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import (
     AnyConfidence,
     build_expected_timeseries,
@@ -365,10 +367,18 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         trace_metrics = [
             self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
             self.create_trace_metric(
-                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+                "request_count",
+                1,
+                "counter",
+                metric_unit="millisecond",
+                timestamp=self.start,
             ),
             self.create_trace_metric(
-                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+                "request_count",
+                1,
+                "counter",
+                metric_unit="millisecond",
+                timestamp=self.start,
             ),
         ]
         self.store_eap_items(trace_metrics)
@@ -394,10 +404,18 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         trace_metrics = [
             self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
             self.create_trace_metric(
-                "request_count", 1, "counter", metric_unit="second", timestamp=self.start
+                "request_count",
+                1,
+                "counter",
+                metric_unit="second",
+                timestamp=self.start,
             ),
             self.create_trace_metric(
-                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+                "request_count",
+                1,
+                "counter",
+                metric_unit="millisecond",
+                timestamp=self.start,
             ),
             self.create_trace_metric(
                 "request_count", 1, "counter", metric_unit="byte", timestamp=self.start
@@ -426,10 +444,18 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         trace_metrics = [
             self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
             self.create_trace_metric(
-                "request_count", 1, "counter", metric_unit="second", timestamp=self.start
+                "request_count",
+                1,
+                "counter",
+                metric_unit="second",
+                timestamp=self.start,
             ),
             self.create_trace_metric(
-                "request_count", 1, "counter", metric_unit="millisecond", timestamp=self.start
+                "request_count",
+                1,
+                "counter",
+                metric_unit="millisecond",
+                timestamp=self.start,
             ),
             self.create_trace_metric(
                 "request_count", 1, "counter", metric_unit="byte", timestamp=self.start
@@ -453,3 +479,43 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
 
         # only the metrics with a unit of none should be counted
         assert response.data["timeSeries"][0]["values"][0]["value"] == 1
+
+    def test_equation_where_one_term_has_no_data(self):
+        trace_metrics = []
+        for hour in range(5):
+            trace_metrics.append(
+                self.create_trace_metric(
+                    "request_count",
+                    1,
+                    "counter",
+                    metric_unit="requests",
+                    timestamp=self.start + timedelta(hours=hour),
+                )
+            )
+            if hour != 3:
+                trace_metrics.append(
+                    self.create_trace_metric(
+                        "request_count.error",
+                        1,
+                        "counter",
+                        metric_unit="requests",
+                        timestamp=self.start + timedelta(hours=hour),
+                    )
+                )
+        self.store_eap_items(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=5),
+                "interval": "1h",
+                "yAxis": "equation|count(value,request_count.error,counter,requests) + count(value,request_count,counter,requests)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 3_600_000, [2, 2, 2, 1, 2], ignore_accuracy=True
+        )

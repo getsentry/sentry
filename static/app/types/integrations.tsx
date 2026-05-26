@@ -99,15 +99,13 @@ export interface RepositoryWithSettings extends Repository {
   };
 }
 
-export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = [
-  'on_ready_for_review',
-  'on_new_commit',
-];
+export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = ['on_ready_for_review'];
 
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
 export type IntegrationRepository = {
+  externalId: string;
   /**
    * ex - getsentry/sentry
    */
@@ -115,6 +113,7 @@ export type IntegrationRepository = {
   isInstalled: boolean;
   name: string;
   defaultBranch?: string | null;
+  url?: string | null;
 };
 
 export type Commit = {
@@ -131,6 +130,11 @@ export type Commit = {
 export type Committer = {
   author: User;
   commits: Commit[];
+  /**
+   * Primary key of the GroupOwner record that linked this committer to the issue.
+   * Used for suspect commit feedback analytics.
+   */
+  group_owner_id?: number;
 };
 
 export type CommitAuthor = {
@@ -201,27 +205,6 @@ type SentryAppSchemaAlertRuleActionSettings = {
   optional_fields?: any[];
 };
 
-export enum Coverage {
-  NOT_APPLICABLE = -1,
-  COVERED = 0,
-  NOT_COVERED = 1,
-  PARTIAL = 2,
-}
-export type LineCoverage = [lineNo: number, coverage: Coverage];
-
-export enum CodecovStatusCode {
-  COVERAGE_EXISTS = 200,
-  NO_INTEGRATION = 404,
-  NO_COVERAGE_DATA = 400,
-}
-
-export interface CodecovResponse {
-  status: CodecovStatusCode;
-  attemptedUrl?: string;
-  coverageUrl?: string;
-  lineCoverage?: LineCoverage[];
-}
-
 export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
@@ -259,6 +242,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
+  allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;
@@ -376,6 +360,7 @@ type IntegrationAspects = {
   configure_integration?: {
     title: string;
   };
+  directEnable?: boolean;
   disable_dialog?: IntegrationDialog;
   externalInstall?: {
     buttonText: string;
@@ -571,7 +556,7 @@ export type AppOrProviderOrPlugin =
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer';
+export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
 export type ServiceHook = {
   dateCreated: string;
@@ -593,6 +578,7 @@ export type CodeOwner = {
    */
   codeOwnersUrl: string | 'unknown';
   dateCreated: string;
+  dateSynced: string | null;
   dateUpdated: string;
   errors: {
     missing_external_teams: string[];

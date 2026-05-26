@@ -2,10 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
@@ -16,20 +15,6 @@ import {
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useTraceMetricsSeriesQuery', () => {
   const organization = OrganizationFixture();
@@ -47,8 +32,8 @@ describe('useTraceMetricsSeriesQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: [],
           conditions: '',
           orderby: '',
@@ -61,7 +46,7 @@ describe('useTraceMetricsSeriesQuery', () => {
       body: {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -74,15 +59,13 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -90,7 +73,7 @@ describe('useTraceMetricsSeriesQuery', () => {
         '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
-            yAxis: ['avg(value,test_metric,millisecond,-)'],
+            yAxis: ['avg(value,test_metric,millisecond,none)'],
           }),
         })
       );
@@ -103,8 +86,8 @@ describe('useTraceMetricsSeriesQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: [],
           conditions: 'environment:production',
           orderby: '',
@@ -117,7 +100,7 @@ describe('useTraceMetricsSeriesQuery', () => {
       body: {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -130,18 +113,16 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -162,8 +143,8 @@ describe('useTraceMetricsSeriesQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['project', 'avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['project', 'avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: ['project'],
           conditions: '',
           orderby: '',
@@ -178,15 +159,13 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -218,8 +197,8 @@ describe('useTraceMetricsTableQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['project', 'avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['project', 'avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: ['project'],
           conditions: '',
           orderby: '',
@@ -233,21 +212,19 @@ describe('useTraceMetricsTableQuery', () => {
         data: [
           {
             project: 'frontend',
-            'avg(value,test_metric,millisecond,-)': 150,
+            'avg(value,test_metric,millisecond,none)': 150,
           },
         ],
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -268,8 +245,8 @@ describe('useTraceMetricsTableQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['project', 'avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['project', 'avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: ['project'],
           conditions: '',
           orderby: '',
@@ -283,23 +260,21 @@ describe('useTraceMetricsTableQuery', () => {
         data: [
           {
             project: 'frontend',
-            'avg(value,test_metric,millisecond,-)': 150,
+            'avg(value,test_metric,millisecond,none)': 150,
           },
         ],
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 25,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        limit: 25,
+        cursor: 'test-cursor',
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

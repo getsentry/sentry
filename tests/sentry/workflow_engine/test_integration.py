@@ -8,7 +8,6 @@ import pytest
 from django.utils import timezone
 
 from sentry.eventstream.types import EventStreamEventType
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.ingest import save_issue_occurrence
@@ -28,6 +27,7 @@ from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.tasks.delayed_workflows import process_delayed_workflows
 from sentry.workflow_engine.tasks.workflows import schedule_delayed_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -220,7 +220,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         from sentry.types.group import GroupSubStatus
 
         project = self.create_project(fire_project_created=True)
-        detector = Detector.objects.get(project=project, type=ErrorGroupType.slug)
+        detector = Detector.objects.get(project=project, type=IssueStreamGroupType.slug)
         workflow = DetectorWorkflow.objects.get(detector=detector).workflow
         workflow.update(config={"frequency": 0})
 
@@ -263,7 +263,10 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         # does not fire for low priority issue
         mock_trigger.reset_mock()
         low_priority_event = self.create_error_event(
-            project=project, detector=detector, fingerprint="asdf", level="warning"
+            project=project,
+            detector=detector,
+            fingerprint="asdf",
+            level="warning",
         )
         self.post_process_error(low_priority_event, is_new=True)
         assert not mock_trigger.called

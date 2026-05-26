@@ -15,7 +15,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
@@ -30,32 +29,26 @@ from sentry.types.cell import Cell, RegionCategory
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self) -> None:
         super().setUp()
-        with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
             self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
     def _get_paths(self, args):
         return (
-            reverse("sentry-api-0-accept-organization-invite", args=args),
             reverse(
                 "sentry-api-0-organization-accept-organization-invite",
                 args=[self.organization.slug] + args,
             ),
             reverse(
                 "sentry-api-0-organization-accept-organization-invite",
-                args=[self.organization.id] + args,
+                args=[str(self.organization.id)] + args,
             ),
         )
 
     def _get_urls(self):
-        return (
-            "sentry-api-0-accept-organization-invite",
-            "sentry-api-0-organization-accept-organization-invite",
-        )
+        return ("sentry-api-0-organization-accept-organization-invite",)
 
     def _get_path(self, url, args):
-        if url == self._get_urls()[0]:
-            return reverse(url, args=args)
         return reverse(url, args=[self.organization.slug] + args)
 
     def _require_2fa_for_organization(self):
@@ -187,27 +180,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
                 self._assert_pending_invite_details_in_session(om)
                 assert self.client.session["invite_organization_id"] == self.organization.id
-
-    def test_multi_region_organizationmember_id__non_monolith(self) -> None:
-        self._require_2fa_for_organization()
-        assert not self.user.has_2fa()
-
-        self.login_as(self.user)
-
-        with assume_test_silo_mode_of(OrganizationMember), outbox_context(flush=False):
-            om = OrganizationMember.objects.create(
-                email="newuser@example.com", token="abc", organization_id=self.organization.id
-            )
-        with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
-            OrganizationMemberMapping.objects.create(
-                organization_id=self.organization.id, organizationmember_id=om.id
-            )
-
-        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="something-else"):
-            resp = self.client.get(
-                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-            )
-        assert resp.status_code == 400
 
     def test_user_has_2fa(self) -> None:
         self._require_2fa_for_organization()
@@ -349,6 +321,97 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with assume_test_silo_mode_of(OrganizationMember):
                 assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
+
+    def test_member_already_exists_with_member_id_from_another_organization(self) -> None:
+        user = self.create_user("alreadymember@example.com")
+        self.login_as(user)
+        Factories.create_member(user=user, organization=self.organization, role="member")
+
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
+            other_organization = self.create_organization(
+                owner=self.create_user("otherowner@example.com")
+            )
+        other_om = Factories.create_member(
+            email="pending@example.com",
+            role="member",
+            token="abc",
+            organization=other_organization,
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [other_om.id, other_om.token],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=other_om.id).exists()
+        self.assert_org_member_mapping(org_member=other_om)
+
+    def test_non_member_cannot_delete_other_members_membership(self) -> None:
+        attacker = self.create_user("attacker@example.com")
+        self.login_as(attacker)
+
+        victim = self.create_user("victim@example.com")
+        victim_om = Factories.create_member(
+            user=victim, organization=self.organization, role="owner"
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [victim_om.id, "bogustoken"],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=victim_om.id).exists()
+        self.assert_org_member_mapping(org_member=victim_om)
+
+    def test_existing_member_cannot_delete_other_members_membership(self) -> None:
+        attacker = self.create_user("attacker@example.com")
+        Factories.create_member(user=attacker, organization=self.organization, role="member")
+        self.login_as(attacker)
+
+        victim = self.create_user("victim@example.com")
+        victim_om = Factories.create_member(
+            user=victim, organization=self.organization, role="owner"
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [victim_om.id, "bogustoken"],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=victim_om.id).exists()
+        self.assert_org_member_mapping(org_member=victim_om)
+
+    def test_existing_member_cannot_delete_pending_invite_with_bogus_token(self) -> None:
+        attacker = self.create_user("attacker@example.com")
+        Factories.create_member(user=attacker, organization=self.organization, role="member")
+        self.login_as(attacker)
+
+        pending_om = Factories.create_member(
+            email="pending@example.com",
+            role="member",
+            token="correcttoken",
+            organization=self.organization,
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [pending_om.id, "bogustoken"],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=pending_om.id).exists()
+        self.assert_org_member_mapping(org_member=pending_om)
 
     def test_can_accept_when_user_has_2fa(self) -> None:
         urls = self._get_urls()

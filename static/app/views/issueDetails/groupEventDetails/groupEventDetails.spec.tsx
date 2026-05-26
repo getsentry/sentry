@@ -46,7 +46,7 @@ const makeDefaultMockData = (
         pathname: `/organizations/${org.slug}/issues/${group.id}/`,
         query: query ?? {},
       },
-      route: `/organizations/:orgId/issues/:groupId/`,
+      route: '/organizations/:orgId/issues/:groupId/',
     },
     group,
     event: EventFixture({
@@ -305,7 +305,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/customers/org-slug/policies/`,
+    url: '/customers/org-slug/policies/',
     body: {},
   });
 
@@ -379,7 +379,7 @@ describe('groupEventDetails', () => {
         ...props.initialRouterConfig.location,
         pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`,
       },
-      route: `/organizations/:orgId/issues/:groupId/events/:eventId/`,
+      route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
     };
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
@@ -543,7 +543,7 @@ describe('groupEventDetails', () => {
     expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
     // No highlights setup
     expect(
-      within(highlights).getByRole('button', {name: 'Add Highlights'})
+      await within(highlights).findByRole('button', {name: 'Add Highlights'})
     ).toBeInTheDocument();
     expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
   });

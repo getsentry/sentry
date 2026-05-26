@@ -30,20 +30,23 @@ const defaultProject = ProjectFixture();
 describe('AggregateSpanDiff', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    // Spans endpoint is always queried first (primary data source)
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-root-cause-analysis/',
-      body: [
-        {
-          span_op: 'db',
-          span_group: 'abc123',
-          span_description: 'SELECT * FROM users',
-          score: 0.9,
-          p95_before: 10.0,
-          p95_after: 20.0,
-          spm_before: 100.0,
-          spm_after: 90.0,
-        },
-      ],
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'span.op': 'db',
+            'span.group': 'abc123',
+            'span.description': 'SELECT * FROM users',
+            [`regression_score(span.self_time,${BREAKPOINT_TIMESTAMP})`]: 0.9,
+            [`avg_by_timestamp(span.self_time,less,${BREAKPOINT_TIMESTAMP})`]: 10000,
+            [`avg_by_timestamp(span.self_time,greater,${BREAKPOINT_TIMESTAMP})`]: 20000,
+            [`epm_by_timestamp(less,${BREAKPOINT_TIMESTAMP})`]: 100,
+            [`epm_by_timestamp(greater,${BREAKPOINT_TIMESTAMP})`]: 90,
+          },
+        ],
+      },
     });
   });
 
@@ -57,8 +60,8 @@ describe('AggregateSpanDiff', () => {
   it('renders empty state when no spans are returned', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-root-cause-analysis/',
-      body: [],
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
     });
 
     render(<AggregateSpanDiff event={defaultEvent} project={defaultProject} />);
@@ -68,16 +71,32 @@ describe('AggregateSpanDiff', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders error state when request fails', async () => {
+  it('falls back to RCA endpoint when spans query fails', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-root-cause-analysis/',
+      url: '/organizations/org-slug/events/',
       statusCode: 500,
       body: {detail: 'Internal Server Error'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-root-cause-analysis/',
+      body: [
+        {
+          span_op: 'db',
+          span_group: 'abc123',
+          span_description: 'SELECT * FROM users',
+          score: 0.9,
+          p95_before: 10,
+          p95_after: 20,
+          spm_before: 100,
+          spm_after: 90,
+        },
+      ],
     });
 
     render(<AggregateSpanDiff event={defaultEvent} project={defaultProject} />);
 
-    expect(await screen.findByText(/events-root-cause-analysis/)).toBeInTheDocument();
+    expect(await screen.findByText('SELECT * FROM users')).toBeInTheDocument();
+    expect(screen.getByText('db')).toBeInTheDocument();
   });
 });

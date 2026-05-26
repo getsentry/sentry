@@ -1,5 +1,5 @@
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 
@@ -16,7 +16,9 @@ export function transformPerformanceScoreBreakdownSeries(
       : `performance_score(measurements.score.${webVital})`;
     const series = multiSeries[key];
 
-    if (!series?.data) return false;
+    if (!series?.data) {
+      return false;
+    }
 
     return series.data.some(([_timestamp, values]) =>
       values.some(v => (v.count || 0) > 0)

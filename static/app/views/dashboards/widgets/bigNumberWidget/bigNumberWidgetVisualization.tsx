@@ -8,6 +8,7 @@ import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
@@ -18,11 +19,13 @@ import type {
   TabularValueUnit,
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-interface BigNumberWidgetVisualizationProps {
+type BigNumberWidgetVisualizationProps = {
   field: string;
   value: number | string;
   maximumValue?: number;
@@ -31,9 +34,9 @@ interface BigNumberWidgetVisualizationProps {
   thresholds?: Thresholds;
   type?: TabularValueType;
   unit?: TabularValueUnit;
-}
+};
 
-export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
+function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationProps) {
   const {
     field,
     value,
@@ -44,6 +47,10 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     unit,
   } = props;
 
+  // Push parsed display values into the LLM context tree for Seer Explorer.
+  // These are already computed by the parent — no raw data involved.
+  useLLMContext({field, value, type, unit, thresholds: props.thresholds});
+
   const theme = useTheme();
 
   if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
@@ -51,6 +58,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   }
 
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   // Create old-school renderer meta, so we can pass it to field renderers
@@ -70,6 +78,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
   const baggage = {
     location,
+    navigate,
     organization,
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };
@@ -206,6 +215,11 @@ const LoadingPlaceholder = styled('span')`
   font-size: ${p => p.theme.font.size.lg};
 `;
 
-BigNumberWidgetVisualization.LoadingPlaceholder = function () {
-  return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
-};
+export const BigNumberWidgetVisualization = Object.assign(
+  registerLLMContext('chart', BigNumberWidgetVisualizationInner),
+  {
+    LoadingPlaceholder() {
+      return <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>;
+    },
+  }
+);

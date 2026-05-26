@@ -18,7 +18,7 @@ export function NoActiveSeerSubscriptionBanner() {
         <Container padding="2xl">
           <Text>
             {tct(
-              'You can continue using Seer features like Autofix and Code Review for now. To keep uninterrupted access as Seer plans evolve, set up a Seer subscription in [billing:Billing]. Learn more in the [docs:docs].',
+              'You can continue using Seer features like Autofix for now. To keep uninterrupted access as Seer plans evolve, set up a Seer subscription in [billing:Billing]. Learn more in the [docs:docs].',
               {
                 billing: (
                   <Link

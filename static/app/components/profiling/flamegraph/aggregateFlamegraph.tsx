@@ -1,6 +1,7 @@
 import type {ReactElement} from 'react';
 import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import type {QueryStatus} from '@tanstack/react-query';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
@@ -8,6 +9,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {
   AggregateProfileSource,
@@ -33,9 +35,10 @@ import {
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import type {QueryStatus} from 'sentry/utils/queryClient';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 interface AggregateFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
@@ -44,6 +47,7 @@ interface AggregateFlamegraphProps {
   profileType: ProfileSource | AggregateProfileSource;
   scheduler: CanvasScheduler;
   status: QueryStatus;
+  queryError?: RequestError | null;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
@@ -99,7 +103,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
   // when we register/unregister these top level listeners.
   useLayoutEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
-      return undefined;
+      return;
     }
 
     // This code below manages the synchronization of the config views between spans and flamegraph
@@ -218,7 +222,13 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
           props.status === 'pending'
             ? {type: 'loading'}
             : props.status === 'error'
-              ? {type: 'errored', error: 'error'}
+              ? {
+                  type: 'errored',
+                  error: getRequestErrorUserMessage(
+                    props.queryError,
+                    t('Failed to load profile')
+                  ),
+                }
               : {type: 'resolved', data: null}
         }
         onResetFilter={props.onResetFilter}

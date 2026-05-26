@@ -5,9 +5,10 @@ import logging
 from django.core.cache import cache
 from django.db import router, transaction
 
+from sentry.issues.grouptype import GroupType
 from sentry.locks import locks
 from sentry.models.project import Project
-from sentry.processing_errors.grouptype import SourcemapCheckStatus, SourcemapConfigurationType
+from sentry.processing_errors.grouptype import ProcessingErrorCheckStatus
 from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
@@ -16,13 +17,16 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 logger = logging.getLogger(__name__)
 
 
-def ensure_sourcemap_detector(project: Project) -> Detector:
+def ensure_detector(
+    project: Project,
+    config_type: type[GroupType],
+) -> Detector:
     """
-    Ensure that a sourcemap configuration detector exists for this project.
+    Ensure that a processing error configuration detector exists for this project.
     Returns the existing detector or creates one with its associated
     DataConditionGroup, DataConditions, and DetectorState.
     """
-    slug = SourcemapConfigurationType.slug
+    slug = config_type.slug
 
     try:
         return Detector.get_default_detector_for_project(project.id, slug)
@@ -30,9 +34,9 @@ def ensure_sourcemap_detector(project: Project) -> Detector:
         pass
 
     lock = locks.get(
-        f"sourcemap-detector:{project.id}",
+        f"processing-error-detector:{slug}:{project.id}",
         duration=2,
-        name="sourcemap_detector_provision",
+        name=f"{slug}_detector_provision",
     )
 
     with (
@@ -49,14 +53,14 @@ def ensure_sourcemap_detector(project: Project) -> Detector:
         )
 
         DataCondition.objects.create(
-            comparison=SourcemapCheckStatus.FAILURE,
+            comparison=ProcessingErrorCheckStatus.FAILURE,
             type=Condition.EQUAL,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=condition_group,
         )
 
         DataCondition.objects.create(
-            comparison=SourcemapCheckStatus.SUCCESS,
+            comparison=ProcessingErrorCheckStatus.SUCCESS,
             type=Condition.EQUAL,
             condition_result=DetectorPriorityLevel.OK,
             condition_group=condition_group,
@@ -65,7 +69,7 @@ def ensure_sourcemap_detector(project: Project) -> Detector:
         detector = Detector.objects.create(
             type=slug,
             project=project,
-            name="Sourcemap Configuration",
+            name=config_type.description,
             config={},
             workflow_condition_group=condition_group,
         )

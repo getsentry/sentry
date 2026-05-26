@@ -120,8 +120,10 @@ export function GroupingVariant({
             ?.data?.map((span: RawSpanType) => [span.span_id, span.hash]) ?? []
         );
 
-        data.push(['Performance Issue Type', variant.key]);
-        data.push(['Span Operation', variant.evidence.op]);
+        data.push(
+          ['Performance Issue Type', variant.key],
+          ['Span Operation', variant.evidence.op]
+        );
         data.push([
           'Parent Span Hashes',
           variant.evidence?.parent_span_ids?.map(id => spansToHashes[id]) ?? [],

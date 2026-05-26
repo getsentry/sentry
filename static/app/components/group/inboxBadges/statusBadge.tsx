@@ -1,15 +1,8 @@
 import type {TagProps} from '@sentry/scraps/badge';
 
-import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {GroupSubstatus} from 'sentry/types/group';
-
-interface SubstatusBadgeProps {
-  status: Group['status'];
-  fontSize?: 'sm' | 'md';
-  substatus?: Group['substatus'];
-}
 
 export function getBadgeProperties(
   status: Group['status'],
@@ -65,21 +58,4 @@ export function getBadgeProperties(
     };
   }
   return undefined;
-}
-
-export function GroupStatusBadge(props: SubstatusBadgeProps) {
-  const badge = getBadgeProperties(props.status, props.substatus);
-  if (!badge) {
-    return null;
-  }
-
-  return (
-    <GroupStatusTag
-      variant={badge.tagVariant}
-      tooltip={badge.tooltip}
-      fontSize={props.fontSize}
-    >
-      {badge.status}
-    </GroupStatusTag>
-  );
 }

@@ -3,21 +3,19 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
-from sentry.processing_errors.detection import _redis_key_triggered
+from sentry.processing_errors.detection import _cache_key_triggered
 from sentry.processing_errors.grouptype import SourcemapConfigurationType
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector.stateful import (
-    StatefulDetectorHandler,
-    get_redis_client,
-)
+from sentry.workflow_engine.handlers.detector.stateful import StatefulDetectorHandler
 from sentry.workflow_engine.models import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -101,7 +99,6 @@ def _resolve_detector(state: DetectorState) -> None:
     )
 
     # Clear triggered cache so detection can re-trigger if the problem returns.
-    # This is keyed per-project, so resolving any detector clears it for the project.
-    get_redis_client().delete(_redis_key_triggered(state.detector.project_id))
+    cache.delete(_cache_key_triggered(state.detector.type, state.detector.project_id))
 
-    metrics.incr("processing_errors.sourcemap_detector.resolved")
+    metrics.incr(f"processing_errors.{state.detector.type}.resolved")

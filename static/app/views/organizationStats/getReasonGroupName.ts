@@ -84,6 +84,7 @@ export enum ClientDiscardReason {
   INSUFFICIENT_DATA = 'insufficient_data',
   BACKPRESSURE = 'backpressure',
   IGNORED = 'ignored',
+  NO_PARENT_SPAN = 'no_parent_span',
 }
 
 enum RateLimitedReason {
@@ -238,6 +239,7 @@ function getClientDiscardReasonGroupName(reason: ClientDiscardReason): string {
     case ClientDiscardReason.INSUFFICIENT_DATA:
     case ClientDiscardReason.BACKPRESSURE:
     case ClientDiscardReason.IGNORED:
+    case ClientDiscardReason.NO_PARENT_SPAN:
       return reason;
     default:
       return 'other';
@@ -251,7 +253,7 @@ export function getReasonGroupName(outcome: string | number, reason: string): st
     case Outcome.CARDINALITY_LIMITED:
     case Outcome.RATE_LIMITED:
     case Outcome.ABUSE:
-      return getRateLimitedReasonGroupName(reason as RateLimitedReason);
+      return getRateLimitedReasonGroupName(reason);
     case Outcome.FILTERED:
       return getFilteredReasonGroupName(reason);
     case Outcome.CLIENT_DISCARD:

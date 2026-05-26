@@ -1,0 +1,344 @@
+import {Fragment} from 'react';
+
+import {
+  render,
+  screen,
+  userEvent,
+  waitForDrawerToHide,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+import {mockMatchMedia} from 'sentry-test/utils';
+
+import type {DrawerConfig} from '@sentry/scraps/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+
+function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
+  const {openDrawer, closeDrawer} = useDrawer();
+  return (
+    <div data-test-id="drawer-test-outside">
+      <button
+        data-test-id="drawer-test-open"
+        onClick={() => openDrawer(config.renderer, config.options)}
+      >
+        Open
+      </button>
+      <button data-test-id="drawer-test-close" onClick={closeDrawer}>
+        Close
+      </button>
+    </div>
+  );
+}
+
+describe('GlobalDrawer', () => {
+  const ariaLabel = 'drawer-test-aria-label';
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockMatchMedia(false);
+  });
+
+  it('locks document scroll on desktop when opening the drawer', async () => {
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">desktop drawer</DrawerBody>
+          ),
+          options: {ariaLabel},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(document.body).toHaveStyle({
+      position: 'fixed',
+      width: '100%',
+    });
+  });
+
+  it('locks document scroll on mobile when opening the drawer', async () => {
+    mockMatchMedia(true);
+
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">mobile drawer</DrawerBody>
+          ),
+          options: {ariaLabel},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(document.body).toHaveStyle({
+      position: 'fixed',
+      width: '100%',
+    });
+  });
+
+  it('useDrawer hook can open and close the Drawer', async () => {
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">useDrawer hook</DrawerBody>
+          ),
+          options: {ariaLabel},
+        }}
+      />
+    );
+
+    expect(
+      screen.queryByRole('complementary', {name: ariaLabel})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(screen.getByRole('complementary', {name: ariaLabel})).toBeInTheDocument();
+    // Doesn't render header with close button unless provided to renderer
+    expect(screen.queryByRole('button', {name: 'Close Drawer'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('drawer-test-close'));
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: ariaLabel})
+    ).not.toBeInTheDocument();
+  });
+
+  it('closes the drawer on URL change', async () => {
+    const {router} = render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">useDrawer hook</DrawerBody>
+          ),
+
+          options: {
+            ariaLabel,
+            shouldCloseOnLocationChange: location => {
+              return !location.pathname.includes('modal');
+            },
+          },
+        }}
+      />,
+      {initialRouterConfig: {location: {pathname: '/my-modal-view/'}}}
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+
+    router.navigate('/some-other-path');
+    await waitForDrawerToHide(ariaLabel);
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
+  });
+
+  it('calls onClose handler when close button is clicked', async () => {
+    const closeSpy = jest.fn();
+
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <Fragment>
+              <DrawerHeader />
+              <DrawerBody data-test-id="drawer-test-content">onClose button</DrawerBody>
+            </Fragment>
+          ),
+          options: {onClose: closeSpy, ariaLabel},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(closeSpy).toHaveBeenCalled();
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
+  });
+
+  it('calls onClose handler when clicking outside the drawer', async () => {
+    const closeSpy = jest.fn();
+
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">
+              onClose outside click
+            </DrawerBody>
+          ),
+          options: {onClose: closeSpy, ariaLabel},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('drawer-test-outside'));
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(closeSpy).toHaveBeenCalled();
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
+  });
+
+  it('calls onClose handler when closeDrawer prop is called', async () => {
+    const closeSpy = jest.fn();
+
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: ({closeDrawer: cd}) => (
+            <button data-test-id="drawer-test-content" onClick={cd}>
+              onClose prop
+            </button>
+          ),
+          options: {onClose: closeSpy, ariaLabel},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    const button = screen.getByTestId('drawer-test-content');
+    expect(button).toBeInTheDocument();
+
+    await userEvent.click(button);
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(closeSpy).toHaveBeenCalled();
+    expect(button).not.toBeInTheDocument();
+  });
+
+  it('passive mode does not close on outside click', async () => {
+    const closeSpy = jest.fn();
+
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <Fragment>
+              <DrawerHeader />
+              <DrawerBody data-test-id="drawer-test-content">passive mode</DrawerBody>
+            </Fragment>
+          ),
+          options: {
+            onClose: closeSpy,
+            mode: 'passive',
+            ariaLabel,
+          },
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    const content = screen.getByTestId('drawer-test-content');
+
+    await userEvent.click(screen.getByTestId('drawer-test-outside'));
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(content).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(closeSpy).toHaveBeenCalled();
+    expect(content).not.toBeInTheDocument();
+  });
+
+  it('scopes isDrawerOpen to the useDrawer call-site', async () => {
+    function ScopedConsumer({label}: {label: string}) {
+      const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
+      return (
+        <Fragment>
+          <button
+            data-test-id={`open-${label}`}
+            onClick={() =>
+              openDrawer(() => <DrawerBody>{label} drawer</DrawerBody>, {
+                ariaLabel: `${label}-drawer`,
+              })
+            }
+          >
+            Open {label}
+          </button>
+          <span data-test-id={`is-open-${label}`}>
+            {isDrawerOpen ? 'mine' : 'not mine'}
+          </span>
+          <span data-test-id={`is-any-open-${label}`}>
+            {isAnyDrawerOpen ? 'any' : 'none'}
+          </span>
+        </Fragment>
+      );
+    }
+
+    render(
+      <Fragment>
+        <ScopedConsumer label="a" />
+        <ScopedConsumer label="b" />
+      </Fragment>
+    );
+
+    expect(screen.getByTestId('is-open-a')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-open-b')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-any-open-a')).toHaveTextContent('none');
+
+    await userEvent.click(screen.getByTestId('open-a'));
+
+    expect(
+      await screen.findByRole('complementary', {name: 'a-drawer'})
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('is-open-a')).toHaveTextContent('mine');
+    expect(screen.getByTestId('is-open-b')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-any-open-a')).toHaveTextContent('any');
+    expect(screen.getByTestId('is-any-open-b')).toHaveTextContent('any');
+  });
+
+  it('renders custom header content when specified', async () => {
+    const closeSpy = jest.fn();
+    const customHeader = 'Look at my neat drawer header';
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => (
+            <Fragment>
+              <DrawerHeader>{customHeader}</DrawerHeader>
+              <DrawerBody data-test-id="drawer-test-content">custom header</DrawerBody>
+            </Fragment>
+          ),
+          options: {ariaLabel, onClose: closeSpy},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    const drawer = screen.getByRole('complementary', {name: ariaLabel});
+    expect(drawer).toBeInTheDocument();
+
+    // Has close button + custom header
+    const closeButton = within(drawer).getByRole('button', {name: 'Close Drawer'});
+    expect(closeButton).toBeInTheDocument();
+    expect(within(drawer).getByText(customHeader)).toBeInTheDocument();
+
+    await userEvent.click(closeButton);
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(closeSpy).toHaveBeenCalled();
+    expect(drawer).not.toBeInTheDocument();
+  });
+});

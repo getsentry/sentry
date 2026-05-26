@@ -4,15 +4,15 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -80,7 +80,7 @@ function BaseFooter({className}: Props) {
       <RightLinks>
         {appState === 'stale' && (
           <Button
-            priority="transparent"
+            variant="transparent"
             size="xs"
             onClick={() => window.location.reload()}
             tooltipProps={{
@@ -90,7 +90,7 @@ function BaseFooter({className}: Props) {
             }}
             aria-label={t('Reload frontend')}
           >
-            <WaitingIndicator />
+            <StatusIndicator variant="promotion" />
           </Button>
         )}
         {!isSelfHosted && (
@@ -105,16 +105,10 @@ function BaseFooter({className}: Props) {
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
       </RightLinks>
-      <Hook name="footer" />
+      <Override name="footer" />
     </Container>
   );
 }
-
-const WaitingIndicator = styled('div')`
-  --pulsingIndicatorRing: ${p => p.theme.tokens.border.transparent.neutral.muted};
-  ${pulsingIndicatorStyles};
-  contain: layout;
-`;
 
 const LeftLinks = styled('div')`
   display: grid;

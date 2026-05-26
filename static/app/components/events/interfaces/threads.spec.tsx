@@ -38,6 +38,10 @@ describe('Threads', () => {
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
     ProjectsStore.loadInitialData([project]);
     ConfigStore.set('user', UserFixture());
 
@@ -1206,7 +1210,7 @@ describe('Threads', () => {
 
         MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
-          match: [MockApiClient.matchQuery({minified: 'false'})],
+          match: [MockApiClient.matchQuery({minified: 'false', thread_id: '0'})],
           body: '',
         });
 
@@ -1300,22 +1304,42 @@ describe('Threads', () => {
       });
 
       it('renders raw stack trace', async () => {
+        const activeThreadId = 123;
+
         MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
-          match: [MockApiClient.matchQuery({minified: 'false'})],
+          match: [
+            MockApiClient.matchQuery({
+              minified: 'false',
+              thread_id: String(activeThreadId),
+            }),
+          ],
           body: 'crash report content',
         });
         MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
-          match: [MockApiClient.matchQuery({minified: 'true'})],
+          match: [
+            MockApiClient.matchQuery({
+              minified: 'true',
+              thread_id: String(activeThreadId),
+            }),
+          ],
           body: 'crash report content (minified)',
         });
 
         // Need rawStacktrace: true to enable the "minified" option in the UI
         const eventWithMinifiedOption = merge({}, event, {
-          entries: [{data: {values: [{rawStacktrace: true}]}}],
+          entries: [
+            {data: {values: [{rawStacktrace: true, threadId: activeThreadId}]}},
+            {data: {values: [{id: activeThreadId}]}},
+          ],
         });
-        render(<Threads {...props} event={eventWithMinifiedOption} />, {organization});
+        const threadsEntry = eventWithMinifiedOption.entries[1]!
+          .data as React.ComponentProps<typeof Threads>['data'];
+        render(
+          <Threads {...props} data={threadsEntry} event={eventWithMinifiedOption} />,
+          {organization}
+        );
 
         await userEvent.click(screen.getByRole('button', {name: 'Display as'}));
         expect(await screen.findByText('Display')).toBeInTheDocument();
@@ -1328,10 +1352,11 @@ describe('Threads', () => {
         // Raw crash report content should be displayed
         await screen.findByText('crash report content');
 
-        // Download button should have correct URL
+        // Download button should have correct URL, including the active
+        // (crashed) thread id so the report is sorted with that thread first.
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&download=1`
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&thread_id=${activeThreadId}&download=1`
         );
 
         // Click on minified option
@@ -1340,10 +1365,10 @@ describe('Threads', () => {
         // Raw crash report content should be displayed (now with minified response)
         await screen.findByText('crash report content (minified)');
 
-        // Download button should nonw have minified=true
+        // Download button should now have minified=true
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&download=1`
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=${activeThreadId}&download=1`
         );
       });
     });

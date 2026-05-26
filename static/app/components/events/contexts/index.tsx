@@ -3,13 +3,11 @@ import * as Sentry from '@sentry/react';
 
 import {ContextDataSection} from 'sentry/components/events/contexts/contextDataSection';
 import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   event: Event;
   disableCollapsePersistence?: boolean;
-  group?: Group;
 };
 
 interface UnknownContextValue {
@@ -82,7 +80,7 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
   return items;
 }
 
-export function EventContexts({event, group, disableCollapsePersistence}: Props) {
+export function EventContexts({event, disableCollapsePersistence}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
   const {contexts, sdk} = event;
@@ -102,7 +100,6 @@ export function EventContexts({event, group, disableCollapsePersistence}: Props)
   return (
     <ContextDataSection
       event={event}
-      group={group}
       project={project}
       disableCollapsePersistence={disableCollapsePersistence}
     />

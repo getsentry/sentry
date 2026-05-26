@@ -91,7 +91,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           language: 'bash',
-          code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
+          code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
         },
         {
           type: 'conditional',

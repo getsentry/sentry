@@ -439,10 +439,10 @@ def validate_options(settings: Any) -> None:
 def validate_regions(settings: Any) -> None:
     from sentry.types.cell import load_from_config
 
-    if not settings.SENTRY_REGION_CONFIG:
+    if not settings.SENTRY_CELLS:
         return
 
-    load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES).validate_all()
+    load_from_config(settings.SENTRY_CELLS, settings.SENTRY_LOCALITIES).validate_all()
 
 
 def monkeypatch_django_migrations() -> None:
@@ -677,7 +677,7 @@ def validate_outbox_config() -> None:
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)
 
-    for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
+    for outbox_name in settings.SENTRY_OUTBOX_MODELS["CELL"]:
         CellOutboxBase.from_outbox_name(outbox_name)
 
 

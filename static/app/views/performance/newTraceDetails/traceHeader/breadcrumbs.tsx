@@ -23,7 +23,7 @@ import {
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -75,7 +75,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   traces: 'explore/traces',
   metrics: 'metrics',
   discover: 'explore/discover',
-  profiling_flamegraph: 'explore/profiling',
+  profiling_flamegraph: 'explore/profiles',
   performance_transaction_summary: 'insights/summary',
   issue_details: 'issues',
   feedback_details: 'issues/feedback',
@@ -112,10 +112,12 @@ function getPerformanceBreadCrumbs(
       ),
     });
   } else {
-    crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
-    });
+    if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
+      crumbs.push({
+        label: DOMAIN_VIEW_BASE_TITLE,
+        to: undefined,
+      });
+    }
   }
 
   switch (location.query.tab) {
@@ -251,12 +253,14 @@ function getInsightsModuleBreadcrumbs(
       ),
     });
   } else {
-    crumbs.push({
-      label: t('Insights'),
-    });
+    if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
+      crumbs.push({
+        label: DOMAIN_VIEW_BASE_TITLE,
+      });
+    }
   }
 
-  let moduleName: RoutableModuleNames | undefined = undefined;
+  let moduleName: RoutableModuleNames | undefined;
 
   if (
     typeof location.query.source === 'string' &&
@@ -360,7 +364,6 @@ function getInsightsModuleBreadcrumbs(
       });
       break;
 
-    case ModuleName.CACHE:
     default:
       break;
   }
@@ -396,7 +399,7 @@ function LeafBreadCrumbLabel({
         className="trace-id-copy-button"
         text={traceSlug}
         size="zero"
-        priority="transparent"
+        variant="transparent"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
         }}
@@ -520,7 +523,7 @@ export function getTraceViewBreadcrumbs({
     case TraceViewSources.TRACE_METRICS:
       return [
         {
-          label: t('Metrics'),
+          label: t('Application Metrics'),
           to: getBreadCrumbTarget(
             normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
             location.query

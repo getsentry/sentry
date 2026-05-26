@@ -32,6 +32,11 @@ class GroupRelatedModelsCompletenessTest(TestCase):
         # Example: "sentry.SomeModel": "Uses custom deletion logic in XYZ",
         "sentry.Activity": "To be added soon",
         "sentry.PlatformExternalIssue": "TBD",
+        "seer.SeerAgentRun": (
+            "on_delete=DO_NOTHING on group FK to preserve historical run record; "
+            "stale group_id is intentional so readers can distinguish "
+            "'never had a group' (NULL) from 'group was deleted' (non-NULL)."
+        ),
         "workflow_engine.DetectorGroup": "TBD",
         "workflow_engine.WorkflowActionGroupStatus": "TBD",
         "workflow_engine.WorkflowFireHistory": "TBD",

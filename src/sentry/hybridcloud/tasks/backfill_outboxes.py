@@ -6,6 +6,7 @@ will produce new outboxes incrementally to replicate those models.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from django.apps import apps
@@ -20,6 +21,8 @@ from sentry.hybridcloud.outbox.base import CellOutboxProducingModel, ControlOutb
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
+
+logger = logging.getLogger(__name__)
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
@@ -61,12 +64,6 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
         if not (isinstance(lower, int) and isinstance(version, int)):
             raise TypeError("Expected processing data to be a tuple of (int, int)")
         result = lower, version
-    metrics.gauge(
-        "backfill_outboxes.low_bound",
-        result[0],
-        tags=dict(table_name=table_name, version=result[1]),
-        sample_rate=1.0,
-    )
     return result
 
 
@@ -120,6 +117,12 @@ def _chunk_processing_batch(
         .aggregate(Max("id"))["id__max"]
         or 0
     )
+    metrics.gauge(
+        "backfill_outboxes.low_bound",
+        lower,
+        tags=dict(table_name=model._meta.db_table, version=version),
+        sample_rate=1.0,
+    )
 
     return BackfillBatch(low=lower, up=upper, version=version, has_more=upper > lower)
 
@@ -138,7 +141,18 @@ def process_outbox_backfill_batch(
         model, batch_size=batch_size, force_synchronous=force_synchronous
     )
     if not processing_state:
+        logger.info("processing_state.missing", extra={"model": model.__name__})
         return None
+
+    logger.info(
+        "processing_state.current",
+        extra={
+            "model": model.__name__,
+            "batch_low": processing_state.low,
+            "batch_up": processing_state.up,
+            "version": processing_state.version,
+        },
+    )
 
     for inst in model.objects.filter(id__gte=processing_state.low, id__lte=processing_state.up):
         with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
@@ -171,6 +185,10 @@ def backfill_outboxes_for(
     # from an expected rate.
     remaining_to_backfill = max_batch_rate - scheduled_count
     backfilled = 0
+    logger.info(
+        "backfill_outboxes.start",
+        extra={"remaining": remaining_to_backfill, "scheduled": scheduled_count},
+    )
 
     if remaining_to_backfill > 0:
         for app, app_models in apps.all_models.items():

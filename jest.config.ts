@@ -2,39 +2,32 @@ import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 
-import type {TransformOptions} from '@babel/core';
 import type {Config} from '@jest/types';
+import type {Options as SwcOptions} from '@swc/core';
 
-const babelConfig: TransformOptions = {
-  presets: [
-    [
-      '@babel/preset-react',
-      {
+const swcConfig: SwcOptions = {
+  isModule: true,
+  module: {
+    type: 'commonjs',
+  },
+  sourceMaps: 'inline',
+  jsc: {
+    target: 'esnext',
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      dynamicImport: true,
+    },
+    transform: {
+      react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
-    ],
-    [
-      '@babel/preset-env',
-      {
-        useBuiltIns: 'usage',
-        corejs: '3.41',
-        targets: {
-          node: 'current',
-        },
-      },
-    ],
-    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
-    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
-  ],
-  plugins: [
-    [
-      '@emotion/babel-plugin',
-      {
-        sourceMap: false,
-      },
-    ],
-  ],
+    },
+    experimental: {
+      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
+    },
+  },
 };
 
 const {
@@ -46,6 +39,8 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  MERGE_BASE,
+  MERGE_BASE_STRATEGY,
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
@@ -53,8 +48,12 @@ const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 const optionalTags: {
   balancer?: boolean;
   balancer_strategy?: string;
+  merge_base: string;
+  merge_base_strategy: string;
 } = {
   balancer: false,
+  merge_base: MERGE_BASE || '',
+  merge_base_strategy: MERGE_BASE_STRATEGY || 'full',
 };
 
 if (!!JEST_TEST_BALANCER && !CI) {
@@ -69,7 +68,14 @@ let JEST_TESTS: string[] | undefined;
 // to reexec itself here
 if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
-    const stdout = execFileSync('pnpm', ['exec', 'jest', '--listTests', '--json'], {
+    const listTestArguments = ['exec', 'jest', '--listTests', '--json'];
+
+    if (MERGE_BASE) {
+      console.log('MERGE_BASE detected:', MERGE_BASE);
+      listTestArguments.push('--changedSince', MERGE_BASE, '--passWithNoTests');
+    }
+
+    const stdout = execFileSync('pnpm', listTestArguments, {
       stdio: 'pipe',
       encoding: 'utf-8',
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
@@ -108,6 +114,10 @@ function getTestsForGroup(
   allTests: ReadonlyArray<string>,
   testStats: Record<string, number>
 ): string[] {
+  if (allTests.length === 0) {
+    return [];
+  }
+
   const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
   const targetDuration = speculatedSuiteDuration / nodeTotal;
 
@@ -122,8 +132,13 @@ function getTestsForGroup(
   const tests = new Map<string, number>();
   const SUITE_P50_DURATION_MS = 1500;
 
+  const allTestsSet = new Set(allTests);
+
   // First, iterate over all of the tests we have stats for.
   Object.entries(testStats).forEach(([test, duration]) => {
+    if (!allTestsSet.has(test)) {
+      return;
+    }
     if (duration <= 0) {
       throw new Error(`Test duration is <= 0 for ${test}`);
     }
@@ -183,7 +198,7 @@ function getTestsForGroup(
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
-    groups[i % 4]!.push(nextTest[0]);
+    groups[i % nodeTotal]!.push(nextTest[0]);
     i++;
   }
 
@@ -199,8 +214,8 @@ function getTestsForGroup(
     }
   }
 
-  if (!groups[nodeIndex]) {
-    throw new Error(`No tests found for node ${nodeIndex}`);
+  if (!groups[nodeIndex]?.length) {
+    return ['<rootDir>/__no_tests_for_this_shard__'];
   }
   return groups[nodeIndex].map(test => `<rootDir>/${test}`);
 }
@@ -253,10 +268,18 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color', 'marked'];
+const ESM_NODE_MODULES = [
+  'screenfull',
+  'cbor2',
+  'nuqs',
+  'color',
+  'marked',
+  '@sentry\\+sqlish',
+];
 
 const config: Config.InitialOptions = {
   verbose: false,
+  cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
@@ -281,10 +304,16 @@ const config: Config.InitialOptions = {
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
 
+    // @sentry/sqlish is ESM-only with `exports` that only define `import`
+    // conditions. Jest's CJS resolver can't follow them without explicit mapping.
+    '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
+    '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
+
     // Disabled @sentry/toolbar in tests. It depends on iframes and global
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
+  passWithNoTests: !!MERGE_BASE,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
@@ -301,8 +330,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
@@ -317,24 +345,14 @@ const config: Config.InitialOptions = {
   testResultsProcessor: JEST_TEST_BALANCER
     ? '<rootDir>/tests/js/test-balancer/index.js'
     : undefined,
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      {
-        outputDirectory: '.artifacts',
-        outputName: 'jest.junit.xml',
-      },
-    ],
-  ],
+  reporters: ['default'],
   /**
    * jest.clearAllMocks() automatically called before each test
    * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
    */
   clearMocks: true,
 
-  // To disable the sentry jest integration, set this to 'jsdom'
-  testEnvironment: '@sentry/jest-environment/jsdom',
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
     sentryConfig: {

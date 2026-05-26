@@ -117,19 +117,21 @@ ${JSON.stringify(aliases)}
 
   story('Sorting', () => {
     const location = useLocation();
-    const [data, setData] = useState<TabularData>(sampleHTTPRequestTableData);
+    const [data, setData] = useState(sampleHTTPRequestTableData);
     const [sort, setSort] = useState<Sort>();
     function onChangeSort(newSort: Sort) {
-      const sortedData: Array<TabularRow<string>> = Object.entries(
-        sampleHTTPRequestTableData.data
-      )
+      const sortedData: TabularRow[] = Object.entries(sampleHTTPRequestTableData.data)
         .sort(([, a], [, b]) => {
           const aField = a?.[newSort.field] ?? 0;
           const bField = b?.[newSort.field] ?? 0;
           const value = newSort.kind === 'asc' ? 1 : -1;
 
-          if (aField < bField) return -value;
-          if (aField > bField) return value;
+          if (aField < bField) {
+            return -value;
+          }
+          if (aField > bField) {
+            return value;
+          }
           return 0;
         })
         .map(result => result[1]);
@@ -364,7 +366,9 @@ function onChangeSort(newSort: Sort) {
           onTriggerCellAction={(actions: Actions, value: string | number) => {
             switch (actions) {
               case Actions.ADD:
-                if (!filter.includes(value)) setFilter([...filter, value]);
+                if (!filter.includes(value)) {
+                  setFilter([...filter, value]);
+                }
                 break;
               case Actions.EXCLUDE:
                 setFilter(filter.filter(_value => _value !== value));
@@ -385,8 +389,6 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
       break;
     case Actions.EXCLUDE:
       setFilter(filter.filter(_value => _value !== value));
-      break;
-    default:
       break;
   }
 }

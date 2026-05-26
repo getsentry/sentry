@@ -12,6 +12,60 @@ from sentry.users.models.userpermission import UserPermission
 
 
 @control_silo_test
+class UserDetailsSuspendSecurityActivityTest(APITestCase):
+    endpoint = "sentry-api-0-user-details"
+    method = "put"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.target_user = self.create_user(email="target@example.com")
+        self.superuser = self.create_user(email="su@example.com", is_superuser=True)
+        self.login_as(user=self.superuser, superuser=True)
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_suspend_emits_security_activity(self, mock_security_activity: mock.MagicMock) -> None:
+        self.get_success_response(self.target_user.id, isSuspended="true")
+
+        assert mock_security_activity.called
+        kwargs = mock_security_activity.call_args.kwargs
+        assert kwargs["type"] == "user.suspended"
+        assert kwargs["account"].id == self.target_user.id
+        assert kwargs["actor"].id == self.superuser.id
+        assert kwargs["send_email"] is False
+        assert kwargs["context"] == {"actor_id": self.superuser.id}
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_unsuspend_emits_security_activity(
+        self, mock_security_activity: mock.MagicMock
+    ) -> None:
+        self.target_user.update(is_suspended=True)
+
+        self.get_success_response(self.target_user.id, isSuspended="false")
+
+        assert mock_security_activity.called
+        kwargs = mock_security_activity.call_args.kwargs
+        assert kwargs["type"] == "user.unsuspended"
+        assert kwargs["account"].id == self.target_user.id
+        assert kwargs["send_email"] is False
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_idempotent_suspend_does_not_emit(self, mock_security_activity: mock.MagicMock) -> None:
+        self.target_user.update(is_suspended=True)
+
+        self.get_success_response(self.target_user.id, isSuspended="true")
+
+        assert not mock_security_activity.called
+
+    @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
+    def test_unrelated_update_does_not_emit_suspension_activity(
+        self, mock_security_activity: mock.MagicMock
+    ) -> None:
+        self.get_success_response(self.target_user.id, name="Renamed User")
+
+        assert not mock_security_activity.called
+
+
+@control_silo_test
 class UserDetailsDeleteAnalyticsTest(APITestCase):
     endpoint = "sentry-api-0-user-details"
     method = "delete"

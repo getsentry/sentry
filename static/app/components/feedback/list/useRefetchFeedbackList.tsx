@@ -1,19 +1,19 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
-import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
-import {useQueryClient} from 'sentry/utils/queryClient';
 
 export function useRefetchFeedbackList() {
   const queryClient = useQueryClient();
-  const {listQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
+  const {listApiOptions, resetListHeadTime} = useFeedbackApiOptions();
   const {invalidateListCache} = useFeedbackCache();
 
   const refetchFeedbackList = useCallback(() => {
-    queryClient.invalidateQueries({queryKey: listQueryKey});
+    queryClient.invalidateQueries({queryKey: listApiOptions.queryKey});
     resetListHeadTime();
     invalidateListCache();
-  }, [queryClient, listQueryKey, resetListHeadTime, invalidateListCache]);
+  }, [queryClient, listApiOptions, resetListHeadTime, invalidateListCache]);
 
   return {refetchFeedbackList};
 }

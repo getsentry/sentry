@@ -105,8 +105,12 @@ export function SizeCompareItemDiffTable({
         throw new Error(`Invalid field: ${field}`);
     }
 
-    if (aValue < bValue) return kind === 'asc' ? -1 : 1;
-    if (aValue > bValue) return kind === 'asc' ? 1 : -1;
+    if (aValue < bValue) {
+      return kind === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return kind === 'asc' ? 1 : -1;
+    }
     return 0;
   });
 
@@ -164,7 +168,7 @@ export function SizeCompareItemDiffTable({
                 {t('No results found')}
               </Text>
               {originalItemCount > 0 && (
-                <Button priority="primary" onClick={disableHideSmallChanges}>
+                <Button variant="primary" onClick={disableHideSmallChanges}>
                   {t('Show all changes')}
                 </Button>
               )}
@@ -209,7 +213,7 @@ export function SizeCompareItemDiffTable({
                           {diffItem.path}
                         </Text>
                         <CopyToClipboardButton
-                          priority="transparent"
+                          variant="transparent"
                           size="zero"
                           text={diffItem.path}
                           style={{flexShrink: 0}}

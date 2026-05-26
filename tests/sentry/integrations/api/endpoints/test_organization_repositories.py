@@ -142,113 +142,6 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert second_row["provider"] == {"id": "dummy", "name": "Example"}
         assert second_row["externalSlug"] == str(repo2.external_id)
 
-    def test_status_unmigratable(self) -> None:
-        self.url = self.url + "?status=unmigratable"
-
-        self.create_integration(
-            organization=self.org,
-            provider="github",
-            external_id="github:1",
-        )
-
-        unmigratable_repo = Repository.objects.create(
-            name="NotConnected/foo", organization_id=self.org.id
-        )
-
-        with patch(
-            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
-        ) as f:
-            f.return_value = [unmigratable_repo]
-
-            response = self.client.get(self.url, format="json")
-
-            assert response.status_code == 200, response.content
-            assert response.data[0]["name"] == unmigratable_repo.name
-
-    def test_status_unmigratable_missing_org_integration(self) -> None:
-        self.url = self.url + "?status=unmigratable"
-
-        self.create_integration(
-            organization=self.create_organization(),
-            provider="github",
-            external_id="github:1",
-        )
-
-        unmigratable_repo = Repository.objects.create(
-            name="NotConnected/foo", organization_id=self.org.id
-        )
-
-        with patch(
-            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
-        ) as f:
-            f.return_value = [unmigratable_repo]
-
-            response = self.client.get(self.url, format="json")
-
-            # Doesn't return anything when the OrganizatioIntegration doesn't
-            # exist (the Integration has been disabled)
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 0
-
-    def test_status_unmigratable_disabled_integration(self) -> None:
-        self.url = self.url + "?status=unmigratable"
-
-        self.create_integration(
-            organization=self.org,
-            provider="github",
-            external_id="github:1",
-            status=ObjectStatus.DISABLED,
-        )
-
-        unmigratable_repo = Repository.objects.create(
-            name="NotConnected/foo", organization_id=self.org.id
-        )
-
-        with patch(
-            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
-        ) as f:
-            f.return_value = [unmigratable_repo]
-
-            response = self.client.get(self.url, format="json")
-
-            assert response.status_code == 200
-
-            # Shouldn't return the above "unmigratable repo" since the
-            # Integration is disabled.
-            assert len(response.data) == 0
-
-            # Shouldn't even make the request to get repos
-            assert not f.called
-
-    def test_status_unmigratable_disabled_org_integration(self) -> None:
-        self.url = self.url + "?status=unmigratable"
-        self.create_integration(
-            organization=self.org,
-            provider="github",
-            external_id="github:1",
-            oi_params={"status": ObjectStatus.DISABLED},
-        )
-
-        unmigratable_repo = Repository.objects.create(
-            name="NotConnected/foo", organization_id=self.org.id
-        )
-
-        with patch(
-            "sentry.integrations.github.integration.GitHubIntegration.get_unmigratable_repositories"
-        ) as f:
-            f.return_value = [unmigratable_repo]
-
-            response = self.client.get(self.url, format="json")
-
-            assert response.status_code == 200
-
-            # Shouldn't return the above "unmigratable repo" since the
-            # Integration is disabled.
-            assert len(response.data) == 0
-
-            # Shouldn't even make the request to get repos
-            assert not f.called
-
     def test_passing_integration_id(self) -> None:
         integration = self.create_integration(
             organization=self.org,
@@ -471,3 +364,31 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
             response.content
             == b'{"detail":{"code":"repo_exists","message":"A repository with that configuration already exists","extra":{}}}'
         )
+
+    @patch.object(
+        ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
+    )
+    def test_existing_repo_race_returns_201(self, mock_build_repository_config: MagicMock) -> None:
+        # Simulates a concurrent writer (e.g. link_all_repos) having already
+        # inserted the row: matching provider/external_id AND integration_id.
+        # Dispatch should return the existing row as 201 rather than 400.
+        existing = Repository.objects.create(
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            status=0,
+            external_id="my_external_id",
+            integration_id=self.integration.id,
+            provider="integrations:example",
+            url="https://github.com/getsentry/sentry",
+        )
+
+        with patch.object(
+            ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data
+        ):
+            response = self.client.post(
+                self.url, data={"provider": "integrations:example", "name": "getsentry/sentry"}
+            )
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data["id"] == str(existing.id)
+        assert Repository.objects.count() == 1

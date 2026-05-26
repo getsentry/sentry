@@ -3,6 +3,10 @@ from sentry.incidents.endpoints.serializers.workflow_engine_action import (
     WorkflowEngineActionSerializer,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
+    MetricAlertRegistryHandler,
+)
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_action,
     migrate_metric_data_conditions,
@@ -10,6 +14,92 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
+
+
+class TestGetTargets(TestWorkflowEngineSerializer):
+    def test_batch_user_targets(self) -> None:
+        targets = MetricAlertRegistryHandler.get_targets([self.critical_action])
+        target = targets[self.critical_action.id]
+        assert isinstance(target, OrganizationMember)
+        assert target.user_id == self.user.id
+
+    def test_batch_team_targets(self) -> None:
+        team = self.create_team(organization=self.organization)
+        trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule, label="warning")
+        trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(team.id),
+        )
+        migrate_metric_data_conditions(trigger)
+        action, _, _ = migrate_metric_action(trigger_action)
+
+        targets = MetricAlertRegistryHandler.get_targets([action])
+        assert targets[action.id] == team
+
+    def test_batch_specific_targets(self) -> None:
+        trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule, label="warning")
+        trigger_action = AlertRuleTriggerAction.objects.create(
+            alert_rule_trigger=trigger,
+            target_identifier="123",
+            target_display="myChannel",
+            type=AlertRuleTriggerAction.Type.SLACK,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+        )
+        migrate_metric_data_conditions(trigger)
+        action, _, _ = migrate_metric_action(trigger_action)
+
+        targets = MetricAlertRegistryHandler.get_targets([action])
+        assert targets[action.id] == "123"
+
+    def test_batch_mixed_targets(self) -> None:
+        team = self.create_team(organization=self.organization)
+
+        team_trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule, label="warning")
+        team_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=team_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(team.id),
+        )
+        migrate_metric_data_conditions(team_trigger)
+        team_action, _, _ = migrate_metric_action(team_trigger_action)
+
+        specific_trigger_action = AlertRuleTriggerAction.objects.create(
+            alert_rule_trigger=self.critical_trigger,
+            target_identifier="chan-id",
+            target_display="myChannel",
+            type=AlertRuleTriggerAction.Type.SLACK,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+        )
+        specific_action, _, _ = migrate_metric_action(specific_trigger_action)
+
+        targets = MetricAlertRegistryHandler.get_targets(
+            [self.critical_action, team_action, specific_action]
+        )
+
+        user_target = targets[self.critical_action.id]
+        assert isinstance(user_target, OrganizationMember)
+        assert user_target.user_id == self.user.id
+        assert targets[team_action.id] == team
+        assert targets[specific_action.id] == "chan-id"
+
+    def test_batch_missing_user(self) -> None:
+        other_user = self.create_user()
+        trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule, label="warning")
+        trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(other_user.id),
+        )
+        migrate_metric_data_conditions(trigger)
+        action, _, _ = migrate_metric_action(trigger_action)
+
+        targets = MetricAlertRegistryHandler.get_targets([action])
+        assert targets[action.id] is None
+
+    def test_batch_empty_list(self) -> None:
+        targets = MetricAlertRegistryHandler.get_targets([])
+        assert targets == {}
 
 
 class TestActionSerializer(TestWorkflowEngineSerializer):

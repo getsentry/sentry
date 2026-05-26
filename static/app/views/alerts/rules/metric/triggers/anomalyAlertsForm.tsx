@@ -110,7 +110,7 @@ function DirectionFormItem({
   );
 }
 
-class AnomalyDetectionFormField extends Component<Props> {
+export class AnomalyDetectionFormField extends Component<Props> {
   render() {
     const {sensitivity, onSensitivityChange, thresholdType, onThresholdTypeChange} =
       this.props;
@@ -140,4 +140,3 @@ const StyledField = styled(FieldGroup)`
 const SelectContainer = styled('div')`
   flex: 1;
 `;
-export default AnomalyDetectionFormField;

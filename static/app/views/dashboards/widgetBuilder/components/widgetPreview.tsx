@@ -3,10 +3,10 @@ import {useState} from 'react';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {
   DisplayType,
   WidgetType,
@@ -20,7 +20,7 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 interface WidgetPreviewProps {
@@ -44,7 +44,7 @@ export function WidgetPreview({
   const location = useLocation();
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
-  const [chartInterval] = useChartInterval();
+  const [chartInterval] = useDashboardChartInterval();
 
   const {state, dispatch} = useWidgetBuilderContext();
   const [tableWidths, setTableWidths] = useState<number[]>();
@@ -89,7 +89,7 @@ export function WidgetPreview({
   }
 
   function handleWidgetTableResizeColumn(columns: TabularColumn[]) {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   }
 
@@ -101,7 +101,6 @@ export function WidgetPreview({
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
       isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
-      organization={organization}
       selection={pageFilters.selection}
       widget={
         widget.widgetType === WidgetType.SPANS && isTimeSeries
@@ -112,11 +111,7 @@ export function WidgetPreview({
       isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
-      widgetInterval={
-        organization.features.includes('dashboards-interval-selection')
-          ? chartInterval
-          : undefined
-      }
+      widgetInterval={chartInterval}
       onLegendSelectChanged={() => {}}
       legendOptions={
         widgetLegendState.widgetRequiresLegendUnselection(widget)
@@ -129,7 +124,7 @@ export function WidgetPreview({
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
-      tableItemLimit={widget.limit}
+      tableItemLimit={widget.limit ?? undefined}
       showConfidenceWarning={
         widget.widgetType === WidgetType.SPANS ||
         widget.widgetType === WidgetType.TRACEMETRICS ||

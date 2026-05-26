@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import {docs} from '.';
 
 function renderMockRequests() {
@@ -30,6 +32,18 @@ describe('unity onboarding docs', () => {
       await screen.findByText(
         textWithMarkupMatcher(/https:\/\/github.com\/getsentry\/unity\.git/)
       )
+    ).toBeInTheDocument();
+  });
+
+  it('renders metrics snippet when metrics product is selected', () => {
+    renderMockRequests();
+
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.METRICS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.Increment/))
     ).toBeInTheDocument();
   });
 });

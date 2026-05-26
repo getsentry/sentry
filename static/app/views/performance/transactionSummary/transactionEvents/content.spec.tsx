@@ -1,12 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -23,19 +24,19 @@ function initializeData() {
   });
   const initialData = initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {
-          transaction: '/performance',
-          project: '1',
-          transactionCursor: '1:0:0',
-        },
-      },
-    },
     projects: [],
   });
+  const router = RouterFixture({
+    location: {
+      query: {
+        transaction: '/performance',
+        project: '1',
+        transactionCursor: '1:0:0',
+      },
+    },
+  });
   act(() => ProjectsStore.loadInitialData(initialData.projects));
-  return initialData;
+  return {...initialData, router};
 }
 
 describe('Performance Transaction Events Content', () => {
@@ -154,11 +155,11 @@ describe('Performance Transaction Events Content', () => {
       body: {measurements: false},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/tags/`,
+      url: '/organizations/org-slug/tags/',
       body: [],
     });
     initialData = initializeData();

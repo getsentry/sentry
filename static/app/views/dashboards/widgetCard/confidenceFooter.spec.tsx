@@ -2,7 +2,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -112,7 +112,7 @@ describe('WidgetCardConfidenceFooter', () => {
 
     const footer = await screen.findByText(/Estimated for top 2 groups from/i);
     expect(footer).toHaveTextContent('18 matches');
-    expect(footer).toHaveTextContent('500 spans');
+    await waitFor(() => expect(footer).toHaveTextContent('500 spans'));
   });
 
   it('excludes Other from spans top event metadata', async () => {
@@ -193,7 +193,7 @@ describe('WidgetCardConfidenceFooter', () => {
 
     const footer = await screen.findByText(/Estimated from/i);
     expect(footer).toHaveTextContent('10 matches');
-    expect(footer).toHaveTextContent('500 data points');
+    await waitFor(() => expect(footer).toHaveTextContent('500 data points'));
   });
 
   it('renders logs footer with raw counts from API', async () => {
@@ -233,7 +233,7 @@ describe('WidgetCardConfidenceFooter', () => {
 
     const footer = await screen.findByText(/Estimated from/i);
     expect(footer).toHaveTextContent('10 matches');
-    expect(footer).toHaveTextContent('500 logs');
+    await waitFor(() => expect(footer).toHaveTextContent('500 logs'));
   });
 
   it('does not render footer for unsupported widget types', () => {

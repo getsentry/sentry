@@ -18,7 +18,7 @@ from sentry.spans.log_analyzer import (
 )
 
 
-def test_format_trace_table():
+def test_format_trace_table() -> None:
     """Test formatting trace table."""
     traces = [
         TraceStats(
@@ -49,14 +49,14 @@ def test_format_trace_table():
     assert "2,303" in result
 
 
-def test_format_empty_traces():
+def test_format_empty_traces() -> None:
     """Test formatting empty trace list."""
     result = format_trace_table([])
 
     assert "No traces found" in result
 
 
-def test_format_summary():
+def test_format_summary() -> None:
     """Test formatting summary statistics."""
     stats: SummaryStats = {
         "total_traces": 2,
@@ -74,7 +74,7 @@ def test_format_summary():
     assert "process-spans-6 (20)" in result
 
 
-def test_format_flusher_trace_table():
+def test_format_flusher_trace_table() -> None:
     """Test formatting flusher trace table."""
     traces = [
         FlusherTraceStats(
@@ -102,14 +102,14 @@ def test_format_flusher_trace_table():
     assert "Log Entries" not in result
 
 
-def test_format_flusher_empty_traces():
+def test_format_flusher_empty_traces() -> None:
     """Test formatting empty flusher trace list."""
     result = format_flusher_trace_table([])
 
     assert "No traces found" in result
 
 
-def test_format_flusher_summary():
+def test_format_flusher_summary() -> None:
     """Test formatting flusher summary statistics."""
     stats: FlusherSummaryStats = {
         "total_traces": 2,

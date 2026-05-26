@@ -25,7 +25,7 @@ export function FeedbackSetupPanel() {
     <NoMarginPanel>
       <Container>
         <IlloBox>
-          <img src={feedbackOnboardingImg} />
+          <img src={feedbackOnboardingImg} alt="" />
         </IlloBox>
         <StyledBox>
           <Fragment>
@@ -37,7 +37,7 @@ export function FeedbackSetupPanel() {
             </p>
             <Button
               onClick={activateSidebar}
-              priority="primary"
+              variant="primary"
               analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
               analyticsEventKey="feedback.index-click-onboarding-setup"
             >

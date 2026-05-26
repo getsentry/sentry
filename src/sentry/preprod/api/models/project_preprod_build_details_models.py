@@ -3,14 +3,29 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any, Literal
 
+from django.utils import timezone
 from pydantic import BaseModel, Field
 
+from sentry.preprod.api.models.snapshots.snapshot_status import (
+    ApprovalStatusLiteral,
+    ComparisonStateLiteral,
+    SnapshotStatusInput,
+    derive_snapshot_status,
+)
 from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
 )
-from sentry.preprod.models import Platform, PreprodArtifact, PreprodArtifactSizeMetrics
-from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
+from sentry.preprod.models import (
+    Platform,
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +98,18 @@ class PostedStatusChecks(BaseModel):
     size: StatusCheckResult | None = None
 
 
+class SnapshotComparisonInfo(BaseModel):
+    image_count: int
+    comparison_state: ComparisonStateLiteral | None = None
+    comparison_error_message: str | None = None
+    images_added: int = 0
+    images_removed: int = 0
+    images_changed: int = 0
+    images_unchanged: int = 0
+    images_skipped: int = 0
+    approval_status: ApprovalStatusLiteral | None = None
+
+
 class SizeInfoSizeMetric(BaseModel):
     metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType
     install_size_bytes: int
@@ -147,6 +174,7 @@ class BuildDetailsApiResponse(BaseModel):
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
     base_build_info: BuildDetailsAppInfo | None = None
+    snapshot_comparison_info: SnapshotComparisonInfo | None = None
 
 
 def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
@@ -262,6 +290,82 @@ def to_size_info(
             raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
 
 
+def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotComparisonInfo | None:
+    try:
+        snapshot_metrics = head_artifact.preprodsnapshotmetrics
+    except PreprodSnapshotMetrics.DoesNotExist:
+        return None
+
+    comparisons = sorted(
+        snapshot_metrics.snapshot_comparisons_head_metrics.all(),
+        key=lambda c: c.id,
+        reverse=True,
+    )
+    comparison = comparisons[0] if comparisons else None
+
+    cc = head_artifact.commit_comparison
+    has_base_sha = bool(cc and cc.base_sha)
+    artifact_age_seconds = (timezone.now() - head_artifact.date_added).total_seconds()
+
+    base_artifact_exists: bool | None = None
+    if comparison is None and has_base_sha and cc is not None:
+        if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
+            assert cc.base_sha is not None
+            base_artifact_exists = (
+                find_base_snapshot_artifact(
+                    organization_id=cc.organization_id,
+                    base_sha=cc.base_sha,
+                    base_repo_name=cc.base_repo_name or cc.head_repo_name,
+                    project_id=head_artifact.project_id,
+                    app_id=head_artifact.app_id,
+                    artifact_type=head_artifact.artifact_type,
+                    build_configuration=head_artifact.build_configuration,
+                )
+                is not None
+            )
+
+    approvals = [
+        a
+        for a in head_artifact.preprodcomparisonapproval_set.all()
+        if a.preprod_feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS
+    ]
+    approvals.sort(key=lambda a: a.id, reverse=True)
+
+    derived = derive_snapshot_status(
+        SnapshotStatusInput(
+            latest_comparison=comparison,
+            latest_approval=approvals[0] if approvals else None,
+            has_base_sha=has_base_sha,
+            artifact_age_seconds=artifact_age_seconds,
+            base_artifact_exists=base_artifact_exists,
+        )
+    )
+
+    images_added = 0
+    images_removed = 0
+    images_changed = 0
+    images_unchanged = 0
+    images_skipped = 0
+    if comparison is not None and comparison.state == PreprodSnapshotComparison.State.SUCCESS:
+        images_added = comparison.images_added
+        images_removed = comparison.images_removed
+        images_changed = comparison.images_changed
+        images_unchanged = comparison.images_unchanged
+        images_skipped = comparison.images_skipped
+
+    return SnapshotComparisonInfo(
+        image_count=snapshot_metrics.image_count,
+        comparison_state=derived.comparison_state,
+        comparison_error_message=derived.comparison_error_message,
+        images_added=images_added,
+        images_removed=images_removed,
+        images_changed=images_changed,
+        images_unchanged=images_unchanged,
+        images_skipped=images_skipped,
+        approval_status=derived.approval_status,
+    )
+
+
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
@@ -315,6 +419,8 @@ def transform_preprod_artifact_to_build_details(
 
     posted_status_checks = _parse_posted_status_checks(artifact)
 
+    snapshot_comparison_info = to_snapshot_comparison_info(artifact)
+
     return BuildDetailsApiResponse(
         id=artifact.id,
         state=artifact.state,
@@ -327,6 +433,7 @@ def transform_preprod_artifact_to_build_details(
         posted_status_checks=posted_status_checks,
         base_artifact_id=base_artifact.id if base_artifact else None,
         base_build_info=base_build_info,
+        snapshot_comparison_info=snapshot_comparison_info,
     )
 
 
@@ -359,7 +466,7 @@ def _parse_success_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
         logger.warning(
             "preprod.build_details.invalid_check_id",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "check_id_type": type(check_id).__name__,
             },
         )
@@ -378,7 +485,7 @@ def _parse_failure_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCh
             logger.warning(
                 "preprod.build_details.invalid_error_type",
                 extra={
-                    "artifact_id": artifact_id,
+                    "preprod_artifact_id": artifact_id,
                     "error_type": error_type_str,
                 },
             )

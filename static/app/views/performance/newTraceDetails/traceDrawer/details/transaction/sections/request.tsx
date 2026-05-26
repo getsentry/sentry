@@ -5,7 +5,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getTransformedData} from 'sentry/components/events/interfaces/request/getTransformedData';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {
   TraceDrawerComponents,
   type SectionCardKeyValueList,
@@ -48,7 +48,7 @@ export function Request({event}: {event: EventTransaction}) {
 
   let fullUrl = getFullUrl(data);
 
-  if (!isUrl(fullUrl)) {
+  if (!isValidUrl(fullUrl)) {
     // Check if the url passed in is a safe url to avoid XSS
     fullUrl = undefined;
   }

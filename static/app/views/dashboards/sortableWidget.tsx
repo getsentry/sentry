@@ -25,7 +25,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from './types';
-import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
@@ -55,9 +55,7 @@ type Props = {
 
 export function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [tableWidths, setTableWidths] = useState<number[]>(
-    props.widget.tableWidths ?? []
-  );
+  const [tableWidths, setTableWidths] = useState(props.widget.tableWidths ?? []);
   const [queries, setQueries] = useState<WidgetQuery[]>();
   const {
     widget,
@@ -115,12 +113,14 @@ export function SortableWidget(props: Props) {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
     // Override the widget queries to pass the temporary sort to the widget and expanded modal
     const widgetQueries = cloneDeep(widget.queries);
-    if (widgetQueries[0]) widgetQueries[0].orderby = newOrderBy;
+    if (widgetQueries[0]) {
+      widgetQueries[0].orderby = newOrderBy;
+    }
     setQueries(widgetQueries);
   };
 
   const onWidgetTableResizeColumn = (columns: TabularColumn[]) => {
-    const widths = columns.map(column => column.width as number);
+    const widths = columns.map(column => column.width!);
     setTableWidths(widths);
   };
 

@@ -231,7 +231,7 @@ const CHART_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 
 const TRANSACTIONS_TABLE: Widget = {
   id: 'transactions-table',
-  title: t('Transactions making requests to this domain'),
+  title: t('Transactions Making Requests to This Domain'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '5m',

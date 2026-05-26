@@ -557,6 +557,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=203,
+        name="UPTIME_MONITOR_DISABLE_BROKEN",
+        api_name="uptime_monitor.disable_broken",
+        template="Automatically disabled broken uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=202,
         name="UPTIME_MONITOR_REMOVE",
         api_name="uptime_monitor.remove",
@@ -695,3 +703,6 @@ default_manager.add(
         template="updated autofix automation settings for {project_count} projects",
     )
 )
+default_manager.add(events.RepoAddedAuditLogEvent())
+default_manager.add(events.RepoDisabledAuditLogEvent())
+default_manager.add(events.RepoEnabledAuditLogEvent())

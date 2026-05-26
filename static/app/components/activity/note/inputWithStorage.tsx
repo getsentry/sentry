@@ -2,23 +2,21 @@ import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import type {NoteType} from 'sentry/types/alerts';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
 type Props = {
   itemKey: string;
   storageKey: string;
-  onCancel?: () => void;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
-  source?: string;
   text?: string;
+  variant?: 'compact' | 'full';
 } & InputProps;
 
 function fetchFromStorage(storageKey: string) {
@@ -58,10 +56,9 @@ function NoteInputWithStorage({
   onLoad,
   onSave,
   text,
-  source,
+  variant,
   ...props
 }: Props) {
-  const hasStreamlinedUi = useHasStreamlinedUI();
   const value = useMemo(() => {
     if (text) {
       return text;
@@ -73,7 +70,7 @@ function NoteInputWithStorage({
       return '';
     }
 
-    if (!storageObj.hasOwnProperty(itemKey)) {
+    if (!Object.hasOwn(storageObj, itemKey)) {
       return '';
     }
     if (!onLoad) {
@@ -124,7 +121,7 @@ function NoteInputWithStorage({
       const storageObj = fetchFromStorage(storageKey) ?? {};
 
       // Nothing from this `itemKey` is saved to storage, do nothing
-      if (!storageObj.hasOwnProperty(itemKey)) {
+      if (!Object.hasOwn(storageObj, itemKey)) {
         return;
       }
 
@@ -136,10 +133,9 @@ function NoteInputWithStorage({
     [itemKey, onCreate, storageKey]
   );
 
-  // Make sure `this.props` does not override `onChange` and `onCreate`
-  if (hasStreamlinedUi && source === 'issue-details') {
+  if (variant === 'compact') {
     return (
-      <StreamlinedNoteInput
+      <CompactNoteInput
         text={value}
         onCreate={handleCreate}
         onChange={handleChange}

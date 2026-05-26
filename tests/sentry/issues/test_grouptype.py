@@ -29,14 +29,12 @@ class BaseGroupTypeTest(TestCase):
             slug = "error"
             description = "Error"
             category = GroupCategory.TEST_NOTIFICATION.value
-            category_v2 = GroupCategory.TEST_NOTIFICATION.value
 
         class IssueStreamGroupType(GroupType):
             type_id = 0
             slug = "issue_stream"
             description = "Issue Stream"
             category = GroupCategory.TEST_NOTIFICATION.value
-            category_v2 = GroupCategory.TEST_NOTIFICATION.value
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -51,7 +49,6 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            category_v2 = GroupCategory.ERROR.value
             ignore_limit = 0
 
         @dataclass(frozen=True)
@@ -59,18 +56,16 @@ class GroupTypeTest(BaseGroupTypeTest):
             type_id = 2
             slug = "hellboy"
             description = "Hellboy"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
 
         @dataclass(frozen=True)
         class TestGroupType3(GroupType):
             type_id = 3
             slug = "angelgirl"
             description = "AngelGirl"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
 
-        assert get_group_types_by_category(GroupCategory.PERFORMANCE.value) == {2, 3}
+        assert get_group_types_by_category(GroupCategory.DB_QUERY.value) == {2, 3}
         assert get_group_types_by_category(GroupCategory.ERROR.value) == {1}
 
     def test_get_group_type_by_slug(self) -> None:
@@ -80,26 +75,22 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            category_v2 = GroupCategory.ERROR.value
             ignore_limit = 0
 
         assert get_group_type_by_slug(TestGroupType.slug) == TestGroupType
         assert get_group_type_by_slug("meow") is None
 
     def test_category_validation(self) -> None:
-        @dataclass(frozen=True)
-        class TestGroupType(GroupType):
-            type_id = 1
-            slug = "error"
-            description = "Error"
-            category = 22
-            category_v2 = 22
-
         with self.assertRaisesMessage(
             ValueError,
             f"Category must be one of {[category.value for category in GroupCategory]} from GroupCategory",
         ):
-            TestGroupType(1, "error", "Error", 22, 22)
+
+            class TestGroupType(GroupType):
+                type_id = 1
+                slug = "error"
+                description = "Error"
+                category = 22
 
     def test_default_noise_config(self) -> None:
         @dataclass(frozen=True)
@@ -108,15 +99,13 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            category_v2 = GroupCategory.ERROR.value
 
         @dataclass(frozen=True)
         class TestGroupType2(GroupType):
             type_id = 2
             slug = "hellboy"
             description = "Hellboy"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
             noise_config = NoiseConfig()
 
         assert TestGroupType.noise_config is None
@@ -130,8 +119,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             type_id = 2
             slug = "hellboy"
             description = "Hellboy"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
             noise_config = NoiseConfig(ignore_limit=100, expiry_time=timedelta(hours=12))
 
         assert TestGroupType.noise_config.ignore_limit == 100
@@ -145,8 +133,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             type_id = 1
             slug = "test"
             description = "Test"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
             noise_config = NoiseConfig()
             released = True
 
@@ -159,8 +146,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             type_id = 1
             slug = "test"
             description = "Test"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
             noise_config = NoiseConfig()
             released = False
 
@@ -173,8 +159,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             type_id = 1
             slug = "test"
             description = "Test"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
             noise_config = NoiseConfig()
             released = False
 
@@ -192,7 +177,6 @@ class GroupRegistryTest(BaseGroupTypeTest):
             description = "Mock unreleased issue group"
             released = False
             category = GroupCategory.ERROR.value
-            category_v2 = GroupCategory.ERROR.value
 
         registry = GroupTypeRegistry()
         registry.add(UnreleasedGroupType)
@@ -212,14 +196,7 @@ class GroupRegistryTest(BaseGroupTypeTest):
         registry.add(PerformanceSlowDBQueryGroupType)
         registry.add(PerformanceNPlusOneGroupType)
 
-        # Works for old category mapping
         assert registry.get_by_category(GroupCategory.ERROR.value) == {ErrorGroupType.type_id}
-        assert registry.get_by_category(GroupCategory.PERFORMANCE.value) == {
-            PerformanceSlowDBQueryGroupType.type_id,
-            PerformanceNPlusOneGroupType.type_id,
-        }
-
-        # Works for new category mapping
         assert registry.get_by_category(GroupCategory.DB_QUERY.value) == {
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,

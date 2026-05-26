@@ -5,6 +5,7 @@ from typing import Any, Final
 
 from pydantic import ValidationError
 
+from sentry import options as sentry_options
 from sentry.models.organization import Organization
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.metrics import (
@@ -40,12 +41,23 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
+from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
 
+KILLSWITCH_OPTION_KEY = "notifications.platform.killswitch.sources"
+
 
 class NotificationServiceError(Exception):
+    pass
+
+
+class NotificationRenderError(NotificationServiceError):
+    pass
+
+
+class NotificationKillswitchedError(NotificationServiceError):
     pass
 
 
@@ -77,6 +89,18 @@ class NotificationService[T: NotificationData]:
                 "Notification service must be initialized with data before sending!"
             )
 
+        if self.data.source in sentry_options.get(KILLSWITCH_OPTION_KEY):
+            logger.info(
+                "notifications.platform.killswitch.blocked",
+                extra={"source": self.data.source, "method": "notify_target"},
+            )
+            return SendFailure(
+                status=SendFailureStatus.HALT,
+                exception=NotificationKillswitchedError(
+                    f"Notification source '{self.data.source}' is killswitched"
+                ),
+            )
+
         event_lifecycle = NotificationEventLifecycleMetric(
             interaction_type=NotificationInteractionType.NOTIFY_TARGET_SYNC,
             notification_source=self.data.source,
@@ -94,9 +118,15 @@ class NotificationService[T: NotificationData]:
 
             # Update the lifecycle with the notification category now that we know it
             event_lifecycle.notification_category = template.category
-            renderable = NotificationService.render_template(
-                data=self.data, template=template, provider=provider
-            )
+            try:
+                renderable = NotificationService.render_template(
+                    data=self.data, template=template, provider=provider
+                )
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e, create_issue=True)
+                raise NotificationRenderError(
+                    f"Failed to render notification for source={self.data.source}"
+                ) from e
 
             # Step 3: Resolve thread if threading requested
             thread_context: ThreadContext | None = None
@@ -175,6 +205,14 @@ class NotificationService[T: NotificationData]:
         Send a notification directly to a target via task, if you care about using the result of the notification, use notify_sync instead.
         """
         self._validate_strategy_and_targets(strategy=strategy, targets=targets)
+
+        if self.data.source in sentry_options.get(KILLSWITCH_OPTION_KEY):
+            logger.info(
+                "notifications.platform.killswitch.blocked",
+                extra={"source": self.data.source, "method": "notify_async"},
+            )
+            return
+
         targets = self._get_targets(strategy=strategy, targets=targets)
 
         for target in targets:
@@ -300,6 +338,13 @@ def notify_target_async(
         )
         return
 
+    if notification_data.source in sentry_options.get(KILLSWITCH_OPTION_KEY):
+        logger.info(
+            "notifications.platform.killswitch.blocked",
+            extra={"source": notification_data.source, "method": "notify_target_async"},
+        )
+        return
+
     options = ThreadingOptions.parse_obj(threading_options) if threading_options else None
 
     lifecycle_metric = NotificationEventLifecycleMetric(
@@ -321,9 +366,15 @@ def notify_target_async(
         template_cls = template_registry.get(notification_data.source)
         template = template_cls()
         lifecycle_metric.notification_category = template.category
-        renderable = NotificationService.render_template(
-            data=notification_data, template=template, provider=provider
-        )
+        try:
+            renderable = NotificationService.render_template(
+                data=notification_data, template=template, provider=provider
+            )
+        except Exception as e:
+            lifecycle.record_failure(failure_reason=e, create_issue=True)
+            raise NotificationRenderError(
+                f"Failed to render notification for source={notification_data.source}"
+            ) from e
 
         # Step 4: Resolve thread if threading requested
         thread_context: ThreadContext | None = None
@@ -358,7 +409,7 @@ def notify_target_async(
 
 
 def serialize_notification_data(data: NotificationData) -> dict[str, Any]:
-    return {"source": data.source, "data": data.dict()}
+    return {"source": data.source, "data": json.loads(data.json())}
 
 
 def deserialize_notification_data(raw: dict[str, Any]) -> NotificationData:

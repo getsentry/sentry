@@ -2,6 +2,7 @@ import React, {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,7 +14,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
-import {useQuery} from 'sentry/utils/queryClient';
+import {APIReference} from 'sentry/stories/apiReference';
 
 import {StoryFooter} from './storyFooter';
 import {storyMdxComponents} from './storyMdxComponent';
@@ -140,8 +141,12 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
 function StoryTabList() {
   const {story} = useStory();
 
-  if (!isMDXStory(story)) return null;
-  if (story.exports.frontmatter?.layout === 'document') return null;
+  if (!isMDXStory(story)) {
+    return null;
+  }
+  if (story.exports.frontmatter?.layout === 'document') {
+    return null;
+  }
 
   return (
     <TabList>
@@ -250,7 +255,7 @@ function StoryAPI(props: {documentation: TypeLoader.TypeLoaderResult | undefined
   return (
     <Fragment>
       {Object.entries(props.documentation.props ?? {}).map(([key, value]) => {
-        return <Storybook.APIReference key={key} componentProps={value} />;
+        return <APIReference key={key} componentProps={value} />;
       })}
     </Fragment>
   );
@@ -295,7 +300,9 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
 function StoryModuleExports(props: {
   exports: TypeLoader.TypeLoaderResult['exports'] | undefined;
 }) {
-  if (!props.exports) return null;
+  if (!props.exports) {
+    return null;
+  }
   return <Storybook.ModuleExports exports={props.exports} />;
 }
 

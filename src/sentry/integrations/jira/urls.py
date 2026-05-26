@@ -49,6 +49,11 @@ urlpatterns = [
         JiraExtensionConfigurationView.as_view(),
         name="sentry-extensions-jira-configuration",
     ),
+    # TODO(cells): Legacy URL, remove once Atlassian marketplace version updated.
+    # Our descriptor now correctly points at `/issue-details/{key}/`, but
+    # Atlassian only re-snapshots it when a new Marketplace version of `sentry.io.jira` is
+    # published — existing tenants keep hitting this path until that happens. Routed to the
+    # control view by `JiraRequestParser.immediate_response_cell_classes`.
     re_path(
         r"^issue/(?P<issue_key>[^/]+)/$",
         JiraSentryIssueDetailsView.as_view(),

@@ -263,6 +263,9 @@ def test_field_values(a, op, b) -> None:
             "opportunity_score(measurements.score.fcp)",
         ),
         (100, "*", "opportunity_score(measurements.score.cls)"),
+        ("count_if(`test:foo`)", "+", "ttfd_contribution_rate()"),
+        ('count_if(`test:"blah blah"`)', "+", "ttfd_contribution_rate()"),
+        ('count_if(`test:"blah blah"`,test, test)', "+", "sum_if(`test:\"blah'blah'blah\"`)"),
     ],
 )
 def test_function_values(lhs, op, rhs) -> None:

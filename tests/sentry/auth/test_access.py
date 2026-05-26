@@ -508,6 +508,22 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.has_project_scope(project_other, "project:write")
             assert not result.has_project_scope(project_other, "project:read")
 
+    def test_token_only_scope_survives_upper_bound_intersection(self) -> None:
+        organization = self.create_organization()
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["org:read", "org:ci"]),
+            self.from_request(request, organization, scopes=["org:read", "org:ci"]),
+        ]
+
+        for result in results:
+            assert result.scopes == frozenset({"org:read", "org:ci"})
+            assert not result.has_scope("project:read")
+
 
 @all_silo_test
 class FromRequestTest(AccessFactoryTestCase):

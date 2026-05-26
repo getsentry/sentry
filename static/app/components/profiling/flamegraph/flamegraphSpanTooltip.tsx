@@ -9,6 +9,7 @@ import {formatColorForSpan} from 'sentry/utils/profiling/gl/utils';
 import type {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {
   FlamegraphTooltipColorIndicator,
@@ -51,7 +52,7 @@ export function FlamegraphSpanTooltip({
       <FlamegraphTooltipFrameMainInfo>
         <FlamegraphTooltipColorIndicator
           backgroundImage={
-            hoveredNode.node.span.op === 'missing span instrumentation'
+            hoveredNode.node.span[SpanFields.SPAN_OP] === 'missing span instrumentation'
               ? `url(${spansRenderer.patternDataUrl})`
               : 'none'
           }
@@ -61,9 +62,11 @@ export function FlamegraphSpanTooltip({
         {formatWeightToTransactionDuration(hoveredNode, spanChart)} {hoveredNode.text}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
-        {hoveredNode.node.span.op ? `${t('op')}:${hoveredNode.node.span.op} ` : null}
-        {hoveredNode.node.span.status
-          ? `${t('status')}:${hoveredNode.node.span.status}`
+        {hoveredNode.node.span[SpanFields.SPAN_OP]
+          ? `${t('op')}:${hoveredNode.node.span[SpanFields.SPAN_OP]} `
+          : null}
+        {hoveredNode.node.span[SpanFields.TRACE_STATUS]
+          ? `${t('status')}:${hoveredNode.node.span[SpanFields.TRACE_STATUS]}`
           : null}
       </FlamegraphTooltipTimelineInfo>
       <FlamegraphTooltipTimelineInfo>

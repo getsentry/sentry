@@ -61,6 +61,7 @@ interface IssueAlertFormFieldChoice {
   choices?: Array<[key: string | number, name: string]>;
   initial?: string;
   placeholder?: string;
+  resetsForm?: boolean;
 }
 
 interface IssueAlertFormFieldString {
@@ -75,13 +76,25 @@ interface IssueAlertFormFieldNumber {
   placeholder?: number | string;
 }
 
+interface IssueAlertFormFieldMailAction {
+  type: 'mailAction';
+  choices?: Array<[key: string | number, name: string]>;
+}
+
+interface IssueAlertFormFieldAssignee {
+  type: 'assignee';
+  choices?: Array<[key: string | number, name: string]>;
+}
+
 /**
  * The fields that are used to render the form for an action or condition.
  */
-type IssueAlertRuleFormField =
+export type IssueAlertRuleFormField =
   | IssueAlertFormFieldChoice
   | IssueAlertFormFieldString
-  | IssueAlertFormFieldNumber;
+  | IssueAlertFormFieldNumber
+  | IssueAlertFormFieldMailAction
+  | IssueAlertFormFieldAssignee;
 
 /**
  * All issue alert configuration objects have these properties.
@@ -116,7 +129,7 @@ interface IssueAlertGenericActionConfig extends IssueAlertConfigBase {
  * Currently filters and conditions are basically the same, just with different IDs.
  * Do not add properties unless they are used by all filters.
  */
-export interface IssueAlertGenericConditionConfig extends IssueAlertConfigBase {
+interface IssueAlertGenericConditionConfig extends IssueAlertConfigBase {
   id: `${IssueAlertConditionType}` | `${IssueAlertFilterType}`;
   formFields?: Record<string, IssueAlertRuleFormField>;
 }
@@ -188,7 +201,7 @@ export interface IssueAlertRuleActionTemplate {
   sentryAppInstallationUuid?: string;
   ticketType?: string;
 }
-export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
+type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 
 /**
  * These are the action or condition data that the user is editing or has saved.

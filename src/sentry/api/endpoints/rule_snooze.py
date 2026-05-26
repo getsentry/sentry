@@ -19,6 +19,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.api.utils import to_valid_int_id
 from sentry.db.models.base import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.alert_rule import AlertRule
@@ -91,12 +92,15 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
     permission_classes = (ProjectAlertRulePermission,)
     rule_field: str  # abstract, value comes from child class
 
-    def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
+    def convert_args(
+        self, request: Request, rule_id: str | int, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         (args, kwargs) = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
+        validated_rule_id = to_valid_int_id("rule_id", rule_id, raise_404=True)
         try:
             queryset = self.fetch_rule_list(project=project)
-            rule = queryset.get(id=rule_id)
+            rule = queryset.get(id=validated_rule_id)
         except ObjectDoesNotExist:
             raise NotFound(detail="Rule does not exist")
 

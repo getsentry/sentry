@@ -1,29 +1,43 @@
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
+import isFunction from 'lodash/isFunction';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {GenericField} from 'sentry/components/deprecatedforms/genericField';
+import {FormState} from 'sentry/components/forms/state';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {parseRepo} from 'sentry/utils/git/parseRepo';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {isScmPlugin, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+
+const callbackWithArgs = function (context: any, callback: any, ...args: any) {
+  return isFunction(callback) ? callback.bind(context, ...args) : undefined;
+};
+
+type GenericFieldProps = Parameters<typeof GenericField>[0];
 
 type Props = {
   organization: Organization;
   plugin: Plugin;
   project: Project;
-} & PluginComponentBase['props'];
+};
 
-type Field = Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
+type Field = GenericFieldProps['config'];
 
 type BackendField = Field & {defaultValue?: any; value?: any};
 
@@ -33,42 +47,83 @@ type State = {
   formData: Record<string, any>;
   initialData: Record<string, any> | null;
   rawData: Record<string, any>;
+  state: FormState;
   wasConfiguredOnPageLoad: boolean;
-} & PluginComponentBase['state'];
+};
 
-class PluginSettings<
+export class PluginSettings<
   P extends Props = Props,
   S extends State = State,
-> extends PluginComponentBase<P, S> {
+> extends Component<P, S> {
   constructor(props: P) {
     super(props);
 
-    Object.assign(this.state, {
+    [
+      'onLoadSuccess',
+      'onLoadError',
+      'onSave',
+      'onSaveSuccess',
+      'onSaveError',
+      'onSaveComplete',
+      'renderField',
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    ].map(method => (this[method] = this[method].bind(this)));
+
+    if (this.fetchData) {
+      this.fetchData = this.onLoad.bind(this, this.fetchData.bind(this));
+    }
+    if (this.onSubmit) {
+      this.onSubmit = this.onSave.bind(this, this.onSubmit.bind(this));
+    }
+
+    this.state = {
+      state: FormState.LOADING,
       fieldList: null,
       initialData: null,
       formData: null,
       errors: {},
       rawData: {},
-      // override default FormState.READY if api requests are
-      // necessary to even load the form
-      state: FormState.LOADING,
       wasConfiguredOnPageLoad: false,
-    });
+    } as unknown as Readonly<S>;
   }
-
-  trackPluginEvent = (eventKey: IntegrationAnalyticsKey) => {
-    trackIntegrationAnalytics(eventKey, {
-      integration: this.props.plugin.id,
-      integration_type: 'plugin',
-      view: 'plugin_details',
-      already_installed: this.state.wasConfiguredOnPageLoad,
-      organization: this.props.organization,
-    });
-  };
 
   componentDidMount() {
     this.fetchData();
   }
+
+  componentWillUnmount() {
+    this.api.clear();
+    window.clearTimeout(this.successMessageTimeout);
+    window.clearTimeout(this.errorMessageTimeout);
+  }
+
+  successMessageTimeout: number | undefined = undefined;
+  errorMessageTimeout: number | undefined = undefined;
+
+  api = new Client();
+
+  trackPluginEvent = (
+    eventKey:
+      | 'integrations.installation_start'
+      | 'integrations.installation_complete'
+      | 'integrations.config_saved'
+  ) => {
+    const baseParams = {
+      integration: this.props.plugin.id,
+      integration_type: 'plugin' as const,
+      view: 'plugin_details' as const,
+      already_installed: this.state.wasConfiguredOnPageLoad,
+      organization: this.props.organization,
+    };
+    if (eventKey === 'integrations.config_saved') {
+      trackIntegrationAnalytics(eventKey, baseParams);
+      return;
+    }
+    trackIntegrationAnalytics(eventKey, {
+      ...baseParams,
+      is_scm: isScmPlugin(this.props.plugin),
+    });
+  };
 
   getPluginEndpoint() {
     const org = this.props.organization;
@@ -80,16 +135,90 @@ class PluginSettings<
     // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
     const formData: State['formData'] = this.state.formData;
     formData[name] = value;
-    // upon changing a field, remove errors
     const errors = this.state.errors;
     delete errors[name];
     this.setState({formData, errors});
   }
 
+  onLoad(callback: any, ...args: any[]) {
+    this.setState(
+      {
+        state: FormState.LOADING,
+      },
+      callbackWithArgs(this, callback, ...args)
+    );
+  }
+
+  onLoadSuccess() {
+    this.setState({
+      state: FormState.READY,
+    });
+  }
+
+  onLoadError(callback: any, ...args: any[]) {
+    this.setState(
+      {
+        state: FormState.ERROR,
+      },
+      callbackWithArgs(this, callback, ...args)
+    );
+    addErrorMessage(t('An error occurred.'));
+  }
+
+  onSave(callback: any, ...args: any[]) {
+    if (this.state.state === FormState.SAVING) {
+      return;
+    }
+    callback = callbackWithArgs(this, callback, ...args);
+    this.setState(
+      {
+        state: FormState.SAVING,
+      },
+      () => {
+        addLoadingMessage(t('Saving changes…'));
+        callback?.();
+      }
+    );
+  }
+
+  onSaveSuccess(callback: any, ...args: any[]) {
+    callback = callbackWithArgs(this, callback, ...args);
+    this.setState(
+      {
+        state: FormState.READY,
+      },
+      () => callback?.()
+    );
+
+    window.clearTimeout(this.successMessageTimeout);
+    this.successMessageTimeout = window.setTimeout(() => {
+      addSuccessMessage(t('Success!'));
+    }, 0);
+  }
+
+  onSaveError(callback: any, ...args: any[]) {
+    callback = callbackWithArgs(this, callback, ...args);
+    this.setState(
+      {
+        state: FormState.ERROR,
+      },
+      () => callback?.()
+    );
+
+    window.clearTimeout(this.errorMessageTimeout);
+    this.errorMessageTimeout = window.setTimeout(() => {
+      addErrorMessage(t('Unable to save changes. Please try again.'));
+    }, 0);
+  }
+
+  onSaveComplete(callback: any, ...args: any[]) {
+    clearIndicators();
+    callback = callbackWithArgs(this, callback, ...args);
+    callback?.();
+  }
+
   onSubmit() {
     if (!this.state.wasConfiguredOnPageLoad) {
-      // Users cannot install plugins like other integrations but we need the events for the funnel
-      // we will treat a user saving a plugin that wasn't already configured as an installation event
       this.trackPluginEvent('integrations.installation_start');
     }
 
@@ -149,7 +278,6 @@ class PluginSettings<
           formData[field.name] = field.value || field.defaultValue;
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           initialData[field.name] = field.value;
-          // for simplicity sake, we will consider a plugin was configured if we have any value that is stored in the DB
           wasConfiguredOnPageLoad = wasConfiguredOnPageLoad || !!field.value;
         });
         this.setState(
@@ -158,14 +286,21 @@ class PluginSettings<
             formData,
             initialData,
             wasConfiguredOnPageLoad,
-            // call this here to prevent FormState.READY from being
-            // set before fieldList is
           },
           this.onLoadSuccess
         );
       },
       error: this.onLoadError,
     });
+  }
+
+  renderField(props: Omit<GenericFieldProps, 'formState'>): React.ReactNode {
+    props = {...props};
+    const newProps = {
+      ...props,
+      formState: this.state.state,
+    };
+    return <GenericField key={newProps.config?.name} {...newProps} />;
   }
 
   render() {
@@ -190,7 +325,7 @@ class PluginSettings<
               {data.config_error}
             </Alert>
           </Alert.Container>
-          <LinkButton priority="primary" href={authUrl}>
+          <LinkButton variant="primary" href={authUrl}>
             {t('Associate Identity')}
           </LinkButton>
         </div>
@@ -246,5 +381,3 @@ class PluginSettings<
     );
   }
 }
-
-export default PluginSettings;

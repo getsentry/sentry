@@ -27,11 +27,11 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction> | null;
@@ -123,7 +123,7 @@ export function ProfilePreview({
       }
     }
 
-    return undefined;
+    return;
   }, [
     canvasView,
     event,
@@ -169,9 +169,9 @@ export function ProfilePreview({
       <FlamegraphThemeProvider>
         {message}
         <SectionDivider orientation="horizontal" />
-        <InterimSection
+        <FoldSection
           title={t('Profile')}
-          type="no_instrumentation_profile"
+          sectionKey="no_instrumentation_profile"
           initialCollapse={false}
           actions={
             <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
@@ -195,7 +195,7 @@ export function ProfilePreview({
               )}
             </FlamegraphContainer>
           </div>
-        </InterimSection>
+        </FoldSection>
       </FlamegraphThemeProvider>
     );
   }
@@ -260,7 +260,7 @@ function SetupProfiling({link}: {link: string}) {
               'Profiles can also give you additional context on which functions are getting sampled at the time of these spans.'
             )}
           </TextBlock>
-          <LinkButton size="sm" priority="primary" href={link} external>
+          <LinkButton size="sm" variant="primary" href={link} external>
             {t('Get Started')}
           </LinkButton>
         </span>

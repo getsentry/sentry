@@ -1,14 +1,17 @@
-import {useMemo, useRef, useState} from 'react';
+import {useState} from 'react';
+import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import type {
   Integration,
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -23,7 +26,7 @@ function buildOptimisticRepo(
 ): Repository {
   return {
     id: '',
-    externalId: repo.identifier,
+    externalId: repo.externalId,
     name: repo.name,
     externalSlug: repo.identifier,
     url: '',
@@ -43,44 +46,8 @@ export function useScmRepoSelection({
   reposByIdentifier,
 }: UseScmRepoSelectionOptions) {
   const organization = useOrganization();
-  const {selectedRepository} = useOnboardingContext();
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
-
-  // Fetch repos already registered in Sentry for this integration, so we
-  // can look up the real Repository (with Sentry ID) for "Already Added" repos.
-  const {data: existingRepos, isPending: existingReposPending} = useApiQuery<
-    Repository[]
-  >(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {status: 'active', integration_id: integration.id}},
-    ],
-    {staleTime: 0}
-  );
-
-  const existingReposBySlug = useMemo(
-    () => new Map((existingRepos ?? []).map(r => [r.externalSlug, r])),
-    [existingRepos]
-  );
-
-  // Track the ID of a repo we added during this session so we can clean
-  // it up if the user switches to a different repo.
-  const addedRepoIdRef = useRef<string | null>(null);
-
-  // Best-effort cleanup: fire-and-forget the hide request. If it fails the
-  // repo stays registered in Sentry but is non-critical for the onboarding flow.
-  const cleanupPreviousAdd = () => {
-    if (addedRepoIdRef.current) {
-      fetchMutation({
-        url: `/organizations/${organization.slug}/repos/${addedRepoIdRef.current}/`,
-        method: 'PUT',
-        data: {status: 'hidden'},
-      }).catch(() => {});
-      addedRepoIdRef.current = null;
-    }
-  };
 
   const handleSelect = async (selection: {value: string}) => {
     const repo = reposByIdentifier.get(selection.value);
@@ -88,24 +55,40 @@ export function useScmRepoSelection({
       return;
     }
 
-    cleanupPreviousAdd();
-
     const optimistic = buildOptimisticRepo(repo, integration);
     onSelect(optimistic);
 
-    if (repo.isInstalled) {
-      const existing = existingReposBySlug.get(repo.identifier);
+    // Look up the repo in Sentry. The background link_all_repos task
+    // registers all repos after integration install, so most repos will
+    // already exist. Use a targeted query filtered by name to avoid
+    // pagination issues with the full list.
+    setBusy(true);
+    try {
+      const reposQueryOptions = apiOptions.as<Repository[]>()(
+        '/organizations/$organizationIdOrSlug/repos/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+          query: {
+            status: 'active',
+            integration_id: integration.id,
+            query: repo.identifier,
+          },
+          staleTime: 0,
+        }
+      );
+      const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
+      // Match on externalId — the same field the backend uses to compute
+      // IntegrationRepository.isInstalled in organization_integration_repos.py.
+      // repo.name and repo.identifier diverge across providers (GitLab's
+      // identifier is a numeric project ID), but externalId is stable.
+      const existing = matches?.find(r => r.externalId === repo.externalId);
+
       if (existing) {
         onSelect({...optimistic, ...existing});
         return;
       }
-      // Lookup missed (e.g., repo was hidden). Fall through to re-add it.
-    }
 
-    // Note: for project creation (non-onboarding), we'll also need to handle
-    // migrateRepository for repos previously connected via legacy plugins.
-    setBusy(true);
-    try {
+      // Repo not yet registered (link_all_repos may still be running).
       const created = await fetchMutation<Repository>({
         url: `/organizations/${organization.slug}/repos/`,
         method: 'POST',
@@ -116,43 +99,21 @@ export function useScmRepoSelection({
         },
       });
       onSelect({...optimistic, ...created});
-      addedRepoIdRef.current = created.id;
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
+      addErrorMessage(t('Failed to select repository'));
       onSelect(undefined);
     } finally {
       setBusy(false);
     }
   };
 
-  const handleRemove = async () => {
-    if (!selectedRepository) {
-      return;
-    }
-
-    const previous = selectedRepository;
+  const handleRemove = () => {
     onSelect(undefined);
-
-    if (addedRepoIdRef.current && addedRepoIdRef.current === previous.id) {
-      setBusy(true);
-      try {
-        await fetchMutation({
-          url: `/organizations/${organization.slug}/repos/${previous.id}/`,
-          method: 'PUT',
-          data: {status: 'hidden'},
-        });
-        addedRepoIdRef.current = null;
-      } catch {
-        onSelect(previous);
-      } finally {
-        setBusy(false);
-      }
-    }
   };
 
   return {
-    // Busy while adding/removing a repo or while existing repos are still
-    // loading. The UI disables the CompactSelect and remove button when true.
-    busy: busy || existingReposPending,
+    busy,
     handleSelect,
     handleRemove,
   };

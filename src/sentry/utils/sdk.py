@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import copy
 import logging
+import re
 import sys
 import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
@@ -29,6 +31,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -77,15 +80,24 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 1.0,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket": 1.0,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
-    "sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
+    "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
 }
 
 SAMPLED_ROUTES = {
     "/_warmup/": 0.0,
     "/api/0/auth/validate/": 0.0,
 }
+
+# List of (compiled_pattern, sample_rate) tried in order when no exact route matches.
+SAMPLED_ROUTE_PATTERNS: list[tuple[re.Pattern[str], float]] = [
+    # Temporary: monitoring AI Conversations rollout
+    (re.compile(r"^/api/0/organizations/[^/]+/ai-conversations/"), 1.0),
+]
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
@@ -177,8 +189,12 @@ def get_project_key():
 
 def traces_sampler(sampling_context):
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
-        return SAMPLED_ROUTES[wsgi_path]
+    if wsgi_path:
+        if wsgi_path in SAMPLED_ROUTES:
+            return SAMPLED_ROUTES[wsgi_path]
+        for pattern, rate in SAMPLED_ROUTE_PATTERNS:
+            if pattern.search(wsgi_path):
+                return rate
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
@@ -251,10 +267,13 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
-        if settings.SENTRY_REGION:
-            event["tags"]["sentry_region"] = settings.SENTRY_REGION
+        if settings.SENTRY_LOCAL_CELL:
+            event["tags"]["sentry_region"] = settings.SENTRY_LOCAL_CELL
 
-    if hint.get("exc_info", [None])[0] == OperationalError:
+    event_exc: type[BaseException] | None = hint.get("exc_info", [None])[0]
+    if event_exc == asyncio.CancelledError:
+        return None
+    if event_exc == OperationalError:
         event["level"] = "warning"
 
     return event
@@ -268,6 +287,15 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
         if attributes.get("sentry.message.template") == "New partitions assigned: %r":
             return None
 
+    try:
+        # FIXME: when in ASGI, the call to `options.store` from `in_random_rollout`
+        #        would fail, because of SyncOnlyOperation.
+        #        While we should ideally figure out how to actually fix this,
+        #        for the moment let's just simplify and skip this entirely.
+        asyncio.get_running_loop()
+        return None
+    except Exception:
+        pass
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None
@@ -294,20 +322,17 @@ class Dsns(NamedTuple):
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
-    sdk_options["send_client_reports"] = True
     sdk_options["add_full_stack"] = True
-    sdk_options["enable_http_request_source"] = True
     sdk_options["traces_sampler"] = traces_sampler
-    sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
+    sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["enable_logs"] = True
+    sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=options.get("sdk_http2_experiment.enabled"),
-        before_send_log=before_send_log,
-        enable_logs=True,
-        enable_metrics=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -510,28 +535,36 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    integrations = [
+        DjangoAtomicIntegration(),
+        DjangoIntegration(
+            signals_spans=False,
+            cache_spans=True,
+            middleware_spans=False,
+            db_transaction_spans=True,
+        ),
+        # This makes it so all levels of logging are recorded as breadcrumbs,
+        # but none are captured as events (that's handled by the `internal`
+        # logger defined in `server.py`, which ignores the levels set
+        # in the integration and goes straight to the underlying handler class).
+        LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
+        RustInfoIntegration(),
+        RedisIntegration(),
+    ]
+    disabled_integrations = []
+
+    if settings.SENTRY_SDK_THREADING_INTEGRATION:
+        integrations.append(ThreadingIntegration())
+    else:
+        disabled_integrations.append(ThreadingIntegration())
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
         dsn=dsns.sentry4sentry,
         transport=MultiplexingTransport,
-        integrations=[
-            DjangoAtomicIntegration(),
-            DjangoIntegration(
-                signals_spans=False,
-                cache_spans=True,
-                middleware_spans=False,
-                db_transaction_spans=True,
-            ),
-            # This makes it so all levels of logging are recorded as breadcrumbs,
-            # but none are captured as events (that's handled by the `internal`
-            # logger defined in `server.py`, which ignores the levels set
-            # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
-            RustInfoIntegration(),
-            RedisIntegration(),
-            ThreadingIntegration(),
-        ],
+        integrations=integrations,
+        disabled_integrations=disabled_integrations,
         **sdk_options,
     )
 
@@ -670,6 +703,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     scope = sentry_sdk.get_isolation_scope()
+    set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.start_span(op="other", name="bind_organization_context"):

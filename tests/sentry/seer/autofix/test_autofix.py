@@ -9,25 +9,31 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.seer.agent.utils import _convert_profile_to_execution_tree
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
-    _get_github_username_for_user,
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _pre_resolve_stacktrace_frames,
     _respond_with_error,
     get_all_tags_overview,
-    trigger_autofix,
+    trigger_legacy_autofix,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
-from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
+from sentry.seer.models import (
+    SeerProjectPreference,
+    SeerRepoDefinition,
+)
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.seer.utils import get_github_username_for_user
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import json as sentry_json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -469,7 +475,7 @@ class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_basic(self, mock_get_from_profiling_service) -> None:
         """Test finding a profile for a matching transaction in trace tree."""
         # Setup mock event with transaction name
@@ -531,7 +537,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.profiles.profile_chunks.get_chunk_ids")
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_with_profiler_id(
         self, mock_get_from_profiling_service, mock_get_chunk_ids
     ) -> None:
@@ -639,7 +645,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         profile_result = _get_profile_from_trace_tree(None, event, self.project)
         assert profile_result is None
 
-    @patch("sentry.seer.explorer.utils.get_from_profiling_service")
+    @patch("sentry.seer.agent.utils.get_from_profiling_service")
     def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service) -> None:
         """Test that function returns None when profiling API returns an error."""
         event = Mock()
@@ -828,7 +834,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_trigger_autofix_with_event_id(
         self,
         mock_check_autofix_status,
@@ -857,8 +863,14 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Set test user
         test_user = self.create_user()
 
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            last_triggered_at=before_now(days=1),
+        )
+
         # Call the function
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             event_id=event.event_id,
             user=test_user,
@@ -875,6 +887,9 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group.refresh_from_db()
         assert group.seer_autofix_last_triggered is not None
         assert isinstance(group.seer_autofix_last_triggered, datetime)
+
+        seer_run.refresh_from_db()
+        assert seer_run.last_triggered_at == group.seer_autofix_last_triggered
 
         # Verify the function calls
         mock_call.assert_called_once()
@@ -896,6 +911,61 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             args=[123, group.organization.id], countdown=timedelta(minutes=15).seconds
         )
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.seer.autofix.autofix.get_all_tags_overview")
+    @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
+    @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.autofix._call_autofix")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
+    def test_trigger_autofix_passes_project_preference(
+        self,
+        mock_check_autofix_status,
+        mock_call,
+        mock_get_trace,
+        mock_get_profile,
+        mock_get_tags,
+        mock_record_seer_run,
+    ):
+        """Tests that the preference is passed to _call_autofix."""
+        mock_get_profile.return_value = None
+        mock_get_trace.return_value = None
+        mock_get_tags.return_value = None
+
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="456",
+            name="getsentry/seer",
+        )
+        self.create_seer_project_repository(project=self.project, repository=repo)
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "code_changes")
+
+        data = load_data("python", timestamp=before_now(minutes=1))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+
+        mock_call.return_value = 123
+        test_user = self.create_user()
+
+        response = trigger_legacy_autofix(
+            group=group,
+            event_id=event.event_id,
+            user=test_user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+        )
+
+        assert response.status_code == 202
+
+        call_kwargs = mock_call.call_args.kwargs
+        preference = call_kwargs["preference"]
+        assert isinstance(preference, SeerProjectPreference)
+        assert preference.project_id == self.project.id
+        assert preference.automated_run_stopping_point == "code_changes"
+        assert len(preference.repositories) == 1
+        assert preference.repositories[0].name == "seer"
+        assert preference.repositories[0].external_id == "456"
+
     @patch("sentry.models.Group.get_recommended_event_for_environments")
     @patch("sentry.models.Group.get_latest_event")
     @patch("sentry.seer.autofix.autofix._get_serialized_event")
@@ -914,7 +984,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self.create_group()
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -934,7 +1004,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
-    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
     def test_trigger_autofix_with_web_vitals_issue(
         self,
         mock_check_autofix_status,
@@ -976,7 +1046,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1014,7 +1084,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         group = self.create_group()
         user = self.create_user()
 
-        response = trigger_autofix(
+        response = trigger_legacy_autofix(
             group=group,
             user=user,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
@@ -1028,7 +1098,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
 
 class TestCallAutofix(TestCase):
-    @patch("sentry.seer.autofix.autofix._get_github_username_for_user")
+    @patch("sentry.seer.autofix.autofix.get_github_username_for_user")
     @patch("sentry.seer.autofix.autofix.make_autofix_start_request")
     def test_call_autofix(self, mock_request, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
@@ -1054,7 +1124,18 @@ class TestCallAutofix(TestCase):
         group.first_seen = now
 
         # Test data
-        repos = [{"name": "test-repo"}]
+        preference = SeerProjectPreference(
+            organization_id=456,
+            project_id=789,
+            repositories=[
+                SeerRepoDefinition(
+                    provider="integrations:github",
+                    owner="getsentry",
+                    name="test-repo",
+                    external_id="123",
+                )
+            ],
+        )
         serialized_event = {"event_id": "test-event"}
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
@@ -1066,7 +1147,7 @@ class TestCallAutofix(TestCase):
         run_id = _call_autofix(
             user=user,
             group=group,
-            repos=repos,
+            preference=preference,
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
@@ -1088,7 +1169,8 @@ class TestCallAutofix(TestCase):
         body = orjson.loads(mock_request.call_args[0][0])
         assert body["organization_id"] == 456
         assert body["project_id"] == 789
-        assert body["repos"] == repos
+        assert body["repos"] == [repo.dict() for repo in preference.repositories]
+        assert body["preference"] == preference.dict()
         assert body["issue"]["id"] == 101112
         assert body["issue"]["title"] == "Test Group"
         assert body["issue"]["short_id"] == "TEST-123"
@@ -1108,6 +1190,73 @@ class TestCallAutofix(TestCase):
             == "https://github.com/getsentry/sentry/pull/123"
         )
         assert body["options"]["disable_coding_step"] is False
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_creates_run_and_returns_run_id(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with self.feature("organizations:seer-run-mirror-autofix"):
+            run_id = _call_autofix(
+                user=self.user,
+                group=group,
+                preference=preference,
+                serialized_event={"event_id": "test-event"},
+                profile=None,
+                trace_tree=None,
+                logs=None,
+                tags_overview=None,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            )
+
+        assert run_id == 42
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.type == SeerRunType.AUTOFIX
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.seer_run_state_id == 42
+        assert run.user_id == self.user.id
+
+        sent_body = mock_request.call_args[0][0]
+        body = sentry_json.loads(sent_body)
+        assert body["organization_id"] == group.organization.id
+        assert body["project_id"] == group.project.id
+        assert "external_idempotency_key" in body
+        assert body["external_idempotency_key"] == str(run.uuid)
+
+    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    def test_outbox_path_flush_error_marks_failed_and_raises(self, mock_request: Mock) -> None:
+        mock_request.side_effect = Exception("Seer exploded")
+
+        group = self.create_group()
+        preference = SeerProjectPreference(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            repositories=[],
+        )
+
+        with pytest.raises(Exception, match="Outbox flush failed"):
+            with self.feature("organizations:seer-run-mirror-autofix"):
+                _call_autofix(
+                    user=self.user,
+                    group=group,
+                    preference=preference,
+                    serialized_event={"event_id": "test-event"},
+                    profile=None,
+                    trace_tree=None,
+                    logs=None,
+                    tags_overview=None,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                )
+
+        run = SeerRun.objects.get(organization_id=group.organization.id)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
 
 
 class TestGetGithubUsernameForUser(TestCase):
@@ -1129,7 +1278,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=1,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "testuser"
 
     def test_get_github_username_for_user_with_github_enterprise(self) -> None:
@@ -1150,7 +1299,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=2,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "gheuser"
 
     def test_get_github_username_for_user_without_at_prefix(self) -> None:
@@ -1171,7 +1320,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=3,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "noprefixuser"
 
     def test_get_github_username_for_user_no_mapping(self) -> None:
@@ -1179,7 +1328,7 @@ class TestGetGithubUsernameForUser(TestCase):
         user = self.create_user()
         organization = self.create_organization()
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_non_github_provider(self) -> None:
@@ -1200,7 +1349,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=4,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_multiple_mappings(self) -> None:
@@ -1233,7 +1382,7 @@ class TestGetGithubUsernameForUser(TestCase):
             date_added=before_now(days=1),
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "newuser"
 
     def test_get_github_username_for_user_from_commit_author(self) -> None:
@@ -1252,7 +1401,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id="github:githubuser",
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "githubuser"
 
     def test_get_github_username_for_user_from_commit_author_github_enterprise(self) -> None:
@@ -1271,7 +1420,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id="github_enterprise:ghuser",
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "ghuser"
 
     def test_get_github_username_for_user_external_actor_priority(self) -> None:
@@ -1302,7 +1451,7 @@ class TestGetGithubUsernameForUser(TestCase):
         )
 
         # Should use ExternalActor (higher priority)
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "externaluser"
 
     def test_get_github_username_for_user_commit_author_no_external_id(self) -> None:
@@ -1321,7 +1470,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id=None,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_wrong_organization(self) -> None:
@@ -1341,7 +1490,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id="github:wrongorguser",
         )
 
-        username = _get_github_username_for_user(user, organization1.id)
+        username = get_github_username_for_user(user, organization1.id)
         assert username is None
 
     def test_get_github_username_for_user_unverified_email_not_matched(self) -> None:
@@ -1364,7 +1513,7 @@ class TestGetGithubUsernameForUser(TestCase):
         )
 
         # Should NOT match the unverified email (security fix)
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_verified_secondary_email_matched(self) -> None:
@@ -1387,7 +1536,7 @@ class TestGetGithubUsernameForUser(TestCase):
         )
 
         # Should match the verified secondary email
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "developeruser"
 
 
@@ -1474,13 +1623,13 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_http_error(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 500
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1489,14 +1638,14 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_json_decode_error(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 200
         mock_response.json.side_effect = Exception("Invalid JSON")
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
@@ -1505,19 +1654,61 @@ class UpdateAutofixTest(TestCase):
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_success(self, mock_request):
-        from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.autofix import update_legacy_autofix
 
         mock_response = Mock()
         mock_response.status = 200
         mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
         mock_request.return_value = mock_response
 
-        response = update_autofix(
+        response = update_legacy_autofix(
             organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
         )
 
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value
+
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request):
+        from sentry.seer.autofix.autofix import update_legacy_autofix
+        from sentry.seer.autofix.types import AutofixCreatePRPayload, AutofixSelectSolutionPayload
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        payloads: list[AutofixSelectSolutionPayload | AutofixCreatePRPayload] = [
+            AutofixSelectSolutionPayload(type="select_solution"),
+            AutofixCreatePRPayload(type="create_pr"),
+        ]
+        for payload in payloads:
+            response = update_legacy_autofix(
+                organization_id=self.organization.id,
+                run_id=self.run_id,
+                payload=payload,
+            )
+
+            assert response.status_code == 403
+            assert response.data["detail"] == "Code generation is disabled for this organization"
+
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_allows_select_root_cause_when_coding_disabled(self, mock_request):
+        from sentry.seer.autofix.autofix import update_legacy_autofix
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": self.run_id}
+        mock_request.return_value = mock_response
+
+        response = update_legacy_autofix(
+            organization_id=self.organization.id,
+            run_id=self.run_id,
+            payload={"type": "select_root_cause", "cause_id": 1},
+        )
+
+        assert response.status_code == 200
+        mock_request.assert_called_once()
 
 
 class TestPreResolveStacktraceFrames(TestCase):
@@ -1540,7 +1731,7 @@ class TestPreResolveStacktraceFrames(TestCase):
             ],
         }
 
-    def test_resolves_frames_with_code_mapping(self):
+    def test_resolves_frames_with_code_mapping(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1567,7 +1758,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         # Non in-app frames should not be resolved
         assert "repo_name" not in frames[2]
 
-    def test_no_code_mappings_is_noop(self):
+    def test_no_code_mappings_is_noop(self) -> None:
         event = self._make_serialized_event([{"filename": "src/utils.py", "inApp": True}])
 
         _pre_resolve_stacktrace_frames(event, [])
@@ -1575,7 +1766,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
         assert "repo_name" not in frames[0]
 
-    def test_unmatched_frames_left_unresolved(self):
+    def test_unmatched_frames_left_unresolved(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1597,7 +1788,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         assert frames[0]["repo_name"] == "getsentry/sentry"
         assert "repo_name" not in frames[1]
 
-    def test_multiple_repos(self):
+    def test_multiple_repos(self) -> None:
         project = self.create_project()
         repo1 = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234
@@ -1627,7 +1818,7 @@ class TestPreResolveStacktraceFrames(TestCase):
         assert frames[1]["repo_name"] == "getsentry/seer"
         assert frames[1]["filename"] == "src/seer/models.py"
 
-    def test_resolves_thread_frames(self):
+    def test_resolves_thread_frames(self) -> None:
         project = self.create_project()
         repo = self.create_repo(
             name="getsentry/sentry", provider="github", external_id="123", integration_id=234

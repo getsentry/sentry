@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import {useFeedbackActions} from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
 import {IconCopy, IconEllipsis} from 'sentry/icons';
@@ -132,12 +132,12 @@ function LargeWidth({
     <Fragment>
       <Button
         size="xs"
-        priority={isResolved ? 'danger' : 'primary'}
+        variant={isResolved ? 'danger' : 'primary'}
         onClick={onResolveClick}
       >
         {isResolved ? t('Unresolve') : t('Resolve')}
       </Button>
-      <Button size="xs" priority="default" onClick={onSpamClick}>
+      <Button size="xs" variant="secondary" onClick={onSpamClick}>
         {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
       </Button>
       <Tooltip
@@ -151,7 +151,7 @@ function LargeWidth({
       <Tooltip title={t('Copy feedback as markdown')}>
         <Button
           size="xs"
-          priority="default"
+          variant="secondary"
           icon={<IconCopy />}
           onClick={onCopyToClipboard}
           aria-label={t('Copy feedback as markdown')}
@@ -192,7 +192,7 @@ function MediumWidth({
     <Fragment>
       <Button
         size="xs"
-        priority={isResolved ? 'danger' : 'primary'}
+        variant={isResolved ? 'danger' : 'primary'}
         onClick={onResolveClick}
       >
         {isResolved ? t('Unresolve') : t('Resolve')}

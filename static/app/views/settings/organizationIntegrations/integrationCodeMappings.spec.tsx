@@ -81,9 +81,9 @@ describe('IntegrationCodeMappings', () => {
 
   it('shows the paths', async () => {
     render(<IntegrationCodeMappings integration={integration} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    for (const repo of repos) {
+    expect(await screen.findByText(repos[0]!.name)).toBeInTheDocument();
+    for (const repo of repos.slice(1)) {
       expect(screen.getByText(repo.name)).toBeInTheDocument();
     }
   });
@@ -106,10 +106,9 @@ describe('IntegrationCodeMappings', () => {
       }),
     });
     render(<IntegrationCodeMappings integration={integration} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     const {waitForModalToHide} = renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await selectEvent.select(
@@ -165,10 +164,9 @@ describe('IntegrationCodeMappings', () => {
       }),
     });
     render(<IntegrationCodeMappings integration={integration} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     const {waitForModalToHide} = renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]!);
+    await userEvent.click((await screen.findAllByRole('button', {name: 'edit'}))[0]!);
     await userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Stack Trace Root'}),
@@ -206,10 +204,9 @@ describe('IntegrationCodeMappings', () => {
       },
     });
     render(<IntegrationCodeMappings integration={integration} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
 
     await selectEvent.select(screen.getByText('Choose repo'), repos[1]!.name);
@@ -227,10 +224,9 @@ describe('IntegrationCodeMappings', () => {
 
     render(<IntegrationCodeMappings integration={integration} />);
     renderGlobalModal();
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     // Should show both path configs initially
-    expect(screen.getByText(pathConfig1.repoName)).toBeInTheDocument();
+    expect(await screen.findByText(pathConfig1.repoName)).toBeInTheDocument();
     expect(screen.getByText(pathConfig2.repoName)).toBeInTheDocument();
 
     // Override mock before refetch happens after delete

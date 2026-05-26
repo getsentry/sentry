@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import platform
 import select
 import shutil
 import subprocess
@@ -10,26 +9,16 @@ from pathlib import Path
 from sentry.preprod.snapshots.image_diff.types import OdiffResponse
 from sentry.utils import json
 
-ODIFF_PLATFORM_SUFFIXES = {
-    ("arm64", "Darwin"): "macos-arm64",
-    ("aarch64", "Darwin"): "macos-arm64",
-    ("x86_64", "Darwin"): "macos-x64",
-    ("x86_64", "Linux"): "linux-x64",
-    ("aarch64", "Linux"): "linux-arm64",
-    ("arm64", "Linux"): "linux-arm64",
-}
-
 
 def _find_odiff_binary() -> str:
-    suffix = ODIFF_PLATFORM_SUFFIXES.get((platform.machine(), platform.system()))
-
     current = Path(__file__).resolve()
     for parent in current.parents:
         if (parent / "pyproject.toml").exists():
-            if suffix:
-                raw = parent / "node_modules" / "odiff-bin" / "raw_binaries" / f"odiff-{suffix}"
-                if raw.exists():
-                    return str(raw)
+            # odiff-bin's post_install.js copies the platform-specific raw binary here with +x
+            # on every OS; the .exe suffix is a package convention, not Windows-only.
+            binary = parent / "node_modules" / "odiff-bin" / "bin" / "odiff.exe"
+            if binary.exists():
+                return str(binary)
             break
 
     found = shutil.which("odiff")

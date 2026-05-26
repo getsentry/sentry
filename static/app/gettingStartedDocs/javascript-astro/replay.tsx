@@ -115,7 +115,7 @@ import * as Sentry from "@sentry/astro";`,
         {
           type: 'text',
           text: tct(
-            `The [code:sentry.client.config.js] file allows you to configure client-side SDK options including replay settings. Learn more about manual SDK initialization [link:here].`,
+            'The [code:sentry.client.config.js] file allows you to configure client-side SDK options including replay settings. Learn more about manual SDK initialization [link:here].',
             {
               code: <code />,
               link: (

@@ -126,7 +126,7 @@ class UserNotificationSettingsProvidersPutTest(UserNotificationSettingsProviders
             value=NotificationSettingsOptionEnum.ALWAYS.value,
             provider=ExternalProviderEnum.SLACK.value,
         ).exists()
-        assert len(response.data) == 3
+        assert len(response.data) == 4
 
     def test_invalid_scope_type(self) -> None:
         response = self.get_error_response(

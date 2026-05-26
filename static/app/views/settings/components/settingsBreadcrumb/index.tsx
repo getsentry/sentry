@@ -2,32 +2,32 @@ import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
-import {OrganizationCrumb} from './organizationCrumb';
 import {ProjectCrumb} from './projectCrumb';
 import {TeamCrumb} from './teamCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
 const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
-  Organization: OrganizationCrumb,
   Project: ProjectCrumb,
   Team: TeamCrumb,
 } as const;
 
 type Props = {
   params: Record<string, string | undefined>;
-  routes: RouteWithName[];
   className?: string;
 };
 
-export function SettingsBreadcrumb({className, routes, params}: Props) {
+export function SettingsBreadcrumb({className, params}: Props) {
+  const routes = useRoutes() as RouteWithName[];
   const pathMap = useBreadcrumbsPathmap();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
@@ -48,7 +48,8 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
         if (!route.name) {
           return null;
         }
-        const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
+        const pathTitle =
+          pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
         const Menu = MENUS[route.name];
         const hasMenu = !!Menu;
@@ -63,6 +64,13 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
             />
           );
         }
+        if (isLast) {
+          return (
+            <Text key={`${route.name}:${route.path}`} as="span">
+              {pathTitle || route.name}
+            </Text>
+          );
+        }
         return (
           <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
             <CrumbLink
@@ -71,7 +79,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
             >
               {pathTitle || route.name}
             </CrumbLink>
-            {isLast ? null : <Divider />}
+            <Divider />
           </Flex>
         );
       })}
@@ -85,6 +93,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
 // routes do not have organization information.
 export const CrumbLink = styled(RouterLink)`
   display: block;
+  line-height: ${p => p.theme.font.lineHeight.default};
 
   color: ${p => p.theme.tokens.content.secondary};
   &:hover {

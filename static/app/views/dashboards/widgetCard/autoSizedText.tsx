@@ -9,16 +9,16 @@ interface Props {
 export function AutoSizedText({children}: Props) {
   const childRef = useRef<HTMLDivElement>(null);
 
-  const fontSize = useRef<number>(0);
-  const fontSizeLowerBound = useRef<number>(0);
-  const fontSizeUpperBound = useRef<number>(0);
+  const fontSize = useRef(0);
+  const fontSizeLowerBound = useRef(0);
+  const fontSizeUpperBound = useRef(0);
 
   useLayoutEffect(() => {
     const childElement = childRef.current; // This is `SizedChild`
     const parentElement = childRef.current?.parentElement; // This is the parent of `AutoSizedText`
 
     if (!childElement || !parentElement) {
-      return undefined;
+      return;
     }
 
     if (!window.ResizeObserver) {
@@ -29,7 +29,7 @@ export function AutoSizedText({children}: Props) {
       const parentDimensions = getElementDimensions(parentElement);
 
       adjustFontSize(childDimensions, parentDimensions);
-      return undefined;
+      return;
     }
 
     // On component first mount, register a `ResizeObserver` on the containing element. The handler fires

@@ -15,7 +15,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializerWithProjectsAndTeams,
+    OrganizationWithProjectsAndTeamsSerializer,
 )
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.core.endpoints.project_transfer import SALT
@@ -94,7 +94,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
                 "organizations": serialize(
                     list(organizations),
                     request.user,
-                    DetailedOrganizationSerializerWithProjectsAndTeams(),
+                    OrganizationWithProjectsAndTeamsSerializer(),
                     access=request.access,
                 ),
                 "project": {"slug": project.slug, "id": project.id},

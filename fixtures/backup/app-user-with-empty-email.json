@@ -23,6 +23,7 @@
       "is_managed": false,
       "is_sentry_app": true,
       "is_password_expired": false,
+      "is_suspended": false,
       "last_password_change": "2023-09-24T17:12:09.126Z",
       "flags": "0",
       "session_nonce": null,

@@ -55,8 +55,11 @@ export function PendingChanges({organization, subscription}: Props) {
     return pendingChange !== null && pendingChange !== currentValue;
   };
 
-  const getNestedValue = <T,>(object: Record<string, any>, keys: string): T | null => {
-    return keys.split('.').reduce((acc, key) => acc?.[key] ?? null, object) as T | null;
+  const getNestedValue = (
+    object: Record<string, any>,
+    keys: string
+  ): Record<string, any> | null => {
+    return keys.split('.').reduce((acc, key) => acc?.[key] ?? null, object);
   };
 
   const getOnDemandChanges = () => {
@@ -66,10 +69,10 @@ export function PendingChanges({organization, subscription}: Props) {
       hasOnDemandBudgetsFeature(organization, subscription) ||
       (pendingChanges.onDemandBudgets && subscription.partner?.isActive)
     ) {
-      const nextOnDemandBudgets = getNestedValue<PendingOnDemandBudgets>(
+      const nextOnDemandBudgets = getNestedValue(
         pendingChanges,
         'onDemandBudgets'
-      );
+      ) as PendingOnDemandBudgets;
       if (nextOnDemandBudgets) {
         const pendingOnDemandBudgets = parseOnDemandBudgets(nextOnDemandBudgets);
         const currentOnDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
@@ -99,9 +102,12 @@ export function PendingChanges({organization, subscription}: Props) {
       }
     } else if (hasChange('onDemandMaxSpend')) {
       const nextOnDemandMaxSpend =
-        getNestedValue<number>(pendingChanges, 'onDemandMaxSpend') ?? 0;
+        (getNestedValue(pendingChanges, 'onDemandMaxSpend') as unknown as
+          | number
+          | null) ?? 0;
       const currentOnDemandMaxSpend =
-        getNestedValue<number>(subscription, 'onDemandMaxSpend') ?? 0;
+        (getNestedValue(subscription, 'onDemandMaxSpend') as unknown as number | null) ??
+        0;
       results.push(
         tct('[budgetType] spend change from [currentAmount] to [newAmount]', {
           budgetType: displayBudgetName(subscription.planDetails, {title: true}),

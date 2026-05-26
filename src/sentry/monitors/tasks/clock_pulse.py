@@ -8,7 +8,10 @@ from functools import cache
 from arroyo import Partition
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
-from confluent_kafka.admin import AdminClient, PartitionMetadata
+from confluent_kafka.admin import (  # type: ignore[attr-defined]
+    AdminClient,
+    PartitionMetadata,
+)
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse, IngestMonitorMessage

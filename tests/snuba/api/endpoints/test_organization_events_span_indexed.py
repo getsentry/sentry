@@ -25,12 +25,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
     def do_request(self, query, features=None, **kwargs):
         return super().do_request(query, features, **kwargs)
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.features = {
-            "organizations:starfish-view": True,
-        }
-
     @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
     def test_spm(self) -> None:
         self.store_spans(

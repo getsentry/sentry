@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
 import orjson
 from django.db import router, transaction
-from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+from rest_framework.fields import CharField
 
 from sentry import options
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -27,7 +28,8 @@ from sentry.integrations.pagerduty.metrics import record_event
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -186,6 +188,52 @@ class PagerDutyIntegration(IntegrationInstallation):
         return []
 
 
+class PagerDutyInstallationData(TypedDict):
+    config: str
+
+
+class PagerDutyInstallationApiSerializer(CamelSnakeSerializer[PagerDutyInstallationData]):
+    config = CharField(required=True)
+
+    def validate_config(self, value: str) -> str:
+        try:
+            orjson.loads(value)
+        except orjson.JSONDecodeError:
+            raise serializers.ValidationError("Invalid JSON configuration data.")
+        return value
+
+
+class PagerDutyInstallationApiStep:
+    """API-mode step for PagerDuty integration setup.
+
+    PagerDuty uses an app install redirect flow: the user is sent to PagerDuty's
+    install page, and the callback returns a JSON config param containing account
+    info and integration keys.
+    """
+
+    step_name = "installation_redirect"
+
+    def _get_app_url(self) -> str:
+        app_id = options.get("pagerduty.app-id")
+        setup_url = absolute_uri("/extensions/pagerduty/setup/")
+        return f"https://app.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, str]:
+        return {"installUrl": self._get_app_url()}
+
+    def get_serializer_cls(self) -> type:
+        return PagerDutyInstallationApiSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("config", validated_data["config"])
+        return PipelineStepResult.advance()
+
+
 class PagerDutyIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.PAGERDUTY.value
     name = "PagerDuty"
@@ -195,8 +243,11 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [PagerDutyInstallationRedirect()]
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [PagerDutyInstallationApiStep()]
 
     def post_install(
         self,
@@ -235,24 +286,3 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
             "external_id": account["subdomain"],
             "metadata": {"services": services, "domain_name": account["subdomain"]},
         }
-
-
-class PagerDutyInstallationRedirect:
-    def get_app_url(self, account_name: str | None = None) -> str:
-        if not account_name:
-            account_name = "app"
-
-        app_id = options.get("pagerduty.app-id")
-        setup_url = absolute_uri("/extensions/pagerduty/setup/")
-
-        return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with record_event(OnCallInteractionType.INSTALLATION_REDIRECT).capture():
-            if "config" in request.GET:
-                pipeline.bind_state("config", request.GET["config"])
-                return pipeline.next_step()
-
-            account_name = request.GET.get("account", None)
-
-            return HttpResponseRedirect(self.get_app_url(account_name))

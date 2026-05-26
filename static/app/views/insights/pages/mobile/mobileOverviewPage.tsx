@@ -20,7 +20,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -42,7 +42,6 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
@@ -108,7 +107,6 @@ interface EAPMobileOverviewPageProps {
 function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
-  const hasPlatformizedInsights = useHasPlatformizedInsights();
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -125,7 +123,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
-    generateGenericPerformanceEventView(location, withStaticFilters, organization),
+    generateGenericPerformanceEventView(location, withStaticFilters),
     withStaticFilters,
     true
   );
@@ -172,12 +170,10 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
-  if (organization.features.includes('starfish-mobile-appstart')) {
-    doubleChartRowCharts.push(
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
-    );
-  }
+  doubleChartRowCharts.push(
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
+  );
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
@@ -283,7 +279,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
-            {hasPlatformizedInsights && <MobileVitalsBanner />}
+            <MobileVitalsBanner />
             <ModuleLayout.Full>
               {showOnboarding ? (
                 <LegacyOnboarding
@@ -291,7 +287,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
                   organization={organization}
                 />
               ) : (
-                <PerformanceDisplayProvider
+                <PerformanceDisplayContext
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
                   <DoubleChartRow
@@ -301,7 +297,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
                   />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <MobileOverviewTable response={response} sort={sorts[1]} />
-                </PerformanceDisplayProvider>
+                </PerformanceDisplayContext>
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {t} from 'sentry/locale';
 import {
   SlideoutId,
@@ -22,10 +23,7 @@ function getSlideoutComponent(
     case SlideoutId.CLS:
     case SlideoutId.TTFB:
       return (
-        <WebVitalsDetailPanel
-          webVital={slideOutId as WebVitals}
-          dashboardFilters={dashboardFilters}
-        />
+        <WebVitalsDetailPanel webVital={slideOutId} dashboardFilters={dashboardFilters} />
       );
     case SlideoutId.LCP_SUMMARY:
     case SlideoutId.FCP_SUMMARY:

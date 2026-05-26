@@ -867,7 +867,6 @@ class TestGetDetectorsForEvent(TestCase):
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
     def test_activity_update(self) -> None:
-        # only picks up metric detector because the group type does not enable the issue stream detector
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -878,7 +877,7 @@ class TestGetDetectorsForEvent(TestCase):
         result = get_detectors_for_event_data(event_data, detector=self.detector)
         assert result is not None
         assert result.preferred_detector == self.detector
-        assert result.detectors == {self.detector}
+        assert result.detectors == {self.issue_stream_detector, self.detector}
 
     def test_error_group_type(self) -> None:
         # default behavior for a group type is to pick up the issue stream detector
@@ -896,30 +895,6 @@ class TestGetDetectorsForEvent(TestCase):
         result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.detector
-        assert result.detectors == {self.detector}
-
-    def test_metric_issue_with_feature_flag(self) -> None:
-        self.group_event.occurrence = self.occurrence
-
-        event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        with self.feature("organizations:workflow-engine-metric-issue-ui"):
-            result = get_detectors_for_event_data(event_data)
-        assert result is not None
-        assert result.preferred_detector == self.detector
-        assert result.detectors == {self.issue_stream_detector, self.detector}
-
-    def test_activity_update_with_feature_flag(self) -> None:
-        activity = Activity.objects.create(
-            project=self.project,
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-            user_id=self.user.id,
-        )
-        event_data = WorkflowEventData(event=activity, group=self.group)
-        with self.feature("organizations:workflow-engine-metric-issue-ui"):
-            result = get_detectors_for_event_data(event_data, detector=self.detector)
-        assert result is not None
-        assert result.preferred_detector == self.detector
         assert result.detectors == {self.issue_stream_detector, self.detector}
 
     def test_metric_issue_with_disable_detector_flag(self) -> None:
@@ -928,18 +903,15 @@ class TestGetDetectorsForEvent(TestCase):
 
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         with self.feature(
-            {
-                "organizations:workflow-engine-metric-issue-ui": True,
-                "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications": True,
-            }
+            "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications"
         ):
             result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert result.preferred_detector == self.detector
         assert result.detectors == {self.detector}
 
-    def test_non_metric_issue_in_disable_list_with_feature_flag(self) -> None:
-        """Feature flag override only applies to MetricIssue, not other disabled group types."""
+    def test_non_metric_issue_in_disable_list(self) -> None:
+        """Disable override only applies to MetricIssue, not other disabled group types."""
         self.group.update(type=FeedbackGroup.type_id)
         activity = Activity.objects.create(
             project=self.project,
@@ -948,16 +920,13 @@ class TestGetDetectorsForEvent(TestCase):
             user_id=self.user.id,
         )
         event_data = WorkflowEventData(event=activity, group=self.group)
-        with (
-            self.feature("organizations:workflow-engine-metric-issue-ui"),
-            self.options(
-                {
-                    "workflow_engine.group.type_id.disable_issue_stream_detector": [
-                        MetricIssue.type_id,
-                        FeedbackGroup.type_id,
-                    ]
-                }
-            ),
+        with self.options(
+            {
+                "workflow_engine.group.type_id.disable_issue_stream_detector": [
+                    MetricIssue.type_id,
+                    FeedbackGroup.type_id,
+                ]
+            }
         ):
             result = get_detectors_for_event_data(event_data)
         assert result is None

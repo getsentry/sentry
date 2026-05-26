@@ -5,7 +5,7 @@ from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.scm.types import SubscriptionEvent
 
 
-def test_produce_to_scm_stream():
+def test_produce_to_scm_stream() -> None:
     metrics = []
 
     def record_count(k, a, t):
@@ -29,7 +29,7 @@ def test_produce_to_scm_stream():
     assert metrics == [("sentry.scm.produce_event_to_scm_stream.success", 1, {})]
 
 
-def test_produce_to_scm_stream_unsupported_provider():
+def test_produce_to_scm_stream_unsupported_provider() -> None:
     metrics = []
 
     def record_count(k, a, t):
@@ -54,12 +54,12 @@ def test_produce_to_scm_stream_unsupported_provider():
         (
             "sentry.scm.produce_event_to_scm_stream.failed",
             1,
-            {"reason": "not-supported", "provider": event["type"]},
+            {"reason": "provider-not-supported", "provider": event["type"]},
         )
     ]
 
 
-def test_produce_to_scm_stream_invalid_payload():
+def test_produce_to_scm_stream_invalid_payload() -> None:
     metrics = []
     reported_exception = None
 
@@ -92,7 +92,7 @@ def test_produce_to_scm_stream_invalid_payload():
     ]
 
 
-def test_produce_to_scm_stream_rollout_disabled():
+def test_produce_to_scm_stream_rollout_disabled() -> None:
     metrics = []
     reported_exception = None
 

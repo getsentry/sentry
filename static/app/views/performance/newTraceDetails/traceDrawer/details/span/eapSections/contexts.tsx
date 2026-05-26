@@ -62,7 +62,6 @@ export function Contexts({
       alias={alias}
       value={value}
       event={event}
-      group={undefined}
       project={project}
     />
   ));

@@ -1,14 +1,13 @@
-import {useCallback, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   useLogsQueryHighFidelity,
-  useLogsQueryKeyWithInfinite,
+  useLogsApiOptionsWithInfinite,
 } from 'sentry/views/explore/logs/useLogsQuery';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
@@ -37,12 +36,19 @@ interface LogsAutoRefreshContextValue {
   setPausedAt: (timestamp: number | undefined) => void;
 }
 
-const [_LogsAutoRefreshProvider, useLogsAutoRefresh, LogsAutoRefreshContext] =
-  createDefinedContext<LogsAutoRefreshContextValue>({
-    name: 'LogsAutoRefreshContext',
-  });
+const LogsAutoRefreshContext = createContext<LogsAutoRefreshContextValue | undefined>(
+  undefined
+);
 
-export {useLogsAutoRefresh};
+export function useLogsAutoRefresh(): LogsAutoRefreshContextValue {
+  const context = useContext(LogsAutoRefreshContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "LogsAutoRefreshContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 interface LogsAutoRefreshProviderProps {
   children: React.ReactNode;
@@ -127,11 +133,12 @@ export function useSetLogsAutoRefresh() {
   const location = useLocation();
   const navigate = useNavigate();
   const highFidelity = useLogsQueryHighFidelity();
-  const {queryKey} = useLogsQueryKeyWithInfinite({
+  const {infiniteApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: true,
     highFidelity,
   });
+  const queryKey = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
   const {setPausedAt, pausedAt: currentPausedAt} = useLogsAutoRefresh();
 

@@ -159,6 +159,7 @@ export const NOTIFICATION_SETTING_FIELDS = {
     choices: [
       ['email', t('Email')],
       ['slack', t('Slack')],
+      ['slack_staging', t('Slack (Staging)')],
       ['msteams', t('Microsoft Teams')],
     ],
     help: t('Where personal notifications will be sent.'),
@@ -266,7 +267,7 @@ const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
       name: 'quota' + upperFirst(categoryInfo.plural),
       label: categoryInfo.titleName,
       help: tct(
-        `Receive notifications about your [displayName] quotas. [learnMore:Learn more]`,
+        'Receive notifications about your [displayName] quotas. [learnMore:Learn more]',
         {
           displayName: categoryInfo.displayName,
           learnMore: (
@@ -286,7 +287,7 @@ const quotaSeerBudgetField = {
   // This maps to NotificationSettingEnum.QUOTA_SEER_BUDGET
   name: 'quotaSeerBudget',
   label: t('Seer Budget'),
-  help: tct(`Receive notifications for your Seer budget. [learnMore:Learn more]`, {
+  help: tct('Receive notifications for your Seer budget. [learnMore:Learn more]', {
     learnMore: (
       <ExternalLink
         href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}

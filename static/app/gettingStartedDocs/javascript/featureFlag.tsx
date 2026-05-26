@@ -15,7 +15,7 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
   FeatureFlagConfiguration
 > = {
   [FeatureFlagProviderEnum.GENERIC]: {
-    integrationName: `featureFlagsIntegration`,
+    integrationName: 'featureFlagsIntegration',
     packageName: '',
     makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 
@@ -34,7 +34,7 @@ Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
   [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
-    integrationName: `launchDarklyIntegration`,
+    integrationName: 'launchDarklyIntegration',
     packageName: 'launchdarkly-js-client-sdk',
     makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import * as LaunchDarkly from "launchdarkly-js-client-sdk";
@@ -56,7 +56,7 @@ Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
   [FeatureFlagProviderEnum.OPENFEATURE]: {
-    integrationName: `openFeatureIntegration`,
+    integrationName: 'openFeatureIntegration',
     packageName: '@openfeature/web-sdk',
     makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { OpenFeature } from "@openfeature/web-sdk";
@@ -75,7 +75,7 @@ Sentry.captureException(new Error("Something went wrong!"));`,
   },
 
   [FeatureFlagProviderEnum.STATSIG]: {
-    integrationName: `statsigIntegration`,
+    integrationName: 'statsigIntegration',
     packageName: '@statsig/js-client',
     makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { StatsigClient } from "@statsig/js-client";
@@ -101,7 +101,7 @@ Sentry.captureException(new Error("something went wrong"));`,
   },
 
   [FeatureFlagProviderEnum.UNLEASH]: {
-    integrationName: `unleashIntegration`,
+    integrationName: 'unleashIntegration',
     packageName: 'unleash-proxy-client',
     makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/browser";
 import { UnleashClient } from "unleash-proxy-client";

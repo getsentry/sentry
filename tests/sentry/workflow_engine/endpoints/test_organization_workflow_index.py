@@ -498,6 +498,76 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response.data) == 1
 
+    def test_query_by_created_by_me(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "created_by:me"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_created_by_email(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"created_by:{self.user.email}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"created_by:{other_user.email}"}
+        )
+        assert len(response2.data) == 1
+        assert response2.data[0]["id"] == str(self.workflow_two.id)
+
+    def test_query_by_created_by_negation(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"!created_by:{self.user.email}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
+    def test_query_by_created_by_multiple(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"created_by:[{self.user.email},{other_user.email}]"},
+        )
+        assert len(response.data) == 2
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+        }
+
+    def test_query_by_created_by_negated_list(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"!created_by:[{self.user.email},{other_user.email}]"},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
+    def test_query_by_created_by_invalid_user(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "created_by:nonexistent@example.com"},
+        )
+        assert len(response.data) == 0
+
 
 @cell_silo_test
 class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):
@@ -592,6 +662,17 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
     def test_create_workflow__with_config(self) -> None:
         self.valid_workflow["config"] = {"frequency": 100}
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__no_config(self) -> None:
+        del self.valid_workflow["config"]
         response = self.get_success_response(
             self.organization.slug,
             raw_data=self.valid_workflow,
@@ -876,7 +957,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert response.status_code == 400
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
     def test_create_workflow_with_detector_ids(self, mock_audit: mock.MagicMock) -> None:
         detector_1 = self.create_detector()
         detector_2 = self.create_detector()
@@ -906,7 +987,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         ]
         assert len(detector_workflow_audit_calls) == 2
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
     def test_create_workflow_connected_to_error_detector(self, mock_audit: mock.MagicMock) -> None:
         """
         Tests that a member can create workflows with connections to a system-created detector
@@ -972,6 +1053,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         workflow_data = {
             **self.valid_workflow,
             "detectorIds": [other_detector.id],
+            "name": "inaccessible project",
         }
 
         self.get_error_response(
@@ -983,6 +1065,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         # Verify no detector-workflow connections were created
         created_detector_workflows = DetectorWorkflow.objects.all()
         assert created_detector_workflows.count() == 0
+        assert Workflow.objects.filter(name=workflow_data["name"]).count() == 0
 
     def test_create_workflow_with_accessible_project_detector(self) -> None:
         """

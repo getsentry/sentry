@@ -15,7 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 import {EventRegressionTable, type EventRegressionTableRow} from './eventRegressionTable';
@@ -81,9 +81,6 @@ interface AggregateSpanDiffProps {
 export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const isSpansOnly = organization.features.includes(
-    'statistical-detectors-rca-spans-only'
-  );
 
   const [causeType, setCauseType] = useState<'duration' | 'throughput'>('duration');
 
@@ -126,7 +123,6 @@ export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
       ],
       sorts: [{field: `regression_score(span.self_time,${breakpoint})`, kind: 'desc'}],
       limit: 10,
-      enabled: isSpansOnly,
     },
     'api.insights.transactions.statistical-detector-root-cause-analysis'
   );
@@ -141,12 +137,12 @@ export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     end: endISO,
     breakpoint: new Date(breakpoint * 1000).toISOString(),
     projectId: project.id,
-    enabled: !isSpansOnly || isSpansDataError,
+    enabled: isSpansDataError,
   });
 
   // The spans dataset may reject some legacy RCA fields/functions for certain orgs.
   // When that happens, fall back to the RCA endpoint so this section still renders.
-  const shouldUseSpansData = isSpansOnly && !isSpansDataError;
+  const shouldUseSpansData = !isSpansDataError;
 
   const tableData = useMemo(() => {
     if (shouldUseSpansData) {
@@ -221,8 +217,8 @@ export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     });
 
   return (
-    <InterimSection
-      type={SectionKey.REGRESSION_POTENTIAL_CAUSES}
+    <FoldSection
+      sectionKey={SectionKey.REGRESSION_POTENTIAL_CAUSES}
       title={t('Potential Causes')}
       actions={
         <SegmentedControl
@@ -247,7 +243,7 @@ export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         error={shouldUseSpansData ? spansError : rcaError}
         onDescriptionLink={getDescriptionLink}
       />
-    </InterimSection>
+    </FoldSection>
   );
 }
 

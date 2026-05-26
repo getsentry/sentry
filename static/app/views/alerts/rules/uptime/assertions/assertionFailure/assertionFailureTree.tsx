@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 

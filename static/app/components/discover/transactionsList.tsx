@@ -5,23 +5,24 @@ import type {Location, LocationDescriptor} from 'history';
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {DiscoverButton} from 'sentry/components/discoverButton';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -76,6 +77,7 @@ type Props = {
    */
   limit: number;
   location: Location;
+  navigate: ReactRouter3Navigate;
   /**
    * The available options for the dropdown.
    */
@@ -117,11 +119,11 @@ type Props = {
   /**
    * The callback for when View All Events is clicked.
    */
-  handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
+  handleOpenAllEventsClick?: (e: React.MouseEvent) => void;
   /**
    * The callback for when Open in Discover is clicked.
    */
-  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  handleOpenInDiscoverClick?: (e: React.MouseEvent) => void;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**
@@ -234,8 +236,8 @@ class _TransactionsList extends Component<Props> {
   };
 
   handleCursor: CursorHandler = (cursor, pathname, query) => {
-    const {cursorName} = this.props;
-    browserHistory.push({
+    const {cursorName, navigate} = this.props;
+    navigate({
       pathname,
       query: {...query, [cursorName]: cursor},
     });
@@ -479,10 +481,11 @@ const StyledPagination = styled(Pagination)`
 `;
 
 export function TransactionsList(
-  props: Omit<Props, 'cursorName' | 'limit'> & {
+  props: Omit<Props, 'cursorName' | 'limit' | 'navigate'> & {
     cursorName?: Props['cursorName'];
     limit?: Props['limit'];
   }
 ) {
-  return <_TransactionsList {...props} />;
+  const navigate = useNavigate();
+  return <_TransactionsList {...props} navigate={navigate} />;
 }

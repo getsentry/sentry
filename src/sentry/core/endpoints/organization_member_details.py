@@ -88,7 +88,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     permission_classes = (RelaxedMemberPermission,)
 
     def _get_member(
@@ -312,7 +312,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
         if team_roles:
-            diff = save_team_assignments(member, None, team_roles)
+            diff = save_team_assignments(member, None, team_roles)  # type: ignore[arg-type]
         else:
             diff = save_team_assignments(member, teams)
 

@@ -16,14 +16,16 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -44,6 +46,27 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+
+/**
+ * Shift data points from bucket-start to bucket-end timestamps.
+ * The API returns timestamps at the start of each bucket (e.g. 1pm for 1pm–2pm),
+ * but we want to display them at the end (2pm) since the value represents
+ * the data collected during the preceding interval.
+ *
+ * The reason we do this for metric charts is that it's important that the data points
+ * visually align with the open period markers. If an open period starts at 1pm, it should
+ * be vertically aligned with the data point for 12pm-1pm.
+ */
+function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): Series[] {
+  const offsetMs = intervalSeconds * 1000;
+  return seriesList.map(s => ({
+    ...s,
+    data: s.data.map(point => ({
+      ...point,
+      name: (point.name as number) + offsetMs,
+    })),
+  }));
+}
 
 interface IncidentTooltipContext {
   period: IncidentPeriod;
@@ -168,7 +191,7 @@ type UseMetricDetectorChartResult =
   | {chartProps: null; error: null; isAnomalyThresholdCutOff: false; isLoading: true}
   | {
       chartProps: null;
-      error: RequestError;
+      error: Error;
       isAnomalyThresholdCutOff: false;
       isLoading: false;
     };
@@ -204,7 +227,9 @@ export function useMetricDetectorChart({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
-    aggregate,
+    aggregate: snubaQuery.eventTypes.includes(EventTypes.TRACE_ITEM_METRIC)
+      ? snubaQuery.aggregate
+      : aggregate,
     interval: snubaQuery.timeWindow,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     environment: snubaQuery.environment,
@@ -391,13 +416,31 @@ export function useMetricDetectorChart({
       showTimeInTooltip: true,
       height,
       stacked: false,
-      series,
+      series: shiftSeriesToBucketEnd(series, snubaQuery.timeWindow),
       additionalSeries,
       yAxes: yAxes.length > 1 ? yAxes : undefined,
       yAxis: yAxes.length === 1 ? yAxes[0] : undefined,
       grid,
       xAxis: openPeriodMarkerResult.incidentMarkerXAxis,
       tooltip: {
+        // Data points are shifted to bucket-end timestamps
+        // so we need to subtract the interval to get the bucket-start time.
+        formatAxisLabel: (
+          value,
+          isTimestamp,
+          utc,
+          showTimeInTooltip,
+          addSecondsToTimeFormat,
+          bucketSize
+        ) =>
+          defaultFormatAxisLabel(
+            value - snubaQuery.timeWindow * 1000,
+            isTimestamp,
+            utc,
+            showTimeInTooltip,
+            addSecondsToTimeFormat,
+            bucketSize
+          ).toString(),
         valueFormatter: getDetectorChartFormatters({
           detectionType,
           aggregate,
@@ -410,7 +453,7 @@ export function useMetricDetectorChart({
         chartZoomProps.onChartReady(chart);
         openPeriodMarkerResult.onChartReady(chart);
       },
-    };
+    } satisfies AreaChartProps;
   }, [
     additionalSeries,
     aggregate,
@@ -423,6 +466,7 @@ export function useMetricDetectorChart({
     openPeriodMarkerResult,
     series,
     serverOutputType,
+    snubaQuery.timeWindow,
     unit,
     yAxes,
   ]);
@@ -593,7 +637,9 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   }
   if (error || !chartProps) {
     const errorMessage =
-      typeof error?.responseJSON?.detail === 'string' ? error.responseJSON.detail : null;
+      error instanceof RequestError && typeof error?.responseJSON?.detail === 'string'
+        ? error.responseJSON.detail
+        : null;
     return (
       <ChartContainer overflow="hidden">
         {errorMessage && (

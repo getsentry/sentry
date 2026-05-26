@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestFilterRepoByProvider(TestCase):
-    def test_matches_with_integrations_prefix(self):
+    def test_matches_with_integrations_prefix(self) -> None:
         repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -14,7 +14,7 @@ class TestFilterRepoByProvider(TestCase):
         qs = filter_repo_by_provider(self.organization.id, "github", "123", "getsentry", "sentry")
         assert list(qs) == [repo]
 
-    def test_matches_with_exact_provider(self):
+    def test_matches_with_exact_provider(self) -> None:
         repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -26,7 +26,7 @@ class TestFilterRepoByProvider(TestCase):
         )
         assert list(qs) == [repo]
 
-    def test_no_match_wrong_owner(self):
+    def test_no_match_wrong_owner(self) -> None:
         self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -36,7 +36,7 @@ class TestFilterRepoByProvider(TestCase):
         qs = filter_repo_by_provider(self.organization.id, "github", "123", "wrong-owner", "sentry")
         assert not qs.exists()
 
-    def test_no_match_wrong_name(self):
+    def test_no_match_wrong_name(self) -> None:
         self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -48,7 +48,7 @@ class TestFilterRepoByProvider(TestCase):
         )
         assert not qs.exists()
 
-    def test_no_match_wrong_external_id(self):
+    def test_no_match_wrong_external_id(self) -> None:
         self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -58,7 +58,7 @@ class TestFilterRepoByProvider(TestCase):
         qs = filter_repo_by_provider(self.organization.id, "github", "999", "getsentry", "sentry")
         assert not qs.exists()
 
-    def test_no_match_wrong_org(self):
+    def test_no_match_wrong_org(self) -> None:
         other_org = self.create_organization(owner=self.user)
         self.create_repo(
             project=self.project,
@@ -69,7 +69,7 @@ class TestFilterRepoByProvider(TestCase):
         qs = filter_repo_by_provider(other_org.id, "github", "123", "getsentry", "sentry")
         assert not qs.exists()
 
-    def test_excludes_inactive_repo(self):
+    def test_excludes_inactive_repo(self) -> None:
         repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -82,7 +82,7 @@ class TestFilterRepoByProvider(TestCase):
         qs = filter_repo_by_provider(self.organization.id, "github", "123", "getsentry", "sentry")
         assert not qs.exists()
 
-    def test_github_enterprise_provider(self):
+    def test_github_enterprise_provider(self) -> None:
         repo = self.create_repo(
             project=self.project,
             name="mycompany/internal-repo",

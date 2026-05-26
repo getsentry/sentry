@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -165,9 +166,7 @@ function useFilterKeySections({
     return customSections;
   }, [disallowLogicalOperators, filterKeySections, query, recentSearches?.length]);
 
-  const [selectedSection, setSelectedSection] = useState<string>(
-    sections[0]?.value ?? ''
-  );
+  const [selectedSection, setSelectedSection] = useState(sections[0]?.value ?? '');
 
   const numSections = sections.length;
   const previousNumSections = usePrevious(numSections);
@@ -202,6 +201,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     currentInputValueRef,
     disallowLogicalOperators,
   } = useSearchQueryBuilder();
+  const analyticsArea = useAnalyticsArea();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -419,8 +419,9 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
-        trackAnalytics('trace.explorer.ai_query_interface', {
+        trackAnalytics('ai_query.interface', {
           organization,
+          area: analyticsArea,
           action: 'opened',
         });
         setDisplayAskSeer(true);
@@ -435,8 +436,9 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       }
 
       if (option.type === 'ask-seer-consent') {
-        trackAnalytics('trace.explorer.ai_query_interface', {
+        trackAnalytics('ai_query.interface', {
           organization,
+          area: analyticsArea,
           action: 'consent_accepted',
         });
         seerAcknowledgeMutate();
@@ -444,6 +446,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       }
     },
     [
+      analyticsArea,
       currentInputValueRef,
       organization,
       seerAcknowledgeMutate,

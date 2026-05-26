@@ -57,9 +57,7 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentTrigger,
     IncidentType,
-    TriggerStatus,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
@@ -113,6 +111,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
@@ -141,7 +140,12 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
+    PreprodSnapshotComparison,
+    PreprodSnapshotMetrics,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -378,22 +382,22 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_organization(name=None, owner=None, region: Cell | str | None = None, **kwargs):
+    def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
         with contextlib.ExitStack() as ctx:
-            if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                region_name = get_local_cell().name
+            if cell is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                cell_name = get_local_cell().name
             else:
-                if isinstance(region, Cell):
-                    region_name = region.name
+                if isinstance(cell, Cell):
+                    cell_name = cell.name
                 else:
-                    region_obj = get_cell_by_name(region)  # Verify it exists
-                    region_name = region_obj.name
+                    cell_obj = get_cell_by_name(cell)  # Verify it exists
+                    cell_name = cell_obj.name
 
                 ctx.enter_context(
-                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION=region_name)
+                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL=cell_name)
                 )
 
             with outbox_context(flush=False):
@@ -403,7 +407,7 @@ class Factories:
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    cell_name=region_name,
+                    cell_name=cell_name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)
@@ -430,7 +434,7 @@ class Factories:
             kwds.setdefault("slug", org.slug)
             kwds.setdefault("name", org.name)
             kwds.setdefault("idempotency_key", uuid4().hex)
-            kwds.setdefault("region_name", "na")
+            kwds.setdefault("cell_name", "na")
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
@@ -561,7 +565,9 @@ class Factories:
         create_default_detectors=True,
         **kwargs,
     ) -> Project:
-        from sentry.receivers.project_detectors import disable_default_detector_creation
+        from sentry.workflow_engine.receivers.project_detectors import (
+            disable_default_detector_creation,
+        )
 
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
@@ -885,12 +891,33 @@ class Factories:
 
         if not repo:
             repo = Factories.create_repo(project=project)
+        if "project_repository" not in kwargs:
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository=repo,
+                defaults={"source": ProjectRepositorySource.MANUAL},
+            )
+            kwargs["project_repository"] = project_repo
         return RepositoryProjectPathConfig.objects.create(
-            project=project,
-            repository=repo,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_project_repository(project, repository=None, repository_id=None, **kwargs):
+        if repository is None and repository_id is not None:
+            repository = Repository.objects.get(id=repository_id)
+        assert repository is not None, "repository or repository_id is required"
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+        )
+        return SeerProjectRepository.objects.create(
+            project_repository=project_repo,
             **kwargs,
         )
 
@@ -1847,16 +1874,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident_trigger(incident, alert_rule_trigger, status=None):
-        if status is None:
-            status = TriggerStatus.ACTIVE.value
-
-        return IncidentTrigger.objects.create(
-            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule_trigger_action(
         trigger,
         type=AlertRuleTriggerAction.Type.EMAIL,
@@ -2560,6 +2577,63 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_snapshot_metrics(
+        preprod_artifact: PreprodArtifact,
+        image_count: int = 0,
+        is_selective: bool = False,
+    ) -> PreprodSnapshotMetrics:
+        return PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            image_count=image_count,
+            is_selective=is_selective,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_snapshot_comparison(
+        head_snapshot_metrics: PreprodSnapshotMetrics,
+        base_snapshot_metrics: PreprodSnapshotMetrics,
+        state: int = PreprodSnapshotComparison.State.SUCCESS,
+        images_added: int = 0,
+        images_removed: int = 0,
+        images_changed: int = 0,
+        images_unchanged: int = 0,
+        images_renamed: int = 0,
+        images_skipped: int = 0,
+    ) -> PreprodSnapshotComparison:
+        return PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_snapshot_metrics,
+            base_snapshot_metrics=base_snapshot_metrics,
+            state=state,
+            images_added=images_added,
+            images_removed=images_removed,
+            images_changed=images_changed,
+            images_unchanged=images_unchanged,
+            images_renamed=images_renamed,
+            images_skipped=images_skipped,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_comparison_approval(
+        preprod_artifact: PreprodArtifact,
+        preprod_feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+        approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        approved_at: datetime | None = None,
+        approved_by_id: int | None = None,
+        extras: dict | None = None,
+    ) -> PreprodComparisonApproval:
+        return PreprodComparisonApproval.objects.create(
+            preprod_artifact=preprod_artifact,
+            preprod_feature_type=preprod_feature_type,
+            approval_status=approval_status,
+            approved_at=approved_at,
+            approved_by_id=approved_by_id,
+            extras=extras,
+        )
+
+    @staticmethod
     def store_preprod_size_metric(
         project_id: int,
         organization_id: int,
@@ -2805,3 +2879,9 @@ class Factories:
             type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_run(organization, type: str = SeerRunType.AUTOFIX, **kwargs) -> SeerRun:
+        kwargs.setdefault("last_triggered_at", timezone.now())
+        return SeerRun.objects.create(organization=organization, type=type, **kwargs)

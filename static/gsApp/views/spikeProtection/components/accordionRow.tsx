@@ -88,8 +88,6 @@ export function AccordionRow({
 const AccordionContent = styled('div')`
   display: flex;
   flex-direction: column;
-  padding-left: ${p => p.theme.space.xl};
-  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 `;
 

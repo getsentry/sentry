@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
@@ -8,7 +8,7 @@ interface TestFormProps {
   label: string;
   defaultValue?: number;
   disabled?: boolean | string;
-  formatLabel?: (value: number | '') => React.ReactNode;
+  formatOptions?: Intl.NumberFormatOptions;
   hintText?: string;
   max?: number;
   min?: number;
@@ -25,7 +25,7 @@ function TestForm({
   min = 0,
   max = 100,
   step,
-  formatLabel,
+  formatOptions,
 }: TestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -46,7 +46,7 @@ function TestForm({
               min={min}
               max={max}
               step={step}
-              formatLabel={formatLabel}
+              formatOptions={formatOptions}
             />
           </field.Layout.Row>
         )}
@@ -153,11 +153,11 @@ describe('RangeField auto-save', () => {
 
     const slider = screen.getByRole('slider');
     // Just focus and blur without changing the value
-    slider.focus();
+    act(() => slider.focus());
     await userEvent.tab();
 
     // Wait a bit to ensure no mutation is triggered
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await act(() => new Promise(resolve => setTimeout(resolve, 100)));
     expect(mutationFn).not.toHaveBeenCalled();
   });
 });
@@ -177,8 +177,14 @@ describe('RangeField props', () => {
     expect(screen.getByRole('slider')).toHaveAttribute('step', '10');
   });
 
-  it('supports formatLabel prop', () => {
-    render(<TestForm label="Volume" formatLabel={v => `${v}%`} defaultValue={50} />);
+  it('supports formatOptions prop', () => {
+    render(
+      <TestForm
+        label="Volume"
+        formatOptions={{style: 'unit', unit: 'percent'}}
+        defaultValue={50}
+      />
+    );
 
     // The label shows on hover/focus, just verify the slider renders
     expect(screen.getByRole('slider')).toBeInTheDocument();

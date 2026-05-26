@@ -5,7 +5,7 @@ from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils.db import atomic_transaction
 
@@ -60,10 +60,10 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
     retry=Retry(
         times=MAX_RETRIES,
         delay=60 * 5,
+        on=(Exception,),
     ),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def delete_unreferenced_blobs_region(blob_ids):
     from sentry.models.files.fileblob import FileBlob
     from sentry.models.files.fileblobindex import FileBlobIndex
@@ -77,10 +77,10 @@ def delete_unreferenced_blobs_region(blob_ids):
     retry=Retry(
         times=MAX_RETRIES,
         delay=60 * 5,
+        on=(Exception,),
     ),
     silo_mode=SiloMode.CONTROL,
 )
-@retry
 def delete_unreferenced_blobs_control(blob_ids):
     from sentry.models.files.control_fileblob import ControlFileBlob
     from sentry.models.files.control_fileblobindex import ControlFileBlobIndex

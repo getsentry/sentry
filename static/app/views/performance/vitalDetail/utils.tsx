@@ -10,6 +10,8 @@ export const webVitalPoor = {
   [WebVital.LCP]: 4000,
   [WebVital.FID]: 300,
   [WebVital.CLS]: 0.25,
+  [WebVital.INP]: 500,
+  [WebVital.TTFB]: 1800,
 };
 
 export const webVitalMeh = {
@@ -18,6 +20,8 @@ export const webVitalMeh = {
   [WebVital.LCP]: 2500,
   [WebVital.FID]: 100,
   [WebVital.CLS]: 0.1,
+  [WebVital.INP]: 200,
+  [WebVital.TTFB]: 800,
 };
 
 export enum VitalState {

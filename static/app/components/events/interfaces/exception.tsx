@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
-import {CommitRow} from 'sentry/components/commitRow';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
@@ -11,7 +10,6 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
 import {NoStackTraceMessage} from './noStackTraceMessage';
@@ -34,8 +32,6 @@ export function Exception({
   groupingCurrentLevel,
 }: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   // in case there are threads in the event data, we don't render the
   // exception block.  Instead the exception is contained within the
   // thread interface.
@@ -107,7 +103,7 @@ export function Exception({
               groupingCurrentLevel={groupingCurrentLevel}
               meta={meta}
             />
-            {hasStreamlinedUI && group && (
+            {group && (
               <Fragment>
                 {data.values && data.values.length > 1 && (
                   <SectionDivider orientation="horizontal" />
@@ -120,7 +116,6 @@ export function Exception({
                     projectSlug={projectSlug}
                     eventId={event.id}
                     group={group}
-                    commitRow={CommitRow}
                   />
                 </ErrorBoundary>
               </Fragment>

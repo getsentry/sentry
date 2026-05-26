@@ -103,7 +103,7 @@ describe('ProductUnavailableCTA', () => {
 
       await waitFor(() => {
         expect(mockRequests?.requestUpdatePlan).toHaveBeenCalledWith(
-          `/organizations/org-slug/plan-upgrade-request/`,
+          '/organizations/org-slug/plan-upgrade-request/',
           expect.objectContaining({
             method: 'POST',
           })
@@ -201,9 +201,7 @@ describe('ProductUnavailableCTA', () => {
         canSelfServe: true,
       });
 
-      const MockUsePreviewData = usePreviewData as jest.MockedFunction<
-        typeof usePreviewData
-      >;
+      const MockUsePreviewData = jest.mocked(usePreviewData);
       const mockReservations: Reservations = {
         reservedErrors: 50000,
         reservedTransactions: 0,
@@ -219,6 +217,7 @@ describe('ProductUnavailableCTA', () => {
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
         reservedSizeAnalyses: undefined,
+        reservedTraceMetricBytes: undefined,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

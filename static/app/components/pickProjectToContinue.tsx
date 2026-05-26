@@ -1,9 +1,11 @@
-import styled from '@emotion/styled';
+import {useEffect, useRef} from 'react';
 import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {Container} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
+
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Project = {
   id: string;
@@ -22,19 +24,20 @@ type Props = {
    */
   noProjectRedirectPath: LocationDescriptor;
   projects: Project[];
-  router: InjectedRouter;
   allowAllProjectsSelection?: boolean;
 };
 
 export function PickProjectToContinue({
   noProjectRedirectPath,
   nextPath,
-  router,
   projects,
   allowAllProjectsSelection = false,
 }: Props) {
+  const {openModal} = useModal();
+  const navigate = useNavigate();
   const nextPathQuery = nextPath.query;
-  let navigating = false;
+  const navigating = useRef(false);
+
   let path = `${nextPath.pathname}?project=`;
 
   if (nextPathQuery) {
@@ -48,42 +51,57 @@ export function PickProjectToContinue({
   }
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
-  if (projects.length === 1) {
-    router.replace(path + projects[0]!.id);
+  const shouldRedirect = projects.length === 1;
+  useEffect(() => {
+    if (shouldRedirect) {
+      navigate(path + projects[0]!.id, {replace: true});
+    }
+  }, [shouldRedirect, navigate, path, projects]);
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      return;
+    }
+    navigating.current = false;
+    openModal(
+      modalProps => (
+        <ContextPickerModal
+          {...modalProps}
+          needOrg={false}
+          needProject
+          nextPath={`${path}:project`}
+          onFinish={to => {
+            navigating.current = true;
+            navigate(to, {replace: true});
+            modalProps.closeModal();
+          }}
+          projectSlugs={projects.map(p => p.slug)}
+          allowAllProjectsSelection={allowAllProjectsSelection}
+        />
+      ),
+      {
+        onClose() {
+          // we want this to be executed only if the user didn't select any project
+          // (closed modal either via button, Esc, clicking outside, ...)
+          if (!navigating.current) {
+            navigate(noProjectRedirectPath);
+          }
+        },
+      }
+    );
+  }, [
+    shouldRedirect,
+    openModal,
+    navigate,
+    noProjectRedirectPath,
+    path,
+    projects,
+    allowAllProjectsSelection,
+  ]);
+
+  if (shouldRedirect) {
     return null;
   }
 
-  openModal(
-    modalProps => (
-      <ContextPickerModal
-        {...modalProps}
-        needOrg={false}
-        needProject
-        nextPath={`${path}:project`}
-        onFinish={to => {
-          navigating = true;
-          router.replace(to);
-          modalProps.closeModal();
-        }}
-        projectSlugs={projects.map(p => p.slug)}
-        allowAllProjectsSelection={allowAllProjectsSelection}
-      />
-    ),
-    {
-      onClose() {
-        // we want this to be executed only if the user didn't select any project
-        // (closed modal either via button, Esc, clicking outside, ...)
-        if (!navigating) {
-          router.push(noProjectRedirectPath);
-        }
-      },
-    }
-  );
-
-  return <ContextPickerBackground />;
+  return <Container width="100%" height="100vh" />;
 }
-
-const ContextPickerBackground = styled('div')`
-  height: 100vh;
-  width: 100%;
-`;

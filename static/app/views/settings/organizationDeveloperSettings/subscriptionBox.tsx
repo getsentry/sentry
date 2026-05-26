@@ -6,8 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {PERMISSIONS_MAP} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
@@ -18,21 +17,26 @@ type Props = {
   disabledFromPermissions: boolean;
   isNew: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
-  organization: Organization;
   resource: Resource;
   webhookDisabled?: boolean;
 };
 
-function SubscriptionBox({
+export function SubscriptionBox({
   checked,
   disabledFromPermissions,
   isNew,
   onChange,
-  organization,
   resource,
   webhookDisabled = false,
 }: Props) {
-  const {features} = organization;
+  const {features} = useOrganization();
+
+  if (
+    resource === 'preprod_artifact' &&
+    !features.includes('preprod-artifact-webhooks')
+  ) {
+    return null;
+  }
 
   let disabled = disabledFromPermissions || webhookDisabled;
   let message = t(
@@ -52,10 +56,11 @@ function SubscriptionBox({
   }
 
   const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
-    issue: `created, resolved, assigned, archived, unresolved`,
+    issue: 'created, resolved, assigned, archived, unresolved',
     error: 'created',
     comment: 'created, edited, deleted',
     seer: 'root_cause_started, root_cause_completed, solution_started, solution_completed, coding_started, coding_completed, pr_created',
+    preprod_artifact: 'size_analysis_completed, build_distribution_completed',
   };
 
   return (
@@ -81,8 +86,6 @@ function SubscriptionBox({
     </Tooltip>
   );
 }
-
-export default withOrganization(SubscriptionBox);
 
 const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;

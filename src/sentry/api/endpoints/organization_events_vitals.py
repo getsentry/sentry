@@ -3,7 +3,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -40,14 +39,6 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsEndpointBase):
             if len(vitals) == 0:
                 raise ParseError(detail="Need to pass at least one vital")
 
-            performance_use_metrics = features.has(
-                "organizations:performance-use-metrics",
-                organization=organization,
-                actor=request.user,
-            )
-            dataset = self.get_dataset(request) if performance_use_metrics else discover
-            metrics_enhanced = dataset != discover
-            sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
             selected_columns = []
@@ -65,9 +56,9 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsEndpointBase):
                 )
 
         with handle_query_errors():
-            events_results = dataset.query(
+            events_results = discover.query(
                 selected_columns=selected_columns,
-                query=request.GET.get("query"),
+                query=request.GET.get("query", ""),
                 snuba_params=snuba_params,
                 # Results should only ever have 1 result
                 limit=1,

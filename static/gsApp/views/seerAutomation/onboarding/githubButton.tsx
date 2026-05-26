@@ -14,7 +14,7 @@ interface GithubButtonProps {
   onAddIntegration: () => void;
   buttonProps?: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'priority' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
   >;
 }
 
@@ -61,7 +61,7 @@ export function GithubButton({
                 buttonText: githubInstallation
                   ? t('Manage GitHub Integration')
                   : t('Connect GitHub'),
-                priority: 'primary',
+                variant: 'primary',
               }
             }
           />

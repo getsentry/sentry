@@ -16,7 +16,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from sentry.db.postgres.transactions import in_test_transaction_enforcement
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
-    get_regional_scheduled_deletion,
+    get_cell_scheduled_deletion,
 )
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -27,7 +27,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class HybridCloudTestMixin:
     @property
     def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
-        return get_regional_scheduled_deletion(SiloMode.get_current_mode())
+        return get_cell_scheduled_deletion(SiloMode.get_current_mode())
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):

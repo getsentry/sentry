@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from django.conf import settings
 from django.db import router, transaction
@@ -12,14 +11,25 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.options.store import Key
 from sentry.utils.email import is_smtp_enabled
 
 logger = logging.getLogger("sentry")
 
-SYSTEM_OPTIONS_ALLOWLIST = (
-    # Used during setup before the superadmin role with the options.admin permission is authed
-    "system.admin-email"
+SYSTEM_OPTIONS_ALLOWLIST = frozenset(
+    [
+        # Used during setup before the superadmin role with the options.admin permission is authed
+        "system.admin-email"
+    ]
 )
+MAIL_TLS_SSL_OPTIONS = ("mail.use-tls", "mail.use-ssl")
+
+
+def _is_secret(k: Key) -> bool:
+    keywords = ["secret", "private", "token"]
+    return ((k.flags & options.FLAG_CREDENTIAL) != 0) or any(
+        [keyword in k.name for keyword in keywords]
+    )
 
 
 @all_silo_endpoint
@@ -33,6 +43,7 @@ class SystemOptionsEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         query = request.GET.get("query")
+        required_only = query == "is:required"
         if query == "is:required":
             option_list = options.filter(flag=options.FLAG_REQUIRED)
         elif query:
@@ -41,12 +52,19 @@ class SystemOptionsEndpoint(Endpoint):
             option_list = options.all()
 
         smtp_disabled = not is_smtp_enabled()
+        disable_mail_tls_ssl_pair = required_only and self.__should_disable_mail_tls_ssl_pair()
 
         results = {}
         for k in option_list:
             disabled, disabled_reason = False, None
 
-            if smtp_disabled and k.name[:5] == "mail.":
+            if k.name in MAIL_TLS_SSL_OPTIONS and disable_mail_tls_ssl_pair:
+                disabled_reason, disabled = "diskPriority", True
+            elif (
+                smtp_disabled
+                and k.name[:5] == "mail."
+                and not (required_only and k.name in MAIL_TLS_SSL_OPTIONS)
+            ):
                 disabled_reason, disabled = "smtpDisabled", True
             elif bool(
                 k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name)
@@ -56,7 +74,7 @@ class SystemOptionsEndpoint(Endpoint):
 
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
-                "value": options.get(k.name) if not self.__is_secret(k) else "[redacted]",
+                "value": options.get(k.name) if not _is_secret(k) else "[redacted]",
                 "field": {
                     "default": k.default(),
                     "required": bool(k.flags & options.FLAG_REQUIRED),
@@ -69,18 +87,24 @@ class SystemOptionsEndpoint(Endpoint):
 
         return Response(results)
 
-    def __is_secret(self, k: Any) -> bool:
-        keywords = ["secret", "private", "token"]
-        return (k.flags & options.FLAG_CREDENTIAL) or any(
-            [keyword in k.name for keyword in keywords]
-        )
+    def __should_disable_mail_tls_ssl_pair(self) -> bool:
+        for option_name in MAIL_TLS_SSL_OPTIONS:
+            if not options.is_set_on_disk(option_name):
+                continue
+
+            if settings.SENTRY_OPTIONS[option_name] != options.lookup_key(option_name).default():
+                return True
+
+        return False
 
     def has_permission(self, request: Request) -> bool:
         if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:
             return True
         if not request.access.has_permission("options.admin"):
-            # We ignore options.admin permission is all keys in the update match the allowlist.
-            return all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()])
+            # We ignore options.admin permission if all keys in the update match the allowlist.
+            return bool(request.data) and all(
+                [k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]
+            )
 
         return True
 
@@ -113,7 +137,7 @@ class SystemOptionsEndpoint(Endpoint):
                             "ip_address": request.META["REMOTE_ADDR"],
                             "user_id": request.user.id,
                             "option_key": k,
-                            "option_value": v,
+                            "option_value": "[redacted]" if _is_secret(option) else v,
                         },
                     )
             except (TypeError, AssertionError) as e:

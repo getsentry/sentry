@@ -62,7 +62,7 @@ export function useRecentCreatedProject({
         if (!query.state.data) {
           return false;
         }
-        const [projectData] = query.state.data;
+        const projectData = query.state.data.json;
 
         if (pollUntilFirstEvent) {
           return projectData.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;

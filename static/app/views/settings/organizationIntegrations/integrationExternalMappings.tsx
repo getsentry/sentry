@@ -2,11 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
@@ -70,6 +70,8 @@ export function IntegrationExternalMappings(props: Props) {
   >([]);
 
   const organization = useOrganization();
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const location = useLocation<LocationQuery>();
   const {cursor} = location.query;
   const isFirstPage = cursor ? cursor.split(':')[1] === '0' : true;
@@ -81,7 +83,7 @@ export function IntegrationExternalMappings(props: Props) {
     refetch,
   } = useApiQuery<CodeOwnersAssociationMappings>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/codeowners-associations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {provider: integration.provider.key}},
@@ -155,7 +157,7 @@ export function IntegrationExternalMappings(props: Props) {
         message={t('Are you sure you want to remove this external %s mapping?', type)}
       >
         <Button
-          priority="transparent"
+          variant="transparent"
           size="sm"
           icon={<IconDelete size="sm" />}
           aria-label={t('Remove user mapping')}

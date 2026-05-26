@@ -35,7 +35,6 @@ export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
   SpanFields.USER_ID,
   SpanFields.USER_IP,
   SpanFields.USER_USERNAME,
-  SpanFields.IS_TRANSACTION, // boolean field but we can expose it as a string
   SpanFields.NORMALIZED_DESCRIPTION,
   SpanFields.CACHE_HIT,
 ];
@@ -53,7 +52,6 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.TIMESTAMP,
   SpanFields.TRANSACTION,
   SpanFields.TRACE,
-  SpanFields.IS_TRANSACTION, // boolean field but keep for non-boolean queries
   SpanFields.NORMALIZED_DESCRIPTION,
   SpanFields.RELEASE, // temporary as orgs with >1k keys still want releases
   SpanFields.PROJECT_ID,
@@ -70,7 +68,6 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
 
 export const SENTRY_SPAN_BOOLEAN_TAGS: string[] = [
-  // duplicating until we've fully rolled out boolean attributes
   SpanFields.IS_TRANSACTION,
   SpanFields.IS_STARRED_TRANSACTION,
 ];
@@ -96,15 +93,30 @@ export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NU
 export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'app_id',
   'app_name',
+  'artifact_type',
   'build_configuration_name',
   'build_number',
   'build_version',
   'git_base_ref',
   'git_head_ref',
   'platform_name',
+  'snapshot_status',
 ];
 
-export const SENTRY_PREPROD_NUMBER_TAGS: string[] = ['git_pr_number'];
+const PREPROD_IMAGE_FIELDS = [
+  'image_count',
+  'images_added',
+  'images_changed',
+  'images_removed',
+  'images_renamed',
+  'images_skipped',
+  'images_unchanged',
+] as const;
+
+export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [
+  'git_pr_number',
+  ...PREPROD_IMAGE_FIELDS,
+];
 
 export const SENTRY_PREPROD_BOOLEAN_TAGS: string[] = [];
 
@@ -126,6 +138,11 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[artifact_state,number]',
   'tags[artifact_date_built,number]',
   'tags[build_number,number]',
+  'metrics_artifact_type',
+  'tags[metrics_artifact_type,number]',
+  'tags[artifact_type,number]',
+  ...PREPROD_IMAGE_FIELDS,
+  'snapshot_status',
 ];
 
 export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [
@@ -142,3 +159,5 @@ export const MAX_CROSS_EVENT_QUERIES = 2;
 // We want a maximum of 7 days for cross events to avoid overwhelming the backend.
 export const MAX_PERIOD_FOR_CROSS_EVENTS = '7d';
 export const MAX_DAYS_FOR_CROSS_EVENTS = statsPeriodToDays(MAX_PERIOD_FOR_CROSS_EVENTS);
+
+export const EXPLORE_FIVE_MIN_STALE_TIME = 5 * 60 * 1000;

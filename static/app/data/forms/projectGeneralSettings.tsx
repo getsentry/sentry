@@ -142,11 +142,11 @@ export const fields = {
         <Hovercard
           body={
             <CodeBlock hideCopyButton>
-              {`https://example.com\n*.example.com\n*:80\n*`}
+              {'https://example.com\n*.example.com\n*:80\n*'}
             </CodeBlock>
           }
         >
-          <Button priority="link" size="xs">
+          <Button variant="link" size="xs">
             {t('View Examples')}
           </Button>
         </Hovercard>
@@ -166,6 +166,19 @@ export const fields = {
     setValue: (val, props) => props.organization?.[props.name] && val,
     label: t('Enable JavaScript source fetching'),
     help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+  },
+  scmSourceContextEnabled: {
+    name: 'scmSourceContextEnabled',
+    type: 'boolean',
+    label: t('Enable SCM Source Context'),
+    help: t(
+      "Fetch source code from your connected SCM integration (e.g. GitHub, GitLab) to display in stack traces. When enabled, any project member can view source code for files matched by this project's code mappings."
+    ),
+    confirm: {
+      true: t(
+        'Enabling this will allow all members with access to this project to view source code from the connected SCM integration via code mappings. Are you sure you want to enable this?'
+      ),
+    },
   },
   securityToken: {
     name: 'securityToken',

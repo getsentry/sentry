@@ -5,7 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -43,7 +43,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
     );
   }
 
-  if (metricsCardinality.isLoading && !props.hideLoadingIndicator) {
+  if (metricsCardinality?.isLoading && !props.hideLoadingIndicator) {
     return (
       <Fragment>
         <Flex justify="center">
@@ -60,7 +60,7 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
       <MetricsSwitchHandler
         eventView={props.eventView}
         location={props.location}
-        outcome={metricsCardinality.outcome ?? {forceTransactionsOnly: false}}
+        outcome={metricsCardinality?.outcome ?? {forceTransactionsOnly: false}}
         switcherChildren={props.children}
       />
     </Fragment>

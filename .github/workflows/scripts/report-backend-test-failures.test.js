@@ -123,6 +123,9 @@ function mockGithub({existingComments = [], jobs = []} = {}) {
         updateComment: async params => {
           calls.push({method: 'updateComment', params});
         },
+        deleteComment: async params => {
+          calls.push({method: 'deleteComment', params});
+        },
       },
       actions: {
         listJobsForWorkflowRun,
@@ -428,7 +431,9 @@ describe('reportShard (integration)', () => {
     const core = mockCore();
     await reportShard({github, context: mockContext(), core});
 
-    assert.equal(github.calls.length, 0);
+    assert.ok(!github.calls.some(c => c.method === 'createComment'));
+    assert.ok(!github.calls.some(c => c.method === 'updateComment'));
+    assert.ok(!github.calls.some(c => c.method === 'deleteComment'));
     assert.ok(core.logs.info.some(m => m.includes('No failures')));
   });
 
@@ -441,6 +446,68 @@ describe('reportShard (integration)', () => {
 
     assert.equal(github.calls.length, 0);
     assert.ok(core.logs.warning.some(m => m.includes('PYTEST_JSON_PATH')));
+  });
+
+  it('deletes stale comments from a previous commit when a new commit has failures', async () => {
+    const oldSha = 'deadbeef00000000000000000000000000000000';
+    const staleBody = buildCommentBody(
+      [{nodeid: FAILED_TEST.nodeid, longrepr: 'old traceback'}],
+      {...TEST_OPTS, sha: oldSha}
+    );
+
+    const jsonPath = writePytestJson('pytest.json', [FAILED_TEST_2]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+    delete process.env.PYTEST_ARTIFACT_DIR;
+
+    const github = mockGithub({existingComments: [{id: 777, body: staleBody}]});
+    await reportShard({github, context: mockContext(), core: mockCore()});
+
+    const del = github.calls.find(c => c.method === 'deleteComment');
+    assert.ok(del, 'should have called deleteComment');
+    assert.equal(del.params.comment_id, 777);
+
+    const create = github.calls.find(c => c.method === 'createComment');
+    assert.ok(create, 'should have created a new comment');
+    assert.ok(create.params.body.includes(FAILED_TEST_2.nodeid));
+  });
+
+  it('deletes stale comments from a previous commit even when the current shard has no failures', async () => {
+    const oldSha = 'deadbeef00000000000000000000000000000000';
+    const staleBody = buildCommentBody(
+      [{nodeid: FAILED_TEST.nodeid, longrepr: 'old traceback'}],
+      {...TEST_OPTS, sha: oldSha}
+    );
+
+    const jsonPath = writePytestJson('pytest.json', [PASSED_TEST]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+
+    const github = mockGithub({existingComments: [{id: 888, body: staleBody}]});
+    const core = mockCore();
+    await reportShard({github, context: mockContext(), core});
+
+    const del = github.calls.find(c => c.method === 'deleteComment');
+    assert.ok(del, 'should have called deleteComment');
+    assert.equal(del.params.comment_id, 888);
+
+    assert.ok(!github.calls.some(c => c.method === 'createComment'));
+    assert.ok(core.logs.info.some(m => m.includes('No failures')));
+  });
+
+  it('does not delete comments for the current commit', async () => {
+    const existingBody = buildCommentBody(
+      [{nodeid: FAILED_TEST.nodeid, longrepr: 'traceback'}],
+      TEST_OPTS
+    );
+
+    const jsonPath = writePytestJson('pytest.json', [FAILED_TEST_2]);
+    process.env.PYTEST_JSON_PATH = jsonPath;
+    delete process.env.PYTEST_ARTIFACT_DIR;
+
+    const github = mockGithub({existingComments: [{id: 999, body: existingBody}]});
+    await reportShard({github, context: mockContext(), core: mockCore()});
+
+    assert.ok(!github.calls.some(c => c.method === 'deleteComment'));
+    assert.ok(github.calls.some(c => c.method === 'updateComment'));
   });
 
   it('includes job log link when the shard job is matched', async () => {

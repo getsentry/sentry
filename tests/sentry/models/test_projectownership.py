@@ -10,9 +10,10 @@ from sentry.models.groupowner import (
 )
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user_avatar import UserAvatar
@@ -201,6 +202,150 @@ class ProjectOwnershipTestCase(TestCase):
                 [rule_a, rule_c],
             ),
         )
+
+    def test_get_owners_codeowners_exclusion_rule(self) -> None:
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("codeowners", "/apps/"), [Owner("team", self.team.slug)])
+        rule_exclusion = Rule(Matcher("codeowners", "/apps/github"), [])
+
+        self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw="/apps/ @tiger-team\n/apps/github\n",
+            schema=dump_schema([rule_a, rule_exclusion]),
+        )
+
+        # File in /apps/github — last matching codeowners rule is exclusion → no owners
+        assert ProjectOwnership.get_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "apps/github/foo.py"}]}},
+        ) == ([], None)
+
+        # File in /apps/bar — only matches rule_a → owned
+        self.assert_ownership_equals(
+            ProjectOwnership.get_owners(
+                self.project.id,
+                {"stacktrace": {"frames": [{"filename": "apps/bar/foo.py"}]}},
+            ),
+            ([Actor(id=self.team.id, actor_type=ActorType.TEAM)], [rule_a]),
+        )
+
+    def test_get_owners_codeowners_exclusion_overridden_by_later_rule(self) -> None:
+        code_mapping = self.create_code_mapping(project=self.project2)
+
+        rule_a = Rule(Matcher("codeowners", "/apps/"), [Owner("team", self.team.slug)])
+        rule_exclusion = Rule(Matcher("codeowners", "/apps/github"), [])
+        rule_c = Rule(
+            Matcher("codeowners", "/apps/github/special"), [Owner("team", self.team2.slug)]
+        )
+
+        self.create_codeowners(
+            self.project2,
+            code_mapping,
+            raw="/apps/ @tiger-team\n/apps/github\n/apps/github/special @dolphin-team\n",
+            schema=dump_schema([rule_a, rule_exclusion, rule_c]),
+        )
+
+        # File in /apps/github/special — last matching codeowners rule has owners,
+        # so exclusion logic doesn't activate. All matching rules are returned.
+        self.assert_ownership_equals(
+            ProjectOwnership.get_owners(
+                self.project2.id,
+                {"stacktrace": {"frames": [{"filename": "apps/github/special/foo.py"}]}},
+            ),
+            (
+                [
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.team2.id, actor_type=ActorType.TEAM),
+                ],
+                [rule_a, rule_exclusion, rule_c],
+            ),
+        )
+
+    def test_get_owners_codeowners_exclusion_issueowners_still_apply(self) -> None:
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        codeowner_rule = Rule(Matcher("codeowners", "/apps/"), [Owner("team", self.team.slug)])
+        codeowner_exclusion = Rule(Matcher("codeowners", "/apps/github"), [])
+
+        self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw="/apps/ @tiger-team\n/apps/github\n",
+            schema=dump_schema([codeowner_rule, codeowner_exclusion]),
+        )
+
+        issueowner_rule = Rule(Matcher("path", "*.py"), [Owner("user", self.user.email)])
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([issueowner_rule]),
+        )
+
+        # File in /apps/github — codeowners excluded, but issueowner rule still matches
+        self.assert_ownership_equals(
+            ProjectOwnership.get_owners(
+                self.project.id,
+                {"stacktrace": {"frames": [{"filename": "apps/github/foo.py"}]}},
+            ),
+            ([Actor(id=self.user.id, actor_type=ActorType.USER)], [issueowner_rule]),
+        )
+
+    def test_get_issue_owners_codeowners_exclusion_rule(self) -> None:
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("codeowners", "/apps/"), [Owner("team", self.team.slug)])
+        rule_exclusion = Rule(Matcher("codeowners", "/apps/github"), [])
+
+        ProjectOwnership.objects.create(project_id=self.project.id)
+
+        self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw="/apps/ @tiger-team\n/apps/github\n",
+            schema=dump_schema([rule_a, rule_exclusion]),
+        )
+
+        # File in /apps/github — exclusion prevents codeowners ownership
+        assert (
+            ProjectOwnership.get_issue_owners(
+                self.project.id,
+                {"stacktrace": {"frames": [{"filename": "apps/github/foo.py"}]}},
+            )
+            == []
+        )
+
+        # File in /apps/bar — only matches rule_a → owned
+        assert ProjectOwnership.get_issue_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "apps/bar/foo.py"}]}},
+        ) == [(rule_a, [self.team], OwnerRuleType.CODEOWNERS.value)]
+
+    def test_get_issue_owners_codeowners_exclusion_issueowners_still_apply(self) -> None:
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        codeowner_rule = Rule(Matcher("codeowners", "/apps/"), [Owner("team", self.team.slug)])
+        codeowner_exclusion = Rule(Matcher("codeowners", "/apps/github"), [])
+
+        issueowner_rule = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([issueowner_rule]),
+        )
+
+        self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            raw="/apps/ @tiger-team\n/apps/github\n",
+            schema=dump_schema([codeowner_rule, codeowner_exclusion]),
+        )
+
+        # File in /apps/github — codeowners excluded, but issueowner rule matches
+        assert ProjectOwnership.get_issue_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "apps/github/foo.py"}]}},
+        ) == [(issueowner_rule, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
 
     def test_get_issue_owners_no_codeowners_or_issueowners(self) -> None:
         assert ProjectOwnership.get_issue_owners(self.project.id, {}) == []
@@ -805,6 +950,30 @@ class ProjectOwnershipTestCase(TestCase):
         version = GroupOwner.get_project_ownership_version(self.project.id)
         assert version is not None
         assert isinstance(version, float)
+
+    def test_handle_auto_assignment_skips_deactivated_user(self) -> None:
+        event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        GroupOwner.objects.create(
+            group=event.group,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            team_id=None,
+            project=self.project,
+            organization=self.project.organization,
+            context={"commitId": 1},
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.is_active = False
+            self.user.save()
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, event)
+        assert not GroupAssignee.objects.filter(group=event.group).exists()
 
 
 class ResolveActorsTestCase(TestCase):

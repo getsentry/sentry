@@ -26,8 +26,6 @@ export function RelocationBadge({data}: Props) {
       text = 'Paused';
       theme = 'warning';
       break;
-    default:
-      break;
   }
 
   if (

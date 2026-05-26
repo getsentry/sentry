@@ -11,6 +11,7 @@ export enum TokenKind {
   ATTRIBUTE = 'attr',
   FUNCTION = 'func',
   LITERAL = 'lit',
+  REFERENCE = 'ref',
 }
 
 export abstract class Token {
@@ -103,6 +104,16 @@ export class TokenFunction extends Token {
   }
 }
 
+export class TokenReference extends Token {
+  kind: TokenKind = TokenKind.REFERENCE;
+  label: string;
+
+  constructor(location: LocationRange, label: string) {
+    super(location, label);
+    this.label = label;
+  }
+}
+
 export class TokenFreeText extends Token {
   kind: TokenKind = TokenKind.FREE_TEXT;
 
@@ -185,4 +196,10 @@ export function isTokenFunction(token: Token | null | undefined): token is Token
 
 export function isTokenLiteral(token: Token | null | undefined): token is TokenLiteral {
   return token?.kind === TokenKind.LITERAL;
+}
+
+export function isTokenReference(
+  token: Token | null | undefined
+): token is TokenReference {
+  return token?.kind === TokenKind.REFERENCE;
 }

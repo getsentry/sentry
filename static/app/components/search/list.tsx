@@ -1,9 +1,9 @@
 import {Fragment, memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
-import type AutoComplete from 'sentry/components/autoComplete';
+import type {AutoComplete} from 'sentry/components/autoComplete';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
@@ -93,7 +93,11 @@ export function List({
       ) : (
         <EmptyItem>{t('No results found')}</EmptyItem>
       )}
-      {!isLoading && resultFooter ? <ResultFooter>{resultFooter}</ResultFooter> : null}
+      {!isLoading && resultFooter ? (
+        <Container position="sticky" left="0" bottom="0" right="0">
+          {resultFooter}
+        </Container>
+      ) : null}
     </DropdownBox>
   );
 }
@@ -138,20 +142,13 @@ const DropdownBox = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.shadow.high};
   position: absolute;
   top: 36px;
   right: 0;
   width: 400px;
   overflow: auto;
   max-height: 60vh;
-`;
-
-const ResultFooter = styled('div')`
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
 `;
 
 const EmptyItem = styled(SearchResultWrapper)`
