@@ -299,4 +299,11 @@ describe('NotificationSettingsByType', () => {
       })
     );
   });
+
+  it('hides quota notifications on self-hosted', () => {
+    ConfigStore.set('isSelfHosted', true);
+    const {container} = renderComponent({notificationType: 'quota'});
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

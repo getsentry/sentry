@@ -283,6 +283,10 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
 
+  if (notificationType === 'quota' && ConfigStore.get('isSelfHosted')) {
+    return null;
+  }
+
   if (
     notificationOptionStatus === 'pending' ||
     notificationProviderStatus === 'pending' ||
