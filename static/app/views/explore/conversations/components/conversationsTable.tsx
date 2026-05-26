@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -265,9 +266,9 @@ const BodyCell = memo(function BodyCell({
     case 'user': {
       if (!dataRow.user) {
         return (
-          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
-            <Text variant="muted">&mdash;</Text>
-          </Tooltip>
+          <InfoText variant="muted" title={<UserNotInstrumentedTooltip />}>
+            &mdash;
+          </InfoText>
         );
       }
       const displayName = getUserDisplayName(dataRow.user);
