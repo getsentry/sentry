@@ -49,7 +49,7 @@ class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        batches = list(
+        rows = list(
             run_eap_spans_table_query_in_chunks(
                 {
                     "params": SnubaParams(
@@ -72,9 +72,8 @@ class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         )
 
-        assert len(batches) == 2
-        assert [len(batch) for batch in batches] == [1, 1]
-        assert {row["project.id"] for batch in batches for row in batch} == {
+        assert len(rows) == 2
+        assert {row["project.id"] for row in rows} == {
             project.id,
             other_project.id,
         }

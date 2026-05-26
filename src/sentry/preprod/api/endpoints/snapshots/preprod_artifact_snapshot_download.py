@@ -4,6 +4,7 @@ import logging
 import zipfile
 from collections import defaultdict
 from collections.abc import Generator
+from concurrent.futures import as_completed
 from io import BytesIO
 
 import orjson
@@ -32,8 +33,9 @@ from sentry.utils.zip import is_unsafe_path
 
 logger = logging.getLogger(__name__)
 
-FETCH_BATCH_SIZE = 200
 FETCH_MAX_WORKERS = 32
+FETCH_BATCH_SIZE = 200
+BATCH_TIMEOUT = 300
 
 
 class _DrainableBuffer:
@@ -150,23 +152,35 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                     )
                     return (image_hash, None)
 
+            executor = ContextPropagatingThreadPoolExecutor(max_workers=FETCH_MAX_WORKERS)
             try:
-                with ContextPropagatingThreadPoolExecutor(
-                    max_workers=FETCH_MAX_WORKERS
-                ) as executor:
-                    for batch_start in range(0, len(unique_hashes), FETCH_BATCH_SIZE):
-                        batch = unique_hashes[batch_start : batch_start + FETCH_BATCH_SIZE]
-
-                        for image_hash, data in executor.map(fetch_image, batch):
+                # Process in batches to cap memory and keep zip bytes
+                # flowing to the client progressively.
+                for batch_start in range(0, len(unique_hashes), FETCH_BATCH_SIZE):
+                    batch = unique_hashes[batch_start : batch_start + FETCH_BATCH_SIZE]
+                    futures = [executor.submit(fetch_image, h) for h in batch]
+                    try:
+                        # as_completed() streams results as they finish,
+                        # timeout caps how long we wait for the whole batch.
+                        for future in as_completed(futures, timeout=BATCH_TIMEOUT):
+                            image_hash, data = future.result()
                             if data is None:
                                 failed_count += 1
                                 continue
                             for filename in hash_to_filenames[image_hash]:
                                 zf.writestr(filename, data)
-
-                        chunk = buf.drain()
-                        if chunk:
-                            yield chunk
+                            chunk = buf.drain()
+                            if chunk:
+                                yield chunk
+                    except TimeoutError:
+                        failed_count += len(batch) - sum(1 for f in futures if f.done())
+                        logger.warning(
+                            "preprod_snapshot_download.batch_timeout",
+                            extra={
+                                "preprod_artifact_id": artifact.id,
+                                "batch_start": batch_start,
+                            },
+                        )
 
                 if failed_count:
                     logger.warning(
@@ -178,6 +192,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                         },
                     )
             finally:
+                # wait=False so hung objectstore reads from timed-out batches
+                # don't block the generator and eventually the WSGI worker.
+                executor.shutdown(wait=False, cancel_futures=True)
                 zf.close()
 
             chunk = buf.drain()

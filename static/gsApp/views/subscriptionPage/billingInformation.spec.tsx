@@ -101,8 +101,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={subscription} />, {organization});
 
-    await screen.findByText('Billing Information');
-
     // panels are collapsed with pre-existing information
     const cardPanel = await screen.findByTestId('credit-card-panel');
     expect(within(cardPanel).getByText('United States 94242')).toBeInTheDocument();
@@ -161,8 +159,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
-
     // panels are expanded with no pre-existing information
     const cardPanel = await screen.findByTestId('credit-card-panel');
     expect(cardPanel).toBeInTheDocument();
@@ -217,7 +213,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
     expect(await screen.findByText('Account balance: $100')).toBeInTheDocument();
   });
 
@@ -232,7 +227,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
     expect(await screen.findByText('Account balance: $100 credit')).toBeInTheDocument();
   });
 
@@ -242,7 +236,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     expect(screen.queryByText(/account balance/i)).not.toBeInTheDocument();
   });
 
@@ -283,7 +277,7 @@ describe('Subscription > BillingInformation', () => {
       organization,
     });
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
@@ -333,7 +327,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={testSubscription} />, {organization});
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
@@ -359,7 +353,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
 

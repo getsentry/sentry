@@ -134,12 +134,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Coding agent provider (e.g., 'github_copilot'). Alternative to integration_id for user-authenticated providers.",
     )
-    intelligence_level = serializers.ChoiceField(
-        required=False,
-        choices=["low", "medium", "high"],
-        default="medium",
-        help_text="The intelligence level to use.",
-    )
     user_context = serializers.CharField(
         required=False,
         max_length=1000,
@@ -328,7 +322,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
-                intelligence_level=data["intelligence_level"],
+                intelligence_level="medium",
                 user_context=data.get("user_context"),
                 insert_index=data.get("insert_index"),
             )
