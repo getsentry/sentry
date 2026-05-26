@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
@@ -198,7 +197,7 @@ class SlackAutofixEntrypoint(
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
-        return features.has("organizations:seer-slack-workflows", organization)
+        return True
 
     @staticmethod
     def get_group_link(group: Group) -> str:
@@ -504,20 +503,16 @@ class SlackAgentEntrypoint(
         self.install = SlackIntegration(model=integration, organization_id=organization_id)
         self.slack_user_id = slack_user_id
 
-    @staticmethod
-    def has_feature_flag(organization: Organization | RpcOrganization) -> bool:
-        return features.has("organizations:seer-slack-explorer", organization)
-
+    # TODO(Leander): This should probably move to the SeerAgentOperator class, any future entrypoint will be checking the same flag, not just Slack.
     @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
         """
         Determines access to Seer Agent, along with the Slack feature. Shouldn't be called from
         the CONTROL silo since `has_explorer_access_with_detail` will not get populated with the
-        subscription context, and will return False every time. For slim, CONTROL calls, use
-        the `has_feature_flag` method instead.
+        subscription context, and will return False every time.
         """
         has_agent_access, _ = has_seer_agent_access_with_detail(organization, None)
-        return SlackAgentEntrypoint.has_feature_flag(organization) and has_agent_access
+        return has_agent_access
 
     def on_trigger_agent_error(self, *, error: str) -> None:
         send_thread_update(
