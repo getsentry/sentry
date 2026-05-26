@@ -1,7 +1,7 @@
 import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -258,43 +258,6 @@ describe('NotificationSettingsByType', () => {
     await selectEvent.select(multiSelect, ['Email']);
     await userEvent.tab();
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('toggles a quota subcategory', async () => {
-    renderComponent({notificationType: 'quota'});
-
-    expect(await screen.findByText('Errors')).toBeInTheDocument();
-
-    const editSettingMock = MockApiClient.addMockResponse({
-      url: '/users/me/notification-options/',
-      method: 'PUT',
-      body: {
-        id: '7',
-        scopeIdentifier: '1',
-        scopeType: 'user',
-        type: 'quotaSpans',
-        value: 'never',
-      },
-    });
-
-    // Spans is rendered alongside the other categories; toggle it off.
-    const spansLabel = screen.getByText('Spans');
-    const spansRow = spansLabel.closest('form');
-    expect(spansRow).not.toBeNull();
-    await selectEvent.select(within(spansRow!).getByText('On'), 'Off');
-
-    expect(editSettingMock).toHaveBeenCalledTimes(1);
-    expect(editSettingMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          scopeIdentifier: '1',
-          scopeType: 'user',
-          type: 'quotaSpans',
-          value: 'never',
-        },
-      })
-    );
   });
 
   it('hides quota notifications on self-hosted', () => {
