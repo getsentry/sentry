@@ -265,7 +265,8 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         value: key,
         label: item.props.children,
         disabled: item.props.disabled,
-        tooltip: item.props.tooltip,
+        tooltip: item.props.tooltip?.title,
+        tooltipOptions: item.props.tooltip,
         textValue: item.textValue,
       };
     });

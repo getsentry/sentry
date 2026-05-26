@@ -63,7 +63,7 @@ describe('useIsEquationMode', () => {
           query: {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
-            yAxis: ['sum(value,alpha_metric,counter,-)'],
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
           },
         },
       },
@@ -82,7 +82,7 @@ describe('useIsEquationMode', () => {
           query: {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
-            yAxis: ['sum(value,alpha_metric,counter,-)'],
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
           },
         },
       },
@@ -102,7 +102,7 @@ describe('useIsEquationMode', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             yAxis: [
-              'equation|sum(value,alpha_metric,counter,-) + avg(value,beta_metric,counter,-)',
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
             ],
           },
         },

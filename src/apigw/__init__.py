@@ -1,5 +1,4 @@
 from emmett55 import App
-from emmett55.serializers import Serializers
 from emmett_prometheus import Prometheus
 from emmett_sentry import Sentry
 
@@ -13,5 +12,3 @@ app.use_extension(Prometheus)
 app.use_extension(Sentry)
 
 db = app.use_extension(AsyncPG)
-
-json = Serializers.get_for("json")

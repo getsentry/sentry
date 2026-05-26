@@ -175,16 +175,6 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
             return False
         return True
 
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id,
-            providers=[IntegrationProviderSlug.BITBUCKET.value],
-        )
-
-        accessible_repos = [r["identifier"] for r in self.get_repositories()]
-
-        return [repo for repo in repos if repo.name not in accessible_repos]
-
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(f"https://{self.model.metadata['domain_name']}") or url.startswith(
             "https://bitbucket.org",

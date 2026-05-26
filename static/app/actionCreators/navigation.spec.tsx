@@ -1,5 +1,6 @@
 import {isValidElement} from 'react';
 import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -20,7 +21,7 @@ describe('navigation ActionCreator', () => {
     ProjectsStore.init();
     const initialData = initializeOrg();
     navigate = jest.fn();
-    location = {...initialData.router.location, query: {}};
+    location = LocationFixture({query: {}});
     ProjectsStore.loadInitialData(initialData.projects);
     configState = ConfigStore.getState();
   });

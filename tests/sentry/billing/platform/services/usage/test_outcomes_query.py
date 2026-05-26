@@ -122,6 +122,22 @@ class TestBuildResponse:
         assert usage_by_cat[sentry_to_proto_category(2)] == 50
         assert usage_by_cat[sentry_to_proto_category(9)] == 25
 
+    def test_build_response_skips_unmapped_sentry_category(self):
+        # Sentry SESSION=5 has no proto mapping; passing the int through would
+        # collide with proto REPLAY=5 and clobber real replay data via the
+        # response builder's overwrite.
+        rows = [
+            _make_row(time="2025-03-15T00:00:00+00:00", category=7, accepted=42, total=42),
+            _make_row(time="2025-03-15T00:00:00+00:00", category=5, accepted=999, total=999),
+        ]
+        response = _build_response(rows, None)
+
+        assert len(response.days) == 1
+        day = response.days[0]
+        assert len(day.usage) == 1
+        assert day.usage[0].category == sentry_to_proto_category(7)
+        assert day.usage[0].data.accepted == 42
+
     def test_build_response_preserves_overlapping_semantics(self):
         """dropped >= over_quota + spike_protection — all values preserved as-is from query."""
         rows = [

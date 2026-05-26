@@ -8,7 +8,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -118,30 +117,11 @@ def update_alert_rule(
             return Response({"uuid": client.uuid}, status=202)
         else:
             updated_rule = validator.save()
-            if features.has(
-                "organizations:workflow-engine-metric-alert-endpoints-put", organization
-            ):
-                try:
-                    detector = Detector.objects.get(
-                        alertruledetector__alert_rule_id=updated_rule.id
-                    )
-                    return Response(
-                        serialize(
-                            detector,
-                            request.user,
-                            WorkflowEngineDetectorSerializer(),
-                        ),
-                        status=status.HTTP_200_OK,
-                    )
-                except Detector.DoesNotExist:
-                    logger.error(
-                        "Alert rule was not dual written. Returning serialized rule instead of detector",
-                        extra={"rule_id": updated_rule.id},
-                    )
-                    return Response(
-                        serialize(updated_rule, request.user), status=status.HTTP_200_OK
-                    )
-            return Response(serialize(updated_rule, request.user), status=status.HTTP_200_OK)
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=updated_rule.id)
+            return Response(
+                serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
+                status=status.HTTP_200_OK,
+            )
 
     return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -325,7 +305,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+        suggested_api="sentry-api-0-organization-detector-details",
     )
     @_check_project_access
     def get(
@@ -362,7 +342,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+        suggested_api="sentry-api-0-organization-detector-details",
     )
     @_check_project_access
     def put(
@@ -402,7 +382,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/detectors/:detector_id/",
+        suggested_api="sentry-api-0-organization-detector-details",
     )
     @_check_project_access
     def delete(

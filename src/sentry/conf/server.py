@@ -163,6 +163,8 @@ SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
     "ff00::/8",
 )
 
+SENTRY_ALLOWED_IPS: tuple[str, ...] = ()
+
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
 # search domains.
@@ -188,7 +190,12 @@ SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
+# Redis cluster for span buffer data and flush locks. Flush locks must remain
+# on this cluster because add-buffer.lua checks lock existence atomically.
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
+# Redis cluster for span deduplication keys in process_segments consumer.
+# Falls back to SENTRY_SPAN_BUFFER_CLUSTER if not set.
+SENTRY_SPAN_DEDUPE_CLUSTER: str | None = None
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
@@ -453,7 +460,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "crispy_forms",
     "rest_framework",
     "sentry",
-    "sentry.autopilot",
     "sentry.analytics",
     "sentry.auth_v2",
     "sentry.incidents.apps.Config",
@@ -860,9 +866,6 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.autopilot.tasks.missing_sdk_integration",
-    "sentry.autopilot.tasks.sdk_update",
-    "sentry.autopilot.tasks.trace_instrumentation",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -3195,7 +3198,7 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
-    "sentry-organization-avatar-url",
+    "sentry-organization-avatar-url-deprecated",
     "sentry-chartcuterie-config",
     "sentry-robots-txt",
 }

@@ -16,7 +16,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -32,7 +31,6 @@ export default function ProjectProguard() {
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -108,26 +106,14 @@ export default function ProjectProguard() {
             ),
           }
         )}
-        action={
-          !hasPageFrameFeature && (
-            <SearchBar
-              placeholder={t('Filter mappings')}
-              onSearch={handleSearch}
-              query={query}
-              width="280px"
-            />
-          )
-        }
       />
 
       <Flex direction="column" gap="md">
-        {hasPageFrameFeature && (
-          <SearchBar
-            placeholder={t('Filter mappings')}
-            onSearch={handleSearch}
-            query={query}
-          />
-        )}
+        <SearchBar
+          placeholder={t('Filter mappings')}
+          onSearch={handleSearch}
+          query={query}
+        />
         <StyledPanelTable
           headers={[
             t('Mapping'),

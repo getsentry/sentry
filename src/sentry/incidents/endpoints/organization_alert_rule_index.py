@@ -208,24 +208,11 @@ def create_metric_alert(
         return Response({"uuid": client.uuid}, status=202)
     else:
         alert_rule = validator.save()
-        if features.has("organizations:workflow-engine-metric-alert-endpoints-post", organization):
-            try:
-                detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-                return Response(
-                    serialize(
-                        detector,
-                        request.user,
-                        WorkflowEngineDetectorSerializer(),
-                    ),
-                    status=status.HTTP_201_CREATED,
-                )
-            except Detector.DoesNotExist:
-                logger.error(
-                    "Alert rule was not dual written. Returning serialized rule instead of detector",
-                    extra={"rule_id": alert_rule.id},
-                )
-                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
-        return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        return Response(
+            serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AlertRuleFetchMixin(Endpoint):
@@ -751,7 +738,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated
@@ -783,7 +772,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated

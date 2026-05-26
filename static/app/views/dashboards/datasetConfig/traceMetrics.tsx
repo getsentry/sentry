@@ -8,8 +8,11 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  getEquationAliasIndex,
+  isEquationAlias,
   parseFunction,
   RateUnit,
+  stripEquationPrefix,
   type AggregationOutputType,
   type DataUnit,
   type QueryFieldValue,
@@ -264,10 +267,19 @@ export const TraceMetricsConfig: DatasetConfig<
   // We've forced the sort options to use the table sort options UI because
   // we only want to allow sorting by selected aggregates.
   getTableSortOptions: (organization, widgetQuery) =>
-    getTableSortOptions(organization, widgetQuery).map(option => ({
-      label: formatTraceMetricsFunction(option.value, option.label),
-      value: option.value,
-    })),
+    getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
+      if (isEquationAlias(value)) {
+        return {
+          label: `ƒ${getEquationAliasIndex(value) + 1}`,
+          value,
+        };
+      }
+
+      return {
+        label,
+        value,
+      };
+    }),
   getGroupByFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
@@ -318,7 +330,9 @@ export const TraceMetricsConfig: DatasetConfig<
   getFieldHeaderMap: widgetQuery => {
     return (
       widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
-        acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+        acc[aggregate] = stripEquationPrefix(
+          formatTraceMetricsFunction(aggregate) as string
+        );
         return acc;
       }, {}) ?? {}
     );
