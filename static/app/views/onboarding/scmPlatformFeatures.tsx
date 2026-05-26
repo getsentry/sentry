@@ -94,7 +94,9 @@ function shouldSuggestFramework(platformKey: PlatformKey): boolean {
 }
 
 function getPlatformName(platformKey: PlatformKey | undefined) {
-  if (!platformKey) return;
+  if (!platformKey) {
+    return;
+  }
   return getPlatformInfo(platformKey)?.name;
 }
 

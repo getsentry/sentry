@@ -919,6 +919,7 @@ export default typescript.config([
     name: 'plugin/prettier',
     extends: [prettier],
     rules: {
+      curly: 'error',
       // import sorting is handled by oxfmt
       'import/order': 'off',
       'sort-imports': 'off',
