@@ -94,11 +94,10 @@ export function getLogoImage(name: string): string | null {
 
 export interface ContextIconProps {
   name: string;
-  alt?: string;
   size?: SVGIconProps['size'];
 }
 
-export function ContextIcon({name, alt, size: providedSize = 'xl'}: ContextIconProps) {
+export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
   const size = SvgIcon.ICON_SIZES[providedSize];
   const platformIconName = getLogoImage(name);
 
