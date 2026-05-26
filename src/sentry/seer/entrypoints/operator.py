@@ -23,6 +23,7 @@ from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
     get_autofix_state,
+    get_automation_handoff,
 )
 from sentry.seer.autofix.utils import CodingAgentState as LegacyCodingAgentState
 from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
@@ -319,7 +320,6 @@ class SeerAutofixOperator[CachePayloadT]:
         from sentry.seer.autofix.utils import (
             CodingAgentProviderType,
             CodingAgentStatus,
-            read_preference_from_sentry_db,
         )
         from sentry.utils.locking import UnableToAcquireLock
 
@@ -331,7 +331,7 @@ class SeerAutofixOperator[CachePayloadT]:
         with event_lifecycle.capture() as lifecycle:
             lifecycle.add_extras({"group_id": str(group.id), "run_id": str(run_id)})
 
-            handoff_config = read_preference_from_sentry_db(group.project).automation_handoff
+            handoff_config = get_automation_handoff(group.project.get_option)
             if handoff_config is None:
                 # Handoff was unset between message render and click.
                 lifecycle.record_halt(halt_reason="no_handoff_configured")

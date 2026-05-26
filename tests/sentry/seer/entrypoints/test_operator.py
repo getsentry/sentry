@@ -39,7 +39,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
-from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -106,19 +105,12 @@ class SeerOperatorTest(TestCase):
         self.entrypoint = MockAutofixEntrypoint()
         self.operator = SeerAutofixOperator(self.entrypoint)
 
-    def _build_preference_with_handoff(
+    def _set_automation_handoff(
         self, target: CodingAgentProviderType = CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
-    ) -> SeerProjectPreference:
-        return SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[],
-            automation_handoff=SeerAutomationHandoffConfiguration(
-                handoff_point="root_cause",
-                target=target,
-                integration_id=789,
-            ),
-        )
+    ) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option("sentry:seer_automation_handoff_target", target.value)
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 789)
 
     def _build_autofix_state_with_agents(
         self, agents: dict[str, LegacyCodingAgentState]
@@ -315,12 +307,9 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.autofix_run_ids == []
 
     @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
-    def test_trigger_handoff_success(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_get_state
-    ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+    def test_trigger_handoff_success(self, mock_trigger_handoff_helper, mock_get_state):
+        self._set_automation_handoff()
         self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_called_once()
         assert mock_trigger_handoff_helper.call_args.kwargs["referrer"] == AutofixReferrer.SLACK
@@ -331,12 +320,11 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.handoff_errors == []
 
     @patch("sentry.seer.entrypoints.operator.get_autofix_state")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_already_exists_running(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_get_state
+        self, mock_trigger_handoff_helper, mock_get_state
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         mock_get_state.return_value = self._build_autofix_state_with_agents(
             {
                 "agent-1": LegacyCodingAgentState(
@@ -356,12 +344,11 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.handoff_successes == []
 
     @patch("sentry.seer.entrypoints.operator.get_autofix_state")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_already_exists_completed(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_get_state
+        self, mock_trigger_handoff_helper, mock_get_state
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         mock_get_state.return_value = self._build_autofix_state_with_agents(
             {
                 "agent-1": LegacyCodingAgentState(
@@ -380,12 +367,11 @@ class SeerOperatorTest(TestCase):
         ]
 
     @patch("sentry.seer.entrypoints.operator.get_autofix_state")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_proceeds_when_all_agents_failed(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_get_state
+        self, mock_trigger_handoff_helper, mock_get_state
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         mock_get_state.return_value = self._build_autofix_state_with_agents(
             {
                 "agent-1": LegacyCodingAgentState(
@@ -404,17 +390,8 @@ class SeerOperatorTest(TestCase):
         ]
         assert self.entrypoint.handoff_already_exists == []
 
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
-    def test_trigger_handoff_no_config_is_silent_halt(
-        self, mock_trigger_handoff_helper, mock_read_pref
-    ):
-        mock_read_pref.return_value = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[],
-            automation_handoff=None,
-        )
+    def test_trigger_handoff_no_config_is_silent_halt(self, mock_trigger_handoff_helper):
         self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_not_called()
         assert self.entrypoint.handoff_successes == []
@@ -425,27 +402,25 @@ class SeerOperatorTest(TestCase):
         "sentry.seer.entrypoints.operator.get_autofix_state",
         side_effect=Exception("seer down"),
     )
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_state_fetch_error_calls_error_hook(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_get_state
+        self, mock_trigger_handoff_helper, mock_get_state
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_not_called()
         assert self.entrypoint.handoff_errors == ["Encountered an error while talking to Seer"]
         assert self.entrypoint.handoff_successes == []
 
     @patch("sentry.seer.entrypoints.operator.get_autofix_state", return_value=None)
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch(
         "sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff",
         side_effect=RuntimeError("boom"),
     )
     def test_trigger_handoff_launch_error_calls_error_hook(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_get_state
+        self, mock_trigger_handoff_helper, mock_get_state
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         assert self.entrypoint.handoff_errors == [
             "Encountered an error while launching the coding agent"
@@ -464,12 +439,9 @@ class SeerOperatorTest(TestCase):
         )
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
-    def test_trigger_handoff_explorer_success(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
-    ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+    def test_trigger_handoff_explorer_success(self, mock_trigger_handoff_helper, mock_fetch_status):
+        self._set_automation_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents({})
         with self.feature("organizations:autofix-on-explorer"):
             self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
@@ -482,12 +454,11 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.handoff_errors == []
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_explorer_already_exists_running(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+        self, mock_trigger_handoff_helper, mock_fetch_status
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
                 "agent-1": CodingAgentState(
@@ -507,12 +478,11 @@ class SeerOperatorTest(TestCase):
         ]
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_explorer_already_exists_completed(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+        self, mock_trigger_handoff_helper, mock_fetch_status
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
                 "agent-1": CodingAgentState(
@@ -532,12 +502,11 @@ class SeerOperatorTest(TestCase):
         ]
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_explorer_proceeds_when_all_agents_failed(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+        self, mock_trigger_handoff_helper, mock_fetch_status
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         mock_fetch_status.return_value = self._build_explorer_state_with_agents(
             {
                 "agent-1": CodingAgentState(
@@ -561,12 +530,11 @@ class SeerOperatorTest(TestCase):
         "sentry.seer.entrypoints.operator.fetch_run_status",
         side_effect=Exception("seer down"),
     )
-    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_explorer_state_fetch_error_calls_error_hook(
-        self, mock_trigger_handoff_helper, mock_read_pref, mock_fetch_status
+        self, mock_trigger_handoff_helper, mock_fetch_status
     ):
-        mock_read_pref.return_value = self._build_preference_with_handoff()
+        self._set_automation_handoff()
         with self.feature("organizations:autofix-on-explorer"):
             self.operator.trigger_handoff(group=self.group, run_id=MOCK_RUN_ID)
         mock_trigger_handoff_helper.assert_not_called()
