@@ -1,4 +1,6 @@
-import {getLogoImage} from 'sentry/components/events/contexts/contextIcon';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {ContextIcon, getLogoImage} from 'sentry/components/events/contexts/contextIcon';
 
 describe('getLogoImage', () => {
   it('maps context icon aliases to platformicons ids', () => {
@@ -21,5 +23,13 @@ describe('getLogoImage', () => {
 
   it('returns null when no platform icon exists', () => {
     expect(getLogoImage('acme-device')).toBeNull();
+  });
+});
+
+describe('ContextIcon', () => {
+  it('uses the context name as image alt text', () => {
+    render(<ContextIcon name="google-chrome" />);
+
+    expect(screen.getByRole('img', {name: 'google-chrome'})).toBeInTheDocument();
   });
 });
