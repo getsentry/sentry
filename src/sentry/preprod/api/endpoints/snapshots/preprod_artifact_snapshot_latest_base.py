@@ -96,7 +96,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             .select_related("commit_comparison", "project", "preprodsnapshotmetrics")
         )
 
-        if project_id:
+        if project_id is not None:
             qs = qs.filter(project_id=project_id)
         if branch:
             qs = qs.filter(commit_comparison__head_ref=branch)
