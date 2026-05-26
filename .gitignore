@@ -95,3 +95,7 @@ agents.lock
 .agents/skills/warden/
 .agents/skills/warden-sweep/
 # end
+diff-output/
+.pnpm-store/
+snapshots-head/
+snapshots-base/
