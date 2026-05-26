@@ -140,11 +140,11 @@ def get_eap_project_volumes(
         }
     ):
         for row in data:
-            total = _get_aggregate_int(row, "count()")
-            keep = _get_aggregate_int(row, "count_sample()")
+            total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
+            keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
             project_volumes.append(
                 ProjectVolume(
-                    project_id=ProjectId(int(row["sentry.dsc.root_project"])),
+                    project_id=ProjectId(int(row[DynamicSamplingQueryFields.ROOT_PROJECT])),
                     total=total,
                     keep=keep,
                     drop=max(total - keep, 0),
