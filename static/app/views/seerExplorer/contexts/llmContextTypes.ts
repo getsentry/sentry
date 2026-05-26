@@ -24,6 +24,8 @@ export type LLMContextNodeType =
   | 'issue-list'
   | 'logs-explorer'
   | 'releases-list'
+  | 'replay-detail'
+  | 'replays-list'
   | 'trace'
   | 'traces-explorer'
   | 'widget'

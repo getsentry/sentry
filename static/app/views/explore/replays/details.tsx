@@ -27,8 +27,10 @@ import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/
 import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
 import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export default function ReplayDetails() {
+function ReplayDetailsInner() {
   return (
     <AnalyticsArea name="details">
       <ReplayAccess
@@ -83,6 +85,22 @@ function ReplayDetailsContent() {
     mobile: replay?.isVideoReplay(),
   });
 
+  useLLMContext({
+    contextHint:
+      'Sentry session replay detail page. The user is viewing a specific recorded browser session. You can look up full details for this replay using the replayId below, query for related replay sessions, or search live telemetry for errors and spans associated with this session.',
+    replayId: replayRecord?.id,
+    replaySlug,
+    projectSlug: readerResult.projectSlug,
+    browser: replayRecord?.browser.name,
+    os: replayRecord?.os.name,
+    duration: replayRecord?.duration,
+    countErrors: replayRecord?.count_errors,
+    countRageClicks: replayRecord?.count_rage_clicks,
+    countDeadClicks: replayRecord?.count_dead_clicks,
+    environment: replayRecord?.environment,
+    platform: replayRecord?.platform,
+  });
+
   const title = replayRecord
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
@@ -124,3 +142,5 @@ function ReplayDetailsContent() {
     </SentryDocumentTitle>
   );
 }
+
+export default registerLLMContext('replay-detail', ReplayDetailsInner);
