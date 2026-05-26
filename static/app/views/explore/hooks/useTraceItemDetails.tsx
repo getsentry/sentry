@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -176,6 +176,8 @@ export function usePrefetchTraceItemDetailsOnHover({
 }) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
+  const projectRef = useRef(project);
+  projectRef.current = project;
   const queryClient = useQueryClient();
   const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
 
@@ -185,12 +187,13 @@ export function usePrefetchTraceItemDetailsOnHover({
         clearTimeout(sharedHoverTimeoutRef.current);
       }
       sharedHoverTimeoutRef.current = setTimeout(() => {
-        if (!project?.slug) {
+        const currentProject = projectRef.current;
+        if (!currentProject?.slug) {
           return;
         }
         const options = traceItemDetailsApiOptions({
           organizationSlug: organization.slug,
-          projectSlug: project.slug,
+          projectSlug: currentProject.slug,
           traceItemId,
           traceItemType,
           referrer,
