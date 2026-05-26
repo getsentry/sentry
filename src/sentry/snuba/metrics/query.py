@@ -195,7 +195,7 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
         try:
             return UseCaseID(parsed_mri.namespace)
         except ValueError:
-            raise ValueError("Can't find correct use_case_id based on metric MRI")
+            raise InvalidParams(f"Can't find correct use_case_id based on metric MRI: {metric_mri}")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
