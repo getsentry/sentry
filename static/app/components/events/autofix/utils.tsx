@@ -1,42 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
-import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
-import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
-import {
-  AUTOFIX_TTL_IN_DAYS,
-  AutofixStepType,
-  type AutofixData,
-} from 'sentry/components/events/autofix/types';
+import {AUTOFIX_TTL_IN_DAYS} from 'sentry/components/events/autofix/types';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-export function getRootCauseCopyText(autofixData: AutofixData) {
-  const rootCause = autofixData.steps?.find(
-    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
-  );
-  if (!rootCause) {
-    return null;
-  }
-
-  const cause = rootCause.causes.at(0);
-
-  if (!cause) {
-    return null;
-  }
-
-  return formatRootCauseText(cause);
-}
-
-export function getSolutionCopyText(autofixData: AutofixData) {
-  const solution = autofixData.steps?.find(
-    step => step.type === AutofixStepType.SOLUTION
-  );
-  if (!solution) {
-    return null;
-  }
-
-  return formatSolutionText(solution.solution, solution.custom_solution);
-}
 
 const BASE_SUPPORTED_PROVIDERS = [
   'github',

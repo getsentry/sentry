@@ -113,6 +113,12 @@ register(
     default=300,  # 5 minutes
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "data-forwarding.task-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
@@ -3046,13 +3052,6 @@ register(
     "relocation.daily-limit.large",
     default=0,
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "relocation.outbox-orgslug.killswitch",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(

@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from tools.mypy_helpers.sort_stronger_modules import main
+from tools.mypy_helpers.sort_weaklist import main
 
 
-def test_sort_stronger_modules(tmp_path: Path) -> None:
+def test_sort_weaklist(tmp_path: Path) -> None:
     src = """\
 # before
 

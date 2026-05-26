@@ -62,8 +62,12 @@ export function getBlockStatus(block: Block): BlockStatus {
     l => l.params?.is_error === true || l.params?.empty_results === true
   ).length;
 
-  if (failures === 0) return 'success';
-  if (failures === toolLinks.length) return 'failure';
+  if (failures === 0) {
+    return 'success';
+  }
+  if (failures === toolLinks.length) {
+    return 'failure';
+  }
   return 'mixed';
 }
 
@@ -86,7 +90,9 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
   return (
     <Fragment>
       {parts.map((part, i) => {
-        if (!part) return null;
+        if (!part) {
+          return null;
+        }
         if (i % 2 === 1) {
           return (
             <Link key={i} to={`/issues/${part}/`}>

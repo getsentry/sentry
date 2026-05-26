@@ -15,7 +15,6 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import options
-from sentry.cache.base import BaseCache
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
@@ -385,7 +384,7 @@ def _track_outcomes(segment_span: CompatibleSpan, spans: list[CompatibleSpan]) -
 @metrics.wraps("spans.consumers.process_segments.bump_release_last_seen")
 def _bump_release_last_seen(
     project: Project, environment_name: Any, release_name: Any, date: datetime
-):
+) -> None:
     if not release_name:
         return
 
@@ -446,19 +445,51 @@ class BoundedLRUCache:
         """
         Return the hash of the `key` as an integer.
 
-        Cache key names are strings and technically unbounded by their construction, though its
-        likely bounds are enforced upstream. Nevertheless it consumes more memory than we
-        should be reasonably willing to allocate to this job.
+        Cache keys are strings and technically unbounded, though its likely bounds on string length
+        are enforced upstream. Nevertheless strings consume more memory than we should be
+        reasonably willing to allocate to this job.
 
         The `key` is hashed using `blake2b`. A digest-size of 11-bytes was chosen. 11-bytes is
         significant because its the largest digest size before byte size increases to the next
-        4-byte boundary. The next smallest boundary was 7-bytes at time of testing. For one billion
-        unique cache key permutations there is a 1 in 600 million chance of collision.
+        4-byte boundary. The next smallest boundary was a digest size of 7 at time of testing.
+        For one billion unique cache key permutations there is a 1 in 600 million chance of
+        collision.
 
         This method outputs a 36-byte integer.
         """
         digest = hashlib.blake2b(key.encode(), digest_size=11).digest()
         return int.from_bytes(digest, "big")
+
+
+class DistributedCache:
+    def __init__(self):
+        self.cache = django_cache
+
+    def get(self, key: str) -> int | None:
+        result = self.cache.get(self._hash_key(key))
+        if isinstance(result, int):
+            return result
+        return None
+
+    def set(self, key: str, value: int) -> None:
+        self.cache.set(self._hash_key(key), value, timeout=86400)
+        return None
+
+    def _hash_key(self, key: str) -> str:
+        """
+        Return the hash of the `key` as a string of hexadecimal numbers.
+
+        Cache keys are strings and technically unbounded, though its likely bounds on string length
+        are enforced upstream. Nevertheless strings consume more memory than we should be
+        reasonably willing to allocate to this job.
+
+        The `key` is hashed using `blake2b`. A digest-size of 16-bytes was chosen. 16-bytes is
+        significant because its the smallest digest size considered cryptographically secure. Since
+        this value will be long lived in the cache we should maintain reasonable guarantees against
+        collision.
+        """
+        digest = hashlib.blake2b(key.encode(), digest_size=16).digest()
+        return f"c:ps:{digest.hex()}"
 
 
 class TieredCache:
@@ -469,9 +500,9 @@ class TieredCache:
     :param remote_cache:
     """
 
-    def __init__(self, local_cache: BoundedLRUCache, remote_cache: BaseCache):
+    def __init__(self, local_cache: BoundedLRUCache, distributed_cache: DistributedCache):
         self.local_cache = local_cache
-        self.remote_cache = remote_cache
+        self.distributed_cache = distributed_cache
 
     def get(self, key: str) -> int | None:
         """If the key exists return the previously recorded timestamp."""
@@ -479,7 +510,7 @@ class TieredCache:
         if local_ts is not None:
             return local_ts
 
-        remote_ts = self.remote_cache.get(key)
+        remote_ts = self.distributed_cache.get(key)
         if isinstance(remote_ts, int):
             # Local cache is updated so we don't have to fetch this value again.
             self.local_cache.set(key, remote_ts)
@@ -494,7 +525,7 @@ class TieredCache:
         # after one hour. It should be continually refreshed by new events however if the
         # key is rare or comes from a near-zero volume project there's no reason to keep
         # it around.
-        self.remote_cache.set(key, timestamp, 3600)
+        self.distributed_cache.set(key, timestamp)
         self.local_cache.set(key, timestamp)
         return None
 
@@ -509,4 +540,4 @@ def _get_cache():
     return cache
 
 
-cache = None
+cache: TieredCache | None = None

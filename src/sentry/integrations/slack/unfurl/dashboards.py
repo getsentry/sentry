@@ -129,7 +129,7 @@ def _unfurl_dashboards(
     enabled_orgs = {
         slug: org
         for slug, org in orgs_by_slug.items()
-        if features.has("organizations:dashboards-widget-unfurl", org, actor=user)
+        if features.has("organizations:dashboards-basic", org, actor=user)
     }
     if not enabled_orgs:
         return {}

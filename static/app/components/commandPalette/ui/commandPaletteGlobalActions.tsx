@@ -282,7 +282,9 @@ export function GlobalCommandPaletteActions() {
     })
       .flatMap(section =>
         section.items.filter(navItem => {
-          if (navItem.show === undefined) return true;
+          if (navItem.show === undefined) {
+            return true;
+          }
           return typeof navItem.show === 'function'
             ? navItem.show({...context, ...section})
             : navItem.show;
@@ -362,7 +364,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
-              to={`${prefix}/explore/profiling/`}
+              to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
