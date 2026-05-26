@@ -135,17 +135,6 @@ def handle_check_run_event(
 
 @scm_event_stream.listen_for(event_type="check_run")
 def process_check_run(e: CheckRunEvent) -> None:
-    """
-    This is called when a check_run event is received from GitHub.
-    When a user clicks "Re-run" on a check run in GitHub UI, we enqueue
-    a task to forward the original run ID to Seer so it can rerun the PR review.
-
-    Args:
-        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
-        event: The webhook event payload
-        tags: Sentry SDK tags from the handler (from get_tags); merged with check_run-specific overrides
-        **kwargs: Additional keyword arguments
-    """
     # To avoid double processing we write metadata in the webhook handler signaling the handler's
     # intent of processing location.
     if not e.subscription_event["extra"].get("process_in_listener", False):
