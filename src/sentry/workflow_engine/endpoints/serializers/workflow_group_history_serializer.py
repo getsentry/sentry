@@ -110,12 +110,15 @@ _SORT_FIELD_MAP = {
     "lastTriggered": "last_triggered",
     "count": "count",
 }
-_DEFAULT_ORDER_BY = ("-last_triggered", "-count")
+# `group` is appended as a stable tiebreaker so OffsetPaginator pages don't
+# skip or duplicate rows when the user-provided sort fields tie.
+_TIEBREAKER = "group"
+_DEFAULT_ORDER_BY = ("-last_triggered", "-count", _TIEBREAKER)
 
 
-def _parse_sort(sort: Sequence[str]) -> Sequence[str]:
+def _parse_sort(sort: Sequence[str]) -> list[str]:
     if not sort:
-        return _DEFAULT_ORDER_BY
+        return list(_DEFAULT_ORDER_BY)
 
     order_by: list[str] = []
     for s in sort:
@@ -126,6 +129,7 @@ def _parse_sort(sort: Sequence[str]) -> Sequence[str]:
         if field not in _SORT_FIELD_MAP:
             raise ParseError(detail=f"Invalid sort field: {field}")
         order_by.append(f"{prefix}{_SORT_FIELD_MAP[field]}")
+    order_by.append(_TIEBREAKER)
     return order_by
 
 
