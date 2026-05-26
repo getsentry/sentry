@@ -7,7 +7,7 @@ from enum import StrEnum
 import sentry_sdk
 from django.db.models import Q
 
-from sentry import features
+from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
@@ -488,7 +488,8 @@ def process_workflows(
                 ),
             },
         )
-        workflows = workflows - wrong_org_workflows
+        if options.get("workflow_engine.filter_cross_org_workflows"):
+            workflows = workflows - wrong_org_workflows
 
     if workflows:
         metrics_incr("process_workflows", len(workflows))

@@ -111,7 +111,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=cross_org_workflow,
         )
 
-        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        with self.options({"workflow_engine.filter_cross_org_workflows": True}):
+            result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.data.triggered_workflows == {self.error_workflow}
         assert result.data.workflows is not None
         assert cross_org_workflow not in result.data.workflows
