@@ -6,6 +6,7 @@ from typing import Any
 import orjson
 from django.conf import settings
 from django.db.models import Q
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +19,10 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
@@ -25,6 +30,7 @@ from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     _strip_to_compact,
     build_snapshot_image_response,
 )
+from sentry.preprod.api.models.public.snapshots import LatestBaseSnapshotResponseDict
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 
@@ -51,19 +57,76 @@ LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
 }
 
 
+@extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
 class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationReleasePermission,)
 
+    @extend_schema(
+        operation_id="Retrieve latest base Snapshot",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="app_id",
+                type=str,
+                location="query",
+                required=True,
+                description="App identifier to match.",
+            ),
+            OpenApiParameter(
+                name="branch",
+                type=str,
+                location="query",
+                required=False,
+                description="Git branch name to filter on.",
+            ),
+            OpenApiParameter(
+                name="project",
+                type=int,
+                location="query",
+                required=False,
+                description="Project ID to scope the lookup.",
+            ),
+            OpenApiParameter(
+                name="compact_metadata",
+                type=str,
+                location="query",
+                required=False,
+                description="Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, description, and image_url only.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "LatestBaseSnapshotResponse", LatestBaseSnapshotResponseDict
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=PreprodExamples.GET_LATEST_BASE_SNAPSHOT,
+    )
     def get(
         self,
         request: Request,
         organization: Organization,
     ) -> Response:
+        """
+        Retrieve the most recent base snapshot for a given app.
+
+        A base snapshot is one uploaded without a `base_sha` (i.e., a snapshot
+        from a base branch like `main`). Use the optional `branch` and `project`
+        parameters to narrow the search.
+
+        The response includes the full image list with download URLs. Use
+        `compact_metadata=1` to reduce image metadata.
+
+        This endpoint requires a bearer token with `project:read` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", organization, actor=request.user
         ):
