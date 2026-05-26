@@ -52,7 +52,6 @@ const generalSchema = z.object({
   organizationId: z.string(),
   isEarlyAdopter: z.boolean(),
   hideAiFeatures: z.boolean(),
-  codecovAccess: z.boolean(),
   slug: z.string().min(1, t('Organization slug is required')),
 });
 
