@@ -20,6 +20,7 @@ import {defined} from 'sentry/utils';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
 interface SeerDrawerProps {
   group: Group;
@@ -32,6 +33,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
   const handleRestart = useHandleRestart({aiAutofix});
+  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix});
 
   const referrer = useMemo(
     () => getReferrerFromBlocks(aiAutofix.runState?.blocks ?? []),
@@ -62,6 +64,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
     >
       <SeerDrawerHeader
         onCopyMarkdown={handleCopyMarkdown}
+        onOpenSeerAgent={handleOpenSeerAgent}
         onReset={handleRestart}
         referrer={referrer}
       />
@@ -114,4 +117,20 @@ function useHandleRestart({
   return useCallback(() => {
     startStep('root_cause');
   }, [startStep]);
+}
+
+function useHandleOpenSeerAgent({
+  aiAutofix,
+}: {
+  aiAutofix: ReturnType<typeof useExplorerAutofix>;
+}): (() => void) | undefined {
+  const {openSeerExplorerDrawer} = useSeerExplorerDrawer();
+  const runId = aiAutofix.runState?.run_id;
+
+  return useMemo(() => {
+    if (!defined(runId)) {
+      return undefined;
+    }
+    return () => openSeerExplorerDrawer({runId});
+  }, [openSeerExplorerDrawer, runId]);
 }
