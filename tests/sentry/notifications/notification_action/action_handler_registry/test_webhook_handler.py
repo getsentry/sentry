@@ -195,7 +195,7 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             notification_uuid=str(uuid.uuid4()),
             workflow_id=self.workflow.id,
         )
-        self.create_sentry_app(slug="my-app", organization=self.organization)
+        self.create_sentry_app(name="My App", organization=self.organization)
         self.create_sentry_app_installation(
             slug="my-app", organization=self.organization, user=self.user
         )
