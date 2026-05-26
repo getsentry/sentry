@@ -74,6 +74,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         additional_queries: AdditionalQueries | None = None,
         occurrence_category: OccurrenceCategory | None = None,
         extra_conditions: TraceItemFilter | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(

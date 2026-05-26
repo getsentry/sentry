@@ -427,6 +427,7 @@ class RPCBase:
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         raise NotImplementedError()
 

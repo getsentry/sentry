@@ -240,6 +240,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         max_string_length: int | None = None
         truncate_str = request.GET.get("truncate")
         if truncate_str is not None:
+            if dataset != OurLogs:
+                return Response(
+                    {"detail": "truncate is only supported for the logs dataset"}, status=400
+                )
             try:
                 max_string_length = int(truncate_str)
                 if max_string_length < 64:
@@ -610,11 +614,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         sampling_mode=snuba_params.sampling_mode,
                         page_token=page_token,
                         additional_queries=additional_queries,
-                        **(
-                            {"max_string_length": max_string_length}
-                            if scoped_dataset == OurLogs
-                            else {}
-                        ),
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
@@ -635,11 +635,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
                         additional_queries=additional_queries,
-                        **(
-                            {"max_string_length": max_string_length}
-                            if scoped_dataset == OurLogs
-                            else {}
-                        ),
+                        max_string_length=max_string_length,
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:
