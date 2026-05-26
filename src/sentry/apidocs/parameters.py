@@ -545,16 +545,6 @@ class IssueAlertParams:
     )
 
 
-class MetricAlertParams:
-    METRIC_RULE_ID = OpenApiParameter(
-        name="alert_rule_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the rule you'd like to query.",
-    )
-
-
 class DataForwarderParams:
     DATA_FORWARDER_ID = OpenApiParameter(
         name="data_forwarder_id",
