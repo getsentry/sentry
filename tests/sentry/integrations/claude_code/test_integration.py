@@ -238,6 +238,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             installation_vault_writer=ANY,
         )
         passed = mock_cls.call_args.kwargs
+        assert isinstance(installation, ClaudeCodeAgentIntegration)
         assert passed["installation_vault_lookup"] == installation.get_vault_id_for_installation
         assert passed["installation_vault_writer"] == installation.set_vault_id_for_installation
 
