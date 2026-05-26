@@ -496,6 +496,7 @@ const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
 
 const ActivityInputFrame = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
+  min-width: 0;
 `;
 
 const AvatarMarker = styled('span')<{color: string}>`
