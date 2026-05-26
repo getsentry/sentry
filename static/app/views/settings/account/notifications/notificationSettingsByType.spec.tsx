@@ -151,12 +151,13 @@ describe('NotificationSettingsByType', () => {
   it('renders all the quota subcategories', async () => {
     renderComponent({notificationType: 'quota'});
 
-    expect(await screen.findByText('Errors')).toBeInTheDocument();
+    // check for all the quota subcategories
     expect(
-      screen.getByText(
+      await screen.findByText(
         'Receive notifications when your organization exceeds the following limits.'
       )
     ).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
