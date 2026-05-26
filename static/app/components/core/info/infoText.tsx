@@ -6,9 +6,10 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div'> = DistributedOmit<
   TextProps<T>,
-  'title'
+  'title' | 'variant'
 > & {
   title: React.ReactNode;
+  variant?: TooltipProps['underlineColor'] | 'inherit';
 } & Pick<TooltipProps, 'position'>;
 
 export function InfoText<T extends 'span' | 'p' | 'label' | 'div' = 'span'>({
@@ -21,7 +22,14 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' = 'span'>({
     return <Text {...textProps}>{children}</Text>;
   }
   return (
-    <Tooltip title={title} position={position} skipWrapper isHoverable showUnderline>
+    <Tooltip
+      title={title}
+      position={position}
+      skipWrapper
+      isHoverable
+      showUnderline
+      underlineColor={textProps.variant === 'inherit' ? undefined : textProps.variant}
+    >
       <StyledText {...textProps} tabIndex={0}>
         {children}
       </StyledText>
