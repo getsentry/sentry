@@ -10,7 +10,7 @@ import {
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {defined} from 'sentry/utils';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -242,35 +242,34 @@ export function useReplayData({
   );
 
   const enableErrors = Boolean(replayRecord) && Boolean(projectSlug);
-  const {pages: errorPages, status: fetchErrorsStatus} = useQueries({
+  const {
+    pages: errorPages,
+    status: fetchErrorsStatus,
+    lastLinkHeader,
+  } = useQueries({
     queries: enableErrors
-      ? errorCursors.map(cursor =>
-          getErrorsQueryOptions({cursor, per_page: errorsPerPage})
-        )
+      ? errorCursors.map(cursor => ({
+          ...getErrorsQueryOptions({
+            cursor,
+            per_page: errorsPerPage,
+          }),
+          select: selectJsonWithHeaders,
+        }))
       : [],
     combine: results => ({
-      pages: results.map(r => r.data).filter(defined),
+      pages: results.map(r => r.data?.json).filter(defined),
       status: results.some(r => r.status === 'error')
         ? 'error'
         : results.some(r => r.status === 'pending')
           ? 'pending'
           : 'success',
+      lastLinkHeader: parseLinkHeader(results.at(-1)?.data?.headers.Link ?? null),
     }),
   });
 
-  const lastErrorCursor = errorCursors.at(-1);
-  const lastErrorsResponseHeaders =
-    lastErrorCursor && fetchErrorsStatus === 'success'
-      ? queryClient.getQueryData(
-          getErrorsQueryOptions({cursor: lastErrorCursor, per_page: errorsPerPage})
-            .queryKey
-        )?.headers
-      : undefined;
-
-  const links = parseLinkHeader(lastErrorsResponseHeaders?.Link ?? null);
   const enableExtraErrors =
     Boolean(replayRecord) &&
-    (!replayRecord?.count_errors || Boolean(links.next?.results)) &&
+    (!replayRecord?.count_errors || Boolean(lastLinkHeader.next?.results)) &&
     fetchErrorsStatus === 'success';
 
   const replayEnd = (() => {
