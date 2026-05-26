@@ -303,6 +303,79 @@ class ApiGatewayTest(ApiGatewayTestCase):
                     data={"dsn": "https://abc123@o123.ingest.zz.testserver/123"},
                 )
 
+    def test_proxy_js_sdk_loader(self) -> None:
+        from sentry.models.projectkeymapping import ProjectKeyMapping
+
+        project_key = self.create_project_key(self.project)
+        ProjectKeyMapping.objects.update_or_create(
+            project_key_id=project_key.id,
+            defaults={"public_key": project_key.public_key, "cell_name": self.CELL.name},
+        )
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.js",
+            json_data={"proxy": True, "public_key": project_key.public_key},
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            with override_settings(ROOT_URLCONF="sentry.web.urls"):
+                resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.js")
+                assert resp.status_code == 200
+                resp_json = json.loads(close_streaming_response(resp))
+                assert resp_json["proxy"] is True
+
+    def test_proxy_js_sdk_loader_minified(self) -> None:
+        from sentry.models.projectkeymapping import ProjectKeyMapping
+
+        project_key = self.create_project_key(self.project)
+        ProjectKeyMapping.objects.update_or_create(
+            project_key_id=project_key.id,
+            defaults={"public_key": project_key.public_key, "cell_name": self.CELL.name},
+        )
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.min.js",
+            json_data={"proxy": True},
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            with override_settings(ROOT_URLCONF="sentry.web.urls"):
+                resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.min.js")
+                assert resp.status_code == 200
+                resp_json = json.loads(close_streaming_response(resp))
+                assert resp_json["proxy"] is True
+
+    def test_proxy_js_sdk_loader_no_mapping_falls_through(self) -> None:
+        """When no ProjectKeyMapping exists, the resolver returns None and
+        the request falls through to REGION_PINNED_URL_NAMES (monolith)."""
+        project_key = self.create_project_key(self.project)
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.js",
+            json_data={"proxy": True, "fallback": True},
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            with override_settings(ROOT_URLCONF="sentry.web.urls"):
+                resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.js")
+                assert resp.status_code == 200
+                resp_json = json.loads(close_streaming_response(resp))
+                assert resp_json["proxy"] is True
+                assert resp_json["fallback"] is True
+
+    def test_proxy_js_sdk_loader_invalid_key(self) -> None:
+        """A public key that doesn't exist in ProjectKeyMapping falls through
+        to REGION_PINNED_URL_NAMES."""
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/nonexistent_key.js",
+            json_data={"proxy": True, "fallback": True},
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            with override_settings(ROOT_URLCONF="sentry.web.urls"):
+                resp = self.client.get("/js-sdk-loader/nonexistent_key.js")
+                assert resp.status_code == 200
+                resp_json = json.loads(close_streaming_response(resp))
+                assert resp_json["proxy"] is True
+                assert resp_json["fallback"] is True
+
     @staticmethod
     def _check_response(resp: Response, expected_name: str) -> None:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
