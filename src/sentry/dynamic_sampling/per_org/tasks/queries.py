@@ -100,10 +100,10 @@ def get_eap_organization_volume(
         return None
 
     row = data[0]
-    total = _get_aggregate_int(row, "count()")
+    total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
     if total <= 0:
         return None
-    indexed = _get_aggregate_int(row, "count_sample()")
+    indexed = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
 
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
 
