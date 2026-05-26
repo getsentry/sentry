@@ -22,6 +22,7 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
+import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {
   IconAdd,
   IconAllProjects,
@@ -1053,6 +1054,34 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
       </CMDKAction>
+
+      {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
+        <CMDKAction
+          display={{label: t('Open in Production'), icon: <IconOpen />}}
+          keywords={[t('production'), t('prod'), t('live')]}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.sentry.io${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
+
+      {NODE_ENV === 'production' && user.isStaff && (
+        <CMDKAction
+          display={{label: t('Open in Development'), icon: <IconOpen />}}
+          keywords={[t('development'), t('dev'), t('dev-ui'), t('localhost'), t('local')]}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.dev.getsentry.net:7999${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
     </CommandPaletteSlot>
   );
 }
