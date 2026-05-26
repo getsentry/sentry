@@ -13,6 +13,7 @@ from sentry.utils.cursored_scheduler import (
     BATCH_SIZE_CACHE_KEY_PREFIX,
     CURSOR_CACHE_KEY_PREFIX,
     PK_LIST_CACHE_KEY_PREFIX,
+    TICK_INTERVAL_CACHE_KEY_PREFIX,
     CursoredScheduler,
     _get_tick_interval,
 )
@@ -42,9 +43,11 @@ class CursoredSchedulerTest(TestCase):
         self.cache_key = f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler"
         self.batch_size_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:test_scheduler"
         self.pk_list_key = f"{PK_LIST_CACHE_KEY_PREFIX}:test_scheduler"
+        self.tick_interval_key = f"{TICK_INTERVAL_CACHE_KEY_PREFIX}:test_scheduler"
         self.redis_client = redis_clusters.get("default")
         cache.delete(self.cache_key)
         cache.delete(self.batch_size_key)
+        cache.delete(self.tick_interval_key)
         self.redis_client.delete(self.pk_list_key)
 
     _oi_counter = 0
@@ -406,6 +409,65 @@ class CursoredSchedulerTest(TestCase):
         cursor = cache.get(f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler")
         assert cursor is not None
         assert int(cursor) == 10
+
+    def test_recalculates_batch_size_on_interval_change(self):
+        """When tick interval changes mid-cycle, batch size adjusts for remaining items."""
+        self._create_org_integrations(30)
+        # Start with 1-min tick, 3-min cycle → 3 ticks → batch_size=10
+        scheduler = self._make_scheduler()
+
+        scheduler.tick()
+        assert self.mock_task.delay.call_count == 10
+        self.mock_task.reset_mock()
+
+        # Change tick interval to 2 minutes mid-cycle.
+        # 20 remaining items, old rate was 10/tick at 1-min intervals → 2 ticks left → 2 min remaining.
+        # At 2-min intervals → 1 tick left → new batch_size=20
+        new_schedules = {
+            **TEST_SCHEDULES,
+            "test-scheduler-beat": {
+                "task": "test:sentry.test_task",
+                "schedule": timedelta(minutes=2),
+            },
+        }
+        with override_settings(TASKWORKER_SCHEDULES=new_schedules):
+            scheduler.tick()
+            assert self.mock_task.delay.call_count == 20
+
+    def test_no_recalculation_when_interval_unchanged(self):
+        """Batch size stays the same when tick interval hasn't changed."""
+        self._create_org_integrations(30)
+        scheduler = self._make_scheduler()
+
+        scheduler.tick()
+        assert self.mock_task.delay.call_count == 10
+        self.mock_task.reset_mock()
+
+        # Same interval, batch size should stay at 10
+        scheduler.tick()
+        assert self.mock_task.delay.call_count == 10
+
+    def test_interval_decrease_halves_batch_size(self):
+        """When tick interval is halved, batch size is halved for remaining items."""
+        self._create_org_integrations(30)
+        # Start with 2-min tick, 6-min cycle → 3 ticks → batch_size=10
+        new_schedules = {
+            **TEST_SCHEDULES,
+            "test-scheduler-beat": {
+                "task": "test:sentry.test_task",
+                "schedule": timedelta(minutes=2),
+            },
+        }
+        with override_settings(TASKWORKER_SCHEDULES=new_schedules):
+            scheduler = self._make_scheduler(cycle_duration=timedelta(minutes=6))
+            scheduler.tick()
+            assert self.mock_task.delay.call_count == 10
+            self.mock_task.reset_mock()
+
+        # Change to 1-min ticks. 20 remaining, old: 10/tick at 2-min → 2 ticks → 4 min left.
+        # At 1-min ticks → 4 ticks → batch_size = ceil(20/4) = 5
+        scheduler.tick()
+        assert self.mock_task.delay.call_count == 5
 
 
 @override_settings(TASKWORKER_SCHEDULES=TEST_SCHEDULES)

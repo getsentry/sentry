@@ -24,10 +24,10 @@ describe('analyticsInitUser', () => {
   });
   afterEach(() => {
     sessionStorageWrapper.removeItem('marketing_event_recorded');
-    (trackMarketingEvent as jest.Mock).mockClear();
-    (Amplitude.setUserId as jest.Mock).mockClear();
-    (Amplitude.track as jest.Mock).mockClear();
-    (Amplitude.Identify as jest.Mock).mockClear();
+    jest.mocked(trackMarketingEvent).mockClear();
+    jest.mocked(Amplitude.setUserId).mockClear();
+    jest.mocked(Amplitude.track).mockClear();
+    jest.mocked(Amplitude.Identify).mockClear();
   });
   it('calls getInstance and initializes with user and user properties', () => {
     analyticsInitUser(user);

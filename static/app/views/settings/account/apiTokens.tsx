@@ -1,7 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -20,7 +20,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -29,7 +28,6 @@ const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;
 
 function ApiTokens() {
   const api = useApi();
-  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
 
   const {
@@ -102,7 +100,7 @@ function ApiTokens() {
   const action = (
     <LinkButton
       variant="primary"
-      size={hasPageFrame ? 'md' : 'sm'}
+      size="md"
       icon={<IconAdd />}
       to="/settings/account/api/auth-tokens/new-token/"
     >
@@ -114,44 +112,23 @@ function ApiTokens() {
     <SentryDocumentTitle title={PAGE_TITLE}>
       <SettingsPageHeader
         title={PAGE_TITLE}
-        action={hasPageFrame ? undefined : action}
+        action={action}
         subtitle={
-          hasPageFrame ? (
-            <Flex justify="between" align="center" gap="md">
-              <Stack gap="md">
-                <div>
-                  {t(
-                    "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-                  )}
-                </div>
-                <div>
-                  {tct(
-                    'For more information on how to use the web API, see our [link:documentation].',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                    }
-                  )}
-                </div>
-              </Stack>
-              {action}
-            </Flex>
-          ) : (
-            <Stack gap="md">
-              <div>
-                {t(
-                  "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-                )}
-              </div>
-              <div>
-                {tct(
-                  'For more information on how to use the web API, see our [link:documentation].',
-                  {
-                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                  }
-                )}
-              </div>
-            </Stack>
-          )
+          <Stack gap="md">
+            <div>
+              {t(
+                "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+              )}
+            </div>
+            <div>
+              {tct(
+                'For more information on how to use the web API, see our [link:documentation].',
+                {
+                  link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                }
+              )}
+            </div>
+          </Stack>
         }
       />
       <PanelTable

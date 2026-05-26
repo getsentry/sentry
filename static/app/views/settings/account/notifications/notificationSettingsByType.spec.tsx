@@ -272,7 +272,7 @@ describe('NotificationSettingsByType', () => {
       organizations: [organizationWithFlag, organizationNoFlag],
     });
 
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
+    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
     expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
     expect(
       screen.getByText('Control the notifications you receive for organization spend.')
@@ -288,7 +288,7 @@ describe('NotificationSettingsByType', () => {
       organizations: [organizationWithFlag, organizationNoFlag],
     });
 
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
+    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
       url: '/users/me/notification-options/',
@@ -336,7 +336,7 @@ describe('NotificationSettingsByType', () => {
       organizations: [organization],
     });
 
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
+    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
@@ -396,7 +396,7 @@ describe('NotificationSettingsByType', () => {
       organizations: [organization, otherOrganization],
     });
 
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
+    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
@@ -426,7 +426,7 @@ describe('NotificationSettingsByType', () => {
       organizations: [organization, otherOrganization],
     });
 
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
+    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
@@ -451,7 +451,7 @@ describe('NotificationSettingsByType', () => {
       organizations: [organization],
     });
 
-    expect(await screen.findAllByText('Quota Notifications')).toHaveLength(1);
+    expect(await screen.findByText('Errors')).toBeInTheDocument();
     expect(screen.queryByText('Spend Notifications')).not.toBeInTheDocument();
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -511,7 +511,7 @@ describe('NotificationSettingsByType', () => {
       organizations: [organization],
     });
 
-    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
+    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
 
     // These should be present
     expect(screen.getByText('Errors')).toBeInTheDocument();

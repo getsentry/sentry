@@ -364,6 +364,13 @@ class SeerAgentClient:
         ):
             chat_body["is_context_engine_enabled"] = override_ce_enable
 
+        if features.has(
+            "organizations:seer-agent-source-code-search",
+            self.organization,
+            actor=self.user,
+        ):
+            chat_body["enable_frontend_code_search"] = True
+
         if features.has("organizations:seer-run-mirror-explorer", self.organization):
             user_id = (
                 self.user.id
@@ -541,6 +548,13 @@ class SeerAgentClient:
         # so the start_run coin flip is the single source of truth.
         if _has_context_engine(self.organization, self.user):
             chat_body["is_context_engine_enabled"] = True
+
+        if features.has(
+            "organizations:seer-agent-source-code-search",
+            self.organization,
+            actor=self.user,
+        ):
+            chat_body["enable_frontend_code_search"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
@@ -770,6 +784,7 @@ class SeerAgentClient:
         auto_create_pr: bool = False,
         provider: str | None = None,
         user_id: int | None = None,
+        issue_short_id: str | None = None,
     ) -> dict[str, list]:
         """
         Launch coding agents for an agent run.
@@ -786,6 +801,7 @@ class SeerAgentClient:
             auto_create_pr: Whether to automatically create a PR when agent finishes
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
             user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+            issue_short_id: Optional Sentry issue short ID for coding agent session naming
 
         Returns:
             Dictionary with 'successes' and 'failures' lists
@@ -800,4 +816,5 @@ class SeerAgentClient:
             auto_create_pr=auto_create_pr,
             provider=provider,
             user_id=user_id,
+            issue_short_id=issue_short_id,
         )

@@ -19,7 +19,6 @@ import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 /**
@@ -198,15 +197,6 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
     reload: jest.fn(),
   },
 }));
-
-DANGEROUS_SET_TEST_HISTORY({
-  goBack: jest.fn(),
-  push: jest.fn(),
-  replace: jest.fn(),
-  listen: jest.fn(() => {}),
-  listenBefore: jest.fn(),
-  getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
-});
 
 // Close any open modals before each test
 beforeEach(closeModal);

@@ -23,11 +23,6 @@ auth_control_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
-autopilot_tasks = app.taskregistry.create_namespace(
-    "autopilot",
-    app_feature="shared",
-)
-
 buffer_tasks = app.taskregistry.create_namespace(
     "buffer",
     app_feature="errors",
@@ -89,6 +84,11 @@ hybridcloud_control_tasks = app.taskregistry.create_namespace(
 
 ingest_profiling_tasks = app.taskregistry.create_namespace(
     "ingest.profiling",
+    app_feature="profiles",
+)
+
+ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
+    "ingest.profiling.passthrough",
     app_feature="profiles",
 )
 
