@@ -211,8 +211,8 @@ describe('Performance > TransactionSummary', () => {
       'Insights'
     );
 
-    // Header
-    expect(screen.getByRole('heading', {name: '/transaction-name'})).toBeInTheDocument();
+    // Transaction name (rendered in TopBar slot, not a heading)
+    expect(screen.getByText('/transaction-name')).toBeInTheDocument();
 
     expect(
       await screen.findByPlaceholderText('Search for events, users, tags, and more')

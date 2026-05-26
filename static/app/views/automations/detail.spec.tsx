@@ -80,12 +80,10 @@ describe('AutomationDetail', () => {
       },
     });
 
+    // Check sidebar sections (rendered directly, not via TopBar.Slot)
     expect(
-      await screen.findByRole('heading', {name: 'Test Automation'})
+      await screen.findByRole('heading', {name: 'Last Triggered'})
     ).toBeInTheDocument();
-
-    // Check sidebar sections
-    expect(screen.getByRole('heading', {name: 'Last Triggered'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Environment'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Throttling'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Conditions'})).toBeInTheDocument();
@@ -151,10 +149,8 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
-
       expect(
-        screen.getByText('You must add an action for this alert to run.')
+        await screen.findByText('You must add an action for this alert to run.')
       ).toBeInTheDocument();
     });
 
@@ -181,10 +177,8 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
-
       expect(
-        screen.getByText(
+        await screen.findByText(
           'Alert is invalid because no actions can run. Actions need to be reconfigured.'
         )
       ).toBeInTheDocument();
@@ -213,10 +207,10 @@ describe('AutomationDetail', () => {
         },
       });
 
-      await screen.findByRole('heading', {name: 'Test Automation'});
-
       expect(
-        screen.getByText('One or more actions need to be reconfigured in order to run.')
+        await screen.findByText(
+          'One or more actions need to be reconfigured in order to run.'
+        )
       ).toBeInTheDocument();
     });
   });
@@ -240,10 +234,8 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByRole('heading', {name: 'Test Automation'});
-
     expect(
-      screen.getByText(
+      await screen.findByText(
         'This alert is not connected to a project or monitor and will not trigger.'
       )
     ).toBeInTheDocument();
@@ -258,7 +250,8 @@ describe('AutomationDetail', () => {
       },
     });
 
-    await screen.findByRole('heading', {name: 'Test Automation'});
+    // Wait for page to load by finding a sidebar heading
+    await screen.findByRole('heading', {name: 'Last Triggered'});
 
     expect(
       screen.queryByText(
