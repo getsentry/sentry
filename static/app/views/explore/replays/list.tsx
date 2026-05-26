@@ -117,22 +117,6 @@ function useReplayListLLMContextData({
   });
 }
 
-function ReplaysListContainerInner() {
-  const organization = useOrganization();
-
-  return (
-    <AnalyticsArea name="list">
-      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
-        <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
-          <ReplayQueryParamsProvider>
-            <ReplaysListBody />
-          </ReplayQueryParamsProvider>
-        </ReplayPreferencesContextProvider>
-      </SentryDocumentTitle>
-    </AnalyticsArea>
-  );
-}
-
 function ReplaysListBody() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
@@ -202,4 +186,20 @@ function ReplaysListBody() {
   );
 }
 
-export default registerLLMContext('replays-list', ReplaysListContainerInner);
+function ReplaysListContainer() {
+  const organization = useOrganization();
+
+  return (
+    <AnalyticsArea name="list">
+      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
+        <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
+          <ReplayQueryParamsProvider>
+            <ReplaysListBody />
+          </ReplayQueryParamsProvider>
+        </ReplayPreferencesContextProvider>
+      </SentryDocumentTitle>
+    </AnalyticsArea>
+  );
+}
+
+export default registerLLMContext('replays-list', ReplaysListContainer);
