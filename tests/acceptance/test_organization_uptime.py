@@ -18,7 +18,7 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         self.create_team_membership(self.team, user=self.user)
         self.login_as(self.user)
 
-    @with_feature("organizations:uptime")
+    @with_feature("organizations:uptime", "organizations:page-frame")
     def test_create_uptime_monitor_flow(self) -> None:
         """
         Test complete flow:
@@ -71,7 +71,7 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until(xpath="//*[contains(text(), 'My Test Uptime Monitor')]")
 
-    @with_feature("organizations:uptime")
+    @with_feature("organizations:uptime", "organizations:page-frame")
     def test_edit_uptime_monitor(self) -> None:
         """Test editing an existing uptime monitor"""
         uptime_subscription = self.create_uptime_subscription(
