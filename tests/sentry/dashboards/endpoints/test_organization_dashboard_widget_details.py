@@ -1509,21 +1509,6 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
 
-    def test_text_widget_without_feature_flag(self) -> None:
-        data = {
-            "title": "Text Widget Title",
-            "displayType": "text",
-            "description": "This is a text widget description",
-        }
-        response = self.do_request(
-            "post",
-            self.url(),
-            data=data,
-        )
-        assert response.status_code == 400, response.data
-        assert "displayType" in response.data, response.data
-        assert response.data["displayType"][0] == "Text widgets are not enabled"
-
     def test_text_widget_post(self) -> None:
         data = {
             "title": "Text Widget Title",

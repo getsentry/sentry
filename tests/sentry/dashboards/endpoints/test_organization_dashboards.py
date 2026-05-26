@@ -2253,22 +2253,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201, response.data
 
-    def test_post_with_text_widget_without_feature_flag(self) -> None:
-        data = {
-            "title": "Dashboard from Post",
-            "widgets": [
-                {
-                    "title": "Text Widget",
-                    "displayType": "text",
-                    "description": "This is a text widget description",
-                }
-            ],
-        }
-        response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 400, response.data
-        assert "widgets" in response.data, response.data
-        assert "Text widgets are not enabled" in response.data["widgets"][0]["displayType"][0]
-
     def test_post_with_text_widget_ignores_queries(self) -> None:
         data = {
             "title": "Dashboard from Post",

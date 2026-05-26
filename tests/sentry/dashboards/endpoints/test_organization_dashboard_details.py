@@ -3842,24 +3842,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert text_widget["description"] == "This is a text widget description"
         assert text_widget.get("widgetType") is None
 
-    def test_add_text_widget_without_feature_flag(self) -> None:
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {
-                    "title": "Text Widget",
-                    "displayType": "text",
-                    "description": "This is a text widget description",
-                },
-            ],
-        }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 400, response.data
-        assert "widgets" in response.data, response.data
-        # Error is on the second widget (index 1), the new text widget; first widget has no errors
-        assert "Text widgets are not enabled" in response.data["widgets"][1]["displayType"][0]
-
     def test_update_widget_to_text_widget(self) -> None:
         data = {
             "title": "First dashboard",
