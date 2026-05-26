@@ -26,6 +26,7 @@ from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTransactionTestCase,
@@ -34,6 +35,8 @@ from sentry.testutils.helpers.backups import (
     generate_rsa_key_pair,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.email import Email
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
@@ -460,9 +463,12 @@ class FilteringTests(ExportTestCase):
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by={"user_2"})
 
             # Count users, but also count a random model naively derived from just `User` alone,
-            # like `UserEmail`.
+            # like `UserEmail`. Because `Email` and `UserEmail` have some automagic going on that
+            # causes them to be created when a `User` is, we explicitly check to ensure that they
+            # are behaving correctly as well.
             assert self.count(data, User) == 1
             assert self.count(data, UserEmail) == 1
+            assert self.count(data, Email) == 1
 
             assert not self.exists(data, User, "username", "user_1")
             assert self.exists(data, User, "username", "user_2")
@@ -482,6 +488,7 @@ class FilteringTests(ExportTestCase):
 
             assert self.count(data, User) == 3
             assert self.count(data, UserEmail) == 3
+            assert self.count(data, Email) == 2
 
             assert self.exists(data, User, "username", "user_1")
             assert self.exists(data, User, "username", "user_2")
@@ -496,6 +503,30 @@ class FilteringTests(ExportTestCase):
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by=set())
 
             assert len(data) == 0
+
+    def test_export_user_mismatched_email(self) -> None:
+        self.create_user(
+            email="Testing.Upper@example.com",
+            username="user_1",
+            is_staff=False,
+            is_superuser=False,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Modify the generated email record to have different casing.
+            # This can happen if a useremail record is updated as we don't sync
+            # data to sentry_email on update.
+            email = Email.objects.get(email="Testing.Upper@example.com")
+            email.email = "testing.upper@example.com"
+            email.save()
+
+        with TemporaryDirectory() as tmp_dir:
+            data = self.export(tmp_dir, scope=ExportScope.User)
+
+            # Ensure email record is exported despite email casing being different.
+            assert self.count(data, User) == 1
+            assert self.count(data, UserEmail) == 1
+            assert self.count(data, Email) == 1
+            assert self.exists(data, User, "username", "user_1")
 
     def test_export_filter_orgs_single(self) -> None:
         # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s
@@ -556,6 +587,7 @@ class FilteringTests(ExportTestCase):
 
             assert self.count(data, User) == 7
             assert self.count(data, UserEmail) == 7
+            assert self.count(data, Email) == 6  # Lower due to `shared@example.com`
 
             assert not self.exists(data, User, "username", "user_a_only")
             assert self.exists(data, User, "username", "user_b_only")
@@ -641,6 +673,7 @@ class FilteringTests(ExportTestCase):
 
             assert self.count(data, User) == 8
             assert self.count(data, UserEmail) == 8
+            assert self.count(data, Email) == 6  # Lower due to `shared@example.com`
 
             assert self.exists(data, User, "username", "user_a_only")
             assert not self.exists(data, User, "username", "user_b_only")

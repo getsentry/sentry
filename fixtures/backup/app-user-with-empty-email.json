@@ -1,5 +1,13 @@
 [
   {
+    "model": "sentry.email",
+    "pk": 9,
+    "fields": {
+      "email": "",
+      "date_added": "2023-07-26T19:19:37.201Z"
+    }
+  },
+  {
     "model": "sentry.user",
     "pk": 34,
     "fields": {
