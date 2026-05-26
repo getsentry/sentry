@@ -528,7 +528,8 @@ function Highlights({
           )}
         </Stack>
       </HighlightsWrapper>
-      <Separator orientation="horizontal" padding="md 0" border="muted" />
+      {/* margin (deprecated) kept for parity with surrounding margin-based sections in BodyContainer */}
+      <Separator orientation="horizontal" margin="md 0" border="muted" />
     </Fragment>
   );
 }
