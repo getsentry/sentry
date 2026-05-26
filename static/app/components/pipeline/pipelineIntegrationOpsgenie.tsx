@@ -115,8 +115,8 @@ function OpsgenieInstallationConfigStep({
           )}
         </form.AppField>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing || isInitializing}>
-            {isAdvancing ? t('Submitting...') : t('Continue')}
+          <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
+            {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>

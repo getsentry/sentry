@@ -27,12 +27,15 @@ describe('ClaudeCodeApiKeyStep', () => {
     });
   });
 
-  it('shows loading state when isAdvancing', () => {
+  it('shows busy state when isAdvancing', () => {
     render(
       <ClaudeCodeApiKeyStep {...makeStepProps({stepData: {}, isAdvancing: true})} />
     );
 
-    expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables submit button when isInitializing', () => {
