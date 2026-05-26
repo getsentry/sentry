@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import type {User} from 'sentry/types/user';
 import {isArrayOf} from 'sentry/types/utils';
 
 export enum DiffFileType {
@@ -30,43 +29,11 @@ function isDiffLineType(value: unknown): value is DiffLineType {
   );
 }
 
-export enum AutofixStepType {
-  DEFAULT = 'default',
-  ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
-  CHANGES = 'changes',
-  SOLUTION = 'solution',
-}
-
-export enum AutofixStatus {
-  COMPLETED = 'COMPLETED',
-  ERROR = 'ERROR',
-  PROCESSING = 'PROCESSING',
-  NEED_MORE_INFORMATION = 'NEED_MORE_INFORMATION',
-  CANCELLED = 'CANCELLED',
-  WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
-}
-
 export enum AutofixStoppingPoint {
   ROOT_CAUSE = 'root_cause',
   SOLUTION = 'solution',
   CODE_CHANGES = 'code_changes',
   OPEN_PR = 'open_pr',
-}
-
-type AutofixPullRequestDetails = {
-  pr_number: number;
-  pr_url: string;
-};
-
-type AutofixOptions = {
-  iterative_feedback?: boolean;
-};
-
-interface CodingAgentResult {
-  description: string;
-  pr_url: string | null;
-  repo_full_name: string;
-  repo_provider: string;
 }
 
 export enum CodingAgentStatus {
@@ -88,185 +55,6 @@ export function getResultButtonLabel(url: string | null | undefined): string {
   }
   return t('View Pull Request');
 }
-
-interface CodingAgentState {
-  id: string;
-  name: string;
-  provider: CodingAgentProvider;
-  started_at: string;
-  status: CodingAgentStatus;
-  agent_url?: string;
-  results?: CodingAgentResult[];
-}
-
-type CodebaseState = {
-  is_readable: boolean | null;
-  is_writeable: boolean | null;
-  repo_external_id: string | null;
-};
-
-export type AutofixData = {
-  codebases: Record<string, CodebaseState>;
-  last_triggered_at: string;
-  request: {
-    repos: SeerRepoDefinition[];
-    options?: {
-      auto_run_source?: string | null;
-    };
-  };
-  run_id: string;
-  status: AutofixStatus;
-  actor_ids?: number[];
-  codebase_indexing?: {
-    status: 'COMPLETED';
-  };
-  coding_agents?: Record<string, CodingAgentState>;
-  completed_at?: string | null;
-  error_message?: string;
-  options?: AutofixOptions;
-  steps?: AutofixStep[];
-  users?: Record<number, User>;
-};
-
-type AutofixProgressItem = {
-  message: string;
-  timestamp: string;
-  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
-  data?: any;
-};
-
-type AutofixStep =
-  | AutofixDefaultStep
-  | AutofixRootCauseStep
-  | AutofixSolutionStep
-  | AutofixChangesStep;
-
-interface BaseStep {
-  id: string;
-  index: number;
-  progress: AutofixProgressItem[];
-  status: AutofixStatus;
-  title: string;
-  type: AutofixStepType;
-  active_comment_thread?: CommentThread | null;
-  agent_comment_thread?: CommentThread | null;
-  completedMessage?: string;
-  key?: string;
-  output_stream?: string | null;
-}
-
-type CommentThread = {
-  id: string;
-  is_completed: boolean;
-  messages: CommentThreadMessage[];
-};
-
-interface CommentThreadMessage {
-  content: string;
-  role: 'user' | 'assistant';
-  isLoading?: boolean;
-}
-
-type AutofixInsight = {
-  insight: string;
-  justification: string;
-  change_diff?: FilePatch[];
-  markdown_snippets?: string;
-  sources?: InsightSources;
-  type?: 'insight' | 'file_change';
-};
-
-type InsightSources = {
-  breadcrumbs_used: boolean;
-  code_used_urls: string[];
-  connected_error_ids_used: string[];
-  diff_urls: string[];
-  http_request_used: boolean;
-  profile_ids_used: string[];
-  stacktrace_used: boolean;
-  thoughts: string;
-  trace_event_ids_used: string[];
-  event_trace_id?: string;
-  event_trace_timestamp?: number;
-};
-
-interface AutofixDefaultStep extends BaseStep {
-  insights: AutofixInsight[];
-  type: AutofixStepType.DEFAULT;
-}
-
-type AutofixRootCauseSelection =
-  | {
-      cause_id: string;
-    }
-  | {custom_root_cause: string}
-  | null;
-
-interface AutofixRootCauseStep extends BaseStep {
-  causes: AutofixRootCauseData[];
-  selection: AutofixRootCauseSelection;
-  type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
-  termination_reason?: string;
-}
-
-interface AutofixSolutionStep extends BaseStep {
-  solution: AutofixSolutionTimelineEvent[];
-  solution_selected: boolean;
-  type: AutofixStepType.SOLUTION;
-  custom_solution?: string;
-  description?: string;
-}
-
-type AutofixCodebaseChange = {
-  description: string;
-  diff: FilePatch[];
-  repo_name: string;
-  title: string;
-  branch_name?: string;
-  diff_str?: string;
-  pull_request?: AutofixPullRequestDetails;
-  repo_external_id?: string;
-  repo_id?: number; // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon. Use repo_external_id instead.
-};
-
-interface AutofixChangesStep extends BaseStep {
-  changes: AutofixCodebaseChange[];
-  type: AutofixStepType.CHANGES;
-  termination_reason?: string;
-}
-
-type AutofixRelevantCodeFile = {
-  file_path: string;
-  repo_name: string;
-};
-
-type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
-  url?: string;
-};
-
-type AutofixTimelineEvent = {
-  code_snippet_and_analysis: string;
-  relevant_code_file: AutofixRelevantCodeFile;
-  timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
-  title: string;
-  is_most_important_event?: boolean;
-};
-
-export type AutofixSolutionTimelineEvent = {
-  timeline_item_type: 'internal_code' | 'human_instruction';
-  title: string;
-  code_snippet_and_analysis?: string;
-  is_active?: boolean;
-  is_most_important_event?: boolean;
-  relevant_code_file?: AutofixRelevantCodeFileWithUrl;
-};
-
-export type AutofixRootCauseData = {
-  id: string;
-  description?: string;
-  reproduction_urls?: Array<string | null>;
-  root_cause_reproduction?: AutofixTimelineEvent[];
-};
 
 export type FilePatch = {
   added: number;
