@@ -660,6 +660,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response["X-Sentry-Direct-Hit"] == "1"
 
+    def test_lookup_by_short_id_with_filters(self) -> None:
+        group = self.group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved {short_id}", shortIdLookup=1)
+        assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
+
     def test_lookup_by_short_id_alias(self) -> None:
         event_id = "f" * 32
         group = self.store_event(

@@ -19,7 +19,7 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.environment import Environment
-from sentry.models.group import Group, looks_like_short_id
+from sentry.models.group import Group, looks_like_short_id, parse_short_id
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -175,11 +175,21 @@ def get_by_short_id(
     is_short_id_lookup: str,
     query: str,
 ) -> Group | None:
-    if is_short_id_lookup == "1" and looks_like_short_id(query):
+    if is_short_id_lookup != "1":
+        return None
+    if looks_like_short_id(query):
         try:
             return Group.objects.by_qualified_short_id(organization_id, query)
         except Group.DoesNotExist:
             pass
+    # When the query contains filters (e.g. "is:unresolved SEER-7D1"),
+    # the full string won't match as a short ID. Try individual tokens.
+    for token in query.split():
+        if parse_short_id(token) is not None:
+            try:
+                return Group.objects.by_qualified_short_id(organization_id, token)
+            except Group.DoesNotExist:
+                pass
     return None
 
 
