@@ -113,6 +113,12 @@ register(
     default=300,  # 5 minutes
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "data-forwarding.task-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
