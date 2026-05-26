@@ -131,6 +131,7 @@ def publish_action(
     project_id: int,
     actor_id: int | None = None,
     metadata: dict[str, Any] | None = None,
+    idempotency_key: str | None = None,
 ) -> None:
     """
     No-op publisher — emits a structured log line and a metric counter.
@@ -148,5 +149,6 @@ def publish_action(
             "actor_type": actor_type,
             "actor_id": actor_id,
             "metadata": metadata or {},
+            "idempotency_key": idempotency_key,
         },
     )
