@@ -85,7 +85,7 @@ class TestFetchRepository(TestCase):
                 "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
             },
         )
-        repo = RepositoryModel.objects.create(
+        RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="acme/widget",
             provider="integrations:github_enterprise",
@@ -94,7 +94,7 @@ class TestFetchRepository(TestCase):
             integration_id=integration.id,
         )
 
-        result = fetch_repository(self.organization.id, ("github_enterprise", repo.external_id))
+        result = fetch_repository(self.organization.id, ("github_enterprise", "9001"))
 
         assert result is not None
         assert result["provider_name"] == "github_enterprise"
@@ -112,7 +112,7 @@ class TestFetchRepository(TestCase):
                 "installation": {"id": "2", "private_key": "x", "verify_ssl": True},
             },
         )
-        repo = RepositoryModel.objects.create(
+        RepositoryModel.objects.create(
             organization_id=self.organization.id,
             name="acme/widget",
             provider="integrations:github_enterprise",
@@ -121,7 +121,7 @@ class TestFetchRepository(TestCase):
             integration_id=integration.id,
         )
 
-        result = fetch_repository(self.organization.id, ("github_enterprise", repo.external_id))
+        result = fetch_repository(self.organization.id, ("github_enterprise", "9002"))
 
         assert result is not None
         assert result["web_base_url"] == "https://acme-corp.ghe.com"
