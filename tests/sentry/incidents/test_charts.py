@@ -1,5 +1,4 @@
 import datetime
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -11,8 +10,6 @@ from sentry.incidents.charts import (
     fetch_metric_issue_open_periods,
     incident_date_range,
 )
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.incident import Incident, IncidentActivityType, IncidentStatus
@@ -105,16 +102,11 @@ class BuildMetricAlertChartTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        alert_rule_serialized_response = cast(AlertRuleSerializerResponse, {})
-        incident_serialized_response = cast(DetailedIncidentSerializerResponse, {})
-
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule_serialized_response=alert_rule_serialized_response,
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
             open_period_context=OpenPeriodContext.from_incident(incident),
-            selected_incident_serialized=incident_serialized_response,
         )
 
         assert url == "chart-url"
@@ -156,7 +148,6 @@ class BuildMetricAlertChartTest(TestCase):
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule_serialized_response=cast(AlertRuleSerializerResponse, {}),
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
             open_period_context=OpenPeriodContext.from_incident(incident),
@@ -192,16 +183,11 @@ class BuildMetricAlertChartTest(TestCase):
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        alert_rule_serialized_response = cast(AlertRuleSerializerResponse, {})
-        incident_serialized_response = cast(DetailedIncidentSerializerResponse, {})
-
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule_serialized_response=alert_rule_serialized_response,
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
             open_period_context=OpenPeriodContext.from_incident(incident),
-            selected_incident_serialized=incident_serialized_response,
         )
 
         assert url == "chart-url"
