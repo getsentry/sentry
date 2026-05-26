@@ -20,8 +20,6 @@ import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
-jest.mock('sentry/utils/analytics');
-
 describe('OrganizationGeneralSettings', () => {
   const ENDPOINT = '/organizations/org-slug/';
   const organization = OrganizationFixture();
