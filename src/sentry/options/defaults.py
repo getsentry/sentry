@@ -3662,6 +3662,13 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Skip workflows that don't belong to the event's organization.
+register(
+    "workflow_engine.filter_cross_org_workflows",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
