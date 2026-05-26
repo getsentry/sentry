@@ -184,7 +184,7 @@ export function useReplayData({
     Boolean(replayRecord);
 
   const attachmentCursors = Array.from(
-    {length: Math.ceil(replayRecord?.count_segments ?? 0 / segmentsPerPage)},
+    {length: Math.ceil((replayRecord?.count_segments ?? 0) / segmentsPerPage)},
     (_, i) => `0:${segmentsPerPage * i}:0`
   );
 
@@ -240,7 +240,7 @@ export function useReplayData({
   );
 
   const errorCursors = Array.from(
-    {length: Math.ceil(replayRecord?.count_errors ?? 0 / errorsPerPage)},
+    {length: Math.ceil((replayRecord?.count_errors ?? 0) / errorsPerPage)},
     (_, i) => `0:${errorsPerPage * i}:0`
   );
 
