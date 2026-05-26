@@ -35,7 +35,7 @@ class SdkPublicKeyResolver(CellRequestResolver):
             return None
 
         try:
-            project_mapping = ProjectKeyMapping.objects.get_from_cache(public_key=public_key)
+            project_mapping = ProjectKeyMapping.objects.get(public_key=public_key)
         except ProjectKeyMapping.DoesNotExist:
             return None
 

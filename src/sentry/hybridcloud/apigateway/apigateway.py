@@ -8,9 +8,11 @@ from django.conf import settings
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellResolverMappings
 from sentry.hybridcloud.apigateway.proxy import (
     proxy_cell_request,
+    proxy_error_embed_request,
     proxy_request,
 )
 from sentry.silo.base import SiloLimit, SiloMode
@@ -63,15 +65,26 @@ def proxy_request_if_needed(
         )
         return proxy_request(request, org_id_or_slug, url_name)
 
-    if url_name in CellResolverMappings:
+    if options.get("apigateway.cell_resolver.enabled") and url_name in CellResolverMappings:
         cell = CellResolverMappings[url_name].resolve(request, view_func, view_kwargs)
-        metrics.incr(
-            "apigateway.proxy_request", tags={"url_name": url_name, "kind": "cell_resolver"}
-        )
 
         if cell:
+            metrics.incr(
+                "apigateway.proxy_request", tags={"url_name": url_name, "kind": "cell_resolver"}
+            )
             return proxy_cell_request(request, cell, url_name)
         # If no cell resolved, we drop through to the default resolution method
+    elif url_name == "sentry-error-page-embed" and "dsn" in request.GET:
+        # Error embed modal is special as customers can't easily use cell URLs.
+        dsn = request.GET["dsn"]
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": url_name,
+                "kind": "error-embed",
+            },
+        )
+        return proxy_error_embed_request(request, dsn, url_name)
 
     if (
         request.resolver_match
