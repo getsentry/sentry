@@ -101,8 +101,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             event_filter.start = start
             event_filter.end = end
 
-        full = request.GET.get("full", False)
-        sample = request.GET.get("sample", False)
+        full = request.GET.get("full") in ("1", "true")
+        sample = request.GET.get("sample") in ("1", "true")
 
         data_fn = partial(
             eventstore.backend.get_events,
