@@ -69,13 +69,13 @@ export function useLayerContext(): LayerContextValue {
 }
 
 export function usePortalContainer(): HTMLElement | null {
-  const {portalOutlet} = useContext(LayerContext);
-  return portalOutlet;
+  return useLayerContext().portalOutlet;
 }
 
 const PortalOutlet = styled('div')`
   position: fixed;
-  inset: 0;
   pointer-events: none;
-  z-index: 2147483647;
+  width: 0;
+  height: 0;
+  overflow: visible;
 `;
