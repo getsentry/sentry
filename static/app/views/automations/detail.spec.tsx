@@ -33,7 +33,7 @@ describe('AutomationDetail', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
