@@ -318,7 +318,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                     else:
                         result[detector]["thresholdType"] = (
                             AlertRuleThresholdType.ABOVE.value
-                            if trigger_dc.type == Condition.GREATER
+                            if trigger_dc.type in (Condition.GREATER, Condition.GREATER_OR_EQUAL)
                             else AlertRuleThresholdType.BELOW.value
                         )
                         result[detector]["sensitivity"] = None

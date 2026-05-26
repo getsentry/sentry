@@ -1,17 +1,19 @@
 from typing import Any
 
-from emmett55 import abort, request, response
+from emmett55 import request
 
-from .. import app, db, json
+from .. import app, db
 from ..dsl import (
     CellResolutionError,
     get_cell_by_name,
     get_cell_for_organization,
     get_cell_from_dsn,
 )
-from ..proxy import proxy_cell_request, proxy_control_request
+from ..proxy import ProxyLatencyPipe, proxy_cell_request, proxy_control_request
+from ..utils import abort_with_json
 
 proxy = app.module(__name__, "proxy")
+proxy.pipeline = [ProxyLatencyPipe()]
 
 
 @proxy.route(
@@ -33,8 +35,7 @@ async def proxy_cell_from_org(db_ctx: Any, org: str, subp: str | None = None) ->
         async with db_ctx.acquire() as db:
             cell = await get_cell_for_organization(db, org)
     except CellResolutionError:
-        response.content_type = "application/json"
-        abort(404, json({"error": "apigateway", "detail": "Not found"}))
+        abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
     return await proxy_cell_request(cell, request)
 
 
@@ -46,8 +47,7 @@ async def proxy_cell_from_id(cell_name: str, subp: str | None = None) -> Any:
     try:
         cell = get_cell_by_name(cell_name)
     except CellResolutionError:
-        response.content_type = "application/json"
-        abort(404, json({"error": "apigateway", "detail": "Not found"}))
+        abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
     return await proxy_cell_request(cell, request)
 
 
@@ -57,16 +57,13 @@ async def proxy_cell_from_id(cell_name: str, subp: str | None = None) -> Any:
 )
 async def proxy_cell_from_error_embed() -> Any:
     if not request.query_params.dsn:
-        response.content_type = "application/json"
-        abort(400, json({"error": "apigateway", "detail": "Invalid request"}))
+        abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     try:
         cell = get_cell_from_dsn(request.query_params.dsn, app.config.cells.default)
     except ValueError:
-        response.content_type = "application/json"
-        abort(400, json({"error": "apigateway", "detail": "Invalid request"}))
+        abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     except CellResolutionError:
-        response.content_type = "application/json"
-        abort(404, json({"error": "apigateway", "detail": "Not found"}))
+        abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
     return await proxy_cell_request(cell, request)
 
 
@@ -120,8 +117,7 @@ async def proxy_cell_legacy(p1: str | None = None, p2: str | None = None) -> Any
     try:
         cell = get_cell_by_name(app.config.cells.default)
     except CellResolutionError:
-        response.content_type = "application/json"
-        abort(404, json({"error": "apigateway", "detail": "Not found"}))
+        abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
     return await proxy_cell_request(cell, request)
 
 

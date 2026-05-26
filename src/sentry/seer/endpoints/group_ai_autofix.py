@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -134,12 +133,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Coding agent provider (e.g., 'github_copilot'). Alternative to integration_id for user-authenticated providers.",
     )
-    intelligence_level = serializers.ChoiceField(
-        required=False,
-        choices=["low", "medium", "high"],
-        default="medium",
-        help_text="The intelligence level to use.",
-    )
     user_context = serializers.CharField(
         required=False,
         max_length=1000,
@@ -192,32 +185,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
     )
 
     def _should_use_agent(self, request: Request, organization: Organization) -> bool:
-        """Check if explorer mode should be used based on query params and feature flags."""
-        if request.GET.get("mode") != "explorer":
-            return False
-
-        feature_names = [
-            # Access to seer agent
-            "organizations:seer-explorer",
-            # Access to seer agent powered autofix
-            "organizations:autofix-on-explorer",
-        ]
-
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=request.user,
-        )
-
-        if batch_features is None:
-            return False
-
-        org_features = batch_features.get(f"organization:{organization.id}", {})
-        for feature_name in feature_names:
-            if bool(org_features.get(feature_name)):
-                return True
-
-        return False
+        return True
 
     @extend_schema(
         operation_id="Start Seer Issue Fix",
@@ -328,7 +296,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
-                intelligence_level=data["intelligence_level"],
+                intelligence_level="medium",
                 user_context=data.get("user_context"),
                 insert_index=data.get("insert_index"),
             )

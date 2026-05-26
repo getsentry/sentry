@@ -2,12 +2,15 @@ import {useCallback, useMemo, useSyncExternalStore} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
-import type {AutofixData} from 'sentry/components/events/autofix/types';
-import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
-  getRootCauseCopyText,
-  getSolutionCopyText,
-} from 'sentry/components/events/autofix/utils';
+  type ExplorerAutofixState,
+  getAutofixArtifactFromSection,
+  getOrderedAutofixSections,
+  isRootCauseSection,
+  isSolutionSection,
+  useExplorerAutofix,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {
   useGroupSummaryData,
   type GroupSummaryData,
@@ -79,10 +82,7 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
   return markdownText;
 }
 
-export function formatEventToMarkdown(
-  event: Event,
-  activeThreadId: number | undefined
-): string {
+function formatEventToMarkdown(event: Event, activeThreadId: number | undefined): string {
   let markdownText = '';
 
   // Add tags
@@ -145,7 +145,7 @@ export const issueAndEventToMarkdown = (
   group: Group,
   event: Event | null | undefined,
   groupSummaryData: GroupSummaryData | null | undefined,
-  autofixData: AutofixData | null | undefined,
+  autofixData: ExplorerAutofixState | null | undefined,
   activeThreadId: number | undefined
 ): string => {
   // Format the basic issue information
@@ -172,14 +172,29 @@ export const issueAndEventToMarkdown = (
   }
 
   if (autofixData) {
-    const rootCauseCopyText = getRootCauseCopyText(autofixData);
-    const solutionCopyText = getSolutionCopyText(autofixData);
+    const sections = getOrderedAutofixSections(autofixData);
+    const rootCauseSection = sections.find(isRootCauseSection);
+    const solutionSection = sections.find(isSolutionSection);
+
+    const rootCauseArtifact = rootCauseSection
+      ? getAutofixArtifactFromSection(rootCauseSection)
+      : null;
+    const solutionArtifact = solutionSection
+      ? getAutofixArtifactFromSection(solutionSection)
+      : null;
+
+    const rootCauseCopyText = rootCauseArtifact
+      ? artifactToMarkdown(rootCauseArtifact, 2)
+      : null;
+    const solutionCopyText = solutionArtifact
+      ? artifactToMarkdown(solutionArtifact, 2)
+      : null;
 
     if (rootCauseCopyText) {
-      markdownText += `\n## Root Cause\n\`\`\`\n${rootCauseCopyText}\n\`\`\`\n`;
+      markdownText += `\n${rootCauseCopyText}\n`;
     }
     if (solutionCopyText) {
-      markdownText += `\n## Solution\n\`\`\`\n${solutionCopyText}\n\`\`\`\n`;
+      markdownText += `\n${solutionCopyText}\n`;
     }
   }
 
@@ -193,9 +208,8 @@ export const issueAndEventToMarkdown = (
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
-  // These aren't guarded by useAiConfig because they are both non fetching, and should only return data when it's fetched elsewhere.
   const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
+  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {

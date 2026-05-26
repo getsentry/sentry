@@ -54,8 +54,8 @@ class OutboxCategory(IntEnum):
     ISSUE_COMMENT_UPDATE = 34
     EXTERNAL_ACTOR_UPDATE = 35
 
-    RELOCATION_EXPORT_REQUEST = 36  # no longer in use
-    RELOCATION_EXPORT_REPLY = 37  # no longer in use
+    UNUSED_FIVE = 36
+    UNUSED_SIX = 37
 
     SEND_VERCEL_INVOICE = 38
     FTC_CONSENT = 39
@@ -337,9 +337,7 @@ class OutboxScope(IntEnum):
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
     # relocation scope is no longer in use.
-    RELOCATION_SCOPE = scope_categories(
-        10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
-    )
+    RELOCATION_SCOPE = scope_categories(10, {OutboxCategory.UNUSED_FIVE, OutboxCategory.UNUSED_SIX})
     API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
     SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})

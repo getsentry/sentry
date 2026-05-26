@@ -2,7 +2,6 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -45,22 +44,15 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
         if rule_id and status == "success":
             try:
                 alert_rule = AlertRule.objects.get(projects=project, id=rule_id)
-                if features.has(
-                    "organizations:workflow-engine-rule-serializers", project.organization
-                ):
-                    try:
-                        detector = Detector.objects.get(
-                            alertruledetector__alert_rule_id=alert_rule.id
-                        )
-                    except Detector.DoesNotExist:
-                        raise Http404
-                    context["alertRule"] = serialize(
-                        detector, request.user, WorkflowEngineDetectorSerializer()
-                    )
-                else:
-                    context["alertRule"] = serialize(alert_rule, request.user)
             except AlertRule.DoesNotExist:
                 raise Http404
+            try:
+                detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+            except Detector.DoesNotExist:
+                raise Http404
+            context["alertRule"] = serialize(
+                detector, request.user, WorkflowEngineDetectorSerializer()
+            )
         if status == "failed":
             context["error"] = error
 
