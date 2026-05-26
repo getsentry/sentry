@@ -8,34 +8,34 @@ import {GridRow} from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
 interface Props {
   allRows: LogTableRowItem[];
+  logsPinning: LogsPinning;
   renderRow: (dataRow: LogTableRowItem) => React.ReactNode;
 }
 
-export function PinnedLogs({allRows, renderRow}: Props) {
-  const logsPinning = useLogsPinning();
+export function PinnedLogs({allRows, logsPinning, renderRow}: Props) {
   const [expanded, setExpanded] = useState(true);
-  const pinsCount = logsPinning?.pinnedRows.size;
+  const pinnedRows = logsPinning.getPinnedRowIds();
 
   useEffect(() => {
-    if (!pinsCount) {
+    if (!pinnedRows.length) {
       setExpanded(true);
     }
-  }, [pinsCount]);
+  }, [pinnedRows.length]);
 
-  if (!logsPinning || !pinsCount) {
+  if (!pinnedRows.length) {
     return null;
   }
 
   return (
     <PinnedTableBody data-test-id="pinned-logs-table-body">
       {expanded &&
-        Array.from(logsPinning.pinnedRows).map(rowId => {
+        pinnedRows.map(rowId => {
           const dataRow = allRows.find(datum => datum[OurLogKnownFieldKey.ID] === rowId);
 
           // TODO(LOGS-781): this is not correct yet because the virtualizer might not have found it yet.
@@ -55,8 +55,8 @@ export function PinnedLogs({allRows, renderRow}: Props) {
               onClick={() => setExpanded(previous => !previous)}
             >
               {expanded
-                ? t('Collapse %s pinned', pinsCount)
-                : t('Expand %s pinned', pinsCount)}
+                ? t('Collapse %s pinned', pinnedRows.length)
+                : t('Expand %s pinned', pinnedRows.length)}
             </Button>
             <Button
               aria-label={t('Clear all pins')}

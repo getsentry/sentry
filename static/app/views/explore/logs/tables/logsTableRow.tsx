@@ -64,7 +64,6 @@ import {
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   DetailsBody,
   DetailsContent,
@@ -120,6 +119,7 @@ type LogsRowProps = {
   };
   expansionKey?: string;
   isExpanded?: boolean;
+  isPinned?: boolean;
   logEnd?: string;
   logStart?: string;
   onCollapse?: (logItemId: string) => void;
@@ -128,6 +128,7 @@ type LogsRowProps = {
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
+  togglePinnedRow?: (logItemId: string) => void;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
@@ -214,6 +215,8 @@ export const LogRowContent = memo(function LogRowContent({
   onEmbeddedRowClick,
   logStart,
   logEnd,
+  isPinned,
+  togglePinnedRow,
   showCellActions,
   showExploreSimilarSpansLink,
 }: LogsRowProps) {
@@ -230,8 +233,6 @@ export const LogRowContent = memo(function LogRowContent({
 
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
   const expansionKey = expansionKeyProp ?? rowId;
-  const logsPinning = useLogsPinning();
-  const isPinned = logsPinning?.pinnedRows.has(rowId);
 
   const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(isPinned);
 
@@ -441,7 +442,7 @@ export const LogRowContent = memo(function LogRowContent({
         </LogsTableBodyFirstCell>
         {fields?.map((field, index) => {
           const pin =
-            logsPinning && index === fields.length - 1 ? (
+            togglePinnedRow && index === fields.length - 1 ? (
               <LogPinButton
                 aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
                 icon={
@@ -450,7 +451,7 @@ export const LogRowContent = memo(function LogRowContent({
                 isPinned={isPinned}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
-                  logsPinning.togglePinnedRow(rowId);
+                  togglePinnedRow(dataRow[OurLogKnownFieldKey.ID]);
                 }}
                 size="xs"
                 variant="transparent"

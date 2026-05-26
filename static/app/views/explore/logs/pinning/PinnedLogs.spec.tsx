@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
-import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
@@ -34,32 +34,24 @@ const renderRow = (dataRow: LogTableRowItem) => (
   </tr>
 );
 
-function renderPinnedLogs(options: RenderOptions = {}) {
-  return render(
+function PinnedLogsWrapper() {
+  const logsPinning = useLogsPinning()!;
+
+  return (
     <table>
-      <LogsPinningProvider>
-        <PinnedLogs allRows={allRows} renderRow={renderRow} />
-      </LogsPinningProvider>
-    </table>,
-    {
-      organization: OrganizationFixture({features: ['ourlogs-pinning']}),
-      ...options,
-    }
+      <PinnedLogs allRows={allRows} logsPinning={logsPinning} renderRow={renderRow} />
+    </table>
   );
 }
 
-describe('PinnedLogs', () => {
-  it('renders nothing when the feature is disabled even if rows are pinned', () => {
-    renderPinnedLogs({
-      organization: OrganizationFixture({features: []}),
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
-    });
-
-    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+function renderPinnedLogs(options: RenderOptions = {}) {
+  return render(<PinnedLogsWrapper />, {
+    organization: OrganizationFixture({features: ['ourlogs-pinning']}),
+    ...options,
   });
+}
 
+describe('PinnedLogs', () => {
   it('renders nothing when no rows are pinned', () => {
     renderPinnedLogs();
 
