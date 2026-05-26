@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,6 +9,7 @@ import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedD
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
 import {MetricValues, RuleAction} from 'sentry/views/projectInstall/issueAlertOptions';
@@ -19,12 +21,14 @@ interface StateOverrides {
   projectDetailsForm?: ProjectDetailsFormState;
   selectedFeatures?: ProductSolution[];
   selectedPlatform?: OnboardingSelectedSDK;
+  selectedRepository?: Repository;
 }
 
 function defaultProps(state: StateOverrides = {}) {
   return {
     selectedPlatform: state.selectedPlatform,
     selectedFeatures: state.selectedFeatures,
+    selectedRepository: state.selectedRepository,
     createdProjectSlug: state.createdProjectSlug,
     projectDetailsForm: state.projectDetailsForm,
     onProjectCreated: jest.fn(),
@@ -41,6 +45,8 @@ const mockPlatform: OnboardingSelectedSDK = {
   link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
   type: 'framework',
 };
+
+const mockRepository = RepositoryFixture({id: '42', name: 'getsentry/sentry'});
 
 describe('ScmProjectDetails', () => {
   const organization = OrganizationFixture();
@@ -149,7 +155,6 @@ describe('ScmProjectDetails', () => {
   });
 
   it('links selected repository to project after creation', async () => {
-    const onComplete = jest.fn();
     const createdProject = ProjectFixture({
       slug: 'javascript-nextjs',
       name: 'javascript-nextjs',
@@ -185,25 +190,16 @@ describe('ScmProjectDetails', () => {
       },
     });
 
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-          selectedRepository: mockRepository,
-        }),
-      }
-    );
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      selectedRepository: mockRepository,
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
 
     expect(repoLinkRequest).toHaveBeenCalledWith(

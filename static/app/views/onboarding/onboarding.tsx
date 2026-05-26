@@ -133,6 +133,7 @@ function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
   const {
     selectedPlatform,
     selectedFeatures,
+    selectedRepository,
     createdProjectSlug,
     setCreatedProjectSlug,
     projectDetailsForm,
@@ -143,6 +144,7 @@ function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
     <ScmProjectDetails
       selectedPlatform={selectedPlatform}
       selectedFeatures={selectedFeatures}
+      selectedRepository={selectedRepository}
       createdProjectSlug={createdProjectSlug}
       projectDetailsForm={projectDetailsForm}
       onProjectCreated={setCreatedProjectSlug}

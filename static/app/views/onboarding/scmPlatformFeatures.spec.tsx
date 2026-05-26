@@ -647,7 +647,6 @@ describe('ScmPlatformFeatures', () => {
     });
 
     it('links selected repository to project after creation', async () => {
-      const onComplete = jest.fn();
       const createdProject = ProjectFixture({
         slug: 'javascript-nextjs',
         platform: 'javascript-nextjs',
@@ -674,21 +673,12 @@ describe('ScmPlatformFeatures', () => {
         },
       });
 
-      render(
-        <ScmPlatformFeatures
-          onComplete={onComplete}
-          stepIndex={2}
-          genSkipOnboardingLink={() => null}
-        />,
-        {
-          organization,
-          additionalWrapper: makeOnboardingWrapper({
-            selectedPlatform: nextJsPlatform,
-            selectedRepository: mockRepository,
-            selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          }),
-        }
-      );
+      const props = defaultProps({
+        selectedPlatform: nextJsPlatform,
+        selectedRepository: mockRepository,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+      });
+      render(<ScmPlatformFeatures {...props} />, {organization});
 
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
@@ -696,7 +686,7 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
-        expect(onComplete).toHaveBeenCalled();
+        expect(props.onComplete).toHaveBeenCalled();
       });
 
       expect(repoLinkRequest).toHaveBeenCalledWith(
