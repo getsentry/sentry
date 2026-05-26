@@ -539,9 +539,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         description = data.get("description")
         description_length = len(description) if description else 0
-        if description_length > 255:
+        if description_length > 350:
             raise serializers.ValidationError(
-                {"description": "Ensure description has no more than 255 characters."}
+                {"description": "Ensure description has no more than 350 characters."}
             )
 
         if data.get("queries"):
