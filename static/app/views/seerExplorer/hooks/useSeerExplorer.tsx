@@ -43,6 +43,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
   '/explore/logs/',
   '/explore/logs/trace/:traceSlug/',
+  '/explore/metrics/',
   '/explore/releases/',
   '/explore/replays/',
   '/explore/replays/:replaySlug/',
