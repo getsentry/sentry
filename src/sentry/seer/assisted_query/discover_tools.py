@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -10,6 +10,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 
 logger = logging.getLogger(__name__)
+client = ApiClient()
 
 
 # Filter keys we think are useful to *always* return to the query agent.

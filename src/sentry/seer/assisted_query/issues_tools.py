@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient, ApiError
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -17,6 +17,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
+client = ApiClient()
 
 IS_VALUES = [
     "resolved",
@@ -718,7 +719,7 @@ def execute_issues_query(
             params=params,
         )
         return resp.data
-    except client.ApiError as e:
+    except ApiError as e:
         if e.status_code == 400:
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return {"error": str(error_detail) if error_detail is not None else str(e.body)}

@@ -1,13 +1,14 @@
 import logging
 from typing import Any, TypedDict
 
-from sentry.api import client
+from sentry.api.client import ApiClient, ApiError
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.snuba.referrer import Referrer
 
 logger = logging.getLogger(__name__)
+client = ApiClient()
 
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 
@@ -116,7 +117,7 @@ def get_metric_metadata(
             path=f"/organizations/{organization.slug}/events/",
             params=params,
         )
-    except client.ApiError as e:
+    except ApiError as e:
         # Surface status + body prefix in log extras so prod flakes are debuggable
         # without a new deploy. Keep the return `error` code stable for callers.
         logger.exception(

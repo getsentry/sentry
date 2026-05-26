@@ -1,12 +1,13 @@
 import logging
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
+client = ApiClient()
 
 API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 
