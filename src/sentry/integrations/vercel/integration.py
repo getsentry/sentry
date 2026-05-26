@@ -311,8 +311,6 @@ class VercelIntegration(IntegrationInstallation):
             except KeyError:
                 raise ValidationError("Failed to update configuration.")
 
-            sentry_project_id, vercel_project_id = new_mappings[0]
-
             old_mappings = config.get("project_mappings") or []
 
             sentry_projects = {proj.id: proj for proj in self.organization.projects}
