@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -67,8 +68,7 @@ class ErrorEmbedResolver(CellRequestResolver):
         if len(host_segments) - len(app_segments) < 3:
             # If we don't have a o123.ingest.{cell}.{app_host} style domain
             # we forward to the monolith cell
-            cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
-            return cell
+            return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
 
         try:
             cell_offset = len(app_segments) + 1

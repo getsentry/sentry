@@ -69,9 +69,8 @@ async def proxy_request_if_needed(
         )
         return await proxy_request(request, org_id_or_slug, url_name)
 
-    if url_name in CellResolverMappings and await sync_to_async(options.get)(
-        "apigateway.cell_resolver.enabled"
-    ):
+    resolvers_enabled = await sync_to_async(options.get)("apigateway.cell_resolver.enabled")
+    if resolvers_enabled and url_name in CellResolverMappings:
         resolver = CellResolverMappings[url_name]
         cell = await sync_to_async(resolver.resolve)(request, view_func, view_kwargs)
 
