@@ -77,7 +77,9 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
     let i18nNames: string[] = [];
 
     function resolveNames() {
-      if (resolved) return;
+      if (resolved) {
+        return;
+      }
       resolved = true;
       tooltipNames = importTracker.findLocalNames(TOOLTIP_SOURCE, 'Tooltip');
       textNames = importTracker.findLocalNames(TEXT_SOURCE, 'Text');
