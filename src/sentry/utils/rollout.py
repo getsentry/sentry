@@ -251,7 +251,7 @@ class SafeRolloutComparator:
         return use_experimental_data
 
     @classmethod
-    def check_and_choose(
+    def compare(
         cls,
         control_data: TData,
         experimental_data: TData,
@@ -260,11 +260,11 @@ class SafeRolloutComparator:
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
-    ) -> TData:
+    ) -> None:
         """
-        This function does two things:
-        - First, it compares control & experimental data and logs info to DataDog.
-        - Second, it determines which of the inputs should be returned & used downstream.
+        Compare control & experimental data, emit metrics, and log mismatches. Use this directly
+        (rather than `check_and_choose`) if you only care about comparison side-effects and won't be
+        using either branch's data downstream.
 
         Inputs:
         * control_data: Some data from the control branch (e.g. dict[str, str])
@@ -285,7 +285,6 @@ class SafeRolloutComparator:
         is_exact_match = control_data == experimental_data
         is_reasonable_match: bool | None = None
 
-        # Part 1: Compare results, log debug info, and emit metrics
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
@@ -332,12 +331,35 @@ class SafeRolloutComparator:
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
 
-        metrics.incr(
-            "SafeRolloutComparator.check_and_choose",
-            tags=tags,
-        )
+        metrics.incr("SafeRolloutComparator.compare", tags=tags)
 
-        # Part 2: determine which data to return
+    @classmethod
+    def check_and_choose(
+        cls,
+        control_data: TData,
+        experimental_data: TData,
+        callsite: str,
+        is_experimental_data_nullish: bool | None = None,
+        reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
+        debug_context: dict[str, Any] | None = None,
+        data_serializer: Callable[[TData], Any] | None = None,
+    ) -> TData:
+        """
+        Compare control & experimental data (via `compare`), then return whichever branch should be
+        used downstream based on the use-experimental-data allowlist.
+
+        See `compare` for parameter documentation.
+        """
+        cls.compare(
+            control_data=control_data,
+            experimental_data=experimental_data,
+            callsite=callsite,
+            is_experimental_data_nullish=is_experimental_data_nullish,
+            reasonable_match_comparator=reasonable_match_comparator,
+            debug_context=debug_context,
+            data_serializer=data_serializer,
+        )
+        use_experimental_data = cls.should_use_experimental_data(callsite)
         return experimental_data if use_experimental_data else control_data
 
     @classmethod
