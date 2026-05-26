@@ -1058,7 +1058,7 @@ export function GlobalCommandPaletteActions() {
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
         <CMDKAction
           display={{label: t('Open in Production'), icon: <IconOpen />}}
-          keywords={[t('production'), t('prod'), t('live')]}
+          keywords={['production', 'prod', 'live']}
           onAction={() => {
             window.open(
               `https://${organization.slug}.sentry.io${location.pathname}${location.search}`,
@@ -1072,7 +1072,7 @@ export function GlobalCommandPaletteActions() {
       {NODE_ENV === 'production' && user.isStaff && (
         <CMDKAction
           display={{label: t('Open in Development'), icon: <IconOpen />}}
-          keywords={[t('development'), t('dev'), t('dev-ui'), t('localhost'), t('local')]}
+          keywords={['development', 'dev', 'dev-ui', 'localhost', 'local']}
           onAction={() => {
             window.open(
               `https://${organization.slug}.dev.getsentry.net:7999${location.pathname}${location.search}`,
