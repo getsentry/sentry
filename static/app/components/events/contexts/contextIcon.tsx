@@ -1,12 +1,6 @@
-import type {ComponentProps, ComponentType, ImgHTMLAttributes} from 'react';
 import {PlatformIcon, platforms} from 'platformicons';
 
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
-
-type PlatformIconProps = ComponentProps<typeof PlatformIcon> &
-  ImgHTMLAttributes<HTMLImageElement>;
-
-const AccessiblePlatformIcon = PlatformIcon as ComponentType<PlatformIconProps>;
 
 const LOGO_MAPPING: Readonly<Record<string, string>> = {
   'android-phone': 'android-phone',
@@ -108,11 +102,6 @@ export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps)
   const platformIconName = getLogoImage(name);
 
   return (
-    <AccessiblePlatformIcon
-      platform={platformIconName ?? 'default'}
-      size={size}
-      format="lg"
-      alt={name}
-    />
+    <PlatformIcon platform={platformIconName ?? 'default'} size={size} format="lg" />
   );
 }
