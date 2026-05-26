@@ -64,11 +64,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "user.ip",
 ]
 
-_TIMEOUT_DETAIL = (
-    "The query timed out before finding this conversation. "
-    "Open the conversation from the Conversations list to get a direct link "
-    "with a precise time range."
-)
+_TIMEOUT_DETAIL = "Query timed out. Try searching with a narrower time range."
 
 
 @cell_silo_endpoint
