@@ -58,7 +58,7 @@ describe('PagerDutyInstallStep', () => {
     });
   });
 
-  it('shows loading state when isAdvancing is true', () => {
+  it('shows busy state when isAdvancing is true', () => {
     render(
       <PagerDutyInstallStep
         {...makeStepProps({
@@ -68,7 +68,10 @@ describe('PagerDutyInstallStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Installing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Install PagerDuty App'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables install button when installUrl is not provided', () => {

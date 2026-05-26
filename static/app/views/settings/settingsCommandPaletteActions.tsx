@@ -37,7 +37,9 @@ function titleFromRoute(route: string): string {
     .replace(/^account\//, '')
     .split('/')[0];
 
-  if (!segment) return 'Settings';
+  if (!segment) {
+    return 'Settings';
+  }
 
   return segment
     .split('-')
@@ -46,10 +48,18 @@ function titleFromRoute(route: string): string {
 }
 
 function isSettingsRoute(route: string): boolean {
-  if (!route.startsWith('/settings/')) return false;
-  if (route.includes(':projectId')) return false;
-  if (route.includes(':teamId')) return false;
-  if (route.includes(':appId')) return false;
+  if (!route.startsWith('/settings/')) {
+    return false;
+  }
+  if (route.includes(':projectId')) {
+    return false;
+  }
+  if (route.includes(':teamId')) {
+    return false;
+  }
+  if (route.includes(':appId')) {
+    return false;
+  }
   return true;
 }
 
@@ -79,8 +89,12 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
 
   const groups = new Map<string, Map<string, FormSearchField>>();
   for (const field of allFields) {
-    if (!isSettingsRoute(field.route)) continue;
-    if (typeof field.title !== 'string' || !field.title) continue;
+    if (!isSettingsRoute(field.route)) {
+      continue;
+    }
+    if (typeof field.title !== 'string' || !field.title) {
+      continue;
+    }
 
     const normalizedRoute = normalizeRouteForLookup(field.route);
     let routeFields = groups.get(normalizedRoute);

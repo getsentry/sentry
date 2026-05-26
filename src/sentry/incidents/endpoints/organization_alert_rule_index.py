@@ -41,19 +41,11 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import to_valid_int_id
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
-from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-)
 from sentry.incidents.endpoints.serializers.workflow_engine_combined import (
     WorkflowEngineCombinedRuleSerializer,
 )
@@ -725,17 +717,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
 
     @extend_schema(
         operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=None,
-        responses={
-            200: inline_sentry_response_serializer(
-                "ListMetricAlertRules", list[AlertRuleSerializerResponse]
-            ),
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     @deprecated(
@@ -761,15 +742,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
 
     @extend_schema(
         operation_id="(DEPRECATED) Create a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=OrganizationAlertRuleIndexPostSerializer,
-        responses={
-            201: AlertRuleSerializer,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     @deprecated(

@@ -102,7 +102,9 @@ export function SpansTabCrossEventSearchBars({
               )}
               options={getCrossEventDatasetOptions(crossEventDatasetAvailability)}
               onChange={({value: newValue}) => {
-                if (!isCrossEventType(newValue)) return;
+                if (!isCrossEventType(newValue)) {
+                  return;
+                }
 
                 trackAnalytics('trace.explorer.cross_event_changed', {
                   organization,
@@ -112,7 +114,9 @@ export function SpansTabCrossEventSearchBars({
 
                 setCrossEvents(
                   crossEvents.map((c, i) => {
-                    if (i === index) return makeCrossEvent(newValue);
+                    if (i === index) {
+                      return makeCrossEvent(newValue);
+                    }
                     return c;
                   })
                 );

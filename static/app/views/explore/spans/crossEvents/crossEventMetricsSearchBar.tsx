@@ -64,10 +64,14 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
 
     const onMetricChange = useCallback(
       (newMetric: TraceMetric) => {
-        if (!crossEvents) return;
+        if (!crossEvents) {
+          return;
+        }
         setCrossEvents?.(
           crossEvents.map((c, i) => {
-            if (i === index) return {type: 'metrics', query, metric: newMetric};
+            if (i === index) {
+              return {type: 'metrics', query, metric: newMetric};
+            }
             return c;
           })
         );
@@ -81,10 +85,14 @@ export const SpansTabCrossEventMetricsSearchBar = memo(
       () => ({
         initialQuery: query,
         onSearch: (newQuery: string) => {
-          if (!crossEvents) return;
+          if (!crossEvents) {
+            return;
+          }
           setCrossEvents?.(
             crossEvents.map((c, i) => {
-              if (i === index) return {type: 'metrics', query: newQuery, metric};
+              if (i === index) {
+                return {type: 'metrics', query: newQuery, metric};
+              }
               return c;
             })
           );

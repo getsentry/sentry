@@ -1101,7 +1101,9 @@ const getContextIcon = (value: string) => {
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  if (valueArray.length > 1) valueArray.pop();
+  if (valueArray.length > 1) {
+    valueArray.pop();
+  }
   return valueArray.join(' ');
 };
 

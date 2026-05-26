@@ -1,10 +1,13 @@
+from unittest.mock import MagicMock
+
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
 
 
@@ -593,3 +596,22 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
         response = self.client.put(self.url, data=data)
         assert response.status_code == 404
+
+
+class GroupSearchViewPermissionTest(TestCase):
+    def test_denies_unknown_object_types(self) -> None:
+        permission = GroupSearchViewPermission()
+        request = MagicMock()
+        request.method = "PUT"
+        view = MagicMock()
+
+        assert permission.has_object_permission(request, view, object()) is False
+
+    def test_denies_related_model_types(self) -> None:
+        permission = GroupSearchViewPermission()
+        request = MagicMock()
+        request.method = "GET"
+        view = MagicMock()
+
+        starred = MagicMock(spec=GroupSearchViewStarred)
+        assert permission.has_object_permission(request, view, starred) is False
