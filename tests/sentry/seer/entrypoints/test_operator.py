@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
     CodingAgentState,
     MemoryBlock,
@@ -1062,7 +1063,7 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         self.agent_run_ids: list[int] = []
 
     @staticmethod
-    def has_access(organization: Organization) -> bool:
+    def has_access(organization: Organization | RpcOrganization) -> bool:
         return True
 
     def on_trigger_agent_error(self, *, error: str) -> None:
@@ -1077,6 +1078,46 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
     @staticmethod
     def on_agent_update(cache_payload: MockCachePayload, summary: str | None, run_id: int) -> None:
         return None
+
+
+class TestSeerAgentOperatorAccess(TestCase):
+    def setUp(self) -> None:
+        self.entrypoint = MockAgentEntrypoint()
+        self.operator = SeerAgentOperator(self.entrypoint)
+
+    def test_has_access_with_seer_agent(self):
+        MockNoAccessEntrypoint = Mock(spec=SeerAgentEntrypoint)
+        MockNoAccessEntrypoint.key = cast(SeerEntrypointKey, "MOCK_NO_ACCESS")
+        MockNoAccessEntrypoint.has_access.return_value = False
+        with (
+            self.feature(
+                {
+                    "organizations:gen-ai-features": True,
+                    "organizations:seer-explorer": True,
+                }
+            ),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
+                {
+                    MockAgentEntrypoint.key: MockAgentEntrypoint,
+                    MockNoAccessEntrypoint.key: MockNoAccessEntrypoint,
+                },
+                clear=True,
+            ),
+        ):
+            assert SeerAgentOperator.has_access(organization=self.organization)
+            assert SeerAgentOperator.has_access(
+                organization=self.organization,
+                entrypoint_key=MockAgentEntrypoint.key,
+            )
+            assert not SeerAgentOperator.has_access(
+                organization=self.organization,
+                entrypoint_key=MockNoAccessEntrypoint.key,
+            )
+
+    def test_has_access_without_seer_agent(self):
+        with self.feature({"organizations:gen-ai-features": False}):
+            assert not SeerAgentOperator.has_access(organization=self.organization)
 
 
 class TestSeerOperatorCompletionHook(TestCase):
@@ -1121,6 +1162,10 @@ class TestSeerOperatorCompletionHook(TestCase):
             patch(
                 "sentry.seer.entrypoints.operator.SeerOperatorAgentCache.get",
                 return_value=cache_return_value,
+            ),
+            patch(
+                "sentry.seer.entrypoints.operator.SeerAgentOperator.has_access",
+                return_value=True,
             ),
         ):
             SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
@@ -1180,8 +1225,9 @@ class TestSeerOperatorCompletionHook(TestCase):
             run_id=MOCK_RUN_ID,
         )
 
+    @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    def test_execute_returns_early_on_fetch_error(self, mock_fetch):
+    def test_execute_returns_early_on_fetch_error(self, mock_fetch, _mock_access):
         mock_fetch.side_effect = Exception("Seer is down")
         mock_entrypoint_cls = Mock(spec=SeerAgentEntrypoint)
 
@@ -1194,8 +1240,9 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
+    @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    def test_execute_skips_entrypoint_without_access(self, mock_fetch):
+    def test_execute_skips_entrypoint_without_access(self, mock_fetch, _mock_access):
         state = self._make_state(
             blocks=[
                 MemoryBlock(

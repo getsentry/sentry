@@ -143,7 +143,15 @@ export function CompactNoteInput({
         aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
         aria-errormessage={errorMessage ? errorId : undefined}
         style={{
-          ...mentionStyle({theme, minHeight: 14, streamlined: true}),
+          ...mentionStyle({
+            theme,
+            minHeight: 14,
+            inputStyle: {
+              padding: `${theme.space.md} ${theme.space.lg}`,
+              border: `1px solid ${theme.tokens.border.primary}`,
+              borderRadius: theme.radius.md,
+            },
+          }),
           width: '100%',
         }}
         placeholder={placeholder}
@@ -237,6 +245,7 @@ const NoteInputForm = styled('form')<{error?: string}>`
   gap: ${p => p.theme.space.sm};
   align-items: flex-end;
   width: 100%;
+  min-width: 0;
   transition: padding 0.2s ease-in-out;
 
   ${getNoteInputErrorStyles};

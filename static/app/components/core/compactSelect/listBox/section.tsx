@@ -14,13 +14,14 @@ import {
   SectionWrap,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey} from '@sentry/scraps/compactSelect';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 
-interface ListBoxSectionProps extends AriaListBoxSectionProps {
+interface ListBoxSectionProps<T extends ListItemBase> extends AriaListBoxSectionProps {
   hiddenOptions: Set<SelectKey>;
-  item: Node<any>;
-  listState: ListState<any>;
+  item: Node<T>;
+  listState: ListState<T>;
   showSectionHeaders: boolean;
   size: ListBoxOptionProps['size'];
   'data-index'?: number;
@@ -32,7 +33,7 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
  * A <li /> element that functions as a list box section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxSection({
+export function ListBoxSection<T extends ListItemBase>({
   item,
   listState,
   size,
@@ -41,7 +42,7 @@ export function ListBoxSection({
   showDetails = true,
   ref,
   'data-index': dataIndex,
-}: ListBoxSectionProps) {
+}: ListBoxSectionProps<T>) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: item.rendered,
     'aria-label': item['aria-label'],
@@ -51,7 +52,7 @@ export function ListBoxSection({
 
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
-    item.value.showToggleAllButton;
+    item.value?.showToggleAllButton;
 
   const childItems = useMemo(
     () => [...item.childNodes].filter(child => !hiddenOptions.has(child.key)),

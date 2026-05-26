@@ -1,3 +1,4 @@
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -6,10 +7,9 @@ import responses
 from django.utils import timezone
 from requests.exceptions import HTTPError
 
-from sentry.api.serializers import serialize
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -272,9 +272,7 @@ class TestSendIncidentAlertNotification(TestCase):
         self.metric_issue_context = MetricIssueContext.from_legacy_models(
             self.incident, IncidentStatus.CRITICAL, metric_value=100.0
         )
-        self.incident_serialized_response = serialize(
-            self.incident, serializer=IncidentSerializer()
-        )
+        self.incident_serialized_response = cast(IncidentSerializerResponse, {})
         self.notification_context = NotificationContext(
             id=1,
             sentry_app_id=self.sentry_app.id,

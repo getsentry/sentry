@@ -1407,6 +1407,8 @@ export default typescript.config([
       ...(enableTypeAwareLinting && {
         '@typescript-eslint/no-unsafe-argument': 'error',
         '@typescript-eslint/no-unsafe-call': 'error',
+        '@typescript-eslint/no-unsafe-enum-comparison': 'error',
+        '@typescript-eslint/no-unsafe-member-access': 'error',
         '@typescript-eslint/no-unsafe-return': 'error',
       }),
     },

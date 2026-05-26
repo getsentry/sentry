@@ -45,7 +45,6 @@ from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
-    has_project_connected_repos,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -182,12 +181,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
-        if not has_project_connected_repos(group.organization, group.project):
-            return Response(
-                {"detail": "SCM integration is not configured for this project."},
-                status=status.HTTP_409_CONFLICT,
-            )
-
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
