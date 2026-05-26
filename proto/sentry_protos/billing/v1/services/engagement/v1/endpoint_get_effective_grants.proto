@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package sentry_protos.billing.v1.services.engagement.v1;
+
+import "sentry_protos/billing/v1/date.proto";
+import "sentry_protos/billing/v1/services/engagement/v1/grant.proto";
+
+// A grant with counter-grant chains collapsed into a single effective amount.
+// Returned in drain priority order (end_date ASC, effective_amount ASC, grant_id ASC).
+message EffectiveGrant {
+  uint64 grant_id = 1;
+  GrantType type = 2;
+  repeated string line_item_uids = 3;
+  // Usable amount after counter-grant collapse; always > 0.
+  int64 effective_amount = 4;
+  sentry_protos.billing.v1.Date start_date = 5;
+  sentry_protos.billing.v1.Date end_date = 6;
+}
+
+message GetEffectiveGrantsRequest {
+  uint64 organization_id = 1;
+  // When set, returns only grants whose line_item_uids contain this value.
+  optional string line_item_uid = 2;
+  // start_date / end_date define the query window. A grant is returned if its
+  // own [start_date, end_date] overlaps this window (grant.start_date <=
+  // end_date AND grant.end_date >= start_date), inclusive on both ends. A grant
+  // that begins before the window or ends inside it is therefore included.
+  // Returned grants apply only to usage on the days each grant is itself active
+  // — a grant ending mid-window does not cover usage after its end_date.
+  sentry_protos.billing.v1.Date start_date = 3;
+  sentry_protos.billing.v1.Date end_date = 4;
+}
+
+message GetEffectiveGrantsResponse {
+  // Grants with counter-chains collapsed, sorted by drain priority.
+  repeated EffectiveGrant effective_grants = 1;
+}
