@@ -1198,6 +1198,60 @@ class JiraIntegrationTest(APITestCase):
         ]
 
     @responses.activate
+    def test_get_organization_config_uses_paginated_endpoint(self) -> None:
+        """Ensure the settings-page config load uses the bounded /project/search
+        endpoint, not the deprecated unpaginated /project endpoint that times out
+        for large Jira instances."""
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Alpha", "key": "ALP"},
+                    {"id": "10001", "name": "Beta", "key": "BET"},
+                ],
+                "total": 2,
+                "isLast": True,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/status",
+            json=[{"id": "1", "name": "To Do"}, {"id": "2", "name": "Done"}],
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        config = installation.get_organization_config()
+
+        # Confirm the paginated endpoint was hit (not the legacy /project endpoint)
+        called_urls = [call.request.url for call in responses.calls]
+        assert any("/rest/api/2/project/search" in url for url in called_urls), (
+            "Expected paginated endpoint /project/search to be called"
+        )
+        assert not any(
+            url.endswith("/rest/api/2/project") or "/rest/api/2/project?" in url
+            for url in called_urls
+        ), "Unexpected call to deprecated unpaginated /project endpoint"
+
+        # addDropdown items should be populated from the paginated response
+        add_dropdown_items = config[0]["addDropdown"]["items"]
+        assert len(add_dropdown_items) == 2
+        assert add_dropdown_items[0]["value"] == "10000"
+        assert add_dropdown_items[0]["label"] == "Alpha"
+
+    @responses.activate
     def test_get_config_data(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",

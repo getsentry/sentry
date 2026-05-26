@@ -167,9 +167,14 @@ class JiraIntegration(IssueSyncIntegration):
         client = self.get_client()
 
         try:
+            # Use the paginated endpoint to avoid fetching all projects at once,
+            # which can time out for large Jira instances. The settings page
+            # dropdown search (typeahead) handles finding projects beyond this
+            # initial page via JiraSearchEndpoint.
+            projects_response = client.get_projects_paginated(params={"maxResults": 50})
             projects: list[JiraProjectMapping] = [
                 JiraProjectMapping(value=p["id"], label=p["name"])
-                for p in client.get_projects_list()
+                for p in projects_response.get("values", [])
             ]
             self._set_status_choices_in_organization_config(configuration, projects)
             configuration[0]["addDropdown"]["items"] = projects
