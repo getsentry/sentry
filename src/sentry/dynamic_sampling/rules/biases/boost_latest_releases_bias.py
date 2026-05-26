@@ -20,6 +20,7 @@ class BoostLatestReleasesBias(Bias):
         # If the base sample rate is 100%, the factor will be 1.0
         # If the base sample rate is close to 0%, the factor will be 1.5
         # Between these two extremes, the factor will be a decaying value between 1.0 and 1.5
+        # Why is it quadratic? I don't know, legacy code.
         factor = float(LATEST_RELEASES_BOOST_FACTOR ** (1 - base_sample_rate))
         boosted_releases = ProjectBoostedReleases(project).get_extended_boosted_releases()
 
