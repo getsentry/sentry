@@ -7,6 +7,7 @@ The `webAuthnRegisterData` and `webAuthnAuthenticationData` fields are **conditi
 ### Backend Behavior
 
 #### 1. Enrollment (`user_authenticator_enroll.py`)
+
 ```python
 # Lines 166-173
 if interface_id == "u2f":
@@ -18,18 +19,22 @@ if interface_id == "u2f":
     response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
     request.session["webauthn_register_state"] = state
 ```
+
 **Result**: `webAuthnRegisterData` is ONLY added when `interface_id == "u2f"`
 
 #### 2. Authentication (`twofactor.py`)
+
 ```python
 # Lines 207-209
 if interface.type == U2fInterface.type:
     activation.challenge = {}
     activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
 ```
+
 **Result**: `webAuthnAuthenticationData` is ONLY added when interface type is U2F
 
 #### 3. Authenticator Index (`authenticator_index.py`)
+
 ```python
 # Lines 29-34
 try:
@@ -39,11 +44,13 @@ try:
 except LookupError:
     return Response([])
 ```
+
 **Result**: This endpoint returns empty array if U2F is not enrolled
 
 ### When Fields Are Missing
 
 The WebAuthn fields are **undefined** when users are using:
+
 - **TOTP** (Time-based One-Time Password / Authenticator Apps)
 - **SMS** (Text message codes)
 - **Recovery Codes**
@@ -71,14 +78,14 @@ The PR correctly adds null checks:
 ```typescript
 export async function handleEnroll(challengeData: ChallengeData) {
   if (!challengeData.webAuthnRegisterData) {
-    return null;  // ✅ Early return when not U2F
+    return null; // ✅ Early return when not U2F
   }
   // ... rest of the code
 }
 
 export async function handleSign(challengeData: ChallengeData) {
   if (!challengeData.webAuthnAuthenticationData) {
-    return null;  // ✅ Early return when not U2F
+    return null; // ✅ Early return when not U2F
   }
   // ... rest of the code
 }
@@ -88,8 +95,8 @@ And updates the types to reflect reality:
 
 ```typescript
 export type ChallengeData = {
-  webAuthnAuthenticationData: string | undefined;  // ✅ Can be undefined
-  webAuthnRegisterData: string | undefined;        // ✅ Can be undefined
+  webAuthnAuthenticationData: string | undefined; // ✅ Can be undefined
+  webAuthnRegisterData: string | undefined; // ✅ Can be undefined
   // ... other fields
 };
 ```
