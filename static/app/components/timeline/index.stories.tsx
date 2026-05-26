@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -10,13 +9,11 @@ import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
 import {
   IconClock,
-  IconCommit,
   IconCursorArrow,
   IconDashboard,
   IconFire,
   IconSentry,
   IconSort,
-  IconUser,
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -132,10 +129,6 @@ export default Storybook.story('Timeline', story => {
             <code>isActive</code> - If set to true, will display a border under the item
           </li>
           <li>
-            <code>marker</code> - A component to render in the first column, before the
-            activity icon
-          </li>
-          <li>
             <code>onClick</code> - React event handler for the entire item
           </li>
           <li>
@@ -204,56 +197,6 @@ export default Storybook.story('Timeline', story => {
         >
           <Timeline.Text>This is a description of the error</Timeline.Text>
         </Timeline.Item>
-      </Fragment>
-    );
-  });
-
-  story('Two-column layout', () => {
-    const theme = useTheme();
-    return (
-      <Fragment>
-        <p>
-          Timeline items can render a separate <code>marker</code> column before the
-          activity icon. This is used when the actor and activity type both need a visible
-          marker.
-        </p>
-        <h6>Example</h6>
-        <Timeline.Container>
-          <Timeline.Item
-            marker={
-              <StoryMarker size={22}>
-                <IconUser size="xs" />
-              </StoryMarker>
-            }
-            title="Jane Doe resolved this issue"
-            icon={<IconCommit size="xs" />}
-            timestamp={<DateTime date={now} />}
-            colorConfig={{
-              title: theme.tokens.content.primary,
-              icon: theme.tokens.graphics.success.vibrant,
-              iconBorder: theme.tokens.border.success.vibrant,
-            }}
-          >
-            <Timeline.Text>Marked as resolved in release 24.6.1.</Timeline.Text>
-          </Timeline.Item>
-          <Timeline.Item
-            marker={
-              <StoryMarker size={22}>
-                <IconSentry size="xs" />
-              </StoryMarker>
-            }
-            title="Sentry detected a regression"
-            icon={<IconFire size="xs" />}
-            timestamp={<DateTime date={now} />}
-            colorConfig={{
-              title: theme.tokens.content.primary,
-              icon: theme.tokens.graphics.danger.vibrant,
-              iconBorder: theme.tokens.border.danger.vibrant,
-            }}
-          >
-            <Timeline.Text>The issue regressed in the latest deploy.</Timeline.Text>
-          </Timeline.Item>
-        </Timeline.Container>
       </Fragment>
     );
   });
@@ -346,15 +289,3 @@ const JSONPayload: Record<string, any> = {
 };
 
 const now = new Date();
-
-const StoryMarker = styled('span')<{
-  size: number;
-}>`
-  display: grid;
-  place-items: center;
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
-  border-radius: 100%;
-  color: ${p => p.theme.tokens.content.secondary};
-  background: ${p => p.theme.tokens.background.primary};
-`;
