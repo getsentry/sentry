@@ -87,7 +87,7 @@ export const noZIndex = ESLintUtils.RuleCreator.withoutDocs({
           // Allow zIndex={1}
           if (
             node.value?.type === 'JSXExpressionContainer' &&
-            isNumericLiteralOne(node.value.expression as TSESTree.Node)
+            isNumericLiteralOne(node.value.expression)
           ) {
             return;
           }
