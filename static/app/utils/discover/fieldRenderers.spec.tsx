@@ -25,7 +25,7 @@ describe('getFieldRenderer', () => {
 
   beforeEach(() => {
     context = initializeOrg({
-      organization: OrganizationFixture({features: ['dashboards-drilldown-flow']}),
+      organization: OrganizationFixture(),
     });
     organization = context.organization;
     project = context.project;
