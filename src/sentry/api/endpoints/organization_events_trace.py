@@ -360,7 +360,7 @@ class TraceEvent:
                             control_data=occurrence_ids,
                             experimental_data=eap_occurrence_ids,
                             callsite=callsite,
-                            is_experimental_data_a_null_result=len(eap_occurrence_ids) == 0,
+                            is_experimental_data_nullish=len(eap_occurrence_ids) == 0,
                             reasonable_match_comparator=lambda snuba, eap: {
                                 row["occurrence_id"] for row in eap
                             }.issubset({row["occurrence_id"] for row in snuba}),
@@ -827,7 +827,7 @@ def query_trace_data(
             control_data=transformed_results[1],
             experimental_data=eap_errors,
             callsite=errors_callsite,
-            is_experimental_data_a_null_result=len(eap_errors) == 0,
+            is_experimental_data_nullish=len(eap_errors) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, NamedTuple, TypeVar
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -10,7 +10,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry import options
 from sentry.spans.buffer_types import EvalshaData, EvalshaResult, InsertedSubsegment, Span
 from sentry.spans.debug_trace_logger import DebugTraceLogger
-from sentry.spans.segment_key import SegmentKey
+from sentry.spans.segment_key import SegmentKey, parse_segment_key
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -166,21 +166,54 @@ class FlusherLogger:
         self._cumulative_decompress_latency_ms: int = 0
         self._last_log_time: float | None = None
 
-    def log(
+    def log_loaded_segments(
+        self,
+        segment_keys: Sequence[SegmentKey],
+        payloads: Mapping[SegmentKey, Sequence[bytes]],
+        *,
+        load_ids_latency_ms: int,
+        load_data_latency_ms: int,
+        decompress_latency_ms: int,
+    ) -> None:
+        """
+        Record loaded segments and periodically log the top traces sorted by
+        cumulative bytes flushed.
+        """
+        if not options.get("spans.buffer.flusher-cumulative-logger-enabled"):
+            return
+
+        entries: list[FlusherLogEntry] = []
+        for segment_key in segment_keys:
+            segment = payloads.get(segment_key, [])
+            if not segment:
+                continue
+
+            project_id, trace_id, _ = parse_segment_key(segment_key)
+            entries.append(
+                FlusherLogEntry(
+                    f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}",
+                    len(segment),
+                    sum(len(payload) for payload in segment),
+                )
+            )
+
+        if not entries:
+            return
+
+        self._log_entries(
+            entries,
+            load_ids_latency_ms,
+            load_data_latency_ms,
+            decompress_latency_ms,
+        )
+
+    def _log_entries(
         self,
         entries: list[FlusherLogEntry],
         load_ids_latency_ms: int,
         load_data_latency_ms: int,
         decompress_latency_ms: int,
     ) -> None:
-        """
-        Record a batch of flush operations and periodically log the top traces sorted by
-        cumulative bytes flushed.
-        """
-
-        if not options.get("spans.buffer.flusher-cumulative-logger-enabled"):
-            return
-
         self._cumulative_load_ids_latency_ms += load_ids_latency_ms
         self._cumulative_load_data_latency_ms += load_data_latency_ms
         self._cumulative_decompress_latency_ms += decompress_latency_ms

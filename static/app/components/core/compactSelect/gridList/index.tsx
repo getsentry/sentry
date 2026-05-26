@@ -133,7 +133,9 @@ function GridList<T extends ListItemBase>({
             >
               {virtualizer.items.map(row => {
                 const item = listItems[row.index];
-                if (!item) return null;
+                if (!item) {
+                  return null;
+                }
                 if (item.type === 'section') {
                   return (
                     <GridListSection

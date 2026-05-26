@@ -50,12 +50,15 @@ describe('ProjectSelectStep', () => {
     });
   });
 
-  it('shows submitting state when isAdvancing', () => {
+  it('shows busy state when isAdvancing', () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
     render(<ProjectSelectStep {...makeStepProps({stepData: {}, isAdvancing: true})} />);
 
-    expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables submit button when isInitializing', () => {
@@ -159,10 +162,13 @@ describe('CloudFormationStep', () => {
     });
   });
 
-  it('shows verifying state when isAdvancing', () => {
+  it('shows busy state when isAdvancing', () => {
     render(<CloudFormationStep {...makeStepProps({stepData, isAdvancing: true})} />);
 
-    expect(screen.getByRole('button', {name: 'Verifying...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 });
 

@@ -152,7 +152,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         # Feature flag the occurrence endpoint
         if (
             dataset_label == SupportedTraceItemType.OCCURRENCES.value
-            and not EAPOccurrencesComparator.should_use_experiment("api.events.endpoints")
+            and not EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
         elif dataset_label == SupportedTraceItemType.REPLAYS.value and not features.has(

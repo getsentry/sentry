@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import orjson
 
-from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
-from sentry.spans.segment_key import SegmentKey
+from sentry.spans.buffer_types import (
+    EvalshaResult,
+    InsertedSubsegment,
+    LoadedSegmentData,
+    Span,
+    Subsegment,
+)
+from sentry.spans.segment_key import PayloadKey, SegmentKey
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
@@ -127,3 +133,17 @@ def test_inserted_subsegment_exposes_queue_and_cleanup_metadata() -> None:
     assert inserted.queue_shard == 3
     assert not inserted.is_detached_segment
     assert detached.is_detached_segment
+
+
+def test_loaded_segment_data_exposes_payloads() -> None:
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    payload_key = PayloadKey(b"span-buf:s:{1:%s:salted}:salted" % (b"a" * 32))
+    payload = _payload("a" * 16)
+
+    loaded_segment_data = LoadedSegmentData(
+        payloads={segment_key: [payload]},
+        payload_keys={segment_key: [payload_key]},
+    )
+
+    assert loaded_segment_data.payloads[segment_key] == [payload]
+    assert loaded_segment_data.payload_keys[segment_key] == [payload_key]
