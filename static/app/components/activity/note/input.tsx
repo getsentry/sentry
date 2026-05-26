@@ -1,7 +1,7 @@
 import {useCallback, useId, useState} from 'react';
 import {Mention, MentionsInput} from 'react-mentions';
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, useReducedMotion} from 'framer-motion';
 import {z} from 'zod';
@@ -56,7 +56,7 @@ const noteInputSchema = z.object({
   text: z.string(),
 });
 
-function NoteInput({
+export function NoteInput({
   text,
   onCreate,
   onChange,
@@ -270,26 +270,23 @@ function NoteInput({
   );
 }
 
-export {NoteInput};
-
 type NotePreviewProps = {
   minHeight: Props['minHeight'];
   theme: Theme;
 };
 
-// This styles both the note preview and the note editor input
-const getNotePreviewCss = (p: NotePreviewProps) => {
-  const {minHeight, padding, overflow, border} = mentionStyle(p)['&multiLine'].input;
-
-  return `
+const getNotePreviewCss = (p: NotePreviewProps) => css`
   max-height: 1000px;
   max-width: 100%;
-  ${(minHeight && `min-height: ${minHeight}px`) || ''};
-  padding: ${padding};
-  overflow: ${overflow};
-  border: ${border};
+  ${p.minHeight
+    ? css`
+        min-height: ${p.minHeight}px;
+      `
+    : ''};
+  padding: ${p.theme.space.lg} ${p.theme.space.lg};
+  overflow: auto;
+  border: 0;
 `;
-};
 
 const EditorSurface = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
@@ -308,6 +305,7 @@ const MentionsEditor = styled('div')`
 
 const MotionControls = styled(motion.div)`
   overflow: hidden;
+  isolation: isolate;
 `;
 
 const ErrorMessage = styled('span')`
