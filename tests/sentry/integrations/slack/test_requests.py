@@ -417,61 +417,29 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason is None
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_feature_flag",
-        return_value=True,
-    )
-    @patch(
         "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=False,
     )
-    def test_control_silo_skips_subscription_gated_access_check(
-        self, mock_has_access, mock_has_feature_flag
-    ):
+    def test_control_silo_skips_access_check(self, mock_has_access):
         """
         In control silo, has_access is not consulted (it depends on subscription context
         that getsentry's FlagpoleFeatureHandler does not populate in control silo).
-        Only has_feature_flag gates the control-silo check; the full verdict is deferred
-        to the cell handler.
+        The full verdict is deferred to the cell handler.
         """
         with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
             result = self.slack_request.resolve_seer_organization()
 
         assert result.organization_id == self.organization.id
         assert result.halt_reason is None
-        mock_has_feature_flag.assert_called()
         mock_has_access.assert_not_called()
 
-    @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_feature_flag",
-        return_value=False,
-    )
     @patch(
         "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=True,
     )
-    def test_control_silo_halts_when_feature_flag_disabled(
-        self, mock_has_access, mock_has_feature_flag
-    ):
-        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
-            result = self.slack_request.resolve_seer_organization()
-
-        assert result.organization_id is None
-        assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
-        mock_has_feature_flag.assert_called()
-        mock_has_access.assert_not_called()
-
-    @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_feature_flag",
-        return_value=True,
-    )
-    @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
-        return_value=True,
-    )
-    def test_cell_silo_uses_full_access_check(self, mock_has_access, mock_has_feature_flag):
+    def test_cell_silo_uses_full_access_check(self, mock_has_access):
         """
         In cell silo, has_access (the subscription-gated check) is the gate.
-        has_feature_flag is not consulted independently — it only runs inside has_access.
         """
         with assume_test_silo_mode(SiloMode.CELL, can_be_monolith=False):
             result = self.slack_request.resolve_seer_organization()
@@ -479,7 +447,6 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.organization_id == self.organization.id
         assert result.halt_reason is None
         mock_has_access.assert_called()
-        mock_has_feature_flag.assert_not_called()
 
     @patch("sentry.integrations.slack.requests.event.get_thread_history")
     @patch(
