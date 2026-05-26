@@ -183,6 +183,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
         org = self.create_organization()
+        self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
         with (
@@ -237,6 +238,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
         org = self.create_organization()
+        self.create_project(organization=org)
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
@@ -289,6 +291,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
         org = self.create_organization()
+        self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
         with (

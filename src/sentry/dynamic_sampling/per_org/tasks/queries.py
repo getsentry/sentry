@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 from typing import Any
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
@@ -18,6 +19,16 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+
+
+class DynamicSamplingQueryFilters(StrEnum):
+    IS_SEGMENT = "is_segment:true"
+
+
+class DynamicSamplingQueryFields(StrEnum):
+    ROOT_PROJECT = "sentry.dsc.root_project"
+    COUNT = "count()"
+    COUNT_SAMPLE = "count_sample()"
 
 
 @dataclass(order=True)
@@ -68,8 +79,11 @@ def get_eap_organization_volume(
             projects=config.projects,
             organization=config.organization,
         ),
-        query_string="is_transaction:true",
-        selected_columns=["count()", "count_sample()"],
+        query_string=DynamicSamplingQueryFilters.IS_SEGMENT,
+        selected_columns=[
+            DynamicSamplingQueryFields.COUNT,
+            DynamicSamplingQueryFields.COUNT_SAMPLE,
+        ],
         orderby=None,
         offset=0,
         limit=1,
@@ -110,9 +124,13 @@ def get_eap_project_volumes(
                 projects=config.projects,
                 organization=config.organization,
             ),
-            "query_string": "is_segment:true",
-            "selected_columns": ["sentry.dsc.root_project", "count()", "count_sample()"],
-            "orderby": ["sentry.dsc.root_project"],
+            "query_string": DynamicSamplingQueryFilters.IS_SEGMENT,
+            "selected_columns": [
+                DynamicSamplingQueryFields.ROOT_PROJECT,
+                DynamicSamplingQueryFields.COUNT,
+                DynamicSamplingQueryFields.COUNT_SAMPLE,
+            ],
+            "orderby": [DynamicSamplingQueryFields.ROOT_PROJECT],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
             "config": SearchResolverConfig(
                 auto_fields=True,
