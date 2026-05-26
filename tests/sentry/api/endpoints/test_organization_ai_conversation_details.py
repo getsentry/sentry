@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.urls import reverse
@@ -526,7 +526,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         # Wrap in a ReadTimeoutError so handle_query_errors() converts it to
         # TimeoutException, which our endpoint then catches to return 504.
-        rpc_timeout = SnubaRPCTimeout(ReadTimeoutError(None, "/", "timed out"))
+        rpc_timeout = SnubaRPCTimeout(ReadTimeoutError(MagicMock(), "/", "timed out"))
 
         with patch(
             "sentry.snuba.spans_rpc.Spans.run_table_query",
