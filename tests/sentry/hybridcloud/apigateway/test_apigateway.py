@@ -375,7 +375,7 @@ class CellResolverTest(ApiGatewayTestCase):
                     )
 
     @override_options({"apigateway.cell_resolver.enabled": True})
-    def test_proxy_js_sdk_loader_no_mapping_falls_through(self) -> None:
+    def test_proxy_js_sdk_loader_no_mapping_falls_through_to_regionpin(self) -> None:
         unmapped_key = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
         self.httpx_router.add(
             "GET",
@@ -407,7 +407,7 @@ class CellResolverTest(ApiGatewayTestCase):
                     ) not in incr_calls
 
     @override_options({"apigateway.cell_resolver.enabled": True})
-    def test_proxy_js_sdk_loader_invalid_key(self) -> None:
+    def test_proxy_js_sdk_loader_invalid_key_falls_through_to_regionpin(self) -> None:
         self.httpx_router.add(
             "GET",
             f"{self.CELL.address}/js-sdk-loader/nonexistent_key.js",
@@ -437,9 +437,7 @@ class CellResolverTest(ApiGatewayTestCase):
                     ) in incr_calls
 
     @override_options({"apigateway.cell_resolver.enabled": False})
-    def test_proxy_js_sdk_loader_option_disabled(self) -> None:
-        """When the cell resolver option is disabled, js-sdk-loader skips
-        the resolver entirely and goes straight to REGION_PINNED_URL_NAMES."""
+    def test_proxy_js_sdk_loader_option_disabled_falls_through_to_regionpin(self) -> None:
         from sentry.models.projectkeymapping import ProjectKeyMapping
 
         project_key = self.create_project_key(self.project)
