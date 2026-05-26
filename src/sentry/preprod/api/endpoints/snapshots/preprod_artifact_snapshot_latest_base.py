@@ -77,7 +77,10 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         branch = request.GET.get("branch")
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
-        project_id = request.GET.get("project")
+        try:
+            project_id = int(request.GET["project"]) if "project" in request.GET else None
+        except (ValueError, TypeError):
+            return Response({"detail": "Invalid project parameter"}, status=400)
 
         qs = (
             PreprodArtifact.objects.filter(
