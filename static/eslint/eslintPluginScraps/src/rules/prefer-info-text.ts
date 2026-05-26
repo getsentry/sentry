@@ -148,11 +148,11 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
 
     function getSingleTextElementChild(node: TSESTree.JSXElement) {
       const meaningfulChildren = getMeaningfulChildren(node.children);
-      if (meaningfulChildren.length !== 1) {
+      const child = meaningfulChildren[0];
+      if (meaningfulChildren.length !== 1 || !child) {
         return null;
       }
 
-      const child = meaningfulChildren[0]!;
       if (child.type !== AST_NODE_TYPES.JSXElement || child.closingElement === null) {
         return null;
       }
@@ -198,12 +198,12 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
         node => node.type === AST_NODE_TYPES.ImportDeclaration
       );
       const infoImport = `import {InfoText} from '${INFO_SOURCE}';\n`;
+      const lastImport = imports.at(-1);
 
-      if (imports.length === 0) {
-        return fixer.insertTextBeforeRange([0, 0], infoImport);
+      if (lastImport) {
+        return fixer.insertTextAfter(lastImport, `\n${infoImport}`);
       }
-
-      return fixer.insertTextAfter(imports[imports.length - 1]!, `\n${infoImport}`);
+      return fixer.insertTextBeforeRange([0, 0], infoImport);
     }
 
     function getAttributeText(attributes: TSESTree.JSXOpeningElement['attributes']) {
@@ -233,16 +233,19 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                   {
                     messageId: 'replaceWithInfoText',
                     fix(fixer) {
+                      if (!node.closingElement) {
+                        return null;
+                      }
                       const infoTextName = getInfoTextName();
                       const textChild = getSingleTextElementChild(node);
-                      if (textChild !== null) {
+                      if (textChild && textChild.closingElement !== null) {
                         const attributes = [
                           getAttributeText(node.openingElement.attributes),
                           getAttributeText(textChild.openingElement.attributes),
                         ];
                         const childrenText = context.sourceCode.text.slice(
                           textChild.openingElement.range[1],
-                          textChild.closingElement!.range[0]
+                          textChild.closingElement.range[0]
                         );
                         const replacement = `${buildOpeningTag(
                           infoTextName,
@@ -258,7 +261,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
 
                       const fixes = [
                         fixer.replaceText(node.openingElement.name, infoTextName),
-                        fixer.replaceText(node.closingElement!.name, infoTextName),
+                        fixer.replaceText(node.closingElement.name, infoTextName),
                         fixer.insertTextAfter(
                           node.openingElement.name,
                           ' variant="inherit"'
