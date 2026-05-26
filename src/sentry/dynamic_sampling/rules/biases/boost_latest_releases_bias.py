@@ -9,7 +9,6 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     PolymorphicRule,
     RuleType,
-    apply_dynamic_factor,
 )
 from sentry.models.project import Project
 
@@ -18,7 +17,10 @@ class BoostLatestReleasesBias(Bias):
     datetime_format = "%Y-%m-%dT%H:%M:%SZ"
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
-        factor = apply_dynamic_factor(base_sample_rate, LATEST_RELEASES_BOOST_FACTOR)
+        # If the base sample rate is 100%, the factor will be 1.0
+        # If the base sample rate is close to 0%, the factor will be 1.5
+        # Between these two extremes, the factor will be a decaying value between 1.0 and 1.5
+        factor = float(LATEST_RELEASES_BOOST_FACTOR ** (1 - base_sample_rate))
         boosted_releases = ProjectBoostedReleases(project).get_extended_boosted_releases()
 
         return cast(

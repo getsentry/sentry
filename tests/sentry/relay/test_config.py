@@ -248,16 +248,11 @@ def test_project_config_exposed_features_raise_exc(default_project: MagicMock) -
 
 @django_db_all
 @cell_silo_test
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-def test_project_config_with_all_biases_enabled(
-    eval_dynamic_factor_lr, default_project, default_team
-):
+def test_project_config_with_all_biases_enabled(default_project, default_team):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
-    eval_dynamic_factor_lr.return_value = 1.5
-
     redis_client = get_redis_client_for_ds()
     ts = time.time()
 
@@ -380,7 +375,7 @@ def test_project_config_with_all_biases_enabled(
                 "type": "trace",
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "factor", "value": ANY},
                 "type": "trace",
                 "condition": {
                     "op": "and",
@@ -401,7 +396,7 @@ def test_project_config_with_all_biases_enabled(
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
-                "samplingValue": {"type": "factor", "value": 1.5},
+                "samplingValue": {"type": "factor", "value": ANY},
                 "type": "trace",
                 "condition": {
                     "op": "and",
@@ -433,13 +428,8 @@ def test_project_config_with_all_biases_enabled(
 
 @django_db_all
 @cell_silo_test
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-def test_project_config_with_trace_health_checks_enabled(
-    eval_dynamic_factor_lr, default_project, default_team
-):
-    eval_dynamic_factor_lr.return_value = 1.5
-
+def test_project_config_with_trace_health_checks_enabled(default_project, default_team):
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
         [

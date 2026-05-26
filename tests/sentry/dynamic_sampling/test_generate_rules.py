@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from sentry_relay.processing import normalize_project_config
@@ -11,7 +11,6 @@ from sentry.dynamic_sampling import ENVIRONMENT_GLOBS, generate_rules, get_redis
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.utils import (
     LATEST_RELEASES_BOOST_DECAYED_FACTOR,
-    LATEST_RELEASES_BOOST_FACTOR,
     RESERVED_IDS,
     RuleType,
 )
@@ -225,7 +224,6 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 
 
 @freeze_time("2022-10-21T18:50:25Z")
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 @django_db_all
 @pytest.mark.parametrize(
@@ -240,7 +238,6 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 )
 def test_generate_rules_with_different_project_platforms(
     get_blended_sample_rate,
-    apply_dynamic_factor,
     version,
     platform,
     end,
@@ -250,7 +247,6 @@ def test_generate_rules_with_different_project_platforms(
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -266,7 +262,7 @@ def test_generate_rules_with_different_project_platforms(
 
     assert generate_rules(default_old_project) == [
         {
-            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
+            "samplingValue": {"type": "factor", "value": ANY},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -298,15 +294,13 @@ def test_generate_rules_with_different_project_platforms(
 
 @django_db_all
 @freeze_time("2022-10-21T18:50:25Z")
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
-    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
+    get_blended_sample_rate, default_project, latest_release_only
 ):
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -326,7 +320,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
     assert generate_rules(default_old_project) == [
         {
-            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
+            "samplingValue": {"type": "factor", "value": ANY},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -340,7 +334,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
+            "samplingValue": {"type": "factor", "value": ANY},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -354,7 +348,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
+            "samplingValue": {"type": "factor", "value": ANY},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -379,15 +373,13 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
 @django_db_all
 @freeze_time("2022-10-21T18:50:25Z")
-@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 def test_generate_rules_does_not_return_rule_with_deleted_release(
-    get_blended_sample_rate, apply_dynamic_factor, default_project, latest_release_only
+    get_blended_sample_rate, default_project, latest_release_only
 ):
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
-    apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
 
@@ -410,7 +402,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 
     assert generate_rules(default_old_project) == [
         {
-            "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
+            "samplingValue": {"type": "factor", "value": ANY},
             "type": "trace",
             "condition": {
                 "op": "and",

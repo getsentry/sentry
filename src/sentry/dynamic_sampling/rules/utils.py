@@ -137,25 +137,6 @@ def get_supported_biases_ids() -> list[str]:
     return sorted({bias["id"] for bias in DEFAULT_BIASES})
 
 
-def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
-    """
-    This function known as dynamic factor function is used during the rules generation in order to determine the factor
-    for each rule based on the base_sample_rate of the project.
-
-    The high-level idea is that we want to reduce the factor the bigger the base_sample_rate becomes, this is done
-    because multiplication will exceed 1 very quickly in case we don't reduce the factor.
-    """
-    if x == 0:
-        raise Exception("A dynamic factor of 0 cannot be set.")
-
-    if base_sample_rate < 0.0 or base_sample_rate > 1.0:
-        raise Exception(
-            "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
-        )
-
-    return float(x / x**base_sample_rate)
-
-
 def get_redis_client_for_ds() -> StrictRedis[str]:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
