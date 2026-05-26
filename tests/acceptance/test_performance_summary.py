@@ -8,6 +8,7 @@ from fixtures.page_objects.transaction_summary import TransactionSummaryPage
 from sentry.models.assistant import AssistantActivity
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
@@ -23,6 +24,7 @@ def make_event(event_data: dict[str, Any]) -> dict[str, object]:
 
 
 @no_silo_test
+@with_feature("organizations:page-frame")
 class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
