@@ -8,11 +8,13 @@ import {
   MetricDetectorFixture,
 } from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationDetail from 'sentry/views/automations/detail';
 
@@ -31,6 +33,7 @@ describe('AutomationDetail', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture(), new Set());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
@@ -110,7 +113,8 @@ describe('AutomationDetail', () => {
       },
     });
 
-    const enableButton = await screen.findByRole('button', {name: 'Disable'});
+    await screen.findByRole('heading', {name: 'Last Triggered'});
+    const enableButton = screen.getByRole('button', {name: 'Disable'});
     await userEvent.click(enableButton);
 
     await waitFor(() => {
