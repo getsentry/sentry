@@ -6,8 +6,8 @@ from unittest import mock
 
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.sentry_apps.services.legacy_webhook.service import (
-    _get_triggering_rule_name,
     build_legacy_webhook_payload,
+    get_triggering_rule_name,
 )
 from sentry.sentry_apps.services.legacy_webhook.validation import (
     compare_payloads,
@@ -40,7 +40,7 @@ class TestWebhookPayloadValidation(BaseWorkflowTest):
         )
 
     def _build_old_payload(self) -> dict[str, Any]:
-        rule_name = _get_triggering_rule_name(self.invocation)
+        rule_name = get_triggering_rule_name(self.invocation)
         return WebHooksPlugin().get_group_data(self.group, self.group_event, [rule_name])
 
     def _build_new_payload(self) -> dict[str, Any]:
