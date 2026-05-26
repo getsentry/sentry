@@ -220,10 +220,7 @@ describe('useSelectedProjectIds', () => {
   });
 
   it('returns pageFilters projects when specified', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({projects: [1, 2]}),
-      false
-    );
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1, 2]}), false);
 
     const {result} = renderHookWithProviders(() => useSelectedProjectIds());
 
@@ -231,10 +228,7 @@ describe('useSelectedProjectIds', () => {
   });
 
   it('falls back to member projects when pageFilters has all projects', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({projects: [-1]}),
-      false
-    );
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), false);
 
     const {result} = renderHookWithProviders(() => useSelectedProjectIds());
 
@@ -259,10 +253,7 @@ describe('useSelectedProjectIdsForMutation', () => {
   });
 
   it('returns string IDs for member projects', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({projects: [-1]}),
-      false
-    );
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), false);
 
     const {result} = renderHookWithProviders(() => useSelectedProjectIdsForMutation());
 
