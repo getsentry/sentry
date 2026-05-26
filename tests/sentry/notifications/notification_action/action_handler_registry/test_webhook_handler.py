@@ -138,7 +138,7 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         mock_old_path.assert_called_once_with(invocation)
 
     @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook_for_invocation"
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook"
     )
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
@@ -168,11 +168,15 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         ):
             WebhookActionHandler.execute(invocation)
 
-        mock_sentry_app.assert_called_once_with(invocation)
+        mock_sentry_app.assert_called_once()
+        call_kwargs = mock_sentry_app.call_args.kwargs
+        assert call_kwargs["group_event"] == self.group_event
+        assert call_kwargs["sentry_app_slug"] == "my-app"
+        assert "rule_label" in call_kwargs
         mock_legacy.assert_not_called()
 
     @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook_for_invocation"
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook"
     )
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"

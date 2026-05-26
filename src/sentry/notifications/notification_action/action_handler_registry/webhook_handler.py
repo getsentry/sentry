@@ -4,8 +4,9 @@ from typing import override
 from sentry import features
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.sentry_apps.services.legacy_webhook.service import (
+    get_triggering_rule_name,
     send_legacy_webhooks_for_invocation,
-    send_sentry_app_webhook_for_invocation,
+    send_sentry_app_webhook,
 )
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import Action
@@ -63,4 +64,8 @@ class WebhookActionHandler(ActionHandler):
             if target_identifier == "webhooks":
                 send_legacy_webhooks_for_invocation(invocation)
             else:
-                send_sentry_app_webhook_for_invocation(invocation)
+                send_sentry_app_webhook(
+                    group_event=invocation.event_data.event,
+                    sentry_app_slug=target_identifier,
+                    rule_label=get_triggering_rule_name(invocation),
+                )
