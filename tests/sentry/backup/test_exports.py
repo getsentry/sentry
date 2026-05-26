@@ -22,6 +22,7 @@ from sentry.backup.helpers import Printer
 from sentry.backup.scopes import ExportScope
 from sentry.backup.services.import_export.model import RpcExportOk
 from sentry.db import models
+from sentry.models.apitoken import ApiToken
 from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -36,6 +37,7 @@ from sentry.testutils.helpers.backups import (
 )
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.token import AuthTokenType
 from sentry.users.models.email import Email
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -769,6 +771,30 @@ class QueryTests(ExportTestCase):
     """
     Some models have custom export logic that requires bespoke testing.
     """
+
+    def test_export_for_api_token(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user = self.create_user()
+            scopes = ["org:read", "org:write", "project:read", "project:distribution"]
+            token = ApiToken.objects.create(
+                user=user, token_type=AuthTokenType.USER, scope_list=scopes
+            )
+            # Perform an update to dodge signals that remove project:distribution
+            ApiToken.objects.filter(id=token.id).update(scope_list=scopes)
+            token.refresh_from_db()
+            assert token.scope_list == scopes, "Need to have invalid scopes to continue"
+
+        with TemporaryDirectory() as tmp_dir:
+            data = self.export(
+                tmp_dir,
+                scope=ExportScope.Global,
+            )
+            # no project:distribution as that is not a valid scope for user tokens as of #113394
+            # and scopes are export as a str
+            expected_scopes = '["org:read", "org:write", "project:read"]'
+            assert self.count(data, User) == 1
+            assert self.count(data, ApiToken) == 1
+            assert self.exists(data, ApiToken, "scope_list", expected_scopes)
 
     def test_export_query_for_option_model(self) -> None:
         # There are a number of options we specifically exclude by name, for various reasons
