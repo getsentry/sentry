@@ -214,7 +214,7 @@ def test_timeseries_groupby_rejects_hidden_api_attribute() -> None:
     resolver = Spans.get_resolver(snuba_params, config)
     hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
 
-    with pytest.raises(InvalidSearchQuery, match="not allowed"):
+    with pytest.raises(InvalidSearchQuery, match="Could not parse"):
         RPCBase.get_timeseries_query(
             search_resolver=resolver,
             params=snuba_params,
@@ -246,7 +246,7 @@ def test_timeseries_groupby_rejects_hidden_remapped_virtual_context_attribute() 
 
     with (
         mock.patch("sentry.search.eap.utils.can_expose_attribute_to_api", can_expose),
-        pytest.raises(InvalidSearchQuery, match="not allowed"),
+        pytest.raises(InvalidSearchQuery, match="Could not parse"),
     ):
         RPCBase.get_timeseries_query(
             search_resolver=resolver,

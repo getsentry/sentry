@@ -536,7 +536,7 @@ class SearchResolverQueryTest(TestCase):
         )
         hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
 
-        with pytest.raises(InvalidSearchQuery, match="not allowed"):
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
             resolver.resolve_query(f"{hidden_attribute}:foo")
 
     def test_query_hides_internal_api_attributes_in_having(self) -> None:
@@ -549,7 +549,7 @@ class SearchResolverQueryTest(TestCase):
         )
         hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
 
-        with pytest.raises(InvalidSearchQuery, match="not allowed"):
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
             resolver.resolve_query(f"count_unique({hidden_attribute}):>0")
 
     def test_query_hides_internal_api_attributes_in_if_subquery(self) -> None:
@@ -562,7 +562,7 @@ class SearchResolverQueryTest(TestCase):
         )
         hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
 
-        with pytest.raises(InvalidSearchQuery, match="not allowed"):
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
             resolver.resolve_query(f"count_if(`{hidden_attribute}:foo`, value):>0")
 
     def test_aggregate_query_on_attributes_with_units(self) -> None:

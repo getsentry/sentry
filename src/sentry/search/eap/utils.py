@@ -252,7 +252,7 @@ def _get_sentry_convention_visibility_candidates(
 ) -> set[str]:
     candidates = {attribute}
 
-    if item_type == SupportedTraceItemType.SPANS and attribute.startswith(("dsc.", "_internal.")):
+    if attribute.startswith(("dsc.", "_internal.")):
         candidates.add(f"sentry.{attribute}")
 
     resolved_attribute = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(item_type, {}).get(attribute)

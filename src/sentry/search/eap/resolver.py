@@ -1079,7 +1079,7 @@ class SearchResolver:
         self, column: str, resolved_attribute: ResolvedAttribute
     ) -> None:
         if self._should_hide_api_attribute(column, resolved_attribute):
-            raise _HiddenApiAttribute(f"The field {column} is not allowed for this query")
+            raise _HiddenApiAttribute(f"Could not parse {column}")
 
     def _raise_if_hidden_resolved_attribute(
         self, column: str, resolved_column: ResolvedAttribute | ResolvedFunction
