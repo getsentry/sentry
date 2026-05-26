@@ -87,7 +87,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @data.setter
     @abc.abstractmethod
-    def data(self, value: NodeData | Mapping[str, Any]) -> None:
+    def data(self, value: NodeData | Mapping[str, Any] | None) -> None:
         pass
 
     @property
@@ -592,10 +592,7 @@ class Event(BaseEvent):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group_id = group_id
         self.groups = groups
-        node_id = Event.generate_node_id(project_id, event_id)
-        self._data = NodeData(
-            node_id, data=data, wrapper=EventDict, ref_version=2, ref_func=ref_func
-        )
+        self.data = data
 
     def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
@@ -613,7 +610,7 @@ class Event(BaseEvent):
         return self._data
 
     @data.setter
-    def data(self, value: Mapping[str, Any]) -> None:
+    def data(self, value: Mapping[str, Any] | None) -> None:
         node_id = Event.generate_node_id(self.project_id, self.event_id)
         self._data = NodeData(
             node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
@@ -740,14 +737,12 @@ class GroupEvent(BaseEvent):
         return self._data
 
     @data.setter
-    def data(self, value: NodeData | Mapping[str, Any]) -> None:
+    def data(self, value: NodeData | Mapping[str, Any] | None) -> None:
         if isinstance(value, NodeData):
             self._data = value
         else:
             node_id = GroupEvent.generate_node_id(self.project_id, self.event_id)
-            self._data = NodeData(
-                node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
-            )
+            self._data = NodeData(node_id, data=value)
 
     @classmethod
     def from_event(cls, event: Event, group: Group) -> GroupEvent:
