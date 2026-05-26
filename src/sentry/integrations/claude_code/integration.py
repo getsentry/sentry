@@ -375,12 +375,16 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         )
 
     def uninstall(self) -> None:
-        metadata = self._get_metadata()
-        if not metadata.installation_vault_ids:
-            return
+        with self._vault_metadata_lock().acquire():
+            fresh = self._read_fresh_metadata()
+            if fresh is None or not fresh.installation_vault_ids:
+                return
+            vault_ids = list(fresh.installation_vault_ids.values())
+            fresh.installation_vault_ids = {}
+            self._persist_metadata(fresh)
 
         client = self.get_client()
-        for vault_id in list(metadata.installation_vault_ids.values()):
+        for vault_id in vault_ids:
             try:
                 client.archive_vault(vault_id)
             except Exception:
@@ -388,13 +392,6 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
                     "claude_code.uninstall.archive_vault_failed",
                     extra={"vault_id": vault_id, "integration_id": self.model.id},
                 )
-
-        with self._vault_metadata_lock().acquire():
-            fresh = self._read_fresh_metadata()
-            if fresh is None:
-                return
-            fresh.installation_vault_ids = {}
-            self._persist_metadata(fresh)
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent and persist resolved environment/agent IDs."""

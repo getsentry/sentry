@@ -531,6 +531,25 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             integration = Integration.objects.get(id=installation.model.id)
         assert integration.metadata["installation_vault_ids"] == {}
 
+    def test_uninstall_concurrent_vault_write_during_archive_is_preserved(self) -> None:
+        """A vault written by a concurrent session while archive_vault() runs must not be lost."""
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_a"},
+        )
+        mock_cls, mock_client = _mock_client_class()
+
+        def archive_with_concurrent_write(vault_id):
+            installation.set_vault_id_for_installation(99, "vault_new")
+
+        mock_client.archive_vault.side_effect = archive_with_concurrent_write
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {"99": "vault_new"}
+
     # ── launch ───────────────────────────────────────────────────────
 
     def _setup_launch(
