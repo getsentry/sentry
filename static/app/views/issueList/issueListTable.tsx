@@ -102,8 +102,8 @@ export function IssueListTable({
                 groupIds={groupIds}
                 onActionTaken={onActionTaken}
               />
-              {(groupIds.length > 0 || issuesLoading) && (
-                <Layer variant="nav">
+              <Layer variant="nav">
+                {(groupIds.length > 0 || issuesLoading) && (
                   <IssueListActions
                     selection={selection}
                     query={query}
@@ -116,31 +116,31 @@ export function IssueListTable({
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
                   />
-                </Layer>
-              )}
-              <PanelBody>
-                <VisuallyCompleteWithData
-                  hasData={groupIds.length > 0}
-                  id="IssueList-Body"
-                  isLoading={issuesLoading}
-                >
-                  <GroupListBody
-                    memberList={memberList}
-                    groupStatsPeriod={statsPeriod}
-                    groupIds={groupIds}
-                    displayReprocessingLayout={displayReprocessingActions}
-                    query={query}
-                    selectedProjectIds={selection.projects}
-                    // we need the stats loading and group id check because group ids do not update immediately
-                    loading={issuesLoading || (statsLoading && !groupIds.length)}
-                    error={error}
-                    pageSize={pageSize}
-                    refetchGroups={refetchGroups}
-                    onActionTaken={onActionTaken}
-                    supergroupLookup={supergroupLookup}
-                  />
-                </VisuallyCompleteWithData>
-              </PanelBody>
+                )}
+                <PanelBody>
+                  <VisuallyCompleteWithData
+                    hasData={groupIds.length > 0}
+                    id="IssueList-Body"
+                    isLoading={issuesLoading}
+                  >
+                    <GroupListBody
+                      memberList={memberList}
+                      groupStatsPeriod={statsPeriod}
+                      groupIds={groupIds}
+                      displayReprocessingLayout={displayReprocessingActions}
+                      query={query}
+                      selectedProjectIds={selection.projects}
+                      // we need the stats loading and group id check because group ids do not update immediately
+                      loading={issuesLoading || (statsLoading && !groupIds.length)}
+                      error={error}
+                      pageSize={pageSize}
+                      refetchGroups={refetchGroups}
+                      onActionTaken={onActionTaken}
+                      supergroupLookup={supergroupLookup}
+                    />
+                  </VisuallyCompleteWithData>
+                </PanelBody>
+              </Layer>
             </ContainerPanel>
           </div>
         )}
