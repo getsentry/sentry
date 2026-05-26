@@ -94,4 +94,5 @@ class WebhookActionHandler(ActionHandler):
                     group_event=invocation.event_data.event,
                     sentry_app_slug=target_identifier,
                     rule_label=get_triggering_rule_name(invocation),
+                    organization=organization,
                 )
