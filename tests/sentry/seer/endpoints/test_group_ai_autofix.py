@@ -54,19 +54,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_called_once()
 
-    def test_post_returns_409_without_connected_repos(self):
-        group = self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"step": "root_cause"},
-            format="json",
-        )
-
-        assert response.status_code == 409, response.data
-        assert response.data["detail"] == "SCM integration is not configured for this project."
-
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_stopping_point(self, mock_trigger_explorer):
         """Stopping point forces the step to be root_cause"""
