@@ -10,6 +10,10 @@ from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
+# Some Sentry IDs are 32-char hex, rather than the UUID dashed form.
+# Those cases match this pattern with OpenApiTypes.STR
+SENTRY_HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
+
 
 def build_typed_list(type: Any):
     """
@@ -761,8 +765,9 @@ class MonitorParams:
         name="processing_error_id",
         location="path",
         required=False,
-        type=OpenApiTypes.UUID,
-        description="The ID of the processing error.",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="The ID of the processing error. It is a 32-character hexadecimal string.",
     )
 
 
@@ -788,8 +793,9 @@ class EventParams:
         name="event_id",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="The ID of the event.",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="The ID of the event. It is a 32-character hexadecimal string as reported by the client.",
     )
 
     FRAME_IDX = OpenApiParameter(
@@ -935,8 +941,9 @@ class ReplayParams:
         name="replay_id",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="""The ID of the replay you'd like to retrieve.""",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="""The ID of the replay you'd like to retrieve. It is a 32-character hexadecimal string.""",
     )
 
     SEGMENT_ID = OpenApiParameter(
