@@ -106,7 +106,11 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Layer variant="nav">
-            <Navigation />
+            {({className}) => (
+              <NavLayerContainer className={className}>
+                <Navigation />
+              </NavLayerContainer>
+            )}
           </Layer>
           {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
           <ContentStack
@@ -125,10 +129,12 @@ function AppLayout({organization}: LayoutProps) {
                     {({className}) => <TopBar className={className} />}
                   </Layer>
                   <Layer variant="content">
-                    <Layout.Page>
-                      <Outlet />
-                      <Footer />
-                    </Layout.Page>
+                    {({className}) => (
+                      <Layout.Page className={className}>
+                        <Outlet />
+                        <Footer />
+                      </Layout.Page>
+                    )}
                   </Layer>
                 </TopBar.Slot.Provider>
               </OrganizationDetailsBody>
@@ -140,6 +146,10 @@ function AppLayout({organization}: LayoutProps) {
     </PrimaryNavigationContextProvider>
   );
 }
+
+const NavLayerContainer = styled('div')`
+  display: flex;
+`;
 
 const ContentStack = styled(Stack)`
   &:focus-visible {
