@@ -394,7 +394,6 @@ module = [
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
-    "sentry.services.eventstore.models",
     "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
 ]
@@ -1397,7 +1396,6 @@ module = [
     "sentry.services",
     "sentry.services.base",
     "sentry.services.eventstore",
-    "sentry.services.eventstore.models",
     "sentry.services.eventstore.query_preprocessing",
     "sentry.services.filestore.*",
     "sentry.services.http",
