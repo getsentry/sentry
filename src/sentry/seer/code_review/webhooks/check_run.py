@@ -17,9 +17,12 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import SeerEndpoint
+from sentry.scm.private.event_stream import CheckRunEvent, scm_event_stream
+from sentry.seer.code_review.utils import SeerEndpoint, get_tags
+from sentry.utils import json, metrics
 
 from ..metrics import (
+    METRICS_PREFIX,
     CodeReviewErrorType,
     WebhookFilteredReason,
     record_webhook_enqueued,
@@ -128,6 +131,65 @@ def handle_check_run_event(
         tags=tags,
     )
     record_webhook_enqueued(github_event, action)
+
+
+@scm_event_stream.listen_for(event_type="check_run")
+def process_check_run(e: CheckRunEvent) -> None:
+    """
+    This is called when a check_run event is received from GitHub.
+    When a user clicks "Re-run" on a check run in GitHub UI, we enqueue
+    a task to forward the original run ID to Seer so it can rerun the PR review.
+
+    Args:
+        github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run")
+        event: The webhook event payload
+        tags: Sentry SDK tags from the handler (from get_tags); merged with check_run-specific overrides
+        **kwargs: Additional keyword arguments
+    """
+    # To avoid double processing we write metadata in the webhook handler signaling the handler's
+    # intent of processing location.
+    if not e.subscription_event["extra"].get("process_in_listener", False):
+        return
+
+    action = e.action
+
+    metrics.incr(
+        f"{METRICS_PREFIX}.webhook.received",
+        tags={"event": "check_run", "event_action": action},
+        sample_rate=1.0,
+    )
+
+    if action != "rerequested":
+        metrics.incr(
+            f"{METRICS_PREFIX}.webhook.filtered",
+            tags={
+                "event": "check_run",
+                "event_action": action,
+                "reason": WebhookFilteredReason.UNSUPPORTED_ACTION,
+            },
+            sample_rate=1.0,
+        )
+        return
+
+    from .task import process_github_webhook_event
+
+    process_github_webhook_event.delay(
+        seer_path=SeerEndpoint.PR_REVIEW_RERUN.value,
+        event_payload={"original_run_id": e.check_run["external_id"]},
+        tags=get_tags(
+            json.loads(e.subscription_event["event"]),
+            github_event="check_run",
+            organization_id=e.subscription_event["sentry_meta"][0]["organization_id"],
+            organization_slug="",
+            integration_id=e.subscription_event["sentry_meta"][0]["integration_id"],
+        ),
+    )
+
+    metrics.incr(
+        f"{METRICS_PREFIX}.webhook.enqueued",
+        tags={"event": "check_run", "event_action": action},
+        sample_rate=1.0,
+    )
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:

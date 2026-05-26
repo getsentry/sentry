@@ -20,7 +20,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -984,6 +984,27 @@ class CheckRunEventWebhook(GitHubWebhook):
         handle_preprod_check_run_event,
     )
 
+    def _handle(
+        self,
+        github_event: GithubWebhookType,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
+        if features.has("organizations:check-run-listener", organization):
+            self._process_in_listener = True
+
+        super()._handle(
+            github_event=github_event,
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+            **kwargs,
+        )
+
 
 class IssueCommentEventWebhook(GitHubWebhook):
     """
@@ -1149,11 +1170,15 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         #       been above).
         # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
         #       middleware has handled routing.
+        extra: dict[str, str | None | bool | int | float] = {}
+        if getattr(event_handler, "_process_in_listener", False):
+            extra["process_in_listener"] = True
+
         produce_event_to_scm_stream(
             {
                 "event_type_hint": request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY),
                 "event": request.body.decode("utf-8"),
-                "extra": {},
+                "extra": extra,
                 "received_at": int(time.time()),
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB.value,

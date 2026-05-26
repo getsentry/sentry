@@ -130,3 +130,16 @@ class CheckRunEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
             )
             mock_make_seer_request.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.check_run.handle_check_run_event")
+    def test_check_run_skips_handler_when_listener_flag_enabled(
+        self, mock_handle_check_run: MagicMock
+    ) -> None:
+        with self.code_review_setup(
+            features=self.CODE_REVIEW_FEATURES | {"organizations:check-run-listener"},
+        ):
+            self._send_webhook_event(
+                GithubWebhookType.CHECK_RUN,
+                CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+            )
+            mock_handle_check_run.assert_not_called()

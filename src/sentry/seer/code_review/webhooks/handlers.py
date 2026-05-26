@@ -69,6 +69,11 @@ def handle_webhook_event(
         if not features.has("organizations:seer-code-review-github-enterprise", organization):
             return
 
+    if github_event == GithubWebhookType.CHECK_RUN and features.has(
+        "organizations:check-run-listener", organization
+    ):
+        return
+
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
     tags = {}
     try:

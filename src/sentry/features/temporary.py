@@ -502,4 +502,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # New SCM
+    manager.add("organizations:check-run-listener", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
     # fmt: on
