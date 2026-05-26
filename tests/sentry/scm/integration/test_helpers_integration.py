@@ -73,6 +73,74 @@ class TestFetchRepository(TestCase):
     def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self) -> None:
         assert fetch_repository(self.organization.id, ("github", "nonexistent")) is None
 
+    def test_fetch_ghe_repo_populates_web_base_url(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-acme-1",
+            metadata={
+                "domain_name": "github.acme.com/installations/1",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9001",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = fetch_repository(self.organization.id, ("github_enterprise", repo.external_id))
+
+        assert result is not None
+        assert result["provider_name"] == "github_enterprise"
+        assert result["web_base_url"] == "https://github.acme.com"
+
+    def test_fetch_ghe_cloud_repo_populates_web_base_url(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Cloud Acme",
+            external_id="ghe-cloud-acme-1",
+            metadata={
+                "domain_name": "acme-corp.ghe.com",
+                "installation_id": "2",
+                "installation": {"id": "2", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9002",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = fetch_repository(self.organization.id, ("github_enterprise", repo.external_id))
+
+        assert result is not None
+        assert result["web_base_url"] == "https://acme-corp.ghe.com"
+
+    def test_fetch_non_ghe_repo_web_base_url_is_none(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="11111",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["web_base_url"] is None
+
 
 class TestFetchServiceProvider(TestCase):
     def test_returns_provider_from_map_to_provider(self) -> None:
