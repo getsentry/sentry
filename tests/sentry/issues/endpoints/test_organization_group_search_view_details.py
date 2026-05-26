@@ -606,3 +606,12 @@ class GroupSearchViewPermissionTest(TestCase):
         view = MagicMock()
 
         assert permission.has_object_permission(request, view, object()) is False
+
+    def test_denies_related_model_types(self) -> None:
+        permission = GroupSearchViewPermission()
+        request = MagicMock()
+        request.method = "GET"
+        view = MagicMock()
+
+        starred = MagicMock(spec=GroupSearchViewStarred)
+        assert permission.has_object_permission(request, view, starred) is False
