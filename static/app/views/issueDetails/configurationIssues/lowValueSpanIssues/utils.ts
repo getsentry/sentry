@@ -1,0 +1,127 @@
+import {t} from 'sentry/locale';
+
+import type {LowValueSpanEvidenceData} from './types';
+
+export const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
+  'https://docs.sentry.io/platforms/javascript/configuration/options/#ignorespans';
+export const PYTHON_SPAN_FILTERING_DOCS_URL =
+  'https://docs.sentry.io/platforms/python/configuration/filtering/#filtering-transaction-events';
+export const GENERIC_SPAN_FILTERING_DOCS_URL =
+  'https://docs.sentry.io/product/explore/traces/';
+
+export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
+  const {op, description} = evidenceData;
+
+  if (op && description) {
+    return `${op} - ${description}`;
+  }
+  if (op) {
+    return op;
+  }
+  if (description) {
+    return description;
+  }
+  return t('Unknown span');
+}
+
+export function formatCount(count: number | null): string {
+  return count === null ? t('Unknown') : count.toLocaleString();
+}
+
+export function formatDurationMs(duration: number | null): string {
+  if (duration === null) {
+    return t('Unknown');
+  }
+  if (duration < 1) {
+    return t('<1ms');
+  }
+  return t('%sms', duration.toFixed(1));
+}
+
+export function formatEstimatedCostUsd(estimatedCostUsd: number | null): string {
+  if (estimatedCostUsd === null) {
+    return t('Unknown');
+  }
+  if (estimatedCostUsd > 0 && estimatedCostUsd < 0.01) {
+    return t('<$0.01');
+  }
+  return estimatedCostUsd.toLocaleString(undefined, {
+    currency: 'USD',
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+    style: 'currency',
+  });
+}
+
+export function isPythonSdk(evidenceData: LowValueSpanEvidenceData): boolean {
+  const sdkName = evidenceData.sdkName?.toLowerCase() ?? '';
+
+  return sdkName.includes('python');
+}
+
+export function isJavaScriptSdk(evidenceData: LowValueSpanEvidenceData): boolean {
+  const sdkName = evidenceData.sdkName?.toLowerCase() ?? '';
+
+  return (
+    sdkName.includes('javascript') ||
+    sdkName.includes('node') ||
+    sdkName.includes('browser') ||
+    sdkName.includes('nextjs') ||
+    sdkName.includes('react')
+  );
+}
+
+export function getSpanFilteringDocsUrl(evidenceData: LowValueSpanEvidenceData): string {
+  if (isPythonSdk(evidenceData)) {
+    return PYTHON_SPAN_FILTERING_DOCS_URL;
+  }
+  if (isJavaScriptSdk(evidenceData)) {
+    return JAVASCRIPT_SPAN_FILTERING_DOCS_URL;
+  }
+  return GENERIC_SPAN_FILTERING_DOCS_URL;
+}
+
+function toCodeString(value: string | null, fallback: string): string {
+  return JSON.stringify(value ?? fallback);
+}
+
+export function getJavaScriptSpanFilterSnippet(
+  evidenceData: LowValueSpanEvidenceData
+): string {
+  const spanOp = toCodeString(evidenceData.op, '<span.op>');
+  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+
+  return `Sentry.init({
+  ignoreSpans: [
+    {
+      op: ${spanOp},
+      name: ${spanDescription},
+    },
+  ],
+});`;
+}
+
+export function getPythonSpanFilterSnippet(
+  evidenceData: LowValueSpanEvidenceData
+): string {
+  const spanOp = toCodeString(evidenceData.op, '<span.op>');
+  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+
+  return `import sentry_sdk
+
+
+def before_send_transaction(event, hint):
+    event["spans"] = [
+        span for span in event.get("spans", [])
+        if not (
+            span.get("op") == ${spanOp}
+            and span.get("description") == ${spanDescription}
+        )
+    ]
+    return event
+
+
+sentry_sdk.init(
+    before_send_transaction=before_send_transaction,
+)`;
+}

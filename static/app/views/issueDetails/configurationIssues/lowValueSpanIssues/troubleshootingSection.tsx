@@ -1,47 +1,121 @@
-import {Disclosure} from '@sentry/scraps/disclosure';
-import {Stack} from '@sentry/scraps/layout';
+import {CodeBlock, InlineCode} from '@sentry/scraps/code';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
+import {ExternalLink} from 'sentry/components/links/externalLink';
+import {IconDocs} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 
-export function TroubleshootingSection() {
-  return (
-    <Stack gap="md" padding="lg">
-      <Heading as="h3">{t('Troubleshooting suggestions')}</Heading>
-      <Stack gap="sm">
-        <Disclosure size="md" defaultExpanded>
-          <Disclosure.Title>{t('Confirm the Span Is Useful')}</Disclosure.Title>
-          <Disclosure.Content>
-            <Text>
-              {t(
-                'Keep spans that describe meaningful work, such as database calls, RPCs, jobs, or expensive operations. Remove spans that duplicate parent spans or only wrap framework internals.'
-              )}
-            </Text>
-          </Disclosure.Content>
-        </Disclosure>
-        <Disclosure size="md">
-          <Disclosure.Title>{t('Adjust Instrumentation')}</Disclosure.Title>
-          <Disclosure.Content>
-            <Text>
-              {t(
-                'Update custom instrumentation to skip this operation, or change its name and attributes so it groups with spans that share the same purpose.'
-              )}
-            </Text>
-          </Disclosure.Content>
-        </Disclosure>
-        <Disclosure size="md">
-          <Disclosure.Title>
-            {t('Review SDK and OpenTelemetry Configuration')}
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <Text>
-              {t(
-                'Check automatic instrumentation settings before changing application code. Some SDK or OpenTelemetry integrations can be tuned to avoid noisy spans at the source.'
-              )}
-            </Text>
-          </Disclosure.Content>
-        </Disclosure>
+import {SpanCode} from './spanCode';
+import type {LowValueSpanEvidenceData} from './types';
+import {
+  getJavaScriptSpanFilterSnippet,
+  getPythonSpanFilterSnippet,
+  getSpanFilteringDocsUrl,
+  getSpanLabel,
+  isJavaScriptSdk,
+  isPythonSdk,
+} from './utils';
+
+interface TroubleshootingSectionProps {
+  evidenceData: LowValueSpanEvidenceData;
+}
+
+function AutomaticInstrumentationFix({
+  evidenceData,
+}: {
+  evidenceData: LowValueSpanEvidenceData;
+}) {
+  if (isPythonSdk(evidenceData)) {
+    return (
+      <Stack gap="md">
+        <Text>
+          {tct(
+            'For Python automatic instrumentation, use [hook] to remove matching spans from [spans].',
+            {
+              hook: <InlineCode>before_send_transaction</InlineCode>,
+              spans: <InlineCode>event["spans"]</InlineCode>,
+            }
+          )}
+        </Text>
+        <CodeBlock language="python">
+          {getPythonSpanFilterSnippet(evidenceData)}
+        </CodeBlock>
       </Stack>
+    );
+  }
+
+  if (isJavaScriptSdk(evidenceData)) {
+    return (
+      <Stack gap="md">
+        <Text>
+          {tct(
+            'For JavaScript automatic instrumentation, use [ignoreSpans] to drop this exact span before it is sent. Use [beforeSendSpan] only if you need to transform span data instead of dropping it.',
+            {
+              beforeSendSpan: <InlineCode>beforeSendSpan</InlineCode>,
+              ignoreSpans: <InlineCode>ignoreSpans</InlineCode>,
+            }
+          )}
+        </Text>
+        <CodeBlock language="javascript">
+          {getJavaScriptSpanFilterSnippet(evidenceData)}
+        </CodeBlock>
+      </Stack>
+    );
+  }
+
+  return (
+    <Text>
+      {tct(
+        'Check your SDK tracing options and add an exact-match filter for [span]. Filter only this operation and description so useful spans with similar names keep flowing.',
+        {span: <SpanCode>{getSpanLabel(evidenceData)}</SpanCode>}
+      )}
+    </Text>
+  );
+}
+
+export function TroubleshootingSection({evidenceData}: TroubleshootingSectionProps) {
+  return (
+    <Stack gap="lg" padding="lg">
+      <Heading as="h3">{t('Troubleshooting')}</Heading>
+      <Text>
+        {t(
+          'Start by confirming whether this span is created by custom code or by SDK automatic instrumentation. Then remove it at the source or filter the exact span before it is sent.'
+        )}
+      </Text>
+      <Stack gap="md">
+        <Stack gap="xs">
+          <Heading as="h4">{t('1. Find where the span is created')}</Heading>
+          <Text>
+            {tct('Search for code or SDK configuration that creates [span].', {
+              span: <SpanCode>{getSpanLabel(evidenceData)}</SpanCode>,
+            })}
+          </Text>
+          {evidenceData.sdkName && (
+            <Text>
+              {tct('The latest evidence points to the [sdk] SDK.', {
+                sdk: <InlineCode>{evidenceData.sdkName}</InlineCode>,
+              })}
+            </Text>
+          )}
+        </Stack>
+        <Stack gap="xs">
+          <Heading as="h4">{t('2. Remove custom instrumentation when possible')}</Heading>
+          <Text>
+            {t(
+              'If this span is manually instrumented and does not describe work you need for debugging, delete the custom span creation line or replace it with a more meaningful span.'
+            )}
+          </Text>
+        </Stack>
+        <Heading as="h4">{t('3. Filter automatic instrumentation exactly')}</Heading>
+      </Stack>
+      <AutomaticInstrumentationFix evidenceData={evidenceData} />
+      <Flex align="center" gap="xs">
+        <IconDocs size="xs" />
+        <ExternalLink href={getSpanFilteringDocsUrl(evidenceData)}>
+          {t('Read the SDK filtering docs')}
+        </ExternalLink>
+      </Flex>
     </Stack>
   );
 }
