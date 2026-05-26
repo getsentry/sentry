@@ -413,7 +413,7 @@ function IconButton({
 }: {
   'aria-label': string;
   icon: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   tooltip?: string;
 }) {
   const button = (
