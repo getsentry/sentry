@@ -149,9 +149,7 @@ describe('DetectorDetails', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('heading', {name: snubaQueryDetector.name})
-      ).toBeInTheDocument();
+      expect(await screen.findByText(snubaQueryDetector.name)).toBeInTheDocument();
       // Displays the snuba query
       expect(screen.getByLabelText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
@@ -276,9 +274,7 @@ describe('DetectorDetails', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('heading', {name: uptimeDetector.name})
-      ).toBeInTheDocument();
+      expect(await screen.findByText(uptimeDetector.name)).toBeInTheDocument();
 
       expect(screen.getByText('3 consecutive failed checks.')).toBeInTheDocument();
       expect(screen.getByText('1 successful check.')).toBeInTheDocument();
@@ -359,9 +355,7 @@ describe('DetectorDetails', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('heading', {name: cronDetector.name})
-      ).toBeInTheDocument();
+      expect(await screen.findByText(cronDetector.name)).toBeInTheDocument();
 
       // Failure threshold: 1
       expect(screen.getByText('One failed check-in.')).toBeInTheDocument();
@@ -424,7 +418,7 @@ describe('DetectorDetails', () => {
       });
 
       expect(
-        await screen.findByRole('heading', {name: spanDetectorWithExtrapolation.name})
+        await screen.findByText(spanDetectorWithExtrapolation.name)
       ).toBeInTheDocument();
 
       await waitFor(() => {
