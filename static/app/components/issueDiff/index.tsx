@@ -1,5 +1,5 @@
 import {lazy, useEffect, useRef} from 'react';
-import {skipToken, useQueries, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQueries} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -64,7 +64,6 @@ export function IssueDiff({
 }: IssueDiffProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const hasTrackedAnalytics = useRef(false);
 
   const hasSimilarityEmbeddingsFeature =
@@ -72,49 +71,47 @@ export function IssueDiff({
 
   const newestFirst = isStacktraceNewestFirst();
 
-  // Build "latest" query options to resolve event IDs when 'latest' is passed
-  const baseLatestQueryOptions = apiOptions.as<{eventID: string}>()(
-    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-    {
-      path:
-        baseEventId === 'latest'
-          ? {
-              organizationIdOrSlug: organization.slug,
-              issueId: baseIssueId,
-              eventId: 'latest',
-            }
-          : skipToken,
-      query: baseEventId === 'latest' ? undefined : {issueDiffQuery: 'base-latest'},
-      staleTime: 60_000,
-    }
-  );
+  // Resolve "latest" to concrete event IDs (skipped if concrete IDs were passed)
+  const [baseLatestQuery, targetLatestQuery] = useQueries({
+    queries: [
+      apiOptions.as<{eventID: string}>()(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+        {
+          path:
+            baseEventId === 'latest'
+              ? {
+                  organizationIdOrSlug: organization.slug,
+                  issueId: baseIssueId,
+                  eventId: 'latest',
+                }
+              : skipToken,
+          staleTime: 60_000,
+        }
+      ),
+      apiOptions.as<{eventID: string}>()(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+        {
+          path:
+            targetEventId === 'latest'
+              ? {
+                  organizationIdOrSlug: organization.slug,
+                  issueId: targetIssueId,
+                  eventId: 'latest',
+                }
+              : skipToken,
+          staleTime: 60_000,
+        }
+      ),
+    ],
+  });
 
-  const targetLatestQueryOptions = apiOptions.as<{eventID: string}>()(
-    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-    {
-      path:
-        targetEventId === 'latest'
-          ? {
-              organizationIdOrSlug: organization.slug,
-              issueId: targetIssueId,
-              eventId: 'latest',
-            }
-          : skipToken,
-      query: targetEventId === 'latest' ? undefined : {issueDiffQuery: 'target-latest'},
-      staleTime: 60_000,
-    }
-  );
-
-  // Resolve event IDs from cache (for "latest") or use the provided concrete IDs
-  // This enables the actual event data queries to run once we know the IDs
-  const cachedBaseLatest = queryClient.getQueryData(baseLatestQueryOptions.queryKey);
-  const cachedTargetLatest = queryClient.getQueryData(targetLatestQueryOptions.queryKey);
-
+  // Derive resolved IDs reactively from the query results
   const resolvedBaseEventId =
-    baseEventId === 'latest' ? cachedBaseLatest?.json?.eventID : baseEventId;
+    baseEventId === 'latest' ? baseLatestQuery.data?.eventID : baseEventId;
   const resolvedTargetEventId =
-    targetEventId === 'latest' ? cachedTargetLatest?.json?.eventID : targetEventId;
+    targetEventId === 'latest' ? targetLatestQuery.data?.eventID : targetEventId;
 
+  // Fetch actual event data once IDs are resolved
   const {
     combinedBase,
     combinedTarget,
@@ -124,11 +121,6 @@ export function IssueDiff({
     targetEventData,
   } = useQueries({
     queries: [
-      // Query 0: resolve "latest" base event ID (skipped if a concrete ID was passed)
-      baseLatestQueryOptions,
-      // Query 1: resolve "latest" target event ID (skipped if a concrete ID was passed)
-      targetLatestQueryOptions,
-      // Query 2: fetch actual base event data (skipped until ID is available)
       apiOptions.as<Event>()(
         '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
         {
@@ -139,11 +131,9 @@ export function IssueDiff({
                 eventId: resolvedBaseEventId,
               }
             : skipToken,
-          query: resolvedBaseEventId ? undefined : {issueDiffQuery: 'base-event'},
           staleTime: 60_000,
         }
       ),
-      // Query 3: fetch actual target event data (skipped until ID is available)
       apiOptions.as<Event>()(
         '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
         {
@@ -154,18 +144,15 @@ export function IssueDiff({
                 eventId: resolvedTargetEventId,
               }
             : skipToken,
-          query: resolvedTargetEventId ? undefined : {issueDiffQuery: 'target-event'},
           staleTime: 60_000,
         }
       ),
     ],
-    combine: ([baseLatest, targetLatest, baseEvent, targetEvent]) => ({
-      baseLatestEventId: baseLatest.data?.eventID,
-      targetLatestEventId: targetLatest.data?.eventID,
+    combine: ([baseEvent, targetEvent]) => ({
       isLoading: baseEvent.isPending || targetEvent.isPending,
       hasError:
-        baseLatest.isError ||
-        targetLatest.isError ||
+        baseLatestQuery.isError ||
+        targetLatestQuery.isError ||
         baseEvent.isError ||
         targetEvent.isError,
       baseEventData: baseEvent.data,
