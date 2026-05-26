@@ -36,6 +36,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.seer.code_review.contributor_seats import track_contributor_seat
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -340,7 +341,7 @@ class MergeEventWebhook(GitlabWebhook):
 
         author.preload_users()
         try:
-            PullRequest.objects.update_or_create(
+            _, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -352,6 +353,16 @@ class MergeEventWebhook(GitlabWebhook):
                     "date_added": parse_date(created_at).astimezone(timezone.utc),
                 },
             )
+
+            if created:
+                track_contributor_seat(
+                    organization=organization,
+                    repo=repo,
+                    integration_id=integration.id,
+                    user_id=event["object_attributes"]["author_id"],
+                    user_username=event["user"]["username"],
+                    provider="gitlab",
+                )
 
         except IntegrityError:
             pass

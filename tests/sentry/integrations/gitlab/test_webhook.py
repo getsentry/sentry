@@ -19,9 +19,11 @@ from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 
 
@@ -359,6 +361,73 @@ class WebhookTest(GitLabTestCase):
         pull = PullRequest.objects.get()
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    @patch("sentry.integrations.gitlab.webhooks.track_contributor_seat")
+    def test_merge_event_calls_track_contributor_seat(self, mock_track: MagicMock) -> None:
+        repo = self.create_gitlab_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        mock_track.assert_called_once()
+        kwargs = mock_track.call_args.kwargs
+        assert kwargs["organization"].id == self.organization.id
+        assert kwargs["repo"].id == repo.id
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["user_id"] == 51
+        assert kwargs["user_username"] == "root"
+        assert kwargs["provider"] == "gitlab"
+
+    @patch("sentry.integrations.gitlab.webhooks.track_contributor_seat")
+    def test_merge_event_track_contributor_seat_no_op_without_seat_based(
+        self, mock_track: MagicMock
+    ) -> None:
+        # The webhook always invokes track_contributor_seat; without
+        # organizations:seat-based-seer-enabled the helper short-circuits inside
+        # should_increment_contributor_seat and writes nothing.
+        self.create_gitlab_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        mock_track.assert_called_once()
+        assert OrganizationContributors.objects.count() == 0
+
+    @patch("sentry.integrations.gitlab.webhooks.track_contributor_seat")
+    def test_merge_event_track_contributor_seat_only_on_create(self, mock_track: MagicMock) -> None:
+        repo = self.create_gitlab_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+        PullRequest.objects.create(
+            organization_id=self.organization.id,
+            repository_id=repo.id,
+            key=1,
+            title="Old title",
+            message="Old message",
+        )
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        mock_track.assert_not_called()
 
     def test_merge_event_update_pull_request(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
