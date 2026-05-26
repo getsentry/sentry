@@ -372,6 +372,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             end=snuba_params.end_date.timestamp() * 1000,
         )
         if snuba_params.debug:
+            debug_info = None
             if isinstance(result, SnubaTSResult) and "debug_info" in result.data["meta"]:
                 debug_info = result.data["meta"]["debug_info"]
             elif isinstance(result, dict):
