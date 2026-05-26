@@ -7,7 +7,7 @@ import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.
 
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
@@ -376,43 +376,43 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   return (
     <ConversationOnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <Flex gap="md" align="center" wrap="wrap" paddingBottom="md">
+      <Stack gap="md">
         <PlatformOptionDropdown platformOptions={integrationOptions} />
-      </Flex>
-      {introduction && <Prose>{introduction}</Prose>}
-      <GuidedSteps
-        key={selectedIntegration}
-        initialStep={decodeInteger(location.query.guidedStep)}
-        onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
-        }}
-      >
-        {steps.map((step, index) => (
-          <ConversationStepRenderer
-            key={step.title || step.type}
-            project={project}
-            step={step}
-            stepIndex={index}
-            isLastStep={index === steps.length - 1}
-            onDismiss={onDismiss}
-            trailingItems={
-              index === 0 && copyEnabled ? (
-                <OnboardingCopyMarkdownButton
-                  borderless
-                  steps={steps}
-                  source="conversations_onboarding"
-                />
-              ) : undefined
-            }
-          />
-        ))}
-      </GuidedSteps>
+        {introduction && <Prose>{introduction}</Prose>}
+        <GuidedSteps
+          key={selectedIntegration}
+          initialStep={decodeInteger(location.query.guidedStep)}
+          onStepChange={step => {
+            navigate({
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                guidedStep: step,
+              },
+            });
+          }}
+        >
+          {steps.map((step, index) => (
+            <ConversationStepRenderer
+              key={step.title || step.type}
+              project={project}
+              step={step}
+              stepIndex={index}
+              isLastStep={index === steps.length - 1}
+              onDismiss={onDismiss}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="conversations_onboarding"
+                  />
+                ) : undefined
+              }
+            />
+          ))}
+        </GuidedSteps>
+      </Stack>
     </ConversationOnboardingPanel>
   );
 }
