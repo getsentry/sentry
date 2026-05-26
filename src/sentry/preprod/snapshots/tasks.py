@@ -23,10 +23,7 @@ from sentry.preprod.snapshots.manifest import (
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
-from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    create_preprod_snapshot_status_check_task,
-)
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -368,6 +365,10 @@ def compare_snapshots(
             "Snapshot comparison artifact not found",
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id,
+            caller="compare_failure",
+        )
         return
 
     try:
@@ -380,6 +381,10 @@ def compare_snapshots(
                 "head_artifact_id": head_artifact_id,
                 "base_artifact_id": base_artifact_id,
             },
+        )
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id,
+            caller="compare_failure",
         )
         return
 
@@ -402,6 +407,10 @@ def compare_snapshots(
                     "head_artifact_id": head_artifact_id,
                     "base_artifact_id": base_artifact_id,
                 },
+            )
+            update_preprod_snapshot_vcs(
+                preprod_artifact_id=head_artifact_id,
+                caller="compare_failure",
             )
             return
         created = False
@@ -434,6 +443,12 @@ def compare_snapshots(
             comparison.id,
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
+
+    update_preprod_snapshot_vcs(
+        preprod_artifact_id=head_artifact_id,
+        caller="compare_start",
+        update_pr_comment=False,
+    )
 
     try:
         session = get_preprod_session(org_id, project_id)
@@ -472,6 +487,10 @@ def compare_snapshots(
             comparison.state = PreprodSnapshotComparison.State.FAILED
             comparison.error_code = PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR
             comparison.save(update_fields=["state", "error_code", "date_updated"])
+            update_preprod_snapshot_vcs(
+                preprod_artifact_id=head_artifact_id,
+                caller="compare_failure",
+            )
             return
 
         diff_threshold = head_manifest.diff_threshold
@@ -834,17 +853,9 @@ def compare_snapshots(
                 extra={"head_artifact_id": head_artifact_id},
             )
 
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": head_artifact_id,
-                "caller": "compare_completion",
-            },
-        )
-        create_preprod_snapshot_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": head_artifact_id,
-                "caller": "compare_completion",
-            },
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id,
+            caller="compare_completion",
         )
 
         logger.info(
@@ -882,16 +893,8 @@ def compare_snapshots(
                     extra={"comparison_id": comparison.id},
                 )
 
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": head_artifact_id,
-                "caller": "compare_failure",
-            },
-        )
-        create_preprod_snapshot_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": head_artifact_id,
-                "caller": "compare_failure",
-            },
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id,
+            caller="compare_failure",
         )
         raise

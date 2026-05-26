@@ -282,7 +282,9 @@ export function GlobalCommandPaletteActions() {
     })
       .flatMap(section =>
         section.items.filter(navItem => {
-          if (navItem.show === undefined) return true;
+          if (navItem.show === undefined) {
+            return true;
+          }
           return typeof navItem.show === 'function'
             ? navItem.show({...context, ...section})
             : navItem.show;
@@ -310,8 +312,9 @@ export function GlobalCommandPaletteActions() {
           />
           {Object.values(ISSUE_TAXONOMY_CONFIG)
             .filter(
-              ({featureFlag}) =>
-                !featureFlag || organization.features.includes(featureFlag)
+              ({featureFlags}) =>
+                !featureFlags ||
+                featureFlags.some(feature => organization.features.includes(feature))
             )
             .map(config => (
               <CMDKAction
@@ -332,14 +335,12 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          {organization.features.includes('autofix-on-explorer') && (
-            <CMDKAction display={{label: t('Autofix')}}>
-              <CMDKAction
-                display={{label: t('Recently Run')}}
-                to={`${prefix}/issues/autofix/recent/`}
-              />
-            </CMDKAction>
-          )}
+          <CMDKAction display={{label: t('Autofix')}}>
+            <CMDKAction
+              display={{label: t('Recently Run')}}
+              to={`${prefix}/issues/autofix/recent/`}
+            />
+          </CMDKAction>
         </CMDKAction>
 
         <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>

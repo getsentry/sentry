@@ -270,3 +270,21 @@ class SourcemapConfigurationType(GroupType):
     enable_workflow_notifications = False
     # We want to show these separately to normal issue types
     in_default_search = False
+
+
+@dataclass(frozen=True)
+class LowValueSpanConfigurationType(GroupType):
+    type_id = 13002
+    slug = "low_value_span_configuration"
+    description = "Low-Value Span Configuration Issue"
+    category = GroupCategory.CONFIGURATION.value
+    released = False
+    default_priority = PriorityLevel.LOW
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    creation_quota = Quota(3600, 60, 100)
+    notification_config = NotificationConfig(context=[])
+    enable_user_status_and_priority_changes = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
+    in_default_search = False

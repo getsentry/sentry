@@ -732,6 +732,29 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 0
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
+    def test_lookup_by_short_id_with_filter(self) -> None:
+        group = self.group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved {short_id}", shortIdLookup=1)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
+        assert response["X-Sentry-Direct-Hit"] == "1"
+
+    def test_lookup_by_short_id_with_filter_resolved(self) -> None:
+        group = self.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save()
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved {short_id}", shortIdLookup=1)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
+        assert response["X-Sentry-Direct-Hit"] == "1"
+
     def test_lookup_by_group_id(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(group=self.group.id)
@@ -4485,6 +4508,11 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert response.status_code == 204
 
         self.assert_deleted_groups([group1, group2])
+
+    def test_delete_with_invalid_group_ids(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_response(qs_params={"id": ["not_an_int", "123"]})
+        assert response.status_code == 400
 
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2

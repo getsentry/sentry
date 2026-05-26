@@ -113,6 +113,12 @@ register(
     default=300,  # 5 minutes
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "data-forwarding.task-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
@@ -2482,6 +2488,7 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 # Webhook processing controls
 register(
     "hybridcloud.webhookpayload.worker_threads",
@@ -3048,13 +3055,6 @@ register(
 )
 
 register(
-    "relocation.outbox-orgslug.killswitch",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "profiling.killswitch.ingest-profiles",
     type=Sequence,
     default=[],
@@ -3329,6 +3329,16 @@ register(
 )
 register(
     "spans.buffer.evalsha-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.flusher-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.flusher.log-flushed-segments",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3759,18 +3769,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Routes the seen-stats / TSDB conditions through `get_snuba_column_name`
-# so a column-name-vs-tag-name collision (e.g. user tag named `platform`)
-# resolves to the tag, matching the issue surfacing query. Without this,
-# `resolve_column`'s DATASET_FIELDS shortcut treats user-typed bare column
-# names as column references and the badge disagrees with surfacing.
-register(
-    "issues.search.use-tag-aware-condition-resolver",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Rate limiting for the occurrence consumer
 register(
     "issues.occurrence-consumer.rate-limit.quota",
@@ -4138,30 +4136,6 @@ register(
     "dashboards.prebuilt-dashboard-ids",
     default=[],
     type=Sequence,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Organization slug allowlist to enable Autopilot for specific organizations.
-register(
-    "autopilot.organization-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable missing SDK integration detector for specific projects.
-register(
-    "autopilot.missing-sdk-integration.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable trace instrumentation detector for specific projects.
-register(
-    "autopilot.trace-instrumentation.projects-allowlist",
-    type=Sequence,
-    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -26,13 +26,35 @@ from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
-CREATE_ON_PAGE_CONTEXT = "The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code changes or any tasks unrelated to dashboard generation."
+TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemetrics"`:
+- Aggregates use a required 4-argument form: `func(attribute, metric_name, metric_type, metric_unit)`.
+  - `attribute` must be `value` (the numeric value of the metric); no other attributes are supported at this time.
+  - `metric_name` is the metric's name as ingested (e.g. `my.app.latency`).
+  - `metric_type` is exactly one of `counter`, `gauge`, or `distribution`.
+  - `metric_unit` is the metric's unit as ingested (e.g. `milliseconds`, `bytes`). Use `none` only when the metric has no unit.
+- Each `metric_type` only accepts a specific set of aggregate functions. Using a function not listed for the metric's type will fail:
+  - `counter`: `sum`, `per_second`, `per_minute`.
+  - `gauge`: `avg`, `min`, `max`, `per_second`, `per_minute`.
+  - `distribution`: `p50`, `p75`, `p90`, `p95`, `p99`, `avg`, `min`, `max`, `sum`, `count`, `per_second`, `per_minute`.
+- Examples: `sum(value, my.app.requests, counter, none)`, `avg(value, my.app.cpu, gauge, percent)`, `p95(value, my.app.latency, distribution, milliseconds)`.
+- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, pick a different dataset or omit the widget."""
 
-EDIT_ON_PAGE_CONTEXT_TEMPLATE = """The user is editing an existing dashboard. The current dashboard state is:
+CREATE_ON_PAGE_CONTEXT = (
+    "The user is on the dashboard generation page. This session must ONLY generate a dashboard "
+    "artifact. Do not perform code changes or any tasks unrelated to dashboard generation.\n\n"
+    + TRACE_METRICS_GUIDANCE
+)
+
+EDIT_ON_PAGE_CONTEXT_TEMPLATE = (
+    """The user is editing an existing dashboard. The current dashboard state is:
 
 {current_dashboard_json}
 
-This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Do not perform code changes or any tasks unrelated to dashboard editing."""
+This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change. Do not perform code changes or any tasks unrelated to dashboard editing.
+
+"""
+    + TRACE_METRICS_GUIDANCE
+)
 
 DASHBOARD_INSTRUCTIONS = """\
 You are generating a Sentry dashboard. Follow these rules strictly:

@@ -106,6 +106,7 @@ class SnapshotComparisonInfo(BaseModel):
     images_removed: int = 0
     images_changed: int = 0
     images_unchanged: int = 0
+    images_skipped: int = 0
     approval_status: ApprovalStatusLiteral | None = None
 
 
@@ -344,11 +345,13 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
     images_removed = 0
     images_changed = 0
     images_unchanged = 0
+    images_skipped = 0
     if comparison is not None and comparison.state == PreprodSnapshotComparison.State.SUCCESS:
         images_added = comparison.images_added
         images_removed = comparison.images_removed
         images_changed = comparison.images_changed
         images_unchanged = comparison.images_unchanged
+        images_skipped = comparison.images_skipped
 
     return SnapshotComparisonInfo(
         image_count=snapshot_metrics.image_count,
@@ -358,6 +361,7 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
         images_removed=images_removed,
         images_changed=images_changed,
         images_unchanged=images_unchanged,
+        images_skipped=images_skipped,
         approval_status=derived.approval_status,
     )
 

@@ -1242,7 +1242,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Widget with long description",
                     "displayType": "line",
-                    "description": "x" * 256,
+                    "description": "x" * 351,
                     "interval": "5m",
                     "queries": [
                         {
@@ -1259,7 +1259,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert response.data["widgets"][1]["description"] == [
-            "Ensure description has no more than 255 characters."
+            "Ensure description has no more than 350 characters."
         ]
 
     def test_add_text_widget_description_exceeds_max_length(self) -> None:

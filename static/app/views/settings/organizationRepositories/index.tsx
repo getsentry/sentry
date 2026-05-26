@@ -268,7 +268,7 @@ export default function OrganizationRepositories() {
               providers={scmProviders.filter(p => p.canAdd)}
               onAddIntegration={handleAddIntegration}
             />
-          ) : null
+          ) : undefined
         }
       />
       {isLoading ? (

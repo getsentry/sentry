@@ -71,14 +71,22 @@ class FormFieldExtractor {
 
     for (const sourceFile of this.program.getSourceFiles()) {
       // Skip node_modules
-      if (sourceFile.fileName.includes('node_modules')) continue;
+      if (sourceFile.fileName.includes('node_modules')) {
+        continue;
+      }
 
       // Only process app files
-      if (!sourceFile.fileName.includes('static/app/')) continue;
+      if (!sourceFile.fileName.includes('static/app/')) {
+        continue;
+      }
 
       // Skip test and story files
-      if (sourceFile.fileName.includes('.spec.')) continue;
-      if (sourceFile.fileName.includes('.stories.')) continue;
+      if (sourceFile.fileName.includes('.spec.')) {
+        continue;
+      }
+      if (sourceFile.fileName.includes('.stories.')) {
+        continue;
+      }
 
       const fileFields = this.extractFromFile(sourceFile);
       fields.push(...fileFields);
@@ -169,7 +177,9 @@ class FormFieldExtractor {
 
     // Extract 'name' attribute
     const nameAttr = this.getJsxAttribute(node, 'name');
-    if (!nameAttr) return null;
+    if (!nameAttr) {
+      return null;
+    }
 
     // Extract metadata from render prop children
     const fieldMetadata = this.extractFieldMetadata(node, sourceFile);
@@ -219,7 +229,9 @@ class FormFieldExtractor {
 
         // Extract label/hintText props from any component
         const label = this.getJsxAttributeExpression(node, 'label', sourceFile);
-        if (label && !metadata.label) metadata.label = label;
+        if (label && !metadata.label) {
+          metadata.label = label;
+        }
 
         if (this.hasJsxAttribute(node, 'hintText') && !metadata.hintText) {
           const hintText = this.getJsxAttributeExpression(node, 'hintText', sourceFile);
@@ -230,7 +242,9 @@ class FormFieldExtractor {
         // Extract label from Meta.Label (text is in children)
         if (tagName?.endsWith('.Label') || tagName === 'Meta.Label') {
           const text = this.getJsxTextContent(node, sourceFile);
-          if (text && !metadata.label) metadata.label = text;
+          if (text && !metadata.label) {
+            metadata.label = text;
+          }
         }
 
         // Extract hintText from Meta.HintText (text is in children)
@@ -269,7 +283,9 @@ class FormFieldExtractor {
       // Direct text: <Meta.Label>Name</Meta.Label>
       if (ts.isJsxText(child)) {
         const text = child.text.trim();
-        if (text) return `"${text}"`;
+        if (text) {
+          return `"${text}"`;
+        }
       }
       // Expression: <Meta.Label>{t('Name')}</Meta.Label> -> t('Name')
       if (ts.isJsxExpression(child) && child.expression) {

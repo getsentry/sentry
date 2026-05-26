@@ -166,7 +166,7 @@ export const ImageCard = memo(function ImageCard({
   onCopyLink,
   onCopyMetadata,
 }: {
-  cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
+  cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
   copyUrl: string;
   image: SnapshotImage;
   imageBaseUrl: string;
@@ -181,16 +181,25 @@ export const ImageCard = memo(function ImageCard({
   const [isDark, setIsDark] = useState(false);
   const imageUrl = `${imageBaseUrl}${image.key}/`;
   let status: DiffStatus | null;
-  if (cardType === 'solo') {
-    status = null;
-  } else if (cardType === 'added') {
-    status = DiffStatus.ADDED;
-  } else if (cardType === 'removed') {
-    status = DiffStatus.REMOVED;
-  } else if (cardType === 'renamed') {
-    status = DiffStatus.RENAMED;
-  } else {
-    status = DiffStatus.UNCHANGED;
+  switch (cardType) {
+    case 'solo':
+      status = null;
+      break;
+    case 'added':
+      status = DiffStatus.ADDED;
+      break;
+    case 'removed':
+      status = DiffStatus.REMOVED;
+      break;
+    case 'renamed':
+      status = DiffStatus.RENAMED;
+      break;
+    case 'skipped':
+      status = DiffStatus.SKIPPED;
+      break;
+    case 'unchanged':
+    default:
+      status = DiffStatus.UNCHANGED;
   }
 
   const handleSelect = onSelectSnapshot
@@ -347,6 +356,7 @@ const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'>
   [DiffStatus.REMOVED]: 'danger',
   [DiffStatus.RENAMED]: 'warning',
   [DiffStatus.UNCHANGED]: 'secondary',
+  [DiffStatus.SKIPPED]: 'muted',
 };
 
 const StatusBadge = memo(function StatusBadge({
@@ -372,6 +382,9 @@ const StatusBadge = memo(function StatusBadge({
       break;
     case DiffStatus.RENAMED:
       label = t('Renamed');
+      break;
+    case DiffStatus.SKIPPED:
+      label = t('Skipped');
       break;
     default:
       label = t('Unchanged');

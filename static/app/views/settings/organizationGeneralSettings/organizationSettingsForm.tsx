@@ -37,7 +37,6 @@ import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 
 const OverriddenCodecovSettingsLink = OverrideOrDefault({
@@ -423,8 +422,6 @@ function OrganizationMembershipSettingsBase({
 export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const organization = useOrganization();
   const endpoint = `/organizations/${organization.slug}/`;
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
@@ -557,7 +554,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
           </AutoSaveForm>
 
           {/* Data Storage Region — read-only, only shown when multiple regions exist */}
-          {hasPageFrameFeature && regionData && (
+          {regionData && (
             <Flex direction="row" gap="xl" align="center" justify="between" flexGrow={1}>
               <Stack width="50%" gap="xs">
                 <Text>{t('Data Storage Region')}</Text>

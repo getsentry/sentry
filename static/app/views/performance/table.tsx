@@ -267,6 +267,7 @@ export function Table({
     const rendered = fieldRenderer(dataRow, {
       organization,
       location,
+      navigate,
       theme,
       unit: tableMeta.units?.[column.key],
     });

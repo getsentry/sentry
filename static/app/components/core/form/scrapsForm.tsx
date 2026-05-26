@@ -81,7 +81,7 @@ function SubmitButton(props: ButtonProps) {
           variant="primary"
           type="submit"
           form={form.formId}
-          busy={isSubmitting}
+          busy={isSubmitting || props.busy}
           disabled={isSubmitting || props.disabled}
         />
       )}

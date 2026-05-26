@@ -1,0 +1,170 @@
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import type {Block} from 'sentry/views/seerExplorer/types';
+
+function createBlock(overrides?: Partial<Block>): Block {
+  return {
+    id: 'response-1',
+    message: {
+      role: 'assistant',
+      content: 'This error indicates a null pointer exception.',
+    },
+    timestamp: '2024-01-01T00:01:00Z',
+    loading: false,
+    ...overrides,
+  };
+}
+
+describe('AssistantBlock', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  it('renders content', () => {
+    render(<BlockComponent block={createBlock()} blockIndex={0} />);
+    expect(
+      screen.getByText('This error indicates a null pointer exception.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders loading placeholder', () => {
+    const block = createBlock({
+      loading: true,
+      message: {role: 'assistant', content: 'Thinking...'},
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+    expect(screen.getByText('Thinking...')).toBeInTheDocument();
+  });
+
+  it('renders markdown content', () => {
+    const block = createBlock({
+      message: {
+        role: 'assistant',
+        content: '# Heading\n\nThis is **bold** text with a [link](https://example.com)',
+      },
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Heading')).toBeInTheDocument();
+    expect(screen.getByText('bold')).toBeInTheDocument();
+    expect(screen.getByText('link')).toBeInTheDocument();
+  });
+
+  it('calls onClick when clicked', async () => {
+    const onClick = jest.fn();
+    const {container} = render(
+      <BlockComponent block={createBlock()} blockIndex={0} onClick={onClick} />
+    );
+    await userEvent.click(container.firstChild as HTMLElement);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  describe('action bar', () => {
+    it('shows feedback and copy buttons on hover', async () => {
+      const {container} = render(
+        <BlockComponent block={createBlock()} blockIndex={0} runId={123} />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      expect(
+        screen.getByRole('button', {name: 'Feedback Thumbs Up'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Feedback Thumbs Down'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Copy block content'})
+      ).toBeInTheDocument();
+    });
+
+    it('disables both thumbs after thumbs up is clicked', async () => {
+      const {container} = render(
+        <BlockComponent block={createBlock()} blockIndex={1} runId={123} />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
+      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+
+      await userEvent.click(upButton);
+
+      expect(upButton).toBeDisabled();
+      expect(downButton).toBeDisabled();
+    });
+
+    it('disables both thumbs after thumbs down is clicked', async () => {
+      const {container} = render(
+        <BlockComponent block={createBlock()} blockIndex={2} runId={123} />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
+      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+
+      await userEvent.click(downButton);
+
+      expect(upButton).toBeDisabled();
+      expect(downButton).toBeDisabled();
+    });
+
+    it('does not disable thumbs without runId', async () => {
+      const {container} = render(
+        <BlockComponent block={createBlock()} blockIndex={1} runId={undefined} />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
+      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+
+      await userEvent.click(upButton);
+
+      expect(upButton).toBeEnabled();
+      expect(downButton).toBeEnabled();
+    });
+
+    it('hides action bar when interactionPending', async () => {
+      const {container} = render(
+        <BlockComponent
+          block={createBlock()}
+          blockIndex={0}
+          runId={123}
+          interactionPending
+        />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      expect(
+        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides action bar in readOnly mode', async () => {
+      const {container} = render(
+        <BlockComponent block={createBlock()} blockIndex={0} runId={123} readOnly />
+      );
+
+      await userEvent.hover(container.firstChild as HTMLElement);
+
+      expect(
+        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Copy block content'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders nothing for empty content', () => {
+    const block = createBlock({
+      message: {role: 'assistant', content: ''},
+    });
+    const {container} = render(<BlockComponent block={block} blockIndex={0} />);
+    expect(container).toHaveTextContent('');
+  });
+});

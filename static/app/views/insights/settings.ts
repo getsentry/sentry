@@ -98,11 +98,6 @@ import {
   MODULE_TITLE as MOBILE_SCREENS_MODULE_TITLE,
   MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
 } from 'sentry/views/insights/mobile/screens/settings';
-import {
-  MODULE_FEATURES as MOBILE_UI_MODULE_FEATURES,
-  MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
-  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
-} from 'sentry/views/insights/mobile/ui/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
@@ -145,7 +140,6 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.MCP_TOOLS]: MCP_TOOLS_MODULE_TITLE,
   [ModuleName.MCP_RESOURCES]: MCP_RESOURCES_MODULE_TITLE,
   [ModuleName.MCP_PROMPTS]: MCP_PROMPTS_MODULE_TITLE,
-  [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_MODULE_TITLE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
   [ModuleName.SESSIONS]: SESSIONS_MODULE_TITLE,
@@ -166,7 +160,6 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.MCP_TOOLS]: MCP_TOOLS_DATA_TYPE,
   [ModuleName.MCP_RESOURCES]: MCP_RESOURCES_DATA_TYPE,
   [ModuleName.MCP_PROMPTS]: MCP_PROMPTS_DATA_TYPE,
-  [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE,
   [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE,
@@ -187,7 +180,6 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.MCP_TOOLS]: MCP_TOOLS_DATA_TYPE_PLURAL,
   [ModuleName.MCP_RESOURCES]: MCP_RESOURCES_DATA_TYPE_PLURAL,
   [ModuleName.MCP_PROMPTS]: MCP_PROMPTS_DATA_TYPE_PLURAL,
-  [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE_PLURAL,
   [ModuleName.SESSIONS]: SESSIONS_DATA_TYPE_PLURAL,
@@ -211,7 +203,6 @@ export const MODULE_PRODUCT_DOC_LINKS = {
   [ModuleName.MCP_TOOLS]: MCP_TOOLS_MODULE_DOC_LINK,
   [ModuleName.MCP_RESOURCES]: MCP_RESOURCES_MODULE_DOC_LINK,
   [ModuleName.MCP_PROMPTS]: MCP_PROMPTS_MODULE_DOC_LINK,
-  [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
   [ModuleName.MOBILE_VITALS]: MODULE_SCREENS_DOC_LINK,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
   [ModuleName.SESSIONS]: {
@@ -238,7 +229,6 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.MCP_TOOLS]: MCP_TOOLS_MODULE_FEATURES,
   [ModuleName.MCP_RESOURCES]: MCP_RESOURCES_MODULE_FEATURES,
   [ModuleName.MCP_PROMPTS]: MCP_PROMPTS_MODULE_FEATURES,
-  [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_FEATURES,
   [ModuleName.MOBILE_VITALS]: [MOBILE_SCREENS_MODULE_FEATURE],
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
   [ModuleName.SESSIONS]: [],
@@ -262,7 +252,6 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.MCP_TOOLS]: ['insight-modules'],
   [ModuleName.MCP_RESOURCES]: ['insight-modules'],
   [ModuleName.MCP_PROMPTS]: ['insight-modules'],
-  [ModuleName.MOBILE_UI]: ['insight-modules'],
   [ModuleName.MOBILE_VITALS]: ['insight-modules'],
   [ModuleName.SCREEN_RENDERING]: ['insight-modules'],
   [ModuleName.SESSIONS]: ['insight-modules'],
