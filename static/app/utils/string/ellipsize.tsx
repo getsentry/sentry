@@ -10,16 +10,21 @@ import {ELLIPSIS} from 'sentry/utils/string/unicode';
  * ellipsize('short', 10) // returns 'short'
  */
 export function ellipsize(str: string, length: number): string {
-  if (length < 0 || isNaN(length))
+  if (length < 0 || isNaN(length)) {
     throw new TypeError(
       `Invalid string length argument value of ${length} provided to ellipsize`
     );
+  }
 
-  if (str.length <= length) return str;
+  if (str.length <= length) {
+    return str;
+  }
 
   // If the string is only whitespace, skip `trimRight` since trimming will completely erase the string. If the string was a long sequence of whitespace characters, that would return a loose ellipsis
   const trimmed = str.trim();
-  if (trimmed.length === 0) return `${str.slice(0, length)}${ELLIPSIS}`;
+  if (trimmed.length === 0) {
+    return `${str.slice(0, length)}${ELLIPSIS}`;
+  }
 
   // Otherwise, trim normally
   return `${str.slice(0, length).trimEnd()}${ELLIPSIS}`;
