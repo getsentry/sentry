@@ -664,7 +664,7 @@ def start_group_reprocessing(
             control_data=snuba_count,
             experimental_data=eap_count,
             callsite=callsite,
-            is_experimental_data_a_null_result=eap_count == 0,
+            is_experimental_data_nullish=eap_count == 0,
             reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
             debug_context={
                 "organization_id": organization.id,

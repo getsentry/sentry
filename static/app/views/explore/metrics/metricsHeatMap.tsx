@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
@@ -12,9 +13,10 @@ import {
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
+  useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {prettifyAggregation} from 'sentry/views/explore/utils';
+import {prettifyAggregation, type GetExploreUrlArgs} from 'sentry/views/explore/utils';
 
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
@@ -27,6 +29,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const visualizes = useMetricVisualizes();
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
+  const metric = useTraceMetric();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
@@ -35,6 +38,18 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
     visualizes.length > 1
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
+
+  const tooltipExploreUrlArgs: Omit<GetExploreUrlArgs, 'organization'> = useMemo(() => {
+    return {
+      crossEvents: [
+        {
+          type: 'metrics',
+          query: '',
+          metric,
+        },
+      ],
+    };
+  }, [metric]);
 
   return (
     <WidgetWrapper>
@@ -52,6 +67,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
               scale="log"
+              tooltipExploreUrlArgs={tooltipExploreUrlArgs}
             />
           )
         }

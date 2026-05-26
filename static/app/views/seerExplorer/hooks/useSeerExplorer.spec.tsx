@@ -155,7 +155,8 @@ describe('useSeerExplorer', () => {
       '/issues/:groupId/attachments/',
       '/issues/:groupId/distributions/',
       '/issues/:groupId/distributions/:tagKey/',
-    ])('sends structured JSON on issue sub-tab route %s', async (route: string) => {
+      '/explore/logs/trace/:traceSlug/',
+    ])('sends structured JSON on structured-context route %s', async (route: string) => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => route,
       });
