@@ -2,25 +2,26 @@ import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
 import {Text, type TextProps} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div'> = DistributedOmit<
   TextProps<T>,
   'title'
 > & {
   title: React.ReactNode;
-};
+} & Pick<TooltipProps, 'position'>;
 
 export function InfoText<T extends 'span' | 'p' | 'label' | 'div' = 'span'>({
   title,
   children,
+  position,
   ...textProps
 }: InfoTextProps<T>) {
   if (!title) {
     return <Text {...textProps}>{children}</Text>;
   }
   return (
-    <Tooltip title={title} skipWrapper isHoverable showUnderline>
+    <Tooltip title={title} position={position} skipWrapper isHoverable showUnderline>
       <StyledText {...textProps} tabIndex={0}>
         {children}
       </StyledText>
