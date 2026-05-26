@@ -331,7 +331,12 @@ class SafeRolloutComparator:
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
 
-        metrics.incr("SafeRolloutComparator.compare", tags=tags)
+        # TODO: This shim is only used in `EAPOccurrencesComparator`. Once that's deleted, this
+        # check can go away and we can standardize on emitting just the `compare` metric.
+        if getattr(cls, "use_legacy_comparison_metric_name", None):
+            metrics.incr("SafeRolloutComparator.check_and_choose", tags=tags)
+        else:
+            metrics.incr("SafeRolloutComparator.compare", tags=tags)
 
     @classmethod
     def check_and_choose(
