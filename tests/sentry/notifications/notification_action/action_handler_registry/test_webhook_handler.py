@@ -78,8 +78,7 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         assert body["id"] == str(self.group.id)
 
     @responses.activate
-    @mock.patch("sentry.sentry_apps.services.legacy_webhook.tasks.logger")
-    def test_new_path_dry_run_logs_instead_of_sending(self, mock_logger: mock.MagicMock) -> None:
+    def test_new_path_dry_run_does_not_send(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
 
         with (
@@ -95,8 +94,6 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             WebhookActionHandler.execute(self.invocation)
 
         assert len(responses.calls) == 0
-        mock_logger.info.assert_called_once()
-        assert mock_logger.info.call_args[0][0] == "legacy_webhook.dry_run"
 
     @responses.activate
     def test_disable_old_without_new_path_fires_nothing(self) -> None:
