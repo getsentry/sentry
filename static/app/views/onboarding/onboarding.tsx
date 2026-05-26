@@ -107,7 +107,9 @@ const scmOnboardingSteps: StepDescriptor[] = [
 function WelcomeVariable(props: StepProps) {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
 
-  if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
+  if (hasNewWelcomeUI) {
+    return <NewWelcomeUI {...props} />;
+  }
 
   return <TargetedOnboardingWelcome {...props} />;
 }

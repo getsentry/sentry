@@ -26,6 +26,7 @@ const statusCounts: Record<DiffStatus, number> = {
   [DiffStatus.REMOVED]: 0,
   [DiffStatus.RENAMED]: 0,
   [DiffStatus.UNCHANGED]: 1,
+  [DiffStatus.SKIPPED]: 0,
 };
 
 function renderSidebar(sections: SidebarSection[]) {

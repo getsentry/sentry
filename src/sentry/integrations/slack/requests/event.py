@@ -76,14 +76,9 @@ def _resolve_available_organizations(
             logger.info("_resolve_available_organizations.inactive_org", extra=logging_ctx)
             continue
 
-        # Since the getsentry FeatureHandler does _not_ add subscription context to CONTROL
-        # evaluations, we need to slim down the check to only cover the feature flag.
-        # This is actually fine, since after routing, this method is rerun at the CELL.
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            if not SlackAgentEntrypoint.has_feature_flag(ctx.organization):
-                logger.info("_resolve_available_organizations.no_feature_flag", extra=logging_ctx)
-                continue
-        else:
+        # In CONTROL silo the getsentry FeatureHandler does _not_ add subscription
+        # context, so we skip the full access check — it is re-evaluated at CELL.
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
             if not SlackAgentEntrypoint.has_access(ctx.organization):
                 logger.info("_resolve_available_organizations.no_access", extra=logging_ctx)
                 continue

@@ -101,8 +101,8 @@ function ProjectSelectStep({
           {t('Currently only supports Node and Python Lambda functions.')}
         </Text>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing || isInitializing}>
-            {isAdvancing ? t('Submitting...') : t('Continue')}
+          <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
+            {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>
@@ -292,9 +292,7 @@ function CloudFormationStep({
           </div>
         )}
         <Flex>
-          <form.SubmitButton disabled={isAdvancing}>
-            {isAdvancing ? t('Verifying...') : t('Continue')}
-          </form.SubmitButton>
+          <form.SubmitButton busy={isAdvancing}>{t('Continue')}</form.SubmitButton>
         </Flex>
       </Stack>
     </form.AppForm>
@@ -436,7 +434,8 @@ function InstrumentationStep({
         <Button
           variant="primary"
           size="sm"
-          disabled={isAdvancing || enabledCount === 0}
+          busy={isAdvancing}
+          disabled={enabledCount === 0}
           onClick={() => {
             const enabledFunctions = Object.entries(enabled)
               .filter(([_, v]) => v)
@@ -444,7 +443,7 @@ function InstrumentationStep({
             advance({enabledFunctions});
           }}
         >
-          {isAdvancing ? t('Instrumenting...') : t('Instrument Functions')}
+          {t('Instrument Functions')}
         </Button>
         {failedNames.size > 0 && (
           <Text size="sm">

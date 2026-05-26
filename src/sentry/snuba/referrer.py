@@ -684,9 +684,6 @@ class Referrer(StrEnum):
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
-    # TODO(telex-team): temporary referrer, remove once low value spans job is no longer needed
-    LOW_VALUE_SPANS_JOB = "autopilot.low_value_spans_job"
-
     LOW_VALUE_TELEMETRY_DETECTOR = "configuration.low_value_telemetry_detector"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"

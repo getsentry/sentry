@@ -62,7 +62,7 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_profiling_tasks
+from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks, ingest_profiling_tasks
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
@@ -119,6 +119,25 @@ eap_producer = SingletonProducer(
 )
 
 logger = logging.getLogger(__name__)
+
+
+@instrumented_task(
+    name="sentry.profiles.task.process_profile_from_kafka",
+    namespace=ingest_profiling_passthrough_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
+    silo_mode=SiloMode.CELL,
+    pass_headers=True,
+)
+def process_profile_from_kafka(
+    message_bytes: bytes,
+    headers: dict[str, str],
+) -> None:
+    """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
+    from sentry.profiles.consumers.process.factory import _process_profile_message
+
+    _process_profile_message(message_bytes, headers, inline=True)
 
 
 @instrumented_task(

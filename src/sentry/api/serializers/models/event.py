@@ -198,6 +198,11 @@ class IssueEventSerializerResponse(SqlFormatEventSerializerResponse):
     resolvedWith: list[str]
 
 
+class GroupEventDetailsResponse(IssueEventSerializerResponse):
+    nextEventID: str | None
+    previousEventID: str | None
+
+
 @register(GroupEvent)
 @register(Event)
 class EventSerializer(Serializer):

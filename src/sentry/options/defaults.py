@@ -113,6 +113,12 @@ register(
     default=300,  # 5 minutes
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "data-forwarding.task-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
@@ -2482,12 +2488,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "hybridcloud.rpc.use_pooling.rate",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Webhook processing controls
 register(
@@ -3052,13 +3052,6 @@ register(
     "relocation.daily-limit.large",
     default=0,
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "relocation.outbox-orgslug.killswitch",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -4154,30 +4147,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organization slug allowlist to enable Autopilot for specific organizations.
-register(
-    "autopilot.organization-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable missing SDK integration detector for specific projects.
-register(
-    "autopilot.missing-sdk-integration.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Project ID allowlist to enable trace instrumentation detector for specific projects.
-register(
-    "autopilot.trace-instrumentation.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Global flag to enable API token async flush
 register(
     "api-token-async-flush",
@@ -4207,13 +4176,6 @@ register(
 
 register(
     "sentry.scm.stream.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "sentry.scm.streaming-integration-proxy",
     type=Float,
     default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
