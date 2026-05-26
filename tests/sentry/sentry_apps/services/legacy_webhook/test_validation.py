@@ -97,4 +97,28 @@ class TestWebhookPayloadValidation(BaseWorkflowTest):
             old, new, organization_id=self.project.organization_id, project_id=self.project.id
         )
         mock_logger.warning.assert_called_once()
-        assert mock_logger.warning.call_args[1]["extra"]["mismatch"] == "Extra in new: extra_field"
+        assert mock_logger.warning.call_args[1]["extra"]["mismatches"] == [
+            "Extra in new: extra_field"
+        ]
+
+    @mock.patch("sentry.sentry_apps.services.legacy_webhook.validation.logger")
+    @mock.patch(
+        "sentry.sentry_apps.services.legacy_webhook.validation.compare_payloads",
+        side_effect=RuntimeError("boom"),
+    )
+    def test_validate_logs_exception_on_comparison_error(
+        self, _mock_compare: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        validate_payload_equivalence(
+            {"a": 1},
+            {"b": 2},
+            organization_id=self.project.organization_id,
+            project_id=self.project.id,
+        )
+        mock_logger.exception.assert_called_once_with(
+            "legacy_webhook.validation.comparison_error",
+            extra={
+                "organization_id": self.project.organization_id,
+                "project_id": self.project.id,
+            },
+        )

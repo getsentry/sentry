@@ -21,26 +21,20 @@ def validate_payload_equivalence(
     organization_id: int,
     project_id: int,
 ) -> None:
-    try:
-        if old_payload == new_payload:
-            logger.info(
-                "legacy_webhook.validation.match",
-                extra={"organization_id": organization_id, "project_id": project_id},
-            )
-            return
+    logging_context = {"organization_id": organization_id, "project_id": project_id}
 
+    if old_payload == new_payload:
+        logger.info("legacy_webhook.validation.match", extra=logging_context)
+        return
+
+    try:
         mismatches = compare_payloads(old_payload, new_payload)
-        for mismatch in mismatches:
-            logger.warning(
-                "legacy_webhook.validation.payload_mismatch",
-                extra={
-                    "organization_id": organization_id,
-                    "project_id": project_id,
-                    "mismatch": mismatch,
-                },
-            )
     except Exception:
-        logger.exception(
-            "legacy_webhook.validation.comparison_error",
-            extra={"organization_id": organization_id, "project_id": project_id},
+        logger.exception("legacy_webhook.validation.comparison_error", extra=logging_context)
+        return
+
+    if mismatches:
+        logger.warning(
+            "legacy_webhook.validation.payload_mismatch",
+            extra={**logging_context, "mismatches": mismatches},
         )
