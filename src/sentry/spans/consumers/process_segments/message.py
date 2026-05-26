@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import random
 import types
 import uuid
 from collections import OrderedDict
@@ -118,28 +119,34 @@ def _process_segment(
     cache_metric_name = "spans.consumers.process_segments.cache"
     cached_timestamp = cache.get(cache_key)
     timestamp = int(date.timestamp())
+    presumed_last_bump_time = timestamp - LAST_SEEN_INTERVAL_SECONDS
 
     # If no cached value exists this is the first time we've seen this combination. Here
     # we follow the maximalist path. Models are created and onboarding signals issued.
     if cached_timestamp is None:
         _create_models(project, environment_name, release_name, dist_name, date)
         cache.set(cache_key, timestamp)
-        metrics.incr(cache_metric_name, tags={"outcome": "miss"})
+        metrics.incr(cache_metric_name, tags={"action": "full", "outcome": "miss"})
     # If a cached value was found and the timestamp specified by the current event exceeds
-    # the previously cached timestamp by at least `LAST_SEEN_INTERVAL_SECONDS` then we
-    # perform small mutations on select models. From the code in this module this may appear
-    # to only save one or two cache lookups, however, certain billing logic tied to the
-    # feature flag check runs when this program is executed in getsentry. In the minimal
-    # case its three extra saved queries but up to six additional cache lookups have been
-    # observed.
-    elif timestamp - LAST_SEEN_INTERVAL_SECONDS >= cached_timestamp:
-        _bump_release_last_seen(project, environment_name, release_name, date)
-        cache.set(cache_key, timestamp)
-        metrics.incr(cache_metric_name, tags={"action": "bump", "outcome": "hit"})
+    # the previously cached timestamp by at least `LAST_SEEN_INTERVAL_SECONDS` then the
+    # event is a candidate for a release `last_seen` bump.
+    elif presumed_last_bump_time >= cached_timestamp:
+        # Before attempting the bump, we check the distributed cache to see if the value has
+        # been updated by another process. If it hasn't been updated within the 60-second
+        # interval then we can refresh. This costs us an additional look-up however the benefit
+        # is we can skip the bump step for each process for each server (minus one).
+        remote_v = cache.distributed_cache.get(cache_key) or 0
+        if presumed_last_bump_time >= remote_v:
+            _bump_release_last_seen(project, environment_name, release_name, date)
+            cache.set(cache_key, timestamp)
+            metrics.incr(cache_metric_name, tags={"action": "bump", "outcome": "hit"})
+        else:
+            cache.set(cache_key, timestamp)
+            metrics.incr(cache_metric_name, tags={"action": "partial-skip", "outcome": "hit"})
     # If a cached value was found and the timestamp does NOT exceed the interval then we
     # do nothing! This should be the majority of events.
     else:
-        metrics.incr(cache_metric_name, tags={"action": "noop", "outcome": "hit"})
+        metrics.incr(cache_metric_name, tags={"action": "skip", "outcome": "hit"})
 
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
@@ -467,9 +474,7 @@ class DistributedCache:
 
     def get(self, key: str) -> int | None:
         result = self.cache.get(self._hash_key(key))
-        if isinstance(result, int):
-            return result
-        return None
+        return result if isinstance(result, int) else None
 
     def set(self, key: str, value: int) -> None:
         self.cache.set(self._hash_key(key), value, timeout=86400)
@@ -511,9 +516,15 @@ class TieredCache:
             return local_ts
 
         remote_ts = self.distributed_cache.get(key)
-        if isinstance(remote_ts, int):
-            # Local cache is updated so we don't have to fetch this value again.
-            self.local_cache.set(key, remote_ts)
+        if remote_ts is not None:
+            # The local cache is updated with the remote_ts plus some added jitter. The
+            # jitter is added to reduce the frequency of concurrent update attempts to
+            # the same release. We trade some inaccuracy in update interval in exchange
+            # for reduced cache read pressure.
+            #
+            # The local cache value should not be used to write the last_seen value. Its
+            # wrong. Use the event's timestamp.
+            self.local_cache.set(key, self._add_jitter(remote_ts))
             return remote_ts
 
         return None
@@ -528,6 +539,9 @@ class TieredCache:
         self.distributed_cache.set(key, timestamp)
         self.local_cache.set(key, timestamp)
         return None
+
+    def _add_jitter(self, timestamp: int) -> None:
+        return timestamp + random.randint(1, LAST_SEEN_INTERVAL_SECONDS // 2)
 
 
 def _get_cache():
