@@ -464,7 +464,7 @@ function Highlights({
   return (
     <Fragment>
       <HighlightsWrapper>
-        <Stack justify="center" align="center">
+        <Stack justify="center" align="center" gap="xs">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
               project={project ? project : {slug: node.projectSlug ?? ''}}
@@ -472,7 +472,9 @@ function Highlights({
               hideName
             />
           </Tooltip>
-          <Separator orientation="vertical" margin="xs 0 0 0" />
+          <Flex flex="1">
+            <Separator orientation="vertical" />
+          </Flex>
         </Stack>
         <Stack justify="left" flex="1" height="100%" overflow="hidden">
           <HighlightOp>{node.op}</HighlightOp>
@@ -526,7 +528,7 @@ function Highlights({
           )}
         </Stack>
       </HighlightsWrapper>
-      <Separator orientation="horizontal" margin="md 0" border="muted" />
+      <Separator orientation="horizontal" padding="md 0" border="muted" />
     </Fragment>
   );
 }
