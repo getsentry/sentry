@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -24,6 +24,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const exportModalFormSchema = z.object({
+  columns: z.enum(['all', 'selected']),
   format: z.enum(['csv', 'jsonl']),
   limit: z.number(),
 });
@@ -59,6 +60,7 @@ export function LogsExportModal({
   const {rowCountDefault, rowCountOptions} =
     generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
+    columns: 'selected',
     format: 'csv',
     limit: rowCountDefault.value,
   };
@@ -70,6 +72,8 @@ export function LogsExportModal({
       onDynamic: exportModalFormSchema,
     },
     onSubmit: async ({value}) => {
+      const isAllColumns = value.columns === 'all';
+      const format = isAllColumns ? 'jsonl' : value.format;
       const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
 
       trackAnalytics('explore.table_exported', {
@@ -77,15 +81,17 @@ export function LogsExportModal({
         traceItemDataset: TraceItemDataset.LOGS,
         ...queryInfo,
         export_row_limit: value.limit,
-        export_file_format: value.format,
-        export_type: passedSyncLimit ? 'export_download' : 'browser_sync',
+        export_file_format: format,
+        export_type: isAllColumns || passedSyncLimit ? 'export_download' : 'browser_sync',
       });
 
-      if (passedSyncLimit) {
+      if (isAllColumns || passedSyncLimit) {
         await handleDataExport({
-          format: value.format,
-          queryInfo: payload.queryInfo,
-          queryType: payload.queryType,
+          format,
+          queryInfo: isAllColumns ? {...payload.queryInfo, field: []} : payload.queryInfo,
+          queryType: isAllColumns
+            ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
+            : ExportQueryType.EXPLORE,
           limit: value.limit,
         });
       } else {
@@ -93,7 +99,7 @@ export function LogsExportModal({
           rows: tableData.slice(0, value.limit),
           fields: queryInfo.field,
           filename: 'logs',
-          format: value.format,
+          format,
         });
         addSuccessMessage(t('Downloading file to your browser.'));
       }
@@ -101,6 +107,8 @@ export function LogsExportModal({
       closeModal();
     },
   });
+
+  const columnsValue = useStore(form.store, state => state.values.columns);
 
   return (
     <form.AppForm form={form}>
@@ -110,26 +118,54 @@ export function LogsExportModal({
       <Body>
         <Stack gap="xl">
           <Text>
-            {t(
-              'If you select more than %s rows your file will be sent to your email address.',
-              formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
-            )}
+            {columnsValue === 'all'
+              ? t('Your file will be sent to your email address.')
+              : t(
+                  'If you select more than %s rows your file will be sent to your email address.',
+                  formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
+                )}
           </Text>
-          <form.AppField name="format">
+          <form.AppField name="columns">
             {field => (
               <field.Radio.Group
                 value={field.state.value}
                 onChange={value =>
-                  field.handleChange(value as ExportModalFormValues['format'])
+                  field.handleChange(value as ExportModalFormValues['columns'])
                 }
               >
-                <field.Layout.Stack label={t('Format')}>
-                  <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
-                  <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
+                <field.Layout.Stack label={t('Columns')}>
+                  <field.Radio.Item value="selected">
+                    {t('Selected columns')}
+                  </field.Radio.Item>
+                  <field.Radio.Item value="all">{t('All columns')}</field.Radio.Item>
                 </field.Layout.Stack>
               </field.Radio.Group>
             )}
           </form.AppField>
+          {columnsValue === 'all' ? (
+            <Stack gap="xs">
+              <Text bold size="sm">
+                {t('Format')}
+              </Text>
+              <Text>{t('JSONL')}</Text>
+            </Stack>
+          ) : (
+            <form.AppField name="format">
+              {field => (
+                <field.Radio.Group
+                  value={field.state.value}
+                  onChange={value =>
+                    field.handleChange(value as ExportModalFormValues['format'])
+                  }
+                >
+                  <field.Layout.Stack label={t('Format')}>
+                    <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
+                    <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
+                  </field.Layout.Stack>
+                </field.Radio.Group>
+              )}
+            </form.AppField>
+          )}
           <form.AppField name="limit">
             {field => (
               <field.Layout.Stack label={t('Number of rows')}>
