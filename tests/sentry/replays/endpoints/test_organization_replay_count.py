@@ -702,11 +702,21 @@ class OrganizationReplayCountEndpointTest(
             teams=[team_a],
         )
 
-        # An event (and group) that lives in project_b.
+        # A replay stored in project_a (accessible to restricted_user).
+        replay_id = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay_id,
+            )
+        )
+
         event_b = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay_id}},
                 "fingerprint": ["group-b"],
             },
             project_id=project_b.id,
