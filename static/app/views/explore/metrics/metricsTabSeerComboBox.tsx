@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -6,25 +6,26 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import type {
+  SeerRawResponse,
+  SeerRawResponseItem,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderLayout,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+  buildSeerDateTimeSelection,
+  transformSeerResponse,
+  useInitialSeerQuery,
+  useSelectedProjectIds,
+  useSelectedProjectIdsForMutation,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {Token} from 'sentry/components/searchSyntax/parser';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
@@ -65,87 +66,49 @@ interface AskSeerSearchQuery {
   visualizations: Visualization[];
 }
 
-interface MetricsAskSeerTranslateResponse {
-  responses: Array<{
-    end: string | null;
-    group_by: string[];
-    mode: string;
-    query: string;
-    sort: string;
-    start: string | null;
-    stats_period: string;
-    visualization: Array<{
-      chart_type: number;
-      y_axes: string[];
-    }>;
-  }>;
-  unsupported_reason: string | null;
+function mapResponseItem(r: SeerRawResponseItem): AskSeerSearchQuery {
+  return {
+    visualizations:
+      r.visualization?.map(v => ({
+        chartType: v.chart_type as ChartType,
+        yAxes: v.y_axes ?? [],
+      })) ?? [],
+    query: r.query,
+    sort: r.sort,
+    groupBys: r.group_by ?? [],
+    statsPeriod: r.stats_period,
+    start: r.start,
+    end: r.end,
+    mode: r.mode,
+  };
 }
 
 export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const {setRunId} = useAiQueryContext();
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();
   const analyticsArea = useAnalyticsArea();
-  const {query, committedQuery} = useSearchQueryBuilderState();
-  const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
-  let initialSeerQuery = '';
-  const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
-    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
-    return {parsedQuery, queryToUse};
-  }, [committedQuery, query]);
-
-  const inputValue = currentInputValueRef.current.trim();
-
-  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
-  const filteredCommittedQuery = queryDetails.parsedQuery
-    ?.filter(
-      token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
-    )
-    .map(token => stringifyToken(token))
-    .join(' ')
-    .trim();
-
-  // Use filteredCommittedQuery if it has content.
-  // Only fall back to queryToUse when there's no inputValue to filter by.
-  // This prevents duplication when the entire query is free text matching inputValue.
-  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
-    initialSeerQuery = filteredCommittedQuery;
-  } else if (!inputValue && queryDetails.queryToUse) {
-    initialSeerQuery = queryDetails.queryToUse;
-  }
-
-  if (inputValue) {
-    initialSeerQuery =
-      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
-  }
+  const initialSeerQuery = useInitialSeerQuery();
+  const selectedProjectIds = useSelectedProjectIds();
+  const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
   const metricsTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
-      const selectedProjects =
-        pageFilters.selection.projects?.length > 0 &&
-        pageFilters.selection.projects?.[0] !== -1
-          ? pageFilters.selection.projects
-          : projects.filter(p => p.isMember).map(p => p.id);
-
       const user = ConfigStore.get('user');
-      const data = await fetchMutation<MetricsAskSeerTranslateResponse>({
+      const data = await fetchMutation<SeerRawResponse>({
         url: `/organizations/${organization.slug}/search-agent/translate/`,
         method: 'POST',
         data: {
           org_id: organization.id,
           org_slug: organization.slug,
           natural_language_query: queryToSubmit,
-          project_ids: selectedProjects,
+          project_ids: selectedProjectIdsForMutation,
           strategy: 'Metrics',
           user_email: user?.email,
           options: {
@@ -161,20 +124,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          visualizations:
-            r.visualization?.map(v => ({
-              chartType: v.chart_type,
-              yAxes: v.y_axes,
-            })) ?? [],
-          query: r.query,
-          sort: r.sort,
-          groupBys: r.group_by ?? [],
-          statsPeriod: r.stats_period,
-          start: r.start,
-          end: r.end,
-          mode: r.mode,
-        })),
+        queries: data.responses.map(mapResponseItem),
       };
     },
   });
@@ -193,23 +143,16 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         visualizations,
       } = result;
 
-      let start: DateString = null;
-      let end: DateString = null;
+      const dt = buildSeerDateTimeSelection(
+        resultStart,
+        resultEnd,
+        statsPeriod,
+        pageFilters.selection.datetime
+      );
 
-      if (resultStart && resultEnd) {
-        // Strip 'Z' suffix to treat UTC dates as local time
-        const startLocal = resultStart.endsWith('Z')
-          ? resultStart.slice(0, -1)
-          : resultStart;
-        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
-        start = new Date(startLocal).toISOString();
-        end = new Date(endLocal).toISOString();
-      } else {
-        start = pageFilters.selection.datetime.start;
-        end = pageFilters.selection.datetime.end;
-      }
+      const start = dt.start;
+      const end = dt.end;
 
-      // Update mode based on groupBys or response mode
       const mode =
         groupBys.length > 0
           ? Mode.AGGREGATE
@@ -217,7 +160,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             ? Mode.AGGREGATE
             : Mode.SAMPLES;
 
-      // Convert Seer visualizations to VisualizeFunction objects
       const seerVisualizes = visualizations.flatMap(viz =>
         viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
@@ -285,7 +227,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         cleanedQuery = search.formatString();
       }
 
-      // Build aggregateFields: groupBys first, then visualizes
       const aggregateFields: AggregateField[] = [];
 
       for (const groupBy of groupBys) {
@@ -343,7 +284,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         }
       }
 
-      // Parse and apply sort from Seer response
       const parseSeerSort = (sortStr: string): Sort => {
         if (sortStr.startsWith('-')) {
           return {field: sortStr.slice(1), kind: 'desc'};
@@ -359,7 +299,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       const sortBys =
         mode === Mode.SAMPLES && seerSort ? [seerSort] : queryParams.sortBys;
 
-      // Build updated ReadableQueryParams for this metric
       const newQueryParams = queryParams.replace({
         query: cleanedQuery,
         aggregateFields,
@@ -386,15 +325,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       const selection = {
         ...pageFilters.selection,
-        datetime: {
-          start,
-          end,
-          utc: pageFilters.selection.datetime.utc,
-          period:
-            resultStart && resultEnd
-              ? null
-              : statsPeriod || pageFilters.selection.datetime.period,
-        },
+        datetime: {start, end, utc: dt.utc, period: dt.period},
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -416,9 +347,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         setRunId(runId);
       }
 
-      // Single navigate with both metric params and datetime
-      // (Previously, setQueryParams and navigate were called separately,
-      // causing the second navigate to overwrite the first with stale location)
       navigate(
         {
           ...location,
@@ -452,55 +380,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     organization.features.includes('gen-ai-search-agent-translate') &&
     organization.features.includes('gen-ai-explore-metrics-search');
 
-  // Get selected project IDs for the polling variant
-  const selectedProjectIds = useMemo(() => {
-    if (
-      pageFilters.selection.projects?.length > 0 &&
-      pageFilters.selection.projects?.[0] !== -1
-    ) {
-      return pageFilters.selection.projects;
-    }
-    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
-  }, [pageFilters.selection.projects, projects]);
-
-  // Transform the final_response from Seer to match the expected format
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
-      const seerResponse = response as unknown as {
-        responses?: Array<{
-          end: string | null;
-          group_by: string[];
-          mode: string;
-          query: string;
-          sort: string;
-          start: string | null;
-          stats_period: string;
-          visualization: Array<{
-            chart_type: number;
-            y_axes: string[];
-          }>;
-        }>;
-      };
-
-      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
-        return seerResponse.responses.map(r => ({
-          visualizations:
-            r.visualization?.map(v => ({
-              chartType: v.chart_type,
-              yAxes: v.y_axes,
-            })) ?? [],
-          query: r.query,
-          sort: r.sort,
-          groupBys: r.group_by ?? [],
-          statsPeriod: r.stats_period,
-          start: r.start,
-          end: r.end,
-          mode: r.mode,
-        }));
-      }
-
-      return [response];
-    },
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(response, mapResponseItem),
     []
   );
 

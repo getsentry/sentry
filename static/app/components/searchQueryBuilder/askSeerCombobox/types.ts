@@ -1,5 +1,21 @@
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
+export interface SeerRawResponseItem {
+  end: string | null;
+  group_by: string[];
+  mode: string;
+  query: string;
+  sort: string;
+  start: string | null;
+  stats_period: string;
+  visualization?: Array<{chart_type: number; y_axes: string[]}>;
+}
+
+export interface SeerRawResponse {
+  responses: SeerRawResponseItem[];
+  unsupported_reason: string | null;
+}
+
 export interface NoneOfTheseItem {
   key: 'none-of-these';
   label: string;
