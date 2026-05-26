@@ -18,7 +18,7 @@ class Email(Model):
     UserEmail represents whether a given user account has access to that email.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.User
     __relocation_dependencies__ = {"sentry.User"}
     __relocation_custom_ordinal__ = ["email"]
 

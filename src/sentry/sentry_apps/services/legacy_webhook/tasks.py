@@ -58,13 +58,6 @@ def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: 
     organization = group.project.organization
 
     if features.has("organizations:legacy-webhook-dry-run", organization):
-        logger.info(
-            "legacy_webhook.dry_run",
-            extra={
-                "url": url,
-                "payload": payload,
-            },
-        )
         metrics.incr(
             "legacy_webhook.task.result",
             tags={"outcome": LegacyWebhookOutcome.DRY_RUN},

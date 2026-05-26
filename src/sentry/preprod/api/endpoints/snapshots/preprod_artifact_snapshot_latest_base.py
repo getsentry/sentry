@@ -15,7 +15,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
-    NoProjects,
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
@@ -142,14 +141,13 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
         try:
-            params = self.get_filter_params(request, organization, date_filter_optional=True)
-        except NoProjects:
-            return Response({"detail": "No snapshot found"}, status=404)
+            project_id = int(request.GET["project"]) if "project" in request.GET else None
+        except (ValueError, TypeError):
+            return Response({"detail": "Invalid project parameter"}, status=400)
 
         qs = (
             PreprodArtifact.objects.filter(
                 project__organization_id=organization.id,
-                project_id__in=params["project_id"],
                 app_id=app_id,
                 preprodsnapshotmetrics__isnull=False,
             )
@@ -161,6 +159,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             .select_related("commit_comparison", "project", "preprodsnapshotmetrics")
         )
 
+        if project_id is not None:
+            qs = qs.filter(project_id=project_id)
         if branch:
             qs = qs.filter(commit_comparison__head_ref=branch)
 
