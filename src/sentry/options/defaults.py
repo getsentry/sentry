@@ -4100,11 +4100,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable legacy webhook payload validation
+# Rollout rate for legacy webhook payload validation (0.0 to 1.0)
 register(
-    "sentry-apps.legacy-webhook-payload-validation.enabled",
-    type=Bool,
-    default=False,
+    "sentry-apps.legacy-webhook-payload-validation.rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

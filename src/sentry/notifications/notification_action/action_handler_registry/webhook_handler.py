@@ -1,8 +1,9 @@
 import logging
 from typing import override
 
-from sentry import features, options
+from sentry import features
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+from sentry.options.rollout import in_random_rollout
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.sentry_apps.services.legacy_webhook.service import (
     _get_triggering_rule_name,
@@ -80,7 +81,7 @@ class WebhookActionHandler(ActionHandler):
         if new_path and isinstance(invocation.event_data.event, GroupEvent):
             send_legacy_webhooks_for_invocation(invocation)
 
-            if options.get("sentry-apps.legacy-webhook-payload-validation.enabled"):
+            if in_random_rollout("sentry-apps.legacy-webhook-payload-validation.rate"):
                 try:
                     _validate_webhook_payloads(invocation)
                 except Exception:
