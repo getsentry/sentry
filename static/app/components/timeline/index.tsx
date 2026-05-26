@@ -104,7 +104,6 @@ const Row = styled('div')<{hasMarker: boolean; showLastLine?: boolean}>`
 
 const MarkerWrapper = styled('div')`
   grid-column: span 1;
-  z-index: 1;
   display: grid;
   place-items: center;
   min-width: 22px;
@@ -116,7 +115,6 @@ const IconWrapper = styled('div')`
   border-radius: 100%;
   border: 1px solid;
   background: ${p => p.theme.tokens.background.primary};
-  z-index: 1;
   svg {
     display: block;
     margin: ${p => p.theme.space.xs};

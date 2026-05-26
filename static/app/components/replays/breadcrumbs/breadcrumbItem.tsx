@@ -162,6 +162,9 @@ const StyledTimelineItem = styled(Timeline.Item)`
       background: ${p => p.theme.colors.surface200};
     }
   }
+  .timeline-icon-wrapper {
+    z-index: 1;
+  }
   cursor: pointer;
   /* vertical line connecting items */
   &:not(:last-child)::before {
