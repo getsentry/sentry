@@ -83,15 +83,15 @@ class WebhookActionHandler(ActionHandler):
             target_identifier = invocation.action.config.get("target_identifier")
             if target_identifier == "webhooks":
                 send_legacy_webhooks_for_invocation(invocation)
+
+                if in_random_rollout("sentry-apps.legacy-webhook-payload-validation.rate"):
+                    try:
+                        _validate_webhook_payloads(invocation)
+                    except Exception:
+                        logger.exception("webhook_action_handler.validation_error")
             else:
                 send_sentry_app_webhook(
                     group_event=invocation.event_data.event,
                     sentry_app_slug=target_identifier,
                     rule_label=get_triggering_rule_name(invocation),
                 )
-
-            if in_random_rollout("sentry-apps.legacy-webhook-payload-validation.rate"):
-                try:
-                    _validate_webhook_payloads(invocation)
-                except Exception:
-                    logger.exception("webhook_action_handler.validation_error")
