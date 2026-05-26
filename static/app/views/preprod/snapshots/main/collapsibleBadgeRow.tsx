@@ -10,7 +10,7 @@ const ONE_ROW_HEIGHT = 20;
 
 export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
   const [expanded, setExpanded] = useState(false);
-  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
+  const [hiddenKeys, setHiddenKeys] = useState(new Set<string>());
   const containerRef = useRef<HTMLDivElement>(null);
   const badgeRefs = useRef(new Map<string, HTMLElement>());
   const toggleButtonRef = useRef<HTMLDivElement>(null);
