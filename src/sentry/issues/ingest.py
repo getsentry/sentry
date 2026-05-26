@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from hashlib import md5
 from typing import Any, TypedDict
@@ -104,7 +104,7 @@ def process_occurrence_data(data: dict[str, Any]) -> None:
     data["fingerprint"] = hash_fingerprint(data["fingerprint"])
 
 
-def hash_fingerprint(fingerprint: list[str]) -> list[str]:
+def hash_fingerprint(fingerprint: Sequence[str]) -> list[str]:
     return [md5(part.encode("utf-8")).hexdigest() for part in fingerprint]
 
 

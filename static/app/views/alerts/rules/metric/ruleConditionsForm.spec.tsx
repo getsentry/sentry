@@ -1,3 +1,5 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,11 +14,12 @@ import {
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 describe('RuleConditionsForm', () => {
-  const {organization, projects, router} = initializeOrg({
+  const {organization, projects} = initializeOrg({
     organization: {
       features: ['search-query-builder-alerts', 'visibility-explore-view'],
     },
   });
+  const router = RouterFixture();
   ProjectsStore.loadInitialData(projects);
 
   const mockSearch = jest.fn();
@@ -63,32 +66,29 @@ describe('RuleConditionsForm', () => {
     jest.clearAllMocks();
   });
 
-  it.isKnownFlake(
-    'searches with new searchbar (search-query-builder-alerts)',
-    async () => {
-      render(
-        <RuleConditionsForm
-          {...props}
-          eventTypes={[]}
-          organization={organization}
-          router={router}
-        />,
-        {
-          organization: {...organization, features: ['search-query-builder-alerts']},
-        }
-      );
-      const input = await screen.findByPlaceholderText(
-        'Filter events by level, message, and other properties\u2026'
-      );
-      expect(input).toBeInTheDocument();
+  it('searches with new searchbar (search-query-builder-alerts)', async () => {
+    render(
+      <RuleConditionsForm
+        {...props}
+        eventTypes={[]}
+        organization={organization}
+        router={router}
+      />,
+      {
+        organization: {...organization, features: ['search-query-builder-alerts']},
+      }
+    );
+    const input = await screen.findByPlaceholderText(
+      'Filter events by level, message, and other properties\u2026'
+    );
+    expect(input).toBeInTheDocument();
 
-      await userEvent.clear(input);
-      await userEvent.type(input, 'a{enter}');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'a{enter}');
 
-      expect(mockSearch).toHaveBeenCalledTimes(1);
-      expect(mockSearch).toHaveBeenCalledWith('a', true);
-    }
-  );
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(mockSearch).toHaveBeenCalledWith('a', true);
+  });
 
   it('renders low confidence warning', async () => {
     render(

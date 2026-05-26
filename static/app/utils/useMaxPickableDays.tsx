@@ -35,6 +35,10 @@ export interface MaxPickableDaysOptions {
    */
   maxUpgradableDays: NonNullable<DatePageFilterProps['maxPickableDays']>;
   defaultPeriod?: DatePageFilterProps['defaultPeriod'];
+  /**
+   * The maximum number of sequential days that can be selected on the date page filter
+   */
+  maxDateRange?: number;
   upsellFooter?: ReactNode;
 }
 

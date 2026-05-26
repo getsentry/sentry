@@ -191,7 +191,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         else:
             threshold_type = (
                 AlertRuleThresholdType.ABOVE.value
-                if obj.type == Condition.GREATER
+                if obj.type in (Condition.GREATER, Condition.GREATER_OR_EQUAL)
                 else AlertRuleThresholdType.BELOW.value
             )
             # For static/metric rules, calculate resolve threshold from the resolve condition

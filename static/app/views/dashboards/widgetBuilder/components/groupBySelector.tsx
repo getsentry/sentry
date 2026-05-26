@@ -7,7 +7,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {WidgetType, type ValidateWidgetResponse} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -28,7 +27,6 @@ export function WidgetBuilderGroupBySelector({
 }: WidgetBuilderGroupBySelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const disableTransactionWidget = useDisableTransactionWidget();
-  const hasDrillDownFlows = useHasDrillDownFlows();
 
   const organization = useOrganization();
 
@@ -111,7 +109,6 @@ export function WidgetBuilderGroupBySelector({
         style={{paddingRight: 0}}
         widgetType={state.dataset}
         disable={disableTransactionWidget}
-        showDashboardLinkButton={hasDrillDownFlows && state.legendType === 'breakdown'}
       />
     </Fragment>
   );

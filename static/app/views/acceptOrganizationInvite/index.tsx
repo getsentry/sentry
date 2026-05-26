@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {logout} from 'sentry/actionCreators/account';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -18,7 +19,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
   existingMember: boolean;
@@ -282,7 +282,7 @@ function AcceptOrganizationInvite() {
   return (
     <NarrowLayout>
       <SentryDocumentTitle title={t('Accept Organization Invite')} />
-      <SettingsPageHeader title={t('Accept organization invite')} />
+      <Layout.Title>{t('Accept organization invite')}</Layout.Title>
       {isAcceptError && (
         <Alert.Container>
           <Alert variant="danger" showIcon={false}>

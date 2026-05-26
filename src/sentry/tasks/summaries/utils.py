@@ -157,7 +157,7 @@ def project_key_errors(
                 snuba_rows,
                 eap_rows,
                 callsite,
-                is_experimental_data_a_null_result=len(eap_rows) == 0,
+                is_experimental_data_nullish=len(eap_rows) == 0,
                 reasonable_match_comparator=lambda snuba, eap: keyed_counts_subset_match(
                     snuba,
                     eap,
@@ -352,7 +352,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
                 snuba_rows,
                 eap_rows,
                 callsite,
-                is_experimental_data_a_null_result=len(eap_rows) == 0,
+                is_experimental_data_nullish=len(eap_rows) == 0,
                 reasonable_match_comparator=lambda snuba, eap: keyed_counts_subset_match(
                     snuba,
                     eap,

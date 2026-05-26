@@ -12,7 +12,7 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -62,7 +62,6 @@ import {
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -105,7 +104,6 @@ type LogsTableProps = {
     showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
-  expanded?: boolean;
   localOnlyItemFilters?: {
     filterText: string;
     filteredItems: OurLogsResponseItem[];
@@ -122,7 +120,6 @@ const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; 
 
 export function LogsInfiniteTable({
   embedded = false,
-  expanded,
   localOnlyItemFilters,
   emptyRenderer,
   analyticsPageSource,
@@ -245,6 +242,17 @@ export function LogsInfiniteTable({
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths: {
+        [OurLogKnownFieldKey.MESSAGE]: 'minmax(90px,1fr)',
+      },
+    }
+  );
 
   const estimateSize = useCallback(
     (index: number) => {
@@ -266,29 +274,17 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
-  const isContainedVirtualizer = expanded !== undefined;
-
-  const windowVirtualizer = useWindowVirtualizer({
-    count: isContainedVirtualizer ? 0 : (data?.length ?? 0),
+  const virtualizer = useVirtualizer<HTMLElement, Element>({
+    count: data?.length ?? 0,
     estimateSize,
-    overscan: 50,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
-    scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
-  });
-
-  const containerVirtualizer = useVirtualizer<HTMLElement, Element>({
-    count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
-    estimateSize,
-    overscan: expanded ? 50 : 25,
+    overscan: 35,
     getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
 
-  const virtualizer = isContainedVirtualizer ? containerVirtualizer : windowVirtualizer;
-
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [expanded, virtualizer]);
+  }, [virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
 
@@ -355,25 +351,6 @@ export function LogsInfiniteTable({
       : [0, 0];
 
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
-
-  const [staticColumnWidths, clearColumnWidths] = useLogsTableColumnWidths({
-    fields,
-    tableRef,
-    isPending,
-    isScrolling,
-    dataLength: data?.length ?? 0,
-  });
-
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.slice(),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths,
-      onResizeEnd: clearColumnWidths,
-    }
-  );
 
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
@@ -553,7 +530,6 @@ export function LogsInfiniteTable({
           showHeader={!embedded}
           ref={tableBodyRef}
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
-          expanded={expanded}
         >
           {paddingTop > 0 && (
             <TableRow>
@@ -634,7 +610,7 @@ export function LogsInfiniteTable({
         </LogTableBody>
       </LogTable>
       <FloatingBackToTopContainer
-        position={expanded === undefined ? 'fixed' : 'absolute'}
+        position="absolute"
         inReplay={!!embeddedOptions?.replay}
         tableWidth={tableWidth}
       >

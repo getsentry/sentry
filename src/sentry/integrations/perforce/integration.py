@@ -402,10 +402,6 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         except Exception:
             return False
 
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        """Get repositories that can't be migrated. Perforce doesn't need migration."""
-        return []
-
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Get configuration form fields for organization-level settings.

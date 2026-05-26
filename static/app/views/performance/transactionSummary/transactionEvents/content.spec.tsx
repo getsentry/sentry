@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -23,19 +24,19 @@ function initializeData() {
   });
   const initialData = initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {
-          transaction: '/performance',
-          project: '1',
-          transactionCursor: '1:0:0',
-        },
-      },
-    },
     projects: [],
   });
+  const router = RouterFixture({
+    location: {
+      query: {
+        transaction: '/performance',
+        project: '1',
+        transactionCursor: '1:0:0',
+      },
+    },
+  });
   act(() => ProjectsStore.loadInitialData(initialData.projects));
-  return initialData;
+  return {...initialData, router};
 }
 
 describe('Performance Transaction Events Content', () => {

@@ -697,7 +697,7 @@ def query_trace_data(
             control_data=errors_data,
             experimental_data=eap_errors_data,
             callsite=callsite,
-            is_experimental_data_a_null_result=len(eap_errors_data) == 0,
+            is_experimental_data_nullish=len(eap_errors_data) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),

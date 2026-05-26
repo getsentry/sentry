@@ -4,7 +4,7 @@ import os
 from unittest import mock
 from uuid import uuid4
 
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import EventAttachment, normalize_content_type
 from sentry.testutils.cases import TestCase
 
 
@@ -48,3 +48,29 @@ class EventAttachmentDeleteTest(TestCase):
 
         mock_get_session.return_value.delete.assert_not_called()
         assert not EventAttachment.objects.filter(id=attachment.id).exists()
+
+
+class NormalizeContentTypeTest(TestCase):
+    def test_returns_explicit_content_type(self):
+        assert normalize_content_type("image/png", "file.png") == "image/png"
+
+    def test_strips_charset_from_content_type(self):
+        assert normalize_content_type("text/plain; charset=utf-8", "file.txt") == "text/plain"
+
+    def test_infers_from_filename_when_none(self):
+        assert normalize_content_type(None, "screenshot.png") == "image/png"
+
+    def test_infers_from_filename_when_octet_stream(self):
+        assert normalize_content_type("application/octet-stream", "screenshot.png") == "image/png"
+
+    def test_falls_back_to_octet_stream_when_unrecognized(self):
+        assert normalize_content_type(None, "data.bin") == "application/octet-stream"
+
+    def test_octet_stream_with_unrecognized_name(self):
+        assert (
+            normalize_content_type("application/octet-stream", "noext")
+            == "application/octet-stream"
+        )
+
+    def test_octet_stream_case_insensitive(self):
+        assert normalize_content_type("Application/Octet-Stream", "screenshot.png") == "image/png"

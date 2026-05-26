@@ -83,7 +83,9 @@ export function useQueryParamState<T = string>({
 
   // Sync local state when URL query params change (e.g., browser back/forward navigation)
   useEffect(() => {
-    if (!syncStateWithUrl) return;
+    if (!syncStateWithUrl) {
+      return;
+    }
 
     setLocalState(deserializeValue());
   }, [deserializeValue, syncStateWithUrl]);

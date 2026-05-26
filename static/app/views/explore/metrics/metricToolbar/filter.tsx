@@ -38,6 +38,8 @@ const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  environments?: string[];
+  projectIds?: number[];
   skipTraceMetricFilter?: boolean;
 }
 
@@ -59,7 +61,12 @@ function MetricsSearchBar({
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
-export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
+export function Filter({
+  traceMetric,
+  skipTraceMetricFilter,
+  projectIds,
+  environments,
+}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
   const organization = useOrganization();
@@ -81,6 +88,8 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: attributeQuery,
+      projectIds,
+      environments,
     }),
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
@@ -165,6 +174,8 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
         namespace: traceMetric.name,
         attributeQuery,
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
+        projects: projectIds,
+        environments,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -179,6 +190,8 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
       traceMetric.name,
       attributeQuery,
       skipTraceMetricFilter,
+      projectIds,
+      environments,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

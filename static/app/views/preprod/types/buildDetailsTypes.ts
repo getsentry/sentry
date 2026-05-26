@@ -211,5 +211,6 @@ interface SnapshotComparisonInfo {
   images_added: number;
   images_changed: number;
   images_removed: number;
+  images_skipped: number;
   images_unchanged: number;
 }

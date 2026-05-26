@@ -54,7 +54,7 @@ type ActivityTypeDraft = {
   user: User | null;
 };
 
-export type ActivityType = ActivityTypeDraft & {
+type ActivityType = ActivityTypeDraft & {
   previousValue: string | null;
   value: string | null; // determines IncidentStatus of the activity (CRITICAL/WARNING/etc.)
   eventStats?: {data: Data};

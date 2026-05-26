@@ -246,7 +246,7 @@ describe('InstallationConfigStep', () => {
     });
   });
 
-  it('shows submitting state when isAdvancing is true', async () => {
+  it('shows busy state when isAdvancing is true', async () => {
     render(
       <InstallationConfigStep
         {...makeStepProps({
@@ -259,7 +259,10 @@ describe('InstallationConfigStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables submit button when isInitializing', async () => {
@@ -317,7 +320,7 @@ describe('GitLabOAuthLoginStep', () => {
     });
   });
 
-  it('shows loading state when isAdvancing is true', () => {
+  it('shows busy state when isAdvancing is true', () => {
     render(
       <GitLabOAuthLoginStep
         {...makeStepProps({
@@ -327,7 +330,10 @@ describe('GitLabOAuthLoginStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Authorize GitLab'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables authorize button when oauthUrl is not provided', () => {

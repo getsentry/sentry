@@ -693,7 +693,6 @@ describe('OrganizationMembersList', () => {
       });
       renderGlobalModal();
 
-      expect(await screen.findByText('Members')).toBeInTheDocument();
       expect(await screen.findByText(currentUser.name)).toBeInTheDocument();
       expect(screen.queryByText(member.name)).not.toBeInTheDocument();
 
@@ -725,10 +724,9 @@ describe('OrganizationMembersList', () => {
       });
       renderGlobalModal();
 
-      expect(await screen.findByText('Members')).toBeInTheDocument();
+      const leaveButton = await screen.findByRole('button', {name: 'Leave'});
       expect(searchQuery).toHaveBeenCalled();
       expect(ownerQuery).toHaveBeenCalled();
-      const leaveButton = await screen.findByRole('button', {name: 'Leave'});
       expect(leaveButton).toBeEnabled();
     });
   });
@@ -772,11 +770,6 @@ describe('OrganizationMembersList', () => {
       });
       renderGlobalModal();
 
-      // Page should render without crashing
-      expect(await screen.findByText('Members')).toBeInTheDocument();
-
-      // Current user should be able to leave since the deleted owner doesn't count
-      // (they have null user, so filtered out of ownership check)
       const leaveButton = await screen.findByRole('button', {name: 'Leave'});
       expect(leaveButton).toBeDisabled(); // Disabled because they're the only valid owner
     });

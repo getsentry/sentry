@@ -22,6 +22,7 @@ import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -65,6 +66,7 @@ export function TransactionsTable(props: Props) {
     isLoading,
     referrer,
   } = props;
+  const navigate = useNavigate();
   const theme = useTheme();
 
   const getTitles = () => {
@@ -137,7 +139,7 @@ export function TransactionsTable(props: Props) {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {organization, location, theme});
+      let rendered = fieldRenderer(row, {navigate, organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, row, location);
 
