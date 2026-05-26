@@ -46,7 +46,7 @@ export function convertWidgetToQueryParams(
       // Convert tracemetrics equations to the alias format when passing off to the dashboard widget builder
       // due to the internal representation required for the widget builder to properly select this equation
       // as a sort field
-      const equations = q.aggregates.find(a => isEquation(a));
+      const equations = q.aggregates.filter(isEquation);
       const equationIndex = equations?.indexOf(decodedSort.field);
       if (defined(equationIndex) && equationIndex >= 0) {
         return `${decodedSort.kind === 'desc' ? '-' : ''}equation[${equationIndex}]`;
