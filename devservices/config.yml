@@ -339,6 +339,7 @@ x-sentry-service-config:
         spotlight,
         taskbroker,
         taskworker,
+        taskworker-ingest-profiles,
         vroom,
       ]
     full:
@@ -373,6 +374,7 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
         taskbroker,
         taskworker,
+        taskworker-ingest-profiles,
         taskworker-scheduler,
       ]
 
