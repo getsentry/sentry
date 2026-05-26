@@ -1,0 +1,130 @@
+import {useMemo} from 'react';
+
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
+import {Token} from 'sentry/components/searchSyntax/parser';
+import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import type {DateString} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
+import {useProjects} from 'sentry/utils/useProjects';
+
+import type {SeerRawResponseItem} from './types';
+
+export function useInitialSeerQuery(): string {
+  const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
+
+  const queryDetails = useMemo(() => {
+    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    const parsedQuery = parseQuery(queryToUse);
+    return {parsedQuery, queryToUse};
+  }, [committedQuery, query, parseQuery]);
+
+  const inputValue = currentInputValueRef.current.trim();
+
+  const filteredCommittedQuery = queryDetails?.parsedQuery
+    ?.filter(
+      token =>
+        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
+    )
+    ?.map(token => stringifyToken(token))
+    ?.join(' ')
+    ?.trim();
+
+  let initialSeerQuery = '';
+
+  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
+    initialSeerQuery = filteredCommittedQuery;
+  } else if (!inputValue && queryDetails?.queryToUse) {
+    initialSeerQuery = queryDetails.queryToUse;
+  }
+
+  if (inputValue) {
+    initialSeerQuery =
+      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
+  }
+
+  return initialSeerQuery;
+}
+
+export function useSelectedProjectIds(): number[] {
+  const pageFilters = usePageFilters();
+  const {projects} = useProjects();
+
+  return useMemo(() => {
+    if (
+      pageFilters.selection.projects?.length > 0 &&
+      pageFilters.selection.projects?.[0] !== -1
+    ) {
+      return pageFilters.selection.projects;
+    }
+    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
+  }, [pageFilters.selection.projects, projects]);
+}
+
+export function useSelectedProjectIdsForMutation(): Array<number | string> {
+  const pageFilters = usePageFilters();
+  const {projects} = useProjects();
+
+  return useMemo(() => {
+    if (
+      pageFilters.selection.projects?.length > 0 &&
+      pageFilters.selection.projects?.[0] !== -1
+    ) {
+      return pageFilters.selection.projects;
+    }
+    return projects.filter(p => p.isMember).map(p => p.id);
+  }, [pageFilters.selection.projects, projects]);
+}
+
+export function transformSeerResponse<T>(
+  response: T,
+  mapItem: (item: SeerRawResponseItem) => T
+): T[] {
+  const seerResponse = response as unknown as {
+    responses?: SeerRawResponseItem[];
+  };
+
+  if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
+    return seerResponse.responses.map(mapItem);
+  }
+
+  return [response];
+}
+
+interface SeerDateTimeSelection {
+  end: DateString;
+  period: string | null;
+  start: DateString;
+  utc: boolean | null;
+}
+
+export function buildSeerDateTimeSelection(
+  resultStart: string | null,
+  resultEnd: string | null,
+  statsPeriod: string,
+  pageFiltersDatetime: PageFilters['datetime']
+): SeerDateTimeSelection {
+  let start: DateString = null;
+  let end: DateString = null;
+
+  if (resultStart && resultEnd) {
+    const startLocal = resultStart.endsWith('Z') ? resultStart.slice(0, -1) : resultStart;
+    const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
+    start = new Date(startLocal).toISOString();
+    end = new Date(endLocal).toISOString();
+  } else {
+    start = pageFiltersDatetime.start;
+    end = pageFiltersDatetime.end;
+  }
+
+  return {
+    start,
+    end,
+    utc: pageFiltersDatetime.utc,
+    period: resultStart && resultEnd ? null : statsPeriod || pageFiltersDatetime.period,
+  };
+}
