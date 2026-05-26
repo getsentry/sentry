@@ -15,6 +15,7 @@ import orjson
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from django.http.response import HttpResponseBase
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -26,6 +27,8 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
@@ -82,17 +85,46 @@ def _build_hash_to_filenames(
     return result
 
 
+@extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
 class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationReleasePermission,)
 
+    @extend_schema(
+        operation_id="Download Snapshot images as ZIP",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="snapshot_id",
+                type=str,
+                location="path",
+                required=True,
+                description="The ID of the snapshot to download.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: OpenApiResponse(description="A ZIP archive containing all snapshot images."),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(
         self, request: Request, organization: Organization, snapshot_id: str
     ) -> HttpResponseBase:
+        """
+        Download all images in a snapshot as a ZIP archive.
+
+        The response is a streaming `application/zip` file. Images that share
+        the same content hash are deduplicated during fetch but written under
+        their original filenames in the archive.
+
+        This endpoint requires a bearer token with `project:read` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", organization, actor=request.user
         ):

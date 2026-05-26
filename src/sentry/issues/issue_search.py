@@ -241,7 +241,7 @@ def convert_device_class_value(
     for device_class in value:
         device_class_values = DEVICE_CLASS.get(device_class)
         if not device_class_values:
-            raise InvalidSearchQuery(f"Invalid type value of '{type}'")
+            raise InvalidSearchQuery(f"Invalid device class value of '{device_class}'")
         results.update(device_class_values)
     return list(results)
 

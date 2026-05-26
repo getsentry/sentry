@@ -688,6 +688,8 @@ class Fixtures:
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
     def create_workflow(self, *args, **kwargs) -> Workflow:
+        if "organization" not in kwargs:
+            kwargs["organization"] = self.organization
         return Factories.create_workflow(*args, **kwargs)
 
     def create_data_source(self, *args, **kwargs) -> DataSource:
