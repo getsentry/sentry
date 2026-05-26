@@ -14,12 +14,15 @@ from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.utils import sdk
 from sentry.utils.sdk import (
+    SAMPLED_ROUTE_PATTERNS,
+    SAMPLED_ROUTES,
     bind_ambiguous_org_context,
     bind_organization_context,
     capture_exception_with_scope_check,
     check_current_scope_transaction,
     check_tag_for_scope_bleed,
     merge_context_into_scope,
+    traces_sampler,
 )
 
 
@@ -623,3 +626,139 @@ def test_before_send_error_level() -> None:
     event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
     assert event_with_before_send
     assert event_with_before_send["level"] == "warning"
+
+
+class TracesSamplerTest(TestCase):
+    """Tests for traces_sampler route matching (SAMPLED_ROUTES and SAMPLED_ROUTE_PATTERNS)."""
+
+    def _wsgi_ctx(
+        self,
+        path: str | None = None,
+        parent_sampled: bool | None = None,
+    ) -> dict:
+        """Sampling context as constructed by the sentry-sdk WSGI integration."""
+        ctx: dict = {
+            "transaction_context": {"name": "Generic WSGI request"},
+            "parent_sampled": parent_sampled,
+        }
+        if path is not None:
+            ctx["wsgi_environ"] = {"PATH_INFO": path}
+        return ctx
+
+    def _asgi_ctx(
+        self,
+        path: str | None = None,
+        root_path: str = "",
+        parent_sampled: bool | None = None,
+    ) -> dict:
+        """Sampling context as constructed by the sentry-sdk ASGI integration (Granian/uvicorn)."""
+        ctx: dict = {
+            "transaction_context": {"name": "Generic WSGI request"},
+            "parent_sampled": parent_sampled,
+        }
+        if path is not None:
+            ctx["asgi_scope"] = {"type": "http", "path": path, "root_path": root_path}
+        return ctx
+
+    # ── exact-match routes (WSGI) ───────────────────────────────────────────
+
+    def test_wsgi_exact_match_warmup(self) -> None:
+        assert traces_sampler(self._wsgi_ctx("/_warmup/")) == SAMPLED_ROUTES["/_warmup/"]
+
+    def test_wsgi_exact_match_auth_validate(self) -> None:
+        assert (
+            traces_sampler(self._wsgi_ctx("/api/0/auth/validate/"))
+            == SAMPLED_ROUTES["/api/0/auth/validate/"]
+        )
+
+    # ── SAMPLED_ROUTE_PATTERNS via WSGI ────────────────────────────────────
+
+    def test_wsgi_pattern_ai_conversations_list(self) -> None:
+        assert (
+            traces_sampler(self._wsgi_ctx("/api/0/organizations/sentry/ai-conversations/")) == 1.0
+        )
+
+    def test_wsgi_pattern_ai_conversations_detail(self) -> None:
+        assert (
+            traces_sampler(
+                self._wsgi_ctx("/api/0/organizations/sentry/ai-conversations/some-conv-id/")
+            )
+            == 1.0
+        )
+
+    def test_wsgi_pattern_ai_conversations_overrides_false_parent_sampled(self) -> None:
+        """Force-sample even when the parent trace decided not to sample."""
+        assert (
+            traces_sampler(
+                self._wsgi_ctx(
+                    "/api/0/organizations/sentry/ai-conversations/", parent_sampled=False
+                )
+            )
+            == 1.0
+        )
+
+    # ── SAMPLED_ROUTE_PATTERNS via ASGI (Granian / uvicorn) ────────────────
+
+    def test_asgi_pattern_ai_conversations_list(self) -> None:
+        """ASGI path (Granian asgi/asginl): path comes from asgi_scope, not wsgi_environ."""
+        assert (
+            traces_sampler(self._asgi_ctx("/api/0/organizations/sentry/ai-conversations/")) == 1.0
+        )
+
+    def test_asgi_pattern_ai_conversations_detail(self) -> None:
+        assert (
+            traces_sampler(
+                self._asgi_ctx("/api/0/organizations/sentry/ai-conversations/some-conv-id/")
+            )
+            == 1.0
+        )
+
+    def test_asgi_pattern_ai_conversations_with_root_path(self) -> None:
+        """root_path prefix is prepended before matching, e.g. when mounted under /api/0."""
+        assert (
+            traces_sampler(
+                self._asgi_ctx(
+                    path="/organizations/sentry/ai-conversations/",
+                    root_path="/api/0",
+                )
+            )
+            == 1.0
+        )
+
+    def test_asgi_pattern_ai_conversations_overrides_false_parent_sampled(self) -> None:
+        assert (
+            traces_sampler(
+                self._asgi_ctx(
+                    "/api/0/organizations/sentry/ai-conversations/", parent_sampled=False
+                )
+            )
+            == 1.0
+        )
+
+    def test_asgi_no_match_other_org_endpoint(self) -> None:
+        result = traces_sampler(self._asgi_ctx("/api/0/organizations/sentry/issues/"))
+        assert result != 1.0
+
+    # ── non-matching / fallthrough cases ───────────────────────────────────
+
+    def test_wsgi_no_match_other_org_endpoint(self) -> None:
+        result = traces_sampler(self._wsgi_ctx("/api/0/organizations/sentry/issues/"))
+        assert result != 1.0
+
+    def test_no_server_context_falls_through(self) -> None:
+        """Celery/taskworker contexts have neither wsgi_environ nor asgi_scope."""
+        ctx: dict = {"transaction_context": {"name": "task"}, "parent_sampled": None}
+        result = traces_sampler(ctx)
+        assert result != 1.0
+
+    # ── SAMPLED_ROUTE_PATTERNS sanity check ────────────────────────────────
+
+    def test_sampled_route_patterns_nonempty(self) -> None:
+        assert len(SAMPLED_ROUTE_PATTERNS) > 0
+
+    def test_all_patterns_compile(self) -> None:
+        import re
+
+        for pattern, rate in SAMPLED_ROUTE_PATTERNS:
+            assert isinstance(pattern, re.Pattern), f"Expected compiled regex, got {pattern!r}"
+            assert 0.0 <= rate <= 1.0, f"Rate {rate} out of [0, 1] range"

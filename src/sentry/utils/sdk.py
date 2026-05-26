@@ -188,7 +188,17 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
+    # Extract the request path from whichever server context is present.
+    # WSGI (gunicorn/uwsgi) exposes PATH_INFO via wsgi_environ; ASGI (granian
+    # asgi/asginl, uvicorn, etc.) exposes it via asgi_scope["path"].
+    wsgi_environ = sampling_context.get("wsgi_environ")
+    asgi_scope = sampling_context.get("asgi_scope")
+    if wsgi_environ:
+        wsgi_path = wsgi_environ.get("PATH_INFO")
+    elif asgi_scope:
+        wsgi_path = asgi_scope.get("root_path", "") + asgi_scope.get("path", "")
+    else:
+        wsgi_path = None
     if wsgi_path:
         if wsgi_path in SAMPLED_ROUTES:
             return SAMPLED_ROUTES[wsgi_path]
