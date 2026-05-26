@@ -97,7 +97,7 @@ function ReplaysHeader() {
   );
 }
 
-function ReplayListLLMContextData({
+function useReplayListLLMContextData({
   showDeadRageClickCards,
   widgetIsOpen,
 }: {
@@ -115,10 +115,25 @@ function ReplayListLLMContextData({
     currentSelectedDateRange: pageFilters.selection.datetime,
     deadRageClickWidgetsVisible: showDeadRageClickCards && widgetIsOpen,
   });
-  return null;
 }
 
 function ReplaysListContainerInner() {
+  const organization = useOrganization();
+
+  return (
+    <AnalyticsArea name="list">
+      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
+        <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
+          <ReplayQueryParamsProvider>
+            <ReplaysListBody />
+          </ReplayQueryParamsProvider>
+        </ReplayPreferencesContextProvider>
+      </SentryDocumentTitle>
+    </AnalyticsArea>
+  );
+}
+
+function ReplaysListBody() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
@@ -146,6 +161,8 @@ function ReplaysListContainerInner() {
   );
   const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
 
+  useReplayListLLMContextData({showDeadRageClickCards, widgetIsOpen});
+
   useRouteAnalyticsParams({
     hasSessionReplay,
     hasSentReplays: hasSentReplays.hasSentOneReplay,
@@ -153,47 +170,35 @@ function ReplaysListContainerInner() {
   });
 
   return (
-    <AnalyticsArea name="list">
-      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
-        <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
-          <ReplayQueryParamsProvider>
-            <ReplayListLLMContextData
+    <Stack flex={1}>
+      <ReplaysHeader />
+      <PageFiltersContainer>
+        <ExploreBodySearch>
+          <Layout.Main width="full">
+            <ReplayListControls
+              onToggleWidgets={toggleWidgets}
               showDeadRageClickCards={showDeadRageClickCards}
               widgetIsOpen={widgetIsOpen}
             />
-            <Stack flex={1}>
-              <ReplaysHeader />
-              <PageFiltersContainer>
-                <ExploreBodySearch>
-                  <Layout.Main width="full">
-                    <ReplayListControls
-                      onToggleWidgets={toggleWidgets}
-                      showDeadRageClickCards={showDeadRageClickCards}
-                      widgetIsOpen={widgetIsOpen}
-                    />
-                  </Layout.Main>
-                </ExploreBodySearch>
-                <ExploreBodyContent>
-                  <ExploreContentSection gap="xl">
-                    <ReplayListPageHeaderHook />
-                    {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                      <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
-                        <ReplayIndexContainer
-                          showDeadRageClickCards={showDeadRageClickCards}
-                          widgetIsOpen={widgetIsOpen}
-                        />
-                      </ReplayAccess>
-                    ) : (
-                      <ReplayOnboardingPanel />
-                    )}
-                  </ExploreContentSection>
-                </ExploreBodyContent>
-              </PageFiltersContainer>
-            </Stack>
-          </ReplayQueryParamsProvider>
-        </ReplayPreferencesContextProvider>
-      </SentryDocumentTitle>
-    </AnalyticsArea>
+          </Layout.Main>
+        </ExploreBodySearch>
+        <ExploreBodyContent>
+          <ExploreContentSection gap="xl">
+            <ReplayListPageHeaderHook />
+            {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+              <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                <ReplayIndexContainer
+                  showDeadRageClickCards={showDeadRageClickCards}
+                  widgetIsOpen={widgetIsOpen}
+                />
+              </ReplayAccess>
+            ) : (
+              <ReplayOnboardingPanel />
+            )}
+          </ExploreContentSection>
+        </ExploreBodyContent>
+      </PageFiltersContainer>
+    </Stack>
   );
 }
 
