@@ -153,7 +153,6 @@ export function BreadcrumbItem({
 
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
-  position: relative;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin: 0;
   &:hover {
