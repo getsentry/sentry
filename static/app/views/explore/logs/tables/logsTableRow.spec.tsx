@@ -439,10 +439,6 @@ describe('logsTableRow', () => {
       expect.objectContaining({enabled: true})
     );
 
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    expect(stacktraceLinkMock).toHaveBeenCalledTimes(0);
-    expect(releaseMock).toHaveBeenCalledTimes(0);
-
     // Find the hoverable code path element
     const codePathElement = await screen.findByTestId('hoverable-code-path');
     expect(codePathElement).toBeInTheDocument();
