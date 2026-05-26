@@ -2,7 +2,7 @@ import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -58,10 +58,10 @@ import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
 import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
 import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
+import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
-import {useDiscardIssueMutation} from 'sentry/views/issueDetails/useDiscardIssueMutation';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -116,7 +116,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const location = useLocation();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
-  const {mutate: discardIssue} = useDiscardIssueMutation();
+  const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
