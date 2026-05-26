@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sentry_relay.processing import normalize_project_config
@@ -262,7 +262,7 @@ def test_generate_rules_with_different_project_platforms(
 
     assert generate_rules(default_old_project) == [
         {
-            "samplingValue": {"type": "factor", "value": ANY},
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -320,7 +320,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
     assert generate_rules(default_old_project) == [
         {
-            "samplingValue": {"type": "factor", "value": ANY},
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -334,7 +334,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "factor", "value": ANY},
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -348,7 +348,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "samplingValue": {"type": "factor", "value": ANY},
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "condition": {
                 "op": "and",
@@ -402,7 +402,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 
     assert generate_rules(default_old_project) == [
         {
-            "samplingValue": {"type": "factor", "value": ANY},
+            "samplingValue": {"type": "factor", "value": 1.5},
             "type": "trace",
             "condition": {
                 "op": "and",

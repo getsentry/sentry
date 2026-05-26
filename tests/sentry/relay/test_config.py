@@ -375,7 +375,7 @@ def test_project_config_with_all_biases_enabled(default_project, default_team):
                 "type": "trace",
             },
             {
-                "samplingValue": {"type": "factor", "value": ANY},
+                "samplingValue": {"type": "factor", "value": 1.5},
                 "type": "trace",
                 "condition": {
                     "op": "and",
@@ -396,7 +396,7 @@ def test_project_config_with_all_biases_enabled(default_project, default_team):
                 "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
-                "samplingValue": {"type": "factor", "value": ANY},
+                "samplingValue": {"type": "factor", "value": 1.5},
                 "type": "trace",
                 "condition": {
                     "op": "and",
