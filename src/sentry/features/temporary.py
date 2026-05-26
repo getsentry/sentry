@@ -68,8 +68,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enable metrics enhanced performance for AM2+ customers as they transition from AM2 to AM3
     manager.add("organizations:dashboards-metrics-transition", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable drilldown flow for dashboards
-    manager.add("organizations:dashboards-drilldown-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
     # Enable prebuilt dashboards for insights modules
     manager.add("organizations:dashboards-prebuilt-insights-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the details widget for dashboards
@@ -292,9 +291,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-on-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Seer Workflows in Slack
+    # Enable Seer Workflows in Slack (released, kept until overrides are removed)
     manager.add("organizations:seer-slack-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Seer Agent in Slack via @mentions
+    # Enable Seer Agent in Slack via @mentions (released, kept until overrides are removed)
     manager.add("organizations:seer-slack-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show Seer run ID in Slack notification footers
     manager.add("organizations:seer-run-id-in-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -331,6 +330,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-feed.eap-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the experimental "recommended" sort option in the issue stream
+    manager.add("organizations:issue-stream-recommended-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
@@ -404,7 +405,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable metric detector limits by plan type
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable seer activities to be evaluated in workflow engine
-    manager.add("organization:workflow-engine-evaluate-seer-activities", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:workflow-engine-evaluate-seer-activities", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable our logs product (known internally as ourlogs) in UI and backend
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
@@ -444,8 +445,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sentry-app-webhook-circuit-breaker", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Override dry-run to enable real blocking per app-owner org during rollout
     manager.add("organizations:sentry-app-webhook-circuit-breaker-live-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Create organiations via control-scoped domains in saas.
-    manager.add("organizations:create-org-control", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Enables organization access to the new notification platform
     manager.add("organizations:notification-platform.internal-testing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

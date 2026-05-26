@@ -113,6 +113,12 @@ register(
     default=300,  # 5 minutes
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "data-forwarding.task-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
@@ -3654,6 +3660,13 @@ register(
     "workflow_engine.max_workflows_per_org",
     type=Int,
     default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Skip workflows that don't belong to the event's organization.
+register(
+    "workflow_engine.filter_cross_org_workflows",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,

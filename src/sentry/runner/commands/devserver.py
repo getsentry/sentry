@@ -332,8 +332,8 @@ def devserver(
                 kafka_consumers.add("monitors-clock-tasks")
                 kafka_consumers.add("monitors-incident-occurrences")
 
-                if settings.SENTRY_USE_PROFILING:
-                    kafka_consumers.add("ingest-profiles")
+                # ingest-profiles is now handled by taskbroker passthrough mode
+                # via devservices (STREAM-1041)
 
                 if settings.SENTRY_USE_SPANS_BUFFER:
                     kafka_consumers.add("process-spans")

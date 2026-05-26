@@ -22,6 +22,58 @@ class GroupEventJsonTest(TestCase):
         data = json.loads(resp.content.decode("utf-8"))
         assert data["event_id"] == self.event.event_id
 
+    def test_cross_project_access_denied(self) -> None:
+        """User on team A cannot read event JSON from a project they lack access to."""
+        org = self.create_organization(flags=0)
+        team_b = self.create_team(organization=org, name="team-b")
+        project_b = self.create_project(organization=org, teams=[team_b])
+        min_ago = before_now(minutes=1).isoformat()
+        event_b = self.store_event(
+            data={"fingerprint": ["group-b"], "timestamp": min_ago},
+            project_id=project_b.id,
+        )
+
+        team_a = self.create_team(organization=org, name="team-a")
+        restricted_user = self.create_user()
+        self.create_member(
+            user=restricted_user,
+            organization=org,
+            role="member",
+            teams=[team_a],
+        )
+
+        self.login_as(restricted_user)
+        path = (
+            f"/organizations/{org.slug}/issues/{event_b.group_id}/events/{event_b.event_id}/json/"
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 404
+
+    def test_cross_project_access_denied_latest(self) -> None:
+        """User on team A cannot read latest event JSON from a project they lack access to."""
+        org = self.create_organization(flags=0)
+        team_b = self.create_team(organization=org, name="team-b")
+        project_b = self.create_project(organization=org, teams=[team_b])
+        min_ago = before_now(minutes=1).isoformat()
+        event_b = self.store_event(
+            data={"fingerprint": ["group-b"], "timestamp": min_ago},
+            project_id=project_b.id,
+        )
+
+        team_a = self.create_team(organization=org, name="team-a")
+        restricted_user = self.create_user()
+        self.create_member(
+            user=restricted_user,
+            organization=org,
+            role="member",
+            teams=[team_a],
+        )
+
+        self.login_as(restricted_user)
+        path = f"/organizations/{org.slug}/issues/{event_b.group_id}/events/latest/json/"
+        resp = self.client.get(path)
+        assert resp.status_code == 404
+
     def test_cross_organization_access_denied(self) -> None:
         """Ensures users cannot access event data from other organizations."""
         victim_org = self.create_organization(name="victim-org")

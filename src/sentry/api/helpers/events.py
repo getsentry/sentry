@@ -191,7 +191,7 @@ def run_group_events_query(
             snuba_data,
             eap_data,
             callsite,
-            is_experimental_data_a_null_result=len(eap_data) == 0,
+            is_experimental_data_nullish=len(eap_data) == 0,
             reasonable_match_comparator=_reasonable_group_events_match,
             debug_context={
                 "group_id": group.id,
