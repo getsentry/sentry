@@ -124,7 +124,9 @@ function useNativeOperatorFilter(
     isValidNumericFilterValue(stagedFilterValue, globalFilterToken, globalFilter);
 
   const buildFilterQuery = () => {
-    if (!globalFilterToken) return '';
+    if (!globalFilterToken) {
+      return '';
+    }
 
     return newNumericFilterQuery(
       stagedFilterValue,
