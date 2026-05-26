@@ -323,7 +323,13 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         repo: pr_state.dict() for repo, pr_state in state.repo_pr_states.items()
                     },
                     "coding_agents": {
-                        agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
+                        agent_id: {
+                            **agent.dict(),
+                            "started_at": (
+                                agent.started_at.isoformat() if agent.started_at else None
+                            ),
+                        }
+                        for agent_id, agent in state.coding_agents.items()
                     },
                 }
             }
