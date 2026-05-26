@@ -102,6 +102,6 @@ export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps)
   const platformIconName = getLogoImage(name);
 
   return (
-    <PlatformIcon platform={platformIconName ?? 'default'} size={size} format="lg" />
+    <PlatformIcon platform={platformIconName ?? 'default'} size={size} format="lg" alt={name} />
   );
 }
