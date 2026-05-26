@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {createPortal} from 'react-dom';
 import {
   Outlet,
   RouterProvider,
@@ -110,6 +111,26 @@ interface InitialRouterOptions {
   outletContext?: Record<string, unknown>;
 }
 
+const topBarSlotOutletContainer = document.createElement('div');
+topBarSlotOutletContainer.setAttribute('data-test-id', 'topbar-slot-outlets');
+document.body.appendChild(topBarSlotOutletContainer);
+
+function TopBarSlotOutlets() {
+  return createPortal(
+    <Fragment>
+      <TopBar.Slot.Outlet name="title">{props => <div {...props} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="search">{props => <div {...props} />}</TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="actions">
+        {props => <div {...props} />}
+      </TopBar.Slot.Outlet>
+      <TopBar.Slot.Outlet name="feedback">
+        {props => <div {...props} />}
+      </TopBar.Slot.Outlet>
+    </Fragment>,
+    topBarSlotOutletContainer
+  );
+}
+
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
@@ -132,18 +153,7 @@ function makeAllTheProviders(options: ProviderOptions) {
             </GlobalAlertProvider>
           </OrganizationContext>
         </LLMContextProvider>
-        <TopBar.Slot.Outlet name="title">
-          {props => <div {...props} style={{display: 'none'}} />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="search">
-          {props => <div {...props} style={{display: 'none'}} />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="actions">
-          {props => <div {...props} style={{display: 'none'}} />}
-        </TopBar.Slot.Outlet>
-        <TopBar.Slot.Outlet name="feedback">
-          {props => <div {...props} style={{display: 'none'}} />}
-        </TopBar.Slot.Outlet>
+        <TopBarSlotOutlets />
       </TopBar.Slot.Provider>
     );
 
