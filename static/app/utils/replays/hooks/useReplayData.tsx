@@ -180,14 +180,14 @@ export function useReplayData({
     Boolean(projectSlug) &&
     Boolean(replayRecord);
 
-  const attachmentCursors = useMemo(() => {
-    const hits = replayRecord?.count_segments ?? 0;
-    if (hits === 0) return [];
-    return Array.from(
-      {length: Math.ceil(hits / segmentsPerPage)},
-      (_, i) => `0:${segmentsPerPage * i}:0`
-    );
-  }, [replayRecord?.count_segments, segmentsPerPage]);
+  const segmentCount = replayRecord?.count_segments ?? 0;
+  const attachmentCursors =
+    segmentCount === 0
+      ? []
+      : Array.from(
+          {length: Math.ceil(segmentCount / segmentsPerPage)},
+          (_, i) => `0:${segmentsPerPage * i}:0`
+        );
 
   const {
     pages: attachmentPages,
@@ -240,14 +240,14 @@ export function useReplayData({
     [orgSlug, replayRecord]
   );
 
-  const errorCursors = useMemo(() => {
-    const hits = replayRecord?.count_errors ?? 0;
-    if (hits === 0) return [];
-    return Array.from(
-      {length: Math.ceil(hits / errorsPerPage)},
-      (_, i) => `0:${errorsPerPage * i}:0`
-    );
-  }, [replayRecord?.count_errors, errorsPerPage]);
+  const errorCount = replayRecord?.count_errors ?? 0;
+  const errorCursors =
+    errorCount === 0
+      ? []
+      : Array.from(
+          {length: Math.ceil(errorCount / errorsPerPage)},
+          (_, i) => `0:${errorsPerPage * i}:0`
+        );
 
   const enableErrors = Boolean(replayRecord) && Boolean(projectSlug);
   const {pages: errorPages, status: fetchErrorsStatus} = useQueries({
@@ -281,14 +281,14 @@ export function useReplayData({
     (!replayRecord?.count_errors || Boolean(links.next?.results)) &&
     fetchErrorsStatus === 'success';
 
-  const replayEnd = useMemo(() => {
+  const replayEnd = (() => {
     if (!replayRecord?.finished_at) {
       return '';
     }
     const d = new Date(replayRecord.finished_at);
     d.setSeconds(d.getSeconds() + 1);
     return d.toISOString();
-  }, [replayRecord?.finished_at]);
+  })();
 
   const extraErrorsResult = useInfiniteQuery(
     apiOptions.asInfinite<{data: RawReplayError[]}>()(
@@ -416,7 +416,7 @@ export function useReplayData({
     enableAttachments ? fetchAttachmentsStatus : undefined,
     enableErrors ? fetchErrorsStatus : undefined,
     enableExtraErrors ? fetchExtraErrorsStatus : undefined,
-    fetchPlatformErrorsStatus,
+    replayRecord ? fetchPlatformErrorsStatus : undefined,
   ];
 
   const isError = allStatuses.includes('error') || feedbackEventsError;
