@@ -378,7 +378,9 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     }
   );
 
-  if (isDemoMode) return demoTrace;
+  if (isDemoMode) {
+    return demoTrace;
+  }
   if (isEAPEnabled) {
     return isInitialEAPTraceEmpty && canRetryWithWiderPeriod
       ? eapTraceFallbackQuery

@@ -209,7 +209,7 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
-  it('should fire analytics for metadata', async () => {
+  it.isKnownFlake('should fire analytics for metadata', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />

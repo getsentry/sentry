@@ -153,7 +153,9 @@ export function ExplorerDrawerContent({
   });
 
   const handleCopyLink = useCallback(async () => {
-    if (runId === null) return;
+    if (runId === null) {
+      return;
+    }
     try {
       const url = getExplorerUrl(runId);
       await navigator.clipboard.writeText(url);

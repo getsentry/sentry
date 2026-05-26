@@ -63,7 +63,9 @@ from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
 )
-from sentry.relocation.tasks.transfer import process_relocation_transfer_region
+from sentry.relocation.services.relocation_export.service import (
+    control_relocation_export_service,
+)
 from sentry.relocation.utils import (
     TASK_TO_STEP,
     LoggingPrinter,
@@ -247,9 +249,6 @@ def uploading_start(uuid: str, replying_cell_name: str | None, org_slug: str | N
         with the `Relocation` that originally triggered `uploading_start`, and the next task in the
         sequence (`uploading_complete`) is scheduled.
     """
-    from sentry.relocation.services.relocation_export.service import (
-        control_relocation_export_service,
-    )
 
     uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
@@ -333,6 +332,8 @@ def fulfill_cross_region_export_request(
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
+    from sentry.relocation.tasks.transfer import process_relocation_transfer_region
+
     encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
 
     logger_data = {

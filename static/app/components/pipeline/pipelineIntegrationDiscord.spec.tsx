@@ -60,7 +60,7 @@ describe('DiscordOAuthLoginStep', () => {
     });
   });
 
-  it('shows loading state when isAdvancing is true', () => {
+  it('shows busy state when isAdvancing is true', () => {
     render(
       <DiscordOAuthLoginStep
         {...makeStepProps({
@@ -70,7 +70,10 @@ describe('DiscordOAuthLoginStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Authorize Discord'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables authorize button when oauthUrl is not provided', () => {

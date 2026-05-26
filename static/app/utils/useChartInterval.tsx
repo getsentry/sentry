@@ -26,6 +26,8 @@ export enum ChartIntervalUnspecifiedStrategy {
   USE_SECOND_BIGGEST = 'use_second_biggest',
   /** Use the smallest possible interval (e.g., the smallest possible buckets) */
   USE_SMALLEST = 'use_smallest',
+  /** Use the biggest possible interval (e.g., the biggest possible buckets) */
+  USE_BIGGEST = 'use_biggest',
 }
 
 interface Options {
@@ -71,10 +73,20 @@ function useChartIntervalImpl({
     const options = getIntervalOptionsForPageFilter(datetime);
 
     // Compute the default from the ladder-derived options, before appending extras
-    const fallback =
-      unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
-        ? options[0]!.value
-        : (options[options.length - 2]?.value ?? options[options.length - 1]!.value);
+    let fallback: string;
+    switch (unspecifiedStrategy) {
+      case ChartIntervalUnspecifiedStrategy.USE_SMALLEST:
+        fallback = options[0]!.value;
+        break;
+      case ChartIntervalUnspecifiedStrategy.USE_BIGGEST:
+        fallback = options[options.length - 1]!.value;
+        break;
+      case ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST:
+      default:
+        fallback =
+          options[options.length - 2]?.value ?? options[options.length - 1]!.value;
+        break;
+    }
 
     if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
       options.push(ONE_DAY_OPTION);
