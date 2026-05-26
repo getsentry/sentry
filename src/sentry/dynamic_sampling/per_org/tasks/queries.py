@@ -29,8 +29,7 @@ class ProjectVolume:
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
-    value = row.get(column)
-    return int(value) if value is not None else 0
+    return int(row.get(column, 0))
 
 
 def run_eap_spans_table_query_in_chunks(
@@ -71,8 +70,13 @@ def get_eap_organization_volume(
         ),
         query_string="is_transaction:true",
         selected_columns=["count()", "count_sample()"],
+        orderby=None,
+        offset=0,
+        limit=1,
+        referrer=Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME.value,
         config=SearchResolverConfig(
             auto_fields=True,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
         ),
         sampling_mode=SAMPLING_MODE_HIGHEST_ACCURACY,
     )
