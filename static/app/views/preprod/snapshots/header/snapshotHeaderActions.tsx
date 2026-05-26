@@ -187,7 +187,7 @@ export function SnapshotHeaderActions({
 
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
-      downloadFromHref(`snapshot_images_${data.head_artifact_id}.zip`, blobUrl);
+      downloadFromHref(`snapshot_images_${data.head_artifact_id}.tar`, blobUrl);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
       addSuccessMessage(t('Snapshot images download started'));
     } catch (error) {

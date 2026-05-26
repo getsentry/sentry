@@ -4,8 +4,8 @@ import logging
 import os
 import resource
 import sys
+import tarfile
 import time
-import zipfile
 from collections import defaultdict
 from collections.abc import Generator
 from concurrent.futures import as_completed
@@ -95,7 +95,7 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Download Snapshot images as ZIP",
+        operation_id="Download Snapshot images as tar archive",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -108,7 +108,7 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
         ],
         request=None,
         responses={
-            200: OpenApiResponse(description="A ZIP archive containing all snapshot images."),
+            200: OpenApiResponse(description="A tar archive containing all snapshot images."),
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -117,9 +117,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, snapshot_id: str
     ) -> HttpResponseBase:
         """
-        Download all images in a snapshot as a ZIP archive.
+        Download all images in a snapshot as a tar archive.
 
-        The response is a streaming `application/zip` file. Images that share
+        The response is a streaming `application/x-tar` file. Images that share
         the same content hash are deduplicated during fetch but written under
         their original filenames in the archive.
 
@@ -169,9 +169,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
         unique_hashes = list(hash_to_filenames.keys())
         key_prefix = f"{organization.id}/{artifact.project_id}"
 
-        def _stream_zip() -> Generator[bytes]:
+        def _stream_tar() -> Generator[bytes]:
             buf = _DrainableBuffer()
-            zf = zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED)
+            tf = tarfile.open(fileobj=buf, mode="w|")
             failed_count = 0
             images_written = 0
             bytes_yielded = 0
@@ -213,7 +213,7 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
 
             executor = ContextPropagatingThreadPoolExecutor(max_workers=FETCH_MAX_WORKERS)
             try:
-                # Process in batches to cap memory and keep zip bytes
+                # Process in batches to cap memory and keep tar bytes
                 # flowing to the client progressively.
                 for batch_start in range(0, len(unique_hashes), FETCH_BATCH_SIZE):
                     batch = unique_hashes[batch_start : batch_start + FETCH_BATCH_SIZE]
@@ -232,7 +232,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                                 failed_count += 1
                                 continue
                             for filename in hash_to_filenames[image_hash]:
-                                zf.writestr(filename, data)
+                                info = tarfile.TarInfo(name=filename)
+                                info.size = len(data)
+                                tf.addfile(info, BytesIO(data))
                                 images_written += 1
                             chunk = buf.drain()
                             if chunk:
@@ -318,9 +320,9 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
                 # wait=False so hung objectstore reads from timed-out batches
                 # don't block the generator and eventually the WSGI worker.
                 executor.shutdown(wait=False, cancel_futures=True)
-                zf.close()
+                tf.close()
 
-                # Drain the final ZIP central directory bytes for accurate logging
+                # Drain the final tar end-of-archive marker bytes for accurate logging
                 final_chunk = buf.drain()
                 if final_chunk:
                     bytes_yielded += len(final_chunk)
@@ -343,8 +345,8 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
             if final_chunk:
                 yield final_chunk
 
-        response = StreamingHttpResponse(_stream_zip(), content_type="application/zip")
+        response = StreamingHttpResponse(_stream_tar(), content_type="application/x-tar")
         response["Content-Disposition"] = (
-            f'attachment; filename="snapshot_images_{artifact.id}.zip"'
+            f'attachment; filename="snapshot_images_{artifact.id}.tar"'
         )
         return response
