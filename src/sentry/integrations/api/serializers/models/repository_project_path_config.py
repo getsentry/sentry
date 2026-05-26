@@ -1,6 +1,5 @@
 from django.db.models import prefetch_related_objects
 
-from sentry import features
 from sentry.api.serializers import Serializer, register
 from sentry.integrations.api.serializers.models.integration import serialize_provider
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -13,16 +12,11 @@ class RepositoryProjectPathConfigSerializer(Serializer):
         if not item_list:
             return {}
 
-        organization = item_list[0].project.organization
-        use_fk = features.has("organizations:project-repository-fk-reads", organization)
-        if use_fk:
-            prefetch_related_objects(
-                item_list, "project_repository__project", "project_repository__repository"
-            )
-        else:
-            prefetch_related_objects(item_list, "project", "repository")
+        prefetch_related_objects(
+            item_list, "project_repository__project", "project_repository__repository"
+        )
 
-        return {item: {"use_project_repository_fk": use_fk} for item in item_list}
+        return {item: {} for item in item_list}
 
     def serialize(self, obj, attrs, user, **kwargs):
         integration = None
@@ -35,12 +29,8 @@ class RepositoryProjectPathConfigSerializer(Serializer):
         serialized_provider = serialize_provider(provider) if provider else None
         integration_id = str(integration.id) if integration else None
 
-        if attrs.get("use_project_repository_fk"):
-            project = obj.project_repository.project
-            repository = obj.project_repository.repository
-        else:
-            project = obj.project
-            repository = obj.repository
+        project = obj.project_repository.project
+        repository = obj.project_repository.repository
 
         return {
             "id": str(obj.id),

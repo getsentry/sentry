@@ -309,6 +309,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        seer_repos = list(SeerProjectRepository.objects.filter(project=project))
+        seer_repos = list(SeerProjectRepository.objects.filter(project_repository__project=project))
         assert len(seer_repos) == 1
-        assert seer_repos[0].repository_id == repo.id
+        assert seer_repos[0].project_repository.repository_id == repo.id

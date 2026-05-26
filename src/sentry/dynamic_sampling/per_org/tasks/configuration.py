@@ -9,7 +9,7 @@ from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     DynamicSamplingException,
-    TelemetryStatus,
+    DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
@@ -45,6 +45,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    projects: list[Project]
 
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
@@ -69,6 +70,11 @@ class BaseDynamicSamplingConfiguration(ABC):
             return SamplingMeasure.SPANS
         return SamplingMeasure.SEGMENTS
 
+    def _get_projects(self) -> list[Project]:
+        return list(
+            Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
+        )
+
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self) -> None:
@@ -90,7 +96,8 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
                 organization_id=organization.id
             )
         except ObjectDoesNotExist as exc:
-            raise DynamicSamplingException(TelemetryStatus.NO_SUBSCRIPTION) from exc
+            raise DynamicSamplingException(DynamicSamplingStatus.NO_SUBSCRIPTION) from exc
+        self.projects = self._get_projects()
 
     @property
     def is_enabled(self) -> bool:
@@ -103,6 +110,7 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
         self.measure = self._get_sampling_measure()
+        self.projects = self._get_projects()
 
         self.sample_rate = float(
             self.organization.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
@@ -118,6 +126,7 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
+        self.projects = self._get_projects()
         self.project_target_sample_rates = self._get_project_target_sample_rates()
         self.measure = self._get_sampling_measure()
 
@@ -128,23 +137,12 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
         )
 
     def _get_project_target_sample_rates(self) -> ProjectTargetSampleRates:
-        project_ids = list(
-            Project.objects.filter(
-                organization_id=self.organization.id, status=ObjectStatus.ACTIVE
-            ).values_list("id", flat=True)
+        project_sample_rates = ProjectOption.objects.get_value_bulk(
+            self.projects, "sentry:target_sample_rate"
         )
-        if not project_ids:
-            return {}
 
-        project_sample_rates = ProjectOption.objects.get_value_bulk_id(
-            project_ids, "sentry:target_sample_rate"
-        )
         sample_rates: ProjectTargetSampleRates = {
-            project_id: (
-                float(project_sample_rates[project_id])
-                if project_sample_rates[project_id] is not None
-                else None
-            )
-            for project_id in project_ids
+            project.id: float(sample_rate) if sample_rate is not None else None
+            for project, sample_rate in project_sample_rates.items()
         }
         return sample_rates

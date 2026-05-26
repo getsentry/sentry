@@ -5,8 +5,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
+import {INPUT_STORAGE_KEY_PREFIX} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
@@ -58,7 +60,7 @@ describe('ExplorerDrawerContent', () => {
   });
 
   describe('Empty State', () => {
-    it('renders the drawer root element', () => {
+    it('renders the drawer root element', async () => {
       render(
         <SeerExplorerSessionsProvider>
           <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
@@ -67,6 +69,7 @@ describe('ExplorerDrawerContent', () => {
           organization,
         }
       );
+      await screen.findByTestId('seer-explorer-input');
       expect(document.querySelector('[data-seer-explorer-root]')).toBeInTheDocument();
     });
 
@@ -217,7 +220,7 @@ describe('ExplorerDrawerContent', () => {
           run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:01:00Z',
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -451,7 +454,7 @@ describe('ExplorerDrawerContent', () => {
           run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -471,6 +474,127 @@ describe('ExplorerDrawerContent', () => {
     });
   });
 
+  describe('Input Persistence', () => {
+    it('restores the persisted draft when the drawer remounts', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 7,
+      });
+
+      const {unmount} = render(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>,
+        {organization}
+      );
+
+      await userEvent.type(
+        await screen.findByTestId('seer-explorer-input'),
+        'draft message'
+      );
+      unmount();
+
+      render(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByTestId('seer-explorer-input')).toHaveValue(
+        'draft message'
+      );
+    });
+
+    it('persists the draft per runId across run switches', async () => {
+      const useSeerExplorerSpy = jest.spyOn(useSeerExplorerModule, 'useSeerExplorer');
+      useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
+
+      const {rerender} = render(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>,
+        {organization}
+      );
+
+      await userEvent.type(
+        await screen.findByTestId('seer-explorer-input'),
+        'draft for run 1'
+      );
+
+      useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 2});
+      rerender(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId('seer-explorer-input')).toHaveValue('')
+      );
+      expect(
+        JSON.parse(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:1`) ?? '')
+      ).toBe('draft for run 1');
+
+      useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
+      rerender(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId('seer-explorer-input')).toHaveValue('draft for run 1')
+      );
+    });
+
+    it('never writes to sessionStorage when runId is null (no session)', async () => {
+      const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
+
+      const {unmount} = render(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>,
+        {organization}
+      );
+
+      await userEvent.type(
+        await screen.findByTestId('seer-explorer-input'),
+        'unsaved draft'
+      );
+      unmount();
+
+      const draftWrites = setItemSpy.mock.calls.filter(([k]) =>
+        String(k).startsWith(`${INPUT_STORAGE_KEY_PREFIX}:`)
+      );
+      expect(draftWrites).toHaveLength(0);
+    });
+
+    it('clears the persisted draft when a message is sent', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessage,
+        runId: 42,
+      });
+
+      render(
+        <SeerExplorerSessionsProvider>
+          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+        </SeerExplorerSessionsProvider>,
+        {organization}
+      );
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'hello');
+      await userEvent.keyboard('{Enter}');
+
+      expect(sendMessage).toHaveBeenCalledWith('hello', 0);
+      expect(textarea).toHaveValue('');
+      expect(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:42`)).toBeNull();
+    });
+  });
+
   describe('Read-only State', () => {
     it('disables input when session owner differs from current user', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
@@ -482,7 +606,7 @@ describe('ExplorerDrawerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 2,
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -512,7 +636,7 @@ describe('ExplorerDrawerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 1,
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(
@@ -542,7 +666,7 @@ describe('ExplorerDrawerContent', () => {
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: undefined,
-        } as useSeerExplorerModule.SeerExplorerResponse['session'],
+        } as SeerExplorerResponse['session'],
       });
 
       render(

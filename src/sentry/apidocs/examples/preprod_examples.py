@@ -256,6 +256,16 @@ class PreprodExamples:
         ],
     }
 
+    EXAMPLE_SNAPSHOT_STATUS_CHECK_RULES = {
+        "enabled": True,
+        "rules": {
+            "failOnAdded": False,
+            "failOnRemoved": True,
+            "failOnChanged": True,
+            "failOnRenamed": False,
+        },
+    }
+
     GET_LATEST_BUILD = [
         OpenApiExample(
             "Latest Build Only",
@@ -308,6 +318,15 @@ class PreprodExamples:
         OpenApiExample(
             "Configured Size Analysis Status Check Rules",
             value=EXAMPLE_SIZE_STATUS_CHECK_RULES,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    GET_SNAPSHOT_STATUS_CHECK_RULES = [
+        OpenApiExample(
+            "Configured Snapshot Status Check Rules",
+            value=EXAMPLE_SNAPSHOT_STATUS_CHECK_RULES,
             status_codes=["200"],
             response_only=True,
         ),

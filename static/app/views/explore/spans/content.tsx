@@ -48,12 +48,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
-  defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
-  maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
-  maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
-};
-
 function useHasCrossEvents() {
   const crossEvents = useQueryParamsCrossEvents();
   return defined(crossEvents) && crossEvents.length > 0;
@@ -77,6 +71,13 @@ function ExploreContentInner() {
     dataCategories: [DataCategory.SPANS],
   });
 
+  const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+    defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
+    maxPickableDays: dataCategoryMaxPickableDays.maxPickableDays,
+    maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+    maxDateRange: MAX_DAYS_FOR_CROSS_EVENTS,
+  };
+
   const maxPickableDays = hasCrossEvents
     ? CROSS_EVENTS_DATE_OVERRIDE
     : dataCategoryMaxPickableDays;
@@ -86,7 +87,10 @@ function ExploreContentInner() {
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <SpansCommandPaletteActions />
-      <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
+      <PageFiltersContainer
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        maxDateRange={datePageFilterProps.maxDateRange}
+      >
         <AnalyticsArea name="explore.spans">
           <AiQueryProvider>
             <Stack flex={1}>

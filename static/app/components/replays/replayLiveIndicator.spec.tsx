@@ -6,6 +6,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {
+  replayAttachmentsApiOptions,
+  replayRecordApiOptions,
+} from 'sentry/utils/replays/hooks/useReplayData';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useLiveBadge, useLiveRefresh} from './replayLiveIndicator';
@@ -221,5 +225,50 @@ describe('useLiveRefresh', () => {
 
     result.current.doRefresh();
     expect(updateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('doRefresh invalidates replay record and segments queries', async () => {
+    const now = Date.now();
+    const replay = ReplayRecordFixture({
+      started_at: new Date(now - 60_000),
+      count_segments: 5,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replay.id}/`,
+      body: {data: replay},
+    });
+
+    const queryClient = makeTestQueryClient();
+
+    function Wrapper({children}: {children: React.ReactNode}) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          <OrganizationContext value={organization}>{children}</OrganizationContext>
+        </QueryClientProvider>
+      );
+    }
+
+    const replayOptions = replayRecordApiOptions({
+      organizationIdOrSlug: organization.slug,
+      replayId: replay.id,
+    });
+    const segmentsOptions = replayAttachmentsApiOptions({
+      organizationIdOrSlug: organization.slug,
+      projectIdOrSlug: 'test-project',
+      replayId: replay.id,
+    });
+
+    queryClient.setQueryData(replayOptions.queryKey, {json: {data: replay}, headers: {}});
+    queryClient.setQueryData(segmentsOptions.queryKey, {json: [], headers: {}});
+
+    const {result} = renderHook(() => useLiveRefresh({replay}), {wrapper: Wrapper});
+
+    await act(async () => {
+      await result.current.doRefresh();
+    });
+
+    expect(queryClient.getQueryState(replayOptions.queryKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(segmentsOptions.queryKey)?.isInvalidated).toBe(true);
   });
 });

@@ -273,7 +273,7 @@ export function Alert({
               showIcon={!!showIcon}
               showTrailingItems={!!trailingItems}
             >
-              {Array.isArray(expand) ? expand.map(item => item) : expand}
+              {expand}
             </StyledExpandContainer>
           </Fragment>
         )}

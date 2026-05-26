@@ -1,13 +1,11 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useState} from 'react';
 
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
 import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
-import {useOnDemandControl} from './onDemandControl';
 
 export type MetricsResultsMetaMapKey = Widget;
 type ExtractedDataMap = Map<string, boolean | undefined>;
@@ -119,33 +117,8 @@ export function getIsMetricsDataFromResults(
 
 type ExtractionStatus = 'extracted' | 'not-extracted' | null;
 
-export function useExtractionStatus(props: {
+export function useExtractionStatus(_props: {
   queryKey: MetricsResultsMetaMapKey;
 }): ExtractionStatus {
-  const resultsMeta = useMetricsResultsMeta();
-  const organization = useOrganization();
-  const _onDemandControl = useOnDemandControl();
-
-  if (!_onDemandControl) {
-    return null;
-  }
-
-  const {forceOnDemand} = _onDemandControl;
-
-  const isMetricsExtractedData =
-    resultsMeta?.metricsExtractedDataMap.get(props.queryKey.id ?? '') || undefined;
-
-  if (!organization.features.includes('on-demand-metrics-extraction-experimental')) {
-    // Separate if for easier flag deletion
-    return null;
-  }
-
-  if (!forceOnDemand || isMetricsExtractedData === undefined) {
-    return null;
-  }
-
-  if (!isMetricsExtractedData) {
-    return 'not-extracted';
-  }
-  return 'extracted';
+  return null;
 }

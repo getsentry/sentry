@@ -17,18 +17,17 @@ class SeerProjectRepository(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Global
 
-    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
-    repository = FlexibleForeignKey("sentry.Repository", on_delete=models.CASCADE)
-    project_repository = FlexibleForeignKey("sentry.ProjectRepository", on_delete=models.CASCADE)
+    project_repository = FlexibleForeignKey(
+        "sentry.ProjectRepository", on_delete=models.CASCADE, unique=True
+    )
     branch_name = models.TextField(null=True, blank=True)
     instructions = models.TextField(null=True, blank=True)
 
     class Meta:
         app_label = "seer"
         db_table = "seer_projectrepository"
-        unique_together = (("project", "repository"),)
 
-    __repr__ = sane_repr("project_id", "repository_id")
+    __repr__ = sane_repr("project_repository_id")
 
 
 @cell_silo_model

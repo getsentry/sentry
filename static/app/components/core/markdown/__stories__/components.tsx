@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -82,7 +82,7 @@ export function CustomComponentsDemo() {
         Text: ({children}) => {
           const parts = children.split(/(SENTRY-\d+)/);
           return (
-            <React.Fragment>
+            <Fragment>
               {parts.map((part, i) =>
                 /SENTRY-\d+/.test(part) ? (
                   <a
@@ -99,7 +99,7 @@ export function CustomComponentsDemo() {
                   part
                 )
               )}
-            </React.Fragment>
+            </Fragment>
           );
         },
       }}

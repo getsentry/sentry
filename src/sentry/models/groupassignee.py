@@ -135,6 +135,11 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
+        from sentry.users.models.user import User as UserModel
+        from sentry.users.services.user import RpcUser
+
+        if isinstance(assigned_to, (UserModel, RpcUser)) and assigned_to.is_active is False:
+            return {"new_assignment": False, "updated_assignment": False}
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned

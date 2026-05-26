@@ -15,6 +15,7 @@ import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
 import {GlobalStyles} from 'admin/globalStyles';
@@ -45,69 +46,71 @@ export function Layout() {
   return (
     <ThemeProvider theme={theme}>
       <ScrapsProviders>
-        <GlobalStyles theme={theme} />
-        <GlobalModal />
-        <SystemAlerts className="messages-container" />
-        <Indicators className="indicators-container" />
-        <AppContainer>
-          <Sidebar>
-            <Logo to="/_admin/">
-              <IconSentry size="xl" />
-              Admin
-            </Logo>
-            <Navigation>
-              <NavLink to="/_admin/" index>
-                Home
-              </NavLink>
-              <NavLink to="/_admin/customers/">Customers</NavLink>
-              <NavLink to="/_admin/users/">Users</NavLink>
-              <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
-              <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
-              <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
-              <NavLink to="/_admin/promocodes/">Promos</NavLink>
-              <NavLink to="/_admin/beacons/">Beacons</NavLink>
-              <NavLink to="/_admin/policies/">Policies</NavLink>
-              <NavLink to="/_admin/options/">Options</NavLink>
-              <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
-              <NavLink to="/_admin/instance-level-oauth">
-                Instance level OAuth Clients
-              </NavLink>
-              <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
-              <NavLink to="/_admin/relocations/">Relocations</NavLink>
-              <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
-              <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
-              <NavLink to="/_admin/invoices/">Invoices</NavLink>
-              <NavLink to="/_admin/spike-projection-generation/">
-                Spike Projection Generation
-              </NavLink>
-              <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
-              <NavLink to="/_admin/seer/">Seer</NavLink>
-            </Navigation>
-            <div>
-              <ThemeToggle
-                variant="transparent"
-                size="zero"
-                onClick={toggleTheme}
-                icon={
-                  <IconSliders
-                    size="sm"
-                    style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
-                  />
-                }
-              >
-                {isDark ? 'Light mode' : 'Dark mode'}
-              </ThemeToggle>
-            </div>
-          </Sidebar>
-          <Container
-            as="main"
-            padding="0 2xl"
-            width="100%"
-            maxWidth="var(--contentWidth)"
-          >
-            <Outlet />
-          </Container>
-        </AppContainer>
+        <GlobalAlertProvider>
+          <GlobalStyles theme={theme} />
+          <GlobalModal />
+          <SystemAlerts className="messages-container" />
+          <Indicators className="indicators-container" />
+          <AppContainer>
+            <Sidebar>
+              <Logo to="/_admin/">
+                <IconSentry size="xl" />
+                Admin
+              </Logo>
+              <Navigation>
+                <NavLink to="/_admin/" index>
+                  Home
+                </NavLink>
+                <NavLink to="/_admin/customers/">Customers</NavLink>
+                <NavLink to="/_admin/users/">Users</NavLink>
+                <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
+                <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
+                <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
+                <NavLink to="/_admin/promocodes/">Promos</NavLink>
+                <NavLink to="/_admin/beacons/">Beacons</NavLink>
+                <NavLink to="/_admin/policies/">Policies</NavLink>
+                <NavLink to="/_admin/options/">Options</NavLink>
+                <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
+                <NavLink to="/_admin/instance-level-oauth">
+                  Instance level OAuth Clients
+                </NavLink>
+                <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
+                <NavLink to="/_admin/relocations/">Relocations</NavLink>
+                <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
+                <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
+                <NavLink to="/_admin/invoices/">Invoices</NavLink>
+                <NavLink to="/_admin/spike-projection-generation/">
+                  Spike Projection Generation
+                </NavLink>
+                <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+                <NavLink to="/_admin/seer/">Seer</NavLink>
+              </Navigation>
+              <div>
+                <ThemeToggle
+                  variant="transparent"
+                  size="zero"
+                  onClick={toggleTheme}
+                  icon={
+                    <IconSliders
+                      size="sm"
+                      style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
+                    />
+                  }
+                >
+                  {isDark ? 'Light mode' : 'Dark mode'}
+                </ThemeToggle>
+              </div>
+            </Sidebar>
+            <Container
+              as="main"
+              padding="0 2xl"
+              width="100%"
+              maxWidth="var(--contentWidth)"
+            >
+              <Outlet />
+            </Container>
+          </AppContainer>
+        </GlobalAlertProvider>
       </ScrapsProviders>
     </ThemeProvider>
   );

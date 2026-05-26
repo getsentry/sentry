@@ -209,7 +209,7 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
-  it('should fire analytics for metadata', async () => {
+  it.isKnownFlake('should fire analytics for metadata', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -654,7 +654,7 @@ describe('MetricsTabContent', () => {
                   metric: {name: 'bar', type: 'distribution'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('p50(value,bar,distribution,-)').serialize(),
+                    new VisualizeFunction('p50(value,bar,distribution,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',

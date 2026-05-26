@@ -64,7 +64,7 @@ from .repository import GitHubEnterpriseRepositoryProvider
 
 
 def _api_base_url(url: str) -> str:
-    if url.endswith(".ghe.com"):
+    if url == "github.com" or url.endswith(".ghe.com"):
         return f"https://api.{url}"
     return f"https://{url}/api/v3"
 
@@ -558,7 +558,9 @@ class InstallationForm(forms.Form):
     url = forms.CharField(
         label="Installation Url",
         help_text=_(
-            'The "base URL" for your GitHub enterprise instance, includes the host and protocol.'
+            'The "base URL" for your GitHub instance — e.g. https://github.com (for a '
+            "custom GitHub App on github.com), https://acme-corp.ghe.com (GitHub Enterprise "
+            "Cloud), or https://github.example.com (GitHub Enterprise Server)."
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
     )
@@ -635,7 +637,29 @@ class InstallationConfigView:
             form = InstallationForm(request.POST)
             if form.is_valid():
                 form_data = form.cleaned_data
-                form_data["url"] = urlparse(form_data["url"]).netloc
+                parsed = urlparse(form_data["url"])
+                # Tolerate input without a scheme — `urlparse("github.com").netloc` is empty
+                # and the host lands in `path`. Without this, OAuth URLs become malformed
+                # (`https:///login/...`) and the github.com flag gate below is bypassed.
+                form_data["url"] = (parsed.netloc or parsed.path).strip("/").lower()
+
+                if form_data["url"] == "github.com" and not features.has(
+                    "organizations:github-enterprise-github-com-source",
+                    pipeline.organization,
+                ):
+                    form.add_error(
+                        "url",
+                        _(
+                            "Installing on github.com is not enabled for your organization. "
+                            "Contact Sentry support to request access."
+                        ),
+                    )
+                    return render_to_response(
+                        template="sentry/integrations/github-enterprise-config.html",
+                        context={"form": form},
+                        request=request,
+                    )
+
                 if not form_data["public_link"]:
                     form_data["public_link"] = None
 
@@ -820,6 +844,9 @@ class GitHubEnterpriseInstallationRedirect:
 
         url = installation_data.get("url")
         name = installation_data.get("name")
+        # github.com uses /apps/{name}; GHES uses /github-apps/{name}.
+        if url == "github.com":
+            return f"https://{url}/apps/{name}"
         return f"https://{url}/github-apps/{name}"
 
     def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:

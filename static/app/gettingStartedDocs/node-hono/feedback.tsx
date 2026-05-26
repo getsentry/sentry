@@ -7,6 +7,18 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 
+function getFeedbackSnippet(importPath: `@sentry/${string}/${string}`): string {
+  return `import * as Sentry from "${importPath}";
+
+const userFeedback = {
+  name: "John Doe",
+  email: "john@doe.com",
+  message: "I really like your App, thanks!",
+};
+Sentry.captureFeedback(userFeedback);
+`;
+}
+
 export const feedback: OnboardingConfig = {
   introduction: () => getCrashReportApiIntroduction(),
   install: () => [
@@ -21,22 +33,22 @@ export const feedback: OnboardingConfig = {
           type: 'code',
           tabs: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Cloudflare',
+              value: 'cloudflare',
               language: 'javascript',
-              code: `import * as Sentry from "@sentry/node";
-
-const eventId = Sentry.captureMessage("User Feedback");
-// OR: const eventId = Sentry.lastEventId();
-
-const userFeedback = {
-  event_id: eventId,
-  name: "John Doe",
-  email: "john@doe.com",
-  comments: "I really like your App, thanks!",
-};
-Sentry.captureUserFeedback(userFeedback);
-`,
+              code: getFeedbackSnippet('@sentry/hono/cloudflare'),
+            },
+            {
+              label: 'Node',
+              value: 'node',
+              language: 'javascript',
+              code: getFeedbackSnippet('@sentry/hono/node'),
+            },
+            {
+              label: 'Bun',
+              value: 'bun',
+              language: 'javascript',
+              code: getFeedbackSnippet('@sentry/hono/bun'),
             },
           ],
         },

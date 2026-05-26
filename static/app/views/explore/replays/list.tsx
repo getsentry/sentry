@@ -3,8 +3,8 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -43,8 +43,8 @@ import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/repla
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-const ReplayListPageHeaderHook = HookOrDefault({
-  hookName: 'component:replay-list-page-header',
+const ReplayListPageHeaderHook = OverrideOrDefault({
+  overrideName: 'component:replay-list-page-header',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 

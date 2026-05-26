@@ -23,7 +23,9 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  highlighted?: boolean;
   isClickable?: boolean;
+  pinned?: boolean;
 }
 
 const StyledPanel = styled(Panel)`
@@ -31,6 +33,9 @@ const StyledPanel = styled(Panel)`
 `;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
+  margin-right: -1rem;
+  padding-right: 1rem;
+
   &:not(thead > &) {
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
@@ -57,14 +62,30 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     height: 24px;
   }
 
-  &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
-    color: ${p => p.theme.tokens.content.danger};
+  ${p =>
+    p.highlighted &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      color: ${p.theme.tokens.content.danger};
 
-    &:hover {
-      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
+      &:hover {
+        background-color: ${p.theme.tokens.background.transparent.warning.muted};
+      }
     }
-  }
+  `}
+
+  ${p =>
+    p.pinned &&
+    `
+    &:not(thead > &) {
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
+
+      &:hover {
+        background-color: ${p.theme.tokens.interactive.transparent.accent.selected.background.active};
+      }
+    }
+  `}
 
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
@@ -122,7 +143,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 2px ${p => p.theme.space.xl};
+    padding: 0 ${p => p.theme.space.md};
   }
 `;
 
@@ -142,7 +163,6 @@ export const LogTable = styled(ContentsTable)<{minWidth: string}>`
 
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
-  expanded?: boolean;
   showHeader?: boolean;
 }>`
   ${p =>
@@ -160,14 +180,6 @@ export const LogTableBody = styled(TableBody)<{
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
-
-  ${p =>
-    p.expanded === undefined
-      ? ''
-      : `
-    overflow-y: auto;
-    height: 100%;
-    `}
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
@@ -284,6 +296,26 @@ export const LogsFilteredHelperText = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.colors.gray200};
+`;
+
+export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
+  position: absolute;
+  right: calc(-1 * var(--logsPinButtonArea));
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  ${LogTableRow}:focus-within &,
+  ${LogTableRow}:hover & {
+    background: none;
+    opacity: 1;
+  }
+
+  &:focus-within svg,
+  &:hover svg {
+    fill: ${p => p.theme.tokens.content.accent};
+    transition: fill ${p => p.theme.motion.smooth.fast};
+  }
 `;
 
 export const WrappingText = styled('div')<{wrapText?: boolean}>`

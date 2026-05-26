@@ -2,29 +2,20 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
+import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
+import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
-
-jest.mock('sentry/views/seerExplorer/utils', () => ({
-  ...jest.requireActual('sentry/views/seerExplorer/utils'),
-  usePageReferrer: jest.fn(),
-}));
-
-jest.mock('sentry/views/seerExplorer/contexts/llmContext', () => ({
-  ...jest.requireActual('sentry/views/seerExplorer/contexts/llmContext'),
-  useLLMContext: jest.fn(),
-}));
 
 describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
-    (usePageReferrer as jest.Mock).mockReturnValue({
+    jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
       getPageReferrer: () => '/issues/',
     });
-    (useLLMContext as jest.Mock).mockReturnValue({
+    jest.spyOn(llmContextModule, 'useLLMContext').mockReturnValue({
       getLLMContext: () => ({version: 0, nodes: []}),
     });
   });
@@ -39,6 +30,7 @@ describe('useSeerExplorer', () => {
     it('returns initial state with no session data', () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       expect(result.current.sessionData).toBeNull();
@@ -98,6 +90,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -122,7 +115,7 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends structured JSON on dashboard page with feature flag', async () => {
-      jest.mocked(usePageReferrer).mockReturnValue({
+      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
@@ -157,8 +150,50 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it.each([
+      '/issues/:groupId/replays/',
+      '/issues/:groupId/attachments/',
+      '/issues/:groupId/distributions/',
+      '/issues/:groupId/distributions/:tagKey/',
+      '/explore/logs/trace/:traceSlug/',
+    ])('sends structured JSON on structured-context route %s', async (route: string) => {
+      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
+        getPageReferrer: () => route,
+      });
+      const org = OrganizationFixture({
+        features: ['seer-explorer', 'seer-explorer-context-engine'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/1/`,
+        method: 'GET',
+        body: {session: {blocks: [], run_id: 1, status: 'completed', updated_at: ''}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization: org,
+      });
+      act(() => {
+        result.current.sendMessage('q');
+      });
+
+      await waitFor(() => {
+        const ctx = postMock.mock.calls[0][1].data.on_page_context;
+        expect(JSON.parse(ctx)).toHaveProperty('nodes');
+      });
+    });
+
     it('falls back to ASCII screenshot on non-structured-context page', async () => {
-      jest.mocked(usePageReferrer).mockReturnValue({
+      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => '/monitors/mobile-builds/',
       });
       const org = OrganizationFixture({
@@ -210,6 +245,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       // Should handle error without throwing
@@ -257,6 +293,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -282,6 +319,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -312,6 +350,7 @@ describe('useSeerExplorer', () => {
     it('returns false for polling when no session exists', () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       expect(result.current.isPolling).toBe(false);
@@ -326,6 +365,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -344,6 +384,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -365,6 +406,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -390,6 +432,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
       act(() => {
         result.current.switchToRun(runId);
@@ -421,6 +464,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -472,6 +516,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -530,6 +575,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -577,6 +623,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -636,6 +683,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -683,6 +731,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -715,6 +764,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -747,6 +797,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -778,6 +829,7 @@ describe('useSeerExplorer', () => {
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       act(() => {
@@ -812,7 +864,10 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
 
       act(() => {
         result.current.switchToRun(runId);
@@ -859,7 +914,10 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
 
       act(() => {
         result.current.switchToRun(runId);
@@ -898,6 +956,7 @@ describe('useSeerExplorer', () => {
     it('clears after new message is sent', async () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       expect(result.current.hasSentInterrupt).toBe(false);
@@ -922,6 +981,7 @@ describe('useSeerExplorer', () => {
     it('clears after respondToUserInput is called', async () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       expect(result.current.hasSentInterrupt).toBe(false);
@@ -946,6 +1006,7 @@ describe('useSeerExplorer', () => {
     it('clears after createPR is called', async () => {
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
         organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
       });
 
       expect(result.current.hasSentInterrupt).toBe(false);
