@@ -12,10 +12,12 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 
 
 @no_silo_test
+@with_feature("organizations:page-frame")
 class OrganizationMonitorsTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
