@@ -84,6 +84,7 @@ export function IssueDiff({
               eventId: 'latest',
             }
           : skipToken,
+      query: baseEventId === 'latest' ? undefined : {issueDiffQuery: 'base-latest'},
       staleTime: 60_000,
     }
   );
@@ -99,6 +100,7 @@ export function IssueDiff({
               eventId: 'latest',
             }
           : skipToken,
+      query: targetEventId === 'latest' ? undefined : {issueDiffQuery: 'target-latest'},
       staleTime: 60_000,
     }
   );
@@ -137,6 +139,7 @@ export function IssueDiff({
                 eventId: resolvedBaseEventId,
               }
             : skipToken,
+          query: resolvedBaseEventId ? undefined : {issueDiffQuery: 'base-event'},
           staleTime: 60_000,
         }
       ),
@@ -151,6 +154,7 @@ export function IssueDiff({
                 eventId: resolvedTargetEventId,
               }
             : skipToken,
+          query: resolvedTargetEventId ? undefined : {issueDiffQuery: 'target-event'},
           staleTime: 60_000,
         }
       ),
