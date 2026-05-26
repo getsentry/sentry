@@ -444,14 +444,15 @@ class BoundedLRUCache:
         """
         Return the hash of the `key` as an integer.
 
-        Cache key names are strings and technically unbounded by their construction, though its
-        likely bounds are enforced upstream. Nevertheless it consumes more memory than we
-        should be reasonably willing to allocate to this job.
+        Cache keys are strings and technically unbounded, though its likely bounds on string length
+        are enforced upstream. Nevertheless strings consume more memory than we should be
+        reasonably willing to allocate to this job.
 
         The `key` is hashed using `blake2b`. A digest-size of 11-bytes was chosen. 11-bytes is
         significant because its the largest digest size before byte size increases to the next
-        4-byte boundary. The next smallest boundary was 7-bytes at time of testing. For one billion
-        unique cache key permutations there is a 1 in 600 million chance of collision.
+        4-byte boundary. The next smallest boundary was a digest size of 7 at time of testing.
+        For one billion unique cache key permutations there is a 1 in 600 million chance of
+        collision.
 
         This method outputs a 36-byte integer.
         """
