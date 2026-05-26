@@ -2,7 +2,6 @@ import {Fragment, memo, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -24,6 +23,7 @@ import type {
 import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
+import {CollapsibleBadgeRow} from './collapsibleBadgeRow';
 import {
   ImageColumn,
   OnionCardBody,
@@ -271,24 +271,22 @@ export const CardHeader = memo(function CardHeader({
   tags?: Record<string, string> | null;
 }) {
   const {copy} = useCopyToClipboard();
-  // TODO: remove fake tags once backend sends real data
-  const displayTags = tags ?? {lang: 'en', dir: 'ltr', theme: 'light'};
   return (
     <CardHeaderRow onDoubleClick={onDoubleClick} $showBottomBorder={showBottomBorder}>
       <Flex align="center" justify="between" gap="md">
-        {displayName && (
-          <Flex align="center" width="fit-content" maxWidth="100%" minWidth="0">
-            <Text size="md" bold ellipsis>
-              {displayName}
-            </Text>
+        <Flex align="center" width="fit-content" maxWidth="100%" minWidth="0">
+          <Text size="md" bold ellipsis>
+            {displayName ?? fileName}
+          </Text>
+          {displayName && (
             <IconButton
               aria-label={t('Copy file name')}
               tooltip={fileName}
               icon={<IconFile size="xs" />}
               onClick={() => copy(fileName, {successMessage: t('Copied file name')})}
             />
-          </Flex>
-        )}
+          )}
+        </Flex>
         <Flex align="center" gap="sm" flex="0 0 auto" onClick={e => e.stopPropagation()}>
           {status && <StatusBadge status={status} diffPercent={diffPercent} />}
           <IconButton
@@ -309,15 +307,7 @@ export const CardHeader = memo(function CardHeader({
           <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
         </Flex>
       </Flex>
-      {Object.keys(displayTags).length > 0 && (
-        <Flex gap="xs" wrap="wrap">
-          {Object.entries(displayTags).map(([key, value]) => (
-            <Badge key={key} variant="muted">
-              {key}={value}
-            </Badge>
-          ))}
-        </Flex>
-      )}
+      {tags && Object.keys(tags).length > 0 && <CollapsibleBadgeRow tags={tags} />}
     </CardHeaderRow>
   );
 });
