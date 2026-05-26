@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {
+  queryOptions,
   skipToken,
   useInfiniteQuery,
   useQueries,
@@ -248,13 +249,15 @@ export function useReplayData({
     lastLinkHeader,
   } = useQueries({
     queries: enableErrors
-      ? errorCursors.map(cursor => ({
-          ...getErrorsQueryOptions({
-            cursor,
-            per_page: errorsPerPage,
-          }),
-          select: selectJsonWithHeaders,
-        }))
+      ? errorCursors.map(cursor =>
+          queryOptions({
+            ...getErrorsQueryOptions({
+              cursor,
+              per_page: errorsPerPage,
+            }),
+            select: selectJsonWithHeaders,
+          })
+        )
       : [],
     combine: results => ({
       pages: results.map(r => r.data?.json).filter(defined),
@@ -295,7 +298,7 @@ export function useReplayData({
           project: ALL_ACCESS_PROJECTS,
           query: `replayId:[${replayRecord?.id}]`,
           per_page: errorsPerPage,
-          cursor: links.next?.cursor ?? '0:0:0',
+          cursor: lastLinkHeader.next?.cursor ?? '0:0:0',
         },
         staleTime: Infinity,
       }
