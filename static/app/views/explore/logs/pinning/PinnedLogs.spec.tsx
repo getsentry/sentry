@@ -1,5 +1,4 @@
 import {LogFixture} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -46,7 +45,7 @@ function PinnedLogsWrapper() {
 
 function renderPinnedLogs(options: RenderOptions = {}) {
   return render(<PinnedLogsWrapper />, {
-    organization: OrganizationFixture({features: ['ourlogs-pinning']}),
+    organization: {features: ['ourlogs-pinning']},
     ...options,
   });
 }
