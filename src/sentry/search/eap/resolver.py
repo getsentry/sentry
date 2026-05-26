@@ -83,7 +83,7 @@ def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[st
     return out
 
 
-class _HiddenApiAttribute(InvalidSearchQuery):
+class HiddenApiAttribute(InvalidSearchQuery):
     pass
 
 
@@ -978,7 +978,7 @@ class SearchResolver:
             has_aggregates = has_aggregates or match is not None
             try:
                 resolved_column, context = self.resolve_column(column, match)
-            except _HiddenApiAttribute:
+            except HiddenApiAttribute:
                 continue
             if isinstance(resolved_column, ResolvedAttribute) and self._should_hide_api_attribute(
                 column, resolved_column
@@ -1079,7 +1079,7 @@ class SearchResolver:
         self, column: str, resolved_attribute: ResolvedAttribute
     ) -> None:
         if self._should_hide_api_attribute(column, resolved_attribute):
-            raise _HiddenApiAttribute(f"Could not parse {column}")
+            raise HiddenApiAttribute(f"Could not parse {column}")
 
     def _raise_if_hidden_resolved_attribute(
         self, column: str, resolved_column: ResolvedAttribute | ResolvedFunction
@@ -1185,7 +1185,7 @@ class SearchResolver:
         for column in columns:
             try:
                 function, context = self.resolve_function(column)
-            except _HiddenApiAttribute:
+            except HiddenApiAttribute:
                 continue
             resolved_functions.append(function)
             resolved_contexts.append(context)
@@ -1348,7 +1348,7 @@ class SearchResolver:
         for equation in equations:
             try:
                 formula, context = self.resolve_equation(equation)
-            except _HiddenApiAttribute:
+            except HiddenApiAttribute:
                 continue
             formulas.append(formula)
             contexts.extend(context)
