@@ -70,6 +70,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                 resolver=search_resolver,
                 page_token=page_token,
                 additional_queries=additional_queries,
+                max_string_length=max_string_length,
             ),
             debug=params.debug,
         )

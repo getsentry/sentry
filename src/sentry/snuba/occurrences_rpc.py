@@ -93,6 +93,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
                     cls._build_category_filter(occurrence_category),
                     extra_conditions,
                 ),
+                max_string_length=max_string_length,
             ),
             params.debug,
         )
