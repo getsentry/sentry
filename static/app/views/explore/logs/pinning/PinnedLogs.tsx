@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -22,19 +22,16 @@ export function PinnedLogs({allRows, logsPinning, renderRow}: Props) {
   const [expanded, setExpanded] = useState(true);
   const pinnedRows = logsPinning.getPinnedRowIds();
 
+  const onInitialize = useCallback(() => {
+    setExpanded(true);
+  }, []);
+
   if (!pinnedRows.length) {
     return null;
   }
 
   return (
-    <PinnedTableBody
-      data-test-id="pinned-logs-table-body"
-      ref={() => {
-        if (!pinnedRows.length) {
-          setExpanded(true);
-        }
-      }}
-    >
+    <PinnedTableBody data-test-id="pinned-logs-table-body" ref={onInitialize}>
       {expanded &&
         pinnedRows.map(rowId => {
           const dataRow = allRows.find(datum => datum[OurLogKnownFieldKey.ID] === rowId);
