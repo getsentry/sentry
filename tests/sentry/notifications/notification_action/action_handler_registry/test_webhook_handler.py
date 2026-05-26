@@ -134,6 +134,66 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         mock_new_path.assert_not_called()
         mock_old_path.assert_called_once_with(invocation)
 
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook"
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
+    )
+    def test_new_path_sentry_app_action_routes_to_sentry_app_webhook(
+        self, mock_legacy: mock.MagicMock, mock_sentry_app: mock.MagicMock
+    ) -> None:
+        action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={"target_identifier": "my-app"},
+        )
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
+        with (
+            self.feature(
+                {
+                    "organizations:legacy-webhook-new-path": True,
+                    "organizations:legacy-webhook-disable-old-path": True,
+                }
+            ),
+        ):
+            WebhookActionHandler.execute(invocation)
+
+        mock_sentry_app.assert_called_once()
+        call_kwargs = mock_sentry_app.call_args.kwargs
+        assert call_kwargs["group_event"] == self.group_event
+        assert call_kwargs["sentry_app_slug"] == "my-app"
+        assert "rule_label" in call_kwargs
+        mock_legacy.assert_not_called()
+
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook"
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
+    )
+    def test_new_path_webhooks_action_routes_to_legacy_webhook(
+        self, mock_legacy: mock.MagicMock, mock_sentry_app: mock.MagicMock
+    ) -> None:
+        with (
+            self.feature(
+                {
+                    "organizations:legacy-webhook-new-path": True,
+                    "organizations:legacy-webhook-disable-old-path": True,
+                }
+            ),
+        ):
+            WebhookActionHandler.execute(self.invocation)
+
+        mock_legacy.assert_called_once_with(self.invocation)
+        mock_sentry_app.assert_not_called()
+
     @responses.activate
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.execute_via_group_type_registry",

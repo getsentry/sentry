@@ -6,9 +6,10 @@ from sentry.notifications.notification_action.utils import execute_via_group_typ
 from sentry.options.rollout import in_random_rollout
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.sentry_apps.services.legacy_webhook.service import (
-    _get_triggering_rule_name,
     build_legacy_webhook_payload,
+    get_triggering_rule_name,
     send_legacy_webhooks_for_invocation,
+    send_sentry_app_webhook,
 )
 from sentry.sentry_apps.services.legacy_webhook.validation import validate_payload_equivalence
 from sentry.services.eventstore.models import GroupEvent
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 def _validate_webhook_payloads(invocation: ActionInvocation) -> None:
     group = invocation.event_data.group
     event = invocation.event_data.event
-    rule_name = _get_triggering_rule_name(invocation)
+    rule_name = get_triggering_rule_name(invocation)
 
     old_payload = WebHooksPlugin().get_group_data(group, event, [rule_name])
     new_payload = build_legacy_webhook_payload(invocation)
@@ -79,7 +80,15 @@ class WebhookActionHandler(ActionHandler):
                 )
 
         if new_path and isinstance(invocation.event_data.event, GroupEvent):
-            send_legacy_webhooks_for_invocation(invocation)
+            target_identifier = invocation.action.config.get("target_identifier")
+            if target_identifier == "webhooks":
+                send_legacy_webhooks_for_invocation(invocation)
+            else:
+                send_sentry_app_webhook(
+                    group_event=invocation.event_data.event,
+                    sentry_app_slug=target_identifier,
+                    rule_label=get_triggering_rule_name(invocation),
+                )
 
             if in_random_rollout("sentry-apps.legacy-webhook-payload-validation.rate"):
                 try:
