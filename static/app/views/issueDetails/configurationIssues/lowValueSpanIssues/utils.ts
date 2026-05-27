@@ -2,12 +2,11 @@ import {t} from 'sentry/locale';
 
 import type {LowValueSpanEvidenceData} from './types';
 
-export const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
+const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/javascript/configuration/options/#ignorespans';
-export const PYTHON_SPAN_FILTERING_DOCS_URL =
+const PYTHON_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/python/configuration/filtering/#filtering-transaction-events';
-export const GENERIC_SPAN_FILTERING_DOCS_URL =
-  'https://docs.sentry.io/product/explore/traces/';
+const GENERIC_SPAN_FILTERING_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
 
 export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
   const {op, description} = evidenceData;
