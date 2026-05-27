@@ -17,10 +17,10 @@ type ActionableItemDebugParam = {
 
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
-interface StreamlineGroupEventParams extends GroupEventParams {
+interface IssueDetailsGroupEventParams extends GroupEventParams {
   streamline: boolean;
 }
-interface StreamlineGroupParams extends CommonGroupAnalyticsData {
+interface IssueDetailsGroupParams extends CommonGroupAnalyticsData {
   streamline: boolean;
 }
 
@@ -92,17 +92,17 @@ export type IssueEventParameters = {
     org_streamline_only: boolean | undefined;
     streamline: boolean;
   };
-  'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
-  'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_event_id_clicked': IssueDetailsGroupEventParams;
+  'issue_details.copy_event_link_clicked': IssueDetailsGroupEventParams;
   'issue_details.copy_issue_details_as_markdown': {
     groupId: string;
     hasAutofix: boolean;
     hasSummary: boolean;
     eventId?: string;
   };
-  'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
-  'issue_details.copy_issue_short_id_clicked': StreamlineGroupParams;
-  'issue_details.copy_issue_url_clicked': StreamlineGroupParams;
+  'issue_details.copy_issue_markdown_link_clicked': IssueDetailsGroupParams;
+  'issue_details.copy_issue_short_id_clicked': IssueDetailsGroupParams;
+  'issue_details.copy_issue_url_clicked': IssueDetailsGroupParams;
   'issue_details.event_dropdown_option_selected': EventDropdownParams;
   'issue_details.event_navigation_selected': {
     content: string;
@@ -139,10 +139,6 @@ export type IssueEventParameters = {
   'issue_details.similar_issues.drawer_opened': {
     group_id: string;
     project_id: string;
-  };
-  'issue_details.streamline_ui_toggle': {
-    enforced_streamline_ui: boolean;
-    isEnabled: boolean;
   };
   'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
   'issue_details.tour.skipped': Record<string, unknown>;
@@ -332,7 +328,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
   'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',

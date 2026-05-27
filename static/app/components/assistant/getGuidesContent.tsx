@@ -38,14 +38,6 @@ export function getGuidesContent(): GuidesContent {
           ),
         },
         {
-          // TODO(streamline-ui): Remove from guides on GA, tag sidebar is gone
-          title: t('Pinpoint hotspots'),
-          target: 'issue_sidebar_tags',
-          description: t(
-            'Tags are key/value string pairs that are automatically indexed and searchable in Sentry.'
-          ),
-        },
-        {
           title: t('Retrace Your Steps'),
           target: 'breadcrumbs',
           description: t(
