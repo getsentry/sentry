@@ -232,8 +232,8 @@ export function NoteInput({
                     {t('Preview')}
                   </SegmentedControl.Item>
                 </SegmentedControl>
-                <Flex as="span" align="center" gap="xs" color="content.secondary">
-                  <IconMarkdown size="sm" />
+                <Flex as="span" align="center" gap="xs">
+                  <IconMarkdown size="sm" variant="muted" />
                   <Text as="span" size="sm" variant="muted">
                     {t('Markdown supported')}
                   </Text>
