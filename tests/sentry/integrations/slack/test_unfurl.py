@@ -23,6 +23,7 @@ from sentry.snuba import discover, errors, transactions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
@@ -196,6 +197,7 @@ def test_match_link(url, expected) -> None:
     assert match_link(url) == expected
 
 
+@with_feature("organizations:visibility-explore-view")
 class UnfurlTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1135,8 +1137,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1148,28 +1149,6 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
         chart_data = mock_generate_chart.call_args[0][1]
         assert "timeSeries" in chart_data
-
-    @patch(
-        "sentry.integrations.slack.unfurl.explore.client.get",
-    )
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_explore_no_feature_flag(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
-        link_type, args = match_link(url)
-
-        if not args or not link_type:
-            raise AssertionError("Missing link_type/args")
-
-        links = [
-            UnfurlableUrl(url=url, args=args),
-        ]
-
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
-        assert len(unfurls) == 0
-        assert len(mock_generate_chart.mock_calls) == 0
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1189,8 +1168,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1221,8 +1199,7 @@ class UnfurlTest(TestCase):
             raise AssertionError("Missing link_type/args")
 
         links = [UnfurlableUrl(url=url, args=args)]
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.integration, links, self.user)
 
         mock_view.assert_called_once()
         request = mock_view.call_args[0][0]
@@ -1248,8 +1225,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
 
@@ -1277,8 +1253,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1305,8 +1280,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         # Should still unfurl with default yAxis
         assert len(unfurls) == 1
@@ -1341,8 +1315,7 @@ class UnfurlTest(TestCase):
 
         # Step 2: Run handler
         links = [UnfurlableUrl(url=url, args=args)]
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         # Step 3: Verify events-timeseries was called with correct args
         assert mock_client_get.call_count == 1
@@ -1402,8 +1375,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1429,8 +1401,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -1456,8 +1427,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert unfurls == {}
         # Skip happens before the events-timeseries call, so neither the API
@@ -1486,8 +1456,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -1729,8 +1698,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         call_kwargs = mock_client_get.call_args[1]
@@ -1880,8 +1848,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2002,8 +1969,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         call_kwargs = mock_client_get.call_args[1]
@@ -2030,8 +1996,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2075,8 +2040,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2112,8 +2076,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert unfurls == {}
         assert mock_generate_chart.call_count == 0
@@ -2171,8 +2134,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2213,35 +2175,10 @@ class UnfurlTest(TestCase):
         assert args is not None
 
         links = [UnfurlableUrl(url=url, args=args)]
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_generate_chart.call_count == 1
-
-    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_no_feature_flag(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        dashboard, _ = self._create_spans_widget()
-
-        url = (
-            f"https://sentry.io/organizations/{self.organization.slug}"
-            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
-        )
-        link_type, args = match_link(url)
-
-        assert link_type == LinkType.DASHBOARDS
-        assert args is not None
-
-        links = [UnfurlableUrl(url=url, args=args)]
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
-
-        assert len(unfurls) == 0
-        assert mock_generate_chart.call_count == 0
-        assert mock_client_get.call_count == 0
 
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
@@ -2273,8 +2210,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2298,8 +2234,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2320,8 +2255,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2372,8 +2306,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_client_get.call_count == 2
@@ -2430,8 +2363,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.integration, links, self.user)
 
         chart_data = mock_generate_chart.call_args[0][1]
         pairs = chart_data["timeSeries"]
@@ -2489,8 +2421,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.integration, links, self.user)
 
         chart_data = mock_generate_chart.call_args[0][1]
         pairs = chart_data["timeSeries"]
@@ -2518,8 +2449,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]

@@ -114,7 +114,9 @@ function parseLink(link: string): {lang: string; guide?: string} | null {
   const m = link.match(
     /\/platforms\/([\w-]+)(?:\/(?:guides|integrations)\/([\w-]+))?\/?/
   );
-  if (!m) return null;
+  if (!m) {
+    return null;
+  }
   return {lang: m[1]!, guide: m[2]};
 }
 
@@ -166,8 +168,12 @@ function unwrapTypeAssertion(expr: ts.Expression): ts.Expression {
 
 // Property key text from an Identifier or string literal name.
 function propertyKeyName(prop: ts.PropertyAssignment): string | undefined {
-  if (ts.isIdentifier(prop.name)) return prop.name.text;
-  if (ts.isStringLiteral(prop.name)) return prop.name.text;
+  if (ts.isIdentifier(prop.name)) {
+    return prop.name.text;
+  }
+  if (ts.isStringLiteral(prop.name)) {
+    return prop.name.text;
+  }
   return undefined;
 }
 
@@ -181,12 +187,16 @@ function readPlatforms(): PlatformEntry[] {
   }
   const out: PlatformEntry[] = [];
   for (const element of init.elements) {
-    if (!ts.isObjectLiteralExpression(element)) continue;
+    if (!ts.isObjectLiteralExpression(element)) {
+      continue;
+    }
     let id: string | undefined;
     let link = '';
     let deprecated = false;
     for (const prop of element.properties) {
-      if (!ts.isPropertyAssignment(prop)) continue;
+      if (!ts.isPropertyAssignment(prop)) {
+        continue;
+      }
       const key = propertyKeyName(prop);
       if (key === 'id' && ts.isStringLiteral(prop.initializer)) {
         id = prop.initializer.text;
@@ -199,7 +209,9 @@ function readPlatforms(): PlatformEntry[] {
         deprecated = true;
       }
     }
-    if (!id) continue;
+    if (!id) {
+      continue;
+    }
 
     let lang: string | null = null;
     let guide: string | null = null;
@@ -234,9 +246,13 @@ function readLegacyToggleableKeys(): Set<string> {
   }
   const keys = new Set<string>();
   for (const prop of obj.properties) {
-    if (!ts.isPropertyAssignment(prop)) continue;
+    if (!ts.isPropertyAssignment(prop)) {
+      continue;
+    }
     const key = propertyKeyName(prop);
-    if (key) keys.add(key);
+    if (key) {
+      keys.add(key);
+    }
   }
   return keys;
 }
@@ -255,7 +271,9 @@ function readWithMetricsOnboarding(): Set<string> {
   }
   const out = new Set<string>();
   for (const element of arg.elements) {
-    if (ts.isStringLiteral(element)) out.add(element.text);
+    if (ts.isStringLiteral(element)) {
+      out.add(element.text);
+    }
   }
   return out;
 }
@@ -266,10 +284,14 @@ interface Frontmatter {
 }
 
 function readFrontmatter(file: string): Frontmatter | null {
-  if (!existsSync(file)) return null;
+  if (!existsSync(file)) {
+    return null;
+  }
   const text = readFileSync(file, 'utf8');
   const m = text.match(/^---\n([\s\S]*?)\n---/);
-  if (!m) return {};
+  if (!m) {
+    return {};
+  }
   return (parseYaml(m[1]!) as Frontmatter) ?? {};
 }
 
@@ -288,7 +310,9 @@ function findGuideOverridePage(
 ): string | null {
   for (const dir of ['guides', 'integrations']) {
     const f = path.join(DOCS_PLATFORMS_DIR, lang, dir, guide, feature, 'index.mdx');
-    if (existsSync(f)) return f;
+    if (existsSync(f)) {
+      return f;
+    }
   }
   return null;
 }
@@ -299,11 +323,17 @@ function isSupported(
   lang: string,
   guide: string | null
 ): boolean {
-  if (!fm) return false;
+  if (!fm) {
+    return false;
+  }
   const canonical = guide ? `${lang}.${guide}` : lang;
   if (Array.isArray(fm.supported) && fm.supported.length) {
-    if (fm.supported.includes(canonical)) return true;
-    if (!fm.supported.includes(lang)) return false;
+    if (fm.supported.includes(canonical)) {
+      return true;
+    }
+    if (!fm.supported.includes(lang)) {
+      return false;
+    }
   }
   if (Array.isArray(fm.notSupported)) {
     if (fm.notSupported.includes(canonical) || fm.notSupported.includes(lang)) {
@@ -320,13 +350,23 @@ function isSupported(
 // nothing for platforms that have neither a curated toggle entry nor a wizard.
 function hasOnboardingWizard(platformId: string): boolean {
   const dir = path.join(GETTING_STARTED_DOCS_DIR, platformId);
-  if (!existsSync(dir)) return false;
+  if (!existsSync(dir)) {
+    return false;
+  }
   for (const entry of readdirSync(dir, {withFileTypes: true})) {
-    if (!entry.isFile()) continue;
-    if (entry.name.endsWith('.spec.tsx') || entry.name.endsWith('.spec.ts')) continue;
-    if (!entry.name.endsWith('.tsx') && !entry.name.endsWith('.ts')) continue;
+    if (!entry.isFile()) {
+      continue;
+    }
+    if (entry.name.endsWith('.spec.tsx') || entry.name.endsWith('.spec.ts')) {
+      continue;
+    }
+    if (!entry.name.endsWith('.tsx') && !entry.name.endsWith('.ts')) {
+      continue;
+    }
     const content = readFileSync(path.join(dir, entry.name), 'utf8');
-    if (WIZARD_PATTERN.test(content)) return true;
+    if (WIZARD_PATTERN.test(content)) {
+      return true;
+    }
   }
   return false;
 }
@@ -335,7 +375,9 @@ function deriveProducts(
   platform: PlatformEntry,
   withMetricsOnboarding: Set<string>
 ): string[] {
-  if (!platform.lang) return [];
+  if (!platform.lang) {
+    return [];
+  }
   const products: string[] = [];
   for (const [product, feature] of Object.entries(FEATURES)) {
     let supported: boolean | null = null;
@@ -352,9 +394,15 @@ function deriveProducts(
         : false;
     }
 
-    if (!supported) continue;
-    if (product === 'METRICS' && !withMetricsOnboarding.has(platform.id)) continue;
-    if (PRODUCT_EXCLUSIONS[platform.id]?.has(product)) continue;
+    if (!supported) {
+      continue;
+    }
+    if (product === 'METRICS' && !withMetricsOnboarding.has(platform.id)) {
+      continue;
+    }
+    if (PRODUCT_EXCLUSIONS[platform.id]?.has(product)) {
+      continue;
+    }
 
     products.push(product);
   }
@@ -399,7 +447,9 @@ import type {PlatformKey} from 'sentry/types/project';
       continue;
     }
     lines.push(`  ${key}: [`);
-    for (const p of products) lines.push(`    ProductSolution.${p},`);
+    for (const p of products) {
+      lines.push(`    ProductSolution.${p},`);
+    }
     lines.push('  ],');
   }
   lines.push('};');
@@ -417,15 +467,23 @@ function main() {
     // consumer (scmPlatformFeatures.tsx) routes between the two maps via
     // `platform in platformProductAvailability`, so curated entries here
     // would be redundant.
-    if (legacyKeys.has(platform.id)) continue;
-    if (platform.deprecated) continue;
-    if (platform.id === 'other') continue;
+    if (legacyKeys.has(platform.id)) {
+      continue;
+    }
+    if (platform.deprecated) {
+      continue;
+    }
+    if (platform.id === 'other') {
+      continue;
+    }
     // Only include platforms whose onboarding flow is wizard-driven. The
     // consumer surfaces information cards for these platforms because the
     // wizard CLI handles configuration; toggles aren't actionable. Platforms
     // with neither a curated toggle entry nor a wizard render nothing on the
     // SCM step.
-    if (!hasOnboardingWizard(platform.id)) continue;
+    if (!hasOnboardingWizard(platform.id)) {
+      continue;
+    }
     out[platform.id] = deriveProducts(platform, withMetricsOnboarding);
   }
 

@@ -61,7 +61,7 @@ def get_errors_counts_timeseries_by_project_and_release(
             snuba_results,
             eap_results,
             "release_thresholds.get_errors_counts_timeseries",
-            is_experimental_data_a_null_result=len(eap_results) == 0,
+            is_experimental_data_nullish=len(eap_results) == 0,
             reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
                 snuba_rows,
                 eap_rows,

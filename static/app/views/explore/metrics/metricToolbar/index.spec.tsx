@@ -112,8 +112,12 @@ describe('MetricToolbar', () => {
       fields: ['id', 'timestamp'],
       sortBys: [{field: 'timestamp', kind: 'desc'}],
       aggregateCursor: '',
-      aggregateFields: [new VisualizeFunction('sum(value,test_metric,distribution,-)')],
-      aggregateSortBys: [{field: 'sum(value,test_metric,distribution,-)', kind: 'desc'}],
+      aggregateFields: [
+        new VisualizeFunction('sum(value,test_metric,distribution,none)'),
+      ],
+      aggregateSortBys: [
+        {field: 'sum(value,test_metric,distribution,none)', kind: 'desc'},
+      ],
     });
 
     render(

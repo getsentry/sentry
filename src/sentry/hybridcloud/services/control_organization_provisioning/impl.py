@@ -2,9 +2,8 @@ import logging
 from copy import deepcopy
 
 from django.db import IntegrityError, router, transaction
-from django.utils import timezone as django_timezone
 
-from sentry import features, roles
+from sentry import roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
 from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
@@ -15,7 +14,6 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,
 )
-from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -24,7 +22,6 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils import json
@@ -226,18 +223,6 @@ class DatabaseBackedControlOrganizationProvisioningService(
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                 ).save(unsafe_write=True)
 
-                org_mapping = OrganizationMapping.objects.filter(
-                    organization_id=organization_id
-                ).first()
-                org = (
-                    serialize_organization_mapping(org_mapping) if org_mapping is not None else None
-                )
-                if org and features.has("organizations:revoke-org-auth-on-slug-rename", org):
-                    # Changing a slug invalidates all org tokens, so revoke them all.
-                    auth_tokens = OrgAuthToken.objects.filter(
-                        organization_id=organization_id, date_deactivated__isnull=True
-                    )
-                    auth_tokens.update(date_deactivated=django_timezone.now())
         except IntegrityError as e:
             # Check if this is a unique constraint violation on the slug
             if "sentry_organizationslugreservation_slug_key" in str(e):

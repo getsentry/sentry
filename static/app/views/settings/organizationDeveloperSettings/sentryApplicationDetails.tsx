@@ -60,11 +60,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -170,9 +168,13 @@ function mapScopeErrors(scopeErrors: unknown): ScopeErrors {
     return result;
   }
   for (const message of scopeErrors) {
-    if (typeof message !== 'string') continue;
+    if (typeof message !== 'string') {
+      continue;
+    }
     const match = message.match(/Requested permission of (\w+:\w+)/);
-    if (!match) continue;
+    if (!match) {
+      continue;
+    }
     const scope = match[1]!;
     if (scope === CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope) {
       result.continuousIntegration ??= message;
@@ -223,7 +225,6 @@ export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
 
   const isInternalRoute = location.pathname.endsWith('new-internal/');
@@ -259,18 +260,10 @@ export default function SentryApplicationDetails() {
   );
 
   const isInternal = app ? app.status === 'internal' : isInternalRoute;
-  const headerTitle = tct('[action] [type] Integration', {
-    action: app ? 'Edit' : 'Create',
-    type: isInternal ? 'Internal' : 'Public',
-  });
 
   return (
     <div>
-      {hasPageFrame ? (
-        <BreadcrumbTitle title={appSlug ? (app?.name ?? '') : t('New')} />
-      ) : (
-        <SettingsPageHeader title={headerTitle} />
-      )}
+      <BreadcrumbTitle title={appSlug ? (app?.name ?? '') : t('New')} />
 
       {isLoading || isPlaceholderData ? (
         <LoadingIndicator />

@@ -1702,6 +1702,19 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
+  const snapshotsRedirect: SentryRouteObject = {
+    children: [
+      {
+        path: '/snapshots/',
+        redirectTo: '/explore/releases/?tab=snapshots',
+      },
+      {
+        path: '/organizations/:orgId/snapshots/',
+        redirectTo: '/organizations/:orgId/explore/releases/?tab=snapshots',
+      },
+    ],
+  };
+
   const discoverChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2275,9 +2288,13 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
     {
-      path: 'profiling/',
+      path: 'profiles/',
       component: make(() => import('sentry/views/explore/profiling')),
       children: profilingChildren,
+    },
+    {
+      path: 'profiling/*',
+      component: make(() => import('sentry/views/explore/profiling/profilingRedirect')),
     },
     {
       path: 'traces/',
@@ -2335,6 +2352,16 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
+    },
+    // These two routes have to be placed at the end of the exploreChildren
+    // array to avoid being overridden by the other routes.
+    {
+      path: ':catchAll/',
+      component: make(() => import('sentry/views/explore/indexRedirect')),
+    },
+    {
+      path: ':catchAll/*',
+      component: make(() => import('sentry/views/explore/indexRedirect')),
     },
   ];
   const exploreRoutes: SentryRouteObject = {
@@ -2775,6 +2802,7 @@ function buildRoutes(): RouteObject[] {
       preprodRoutes,
       replayRoutes,
       releasesRoutes,
+      snapshotsRedirect,
       statsRoutes,
       discoverRoutes,
       errorsRoutes,

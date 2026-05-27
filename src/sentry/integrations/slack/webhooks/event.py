@@ -229,8 +229,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
                 feature_flag = {
                     LinkType.DISCOVER: "organizations:discover-basic",
-                    LinkType.EXPLORE: "organizations:data-browsing-widget-unfurl",
-                    LinkType.DASHBOARDS: "organizations:dashboards-widget-unfurl",
+                    LinkType.EXPLORE: "organizations:visibility-explore-view",
+                    LinkType.DASHBOARDS: "organizations:dashboards-basic",
                 }.get(link_type)
 
                 if (

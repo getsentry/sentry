@@ -207,7 +207,7 @@ function FreshInstallSteps({
   onInstall: () => void;
   popupBlockedNotice?: React.ReactNode;
 }) {
-  if (isAdvancing) {
+  if (isWaitingForCallback || isAdvancing) {
     return (
       <Stack gap="lg" align="start">
         <Text>
@@ -215,22 +215,7 @@ function FreshInstallSteps({
             'Complete the installation in the popup window. Once finished, this page will update automatically.'
           )}
         </Text>
-        <Button size="sm" disabled>
-          {t('Completing...')}
-        </Button>
-      </Stack>
-    );
-  }
-
-  if (isWaitingForCallback) {
-    return (
-      <Stack gap="lg" align="start">
-        <Text>
-          {t(
-            'Complete the installation in the popup window. Once finished, this page will update automatically.'
-          )}
-        </Text>
-        <Button size="sm" onClick={onInstall}>
+        <Button size="sm" onClick={onInstall} busy={isAdvancing}>
           {t('Reopen installation window')}
         </Button>
       </Stack>
