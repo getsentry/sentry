@@ -1,10 +1,12 @@
 import {dummyIntegrationPipeline} from './pipelineDummyProvider';
 import {awsLambdaIntegrationPipeline} from './pipelineIntegrationAwsLambda';
 import {bitbucketIntegrationPipeline} from './pipelineIntegrationBitbucket';
+import {bitbucketServerIntegrationPipeline} from './pipelineIntegrationBitbucketServer';
 import {claudeCodeIntegrationPipeline} from './pipelineIntegrationClaudeCode';
 import {cursorIntegrationPipeline} from './pipelineIntegrationCursor';
 import {discordIntegrationPipeline} from './pipelineIntegrationDiscord';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
+import {githubEnterpriseIntegrationPipeline} from './pipelineIntegrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {opsgenieIntegrationPipeline} from './pipelineIntegrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './pipelineIntegrationPagerDuty';
@@ -22,11 +24,13 @@ import {vstsIntegrationPipeline} from './pipelineIntegrationVsts';
 export const PIPELINE_REGISTRY = [
   awsLambdaIntegrationPipeline,
   bitbucketIntegrationPipeline,
+  bitbucketServerIntegrationPipeline,
   claudeCodeIntegrationPipeline,
   cursorIntegrationPipeline,
   discordIntegrationPipeline,
   dummyIntegrationPipeline,
   githubIntegrationPipeline,
+  githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,
