@@ -91,7 +91,9 @@ export type SplitPanelProps = {
    */
   onMouseDown?: (sizePct: `${number}%`) => void;
   /**
-   * Fires as the user drags. Receives the new size in pixels.
+   * Fires as the user drags. Receives the new size in pixels. Wire this to
+   * your own persistence layer if you want to remember the size across
+   * reloads (e.g. `useLocalStorageState`).
    */
   onResize?: (newSize: number) => void;
   /**
@@ -99,11 +101,6 @@ export type SplitPanelProps = {
    * top/bottom.
    */
   orientation?: Orientation;
-  /**
-   * Persist the user's drag size in `localStorage` under this key so it
-   * survives reloads.
-   */
-  sizeStorageKey?: string;
 };
 
 export type SplitPanelPanelProps = {
@@ -199,7 +196,6 @@ function findSizedPanelProps(children: React.ReactNode): SplitPanelPanelProps | 
 export function SplitPanel({
   children,
   orientation = 'horizontal',
-  sizeStorageKey,
   onMouseDown,
   onResize,
 }: SplitPanelProps) {
@@ -223,7 +219,6 @@ export function SplitPanel({
     initialSize,
     min,
     onResize: onResize ?? (() => {}),
-    sizeStorageKey,
   });
 
   const clampedSize = Math.min(containerSize, max);

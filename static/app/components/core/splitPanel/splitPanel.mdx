@@ -123,18 +123,26 @@ To collapse the fill pane, omit the `<SplitPanel.Divider>` and second `<SplitPan
 
 ## Persisting Size
 
-Pass `sizeStorageKey` to persist the user's drag size in `localStorage` across reloads.
+`SplitPanel` is a layout primitive — persistence is the consumer's job. Wire `onResize` to your own storage (`useLocalStorageState`, a database, a query param, etc.) and feed the stored value back as `defaultSize`.
 
 ```tsx
-<SplitPanel orientation="horizontal" sizeStorageKey="my-feature.split-size">
-  <SplitPanel.Panel defaultSize={300} minSize={200} maxSize={600}>
-    <LeftContent />
-  </SplitPanel.Panel>
-  <SplitPanel.Divider />
-  <SplitPanel.Panel>
-    <RightContent />
-  </SplitPanel.Panel>
-</SplitPanel>
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+
+function ResizableLayout() {
+  const [storedSize, setStoredSize] = useLocalStorageState('my-feature.split-size', 300);
+
+  return (
+    <SplitPanel orientation="horizontal" onResize={setStoredSize}>
+      <SplitPanel.Panel defaultSize={storedSize} minSize={200} maxSize={600}>
+        <LeftContent />
+      </SplitPanel.Panel>
+      <SplitPanel.Divider />
+      <SplitPanel.Panel>
+        <RightContent />
+      </SplitPanel.Panel>
+    </SplitPanel>
+  );
+}
 ```
 
 ## Custom Divider

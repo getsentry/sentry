@@ -7,6 +7,7 @@ import {SplitPanel, useSplitPanelDivider} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
@@ -73,11 +74,13 @@ export function ConversationSplitLayout({
     Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5)
   );
 
+  const [storedSize, setStoredSize] = useLocalStorageState(sizeStorageKey, defaultLeft);
+
   return (
     <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
-      <SplitPanel orientation="horizontal" sizeStorageKey={sizeStorageKey}>
+      <SplitPanel orientation="horizontal" onResize={setStoredSize}>
         <SplitPanel.Panel
-          defaultSize={defaultLeft}
+          defaultSize={storedSize}
           minSize={LEFT_PANEL_MIN}
           maxSize={maxLeft}
         >
