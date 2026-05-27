@@ -40,7 +40,7 @@ The first pane is sized; the second fills.
 <Storybook.Demo>
   <Flex border="primary" radius="md" overflow="hidden" style={{width: 600, height: 160}}>
     <SplitPanel orientation="horizontal">
-      <SplitPanel.Panel defaultSize={240} minSize={120}>
+      <SplitPanel.Panel defaultSize={300} minSize={120}>
         <Flex align="center" justify="center" flex="1" background="primary">
           <Text>Left</Text>
         </Flex>
@@ -57,7 +57,7 @@ The first pane is sized; the second fills.
 
 ```tsx
 <SplitPanel orientation="horizontal">
-  <SplitPanel.Panel defaultSize={240} minSize={120} maxSize={480}>
+  <SplitPanel.Panel defaultSize={300} minSize={120}>
     <LeftContent />
   </SplitPanel.Panel>
   <SplitPanel.Divider />
