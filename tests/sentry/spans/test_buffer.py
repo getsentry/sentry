@@ -15,12 +15,17 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
-from sentry.spans.buffer import (
+from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer_types import (
+    EvalshaResult,
+    FlushCandidate,
     FlushedSegment,
+    InsertedSubsegment,
+    LoadedSegmentData,
     OutputSpan,
-    SpansBuffer,
+    Span,
+    Subsegment,
 )
-from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
 from sentry.spans.consumers.process.factory import SPANS_CODEC, validate_span_event
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.segment_key import SegmentKey
@@ -1962,6 +1967,30 @@ class _LoadSegmentDataRedis:
     def zscore(self, key: bytes, value: bytes) -> float | None:
         return self.zsets.get(key, {}).get(value)
 
+    def zrangebyscore(
+        self,
+        key: bytes,
+        min_score: int,
+        max_score: int,
+        start: int = 0,
+        num: int | None = None,
+        withscores: bool = False,
+    ):
+        values = [
+            (value, score)
+            for value, score in self.zsets.get(key, {}).items()
+            if min_score <= score <= max_score
+        ]
+        values.sort(key=lambda item: item[1])
+        if num is not None:
+            values = values[start : start + num]
+        else:
+            values = values[start:]
+
+        if withscores:
+            return values
+        return [value for value, _ in values]
+
 
 class _LoadSegmentDataPipeline:
     def __init__(self, client: _LoadSegmentDataRedis) -> None:
@@ -1982,6 +2011,17 @@ class _LoadSegmentDataPipeline:
 
     def get(self, key: bytes) -> None:
         self.commands.append(("get", (key,)))
+
+    def zrangebyscore(
+        self,
+        key: bytes,
+        min_score: int,
+        max_score: int,
+        start: int = 0,
+        num: int | None = None,
+        withscores: bool = False,
+    ) -> None:
+        self.commands.append(("zrangebyscore", (key, min_score, max_score, start, num, withscores)))
 
     def execute(self):
         results = []
@@ -2010,6 +2050,115 @@ def load_segment_buffer() -> Iterator[SpansBuffer]:
         yield buffer
 
 
+def test_load_flush_candidates_reads_ready_segments(load_segment_buffer: SpansBuffer) -> None:
+    buffer = load_segment_buffer
+    queue_key = buffer._get_queue_key(0)
+    ready_segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    later_segment_key = _segment_id(1, "a" * 32, "c" * 16)
+    buffer.client.zadd(queue_key, {ready_segment_key: 5, later_segment_key: 15})
+
+    flush_candidates, load_ids_latency_ms = buffer._load_flush_candidates(
+        cutoff=10,
+        max_segments_per_shard=10,
+    )
+
+    assert flush_candidates == [FlushCandidate(0, queue_key, ready_segment_key, 5)]
+    assert load_ids_latency_ms >= 0
+
+
+def test_acquire_locks_for_flush_candidates_keeps_acquired_locks() -> None:
+    buffer = SpansBuffer(assigned_shards=[0])
+    first_segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    second_segment_key = _segment_id(1, "a" * 32, "c" * 16)
+    first_candidate = FlushCandidate(0, b"queue", first_segment_key, 5)
+    second_candidate = FlushCandidate(0, b"queue", second_segment_key, 10)
+
+    with mock.patch.object(
+        buffer, "_acquire_flush_locks", return_value={second_segment_key}
+    ) as acquire_flush_locks:
+        flush_candidates = buffer._acquire_locks_for_flush_candidates(
+            [first_candidate, second_candidate]
+        )
+
+    assert flush_candidates == [second_candidate]
+    acquire_flush_locks.assert_called_once_with([first_segment_key, second_segment_key])
+
+
+def test_build_flushed_segments_adds_segment_metadata() -> None:
+    buffer = SpansBuffer(assigned_shards=[0])
+    trace_id = "a" * 32
+    segment_span_id = "b" * 16
+    child_span_id = "c" * 16
+    segment_key = _segment_id(1, trace_id, segment_span_id)
+    queue_key = buffer._get_queue_key(0)
+    payload_key = _payload_key(1, trace_id, "1" * 32)
+
+    flushed_segments, num_has_root_spans, _ = buffer._build_flushed_segments(
+        [FlushCandidate(0, queue_key, segment_key, 5)],
+        LoadedSegmentData(
+            payloads={segment_key: [_payload(segment_span_id), _payload(child_span_id)]},
+            payload_keys={segment_key: [payload_key]},
+        ),
+        max_segments_per_shard=2,
+        now=10,
+    )
+
+    flushed_segment = flushed_segments[segment_key]
+    output_payloads = {span.payload["span_id"]: span.payload for span in flushed_segment.spans}
+    assert flushed_segment.queue_key == queue_key
+    assert flushed_segment.project_id == 1
+    assert flushed_segment.payload_keys == [payload_key]
+    assert output_payloads[segment_span_id]["is_segment"] is True
+    assert output_payloads[child_span_id]["is_segment"] is False
+    assert (
+        output_payloads[child_span_id]["attributes"]["sentry.segment.id"]["value"]
+        == segment_span_id
+    )
+    assert num_has_root_spans == 1
+
+
+def test_load_payload_keys_from_distributed_keys(
+    load_segment_buffer: SpansBuffer,
+) -> None:
+    buffer = load_segment_buffer
+    trace_id = "a" * 32
+    segment_key = _segment_id(1, trace_id, "b" * 16)
+    first_salt = "1" * 32
+    second_salt = "2" * 32
+    first_payload_key = _payload_key(1, trace_id, first_salt)
+    second_payload_key = _payload_key(1, trace_id, second_salt)
+    buffer.client.sadd(buffer._get_payload_key_index(segment_key), first_salt, second_salt)
+
+    payload_keys = buffer._load_payload_keys([segment_key])
+
+    assert set(payload_keys[segment_key]) == {
+        first_payload_key,
+        second_payload_key,
+    }
+
+
+def test_load_payloads_from_keys_decompresses_payload_batches(
+    load_segment_buffer: SpansBuffer,
+) -> None:
+    buffer = load_segment_buffer
+    trace_id = "a" * 32
+    segment_key = _segment_id(1, trace_id, "b" * 16)
+    payload_key = _payload_key(1, trace_id, "1" * 32)
+    span_a = _payload("a" * 16)
+    span_b = _payload("b" * 16)
+    compressed = zstandard.ZstdCompressor(level=0).compress(b"\x00".join([span_a, span_b]))
+    buffer.client.sadd(payload_key, compressed)
+
+    payloads, decompress_latency_ms = buffer._load_payloads_from_keys(
+        [segment_key],
+        {segment_key: [payload_key]},
+        page_size=1,
+    )
+
+    assert set(payloads[segment_key]) == {span_a, span_b}
+    assert decompress_latency_ms >= 0
+
+
 def test_load_segment_data_reads_payloads_from_distributed_keys(
     load_segment_buffer: SpansBuffer,
 ) -> None:
@@ -2030,10 +2179,13 @@ def test_load_segment_data_reads_payloads_from_distributed_keys(
     buffer.client.set(b"span-buf:ic:" + segment_key, 3)
     buffer.client.set(b"span-buf:ibc:" + segment_key, len(span_a) + len(span_b) + len(span_c))
 
-    payloads, payload_keys_map = buffer._load_segment_data([segment_key], {}, now=0)
+    loaded_segment_data, _, _ = buffer._load_segment_data([segment_key])
 
-    assert set(payloads[segment_key]) == {span_a, span_b, span_c}
-    assert set(payload_keys_map[segment_key]) == {first_payload_key, second_payload_key}
+    assert set(loaded_segment_data.payloads[segment_key]) == {span_a, span_b, span_c}
+    assert set(loaded_segment_data.payload_keys[segment_key]) == {
+        first_payload_key,
+        second_payload_key,
+    }
 
 
 def test_load_segment_data_decompresses_payload_batches(
@@ -2052,13 +2204,19 @@ def test_load_segment_data_decompresses_payload_batches(
     buffer.client.sadd(payload_key, compressed)
     buffer.client.set(b"span-buf:ic:" + segment_key, 2)
 
-    payloads, payload_keys_map = buffer._load_segment_data([segment_key], {}, now=0)
+    loaded_segment_data, load_data_latency_ms, decompress_latency_ms = buffer._load_segment_data(
+        [segment_key]
+    )
 
-    assert set(payloads[segment_key]) == {span_a, span_b}
-    assert payload_keys_map[segment_key] == [payload_key]
+    assert set(loaded_segment_data.payloads[segment_key]) == {span_a, span_b}
+    assert loaded_segment_data.payload_keys[segment_key] == [payload_key]
+    assert load_data_latency_ms >= 0
+    assert decompress_latency_ms >= 0
 
 
-def test_load_segment_data_records_dropped_spans(load_segment_buffer: SpansBuffer) -> None:
+def test_record_segment_loss_metrics_records_dropped_spans(
+    load_segment_buffer: SpansBuffer,
+) -> None:
     buffer = load_segment_buffer
     trace_id = "a" * 32
     segment_key = _segment_id(1, trace_id, "b" * 16)
@@ -2077,10 +2235,16 @@ def test_load_segment_data_records_dropped_spans(load_segment_buffer: SpansBuffe
         mock.patch("sentry.spans.buffer.track_outcome") as track_outcome,
     ):
         project_model.objects.get_from_cache.return_value = mock_project
-        payloads, payload_keys_map = buffer._load_segment_data([segment_key], {}, now=0)
+        loaded_segment_data, _, _ = buffer._load_segment_data([segment_key])
+        buffer._record_segment_loss_metrics(
+            [segment_key],
+            {},
+            now=0,
+            payloads=loaded_segment_data.payloads,
+        )
 
-    assert payloads[segment_key] == [span_a]
-    assert payload_keys_map[segment_key] == [payload_key]
+    assert loaded_segment_data.payloads[segment_key] == [span_a]
+    assert loaded_segment_data.payload_keys[segment_key] == [payload_key]
     track_outcome.assert_called_once()
     outcome_kwargs = track_outcome.call_args.kwargs
     assert outcome_kwargs["org_id"] == 100
@@ -2109,7 +2273,7 @@ def test_load_segment_data_records_dropped_spans(load_segment_buffer: SpansBuffe
         ),
     ],
 )
-def test_load_segment_data_records_empty_expired_segments(
+def test_record_segment_loss_metrics_records_empty_expired_segments(
     load_segment_buffer: SpansBuffer, deadline: int, now: int, expected_expired: bool
 ) -> None:
     buffer = load_segment_buffer
@@ -2119,12 +2283,16 @@ def test_load_segment_data_records_empty_expired_segments(
     buffer.client.zadd(queue_key, {segment_key: deadline})
 
     with mock.patch("sentry.spans.buffer.metrics.incr") as metrics_incr:
-        payloads, payload_keys_map = buffer._load_segment_data(
-            [segment_key], {segment_key: queue_key}, now=now
+        loaded_segment_data, _, _ = buffer._load_segment_data([segment_key])
+        buffer._record_segment_loss_metrics(
+            [segment_key],
+            {segment_key: queue_key},
+            now=now,
+            payloads=loaded_segment_data.payloads,
         )
 
-    assert payloads[segment_key] == []
-    assert payload_keys_map[segment_key] == []
+    assert loaded_segment_data.payloads[segment_key] == []
+    assert loaded_segment_data.payload_keys[segment_key] == []
     incr_names = [call.args[0] for call in metrics_incr.call_args_list]
     assert ("spans.buffer.segment_expired_before_flush" in incr_names) is expected_expired
     assert "spans.buffer.empty_segments" in incr_names

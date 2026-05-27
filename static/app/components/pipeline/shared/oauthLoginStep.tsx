@@ -67,16 +67,18 @@ export function OAuthLoginStep({
           </Text>
         )}
       </Stack>
-      {isLoading ? (
-        <Button size="sm" disabled>
-          {t('Authorizing...')}
-        </Button>
-      ) : popupStatus === 'popup-open' ? (
+      {popupStatus === 'popup-open' && !isLoading ? (
         <Button size="sm" onClick={openPopup}>
           {t('Reopen authorization window')}
         </Button>
       ) : (
-        <Button size="sm" variant="primary" onClick={openPopup} disabled={!oauthUrl}>
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={openPopup}
+          busy={isLoading}
+          disabled={!oauthUrl}
+        >
           {tct('Authorize [service]', {service: serviceName})}
         </Button>
       )}

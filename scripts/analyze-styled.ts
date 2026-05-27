@@ -203,8 +203,12 @@ function getCommitsInDateRange(startDate: string, intervalDays: number): GitComm
 
 // CSV helper functions
 function escapeCsvField(field: string | number): string {
-  if (typeof field === 'number') return field.toString();
-  if (field === null || field === undefined) return '';
+  if (typeof field === 'number') {
+    return field.toString();
+  }
+  if (field === null || field === undefined) {
+    return '';
+  }
   const fieldStr = field.toString();
   if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
     return `"${fieldStr.replace(/"/g, '""')}"`;
@@ -213,7 +217,9 @@ function escapeCsvField(field: string | number): string {
 }
 
 function arrayToCSV(data: Array<Record<string, any>>): string {
-  if (data.length === 0) return '';
+  if (data.length === 0) {
+    return '';
+  }
 
   const headers = Object.keys(data[0] ?? {});
   const csvHeaders = headers.map(escapeCsvField).join(',');
@@ -647,7 +653,9 @@ class StyledComponentsDetector extends BaseDetector {
   private cssRuleCounts = new Map<string, number>();
 
   execute(node: ts.Node, context: DetectorContext): void {
-    if (!ts.isTaggedTemplateExpression(node)) return;
+    if (!ts.isTaggedTemplateExpression(node)) {
+      return;
+    }
 
     const taggedExpr = node;
 
@@ -656,7 +664,9 @@ class StyledComponentsDetector extends BaseDetector {
 
       if (callExpr.expression.getText() === 'styled') {
         const component = callExpr.arguments[0];
-        if (!component) return;
+        if (!component) {
+          return;
+        }
 
         let componentName = '';
         let componentType: 'intrinsic' | 'component' | 'unknown' = 'unknown';
@@ -810,9 +820,13 @@ class StyledComponentsDetector extends BaseDetector {
     let staticExpressions = 0;
 
     this.styledComponents.forEach(sc => {
-      if (sc.componentType === 'component') totalReactComponents++;
-      else if (sc.componentType === 'intrinsic') totalIntrinsic++;
-      else unknownComponents++;
+      if (sc.componentType === 'component') {
+        totalReactComponents++;
+      } else if (sc.componentType === 'intrinsic') {
+        totalIntrinsic++;
+      } else {
+        unknownComponents++;
+      }
 
       // Count expressions
       if (sc.hasExpressions) {
@@ -1040,7 +1054,9 @@ class StyledUsagePerFileDetector extends BaseDetector {
     // Track all TSX files we analyze
     this.totalTsxFiles.add(context.fileName);
 
-    if (!ts.isTaggedTemplateExpression(node)) return;
+    if (!ts.isTaggedTemplateExpression(node)) {
+      return;
+    }
 
     const taggedExpr = node;
 
@@ -1124,7 +1140,9 @@ class FlexOnlyDivsDetector extends BaseDetector {
   private styledComponents: StyledComponent[] = [];
 
   execute(node: ts.Node, context: DetectorContext): void {
-    if (!ts.isTaggedTemplateExpression(node)) return;
+    if (!ts.isTaggedTemplateExpression(node)) {
+      return;
+    }
 
     const taggedExpr = node;
 
@@ -1133,7 +1151,9 @@ class FlexOnlyDivsDetector extends BaseDetector {
 
       if (callExpr.expression.getText() === 'styled') {
         const component = callExpr.arguments[0];
-        if (!component) return;
+        if (!component) {
+          return;
+        }
 
         let componentName = '';
         let componentType: 'intrinsic' | 'component' | 'unknown' = 'unknown';

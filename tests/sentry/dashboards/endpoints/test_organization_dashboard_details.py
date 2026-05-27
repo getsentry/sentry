@@ -1242,7 +1242,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Widget with long description",
                     "displayType": "line",
-                    "description": "x" * 256,
+                    "description": "x" * 351,
                     "interval": "5m",
                     "queries": [
                         {
@@ -1259,7 +1259,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert response.data["widgets"][1]["description"] == [
-            "Ensure description has no more than 255 characters."
+            "Ensure description has no more than 350 characters."
         ]
 
     def test_add_text_widget_description_exceeds_max_length(self) -> None:
@@ -1276,32 +1276,30 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature("organizations:dashboards-text-widgets"):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200, response.data
-            assert response.data["widgets"][1]["description"] == "x" * 256
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][1]["description"] == "x" * 256
 
     def test_update_text_widget_description_exceeds_15000_chars(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {"id": str(self.widget_1.id)},
-                    {
-                        "id": str(self.widget_2.id),
-                        "title": "Text Widget",
-                        "displayType": "text",
-                        "description": "x" * 15001,
-                    },
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 400, response.data
-            assert "description" in response.data["widgets"][1], response.data
-            assert (
-                response.data["widgets"][1]["description"][0]
-                == "Description must not exceed 15,000 characters"
-            )
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "id": str(self.widget_2.id),
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "x" * 15001,
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert "description" in response.data["widgets"][1], response.data
+        assert (
+            response.data["widgets"][1]["description"][0]
+            == "Description must not exceed 15,000 characters"
+        )
 
     def test_add_widget_with_limit(self) -> None:
         data = {
@@ -3819,37 +3817,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
 
     def test_add_text_widget_to_dashboard(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {"id": str(self.widget_1.id)},
-                    {"id": str(self.widget_2.id)},
-                    {
-                        "title": "Text Widget",
-                        "displayType": "text",
-                        "description": "This is a text widget description",
-                    },
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200, response.data
-
-            widgets = response.data["widgets"]
-            assert len(widgets) == 3
-
-            # Last widget should be the text widget
-            text_widget = widgets[2]
-            assert text_widget["title"] == "Text Widget"
-            assert text_widget["displayType"] == "text"
-            assert text_widget["description"] == "This is a text widget description"
-            assert text_widget.get("widgetType") is None
-
-    def test_add_text_widget_without_feature_flag(self) -> None:
         data = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
+                {"id": str(self.widget_2.id)},
                 {
                     "title": "Text Widget",
                     "displayType": "text",
@@ -3858,72 +3830,77 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 400, response.data
-        assert "widgets" in response.data, response.data
-        # Error is on the second widget (index 1), the new text widget; first widget has no errors
-        assert "Text widgets are not enabled" in response.data["widgets"][1]["displayType"][0]
+        assert response.status_code == 200, response.data
+
+        widgets = response.data["widgets"]
+        assert len(widgets) == 3
+
+        # Last widget should be the text widget
+        text_widget = widgets[2]
+        assert text_widget["title"] == "Text Widget"
+        assert text_widget["displayType"] == "text"
+        assert text_widget["description"] == "This is a text widget description"
+        assert text_widget.get("widgetType") is None
 
     def test_update_widget_to_text_widget(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {
-                        "id": str(self.widget_1.id),
-                        "title": "Updated to Text Widget",
-                        "displayType": "text",
-                        "description": "Now it's a text widget",
-                    },
-                    {"id": str(self.widget_2.id)},
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200, response.data
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Updated to Text Widget",
+                    "displayType": "text",
+                    "description": "Now it's a text widget",
+                },
+                {"id": str(self.widget_2.id)},
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
 
-            widgets = response.data["widgets"]
-            assert len(widgets) == 2
+        widgets = response.data["widgets"]
+        assert len(widgets) == 2
 
-            # First widget should now be a text widget
-            text_widget = widgets[0]
-            assert text_widget["title"] == "Updated to Text Widget"
-            assert text_widget["displayType"] == "text"
-            assert text_widget["description"] == "Now it's a text widget"
-            assert text_widget.get("widgetType") is None
-            assert text_widget["queries"] == []
+        # First widget should now be a text widget
+        text_widget = widgets[0]
+        assert text_widget["title"] == "Updated to Text Widget"
+        assert text_widget["displayType"] == "text"
+        assert text_widget["description"] == "Now it's a text widget"
+        assert text_widget.get("widgetType") is None
+        assert text_widget["queries"] == []
 
-            # Verify in database that queries were removed
-            widget = DashboardWidget.objects.get(id=self.widget_1.id)
-            assert widget.display_type == DashboardWidgetDisplayTypes.TEXT
-            assert widget.widget_type is None
-            assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
+        # Verify in database that queries were removed
+        widget = DashboardWidget.objects.get(id=self.widget_1.id)
+        assert widget.display_type == DashboardWidgetDisplayTypes.TEXT
+        assert widget.widget_type is None
+        assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
 
     def test_text_widget_errors_provided_queries(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {"id": str(self.widget_1.id)},
-                    {
-                        "title": "Text Widget with Queries",
-                        "displayType": "text",
-                        "description": "This should ignore queries",
-                        "queries": [
-                            {
-                                "name": "errors",
-                                "conditions": "event.type:error",
-                                "fields": ["count()"],
-                                "columns": [],
-                                "aggregates": ["count()"],
-                            }
-                        ],
-                    },
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 400, response.data
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Text Widget with Queries",
+                    "displayType": "text",
+                    "description": "This should ignore queries",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "conditions": "event.type:error",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
 
-            assert "queries" in response.data["widgets"][1], response.data
-            assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
+        assert "queries" in response.data["widgets"][1], response.data
+        assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
     def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
         with self.feature("organizations:dashboards-revisions"):

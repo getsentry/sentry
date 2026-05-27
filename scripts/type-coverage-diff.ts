@@ -119,7 +119,9 @@ function parseArgs(): Options {
     } else if (arg === '--verbose' || arg === '-v') {
       opts.verbose = true;
     } else if (arg === '--ignore-files') {
-      if (!opts.ignoreFiles) opts.ignoreFiles = [];
+      if (!opts.ignoreFiles) {
+        opts.ignoreFiles = [];
+      }
       opts.ignoreFiles.push(args[++i]!);
     } else {
       console.error(colors.red(`Unknown option: ${arg}`));
@@ -361,14 +363,18 @@ function formatItems<
   color: (text: string) => string,
   formatter?: (item: T) => string
 ): void {
-  if (items.length === 0) return;
+  if (items.length === 0) {
+    return;
+  }
 
   console.log(colors.bold(`\n${title} (${items.length})`));
   console.log('='.repeat(title.length + ` (${items.length})`.length));
 
   // Sort by file, then by line
   const sortedItems = items.sort((a, b) => {
-    if (a.file !== b.file) return a.file.localeCompare(b.file);
+    if (a.file !== b.file) {
+      return a.file.localeCompare(b.file);
+    }
     return a.line - b.line;
   });
 

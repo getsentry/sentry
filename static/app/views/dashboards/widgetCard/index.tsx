@@ -575,7 +575,9 @@ function useConflictingFilterWarning({
   widget: TWidget;
 }) {
   const conflictingFilterKeys = useMemo(() => {
-    if (!dashboardFilters) return [];
+    if (!dashboardFilters) {
+      return [];
+    }
 
     const widgetFilterKeys = widget.queries.flatMap(query => {
       const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);

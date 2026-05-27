@@ -136,7 +136,7 @@ class ProcessRelocationTransferControlTest(TestCase):
         res = process_relocation_transfer_control(transfer_id=999)
         assert res is None
 
-    @patch("sentry.relocation.services.relocation_export.impl.fulfill_cross_region_export_request")
+    @patch("sentry.relocation.tasks.process.fulfill_cross_region_export_request")
     def test_transfer_request_state(self, mock_fulfill: MagicMock) -> None:
         transfer = create_control_relocation_transfer(
             organization=self.organization,
@@ -149,7 +149,7 @@ class ProcessRelocationTransferControlTest(TestCase):
         # Should be removed on completion.
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
 
-    @patch("sentry.relocation.services.relocation_export.impl.uploading_complete")
+    @patch("sentry.relocation.tasks.process.uploading_complete")
     def test_transfer_reply_state(self, mock_uploading_complete: MagicMock) -> None:
         organization = self.organization
         with assume_test_silo_mode(SiloMode.CELL):

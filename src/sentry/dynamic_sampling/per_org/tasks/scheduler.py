@@ -11,7 +11,10 @@ from taskbroker_client.retry import Retry
 from sentry.dynamic_sampling.per_org.tasks.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.tasks.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
-from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.per_org.tasks.queries import (
+    get_eap_organization_volume,
+    get_eap_project_volumes,
+)
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     DynamicSamplingStatus,
@@ -108,17 +111,21 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
-    org_volume_5_minutes = get_eap_organization_volume(
-        config, time_interval=ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
-    )
-
-    org_volume_1_hour = get_eap_organization_volume(
+    org_volume = get_eap_organization_volume(
         config, time_interval=ACTIVE_ORGS_DEFAULT_TIME_INTERVAL
     )
+    if org_volume is None:
+        return DynamicSamplingStatus.NO_ORG_VOLUME
 
-    if org_volume_1_hour is None:
-        return DynamicSamplingStatus.NO_VOLUME
+    if config.should_balance_projects:
+        project_volumes = get_eap_project_volumes(config)
+        if not project_volumes:
+            return DynamicSamplingStatus.NO_PROJECT_VOLUMES
 
-    calculate_recalibration_factor(config, org_volume_5_minutes)
+    if config.needs_recalibration:
+        org_volume_5_minutes = get_eap_organization_volume(
+            config, time_interval=ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
+        )
+        calculate_recalibration_factor(config, org_volume_5_minutes)
 
     return None
