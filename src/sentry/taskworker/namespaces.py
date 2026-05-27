@@ -38,6 +38,11 @@ crons_tasks = app.taskregistry.create_namespace(
     app_feature="crons",
 )
 
+ingest_billing_metrics_raw_tasks = app.taskregistry.create_namespace(
+    "ingest.billing_metrics.raw",
+    app_feature="transactions",
+)
+
 deletion_tasks = app.taskregistry.create_namespace(
     "deletions",
     processing_deadline_duration=60 * 20,
