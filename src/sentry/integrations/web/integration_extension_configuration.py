@@ -49,6 +49,9 @@ class IntegrationExtensionConfigurationView(BaseView):
     provider: str
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+        return self._handle_request(request, *args, **kwargs)
+
+    def _handle_request(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if not request.user.is_authenticated:
             configure_uri = (
                 f"/extensions/{self.provider}/configure/?{urlencode(request.GET.dict())}"
@@ -90,19 +93,7 @@ class IntegrationExtensionConfigurationView(BaseView):
                     organization_id=organization.id, user_id=request.user.id
                 )
                 if org_member and "org:integrations" in org_member.scopes:
-                    try:
-                        pipeline = self.init_pipeline(request, organization, request.GET.dict())
-                        return pipeline.current_step()
-                    except ValueError as e:
-                        return self.respond(
-                            "sentry/pipeline-error.html",
-                            {"error": e},
-                        )
-                    except SignatureExpired:
-                        return self.respond(
-                            "sentry/pipeline-error.html",
-                            {"error": "Installation link expired"},
-                        )
+                    return self._dispatch_pipeline(request, organization, request.GET.dict())
                 else:
                     logger.info(
                         "integration-extension-config.no-permission",
@@ -117,6 +108,26 @@ class IntegrationExtensionConfigurationView(BaseView):
         logger.info("integration-extension-config.redirect", extra=log_params)
         # if anything before fails, we give up and send them to the link page where we can display errors
         return self.redirect(f"/extensions/{self.provider}/link/?{urlencode(request.GET.dict())}")
+
+    def _dispatch_pipeline(
+        self,
+        request: HttpRequest,
+        organization: RpcOrganization | RpcOrganizationMapping,
+        params: dict,
+    ) -> HttpResponseBase:
+        try:
+            pipeline = self.init_pipeline(request, organization, params)
+            return pipeline.current_step()
+        except ValueError as e:
+            return self.respond(
+                "sentry/pipeline-error.html",
+                {"error": e},
+            )
+        except SignatureExpired:
+            return self.respond(
+                "sentry/pipeline-error.html",
+                {"error": "Installation link expired"},
+            )
 
     def init_pipeline(self, request: HttpRequest, organization, params):
         pipeline = ExternalIntegrationPipeline(

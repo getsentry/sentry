@@ -1,0 +1,42 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_assets %}
+
+{% block wrapperclass %}narrow{% endblock %}
+{% block title %}{% trans "Confirm Jira Installation" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+<form class="form-stacked" action="{{ form_action }}" method="post">
+  {% csrf_token %}
+
+  <div class="align-center">
+    <h3>{% trans "Connect Jira to Sentry" %}</h3>
+
+    <p>
+      {% blocktrans with org=organization_name %}
+        You are about to connect a Jira workspace to the <b>{{ org }}</b> Sentry organization.
+        Anyone in the organization will be able to create and link Jira issues using this
+        installation.
+      {% endblocktrans %}
+    </p>
+
+    {% if jira_base_url %}
+    <p>
+      {% trans "Jira workspace:" %}
+      <b>{{ jira_base_url }}</b>
+    </p>
+    {% endif %}
+
+    <p>
+      {% trans "If you did not start this installation yourself, do not continue — the link may have been sent to you by someone else." %}
+    </p>
+
+    <p>
+      <button type="submit" class="btn btn-primary">
+        {% trans "Install Jira integration" %}
+      </button>
+    </p>
+  </div>
+</form>
+{% endblock %}
