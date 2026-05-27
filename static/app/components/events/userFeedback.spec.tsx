@@ -6,8 +6,8 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {EventUserFeedback} from './userFeedback';
 
 jest.mock('sentry/utils/useCopyToClipboard');
-
 const mockCopy = jest.fn();
+jest.mocked(useCopyToClipboard).mockReturnValue({copy: mockCopy});
 
 function makeReport(overrides: Partial<UserReport> = {}): UserReport {
   return {
@@ -33,7 +33,6 @@ function makeReport(overrides: Partial<UserReport> = {}): UserReport {
 
 describe('EventUserFeedback', () => {
   beforeEach(() => {
-    jest.mocked(useCopyToClipboard).mockReturnValue({copy: mockCopy});
     mockCopy.mockClear();
   });
 
