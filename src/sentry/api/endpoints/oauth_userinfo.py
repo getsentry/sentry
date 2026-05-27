@@ -1,3 +1,5 @@
+import hashlib
+
 from rest_framework import status
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import APIException
@@ -80,10 +82,21 @@ class OAuthUserInfoEndpoint(Endpoint):
             raise BearerTokenMissing()
 
         access_token = auth_header[1].decode("utf-8")
+        hashed_token = hashlib.sha256(access_token.encode()).hexdigest()
         try:
-            token_details = ApiToken.objects.get(token=access_token)
+            token_details = ApiToken.objects.select_related("user", "application").get(
+                hashed_token=hashed_token
+            )
         except ApiToken.DoesNotExist:
-            raise BearerTokenInvalid()
+            try:
+                token_details = ApiToken.objects.select_related("user", "application").get(
+                    token=access_token
+                )
+            except ApiToken.DoesNotExist:
+                raise BearerTokenInvalid()
+            else:
+                token_details.hashed_token = hashed_token
+                token_details.save(update_fields=["hashed_token"])
 
         if token_details.is_expired():
             raise BearerTokenInvalid()
