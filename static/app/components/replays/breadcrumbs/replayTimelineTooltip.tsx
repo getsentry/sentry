@@ -61,7 +61,7 @@ export function TimelineTooltip({container}: Props) {
         transform: 'translateX(10px)',
       }}
     >
-      <Text size="xs" tabular style={{fontWeight: 'normal'}}>
+      <Text size="sm" tabular style={{fontWeight: 'normal'}}>
         {timestampType === 'absolute'
           ? getFormattedDate(
               startTimestamp + (lastHoverTime ?? 0),
@@ -81,7 +81,7 @@ export function TimelineTooltip({container}: Props) {
 
 const CursorLabel = styled(Overlay)`
   position: absolute;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   pointer-events: none;
   white-space: nowrap;
   z-index: 1000;
