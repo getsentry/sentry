@@ -204,6 +204,23 @@ export function SplitPanel({
   const max = availableSize > 0 ? Math.min(explicitMax, availableSize) : explicitMax;
   const initialSize = sizedProps?.defaultSize ?? 0;
 
+  // useResizableDrawer only enforces `min`, not `max`, so its internal size can
+  // drift past `max` while the user keeps dragging. We clamp before forwarding
+  // to the consumer's `onResize` and snap the hook back when it drifts, so
+  // dragging in the opposite direction responds immediately.
+  const setSizeRef = useRef<(size: number, userEvent?: boolean) => void>(() => {});
+  const handleHookResize = useCallback(
+    (newSize: number) => {
+      const clamped = Math.min(Math.max(newSize, min), max);
+      if (clamped !== newSize) {
+        setSizeRef.current(clamped, true);
+        return;
+      }
+      onResize?.(newSize);
+    },
+    [onResize, min, max]
+  );
+
   const {
     isHeld,
     onDoubleClick,
@@ -214,8 +231,9 @@ export function SplitPanel({
     direction: orientation === 'horizontal' ? 'left' : 'down',
     initialSize,
     min,
-    onResize: onResize ?? (() => {}),
+    onResize: handleHookResize,
   });
+  setSizeRef.current = setSize;
 
   const clampedSize = Math.min(containerSize, max);
   const sizePct = `${
