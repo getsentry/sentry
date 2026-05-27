@@ -16,25 +16,13 @@ import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {
-  getRegionUrl,
-  getRegionNameChoices,
-  shouldDisplayRegions,
-} from 'sentry/utils/regions';
+import {getRegionNameChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 
 export const DATA_STORAGE_DOCS_LINK =
   'https://docs.sentry.io/product/accounts/choose-your-data-center';
-
-function removeDataStorageLocationFromFormData(
-  formData: Record<string, any>
-): Record<string, any> {
-  const shallowFormDataClone = {...formData};
-  delete shallowFormDataClone.dataStorageLocation;
-  return shallowFormDataClone;
-}
 
 const DataConsentCheck = OverrideOrDefault({
   overrideName: 'component:data-consent-org-creation-checkbox',
@@ -48,7 +36,6 @@ function OrganizationCreate() {
   const relocationUrl = normalizeUrl('/relocation/');
   const regionChoices = getRegionNameChoices();
   const client = useApi();
-  const useControl = ConfigStore.get('features').has('organizations:create-org-control');
 
   const hasDataConsent =
     getOverride('component:data-consent-org-creation-checkbox') !== undefined;
@@ -61,17 +48,7 @@ function OrganizationCreate() {
       if (!formModel.validateForm()) {
         return;
       }
-
-      let host: string | undefined;
-      if (data.dataStorageLocation) {
-        if (useControl) {
-          host = ConfigStore.get('links').sentryUrl;
-        } else {
-          const storageLocation = data.dataStorageLocation;
-          host = getRegionUrl(storageLocation) ?? host;
-          data = removeDataStorageLocationFromFormData(data);
-        }
-      }
+      const host = ConfigStore.get('links').sentryUrl;
 
       addLoadingMessage(t('Creating Organization\u2026'));
       formModel.setFormSaving();
@@ -84,7 +61,7 @@ function OrganizationCreate() {
         error: onSubmitError,
       });
     },
-    [client, useControl]
+    [client]
   );
 
   return (

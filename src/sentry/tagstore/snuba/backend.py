@@ -508,7 +508,7 @@ class SnubaTagStorage(TagStorage):
                     snuba_output,
                     eap_output,
                     eap_callsite,
-                    is_experimental_data_a_null_result=eap_output.count == 0,
+                    is_experimental_data_nullish=eap_output.count == 0,
                     reasonable_match_comparator=reasonable_group_tag_key_match,
                     debug_context={
                         "group_id": group.id,
@@ -917,7 +917,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_group_list_tag_value_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -1005,7 +1005,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_group_list_tag_value_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -1171,7 +1171,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=eap_result == 0,
+                is_experimental_data_nullish=eap_result == 0,
                 reasonable_match_comparator=lambda control, experimental: experimental <= control,
                 debug_context={
                     "group_id": group.id,
@@ -1401,7 +1401,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_release_tags_match,
                 debug_context={
                     "organization_id": organization_id,
@@ -1596,7 +1596,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_user_counts_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -1747,7 +1747,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_user_counts_match,
                 debug_context={
                     "project_ids": list(project_ids),
@@ -2286,7 +2286,7 @@ class SnubaTagStorage(TagStorage):
                 control_data=snuba_result,
                 experimental_data=eap_result,
                 callsite=callsite,
-                is_experimental_data_a_null_result=len(eap_result) == 0,
+                is_experimental_data_nullish=len(eap_result) == 0,
                 reasonable_match_comparator=_reasonable_group_tag_value_iter_match,
                 debug_context={
                     "group_id": group.id,

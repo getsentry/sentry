@@ -410,7 +410,7 @@ class SnubaEventStorage(EventStorage):
                     control_data=control_data,
                     experimental_data=experimental_data,
                     callsite=callsite,
-                    is_experimental_data_a_null_result=eap_results is None,
+                    is_experimental_data_nullish=eap_results is None,
                     reasonable_match_comparator=lambda ctl, exp: exp.issubset(ctl),
                     debug_context={
                         "project_ids": list(filter.project_ids) if filter.project_ids else [],
@@ -584,7 +584,7 @@ class SnubaEventStorage(EventStorage):
                     control_data=control_group_id,
                     experimental_data=eap_group_id,
                     callsite=callsite,
-                    is_experimental_data_a_null_result=eap_result is None,
+                    is_experimental_data_nullish=eap_result is None,
                     reasonable_match_comparator=lambda snuba, eap: snuba == eap,
                     debug_context={
                         "project_id": project_id,

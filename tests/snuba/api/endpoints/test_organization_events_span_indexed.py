@@ -5016,8 +5016,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.do_request(
             {
-                "field": ["tags[flag.evaluation.feature.organizations:foo,number]"],
-                "query": "has:tags[flag.evaluation.feature.organizations:foo,number] tags[flag.evaluation.feature.organizations:foo,number]:1",
+                "field": ["tags[flag.evaluation.feature.organizations:foo,boolean]"],
+                "query": "has:tags[flag.evaluation.feature.organizations:foo,boolean] tags[flag.evaluation.feature.organizations:foo,boolean]:true",
                 "project": self.project.id,
                 "dataset": "spans",
             }
@@ -5027,7 +5027,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             {
                 "id": span["span_id"],
                 "project.name": self.project.slug,
-                "tags[flag.evaluation.feature.organizations:foo,number]": 1,
+                "tags[flag.evaluation.feature.organizations:foo,boolean]": True,
             },
         ]
 

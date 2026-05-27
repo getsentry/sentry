@@ -22,6 +22,7 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
+import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {
   IconAdd,
   IconAllProjects,
@@ -364,7 +365,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
-              to={`${prefix}/explore/profiling/`}
+              to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
@@ -1053,6 +1054,34 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
       </CMDKAction>
+
+      {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
+        <CMDKAction
+          display={{label: t('Open in Production'), icon: <IconOpen />}}
+          keywords={['production', 'prod', 'live']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.sentry.io${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
+
+      {NODE_ENV === 'production' && user.isStaff && (
+        <CMDKAction
+          display={{label: t('Open in Development'), icon: <IconOpen />}}
+          keywords={['development', 'dev', 'dev-ui', 'localhost', 'local']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.dev.getsentry.net:7999${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
     </CommandPaletteSlot>
   );
 }

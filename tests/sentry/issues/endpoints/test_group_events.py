@@ -8,7 +8,7 @@ from urllib3.exceptions import ReadTimeoutError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -590,7 +590,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
 
         url = f"/api/0/issues/{event_1.group.id}/events/"
 
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+        with self.options({EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True}):
             response = self.do_request(url)
 
         assert response.status_code == 200, response.content
