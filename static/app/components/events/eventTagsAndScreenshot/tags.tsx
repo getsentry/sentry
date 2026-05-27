@@ -3,7 +3,6 @@ import {useMemo, useState} from 'react';
 import {Grid} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   associateTagsWithMeta,
@@ -83,11 +82,7 @@ export function EventTagsDataSection({
   return (
     <FoldSection
       disableCollapsePersistence={disableCollapsePersistence}
-      title={
-        <GuideAnchor target="tags" position="top">
-          {t('Tags')}
-        </GuideAnchor>
-      }
+      title={t('Tags')}
       actions={actions}
       sectionKey={SectionKey.TAGS}
       ref={ref}

@@ -56,6 +56,7 @@ import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistri
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
@@ -836,6 +837,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       TourContext={IssueDetailsTourContext}
     >
+      <IssueDetailsTourModal />
       <GroupDetailsContent
         project={projectWithFallback}
         group={props.group}

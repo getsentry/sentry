@@ -1,8 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {ClassNames} from '@emotion/react';
 
 import Feature from 'sentry/components/acl/feature';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -173,79 +171,67 @@ export function EventDetailsContent({
       {isMetricKitHang ? (
         <MetricKitHangProfileSection data={hangProfileData} />
       ) : (
-        /* Wrapping all stacktrace components since multiple could appear */
-        <ClassNames>
-          {({css}) => (
-            <GuideAnchor
-              target="stacktrace"
-              position="top"
-              // Prevent the container span from shrinking the content
-              containerClassName={css`
-                display: block !important;
-              `}
-            >
-              {shouldShowTombstonesBanner(event) && !isSampleError && (
-                <ErrorBoundary mini>
-                  <AndroidNativeTombstonesBanner
-                    event={event}
-                    projectId={group?.project.id ?? event.projectID ?? ''}
-                  />
-                </ErrorBoundary>
+        <Fragment>
+          {shouldShowTombstonesBanner(event) && !isSampleError && (
+            <ErrorBoundary mini>
+              <AndroidNativeTombstonesBanner
+                event={event}
+                projectId={group?.project.id ?? event.projectID ?? ''}
+              />
+            </ErrorBoundary>
+          )}
+          {defined(eventEntries[EntryType.EXCEPTION]) && (
+            <EntryErrorBoundary type={EntryType.EXCEPTION}>
+              {shouldUseNewStackTrace ? (
+                <IssueStackTrace
+                  event={event}
+                  values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
+                  projectSlug={project.slug}
+                  group={group}
+                />
+              ) : (
+                <Exception
+                  event={event}
+                  data={eventEntries[EntryType.EXCEPTION].data}
+                  projectSlug={project.slug}
+                  group={group}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                />
               )}
-              {defined(eventEntries[EntryType.EXCEPTION]) && (
-                <EntryErrorBoundary type={EntryType.EXCEPTION}>
-                  {shouldUseNewStackTrace ? (
-                    <IssueStackTrace
-                      event={event}
-                      values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
-                      projectSlug={project.slug}
-                      group={group}
-                    />
-                  ) : (
-                    <Exception
-                      event={event}
-                      data={eventEntries[EntryType.EXCEPTION].data}
-                      projectSlug={project.slug}
-                      group={group}
-                      groupingCurrentLevel={groupingCurrentLevel}
-                    />
-                  )}
-                </EntryErrorBoundary>
-              )}
-              {issueTypeConfig.stacktrace.enabled &&
-                defined(eventEntries[EntryType.STACKTRACE]) && (
-                  <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                    {shouldUseNewStackTrace ? (
-                      <IssueStackTrace
-                        event={event}
-                        stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                        projectSlug={projectSlug}
-                        group={group}
-                      />
-                    ) : (
-                      <StackTrace
-                        event={event}
-                        data={eventEntries[EntryType.STACKTRACE].data}
-                        projectSlug={projectSlug}
-                        groupingCurrentLevel={groupingCurrentLevel}
-                      />
-                    )}
-                  </EntryErrorBoundary>
-                )}
-              {defined(eventEntries[EntryType.THREADS]) && (
-                <EntryErrorBoundary type={EntryType.THREADS}>
-                  <Threads
+            </EntryErrorBoundary>
+          )}
+          {issueTypeConfig.stacktrace.enabled &&
+            defined(eventEntries[EntryType.STACKTRACE]) && (
+              <EntryErrorBoundary type={EntryType.STACKTRACE}>
+                {shouldUseNewStackTrace ? (
+                  <IssueStackTrace
                     event={event}
-                    data={eventEntries[EntryType.THREADS].data}
-                    projectSlug={project.slug}
-                    groupingCurrentLevel={groupingCurrentLevel}
+                    stacktrace={eventEntries[EntryType.STACKTRACE].data}
+                    projectSlug={projectSlug}
                     group={group}
                   />
-                </EntryErrorBoundary>
-              )}
-            </GuideAnchor>
+                ) : (
+                  <StackTrace
+                    event={event}
+                    data={eventEntries[EntryType.STACKTRACE].data}
+                    projectSlug={projectSlug}
+                    groupingCurrentLevel={groupingCurrentLevel}
+                  />
+                )}
+              </EntryErrorBoundary>
+            )}
+          {defined(eventEntries[EntryType.THREADS]) && (
+            <EntryErrorBoundary type={EntryType.THREADS}>
+              <Threads
+                event={event}
+                data={eventEntries[EntryType.THREADS].data}
+                projectSlug={project.slug}
+                groupingCurrentLevel={groupingCurrentLevel}
+                group={group}
+              />
+            </EntryErrorBoundary>
           )}
-        </ClassNames>
+        </Fragment>
       )}
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
       {isANR && (
