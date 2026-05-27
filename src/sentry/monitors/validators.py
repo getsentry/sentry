@@ -44,6 +44,7 @@ from sentry.monitors.utils import (
     create_issue_alert_rule,
     ensure_cron_detector,
     get_checkin_margin,
+    get_detector_for_monitor,
     get_max_runtime,
     signal_monitor_created,
     update_issue_alert_rule,
@@ -512,6 +513,11 @@ class MonitorValidator(CamelSnakeSerializer):
                 event=audit_log.get_event_id("MONITOR_EDIT"),
                 data=instance.get_audit_log_data(),
             )
+
+        if "name" in params and not self.context.get("from_detector_flow"):
+            detector = get_detector_for_monitor(instance)
+            if detector is not None:
+                detector.update(name=params["name"])
 
         # Update monitor slug in billing
         if "slug" in params:
