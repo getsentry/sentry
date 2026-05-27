@@ -54,7 +54,7 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
 
         metadata = state.get("metadata") or {}
         return self.respond(
-            "sentry/integrations/jira/configure.html",
+            "sentry/integrations/jira-confirm.html",
             {
                 "organization_name": organization.name,
                 "organization_slug": organization.slug,
