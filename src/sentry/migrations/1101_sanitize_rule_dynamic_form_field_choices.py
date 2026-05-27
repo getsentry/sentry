@@ -50,7 +50,7 @@ def _extract_choice_label(value: object, label: object) -> tuple[object, bool]:
     """
     if isinstance(label, dict) and "props" in label:
         props = label.get("props")
-        children = props.get("children") if isinstance(props, dict) else None
+        children = props.get("children", None) if isinstance(props, dict) else None
         if isinstance(children, list):
             text = "".join(c for c in children if isinstance(c, str)).strip()
             if text:
