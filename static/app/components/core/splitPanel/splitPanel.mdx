@@ -1,0 +1,205 @@
+---
+title: SplitPanel
+description: A resizable two-pane layout with a draggable divider, supporting horizontal (left/right) and vertical (top/bottom) orientations.
+category: layout
+source: '@sentry/scraps/splitPanel'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/splitPanel/splitPanel.tsx
+---
+
+import {Container, Flex} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/splitPanel');
+
+The `SplitPanel` component renders two panes separated by a draggable divider. It supports either a horizontal split (`left` / `right`) or a vertical split (`top` / `bottom`). The sized side accepts `default`, `min`, and `max` constraints; the opposite side fills the remaining space.
+
+## Basic Usage
+
+Pass `availableSize` (the measured width or height of the container) along with the sized side's constraints and the other side's content.
+
+```jsx
+<SplitPanel
+  availableSize={containerWidth}
+  left={{content: <LeftPane />, default: 300, min: 200, max: 600}}
+  right={<RightPane />}
+/>
+```
+
+## Horizontal Split (left / right)
+
+The `left` pane is sized; `right` fills the remaining space.
+
+<Storybook.Demo>
+  <Container border="primary" radius="md" style={{width: 600, height: 160}}>
+    <SplitPanel
+      availableSize={600}
+      left={{
+        content: (
+          <Flex align="center" justify="center" flex="1" background="secondary">
+            <Text>Left</Text>
+          </Flex>
+        ),
+        default: 240,
+        min: 120,
+        max: 480,
+      }}
+      right={
+        <Flex align="center" justify="center" flex="1" background="primary">
+          <Text>Right</Text>
+        </Flex>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<SplitPanel
+  availableSize={600}
+  left={{
+    content: <LeftPane />,
+    default: 240,
+    min: 120,
+    max: 480,
+  }}
+  right={<RightPane />}
+/>
+```
+
+## Vertical Split (top / bottom)
+
+The `top` pane is sized; `bottom` fills the remaining space.
+
+<Storybook.Demo>
+  <Container border="primary" radius="md" style={{width: 600, height: 240}}>
+    <SplitPanel
+      availableSize={240}
+      top={{
+        content: (
+          <Flex align="center" justify="center" flex="1" background="secondary">
+            <Text>Top</Text>
+          </Flex>
+        ),
+        default: 100,
+        min: 60,
+        max: 180,
+      }}
+      bottom={
+        <Flex align="center" justify="center" flex="1" background="primary">
+          <Text>Bottom</Text>
+        </Flex>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<SplitPanel
+  availableSize={240}
+  top={{
+    content: <TopPane />,
+    default: 100,
+    min: 60,
+    max: 180,
+  }}
+  bottom={<BottomPane />}
+/>
+```
+
+## Measuring the container
+
+`availableSize` is typically the measured width (for left/right) or height (for top/bottom) of the parent container. Pair `SplitPanel` with `useDimensions` to keep the size in sync with the layout.
+
+```tsx
+import {useRef} from 'react';
+
+import {Flex} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
+
+import {useDimensions} from 'sentry/utils/useDimensions';
+
+function ResizableLayout({left, right}: {left: React.ReactNode; right: React.ReactNode}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: ref});
+
+  return (
+    <Flex ref={ref} flex="1" minHeight="0" overflow="hidden">
+      {width > 0 ? (
+        <SplitPanel
+          availableSize={width}
+          left={{content: left, default: width / 2, min: 200, max: width - 200}}
+          right={right}
+        />
+      ) : null}
+    </Flex>
+  );
+}
+```
+
+## Collapsing a pane
+
+Passing `null` for the unsized side hides the divider and expands the sized pane to fill the full width. The sized pane's DOM identity is preserved across collapses.
+
+```jsx
+<SplitPanel
+  availableSize={width}
+  left={{content: <LeftPane />, default: 300, min: 200, max: 600}}
+  right={isCollapsed ? null : <RightPane />}
+/>
+```
+
+## Persisting size
+
+Pass `sizeStorageKey` to persist the user's drag size in `localStorage` across reloads.
+
+```jsx
+<SplitPanel
+  availableSize={width}
+  sizeStorageKey="my-feature.split-size"
+  left={{content: <LeftPane />, default: 300, min: 200, max: 600}}
+  right={<RightPane />}
+/>
+```
+
+## Custom divider
+
+The default divider shows a grab handle and changes background on hover/drag. Pass a custom `SplitDivider` component to swap in a different appearance (for example, a thin 1px border line).
+
+```jsx
+import styled from '@emotion/styled';
+
+const BorderDivider = styled('div')`
+  width: 1px;
+  height: 100%;
+  background: ${p => p.theme.tokens.border.primary};
+  cursor: ew-resize;
+
+  &[data-is-held='true'] {
+    background: ${p => p.theme.tokens.border.accent.moderate};
+  }
+`;
+
+<SplitPanel
+  availableSize={width}
+  SplitDivider={BorderDivider}
+  left={{content: <LeftPane />, default: 300, min: 200, max: 600}}
+  right={<RightPane />}
+/>;
+```
+
+## Tracking resize events
+
+`onMouseDown` fires when the user starts dragging (receives the size as a percentage string). `onResize` fires as the size changes (receives the new size in pixels). Use these for analytics or to drive linked UI.
+
+```jsx
+<SplitPanel
+  availableSize={width}
+  onMouseDown={sizePct => trackStart(sizePct)}
+  onResize={newSize => trackEnd(newSize)}
+  left={{content: <LeftPane />, default: 300, min: 200, max: 600}}
+  right={<RightPane />}
+/>
+```

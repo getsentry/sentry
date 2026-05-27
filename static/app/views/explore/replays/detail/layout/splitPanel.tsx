@@ -1,8 +1,9 @@
-import {useCallback} from 'react';
+import {useMemo} from 'react';
 import debounce from 'lodash/debounce';
 
-import type {SplitPanelProps} from 'sentry/components/splitPanel';
-import {SplitPanel} from 'sentry/components/splitPanel';
+import type {SplitPanelProps} from '@sentry/scraps/splitPanel';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useSplitPanelTracking} from 'sentry/utils/replays/hooks/useSplitPanelTracking';
@@ -26,18 +27,14 @@ export function ReplaySplitPanel({
     },
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const handleResize = useCallback(
-    debounce(newSize => logEndPosition(`${(newSize / availableSize) * 100}%`), 750),
+  const handleResize = useMemo(
+    () =>
+      debounce(
+        (newSize: number) => logEndPosition(`${(newSize / availableSize) * 100}%`),
+        750
+      ),
     [logEndPosition, availableSize]
   );
 
-  const handleMouseDown = useCallback(
-    (sizePct: `${number}%`) => {
-      setStartPosition(sizePct);
-    },
-    [setStartPosition]
-  );
-
-  return <SplitPanel {...props} onMouseDown={handleMouseDown} onResize={handleResize} />;
+  return <SplitPanel {...props} onMouseDown={setStartPosition} onResize={handleResize} />;
 }

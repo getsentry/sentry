@@ -128,7 +128,7 @@ export function SplitPanel(props: SplitPanelProps) {
   const sizePct = `${(Math.min(containerSize, max) / availableSize) * 100}%` as const;
 
   const handleMouseDown = useCallback(
-    (event: any) => {
+    (event: React.MouseEvent<HTMLElement>) => {
       onMouseDown?.(sizePct);
       onDragStart(event);
     },

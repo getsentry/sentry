@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SplitPanel} from 'sentry/components/splitPanel';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 const defaultLeftSide = {
   content: <div data-test-id="left-content">left</div>,
