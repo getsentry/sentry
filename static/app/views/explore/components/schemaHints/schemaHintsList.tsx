@@ -243,10 +243,6 @@ export function SchemaHintsList({
         measureDiv.style.width = styles.width;
 
         const measureDivRect = measureDiv.getBoundingClientRect();
-        // Render items in hidden div to measure. Each visible child is a
-        // <Container><Button/></Container> wrapper; clone the wrapper deeply
-        // and replace the Button's inner text so the button chrome (border,
-        // padding) is preserved in the measured width.
         [...filterTagsSorted, seeFullListTag].forEach(hint => {
           const el = container.children[0]?.cloneNode(true) as HTMLElement;
           const button = el?.firstChild as HTMLElement | null;
