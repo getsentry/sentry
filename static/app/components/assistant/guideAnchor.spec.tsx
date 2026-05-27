@@ -14,7 +14,7 @@ describe('GuideAnchor', () => {
       seen: false,
     },
   ];
-  const firstGuideHeader = 'Events';
+  const firstGuideHeader = 'Event Breakdown';
 
   beforeEach(() => {
     ConfigStore.loadInitialData(
@@ -30,6 +30,7 @@ describe('GuideAnchor', () => {
   it('renders, async advances, async and finishes', async () => {
     render(
       <div>
+        <GuideAnchor target="trace_view_guide_breakdown" />
         <GuideAnchor target="trace_view_guide_row" />
         <GuideAnchor target="trace_view_guide_row_details" />
       </div>
@@ -40,8 +41,13 @@ describe('GuideAnchor', () => {
 
     await userEvent.click(screen.getByLabelText('Next'));
 
-    expect(await screen.findByText('Event Details')).toBeInTheDocument();
+    expect(await screen.findByText('Events')).toBeInTheDocument();
     expect(screen.queryByText(firstGuideHeader)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Next'));
+
+    expect(await screen.findByText('Event Details')).toBeInTheDocument();
+    expect(screen.queryByText('Events')).not.toBeInTheDocument();
 
     // Clicking on the button in the last step should finish the guide.
     const finishMock = MockApiClient.addMockResponse({
@@ -66,6 +72,7 @@ describe('GuideAnchor', () => {
   it('dismisses', async () => {
     render(
       <div>
+        <GuideAnchor target="trace_view_guide_breakdown" />
         <GuideAnchor target="trace_view_guide_row" />
         <GuideAnchor target="trace_view_guide_row_details" />
       </div>
@@ -120,6 +127,7 @@ describe('GuideAnchor', () => {
   it('if forceHide is true, async do not render guide', async () => {
     render(
       <div>
+        <GuideAnchor target="trace_view_guide_breakdown" />
         <GuideAnchor target="trace_view_guide_row" />
         <GuideAnchor target="trace_view_guide_row_details" />
       </div>
