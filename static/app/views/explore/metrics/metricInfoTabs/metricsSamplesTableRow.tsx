@@ -67,10 +67,7 @@ const getExtraMenuItems = ({
   selection: PageFilters;
   source: MetricsSamplesTableSource;
 }): MenuItemProps[] | undefined => {
-  if (
-    !isEmbeddedMetricsSamplesTableSource(source) ||
-    field !== TraceMetricKnownFieldKey.METRIC_NAME
-  ) {
+  if (source !== 'traceWaterfall' || field !== TraceMetricKnownFieldKey.METRIC_NAME) {
     return undefined;
   }
 

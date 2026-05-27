@@ -257,11 +257,11 @@ describe('MetricPanel', () => {
     expect(screen.getAllByText(/ago$/).length).toBeGreaterThan(0);
   });
 
-  it('links embedded metric names to span samples with a metrics cross-event query', async () => {
+  it('links trace waterfall metric names to span samples with a metrics cross-event query', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = metricFixtures.detailedFixtures[0]!;
 
-    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+    render(<MetricsSamplesTable source="traceWaterfall" overrideTableData={[row]} />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
@@ -310,7 +310,7 @@ describe('MetricPanel', () => {
     ]);
   });
 
-  it('does not add the similar spans action to non-embedded samples', async () => {
+  it('does not add the similar spans action to metrics page samples', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
 
     render(
@@ -325,6 +325,27 @@ describe('MetricPanel', () => {
     expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
   });
 
+  it('does not add the similar spans action to issue details samples', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+
+    render(<MetricsSamplesTable source="issueDetails" overrideTableData={[row]} />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    const samplesTable = await screen.findByRole('table');
+    const metricNameCell = within(samplesTable)
+      .getByText(row[TraceMetricKnownFieldKey.METRIC_NAME])
+      .closest('[role="cell"]')!;
+    await userEvent.click(
+      within(metricNameCell as HTMLElement).getByRole('button', {name: 'Actions'})
+    );
+
+    expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+    expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
+  });
+
   it('does not add the similar spans action without a complete metric identity', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = {
@@ -332,7 +353,7 @@ describe('MetricPanel', () => {
       [TraceMetricKnownFieldKey.METRIC_TYPE]: '',
     } as TraceMetricEventsResponseItem;
 
-    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+    render(<MetricsSamplesTable source="traceWaterfall" overrideTableData={[row]} />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
