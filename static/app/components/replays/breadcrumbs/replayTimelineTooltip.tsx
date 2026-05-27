@@ -81,7 +81,7 @@ export function TimelineTooltip({container}: Props) {
 
 const CursorLabel = styled(Overlay)`
   position: absolute;
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   pointer-events: none;
   white-space: nowrap;
   z-index: 1000;
