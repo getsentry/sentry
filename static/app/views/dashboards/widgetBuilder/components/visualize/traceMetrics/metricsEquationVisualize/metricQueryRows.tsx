@@ -265,6 +265,17 @@ export function MetricQueryRows({
         >
           {t('Add Metric')}
         </Button>
+        <Button
+          disabled
+          variant="link"
+          icon={<IconAdd />}
+          tooltipProps={{
+            title: t('Only a single equation is allowed at this time'),
+          }}
+          aria-label={t('Add Equation')}
+        >
+          {t('Add Equation')}
+        </Button>
       </Flex>
     </Stack>
   );

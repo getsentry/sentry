@@ -8,8 +8,9 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -626,6 +627,18 @@ export function Visualize({
         title={isTableWidget ? t('Columns') : t('Visualize')}
         tooltipText={tooltipText}
       />
+      {canShowTraceMetricEquations && (
+        <Container paddingBottom="md">
+          <SegmentedControl
+            value={isEquationMode ? 'equation' : 'series'}
+            onChange={value => onSetEquationMode?.(value === 'equation')}
+            size="sm"
+          >
+            <SegmentedControl.Item key="series">{t('Series')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="equation">{t('Equation')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Container>
+      )}
       {isEquationMode && canShowTraceMetricEquations ? (
         <MetricsEquationVisualize onEquationRemoved={handleEquationRemoved} />
       ) : (
@@ -1102,23 +1115,19 @@ export function Visualize({
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>
-              {(datasetConfig.enableEquations || canShowTraceMetricEquations) && (
+              {datasetConfig.enableEquations && (
                 <AddButton
                   variant="link"
                   disabled={disableTransactionWidget}
                   aria-label={t('Add Equation')}
                   onClick={() => {
-                    if (canShowTraceMetricEquations) {
-                      onSetEquationMode?.(true);
-                    } else {
-                      dispatch({
-                        type: updateAction,
-                        payload: [
-                          ...(fields ?? []),
-                          {kind: FieldValueKind.EQUATION, field: ''},
-                        ],
-                      });
-                    }
+                    dispatch({
+                      type: updateAction,
+                      payload: [
+                        ...(fields ?? []),
+                        {kind: FieldValueKind.EQUATION, field: ''},
+                      ],
+                    });
 
                     trackAnalytics('dashboards_views.widget_builder.change', {
                       builder_version: WidgetBuilderVersion.SLIDEOUT,
