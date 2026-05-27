@@ -6,7 +6,13 @@ from django.template.response import SimpleTemplateResponse
 T = TypeVar("T", default=Any)
 
 class Response(SimpleTemplateResponse, Generic[T]):
-    data: T
+    # `data` is typed as Any to mirror DRF's runtime behavior, where the
+    # attribute is freely reassigned by middleware and exception handlers.
+    # The TypedDict check still fires at the __init__ call site via the
+    # `data: T` parameter overload below — that's where the static guarantee
+    # lives. Typing the attribute as T strictly would break legitimate
+    # reassignment patterns (e.g. `response.data = ...` in auth flows).
+    data: Any
     exception: bool
     content_type: str | None
 

@@ -61,7 +61,7 @@ repos:
         types: [python]
       - id: check-response-annotation-matches-schema
         name: check @extend_schema response T matches Response[T] annotation
-        entry: .venv/bin/python -m sentry.apidocs._check_response_annotation_matches_schema
+        entry: .venv/bin/python src/sentry/apidocs/_check_response_annotation_matches_schema.py
         language: system
         pass_filenames: true
         files: ^src/sentry/.*endpoints/.*\.py$
