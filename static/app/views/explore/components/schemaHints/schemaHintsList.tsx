@@ -246,8 +246,8 @@ export function SchemaHintsList({
         // Render items in hidden div to measure
         [...filterTagsSorted, seeFullListTag].forEach(hint => {
           const el = container.children[0]?.cloneNode(true) as HTMLElement;
-          const button = el?.firstChild as HTMLElement | null;
-          if (button) {
+          const button = el?.firstElementChild;
+          if (button instanceof HTMLElement) {
             button.innerHTML = getHintText(hint);
           }
           measureDiv.appendChild(el);
