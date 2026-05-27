@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Layer} from '@sentry/scraps/layer';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -72,39 +73,41 @@ function WidgetLayout(props: Widget) {
       revealActions={revealActions}
       minHeight={defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT}
     >
-      <Header noPadding={props.noHeaderPadding}>
-        {props.Title && <Fragment>{props.Title}</Fragment>}
-        {props.TitleBadges && (
-          <Flex align="center" gap="xs">
-            {props.TitleBadges}
-          </Flex>
+      <WidgetLayer variant="nav">
+        <Header noPadding={props.noHeaderPadding}>
+          {props.Title && <Fragment>{props.Title}</Fragment>}
+          {props.TitleBadges && (
+            <Flex align="center" gap="xs">
+              {props.TitleBadges}
+            </Flex>
+          )}
+          {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
+        </Header>
+
+        {props.Visualization && (
+          <VisualizationWrapper noPadding={props.noVisualizationPadding}>
+            <ErrorBoundary
+              customComponent={({error}) => (
+                <Container position="absolute" inset={0}>
+                  <WidgetError error={error ?? undefined} />
+                </Container>
+              )}
+            >
+              {props.Visualization}
+            </ErrorBoundary>
+          </VisualizationWrapper>
         )}
-        {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
-      </Header>
 
-      {props.Visualization && (
-        <VisualizationWrapper noPadding={props.noVisualizationPadding}>
-          <ErrorBoundary
-            customComponent={({error}) => (
-              <Container position="absolute" inset={0}>
-                <WidgetError error={error ?? undefined} />
-              </Container>
-            )}
-          >
-            {props.Visualization}
-          </ErrorBoundary>
-        </VisualizationWrapper>
-      )}
-
-      {props.Footer && (
-        <FooterWrapper noPadding={props.noFooterPadding}>
-          <ErrorBoundary
-            customComponent={({error}) => <WidgetError error={error ?? undefined} />}
-          >
-            {props.Footer}
-          </ErrorBoundary>
-        </FooterWrapper>
-      )}
+        {props.Footer && (
+          <FooterWrapper noPadding={props.noFooterPadding}>
+            <ErrorBoundary
+              customComponent={({error}) => <WidgetError error={error ?? undefined} />}
+            >
+              {props.Footer}
+            </ErrorBoundary>
+          </FooterWrapper>
+        )}
+      </WidgetLayer>
     </Frame>
   );
 }
@@ -173,6 +176,13 @@ export const Header = styled('div')<{noPadding?: boolean}>`
   gap: ${p => p.theme.space.sm};
   padding: ${p =>
     p.noPadding ? 0 : `${p.theme.space.lg} ${p.theme.space.xl} 0 ${p.theme.space.xl}`};
+`;
+
+const WidgetLayer = styled(Layer)`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 `;
 
 const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
