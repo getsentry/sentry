@@ -40,7 +40,7 @@ The first pane is sized; the second fills.
 <Storybook.Demo>
   <Flex border="primary" radius="md" overflow="hidden" style={{width: 600, height: 160}}>
     <SplitPanel orientation="horizontal">
-      <SplitPanel.Panel defaultSize={240} minSize={120} maxSize={480}>
+      <SplitPanel.Panel defaultSize={240} minSize={120}>
         <Flex align="center" justify="center" flex="1" background="primary">
           <Text>Left</Text>
         </Flex>
@@ -74,7 +74,7 @@ Use `orientation="vertical"` to split top/bottom. The first pane is still the si
 <Storybook.Demo>
   <Flex border="primary" radius="md" overflow="hidden" style={{width: 600, height: 240}}>
     <SplitPanel orientation="vertical">
-      <SplitPanel.Panel defaultSize={100} minSize={60} maxSize={180}>
+      <SplitPanel.Panel defaultSize={100} minSize={60}>
         <Flex align="center" justify="center" flex="1" background="primary">
           <Text>Top</Text>
         </Flex>

@@ -196,7 +196,12 @@ export function SplitPanel({
 
   const sizedProps = useMemo(() => findSizedPanelProps(children), [children]);
   const min = sizedProps?.minSize ?? 0;
-  const max = sizedProps?.maxSize ?? Number.POSITIVE_INFINITY;
+  const explicitMax = sizedProps?.maxSize ?? Number.POSITIVE_INFINITY;
+  // Cap the sized pane at the container size so it can never overflow the
+  // parent. Matches Zag/Chakra's `maxSize = 100%` default. Until we've
+  // measured, fall back to the explicit max (or Infinity) so the hook can
+  // accept the initial size without clamping it to zero.
+  const max = availableSize > 0 ? Math.min(explicitMax, availableSize) : explicitMax;
   const initialSize = sizedProps?.defaultSize ?? 0;
 
   const {
