@@ -11,6 +11,21 @@ description: Guide for using Sentry's layout and text primitives. Use when imple
 
 Core components provide consistent styling, responsive design, and better maintainability across the codebase.
 
+## Leave Files Better Than You Found Them
+
+When modifying a function or component, **refactor any `styled()` usage in that code to design system primitives**. This applies to code you are directly changing — not unrelated code in the same file. For `styled()` usage you notice in untouched code, flag it to the user and ask before refactoring.
+
+Prioritize refactoring these patterns:
+
+- `styled('div')` with `display: flex` → `<Flex>`
+- `styled('div')` with `display: grid` → `<Grid>`
+- `styled('div')` with flex column layout → `<Stack>`
+- `styled('div')` with padding/border/radius → `<Container>`
+- `styled('span'|'p'|'div')` with color/font-size/font-weight → `<Text>`
+- `styled('h1'...'h6')` with typography → `<Heading>`
+- Styled media queries → responsive props
+- Margin between siblings → `gap` on parent
+
 ## Component Implementation Reference
 
 For the complete list of supported props and their types, refer to the implementation files:
