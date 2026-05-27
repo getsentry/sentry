@@ -14,6 +14,7 @@ import {
   SizeLimitMessage,
   useVirtualizedItems,
 } from '@sentry/scraps/compactSelect';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -21,7 +22,7 @@ import {t} from 'sentry/locale';
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
 
-interface GridListProps
+interface GridListProps<T extends ListItemBase>
   extends
     Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
@@ -43,13 +44,13 @@ interface GridListProps
    * Object containing the selection state and focus position, needed for
    * `useGridList()`.
    */
-  listState: ListState<any>;
-  children?: CollectionChildren<any>;
+  listState: ListState<T>;
+  children?: CollectionChildren<T>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  size?: GridListOptionProps['size'];
+  size?: GridListOptionProps<ListItemBase>['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
@@ -70,7 +71,7 @@ interface GridListProps
  * inside. Grid lists allow users to focus on those child elements (using the Arrow
  * Left/Right keys) and interact with them, which isn't possible with list boxes.
  */
-function GridList({
+function GridList<T extends ListItemBase>({
   listState,
   size = 'md',
   label,
@@ -78,7 +79,7 @@ function GridList({
   keyDownHandler,
   virtualized,
   ...props
-}: GridListProps) {
+}: GridListProps<T>) {
   const ref = useRef<HTMLUListElement>(null);
   const labelId = useId();
   const {gridProps} = useGridList(
@@ -132,7 +133,9 @@ function GridList({
             >
               {virtualizer.items.map(row => {
                 const item = listItems[row.index];
-                if (!item) return null;
+                if (!item) {
+                  return null;
+                }
                 if (item.type === 'section') {
                   return (
                     <GridListSection

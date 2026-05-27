@@ -1,23 +1,42 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 from typing import Any
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
-from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
-from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+
+
+class DynamicSamplingQueryFilters(StrEnum):
+    IS_SEGMENT = "sentry.is_segment:true"
+
+
+class DynamicSamplingQueryFields(StrEnum):
+    DSC_PROJECT_ID = "sentry.dsc.project_id"
+    COUNT = "count()"
+    COUNT_SAMPLE = "count_sample()"
+
+
+@dataclass(order=True)
+class ProjectVolume:
+    project_id: ProjectId
+    total: int
+    keep: int
+    drop: int
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
@@ -27,7 +46,7 @@ def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
 def run_eap_spans_table_query_in_chunks(
     query: dict[str, Any],
     chunk_size: int = 1000,
-) -> Iterator[list[dict[str, Any]]]:
+) -> Iterator[dict[str, Any]]:
     offset = 0
 
     while True:
@@ -39,7 +58,7 @@ def run_eap_spans_table_query_in_chunks(
             data = data[:chunk_size]
 
         if data:
-            yield data
+            yield from data
 
         if not more_results:
             return
@@ -51,23 +70,20 @@ def get_eap_organization_volume(
     config: BaseDynamicSamplingConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> OrganizationDataVolume | None:
-    projects = list(
-        Project.objects.filter(organization_id=config.organization.id, status=ObjectStatus.ACTIVE)
-    )
-    if not projects:
-        return None
-
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
     result = Spans.run_table_query(
         params=SnubaParams(
             start=start_time,
             end=end_time,
-            projects=projects,
+            projects=config.projects,
             organization=config.organization,
         ),
-        query_string="is_transaction:true",
-        selected_columns=["count()", "count_sample()"],
+        query_string=DynamicSamplingQueryFilters.IS_SEGMENT,
+        selected_columns=[
+            DynamicSamplingQueryFields.COUNT,
+            DynamicSamplingQueryFields.COUNT_SAMPLE,
+        ],
         orderby=None,
         offset=0,
         limit=1,
@@ -84,9 +100,58 @@ def get_eap_organization_volume(
         return None
 
     row = data[0]
-    total = _get_aggregate_int(row, "count()")
+    total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
     if total <= 0:
         return None
-    indexed = _get_aggregate_int(row, "count_sample()")
+    indexed = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
 
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
+
+
+def get_eap_project_volumes(
+    config: BaseDynamicSamplingConfiguration,
+    time_interval: timedelta = timedelta(hours=1),
+) -> list[ProjectVolume]:
+    end_time = datetime.now(UTC)
+    start_time = end_time - time_interval
+    project_volumes: list[ProjectVolume] = []
+
+    for row in run_eap_spans_table_query_in_chunks(
+        {
+            "params": SnubaParams(
+                start=start_time,
+                end=end_time,
+                projects=config.projects,
+                organization=config.organization,
+            ),
+            "query_string": DynamicSamplingQueryFilters.IS_SEGMENT,
+            "selected_columns": [
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
+                DynamicSamplingQueryFields.COUNT,
+                DynamicSamplingQueryFields.COUNT_SAMPLE,
+            ],
+            "orderby": [DynamicSamplingQueryFields.DSC_PROJECT_ID],
+            "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
+            "config": SearchResolverConfig(
+                auto_fields=True,
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+            ),
+            "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
+        }
+    ):
+        total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
+        keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
+        dsc_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
+        if dsc_project_id is None:
+            continue
+
+        project_volumes.append(
+            ProjectVolume(
+                project_id=ProjectId(int(dsc_project_id)),
+                total=total,
+                keep=keep,
+                drop=max(total - keep, 0),
+            )
+        )
+
+    return project_volumes

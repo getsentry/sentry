@@ -20,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
   encodeMetricQueryParams,
@@ -107,10 +108,12 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     .join(' ')
     .trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails.queryToUse) {
+  } else if (!inputValue && queryDetails.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 
@@ -142,7 +145,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             metric_context: {
               metric_name: traceMetric.name,
               metric_type: traceMetric.type,
-              metric_unit: traceMetric.unit ?? 'none',
+              metric_unit: traceMetric.unit ?? NONE_UNIT,
             },
           },
         },
@@ -171,7 +174,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery, runId?: number) => {
-      if (!result) return;
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         groupBys,
@@ -398,7 +403,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           metric_context: {
             metric_name: traceMetric.name,
             metric_type: traceMetric.type,
-            metric_unit: traceMetric.unit ?? 'none',
+            metric_unit: traceMetric.unit ?? NONE_UNIT,
           },
         }}
         applySeerSearchQuery={applySeerSearchQuery}

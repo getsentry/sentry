@@ -29,10 +29,8 @@ describe('ProjectExpectCtReports', () => {
       initialRouterConfig,
     });
 
-    // Heading
-    expect(
-      await screen.findByText('Certificate Transparency', {selector: 'h1'})
-    ).toBeInTheDocument();
+    // Panel heading
+    expect(await screen.findByText('About')).toBeInTheDocument();
   });
 
   it('renders loading error', async () => {

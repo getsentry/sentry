@@ -31,7 +31,10 @@ describe('useWidgetBuilderTraceItemConfig', () => {
         query: {
           dataset: WidgetType.TRACEMETRICS,
           displayType: 'line',
-          yAxis: ['avg(value,metric_one,gauge,-)', 'sum(value,metric_two,counter,-)'],
+          yAxis: [
+            'avg(value,metric_one,gauge,none)',
+            'sum(value,metric_two,counter,none)',
+          ],
         },
       })
     );
@@ -59,7 +62,7 @@ describe('useWidgetBuilderTraceItemConfig', () => {
         query: {
           dataset: WidgetType.TRACEMETRICS,
           displayType: 'line',
-          yAxis: ['avg(value,metric_one,gauge,-)', 'max(value,metric_one,gauge,-)'],
+          yAxis: ['avg(value,metric_one,gauge,none)', 'max(value,metric_one,gauge,none)'],
         },
       })
     );
