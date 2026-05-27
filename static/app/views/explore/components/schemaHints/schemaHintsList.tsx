@@ -265,7 +265,7 @@ export function SchemaHintsList({
           const el = container.children[0]?.cloneNode(true) as HTMLElement;
           const button = el?.firstElementChild;
           if (button instanceof HTMLElement) {
-            button.innerHTML = getHintText(hint);
+            button.textContent = getHintText(hint);
           }
           measureDiv.appendChild(el);
         });
