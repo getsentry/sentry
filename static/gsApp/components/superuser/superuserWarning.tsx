@@ -169,6 +169,7 @@ export function SuperuserWarning({organization, className}: Props) {
   return (
     <StyledBadge variant="warning" className={className}>
       <InfoText
+        variant="inherit"
         title={
           <TooltipContent>
             <Content>{WARNING_MESSAGE}</Content>
