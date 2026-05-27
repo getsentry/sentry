@@ -891,11 +891,11 @@ def prepare_response(
 
     if "isBookmarked" in result:
         already_bookmarked: set[int] = set()
-        if result["isBookmarked"] and source is not None:
+        if result["isBookmarked"] and source is not None and acting_user is not None:
             already_bookmarked = set(
                 GroupBookmark.objects.filter(
                     group__in=group_list,
-                    user_id=acting_user.id if acting_user else None,
+                    user_id=acting_user.id,
                 ).values_list("group_id", flat=True)
             )
         handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, acting_user)
@@ -913,11 +913,11 @@ def prepare_response(
 
     if result.get("isSubscribed") in (True, False):
         prev_subscriptions: dict[int, bool] = {}
-        if source is not None:
+        if source is not None and acting_user is not None:
             prev_subscriptions = dict(
                 GroupSubscription.objects.filter(
                     group__in=group_list,
-                    user_id=acting_user.id if acting_user else None,
+                    user_id=acting_user.id,
                 ).values_list("group_id", "is_active")
             )
         result["subscriptionDetails"] = handle_is_subscribed(
