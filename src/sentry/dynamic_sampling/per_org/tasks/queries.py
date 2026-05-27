@@ -28,8 +28,8 @@ class DynamicSamplingQueryFilters(StrEnum):
 
 
 class DynamicSamplingQueryFields(StrEnum):
-    PROJECT_ID = "sentry.dsc.project_id"
-    TRANSACTION = "sentry.dsc.transaction"
+    DSC_PROJECT_ID = "sentry.dsc.project_id"
+    DSC_TRANSACTION = "sentry.dsc.transaction"
     COUNT = "count()"
     COUNT_SAMPLE = "count_sample()"
 
