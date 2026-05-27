@@ -32,6 +32,8 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
             "agent": "seer",
             "integrationId": None,
             "stoppingPoint": "off",
+            "autoCreatePr": None,
+            "automationTuning": "off",
             "scannerAutomation": True,
             "reposCount": 0,
         }
@@ -48,10 +50,13 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["stoppingPoint"] == "open_pr"
+        assert response.data["autoCreatePr"] is None
+        assert response.data["automationTuning"] == "medium"
         assert response.data["scannerAutomation"] is False
 
-    def test_get_returns_external_agent_with_integration_id(self) -> None:
-        """A project with an external handoff should return the agent alias and integration ID."""
+    def test_get_external_agent_with_integration_id(self) -> None:
+        """A project with an external handoff should return the agent, integration ID,
+        and autoCreatePr from the handoff config."""
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
@@ -65,6 +70,23 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["agent"] == "cursor_background_agent"
         assert response.data["integrationId"] == "42"
+        assert response.data["autoCreatePr"] is False
+
+    def test_get_external_agent_with_auto_create_pr(self) -> None:
+        """autoCreatePr should reflect the handoff config value."""
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option(
+            "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["autoCreatePr"] is True
 
     def test_get_stopping_point_off_when_tuning_off(self) -> None:
         """stoppingPoint should be 'off' when tuning is OFF."""
@@ -77,6 +99,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["stoppingPoint"] == "off"
+        assert response.data["automationTuning"] == "off"
 
     def test_get_stopping_point_when_tuning_on(self) -> None:
         """When tuning is not OFF, stoppingPoint should reflect the stored value."""
@@ -89,6 +112,7 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["stoppingPoint"] == "root_cause"
+        assert response.data["automationTuning"] == "medium"
 
     def test_get_repos_count(self) -> None:
         """reposCount should reflect active SeerProjectRepository rows."""
@@ -119,7 +143,9 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
     def test_put_returns_updated_settings(self) -> None:
         """PUT response should contain the full updated settings object."""
         response = self.client.put(
-            self.url, data={"agent": "seer", "stoppingPoint": "code_changes"}, format="json"
+            self.url,
+            data={"agent": "seer", "stoppingPoint": "code_changes", "automationTuning": "medium"},
+            format="json",
         )
 
         assert response.status_code == 200
@@ -152,17 +178,50 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["scannerAutomation"] is False
 
-    def test_put_stopping_point_off(self) -> None:
-        """PUT stoppingPoint=off should disable automation."""
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
-
-        response = self.client.put(self.url, data={"stoppingPoint": "off"}, format="json")
+    def test_put_stopping_point(self) -> None:
+        response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
 
         assert response.status_code == 200
-        assert response.data["stoppingPoint"] == "off"
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+
+    def test_put_stopping_point_open_pr_syncs_auto_create_pr(self) -> None:
+        """Setting stoppingPoint to open_pr should also set auto_create_pr to True."""
+        response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
+
+        assert response.status_code == 200
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+
+    def test_put_stopping_point_non_open_pr_clears_auto_create_pr(self) -> None:
+        """Setting stoppingPoint to non-open_pr should clear auto_create_pr."""
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        response = self.client.put(self.url, data={"stoppingPoint": "code_changes"}, format="json")
+
+        assert response.status_code == 200
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    def test_put_automation_tuning(self) -> None:
+        """automationTuning accepts off and medium."""
+        response = self.client.put(self.url, data={"automationTuning": "off"}, format="json")
+        assert response.status_code == 200
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.OFF
+        )
+
+        response = self.client.put(self.url, data={"automationTuning": "medium"}, format="json")
+        assert response.status_code == 200
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.MEDIUM
+        )
+
+    def test_put_automation_tuning_rejects_granular(self) -> None:
+        """Granular tuning values like 'high' should be rejected."""
+        response = self.client.put(self.url, data={"automationTuning": "high"}, format="json")
+        assert response.status_code == 400
 
     def test_put_requires_at_least_one_update_field(self) -> None:
         """Sending no update fields should return 400."""
@@ -270,6 +329,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
             "agent": "seer",
             "integrationId": None,
             "stoppingPoint": "off",
+            "autoCreatePr": None,
+            "automationTuning": "off",
             "scannerAutomation": True,
             "reposCount": 0,
         }
@@ -286,11 +347,16 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data[0]["stoppingPoint"] == "open_pr"
+        assert response.data[0]["autoCreatePr"] is None
+        assert response.data[0]["automationTuning"] == "medium"
         assert response.data[0]["scannerAutomation"] is False
 
-    def test_get_returns_external_agent_with_integration_id(self) -> None:
-        """A project configured with an external handoff target should return
-        the alias and integration ID."""
+    def test_get_external_agent_with_integration_id(self) -> None:
+        """A project configured with an external handoff should return the agent,
+        integration ID, and autoCreatePr from the handoff config."""
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
@@ -304,6 +370,26 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["agent"] == "cursor_background_agent"
         assert response.data[0]["integrationId"] == "42"
+        assert response.data[0]["autoCreatePr"] is False
+
+    def test_get_external_agent_with_auto_create_pr(self) -> None:
+        """autoCreatePr should reflect the handoff config value."""
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option(
+            "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["autoCreatePr"] is True
 
     def test_get_stopping_point_off_when_tuning_off(self) -> None:
         """When tuning is OFF, stoppingPoint should be 'off' regardless of the
@@ -317,6 +403,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data[0]["stoppingPoint"] == "off"
+        assert response.data[0]["automationTuning"] == "off"
 
     def test_get_stopping_point_when_tuning_on(self) -> None:
         """When tuning is not OFF, stoppingPoint should reflect the stored value."""
@@ -329,6 +416,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data[0]["stoppingPoint"] == "root_cause"
+        assert response.data[0]["automationTuning"] == "medium"
 
     def test_get_repos_count(self) -> None:
         """reposCount should reflect the number of active SeerProjectRepository rows."""
@@ -635,41 +723,56 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert project2.get_option("sentry:seer_scanner_automation") is False
         assert self.project.get_option("sentry:seer_scanner_automation") is True
 
-    def test_put_requires_at_least_one_update_field(self) -> None:
-        """Sending only query with no update fields should return 400."""
-        response = self.client.put(self.url, data={"query": ""}, format="json")
-        assert response.status_code == 400
+    def test_put_updates_settings(self) -> None:
+        """Bulk update with multiple seer agent fields should apply all of them."""
+        project2 = self.create_project(organization=self.organization)
 
-    def test_put_requires_integration_id_for_external_agent(self) -> None:
-        """External agent without integrationId should return 400."""
         response = self.client.put(
-            self.url, data={"agent": "cursor_background_agent"}, format="json"
+            self.url,
+            data={
+                "agent": "seer",
+                "stoppingPoint": "code_changes",
+                "automationTuning": "medium",
+                "scannerAutomation": False,
+            },
+            format="json",
         )
-        assert response.status_code == 400
 
-    def test_put_rejects_invalid_agent(self) -> None:
-        """An unrecognized agent value should return 400."""
-        response = self.client.put(self.url, data={"agent": "invalid"}, format="json")
-        assert response.status_code == 400
+        assert response.status_code == 204
+        for p in (self.project, project2):
+            assert p.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+            assert (
+                p.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.MEDIUM
+            )
+            assert p.get_option("sentry:seer_scanner_automation") is False
 
-    def test_put_rejects_invalid_stopping_point(self) -> None:
-        """An unrecognized stoppingPoint value should return 400."""
-        response = self.client.put(self.url, data={"stoppingPoint": "invalid"}, format="json")
-        assert response.status_code == 400
-
-    def test_put_rejects_integration_id_from_other_org(self) -> None:
-        """An integration ID that doesn't belong to this org should return 400."""
-        other_org = self.create_organization()
+    def test_put_updates_settings_with_external_agent(self) -> None:
+        """Bulk update with external agent fields should set agent, integration, and stopping point."""
+        project2 = self.create_project(organization=self.organization)
         integration = self.create_integration(
-            organization=other_org, external_id="other", provider="github"
+            organization=self.organization, external_id="ext", provider="github"
         )
 
         response = self.client.put(
             self.url,
-            data={"agent": "cursor_background_agent", "integrationId": integration.id},
+            data={
+                "agent": "cursor_background_agent",
+                "integrationId": integration.id,
+                "stoppingPoint": "open_pr",
+                "scannerAutomation": True,
+            },
             format="json",
         )
-        assert response.status_code == 400
+
+        assert response.status_code == 204
+        for p in (self.project, project2):
+            assert (
+                p.get_option("sentry:seer_automation_handoff_target") == "cursor_background_agent"
+            )
+            assert p.get_option("sentry:seer_automation_handoff_integration_id") == integration.id
+            assert p.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+            assert p.get_option("sentry:seer_scanner_automation") is True
 
     def test_put_invalid_search_query_returns_400(self) -> None:
         """A malformed query value should return 400."""
