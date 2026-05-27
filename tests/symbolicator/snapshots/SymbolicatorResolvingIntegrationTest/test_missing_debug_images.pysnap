@@ -1,9 +1,12 @@
 ---
-created: '2022-03-28T11:45:04.293878Z'
-creator: sentry
-source: tests/symbolicator/test_payload_full.py
+source: "tests/symbolicator/test_payload_full.py::test_missing_debug_images"
 ---
-contexts: null
+contexts:
+  trace:
+    span_id: f06e02346f334d9a
+    status: unknown
+    trace_id: f06e02346f334d9a948dd1f72d13bb0a
+    type: trace
 debug_meta: null
 errors: []
 exception:
