@@ -156,6 +156,8 @@ def observe_viewer_context_propagation(
         }
     )
 
+    # testing internal sampling on high volume metrics, not yet public api
+    attributes["sentry.client_sample_rate"] = 0.001
     sentry_sdk.metrics.count("viewer_context.observation", 1, attributes=attributes)
 
     if expected and ctx is None:
