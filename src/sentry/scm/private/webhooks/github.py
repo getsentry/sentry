@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, assert_never
 
 import msgspec
 from scm.types import (
@@ -116,7 +116,7 @@ class GitHubCheckSuite(msgspec.Struct, gc=False):
     id: int
     status: BuildStatus
     conclusion: BuildConclusion | None
-    url: str
+    html_url: str
     pull_requests: list[GitHubCheckSuitePullRequest]
 
 
@@ -210,8 +210,8 @@ def deserialize_github_check_suite_event(event: SubscriptionEvent) -> CheckSuite
             "id": str(e.check_suite.id),
             "status": e.check_suite.status,
             "conclusion": e.check_suite.conclusion,
-            "html_url": e.check_suite.url,
-            "pull_request_ids": [str(pr.id) for pr in e.check_suite.pull_requests],
+            "html_url": e.check_suite.html_url,
+            "pull_request_ids": [str(pr.number) for pr in e.check_suite.pull_requests],
         },
         subscription_event=event,
     )
@@ -229,7 +229,7 @@ def deserialize_github_pull_request_review_event(
         pull_request_review={
             "id": str(e.review.id),
             "state": e.review.state,
-            "pull_request_id": str(e.pull_request.id),
+            "pull_request_id": str(e.pull_request.number),
         },
         author={
             "id": str(user.id),
@@ -270,3 +270,5 @@ def deserialize_github_event(event: SubscriptionEvent) -> EventType | None:
         return deserialize_github_pull_request_event(event)
     elif event_type_hint == "pull_request_review":
         return deserialize_github_pull_request_review_event(event)
+    else:
+        assert_never(event_type_hint)
