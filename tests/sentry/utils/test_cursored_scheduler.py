@@ -465,7 +465,7 @@ class CursoredSchedulerTest(TestCase):
         )
 
         # Complete entire cycle to collect all dispatched PKs
-        all_dispatched = []
+        all_dispatched: list[int] = []
         while scheduler.tick():
             all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
             self.mock_task.reset_mock()
@@ -481,7 +481,7 @@ class CursoredSchedulerTest(TestCase):
 
         scheduler = self._make_scheduler()
 
-        all_dispatched = []
+        all_dispatched: list[int] = []
         while scheduler.tick():
             all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
             self.mock_task.reset_mock()
