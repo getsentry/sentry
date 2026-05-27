@@ -102,7 +102,9 @@ def process_mention_for_slack(
             lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.ORG_NOT_FOUND)
             return
 
-        if not SlackAgentEntrypoint.has_access(organization):
+        if not SeerAgentOperator.has_access(
+            organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
+        ):
             lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.NO_AGENT_ACCESS)
             return
 
@@ -514,7 +516,9 @@ def process_reaction_for_slack(
             lifecycle.record_failure(failure_reason=ProcessReactionFailureReason.ORG_NOT_FOUND)
             return
 
-        if not SlackAgentEntrypoint.has_access(organization):
+        if not SeerAgentOperator.has_access(
+            organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
+        ):
             lifecycle.record_halt(halt_reason=ProcessReactionHaltReason.NO_AGENT_ACCESS)
             return
 

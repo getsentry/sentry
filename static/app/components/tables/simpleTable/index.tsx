@@ -165,6 +165,10 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   gap: ${p => p.theme.space.md};
   height: 100%;
 
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
+  }
+
   &:first-child {
     ${HeaderDivider} {
       display: none;
