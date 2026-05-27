@@ -120,7 +120,7 @@ describe('DiffImageDisplay', () => {
           />
         </Wrapper>
       ),
-      diffMode => ({tags: {theme: themeName, state: diffMode, area: 'snapshots'}})
+      _diffMode => ({tags: {theme: themeName, area: 'snapshots'}})
     );
 
     it.snapshot(
@@ -136,7 +136,7 @@ describe('DiffImageDisplay', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, state: 'split-missing-diff-image-key', area: 'snapshots'}}
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
   });
 });

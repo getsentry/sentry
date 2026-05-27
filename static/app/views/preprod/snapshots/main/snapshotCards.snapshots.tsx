@@ -193,13 +193,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {
-        tags: {
-          theme: themeName,
-          state: 'card-header-display-name-and-filename',
-          area: 'snapshots',
-        },
-      }
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -209,7 +203,7 @@ describe('SnapshotCards', () => {
           <CardHeader {...headerProps} displayName={null} status={DiffStatus.CHANGED} />
         </Wrapper>
       ),
-      {tags: {theme: themeName, state: 'card-header-filename-only', area: 'snapshots'}}
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
 
     function snapshotCardHeaderStatus({
@@ -233,7 +227,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {tags: {theme: themeName, state: `card-header-${state}`, area: 'snapshots'}}
+        {tags: {theme: themeName, area: 'snapshots'}}
       );
     }
 
@@ -265,7 +259,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, state: 'card-header-static', area: 'snapshots'}}
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
 
     function snapshotPairCard({
@@ -298,7 +292,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {tags: {theme: themeName, state: `pair-card-${state}`, area: 'snapshots'}}
+        {tags: {theme: themeName, area: 'snapshots'}}
       );
     }
 
@@ -343,13 +337,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {
-        tags: {
-          theme: themeName,
-          state: 'image-card-added-selected-with-display-name',
-          area: 'snapshots',
-        },
-      }
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -368,13 +356,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {
-        tags: {
-          theme: themeName,
-          state: 'image-card-removed-unselected',
-          area: 'snapshots',
-        },
-      }
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -394,13 +376,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {
-        tags: {
-          theme: themeName,
-          state: 'image-card-renamed-with-pair-metadata',
-          area: 'snapshots',
-        },
-      }
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -419,13 +395,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {
-        tags: {
-          theme: themeName,
-          state: 'image-card-solo-filename-only-no-status',
-          area: 'snapshots',
-        },
-      }
+      {tags: {theme: themeName, area: 'snapshots'}}
     );
   });
 });
