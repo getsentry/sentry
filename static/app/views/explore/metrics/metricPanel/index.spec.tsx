@@ -353,6 +353,19 @@ describe('MetricPanel', () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = metricFixtures.detailedFixtures[0]!;
     const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const metricId = row[TraceMetricKnownFieldKey.ID];
+    const traceDetailsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${metricId}/`,
+      match: [MockApiClient.matchQuery({timestamp})],
+      body: {
+        itemId: metricId,
+        links: null,
+        meta: {},
+        timestamp: row.timestamp,
+        attributes: [],
+      },
+    });
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
@@ -380,6 +393,7 @@ describe('MetricPanel', () => {
       }
     );
 
+    await waitFor(() => expect(traceDetailsMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
     expect(
       await screen.findByText('Errors: 1, Logs: 0, Spans: 2, Metrics: 0')
