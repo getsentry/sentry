@@ -995,6 +995,16 @@ class IssueCommentEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
 
 
+class CheckSuiteWebhook(GitHubWebhook):
+    EVENT_TYPE = IntegrationWebhookEventType.CHECK_SUITE
+    WEBHOOK_EVENT_PROCESSORS = ()
+
+
+class PullRequestReviewWebhook(GitHubWebhook):
+    EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW
+    WEBHOOK_EVENT_PROCESSORS = ()
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -1018,6 +1028,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewWebhook,
+        GithubWebhookType.CHECK_SUITE: CheckSuiteWebhook,
     }
 
     def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
@@ -1076,12 +1088,13 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         try:
             github_event = GithubWebhookType(request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY])
-            handler = self.get_handler(github_event)
         except KeyError:
             logger.warning("github.webhook.missing-event", extra=self.get_logging_data())
             return HttpResponse(status=400)
         except ValueError:
             return HttpResponse(status=204)
+
+        handler = self.get_handler(github_event)
 
         if not handler:
             logger.warning(
