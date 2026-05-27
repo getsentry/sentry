@@ -1001,7 +1001,7 @@ class CheckSuiteWebhook(GitHubWebhook):
 
 
 class PullRequestReviewWebhook(GitHubWebhook):
-    EVENT_TYPE = IntegrationWebhookEventType.PULL_REQUEST_REVIEW
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
     WEBHOOK_EVENT_PROCESSORS = ()
 
 
