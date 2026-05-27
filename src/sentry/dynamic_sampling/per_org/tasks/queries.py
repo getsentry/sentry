@@ -182,9 +182,6 @@ def get_eap_transaction_volumes(
     order_by_volume: Literal["asc", "desc"] | None = None,
     max_transactions: int = 100,
 ) -> list[ProjectTransactions]:
-    if not config.projects:
-        return []
-
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
     volumes_by_project: defaultdict[int, ProjectTransactionVolumesAccumulator] = defaultdict(
