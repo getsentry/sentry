@@ -890,25 +890,45 @@ def prepare_response(
     handle_has_seen(result.get("hasSeen"), group_list, project_lookup, projects, acting_user)
 
     if "isBookmarked" in result:
+        already_bookmarked: set[int] = set()
+        if result["isBookmarked"] and source is not None:
+            already_bookmarked = set(
+                GroupBookmark.objects.filter(
+                    group__in=group_list,
+                    user_id=acting_user.id if acting_user else None,
+                ).values_list("group_id", flat=True)
+            )
         handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, acting_user)
         if source is not None and result["isBookmarked"]:
             for group in group_list:
-                publish_action(
-                    action=ActionType.BOOKMARK,
-                    source=source,
-                    group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
-                    actor_id=actor_id,
-                )
+                if group.id not in already_bookmarked:
+                    publish_action(
+                        action=ActionType.BOOKMARK,
+                        source=source,
+                        group_id=group.id,
+                        organization_id=group.project.organization_id,
+                        project_id=group.project_id,
+                        actor_id=actor_id,
+                    )
 
     if result.get("isSubscribed") in (True, False):
+        prev_subscriptions: dict[int, bool] = {}
+        if source is not None:
+            prev_subscriptions = dict(
+                GroupSubscription.objects.filter(
+                    group__in=group_list,
+                    user_id=acting_user.id if acting_user else None,
+                ).values_list("group_id", "is_active")
+            )
         result["subscriptionDetails"] = handle_is_subscribed(
             result["isSubscribed"], group_list, project_lookup, acting_user
         )
         if source is not None:
             action = ActionType.SUBSCRIBE if result["isSubscribed"] else ActionType.UNSUBSCRIBE
             for group in group_list:
+                was_active = prev_subscriptions.get(group.id)
+                if was_active == result["isSubscribed"]:
+                    continue
                 publish_action(
                     action=action,
                     source=source,
@@ -936,7 +956,7 @@ def prepare_response(
             acting_user,
             urlparse(referer).path,
         )
-        if source is not None:
+        if source is not None and isinstance(result["merge"], dict):
             merged = result["merge"]
             primary_id = int(merged["parent"])
             child_ids = [int(c) for c in merged["children"]]

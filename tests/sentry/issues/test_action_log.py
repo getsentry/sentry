@@ -344,3 +344,25 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         ]
         assert len(unassign_calls) == 1
         assert unassign_calls[0].kwargs["group_id"] == self.group.id
+
+    @patch(PUBLISH_UPDATE)
+    def test_bookmark_already_bookmarked_skips_action(self, mock_publish: MagicMock) -> None:
+        self.client.put(self.url, data={"isBookmarked": True}, format="json")
+        mock_publish.reset_mock()
+        response = self.client.put(self.url, data={"isBookmarked": True}, format="json")
+        assert response.status_code == 200
+        bookmark_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.BOOKMARK
+        ]
+        assert len(bookmark_calls) == 0
+
+    @patch(PUBLISH_UPDATE)
+    def test_subscribe_already_subscribed_skips_action(self, mock_publish: MagicMock) -> None:
+        self.client.put(self.url, data={"isSubscribed": True}, format="json")
+        mock_publish.reset_mock()
+        response = self.client.put(self.url, data={"isSubscribed": True}, format="json")
+        assert response.status_code == 200
+        subscribe_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.SUBSCRIBE
+        ]
+        assert len(subscribe_calls) == 0
