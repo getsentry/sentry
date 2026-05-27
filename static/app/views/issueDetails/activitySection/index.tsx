@@ -444,7 +444,7 @@ export function ActivitySection({
                 <MoreActivityIcon>
                   <RotatedEllipsisIcon direction="up" />
                 </MoreActivityIcon>
-                <Container marginTop="xs" style={{whiteSpace: 'nowrap'}}>
+                <Container marginTop="xs">
                   <LinkButton
                     aria-label={t('View all activity')}
                     to={activityLink}
