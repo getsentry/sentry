@@ -1,9 +1,8 @@
-import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -24,7 +23,14 @@ const schema = z.object({
   slug: z.string().min(1, t('Slug is required')),
 });
 
-function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Props) {
+function CreateTeamModal({
+  Body,
+  Footer,
+  Header,
+  organization,
+  onClose,
+  closeModal,
+}: Props) {
   const {mutateAsync: submitCreateTeam} = useMutation({
     mutationFn: (data: {slug: string}) =>
       fetchMutation<Team>({
@@ -63,15 +69,15 @@ function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Prop
   });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <h5>{t('Create Team')}</h5>
       </Header>
       <Body>
-        <Text as="p">
-          {t('Teams group members for issue assignment, ownership, and notifications.')}
-        </Text>
-        <form.AppForm form={form}>
+        <Stack gap="xl">
+          <Text as="p">
+            {t('Teams group members for issue assignment, ownership, and notifications.')}
+          </Text>
           <form.AppField name="slug">
             {field => (
               <field.Layout.Stack
@@ -88,12 +94,12 @@ function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Prop
               </field.Layout.Stack>
             )}
           </form.AppField>
-          <Flex justify="end" padding="md 0 0 0">
-            <form.SubmitButton>{t('Create Team')}</form.SubmitButton>
-          </Flex>
-        </form.AppForm>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <form.SubmitButton>{t('Create Team')}</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }
 
