@@ -34,28 +34,20 @@ export function EventUserFeedback({eventLink, report}: Props) {
             <Text as="span" bold size="md">
               {report.name}
             </Text>
-            {showEmailLabel ? (
-              <Button
-                variant="transparent"
-                onClick={copyEmail}
-                size="zero"
-                tooltipProps={{delay: 0, title: t('Copy email address')}}
-                icon={<IconCopy size="xs" variant="muted" />}
-              >
+            <Button
+              aria-label={showEmailLabel ? undefined : t('Copy email address')}
+              variant="transparent"
+              onClick={copyEmail}
+              size="zero"
+              tooltipProps={{delay: 0, title: t('Copy email address')}}
+              icon={<IconCopy size="xs" variant="muted" />}
+            >
+              {showEmailLabel && (
                 <Text as="span" size="sm" variant="muted">
                   {report.email}
                 </Text>
-              </Button>
-            ) : (
-              <Button
-                aria-label={t('Copy email address')}
-                variant="transparent"
-                onClick={copyEmail}
-                size="zero"
-                tooltipProps={{delay: 0, title: t('Copy email address')}}
-                icon={<IconCopy size="xs" variant="muted" />}
-              />
-            )}
+              )}
+            </Button>
 
             {eventLink && (
               <Text as="span" size="sm">
