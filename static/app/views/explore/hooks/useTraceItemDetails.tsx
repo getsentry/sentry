@@ -40,6 +40,10 @@ interface UseTraceItemDetailsProps {
    * Alias for `enabled` in react-query.
    */
   enabled?: boolean;
+  /**
+   * Optional unix timestamp to disambiguate trace item lookup.
+   */
+  timestamp?: number;
 }
 
 export type TraceItemAttributeMeta = Pick<Meta, 'len' | 'rem'>;
@@ -78,6 +82,7 @@ type TraceItemDetailsUrlParams = {
 
 type TraceItemDetailsQueryParams = {
   referrer: string;
+  timestamp: number | undefined;
   traceId: string;
   traceItemType: TraceItemDataset;
 };
@@ -106,6 +111,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
 
   const queryParams: TraceItemDetailsQueryParams = {
     referrer: props.referrer,
+    timestamp: props.timestamp,
     traceItemType: props.traceItemType,
     traceId: props.traceId,
   };
@@ -137,11 +143,15 @@ function traceItemDetailsQueryKey({
   queryParams: TraceItemDetailsQueryParams;
   urlParams: TraceItemDetailsUrlParams;
 }): ApiQueryKey {
-  const query: Record<string, string | string[]> = {
+  const query: Record<string, unknown> = {
     item_type: queryParams.traceItemType,
     referrer: queryParams.referrer,
     trace_id: queryParams.traceId,
   };
+
+  if (queryParams.timestamp !== undefined) {
+    query.timestamp = queryParams.timestamp;
+  }
 
   return [
     getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/', {
@@ -161,6 +171,7 @@ export function useFetchTraceItemDetailsOnHover({
   traceId,
   traceItemType,
   referrer,
+  timestamp,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
   timeout,
@@ -186,6 +197,7 @@ export function useFetchTraceItemDetailsOnHover({
     traceId,
     traceItemType,
     referrer,
+    timestamp,
     enabled: timeoutReached,
   });
 
