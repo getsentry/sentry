@@ -92,7 +92,7 @@ dependencies = [
   "sentry-kafka-schemas>=2.1.27",
   "sentry-ophio>=1.1.3",
   # sentry-options is only used in getsentry for now
-  "sentry-options==1.0.11",
+  "sentry-options>=1.0.13",
   "sentry-protos>=0.13.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.27",
