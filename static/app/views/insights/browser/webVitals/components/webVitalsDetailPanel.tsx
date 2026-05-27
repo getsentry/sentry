@@ -301,15 +301,15 @@ export function WebVitalsDetailPanel({
 const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
   switch (webVital) {
     case 'lcp':
-      return 'p75(measurements.lcp)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`;
     case 'fcp':
-      return 'p75(measurements.fcp)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`;
     case 'cls':
-      return 'p75(measurements.cls)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`;
     case 'ttfb':
-      return 'p75(measurements.ttfb)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`;
     case 'inp':
-      return 'p75(measurements.inp)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`;
     default:
       return 'count()';
   }

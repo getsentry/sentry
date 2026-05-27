@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -373,14 +373,13 @@ export function ActivitySection({
 
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
   const visibleActivities = showSeerActivities
-    ? group.activity
+    ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
   const filteredActivities = visibleActivities.filter(
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
-  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem
@@ -441,8 +440,11 @@ export function ActivitySection({
           ) : (
             <Fragment>
               {filteredActivities.slice(0, 3).map(renderActivityItem)}
-              <ActivityTimelineItem
-                title={
+              <MoreActivityRow>
+                <MoreActivityIcon>
+                  <RotatedEllipsisIcon direction="up" />
+                </MoreActivityIcon>
+                <Container marginTop="xs">
                   <LinkButton
                     aria-label={t('View all activity')}
                     to={activityLink}
@@ -457,10 +459,8 @@ export function ActivitySection({
                   >
                     {t('View %s more', filteredActivities.length - 3)}
                   </LinkButton>
-                }
-                marker={useTwoColumnLayout ? <span /> : undefined}
-                icon={<RotatedEllipsisIcon direction="up" />}
-              />
+                </Container>
+              </MoreActivityRow>
             </Fragment>
           )}
         </Timeline.Container>
@@ -486,7 +486,39 @@ const Timestamp = styled(TimeSince)`
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
-  transform: rotate(90deg) translateY(1px);
+  position: relative;
+  left: 1px;
+  transform: rotate(90deg) translate(1px, 1px);
+`;
+
+const MoreActivityRow = styled('div')`
+  position: relative;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-column-gap: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.md} 0 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 50%;
+    bottom: 0;
+    width: 1px;
+    background: ${p => p.theme.tokens.background.primary};
+  }
+`;
+
+const MoreActivityIcon = styled('div')`
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  min-height: 22px;
+  color: ${p => p.theme.tokens.content.secondary};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
@@ -496,6 +528,7 @@ const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
 
 const ActivityInputFrame = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
+  min-width: 0;
 `;
 
 const AvatarMarker = styled('span')<{color: string}>`

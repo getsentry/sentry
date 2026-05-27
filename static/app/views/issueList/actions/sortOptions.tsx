@@ -4,6 +4,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
@@ -47,6 +48,10 @@ export function IssueListSortOptions({
   triggerSize = 'xs',
   showIcon = true,
 }: Props) {
+  const organization = useOrganization();
+  const hasRecommendedSort =
+    organization.features.includes('issue-stream-recommended-sort') ||
+    sort === IssueSortOptions.RECOMMENDED;
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
@@ -55,7 +60,7 @@ export function IssueListSortOptions({
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
-    ...(sort === IssueSortOptions.RECOMMENDED ? [IssueSortOptions.RECOMMENDED] : []),
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
   ];
 
   return (

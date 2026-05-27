@@ -387,8 +387,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     serialized_groups = serialize(
                         groups, request.user, serializer(), request=request
                     )
-                    if event_id:
-                        serialized_groups[0]["matchingEventId"] = event_id
+                    serialized_groups[0]["matchingEventId"] = event_id
                     response = Response(serialized_groups)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response

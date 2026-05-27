@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
@@ -17,7 +16,6 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
@@ -198,7 +196,7 @@ class SlackAutofixEntrypoint(
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
-        return features.has("organizations:seer-slack-workflows", organization)
+        return True
 
     @staticmethod
     def get_group_link(group: Group) -> str:
@@ -505,19 +503,8 @@ class SlackAgentEntrypoint(
         self.slack_user_id = slack_user_id
 
     @staticmethod
-    def has_feature_flag(organization: Organization | RpcOrganization) -> bool:
-        return features.has("organizations:seer-slack-explorer", organization)
-
-    @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
-        """
-        Determines access to Seer Agent, along with the Slack feature. Shouldn't be called from
-        the CONTROL silo since `has_explorer_access_with_detail` will not get populated with the
-        subscription context, and will return False every time. For slim, CONTROL calls, use
-        the `has_feature_flag` method instead.
-        """
-        has_agent_access, _ = has_seer_agent_access_with_detail(organization, None)
-        return SlackAgentEntrypoint.has_feature_flag(organization) and has_agent_access
+        return True
 
     def on_trigger_agent_error(self, *, error: str) -> None:
         send_thread_update(

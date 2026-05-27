@@ -103,7 +103,9 @@ export function StreamlinedSidebar({group, event, project}: Props) {
               <ExternalIssueSidebarList group={group} event={event} project={project} />
             </ErrorBoundary>
           )}
-          <ActivitySection group={group} />
+          <ErrorBoundary mini>
+            <ActivitySection group={group} />
+          </ErrorBoundary>
           {showPeopleSection && (
             <PeopleSection
               userParticipants={userParticipants}

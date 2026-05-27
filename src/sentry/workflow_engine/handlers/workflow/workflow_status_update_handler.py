@@ -63,7 +63,7 @@ def workflow_status_update_handler(
 
     organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
     can_process_seer_activities = features.has(
-        "organization:workflow-engine-evaluate-seer-activities", organization
+        "organizations:workflow-engine-evaluate-seer-activities", organization
     )
 
     if activity.type in SEER_ACTIVITIES and not can_process_seer_activities:

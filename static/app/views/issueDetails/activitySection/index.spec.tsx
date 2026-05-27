@@ -597,7 +597,7 @@ describe('ActivitySection', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders Seer PR created activity with link', async () => {
+  it('does not render Seer PR created activity in timeline', () => {
     const seerPrGroup = GroupFixture({
       id: '1344',
       activity: [
@@ -627,11 +627,6 @@ describe('ActivitySection', () => {
     const org = OrganizationFixture({features: ['seer-activity-timeline']});
 
     render(<ActivitySection group={seerPrGroup} />, {organization: org});
-    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
-      'href',
-      'https://github.com/org/repo/pull/42'
-    );
-    expect(screen.getByText(/org\/repo/)).toBeInTheDocument();
+    expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();
   });
 });

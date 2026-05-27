@@ -49,7 +49,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         :pparam bool full: If this is set to true, the event payload will include the full event body, including the stacktrace.
         :auth: required
         """
-        full = request.GET.get("full", True)
+        full = request.GET.get("full") not in ("0", "false")
 
         data_fn = partial(
             lambda *args, **kwargs: raw_query(*args, **kwargs)["data"],
