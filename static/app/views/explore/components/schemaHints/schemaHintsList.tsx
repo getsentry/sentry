@@ -46,6 +46,23 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
+const PLACEHOLDER_WIDTHS = [
+  '8%',
+  '10%',
+  '9%',
+  '11%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+  '11%',
+  '9%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+];
+
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
@@ -434,25 +451,9 @@ export function SchemaHintsList({
   };
 
   if (isLoading) {
-    const placeholderWidths = [
-      '8%',
-      '10%',
-      '9%',
-      '11%',
-      '8%',
-      '10%',
-      '9%',
-      '8%',
-      '11%',
-      '9%',
-      '8%',
-      '10%',
-      '9%',
-      '8%',
-    ];
     return (
       <Flex aria-label={t('Schema Hints List')} gap="md" wrap="nowrap" overflow="hidden">
-        {placeholderWidths.map((width, index) => (
+        {PLACEHOLDER_WIDTHS.map((width, index) => (
           <Container key={index} flexShrink={0} width={width}>
             <Placeholder width="100%" height="28px" />
           </Container>
