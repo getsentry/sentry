@@ -1,10 +1,21 @@
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues import grouptype
 from sentry.rules.filters.issue_type import IssueTypeFilter
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase, TestCase
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
+
+
+class IssueTypeFilterChoicesTest(TestCase):
+    def test_form_fields_include_all_released_types(self) -> None:
+        node = IssueTypeFilter(project=self.project)
+        choice_slugs = {slug for slug, _label in node.form_fields["value"]["choices"]}
+
+        expected_slugs = {gt.slug for gt in grouptype.registry.all() if gt.released}
+
+        assert choice_slugs == expected_slugs
 
 
 class IssueTypeFilterErrorTest(RuleTestCase):

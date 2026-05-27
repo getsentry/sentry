@@ -21,7 +21,6 @@ def get_type_choices() -> OrderedDict[str, str]:
     return type_choices
 
 
-TYPE_CHOICES = get_type_choices()
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
 
 
@@ -67,7 +66,8 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
     @classmethod
     def render_label(cls, condition_data: dict[str, Any]) -> str:
         value = condition_data["value"]
-        title = TYPE_CHOICES.get(value)
+        type_choices = get_type_choices()
+        title = type_choices.get(value)
         issue_type_name = title if title else ""
         include_label = INCLUDE_CHOICES.get(condition_data.get("include", "true"), "equal to")
         return cls.label_template.format(include=include_label, value=issue_type_name)

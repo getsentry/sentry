@@ -143,6 +143,20 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             }
         ```
 
+        **Issue Type**
+        - `value`: The issue type slug to filter to. The full list of available types is returned by the `GET /api/0/organizations/{organization_id_or_slug}/data-conditions/` endpoint.
+        - `include`: Whether to include or exclude the type. Defaults to `true`.
+        ```json
+            {
+                "type": "issue_type",
+                "comparison": {
+                    "value": "metric_issue",
+                    "include": true
+                },
+                "conditionResult": true
+            }
+        ```
+
         **Issue Frequency**
         - `value`: A positive integer representing how many times the issue has to happen before the alert will fire.
         ```json

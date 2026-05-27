@@ -452,11 +452,22 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The issue's category is equal to `value`**
-- `value` - An integer correlated with a category. Valid values are `1` (Error), `2` (Performance), `3` (Profile), `4` (Cron), and `5` (Replay).
+- `value` - An integer correlated with a category. Valid values are `1` (Error), `6` (Feedback), `10` (Outage), `11` (Metric), `12` (DB Query), `13` (HTTP Client), `14` (Frontend), `15` (Mobile), `17` (Preprod), `19` (Configuration).
 ```json
 {
     "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-    "value": 2
+    "value": 11
+}
+```
+
+**The issue's type is `include` `value`**
+- `include` - One of `true` (equal to) or `false` (not equal to). Defaults to `true`.
+- `value` - A string slug representing the issue type (e.g. `metric_issue`, `monitor_check_in_failure`, `performance_n_plus_one_db_queries`). The full list of available types is returned by the `GET /projects/{organization_id_or_slug}/{project_id_or_slug}/rules/configuration/` endpoint.
+```json
+{
+    "id": "sentry.rules.filters.issue_type.IssueTypeFilter",
+    "include": "true",
+    "value": "metric_issue"
 }
 ```
 

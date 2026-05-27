@@ -3,6 +3,10 @@ from jsonschema import ValidationError
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues import grouptype
+from sentry.workflow_engine.handlers.condition.issue_type_handler import (
+    IssueTypeConditionHandler,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -10,6 +14,14 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueTypeCondition(ConditionTestCase):
     condition = Condition.ISSUE_TYPE
+
+    def test_schema_includes_all_registered_types(self) -> None:
+        schema_slugs = set(
+            IssueTypeConditionHandler.comparison_json_schema["properties"]["value"]["enum"]
+        )
+        expected_slugs = {gt.slug for gt in grouptype.registry.all()}
+
+        assert schema_slugs == expected_slugs
 
     def setUp(self) -> None:
         super().setUp()
