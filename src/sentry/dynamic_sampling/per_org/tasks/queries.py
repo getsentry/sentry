@@ -192,20 +192,20 @@ def get_eap_transaction_volumes(
     )
 
     orderby: list[str] = [
-        DynamicSamplingQueryFields.PROJECT_ID,
-        DynamicSamplingQueryFields.TRANSACTION,
+        DynamicSamplingQueryFields.DSC_PROJECT_ID,
+        DynamicSamplingQueryFields.DSC_TRANSACTION,
     ]
     if order_by_volume == "asc":
         orderby = [
             DynamicSamplingQueryFields.COUNT,
-            DynamicSamplingQueryFields.PROJECT_ID,
-            DynamicSamplingQueryFields.TRANSACTION,
+            DynamicSamplingQueryFields.DSC_PROJECT_ID,
+            DynamicSamplingQueryFields.DSC_TRANSACTION,
         ]
     elif order_by_volume == "desc":
         orderby = [
             f"-{DynamicSamplingQueryFields.COUNT}",
-            DynamicSamplingQueryFields.PROJECT_ID,
-            DynamicSamplingQueryFields.TRANSACTION,
+            DynamicSamplingQueryFields.DSC_PROJECT_ID,
+            DynamicSamplingQueryFields.DSC_TRANSACTION,
         ]
 
     root_project_filter = ",".join(str(project.id) for project in config.projects)
@@ -216,10 +216,10 @@ def get_eap_transaction_volumes(
             projects=config.projects,
             organization=config.organization,
         ),
-        query_string=f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.PROJECT_ID}:[{root_project_filter}]",
+        query_string=f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}]",
         selected_columns=[
-            DynamicSamplingQueryFields.PROJECT_ID,
-            DynamicSamplingQueryFields.TRANSACTION,
+            DynamicSamplingQueryFields.DSC_PROJECT_ID,
+            DynamicSamplingQueryFields.DSC_TRANSACTION,
             DynamicSamplingQueryFields.COUNT,
         ],
         orderby=orderby,
@@ -234,14 +234,14 @@ def get_eap_transaction_volumes(
     )
 
     for row in result.get("data", []):
-        if (transaction := row.get(DynamicSamplingQueryFields.TRANSACTION)) is None:
+        if (transaction := row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)) is None:
             continue
 
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue
 
-        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.PROJECT_ID)
+        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
         project_volumes = volumes_by_project[project_id]
 
         project_volumes.transaction_counts.append((str(transaction), total))
