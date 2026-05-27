@@ -146,12 +146,9 @@ export interface DropdownMenuProps
    */
   triggerProps?: Partial<DropdownButtonProps>;
   /**
-   * Whether to render the menu inside a React portal (false by default). This should
-   * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
-   * scrollable container that messes with the menu's position. Some features, namely
-   * submenus, will not work correctly inside portals.
-   *
-   * Consider passing `strategy` as `'fixed'` before using `usePortal`
+   * Whether to render the menu inside a React portal. When unset, auto-portals
+   * into the nearest Layer's PortalOutlet (if inside a Layer). Set to `false` to
+   * force inline rendering (e.g. for submenus that need focus containment).
    */
   usePortal?: boolean;
 }
@@ -173,7 +170,7 @@ function DropdownMenu({
   className,
 
   // Overlay props
-  usePortal = false,
+  usePortal: usePortalProp,
   offset = 8,
   position = 'bottom-start',
   isDismissable = true,
@@ -193,6 +190,7 @@ function DropdownMenu({
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
   const layerPortal = usePortalContainer();
+  const usePortal = usePortalProp ?? layerPortal !== null;
 
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const {
