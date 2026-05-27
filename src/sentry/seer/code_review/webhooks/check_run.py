@@ -17,8 +17,11 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError  # noqa: F401
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.scm.private.event_stream import CheckRunEvent, scm_event_stream
-from sentry.seer.code_review.utils import SeerEndpoint, get_tags
+from sentry.seer.code_review.preflight import CodeReviewPreflightService
+from sentry.seer.code_review.utils import SeerEndpoint, get_pr_author_id, get_tags
 from sentry.utils import json, metrics
 
 from ..metrics import (
@@ -160,17 +163,51 @@ def process_check_run(e: CheckRunEvent) -> None:
         )
         return
 
+    organization_id = int(e.subscription_event["extra"]["organization_id"])
+    integration_id = int(e.subscription_event["extra"]["integration_id"])
+    event = json.loads(e.subscription_event["event"])
+
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return
+
+    try:
+        repo = Repository.objects.get(
+            organization_id=organization_id,
+            provider="integrations:github",
+            external_id=str(event["repository"]["id"]),
+        )
+    except Repository.DoesNotExist:
+        return
+
+    preflight = CodeReviewPreflightService(
+        organization=organization,
+        repo=repo,
+        integration_id=integration_id,
+        pr_author_external_id=get_pr_author_id(event),
+    ).check()
+
+    if not preflight.allowed:
+        if preflight.denial_reason:
+            record_webhook_filtered(
+                github_event=GithubWebhookType.CHECK_RUN,
+                github_event_action=action,
+                reason=preflight.denial_reason,
+            )
+        return
+
     from .task import process_github_webhook_event
 
     process_github_webhook_event.delay(
         seer_path=SeerEndpoint.PR_REVIEW_RERUN.value,
         event_payload={"original_run_id": e.check_run["external_id"]},
         tags=get_tags(
-            json.loads(e.subscription_event["event"]),
+            event,
             github_event="check_run",
-            organization_id=int(e.subscription_event["extra"]["organization_id"]),
+            organization_id=organization_id,
             organization_slug="",
-            integration_id=int(e.subscription_event["extra"]["integration_id"]),
+            integration_id=integration_id,
         ),
     )
 
