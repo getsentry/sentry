@@ -101,6 +101,15 @@ class OAuthUserInfoEndpoint(Endpoint):
         if token_details.is_expired():
             raise BearerTokenInvalid()
 
+        if not token_details.user.is_active:
+            raise BearerTokenInvalid()
+
+        if getattr(token_details.user, "is_suspended", False):
+            raise BearerTokenInvalid()
+
+        if token_details.application is not None and not token_details.application.is_active:
+            raise BearerTokenInvalid()
+
         scopes = token_details.get_scopes()
         if "openid" not in scopes:
             raise BearerTokenInsufficientScope()
