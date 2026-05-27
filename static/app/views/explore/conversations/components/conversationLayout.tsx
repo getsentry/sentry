@@ -3,7 +3,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
-import {SplitPanel} from '@sentry/scraps/splitPanel';
+import {SplitPanel, useSplitPanelDivider} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -19,23 +19,19 @@ const DEFAULT_STORAGE_KEY = 'conversation-split-size';
  * Minimal resize divider matching the trace drawer style:
  * a 1px border line with an invisible wider hit area for dragging.
  */
-const BorderDivider = styled(
-  ({
-    icon: _icon,
-    ...props
-  }: {
-    'data-is-held': boolean;
-    'data-slide-direction': 'leftright' | 'updown';
-    onDoubleClick: React.MouseEventHandler<HTMLElement>;
-    onMouseDown: React.MouseEventHandler<HTMLElement>;
-    icon?: React.ReactNode;
-  }) => <div {...props} />
-)`
-  width: ${DIVIDER_WIDTH}px;
+function BorderDivider() {
+  const {props, isHeld, orientation} = useSplitPanelDivider();
+  return (
+    <BorderDividerLine {...props} data-is-held={isHeld} data-orientation={orientation} />
+  );
+}
+
+const BorderDividerLine = styled('div')`
+  width: 0;
   height: 100%;
   position: relative;
   user-select: none;
-  background: ${p => p.theme.tokens.border.primary};
+  border-left: ${DIVIDER_WIDTH}px solid ${p => p.theme.tokens.border.primary};
 
   /* Invisible wider hit area for dragging */
   &::before {
@@ -50,7 +46,7 @@ const BorderDivider = styled(
   }
 
   &[data-is-held='true'] {
-    background: ${p => p.theme.tokens.border.accent.moderate};
+    border-left-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;
 
@@ -71,7 +67,6 @@ export function ConversationSplitLayout({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
-  const hasSize = width > 0;
   const maxLeft = Math.max(LEFT_PANEL_MIN, width - RIGHT_PANEL_MIN - DIVIDER_WIDTH);
   const defaultLeft = Math.min(
     maxLeft,
@@ -80,20 +75,17 @@ export function ConversationSplitLayout({
 
   return (
     <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
-      {hasSize ? (
-        <SplitPanel
-          availableSize={width}
-          sizeStorageKey={sizeStorageKey}
-          SplitDivider={BorderDivider}
-          left={{
-            content: left,
-            default: defaultLeft,
-            min: LEFT_PANEL_MIN,
-            max: maxLeft,
-          }}
-          right={right}
-        />
-      ) : null}
+      <SplitPanel orientation="horizontal" sizeStorageKey={sizeStorageKey}>
+        <SplitPanel.Panel
+          defaultSize={defaultLeft}
+          minSize={LEFT_PANEL_MIN}
+          maxSize={maxLeft}
+        >
+          {left}
+        </SplitPanel.Panel>
+        <BorderDivider />
+        <SplitPanel.Panel>{right}</SplitPanel.Panel>
+      </SplitPanel>
     </Flex>
   );
 }

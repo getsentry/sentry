@@ -2,117 +2,133 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
-const defaultLeftSide = {
-  content: <div data-test-id="left-content">left</div>,
-  default: 200,
-  min: 100,
-  max: 600,
-};
-const defaultTopSide = {
-  content: <div data-test-id="top-content">top</div>,
-  default: 200,
-  min: 100,
-  max: 600,
-};
-
 describe('SplitPanel', () => {
-  describe('left/right', () => {
-    it('renders left, divider, and right when right is provided', () => {
+  describe('horizontal orientation', () => {
+    it('renders both panels and a divider', () => {
       render(
-        <SplitPanel
-          availableSize={1000}
-          left={defaultLeftSide}
-          right={<div data-test-id="right-content">right</div>}
-        />
+        <SplitPanel orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div data-test-id="left-content">left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div data-test-id="right-content">right</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
       );
 
       expect(screen.getByTestId('left-content')).toBeInTheDocument();
       expect(screen.getByTestId('right-content')).toBeInTheDocument();
+      expect(screen.getByRole('separator')).toBeInTheDocument();
     });
 
-    it('omits the divider and right pane when right is null', () => {
-      render(<SplitPanel availableSize={1000} left={defaultLeftSide} right={null} />);
+    it('renders only the first panel when the second is omitted', () => {
+      render(
+        <SplitPanel orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div data-test-id="left-content">left</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
+      );
 
       expect(screen.getByTestId('left-content')).toBeInTheDocument();
-      expect(screen.queryByTestId('right-content')).not.toBeInTheDocument();
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
     });
 
-    it('preserves DOM identity of left.content when toggling right between content and null', () => {
+    it('preserves DOM identity of the sized panel when toggling the fill panel', () => {
       const {rerender} = render(
-        <SplitPanel
-          availableSize={1000}
-          left={defaultLeftSide}
-          right={<div data-test-id="right-content">right</div>}
-        />
+        <SplitPanel orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div data-test-id="left-content">left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div data-test-id="right-content">right</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
       );
 
       const leftBefore = screen.getByTestId('left-content');
 
-      rerender(<SplitPanel availableSize={1000} left={defaultLeftSide} right={null} />);
-
-      const leftAfterCollapse = screen.getByTestId('left-content');
-      expect(leftAfterCollapse).toBe(leftBefore);
-
       rerender(
-        <SplitPanel
-          availableSize={1000}
-          left={defaultLeftSide}
-          right={<div data-test-id="right-content">right</div>}
-        />
+        <SplitPanel orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div data-test-id="left-content">left</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
       );
 
-      const leftAfterExpand = screen.getByTestId('left-content');
-      expect(leftAfterExpand).toBe(leftBefore);
+      expect(screen.getByTestId('left-content')).toBe(leftBefore);
+
+      rerender(
+        <SplitPanel orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div data-test-id="left-content">left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div data-test-id="right-content">right</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
+      );
+
+      expect(screen.getByTestId('left-content')).toBe(leftBefore);
     });
   });
 
-  describe('top/bottom', () => {
-    it('renders top, divider, and bottom when bottom is provided', () => {
+  describe('vertical orientation', () => {
+    it('renders both panels and a divider', () => {
       render(
-        <SplitPanel
-          availableSize={1000}
-          top={defaultTopSide}
-          bottom={<div data-test-id="bottom-content">bottom</div>}
-        />
+        <SplitPanel orientation="vertical">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div data-test-id="top-content">top</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div data-test-id="bottom-content">bottom</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
       );
 
       expect(screen.getByTestId('top-content')).toBeInTheDocument();
       expect(screen.getByTestId('bottom-content')).toBeInTheDocument();
+      expect(screen.getByRole('separator')).toBeInTheDocument();
     });
 
-    it('omits the divider and bottom pane when bottom is null', () => {
-      render(<SplitPanel availableSize={1000} top={defaultTopSide} bottom={null} />);
+    it('renders only the first panel when the second is omitted', () => {
+      render(
+        <SplitPanel orientation="vertical">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div data-test-id="top-content">top</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
+      );
 
       expect(screen.getByTestId('top-content')).toBeInTheDocument();
-      expect(screen.queryByTestId('bottom-content')).not.toBeInTheDocument();
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
     });
+  });
 
-    it('preserves DOM identity of top.content when toggling bottom between content and null', () => {
-      const {rerender} = render(
-        <SplitPanel
-          availableSize={1000}
-          top={defaultTopSide}
-          bottom={<div data-test-id="bottom-content">bottom</div>}
-        />
+  describe('divider accessibility', () => {
+    it('exposes separator role with orientation and value attributes', () => {
+      render(
+        <SplitPanel orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel>
       );
 
-      const topBefore = screen.getByTestId('top-content');
-
-      rerender(<SplitPanel availableSize={1000} top={defaultTopSide} bottom={null} />);
-
-      const topAfterCollapse = screen.getByTestId('top-content');
-      expect(topAfterCollapse).toBe(topBefore);
-
-      rerender(
-        <SplitPanel
-          availableSize={1000}
-          top={defaultTopSide}
-          bottom={<div data-test-id="bottom-content">bottom</div>}
-        />
-      );
-
-      const topAfterExpand = screen.getByTestId('top-content');
-      expect(topAfterExpand).toBe(topBefore);
+      const separator = screen.getByRole('separator');
+      // Horizontal split → vertical divider line
+      expect(separator).toHaveAttribute('aria-orientation', 'vertical');
+      expect(separator).toHaveAttribute('aria-valuemin', '100');
+      expect(separator).toHaveAttribute('aria-valuemax', '600');
+      expect(separator).toHaveAttribute('tabindex', '0');
     });
   });
 });

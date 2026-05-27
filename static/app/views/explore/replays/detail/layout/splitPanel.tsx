@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import debounce from 'lodash/debounce';
 
-import type {SplitPanelProps} from '@sentry/scraps/splitPanel';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -9,15 +8,25 @@ import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useSplitPanelTracking} from 'sentry/utils/replays/hooks/useSplitPanelTracking';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function ReplaySplitPanel({
-  layout,
-  ...props
-}: SplitPanelProps & {layout: LayoutKey}) {
-  const {availableSize} = props;
-  const isLeftRight = 'left' in props;
+type Orientation = 'horizontal' | 'vertical';
+
+type Props = {
+  /**
+   * Measured size of the container along the split axis (width for
+   * horizontal, height for vertical). Used to log the end position as a
+   * percentage for analytics. The parent already measures the layout for
+   * its own grid, so threading it through avoids a second measurement.
+   */
+  availableSize: number;
+  children: React.ReactNode;
+  layout: LayoutKey;
+  orientation: Orientation;
+};
+
+export function ReplaySplitPanel({availableSize, children, layout, orientation}: Props) {
   const organization = useOrganization();
   const {setStartPosition, logEndPosition} = useSplitPanelTracking({
-    slideDirection: isLeftRight ? 'leftright' : 'updown',
+    slideDirection: orientation === 'horizontal' ? 'leftright' : 'updown',
     track: ({slideMotion}) => {
       trackAnalytics('replay.details-resized-panel', {
         organization,
@@ -36,5 +45,13 @@ export function ReplaySplitPanel({
     [logEndPosition, availableSize]
   );
 
-  return <SplitPanel {...props} onMouseDown={setStartPosition} onResize={handleResize} />;
+  return (
+    <SplitPanel
+      orientation={orientation}
+      onMouseDown={setStartPosition}
+      onResize={handleResize}
+    >
+      {children}
+    </SplitPanel>
+  );
 }

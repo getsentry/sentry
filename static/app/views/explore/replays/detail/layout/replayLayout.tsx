@@ -1,7 +1,8 @@
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -20,7 +21,7 @@ import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {FocusArea} from 'sentry/views/explore/replays/detail/layout/focusArea';
 import {FocusTabs} from 'sentry/views/explore/replays/detail/layout/focusTabs';
-import {ReplaySplitPanel as SplitPanel} from 'sentry/views/explore/replays/detail/layout/splitPanel';
+import {ReplaySplitPanel} from 'sentry/views/explore/replays/detail/layout/splitPanel';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 const MIN_CONTENT_WIDTH = 340;
@@ -124,32 +125,42 @@ function ReplayLayoutBody({
   const effectiveLayout = isFocusAreaCollapsed ? defaultLayout : layout;
   const isLeftRight = effectiveLayout === LayoutKey.SIDEBAR_LEFT;
 
-  const splitPanelProps = isLeftRight
-    ? {
-        availableSize: width,
-        left: {
-          content: <PanelContainer>{video}</PanelContainer>,
-          default: width * 0.5,
-          min: MIN_SIDEBAR_WIDTH,
-          max: width - MIN_CONTENT_WIDTH,
-        },
-        right: isFocusAreaCollapsed ? null : focusArea,
-      }
-    : {
-        availableSize: height,
-        top: {
-          content: <PanelContainer>{video}</PanelContainer>,
-          default: (height - DIVIDER_SIZE) * 0.5,
-          min: MIN_VIDEO_HEIGHT,
-          max: height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT,
-        },
-        bottom: isFocusAreaCollapsed ? null : focusArea,
-      };
+  const sizedPanel = isLeftRight ? (
+    <SplitPanel.Panel
+      defaultSize={width * 0.5}
+      minSize={MIN_SIDEBAR_WIDTH}
+      maxSize={width - MIN_CONTENT_WIDTH}
+    >
+      <PanelContainer>{video}</PanelContainer>
+    </SplitPanel.Panel>
+  ) : (
+    <SplitPanel.Panel
+      defaultSize={(height - DIVIDER_SIZE) * 0.5}
+      minSize={MIN_VIDEO_HEIGHT}
+      maxSize={height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT}
+    >
+      <PanelContainer>{video}</PanelContainer>
+    </SplitPanel.Panel>
+  );
 
   return (
     <BodyGrid>
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-        {hasSize ? <SplitPanel layout={effectiveLayout} {...splitPanelProps} /> : null}
+        {hasSize ? (
+          <ReplaySplitPanel
+            layout={effectiveLayout}
+            orientation={isLeftRight ? 'horizontal' : 'vertical'}
+            availableSize={isLeftRight ? width : height}
+          >
+            {sizedPanel}
+            {!isFocusAreaCollapsed && (
+              <Fragment>
+                <SplitPanel.Divider />
+                <SplitPanel.Panel>{focusArea}</SplitPanel.Panel>
+              </Fragment>
+            )}
+          </ReplaySplitPanel>
+        ) : null}
       </Stack>
       {controller}
     </BodyGrid>
