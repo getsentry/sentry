@@ -35,7 +35,7 @@ export const ORDERED_ISSUE_DETAILS_TOUR = [
 ];
 
 export const ISSUE_DETAILS_TOUR_GUIDE_KEY = 'tour.issue_details';
-export const ISSUE_DETAILS_TOUR_FORCE_HASH = '#issue-details-tour';
+const ISSUE_DETAILS_TOUR_FORCE_HASH = '#issue-details-tour';
 
 export const IssueDetailsTourContext =
   createContext<TourContextType<IssueDetailsTour> | null>(null);
