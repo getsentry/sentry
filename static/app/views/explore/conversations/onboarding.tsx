@@ -377,7 +377,9 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     <ConversationOnboardingPanel project={project}>
       <SetupTitle project={project} />
       <Stack gap="md">
-        <PlatformOptionDropdown platformOptions={integrationOptions} />
+        <Flex gap="md" align="center" wrap="wrap">
+          <PlatformOptionDropdown platformOptions={integrationOptions} />
+        </Flex>
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
           key={selectedIntegration}

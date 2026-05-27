@@ -147,8 +147,6 @@ def metric_alert_notification_data_factory(
     issue_notif_context: IssueNotificationContext,
 ) -> MetricAlertNotificationData:
     from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
-        get_alert_rule_serializer,
-        get_detailed_incident_serializer,
         get_detector_serializer,
     )
 
@@ -173,24 +171,16 @@ def metric_alert_notification_data_factory(
         referrer=referrer,
     )
 
-    alert_rule_serialized_response = get_alert_rule_serializer(issue_notif_context.detector)
     detector_serialized_response = get_detector_serializer(issue_notif_context.detector)
-    incident_serialized_response = get_detailed_incident_serializer(issue_notif_context.open_period)
 
     chart_url = None
-    if (
-        features.has("organizations:metric-alert-chartcuterie", organization)
-        and alert_rule_serialized_response
-        and incident_serialized_response
-    ):
+    if features.has("organizations:metric-alert-chartcuterie", organization):
         try:
             chart_url = build_metric_alert_chart(
                 organization=organization,
-                alert_rule_serialized_response=alert_rule_serialized_response,
                 snuba_query=metric_issue_context.snuba_query,
                 alert_context=alert_context,
                 open_period_context=open_period_context,
-                selected_incident_serialized=incident_serialized_response,
                 subscription=metric_issue_context.subscription,
                 detector_serialized_response=detector_serialized_response,
             )

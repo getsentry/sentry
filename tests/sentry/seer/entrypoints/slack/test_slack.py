@@ -591,16 +591,7 @@ class SlackAgentEntrypointTest(TestCase):
             )
 
     def test_has_access(self) -> None:
-        explorer_flags = {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-explorer": True,
-        }
-        with self.feature(explorer_flags):
-            assert SlackAgentEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:hide_ai_features", True)
-            assert not SlackAgentEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:hide_ai_features", False)
-            assert SlackAgentEntrypoint.has_access(self.organization)
+        assert SlackAgentEntrypoint.has_access(self.organization)
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     def test_on_trigger_agent_error(self, mock_send_ephemeral):

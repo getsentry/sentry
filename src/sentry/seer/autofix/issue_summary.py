@@ -422,9 +422,7 @@ def run_automation(
     if is_seer_autotriggered_autofix_rate_limited_and_increment(group.project, group.organization):
         return
 
-    stopping_point = None
-    if is_seer_seat_based_tier_enabled(group.organization):
-        stopping_point = get_automation_stopping_point(group)
+    stopping_point = get_automation_stopping_point(group)
 
     _trigger_autofix_task.delay(
         group_id=group.id,
@@ -463,16 +461,19 @@ def is_group_triggering_automation(group: Group) -> bool:
     return True
 
 
-def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
+def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint | None:
     """
     Get the automation stopping point for a group.
     """
-    fixability_score = get_and_update_group_fixability_score(group)
-    fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-
     user_preference = group.project.get_option("sentry:seer_automated_run_stopping_point")
 
-    return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
+    if is_seer_seat_based_tier_enabled(group.organization):
+        fixability_score = get_and_update_group_fixability_score(group)
+        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
+
+        return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
+
+    return AutofixStoppingPoint(user_preference)
 
 
 def _generate_summary(

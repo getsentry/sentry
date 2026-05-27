@@ -383,7 +383,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=False,
     )
     def test_org_no_seer_access(self, mock_access):
@@ -408,7 +408,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
     def test_resolves_valid_organization(self, mock_access):
@@ -417,7 +417,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason is None
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=False,
     )
     def test_control_silo_skips_access_check(self, mock_has_access):
@@ -434,7 +434,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         mock_has_access.assert_not_called()
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
     def test_cell_silo_uses_full_access_check(self, mock_has_access):
@@ -450,7 +450,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
 
     @patch("sentry.integrations.slack.requests.event.get_thread_history")
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
     def test_multi_org_resolves_from_message_link(self, mock_access, mock_get_thread_history):
@@ -466,7 +466,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
 
     @patch("sentry.integrations.slack.requests.event.get_thread_history")
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
     def test_multi_org_resolves_from_thread(self, mock_access, mock_get_thread_history):
@@ -481,7 +481,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason is None
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
     def test_multi_org_ignores_link_for_unavailable_org(self, mock_access):
@@ -495,7 +495,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
 
     @patch("sentry.integrations.slack.requests.event.get_thread_history", return_value=[])
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
     def test_multi_org_resolves_from_preference(self, mock_access, mock_get_thread_history):
@@ -510,7 +510,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
 
     @patch("sentry.integrations.slack.requests.event.get_thread_history", return_value=[])
     @patch(
-        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
     def test_multi_org_ignores_stale_preference(self, mock_access, mock_get_thread_history):

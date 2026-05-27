@@ -235,14 +235,11 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range parameters provided"
 
-    def test_sample(self) -> None:
+    def test_full_param(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
-        event_1 = self.store_event(
-            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=project.id
-        )
-        event_2 = self.store_event(
+        self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=project.id
         )
 
@@ -253,10 +250,40 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
                 "project_id_or_slug": project.slug,
             },
         )
-        response = self.client.get(url, {"sample": "true"}, format="json")
 
+        response = self.client.get(url, {"full": "true"}, format="json")
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert [event["eventID"] for event in response.data] == sorted(
-            [event_1.event_id, event_2.event_id]
+        assert "entries" in response.data[0]
+
+        response = self.client.get(url, {"full": "false"}, format="json")
+        assert response.status_code == 200, response.content
+        assert "entries" not in response.data[0]
+
+    def test_sample(self) -> None:
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": before_now(minutes=1).isoformat()},
+            project_id=project.id,
         )
+        self.store_event(
+            data={"event_id": "f" * 32, "timestamp": before_now(minutes=1).isoformat()},
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-project-events",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.get(url, {"sample": "true"}, format="json")
+        assert response.status_code == 200, response.content
+        assert [event["eventID"] for event in response.data] == ["a" * 32, "f" * 32]
+
+        response = self.client.get(url, {"sample": "false"}, format="json")
+        assert response.status_code == 200, response.content
+        assert [event["eventID"] for event in response.data] == ["f" * 32, "a" * 32]

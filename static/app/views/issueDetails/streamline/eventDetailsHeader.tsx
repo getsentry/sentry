@@ -11,9 +11,9 @@ import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
 } from 'sentry/components/timeRangeSelector';
-import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
+import {getRelativeDate} from 'sentry/components/timeSince';
 import {TourElement} from 'sentry/components/tours/components';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -135,6 +135,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       />
                       <TimeRangeSelector
                         menuTitle={t('Filter Time Range')}
+                        menuWidth={
+                          shouldShowSinceFirstSeenOption ? 'fit-content' : undefined
+                        }
                         start={period?.start}
                         end={period?.end}
                         utc={location.query.utc === 'true'}
@@ -147,8 +150,10 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             shouldShowSinceFirstSeenOption
                               ? {
                                   [defaultStatsPeriod.statsPeriod]: t(
-                                    '%s (since first seen)',
-                                    getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                                    'Last %s (since first seen)',
+                                    getRelativeDate(group.firstSeen)
+                                      .replace(/^a (?=\w+$)/, '1 ')
+                                      .replace(/^an (?=\w+$)/, '1 ')
                                   ),
                                 }
                               : {}),
@@ -181,7 +186,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                             {period === defaultStatsPeriod &&
                             !defaultStatsPeriod.isMaxRetention &&
                             shouldShowSinceFirstSeenOption
-                              ? t('Since First Seen')
+                              ? tct('Since First Seen ([period])', {
+                                  period: getRelativeDate(group.firstSeen)
+                                    .replace(/^a (?=\w+$)/, '1 ')
+                                    .replace(/^an (?=\w+$)/, '1 '),
+                                })
                               : triggerProps.children}
                           </TimeRangeSelectTrigger>
                         )}

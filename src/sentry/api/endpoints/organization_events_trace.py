@@ -250,9 +250,12 @@ class TraceEvent:
             offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
             for group_id in self.event["occurrence_to_issue_id"][problem.id]:
                 if group_id not in memoized_groups:
-                    memoized_groups[group_id] = Group.objects.get(
-                        id=group_id, project=self.event["project.id"]
-                    )
+                    try:
+                        memoized_groups[group_id] = Group.objects.get(
+                            id=group_id, project=self.event["project.id"]
+                        )
+                    except Group.DoesNotExist:
+                        continue
                 group = memoized_groups[group_id]
                 if event_span.get("span_id") in offender_span_ids:
                     start_timestamp = float(event_span["precise.start_ts"])

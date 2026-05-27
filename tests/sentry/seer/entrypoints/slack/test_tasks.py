@@ -70,7 +70,7 @@ class ProcessMentionForSlackTest(TestCase):
         mock_user = MagicMock(id=self.user.id, username="alice")
         mock_resolve_user.return_value = mock_user
 
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
         mock_entrypoint.install.get_thread_history.return_value = []
@@ -118,7 +118,7 @@ class ProcessMentionForSlackTest(TestCase):
     def test_org_not_found(self, mock_agent_cls, mock_operator_cls, mock_record):
         self._run_task(organization_id=999999999)
 
-        mock_agent_cls.has_access.assert_not_called()
+        mock_operator_cls.has_access.assert_not_called()
         mock_agent_cls.assert_not_called()
         mock_operator_cls.assert_not_called()
         assert_failure_metric(mock_record, ProcessMentionFailureReason.ORG_NOT_FOUND)
@@ -127,7 +127,7 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     def test_no_agent_access(self, mock_agent_cls, mock_operator_cls, mock_record):
-        mock_agent_cls.has_access.return_value = False
+        mock_operator_cls.has_access.return_value = False
 
         self._run_task()
 
@@ -139,7 +139,7 @@ class ProcessMentionForSlackTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     def test_integration_not_found(self, mock_agent_cls, mock_operator_cls, mock_record):
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_agent_cls.side_effect = EntrypointSetupError("not found")
 
         self._run_task()
@@ -162,7 +162,7 @@ class ProcessMentionForSlackTest(TestCase):
     ):
         mock_resolve_user.return_value = None
 
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
         mock_agent_cls.return_value = mock_entrypoint
@@ -196,7 +196,7 @@ class ProcessMentionForSlackTest(TestCase):
         mock_user = MagicMock(id=self.create_user().id)
         mock_resolve_user.return_value = mock_user
 
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_agent_cls.return_value = mock_entrypoint
 
@@ -230,7 +230,7 @@ class ProcessMentionForSlackTest(TestCase):
     ):
         mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
 
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.000001"
         mock_entrypoint.install.get_thread_history.return_value = [
@@ -294,7 +294,7 @@ class ProcessMentionForSlackTest(TestCase):
     def test_without_thread_context(self, mock_resolve_user, mock_agent_cls, mock_operator_cls):
         mock_resolve_user.return_value = MagicMock(id=self.user.id)
 
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
         mock_agent_cls.return_value = mock_entrypoint
@@ -324,7 +324,7 @@ class ProcessMentionForSlackTest(TestCase):
     ):
         mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
 
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.654321"
         mock_agent_cls.return_value = mock_entrypoint
@@ -368,7 +368,7 @@ class ProcessMentionForSlackTest(TestCase):
     ):
         mock_resolve_user.return_value = MagicMock(id=self.user.id)
 
-        mock_agent_cls.has_access.return_value = True
+        mock_operator_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
         mock_agent_cls.return_value = mock_entrypoint
@@ -440,7 +440,7 @@ class LinkedMessagesContextTest(TestCase):
         self.mock_operator.trigger_agent.return_value = 42
 
         self.mock_resolve_user.return_value = self.mock_user
-        self.mock_agent_cls.has_access.return_value = True
+        self.mock_operator_cls.has_access.return_value = True
         self.mock_agent_cls.return_value = self.mock_entrypoint
         self.mock_operator_cls.return_value = self.mock_operator
 

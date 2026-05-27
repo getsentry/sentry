@@ -37,16 +37,16 @@ export function SharedEventContent({organization, project, event, group}: Props)
   }
 
   const projectSlug = project.slug;
+  const userReport = event.userReport;
 
   return (
     <div>
-      {event.userReport && (
+      {userReport && (
         <ErrorBoundary mini>
           <EventDataSection title={t('User Feedback')} type="user-feedback">
             <EventUserFeedback
-              report={event.userReport}
-              orgSlug={organization.slug}
-              issueId={group.id}
+              report={userReport}
+              eventLink={`/organizations/${organization.slug}/issues/${group.id}/events/${userReport.eventID}/?referrer=user-feedback`}
             />
           </EventDataSection>
         </ErrorBoundary>
