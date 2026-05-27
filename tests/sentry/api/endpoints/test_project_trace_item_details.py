@@ -1,6 +1,10 @@
 import pytest
 
-from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+from sentry.api.endpoints.project_trace_item_details import (
+    convert_rpc_attribute_to_json,
+    serialize_meta,
+)
+from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType
 
 
@@ -162,3 +166,36 @@ class TestInternalConventionVisibilityFiltering:
 
         names = [r["name"] for r in result]
         assert any("dsc.environment" in n for n in names)
+
+    def test_serialize_meta_hides_internal_convention_attributes(self) -> None:
+        attributes = [
+            self.INTERNAL_ATTR,
+            self.PUBLIC_ATTR,
+            {
+                "name": f"{constants.META_ATTRIBUTE_PREFIX}.sentry.dsc.environment",
+                "value": {"valStr": '{"err": ["some error"]}'},
+            },
+            {
+                "name": f"{constants.META_ATTRIBUTE_PREFIX}.sentry.op",
+                "value": {"valStr": '{"err": ["another error"]}'},
+            },
+        ]
+
+        result = serialize_meta(attributes, SupportedTraceItemType.SPANS)
+
+        assert "sentry.dsc.environment" not in result
+        assert "dsc.environment" not in result
+        assert any("op" in key for key in result)
+
+    def test_serialize_meta_shows_internal_convention_when_include_internal(self) -> None:
+        attributes = [
+            self.INTERNAL_ATTR,
+            {
+                "name": f"{constants.META_ATTRIBUTE_PREFIX}.sentry.dsc.environment",
+                "value": {"valStr": '{"err": ["some error"]}'},
+            },
+        ]
+
+        result = serialize_meta(attributes, SupportedTraceItemType.SPANS, include_internal=True)
+
+        assert any("dsc.environment" in key for key in result)
