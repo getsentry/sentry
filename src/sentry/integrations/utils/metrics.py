@@ -455,6 +455,9 @@ class IntegrationWebhookEventType(StrEnum):
     MERGE_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
     PUSH = "push"
 
+    CHECK_SUITE = "check_suite"
+    PULL_REQUEST_REVIEW = "pull_request_review"
+
 
 @dataclass
 class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
