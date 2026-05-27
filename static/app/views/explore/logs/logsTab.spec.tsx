@@ -355,4 +355,20 @@ describe('LogsTabContent', () => {
       );
     });
   });
+
+  it('should disable manual refresh button when autorefresh is enabled', async () => {
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+    render(
+      <ProviderWrapper>
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig: autorefreshEnabledRouterConfig,
+        organization,
+      }
+    );
+    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
+    expect(refreshButton).toBeDisabled();
+  });
 });

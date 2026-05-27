@@ -127,8 +127,10 @@ export function useVirtualStreaming({
     setVirtualTimestamp(initialTimestamp);
   }, [data, refreshInterval]);
 
+  // Reset the virtual timestamp when auto-refresh is disabled to avoid stale data when switching between modes
   useEffect(() => {
     if (!autoRefresh) {
+      setVirtualTimestamp(undefined);
       return;
     }
 
