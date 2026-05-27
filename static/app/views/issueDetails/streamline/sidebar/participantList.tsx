@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {AvatarList, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -30,7 +31,7 @@ export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps
   const showHeaders = users.length > 0 && teams && teams.length > 0;
 
   return (
-    <div>
+    <Flex>
       <Button variant="transparent" size="zero" {...triggerProps}>
         <StyledAvatarList
           teams={teams}
@@ -87,7 +88,7 @@ export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps
           </StyledOverlay>
         </PositionWrapper>
       )}
-    </div>
+    </Flex>
   );
 }
 

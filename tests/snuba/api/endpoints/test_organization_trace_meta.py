@@ -3,7 +3,10 @@ from uuid import uuid4
 import pytest
 from django.urls import NoReverseMatch, reverse
 
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import (
+    EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION,
+    EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION,
+)
 from sentry.testutils.cases import OccurrenceTestCase, TraceMetricsTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events_trace import (
@@ -115,8 +118,8 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [
                     "api.trace.count_performance_issues"
                 ],
             }
@@ -180,8 +183,8 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [],
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [],
             }
         ):
             with self.feature(self.FEATURES):
@@ -212,10 +215,8 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
-                    "api.trace.count_errors"
-                ],
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: ["api.trace.count_errors"],
             }
         ):
             with self.feature(self.FEATURES):

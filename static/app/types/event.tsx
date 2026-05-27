@@ -12,7 +12,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, IssueType} from './group';
+import type {IssueAttachment, IssueCategory, IssueType, UserReport} from './group';
 import type {PlatformKey} from './project';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
@@ -789,7 +789,7 @@ interface EventBase {
     version: string | null;
   } | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
-  userReport?: any;
+  userReport?: UserReport | null;
 }
 
 interface TraceEventContexts extends EventContexts {

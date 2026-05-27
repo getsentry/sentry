@@ -119,7 +119,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     Checks for a file io span on the main thread
     """
 
-    IGNORED_SUFFIXES = [".nib", ".plist", "kblayout_iphone.dat"]
+    IGNORED_SUFFIXES = [".nib", ".plist", "kblayout_iphone.dat", "kblayouts_iphone.dat"]
     SPAN_PREFIX = "file"
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD

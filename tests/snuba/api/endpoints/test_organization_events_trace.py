@@ -13,7 +13,10 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import (
+    EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION,
+    EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import OccurrenceTestCase, TraceTestCase
 from sentry.utils.samples import load_data
@@ -1503,8 +1506,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
 
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [
                     "api.trace.load_performance_issues"
                 ],
             }
@@ -1563,8 +1566,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
 
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [
                     "api.trace.query_trace_data.errors"
                 ],
             }
@@ -1698,8 +1701,8 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [
                     "api.trace.count_performance_issues"
                 ],
             }
