@@ -74,7 +74,7 @@ describe('SpanQueryParamsProvider', () => {
 
     act(() =>
       setQueryParams({
-        fields: ['id', 'timestamp', 'span.op'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -273,7 +273,7 @@ describe('SpanQueryParamsProvider', () => {
       mode: Mode.AGGREGATE,
       sortBys: null,
       aggregateSortBys: null,
-      fields: ['id', 'timestamp', 'span.description'],
+      fields: ['id', 'timestamp', 'span.description', 'span.self_time'],
       aggregateFields: [
         {groupBy: 'span.description'},
         {groupBy: ''},
@@ -393,7 +393,7 @@ describe('SpanQueryParamsProvider', () => {
 
     expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -461,7 +461,7 @@ describe('SpanQueryParamsProvider', () => {
 
     expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.op', 'sdk.name', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time', 'sdk.name'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -492,7 +492,7 @@ describe('SpanQueryParamsProvider', () => {
 
     expect(queryParams).toEqual(
       expect.objectContaining({
-        fields: ['id', 'timestamp', 'span.op', 'sdk.name', 'span.self_time'],
+        fields: ['id', 'timestamp', 'span.op', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
         sortBys: [{field: 'timestamp', kind: 'asc'}],
@@ -508,7 +508,7 @@ describe('SpanQueryParamsProvider', () => {
   });
 
   it('correctly gives default for empty visualizes', () => {
-    renderTestComponent();
+    renderTestComponent({fields: ['id', 'timestamp', 'span.op']});
 
     act(() => setVisualizes([]));
 

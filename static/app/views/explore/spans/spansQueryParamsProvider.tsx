@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useQueryStates} from 'nuqs';
 
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
@@ -19,25 +19,35 @@ export function SpansQueryParamsProvider({children}: SpansQueryParamsProviderPro
   const [queryParams, setNuqsParams] = useQueryStates(spansQueryParamsParsers, {
     history: 'push',
   });
+  const [optimisticQueryParams, setOptimisticQueryParams] =
+    useState<typeof queryParams>();
+
+  useEffect(() => {
+    setOptimisticQueryParams(undefined);
+  }, [queryParams]);
+
+  const activeQueryParams = optimisticQueryParams ?? queryParams;
 
   // nuqs creates new object references for all params on every URL change,
   // even for values that didn't change. Use value-based comparison via
   // JSON.stringify so downstream memos/effects have stable references.
-  const queryParamsKey = JSON.stringify(queryParams);
+  const queryParamsKey = JSON.stringify(activeQueryParams);
   const readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromParsed(queryParams),
+    () => getReadableQueryParamsFromParsed(activeQueryParams),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- queryParamsKey intentionally replaces queryParams for value-based comparison
     [queryParamsKey]
   );
 
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
-      setNuqsParams(getSpansQueryParamsUpdate(writableQueryParams));
+      const update = getSpansQueryParamsUpdate(writableQueryParams);
+      setOptimisticQueryParams(prev => ({...(prev ?? queryParams), ...update}));
+      setNuqsParams(update);
     },
-    [setNuqsParams]
+    [queryParams, setNuqsParams]
   );
 
-  const isUsingDefaultFields = !queryParams[SPANS_FIELD_KEY];
+  const isUsingDefaultFields = !activeQueryParams[SPANS_FIELD_KEY];
 
   return (
     <QueryParamsContextProvider

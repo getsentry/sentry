@@ -81,6 +81,7 @@ export const logsQueryParamsParsers = {
 
 type LogsQueryParams = inferParserType<typeof logsQueryParamsParsers>;
 
+/** @public used by logsQueryParams.spec.tsx to cover legacy location parsing */
 export function getReadableQueryParamsFromLocation(
   defaultVisible: boolean,
   location: Location

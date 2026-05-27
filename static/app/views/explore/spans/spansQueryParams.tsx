@@ -93,6 +93,7 @@ export function useSpansDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
+/** @public used by spansQueryParams.spec.tsx to cover legacy location parsing */
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
