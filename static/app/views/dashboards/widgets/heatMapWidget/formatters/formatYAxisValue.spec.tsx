@@ -16,14 +16,14 @@ describe('formatYAxisValue', () => {
 
   describe('number', () => {
     it.each([
-      [0.000033452, '0.000033452'],
+      [0.000033452, '0.00003345'],
       [0.00003, '0.00003'],
       [17.1238, '17.1238'],
       [170, '170'],
       [17111, '17K'],
       [17_000_110, '17M'],
       [1772313.1, '1,772,313.1'],
-      [1772313.11123, '1,772,313.11123'],
+      [1772313.11123, '1,772,313.1112'],
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatYAxisValue(value, 'number')).toEqual(formattedValue);
     });

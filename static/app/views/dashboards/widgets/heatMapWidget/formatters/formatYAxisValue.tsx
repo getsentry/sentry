@@ -49,7 +49,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       }
       if (value > 0 && value < NUMBER_MIN_VALUE) {
         return value.toLocaleString(undefined, {
-          maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
+          maximumSignificantDigits: NUMBER_MAX_FRACTION_DIGITS,
         });
       }
       return formatNumberWithDynamicDecimalPoints(value, NUMBER_MAX_FRACTION_DIGITS);
