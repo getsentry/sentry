@@ -34,7 +34,7 @@ export function SeerDrawerHeader({
           <Text>{t('Seer Autofix')}</Text>
           {tooltip && <InfoTip title={tooltip} size="xs" />}
         </Flex>
-        <Flex align="center" gap="xs" style={{paddingRight: 4}}>
+        <Flex align="center" gap="xs">
           <Button
             size="xs"
             icon={<IconRefresh />}
