@@ -170,12 +170,12 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
                 {
-                    "sentry.dsc.root_project": project.id,
+                    "sentry.dsc.project_id": project.id,
                     "count()": 2,
                     "count_sample()": 2,
                 },
                 {
-                    "sentry.dsc.root_project": other_project.id,
+                    "sentry.dsc.project_id": other_project.id,
                     "count()": 1,
                     "count_sample()": 1,
                 },
@@ -197,11 +197,11 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         ]
         assert query["query_string"] == DynamicSamplingQueryFilters.IS_SEGMENT
         assert query["selected_columns"] == [
-            DynamicSamplingQueryFields.ROOT_PROJECT,
+            DynamicSamplingQueryFields.DSC_PROJECT_ID,
             DynamicSamplingQueryFields.COUNT,
             DynamicSamplingQueryFields.COUNT_SAMPLE,
         ]
-        assert query["orderby"] == [DynamicSamplingQueryFields.ROOT_PROJECT]
+        assert query["orderby"] == [DynamicSamplingQueryFields.DSC_PROJECT_ID]
         assert query["referrer"] == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
 
     def test_get_eap_project_volumes_without_traffic(self) -> None:
@@ -226,7 +226,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
                 {
-                    "sentry.dsc.root_project": project.id,
+                    "sentry.dsc.project_id": project.id,
                 }
             ],
         ):
@@ -234,7 +234,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert project_volumes == [ProjectVolume(project_id=project.id, total=0, keep=0, drop=0)]
 
-    def test_get_eap_project_volumes_skips_rows_without_root_project(self) -> None:
+    def test_get_eap_project_volumes_skips_rows_without_dsc_project_id(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
 
@@ -242,12 +242,12 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
                 {
-                    "sentry.dsc.root_project": None,
+                    "sentry.dsc.project_id": None,
                     "count()": 3,
                     "count_sample()": 1,
                 },
                 {
-                    "sentry.dsc.root_project": project.id,
+                    "sentry.dsc.project_id": project.id,
                     "count()": 2,
                     "count_sample()": 1,
                 },
