@@ -128,7 +128,7 @@ describe('EventGraph', () => {
           per_page: 50,
           project: [project.id],
           query: persistantQuery,
-          referrer: 'issue_details.event_graph',
+          referrer: 'issue_details.streamline_graph',
           statsPeriod: '14d',
           yAxis: ['count()', 'count_unique(user)'],
         },

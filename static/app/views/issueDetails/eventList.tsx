@@ -29,7 +29,7 @@ interface EventListProps {
 
 export function EventList({group}: EventListProps) {
   const theme = useTheme();
-  const referrer = 'issue_details.event_list';
+  const referrer = 'issue_details.streamline_list';
   const location = useLocation();
   const organization = useOrganization();
   const [_error, setError] = useState('');

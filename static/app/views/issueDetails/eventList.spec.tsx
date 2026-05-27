@@ -98,7 +98,7 @@ describe('EventList', () => {
           per_page: 50,
           project: [project.id],
           query: persistantQuery,
-          referrer: 'issue_details.event_list',
+          referrer: 'issue_details.streamline_list',
           statsPeriod: '14d',
           sort: '-timestamp',
         },

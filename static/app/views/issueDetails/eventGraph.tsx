@@ -146,7 +146,7 @@ export function EventGraph({
     params: {
       route: 'events-stats',
       eventView,
-      referrer: 'issue_details.event_graph',
+      referrer: 'issue_details.streamline_graph',
     },
   });
 
@@ -166,7 +166,7 @@ export function EventGraph({
       params: {
         route: 'events-stats',
         eventView: noQueryEventView,
-        referrer: 'issue_details.event_graph',
+        referrer: 'issue_details.streamline_graph',
       },
     });
 
@@ -187,7 +187,7 @@ export function EventGraph({
           per_page: 50,
           project: group.project.id,
           query: eventView.query,
-          referrer: 'issue_details.event_graph',
+          referrer: 'issue_details.streamline_graph',
         },
       },
     ],
