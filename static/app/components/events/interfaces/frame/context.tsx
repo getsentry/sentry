@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import keyBy from 'lodash/keyBy';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
@@ -9,16 +8,13 @@ import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
-  LineCoverage,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
-import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
-import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -28,7 +24,6 @@ import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
 import {useSourceContext} from './useSourceContext';
-import {useStacktraceCoverage} from './useStacktraceCoverage';
 import {hasPotentialSourceContext} from './utils';
 
 type Props = {
@@ -49,21 +44,6 @@ type Props = {
   platform?: PlatformKey;
   registersMeta?: Record<any, any>;
 };
-
-export function getLineCoverage(
-  lines: Frame['context'],
-  lineCov: LineCoverage[]
-): [Array<Coverage | undefined>, boolean] {
-  const keyedCoverage = keyBy(lineCov, 0);
-  const lineCoverage = lines.map<Coverage | undefined>(
-    ([lineNo]) => keyedCoverage[lineNo]?.[1]
-  );
-  const hasCoverage = lineCoverage.some(
-    coverage => coverage !== Coverage.NOT_APPLICABLE && coverage !== undefined
-  );
-
-  return [lineCoverage, hasCoverage];
-}
 
 export function Context({
   hasContextVars = false,
@@ -117,22 +97,6 @@ export function Context({
   const effectiveContext = hasContextSource ? frame?.context : scmContext;
   const effectiveHasContextSource = hasContextSource || !!scmContext?.length;
 
-  const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
-    {
-      event,
-      frame,
-      orgSlug: organization?.slug || '',
-      projectSlug: project?.slug,
-    },
-    {
-      enabled:
-        defined(organization) &&
-        defined(project) &&
-        !!organization.codecovAccess &&
-        isExpanded,
-    }
-  );
-
   /**
    * frame.lineNo is the highlighted frame in the middle of the context
    */
@@ -140,22 +104,6 @@ export function Context({
   const contextLines = isExpanded
     ? effectiveContext
     : effectiveContext?.filter(l => l[0] === activeLineNumber);
-
-  const hasCoverageData =
-    !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
-
-  const [lineCoverage = [], hasCoverage] =
-    hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines
-      ? getLineCoverage(contextLines, coverage.lineCoverage)
-      : [];
-
-  useRouteAnalyticsParams(
-    hasCoverageData
-      ? {
-          has_line_coverage: hasCoverage,
-        }
-      : {}
-  );
 
   const fileExtension = getFileExtension(frame.filename || frame.absPath || '') ?? '';
   const lines = usePrismTokensSourceContext({
@@ -211,7 +159,6 @@ export function Context({
                       <ContextLineNumber
                         lineNumber={contextLine[0]}
                         isActive={isActive}
-                        coverage={lineCoverage[i]}
                       />
                       <ContextLineCode>
                         {line.map((token, key) => (

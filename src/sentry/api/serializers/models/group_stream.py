@@ -490,8 +490,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item]["sentryAppIssues"] = sentry_app_issues
 
-        if self._expand("latestEventHasAttachments") and features.has(
-            "organizations:event-attachments", item.project.organization
+        if (
+            self._expand("latestEventHasAttachments")
+            and item_list
+            and features.has("organizations:event-attachments", item_list[0].project.organization)
         ):
             for item in item_list:
                 latest_event = item.get_latest_event()

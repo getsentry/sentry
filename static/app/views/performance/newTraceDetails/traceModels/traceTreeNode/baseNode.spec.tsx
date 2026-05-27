@@ -1010,7 +1010,9 @@ describe('BaseNode', () => {
 
         const visitedIds: string[] = [];
         parent.forEachChild(node => {
-          if (node.id) visitedIds.push(node.id);
+          if (node.id) {
+            visitedIds.push(node.id);
+          }
         });
 
         expect(visitedIds).toHaveLength(2);
@@ -1030,7 +1032,9 @@ describe('BaseNode', () => {
 
         const visitedIds: string[] = [];
         root.forEachChild(node => {
-          if (node.id) visitedIds.push(node.id);
+          if (node.id) {
+            visitedIds.push(node.id);
+          }
         });
 
         expect(visitedIds).toEqual(['sibling', 'level1', 'level2']);
@@ -1074,7 +1078,9 @@ describe('BaseNode', () => {
 
         const visitedIds: string[] = [];
         nodeA.forEachChild(node => {
-          if (node.id) visitedIds.push(node.id);
+          if (node.id) {
+            visitedIds.push(node.id);
+          }
         });
 
         // Should visit B but not A (A is the starting node, marked visited first)
@@ -1096,7 +1102,9 @@ describe('BaseNode', () => {
 
         const visitedIds: string[] = [];
         nodeA.forEachChild(node => {
-          if (node.id) visitedIds.push(node.id);
+          if (node.id) {
+            visitedIds.push(node.id);
+          }
         });
 
         // Should visit B and C but not A (A is the starting node, marked visited first)

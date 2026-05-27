@@ -51,13 +51,21 @@ export function createGridHelpers(rows: number, cols: number): GridHelpers {
   const grid = Array.from({length: rows}, () => Array.from({length: cols}, () => ' '));
 
   const setCell = (r: number, c: number, ch: string) => {
-    if (r < 0 || r >= grid.length) return;
+    if (r < 0 || r >= grid.length) {
+      return;
+    }
     const row = grid[r];
-    if (!row) return;
-    if (c < 0) return;
+    if (!row) {
+      return;
+    }
+    if (c < 0) {
+      return;
+    }
     if (c >= row.length) {
       const toAdd = c - row.length + 1;
-      for (let i = 0; i < toAdd; i++) row.push(' ');
+      for (let i = 0; i < toAdd; i++) {
+        row.push(' ');
+      }
     }
     if (row[c] === ' ') {
       row[c] = ch;
@@ -65,13 +73,21 @@ export function createGridHelpers(rows: number, cols: number): GridHelpers {
   };
 
   const writeOverlay = (r: number, c: number, text: string) => {
-    if (r < 0 || r >= grid.length) return;
+    if (r < 0 || r >= grid.length) {
+      return;
+    }
     const row = grid[r];
-    if (!row) return;
-    if (c < 0) return;
+    if (!row) {
+      return;
+    }
+    if (c < 0) {
+      return;
+    }
     if (c + text.length >= row.length) {
       const toAdd = c + text.length - row.length + 1;
-      for (let i = 0; i < toAdd; i++) row.push(' ');
+      for (let i = 0; i < toAdd; i++) {
+        row.push(' ');
+      }
     }
     for (let i = 0; i < text.length; i++) {
       row[c + i] = text.charAt(i);
@@ -79,11 +95,15 @@ export function createGridHelpers(rows: number, cols: number): GridHelpers {
   };
 
   const putText = (text: string, l: number, r: number, t: number, b: number) => {
-    if (t > b || l > r) return;
+    if (t > b || l > r) {
+      return;
+    }
     const targetRow = Math.min(Math.max(Math.floor((t + b) / 2), 0), rows - 1);
     const clean = text.replace(/\s+/g, ' ').trim();
     const row = grid[targetRow];
-    if (!row) return;
+    if (!row) {
+      return;
+    }
     const startCol = Math.max(0, l);
     for (let i = 0; i < clean.length; i++) {
       setCell(targetRow, startCol + i, clean.charAt(i));
@@ -106,7 +126,9 @@ function computeLeftShiftPx(viewportWidth: number): number {
       const rect = n.getBoundingClientRect();
       const intersects = !(rect.right <= 0 || rect.left >= viewportWidth);
       if (intersects && rect.width > 0 && rect.height > 0) {
-        if (rect.right > shift) shift = rect.right;
+        if (rect.right > shift) {
+          shift = rect.right;
+        }
       }
     }
     return Math.max(0, Math.floor(shift));
@@ -427,11 +449,15 @@ function processCharts(
 
     const instanceByDom = new Map<Element, any>();
     for (const el of candidates) {
-      if (context.isExcluded(el) || !context.isVisible(el)) continue;
+      if (context.isExcluded(el) || !context.isVisible(el)) {
+        continue;
+      }
 
       let container: Element | null = el;
       const nearest = el.closest('[data-ec], .echarts-for-react, .echarts');
-      if (nearest) container = nearest;
+      if (nearest) {
+        container = nearest;
+      }
 
       let inst: any = null;
       if (container) {
@@ -453,7 +479,9 @@ function processCharts(
     let timeseriesChartCount = 0;
     for (const [, inst] of instanceByDom) {
       const dom: Element = inst.getDom();
-      if (context.isExcluded(dom) || !context.isVisible(dom)) continue;
+      if (context.isExcluded(dom) || !context.isVisible(dom)) {
+        continue;
+      }
 
       const rect = dom.getBoundingClientRect();
       if (
@@ -467,11 +495,15 @@ function processCharts(
 
       const option = inst.getOption?.() || {};
       const series: any[] = Array.isArray(option.series) ? option.series : [];
-      if (!series.length) continue;
+      if (!series.length) {
+        continue;
+      }
 
       let hasTimeseriesData = false;
       for (const s of series) {
-        if (s?.show === false) continue;
+        if (s?.show === false) {
+          continue;
+        }
         const type = String(s?.type || '').toLowerCase();
         if (TIMESERIES_TYPES.has(type)) {
           const data: any[] = Array.isArray(s?.data) ? s.data : [];
@@ -491,7 +523,9 @@ function processCharts(
     let chartIndex = 0;
     for (const [, inst] of instanceByDom) {
       const dom: Element = inst.getDom();
-      if (context.isExcluded(dom) || !context.isVisible(dom)) continue;
+      if (context.isExcluded(dom) || !context.isVisible(dom)) {
+        continue;
+      }
 
       const rect = dom.getBoundingClientRect();
       if (
@@ -505,12 +539,16 @@ function processCharts(
 
       const option = inst.getOption?.() || {};
       const series: any[] = Array.isArray(option.series) ? option.series : [];
-      if (!series.length) continue;
+      if (!series.length) {
+        continue;
+      }
 
       const timeseriesData: SeriesData[] = [];
 
       for (const s of series) {
-        if (s?.show === false) continue;
+        if (s?.show === false) {
+          continue;
+        }
 
         const type = String(s?.type || '').toLowerCase();
         if (!TIMESERIES_TYPES.has(type)) {
@@ -536,7 +574,9 @@ function processCharts(
         }
 
         const data: any[] = Array.isArray(s?.data) ? s.data : [];
-        if (!data.length) continue;
+        if (!data.length) {
+          continue;
+        }
 
         const rawSeriesName =
           s?.name || s?.seriesName || `Series${timeseriesData.length + 1}`;
@@ -558,10 +598,14 @@ function processCharts(
         }
       }
 
-      if (timeseriesData.length === 0) continue;
+      if (timeseriesData.length === 0) {
+        continue;
+      }
 
       const nonEmptySeries = timeseriesData.filter(s => s.data.size > 0);
-      if (nonEmptySeries.length === 0) continue;
+      if (nonEmptySeries.length === 0) {
+        continue;
+      }
 
       const seenNames = new Set<string>();
       const uniqueSeries = nonEmptySeries.filter(s => {
@@ -572,7 +616,9 @@ function processCharts(
         return true;
       });
 
-      if (uniqueSeries.length === 0) continue;
+      if (uniqueSeries.length === 0) {
+        continue;
+      }
 
       chartIndex++;
       const chartNumber = chartIndex;
@@ -762,7 +808,9 @@ function renderTextNodes(
 
             const effLeftPx = Math.max(rect.left, clipRect.left);
             const effRightPx = Math.min(rect.right, clipRect.right);
-            if (effRightPx <= effLeftPx) return remaining;
+            if (effRightPx <= effLeftPx) {
+              return remaining;
+            }
 
             const left = Math.max(0, Math.floor((effLeftPx - leftShiftPx) / cellWidthPx));
             const right = Math.floor((effRightPx - leftShiftPx - 1) / cellWidthPx);
@@ -772,7 +820,9 @@ function renderTextNodes(
               Math.floor((rect.bottom - 1) / cellHeightPx)
             );
 
-            if (right <= left || bottom < top) return remaining;
+            if (right <= left || bottom < top) {
+              return remaining;
+            }
 
             const capacity = Math.max(1, right - left + 1);
             let segment = remaining.slice(0, capacity);
@@ -805,20 +855,26 @@ function renderTextNodes(
           if (singleLineEllipsize) {
             for (const rect of rects) {
               const remaining = renderRect(rect, raw, true);
-              if (!remaining || remaining === raw) break;
+              if (!remaining || remaining === raw) {
+                break;
+              }
             }
           } else if (lineClampActive) {
             let remaining = raw;
             for (let idx = 0; idx < rects.length; idx++) {
               const isLast = idx === rects.length - 1;
               remaining = renderRect(rects[idx]!, remaining, isLast);
-              if (!remaining) break;
+              if (!remaining) {
+                break;
+              }
             }
           } else {
             let remaining = raw;
             for (const rect of rects) {
               remaining = renderRect(rect, remaining, false);
-              if (!remaining) break;
+              if (!remaining) {
+                break;
+              }
             }
           }
         }

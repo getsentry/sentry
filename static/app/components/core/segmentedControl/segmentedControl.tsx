@@ -138,6 +138,7 @@ export function SegmentedControl<Value extends string>({
             nextKey={option.nextKey}
             prevKey={option.prevKey}
             value={String(option.key)}
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             isDisabled={option.props.disabled || disabled}
             state={state}
             size={size}

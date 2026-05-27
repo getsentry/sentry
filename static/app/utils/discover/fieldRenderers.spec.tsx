@@ -25,7 +25,7 @@ describe('getFieldRenderer', () => {
 
   beforeEach(() => {
     context = initializeOrg({
-      organization: OrganizationFixture({features: ['dashboards-drilldown-flow']}),
+      organization: OrganizationFixture(),
     });
     organization = context.organization;
     project = context.project;
@@ -805,7 +805,7 @@ describe('getFieldRenderer', () => {
 
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/abc123def456/flamegraph/`
+      `/organizations/${organization.slug}/explore/profiles/profile/${project.slug}/abc123def456/flamegraph/`
     );
     expect(screen.getByText('abc123de')).toBeInTheDocument();
   });

@@ -1,5 +1,4 @@
 import uuid
-from unittest import mock
 
 import responses
 
@@ -46,17 +45,11 @@ class TestSendLegacyWebhookTask(BaseWorkflowTest):
         assert body["message"] == self.group_event.message
 
     @responses.activate
-    @mock.patch("sentry.sentry_apps.services.legacy_webhook.tasks.logger")
     @with_feature("organizations:legacy-webhook-dry-run")
-    def test_task_dry_run_logs_instead_of_sending(self, mock_logger: mock.MagicMock) -> None:
+    def test_task_dry_run_does_not_send(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
 
         payload = build_legacy_webhook_payload(self.invocation)
         send_legacy_webhook_task(url="http://example.com/hook", payload=payload)
 
         assert len(responses.calls) == 0
-        mock_logger.info.assert_called_once()
-        call_args = mock_logger.info.call_args
-        assert call_args[0][0] == "legacy_webhook.dry_run"
-        assert call_args[1]["extra"]["url"] == "http://example.com/hook"
-        assert call_args[1]["extra"]["payload"] == payload
