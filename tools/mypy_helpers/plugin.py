@@ -204,6 +204,14 @@ def _check_response_body_not_any(ctx: FunctionContext) -> Type:
     """
     if not ctx.arg_types or not ctx.arg_types[0]:
         return ctx.default_return_type
+    # Identify whether position 0 is actually the body argument. mypy populates
+    # `arg_names[0][0]` with the call-site keyword (or `None` for positional).
+    # When the body-less overload is matched (e.g. `Response(status=x)`), the
+    # keyword at position 0 is `"status"` — not the body. Treating it as the
+    # body would spuriously flag `Response(status=untyped_call())` calls.
+    arg_name = ctx.arg_names[0][0] if ctx.arg_names and ctx.arg_names[0] else None
+    if arg_name not in (None, "data"):
+        return ctx.default_return_type
     body_type = ctx.arg_types[0][0]
     if not isinstance(body_type, AnyType):
         return ctx.default_return_type

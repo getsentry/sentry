@@ -437,3 +437,44 @@ def view() -> Response[Shape]:
     ret, out = call_mypy(src)
     assert ret, out
     assert 'Extra key "extra"' in out
+
+
+def test_response_body_less_with_any_status_kwarg() -> None:
+    """Regression: a body-less `Response(status=untyped())` call must NOT
+    spuriously fire the body-Any plugin error. The first positional slot
+    contains the status value, not a body."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def get_status_code() -> Any:
+    return 404
+
+def view() -> Response[Shape]:
+    return Response(status=get_status_code())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_data_kwarg_with_any_value() -> None:
+    """If `Response(data=untyped())` is used (kwarg form for the body), the
+    plugin should still fire — `data` is the body name."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+def view() -> Response[Shape]:
+    return Response(data=untyped())
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "body is `Any`" in out
