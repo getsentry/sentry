@@ -30,7 +30,6 @@ export type KnownSentryApiUrls =
   | '/authenticators/'
   | '/broadcasts/'
   | '/broadcasts/$broadcastId/'
-  | '/data-export/notifications/google-cloud/'
   | '/doc-integrations/'
   | '/doc-integrations/$docIntegrationIdOrSlug/'
   | '/doc-integrations/$docIntegrationIdOrSlug/avatar/'

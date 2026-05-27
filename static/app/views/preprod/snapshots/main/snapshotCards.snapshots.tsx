@@ -10,6 +10,11 @@ import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {CardHeader, ImageCard, PairCard} from './snapshotCards';
 
+jest.mock('@sentry/scraps/badge', () => ({
+  ...jest.requireActual('sentry/components/core/badge/badge'),
+  ...jest.requireActual('sentry/components/core/badge/tag'),
+}));
+
 jest.mock('@sentry/scraps/layout', () => {
   const actual = jest.requireActual('@sentry/scraps/layout');
   return {
@@ -120,6 +125,7 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
+    tags: {lang: 'en', dir: 'ltr', theme: 'light'},
     width: 320,
     ...overrides,
   };
@@ -172,6 +178,7 @@ describe('SnapshotCards', () => {
       fileName: 'button.light.png',
       isDark: false,
       onToggleDark: noop,
+      tags: {lang: 'en', dir: 'ltr', theme: 'light'} as Record<string, string>,
     };
 
     it.snapshot(
