@@ -156,6 +156,8 @@ describe('useSeerExplorer', () => {
       '/issues/:groupId/distributions/',
       '/issues/:groupId/distributions/:tagKey/',
       '/explore/logs/trace/:traceSlug/',
+      '/explore/replays/',
+      '/explore/replays/:replaySlug/',
     ])('sends structured JSON on structured-context route %s', async (route: string) => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => route,

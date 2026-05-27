@@ -10,15 +10,11 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context, scopedstats
-
-SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
-
 
 logger = log_context.get_logger(__name__)
 

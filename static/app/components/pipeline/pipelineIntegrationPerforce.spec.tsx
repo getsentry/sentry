@@ -116,14 +116,17 @@ describe('PerforceInstallationConfigStep', () => {
     });
   });
 
-  it('shows loading state when isAdvancing', () => {
+  it('shows busy state when isAdvancing', () => {
     render(
       <PerforceInstallationConfigStep
         {...makeStepProps({stepData: {}, isAdvancing: true})}
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Connecting...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Connect'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables submit button when isInitializing', () => {

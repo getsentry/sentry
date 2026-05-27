@@ -264,7 +264,7 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
                 seer_fixability_score__gte=0.0,
                 seer_fixability_score__lte=FixabilityScoreThresholds.LOW.value,
             )
-        if val == FixabilityScoreThresholds.LOW.value:
+        elif val == FixabilityScoreThresholds.LOW.value:
             query |= Q(
                 seer_fixability_score__gt=FixabilityScoreThresholds.LOW.value,
                 seer_fixability_score__lte=FixabilityScoreThresholds.MEDIUM.value,

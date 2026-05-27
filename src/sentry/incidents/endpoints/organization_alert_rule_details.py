@@ -15,17 +15,8 @@ from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.apidocs.constants import (
-    RESPONSE_ACCEPTED,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_UNAUTHORIZED,
-)
-from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
-from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.constants import ALERTS_API_DEPRECATION_DATE
 from sentry.incidents.endpoints.bases import WorkflowEngineOrganizationAlertRuleEndpoint
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     DetailedWorkflowEngineDetectorSerializer,
     WorkflowEngineDetectorSerializer,
@@ -293,14 +284,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
     @extend_schema(
         operation_id="(DEPRECATED) Retrieve a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
-        responses={
-            200: AlertRuleSerializer,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
@@ -329,15 +312,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
     @extend_schema(
         operation_id="(DEPRECATED) Update a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
-        request=OrganizationAlertRuleDetailsPutSerializer,
-        responses={
-            200: AlertRuleSerializer,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.UPDATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
@@ -371,13 +345,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
     @extend_schema(
         operation_id="(DEPRECATED) Delete a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
-        responses={
-            202: RESPONSE_ACCEPTED,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
     )
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
     @deprecated(

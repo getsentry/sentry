@@ -46,7 +46,6 @@ export function WidgetBuilderTypeSelector({
   const organization = useOrganization();
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
-  const hasTextWidget = organization.features.includes('dashboards-text-widgets');
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
   const displayTypeOrder: Array<{
@@ -84,15 +83,11 @@ export function WidgetBuilderTypeSelector({
       label: t('Big Number'),
       details: t('Show a single aggregated value over the selected time range.'),
     },
-    ...(hasTextWidget
-      ? [
-          {
-            type: DisplayType.TEXT,
-            label: t('Text (Markdown)'),
-            details: t('Display rich text and formatted markdown.'),
-          },
-        ]
-      : []),
+    {
+      type: DisplayType.TEXT,
+      label: t('Text (Markdown)'),
+      details: t('Display rich text and formatted markdown.'),
+    },
     ...(hasDetailsWidget
       ? [
           {

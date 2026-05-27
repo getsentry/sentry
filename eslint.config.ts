@@ -919,6 +919,7 @@ export default typescript.config([
     name: 'plugin/prettier',
     extends: [prettier],
     rules: {
+      curly: 'error',
       // import sorting is handled by oxfmt
       'import/order': 'off',
       'sort-imports': 'off',
@@ -1406,6 +1407,8 @@ export default typescript.config([
       ...(enableTypeAwareLinting && {
         '@typescript-eslint/no-unsafe-argument': 'error',
         '@typescript-eslint/no-unsafe-call': 'error',
+        '@typescript-eslint/no-unsafe-enum-comparison': 'error',
+        '@typescript-eslint/no-unsafe-member-access': 'error',
         '@typescript-eslint/no-unsafe-return': 'error',
       }),
     },

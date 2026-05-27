@@ -12,6 +12,7 @@ import {ControlContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
 import type {
+  ListItemBase,
   SelectKey,
   SelectOption,
   SelectOptionOrSectionWithKey,
@@ -184,7 +185,7 @@ export function List<Value extends SelectKey>({
   /**
    * Props to be passed into useListState()
    */
-  const listStateProps = useMemo<Partial<ListProps<any>>>(() => {
+  const listStateProps = useMemo<Partial<ListProps<ListItemBase>>>(() => {
     const disabledKeys = [
       ...getDisabledOptions(items, isOptionDisabled),
       ...hiddenOptions,
@@ -374,7 +375,7 @@ export function List<Value extends SelectKey>({
       )}
       {multiple &&
         sections.map(section =>
-          section.value.showToggleAllButton ? (
+          section.value?.showToggleAllButton ? (
             <HiddenSectionToggle
               key={section.key}
               item={section}

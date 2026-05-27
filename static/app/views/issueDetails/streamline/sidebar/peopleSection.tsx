@@ -26,22 +26,24 @@ export function PeopleSection({
       title={<Title>{t('People')}</Title>}
       sectionKey={SectionKey.PEOPLE}
     >
-      {hasParticipants && (
-        <Flex gap="xs" align="center">
-          <ParticipantList
-            users={userParticipants}
-            teams={teamParticipants}
-            hideTimestamp
-          />
-          {t('participating')}
-        </Flex>
-      )}
-      {hasViewers && (
-        <Flex gap="xs" align="center">
-          <ParticipantList users={viewers} />
-          {t('viewed')}
-        </Flex>
-      )}
+      <Flex direction="column" gap="md">
+        {hasParticipants && (
+          <Flex gap="xs" align="center">
+            <ParticipantList
+              users={userParticipants}
+              teams={teamParticipants}
+              hideTimestamp
+            />
+            {t('participating')}
+          </Flex>
+        )}
+        {hasViewers && (
+          <Flex gap="xs" align="center">
+            <ParticipantList users={viewers} />
+            {t('viewed')}
+          </Flex>
+        )}
+      </Flex>
     </SidebarFoldSection>
   );
 }

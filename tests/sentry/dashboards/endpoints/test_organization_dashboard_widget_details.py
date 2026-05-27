@@ -1509,9 +1509,35 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
 
-    def test_text_widget_without_feature_flag(self) -> None:
+    def test_text_widget_post(self) -> None:
         data = {
             "title": "Text Widget Title",
+            "displayType": "text",
+            "description": "This is a text widget description",
+            "datasetSource": "user",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_text_widget_without_queries(self) -> None:
+        data = {
+            "title": "Text Widget Title",
+            "displayType": "text",
+            "description": "Text widgets don't need queries",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_text_widget_requires_title(self) -> None:
+        data = {
             "displayType": "text",
             "description": "This is a text widget description",
         }
@@ -1521,65 +1547,18 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 400, response.data
-        assert "displayType" in response.data, response.data
-        assert response.data["displayType"][0] == "Text widgets are not enabled"
-
-    def test_text_widget_with_feature_flag(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Text Widget Title",
-                "displayType": "text",
-                "description": "This is a text widget description",
-                "datasetSource": "user",
-            }
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
-            assert response.status_code == 200, response.data
-
-    def test_text_widget_without_queries(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Text Widget Title",
-                "displayType": "text",
-                "description": "Text widgets don't need queries",
-            }
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
-            assert response.status_code == 200, response.data
-
-    def test_text_widget_requires_title(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "displayType": "text",
-                "description": "This is a text widget description",
-            }
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
-            assert response.status_code == 400, response.data
-            assert "title" in response.data, response.data
+        assert "title" in response.data, response.data
 
     def test_text_widget_description_exceeds_max_length(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Text Widget Title",
-                "displayType": "text",
-                "description": "x" * 15001,
-            }
-            response = self.do_request("post", self.url(), data=data)
-            assert response.status_code == 400, response.data
-            assert "description" in response.data, response.data
-            assert (
-                response.data["description"][0] == "Description must not exceed 15,000 characters"
-            )
+        data = {
+            "title": "Text Widget Title",
+            "displayType": "text",
+            "description": "x" * 15001,
+        }
+        response = self.do_request("post", self.url(), data=data)
+        assert response.status_code == 400, response.data
+        assert "description" in response.data, response.data
+        assert response.data["description"][0] == "Description must not exceed 15,000 characters"
 
     def test_widget_with_invalid_dataset_source(self) -> None:
         data = {

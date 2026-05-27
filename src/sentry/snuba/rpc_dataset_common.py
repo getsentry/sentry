@@ -392,7 +392,7 @@ class RPCBase:
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
         try:
-            rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+            rpc_response = snuba_rpc.table_rpc([rpc_request], debug=debug)[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -428,7 +428,9 @@ class RPCBase:
 
     @classmethod
     @sentry_sdk.trace
-    def run_bulk_table_queries(cls, queries: list[TableQuery]) -> dict[str, EAPResponse]:
+    def run_bulk_table_queries(
+        cls, queries: list[TableQuery], debug: str | bool = False
+    ) -> dict[str, EAPResponse]:
         """Validate the bulk queries"""
         names: set[str] = set()
         for query in queries:

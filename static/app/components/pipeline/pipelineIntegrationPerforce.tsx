@@ -194,8 +194,8 @@ function PerforceInstallationConfigStep({
           )}
         </form.AppField>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing || isInitializing}>
-            {isAdvancing ? t('Connecting...') : t('Connect')}
+          <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
+            {t('Connect')}
           </form.SubmitButton>
         </Flex>
       </Stack>

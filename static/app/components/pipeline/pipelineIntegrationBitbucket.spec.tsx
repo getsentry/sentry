@@ -81,7 +81,7 @@ describe('BitbucketAuthorizeStep', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows loading state when isAdvancing is true', () => {
+  it('shows busy state when isAdvancing is true', () => {
     render(
       <BitbucketAuthorizeStep
         {...makeStepProps({
@@ -94,7 +94,10 @@ describe('BitbucketAuthorizeStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Authorize Bitbucket'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables authorize button when authorizeUrl is not provided', () => {
