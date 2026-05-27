@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -29,17 +29,23 @@ const schema = z.object({
  * organization owners an email requesting a new organization integration. It
  * lets the user attach an optional message to be included in the email.
  */
-export function RequestIntegrationModal(props: Props) {
+export function RequestIntegrationModal({
+  Header,
+  Body,
+  Footer,
+  CloseButton,
+  name,
+  slug,
+  type,
+  closeModal,
+  onSuccess,
+}: Props) {
   const organization = useOrganization();
-
-  const {Header, Body, Footer, CloseButton, name, slug, type, closeModal, onSuccess} =
-    props;
-  const endpoint = `/organizations/${organization.slug}/integration-requests/`;
 
   const sendRequestMutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
-        url: endpoint,
+        url: `/organizations/${organization.slug}/integration-requests/`,
         method: 'POST',
         data: {
           providerSlug: slug,
@@ -78,7 +84,7 @@ export function RequestIntegrationModal(props: Props) {
         <CloseButton />
       </Header>
       <Body>
-        <Flex direction="column" gap="2xl">
+        <Stack gap="2xl">
           <Text as="p">
             {t(
               'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
@@ -105,7 +111,7 @@ export function RequestIntegrationModal(props: Props) {
               'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
             )}
           </Text>
-        </Flex>
+        </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Send Request')}</form.SubmitButton>
