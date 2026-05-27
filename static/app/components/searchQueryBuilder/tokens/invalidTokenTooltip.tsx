@@ -71,6 +71,7 @@ export function InvalidTokenTooltip({
       })}
       position="bottom"
       title={warning ?? tokenWarning ?? invalid?.reason ?? t('This token is invalid')}
+      isHoverable={hasWarning || hasTokenWarning || tooltipProps.isHoverable}
       {...tooltipProps}
     >
       {children}

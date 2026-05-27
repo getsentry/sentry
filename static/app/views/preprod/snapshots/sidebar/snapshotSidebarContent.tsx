@@ -28,6 +28,7 @@ export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.ADDED]: 2,
   [DiffStatus.RENAMED]: 3,
   [DiffStatus.UNCHANGED]: 4,
+  [DiffStatus.SKIPPED]: 5,
 };
 
 type StatusCounts = Record<DiffStatus, number>;
@@ -44,6 +45,7 @@ const STATUS_PILLS: ReadonlyArray<{
   {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
   {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
+  {status: DiffStatus.SKIPPED, color: 'muted', label: t('skipped')},
 ];
 
 const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
@@ -52,6 +54,7 @@ const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
   [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
   [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
   [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+  [DiffStatus.SKIPPED]: {color: 'muted', label: t('Skipped')},
 };
 
 type VirtualRow =

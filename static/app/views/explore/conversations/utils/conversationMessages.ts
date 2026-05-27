@@ -1,3 +1,4 @@
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   extractAssistantOutput,
   normalizeToMessages,
@@ -306,4 +307,34 @@ function getNodeEndTimestamp(node: AITraceSpanNode): number {
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
+}
+
+export function messagesToMarkdown(messages: ConversationMessage[]): string {
+  const blocks: string[] = [];
+
+  for (const message of messages) {
+    const lines: string[] = [];
+
+    if (message.role === 'user') {
+      const sender = message.userEmail || 'User';
+      lines.push(`### ${sender}`);
+    } else {
+      const sender = message.agentName || message.modelName || 'Assistant';
+      const durationStr =
+        message.duration !== undefined && message.duration > 0
+          ? ` — ${getDuration(message.duration, 1, true)}`
+          : '';
+      lines.push(`### ${sender}${durationStr}`);
+
+      if (message.toolCalls && message.toolCalls.length > 0) {
+        const toolNames = message.toolCalls.map(tc => `\`${tc.name}\``).join(', ');
+        lines.push(`> Called tools: ${toolNames}`);
+      }
+    }
+
+    lines.push(message.content);
+    blocks.push(lines.join('\n\n'));
+  }
+
+  return blocks.join('\n\n---\n\n');
 }

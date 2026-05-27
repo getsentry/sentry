@@ -25,10 +25,14 @@ export function AskSeerSearchPopover(props: PopoverProps) {
       <ListBoxOverlay
         ref={element => {
           popoverRef.current = element;
-          if (!element || !props.containerRef.current) return;
+          if (!element || !props.containerRef.current) {
+            return;
+          }
 
           const resizeObserver = new ResizeObserver(entries => {
-            if (!props.containerRef.current) return;
+            if (!props.containerRef.current) {
+              return;
+            }
             element.style.width = `${entries[0]?.target.clientWidth}px`;
           });
 

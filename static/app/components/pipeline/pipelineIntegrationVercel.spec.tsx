@@ -58,7 +58,7 @@ describe('VercelOAuthLoginStep', () => {
     });
   });
 
-  it('shows loading state when isAdvancing is true', () => {
+  it('shows busy state when isAdvancing is true', () => {
     render(
       <VercelOAuthLoginStep
         {...makeStepProps({
@@ -68,7 +68,10 @@ describe('VercelOAuthLoginStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Authorize Vercel'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables authorize button when oauthUrl is not provided', () => {

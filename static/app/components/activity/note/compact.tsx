@@ -1,0 +1,252 @@
+import {useCallback, useId, useState} from 'react';
+import type {MentionsInputProps} from 'react-mentions';
+import {Mention, MentionsInput} from 'react-mentions';
+import type {Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
+import {mentionStyle} from 'sentry/components/activity/note/mentionStyle';
+import type {
+  CreateError,
+  MentionChangeEvent,
+  Mentioned,
+} from 'sentry/components/activity/note/types';
+import {t} from 'sentry/locale';
+import type {NoteType} from 'sentry/types/alerts';
+import {useMemberMentionData} from 'sentry/utils/members/useMemberMentionData';
+import {useTeams} from 'sentry/utils/useTeams';
+
+type Props = {
+  errorJSON?: CreateError | null;
+  /**
+   * This is the id of the server's note object and is meant to indicate that
+   * you are editing an existing item
+   */
+  noteId?: string;
+  onCancel?: () => void;
+  onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
+  onCreate?: (data: NoteType) => void;
+  onUpdate?: (data: NoteType) => void;
+  placeholder?: string;
+  /**
+   * The note text itself
+   */
+  text?: string;
+};
+
+export function CompactNoteInput({
+  text,
+  onCreate,
+  onChange,
+  onUpdate,
+  onCancel,
+  noteId,
+  errorJSON,
+  placeholder,
+}: Props) {
+  const theme = useTheme();
+
+  const {getMemberSuggestions} = useMemberMentionData();
+  const {teams} = useTeams();
+
+  const suggestTeams = teams.map(team => ({
+    id: `team:${team.id}`,
+    display: `#${team.slug}`,
+  }));
+
+  const [value, setValue] = useState(text ?? '');
+
+  const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
+  const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
+  const [isSubmitVisible, setIsSubmitVisible] = useState(false);
+
+  const canSubmit = value.trim() !== '';
+
+  const cleanMarkdown = value
+    .replace(/\[sentry\.strip:member\]/g, '@')
+    .replace(/\[sentry\.strip:team\]/g, '');
+
+  const existingItem = !!noteId;
+
+  // each mention looks like [id, display]
+  const finalizedMentions = [...memberMentions, ...teamMentions]
+    .filter(mention => value.includes(mention[1]))
+    .map(mention => mention[0]);
+
+  const submitForm = useCallback(
+    () =>
+      existingItem
+        ? onUpdate?.({text: cleanMarkdown, mentions: finalizedMentions})
+        : onCreate?.({text: cleanMarkdown, mentions: finalizedMentions}),
+    [existingItem, onUpdate, cleanMarkdown, finalizedMentions, onCreate]
+  );
+
+  const displaySubmitButton = useCallback(() => {
+    setIsSubmitVisible(true);
+  }, []);
+
+  const handleSubmit = useCallback(
+    (
+      e:
+        | React.FormEvent<HTMLFormElement>
+        | React.KeyboardEvent<HTMLTextAreaElement>
+        | React.KeyboardEvent<HTMLInputElement>
+    ) => {
+      e.preventDefault();
+      submitForm();
+    },
+    [submitForm]
+  );
+
+  const handleAddMember = useCallback(
+    (id: string | number, display: string) =>
+      setMemberMentions(existing => [...existing, [`${id}`, display]]),
+    []
+  );
+
+  const handleAddTeam = useCallback(
+    (id: string | number, display: string) =>
+      setTeamMentions(existing => [...existing, [`${id}`, display]]),
+    []
+  );
+
+  const handleChange = useCallback<NonNullable<MentionsInputProps['onChange']>>(
+    e => {
+      setValue(e.target.value);
+      onChange?.(e, {updating: existingItem});
+    },
+    [existingItem, onChange]
+  );
+
+  const handleKeyDown = useCallback<NonNullable<MentionsInputProps['onKeyDown']>>(
+    e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSubmit) {
+        handleSubmit(e);
+      }
+    },
+    [canSubmit, handleSubmit]
+  );
+
+  const errorId = useId();
+  const errorMessage =
+    (errorJSON &&
+      (typeof errorJSON.detail === 'string'
+        ? errorJSON.detail
+        : errorJSON.detail?.message || t('Unable to post comment'))) ||
+    null;
+  return (
+    <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
+      <MentionsInput
+        aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
+        aria-errormessage={errorMessage ? errorId : undefined}
+        style={{
+          ...mentionStyle({
+            theme,
+            minHeight: 14,
+            inputStyle: {
+              padding: `${theme.space.md} ${theme.space.lg}`,
+              border: `1px solid ${theme.tokens.border.primary}`,
+              borderRadius: theme.radius.md,
+            },
+          }),
+          width: '100%',
+        }}
+        placeholder={placeholder}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onFocus={displaySubmitButton}
+        value={value}
+        required
+      >
+        <Mention
+          trigger="@"
+          data={getMemberSuggestions}
+          onAdd={handleAddMember}
+          displayTransform={(_id, display) => `@${display}`}
+          markup="**[sentry.strip:member]__display__**"
+          appendSpaceOnAdd
+        />
+        <Mention
+          trigger="#"
+          data={suggestTeams}
+          onAdd={handleAddTeam}
+          markup="**[sentry.strip:team]__display__**"
+          displayTransform={(_id, display) => display}
+          appendSpaceOnAdd
+        />
+      </MentionsInput>
+      {(isSubmitVisible || existingItem) && (
+        <Grid flow="column" align="center" gap="xs">
+          {existingItem && (
+            <Button size="xs" onClick={onCancel}>
+              {t('Cancel')}
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            size="xs"
+            disabled={!canSubmit}
+            aria-label={existingItem ? t('Save comment') : t('Submit comment')}
+            type="submit"
+          >
+            {existingItem ? t('Save') : t('Comment')}
+          </Button>
+        </Grid>
+      )}
+    </NoteInputForm>
+  );
+}
+
+const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
+  if (!p.error) {
+    return '';
+  }
+
+  return css`
+    color: ${p.theme.tokens.content.danger};
+    margin: -1px;
+    border: 1px solid ${p.theme.tokens.border.danger};
+    border-radius: ${p.theme.radius.md};
+
+    &:before {
+      display: block;
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-right: 7px solid ${p.theme.colors.red400};
+      position: absolute;
+      left: -7px;
+      top: 12px;
+    }
+
+    &:after {
+      display: block;
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 6px solid #fff;
+      position: absolute;
+      left: -5px;
+      top: 12px;
+    }
+  `;
+};
+
+const NoteInputForm = styled('form')<{error?: string}>`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.sm};
+  align-items: flex-end;
+  width: 100%;
+  min-width: 0;
+  transition: padding 0.2s ease-in-out;
+
+  ${getNoteInputErrorStyles};
+`;

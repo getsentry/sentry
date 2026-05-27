@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -21,7 +21,6 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -30,7 +29,6 @@ import {AutomationSearch} from 'sentry/views/automations/components/automationLi
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
-import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
@@ -41,11 +39,9 @@ type Props = {
   detector: Detector;
 };
 
-interface DetectorAutomationsTableProps {
+interface AutomationsTableProps {
   detectorId: string;
   emptyMessage: React.ReactNode;
-  projectId: string;
-  limit?: number;
 }
 
 function Skeletons({numberOfRows}: {numberOfRows: number}) {
@@ -59,56 +55,29 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
           <SimpleTable.RowCell data-column-name="action-filters">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="triggered-by">
-            <Placeholder height="20px" />
-          </SimpleTable.RowCell>
         </SimpleTable.Row>
       ))}
     </Fragment>
   );
 }
 
-function DetectorAutomationsTable({
-  detectorId,
-  emptyMessage,
-  projectId,
-}: DetectorAutomationsTableProps) {
-  const project = useProjectFromId({project_id: projectId});
-  const {
-    data: issueStreamDetectors,
-    isPending: issueStreamDetectorsPending,
-    isError: issueStreamDetectorsError,
-    refetch: refetchIssueStreamDetectors,
-  } = useIssueStreamDetectorsForProject(projectId);
-  const issueStreamDetectorId = issueStreamDetectors?.[0]?.id;
-  const detectorIds = [detectorId, issueStreamDetectorId];
+function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
-  const [triggeredBySort, setTriggeredBySort] = useState<'asc' | 'desc'>('desc');
   const onSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setCursor(undefined);
   }, []);
 
-  const handleTriggeredBySort = useCallback(() => {
-    setTriggeredBySort(sort => (sort === 'asc' ? 'desc' : 'asc'));
-    setCursor(undefined);
-  }, []);
-
-  const priorityDetector =
-    triggeredBySort === 'desc' ? detectorId : (issueStreamDetectorId ?? detectorId);
-
   const org = useOrganization();
   const {data, isPending, isError, isSuccess} = useQuery({
     ...automationsApiOptions(org, {
-      detector: detectorIds.filter(defined),
+      detector: [detectorId],
       limit: AUTOMATIONS_PER_PAGE,
       cursor,
       query: searchQuery || undefined,
-      priorityDetector,
     }),
     select: selectJsonWithHeaders,
-    enabled: !issueStreamDetectorsPending,
   });
 
   const automations = data?.json;
@@ -125,78 +94,43 @@ function DetectorAutomationsTable({
           total: totalCountInt,
         });
 
+  const table = (
+    <SimpleTableWithColumns>
+      <SimpleTable.Header>
+        <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell data-column-name="action-filters">
+          {t('Actions')}
+        </SimpleTable.HeaderCell>
+      </SimpleTable.Header>
+      {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
+      {isError && <LoadingError />}
+      {isSuccess && automations?.length === 0 && (
+        <SimpleTable.Empty>
+          {searchQuery ? t('No matching alerts found') : emptyMessage}
+        </SimpleTable.Empty>
+      )}
+      {isSuccess &&
+        automations?.map(automation => (
+          <SimpleTable.Row
+            key={automation.id}
+            variant={automation.enabled ? 'default' : 'faded'}
+          >
+            <SimpleTable.RowCell>
+              <AutomationTitleCell automation={automation} />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell data-column-name="action-filters">
+              <ActionCell actions={getAutomationActions(automation)} />
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        ))}
+    </SimpleTableWithColumns>
+  );
+
   return (
     <Container>
-      {issueStreamDetectorsError && (
-        <LoadingError
-          message={t('Error loading project alerts')}
-          onRetry={refetchIssueStreamDetectors}
-        />
-      )}
       <Stack gap="md">
         <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
-        <SimpleTableWithColumns>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="action-filters">
-              {t('Actions')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell
-              data-column-name="triggered-by"
-              sort={triggeredBySort}
-              handleSortClick={handleTriggeredBySort}
-            >
-              {t('Triggered By Issues')}
-            </SimpleTable.HeaderCell>
-          </SimpleTable.Header>
-          {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
-          {isError && <LoadingError />}
-          {isSuccess && automations?.length === 0 && (
-            <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
-          )}
-          {isSuccess &&
-            automations?.map(automation => (
-              <SimpleTable.Row
-                key={automation.id}
-                variant={automation.enabled ? 'default' : 'faded'}
-              >
-                <SimpleTable.RowCell>
-                  <AutomationTitleCell automation={automation} />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell data-column-name="action-filters">
-                  <ActionCell actions={getAutomationActions(automation)} />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell data-column-name="triggered-by">
-                  {automation.detectorIds.includes(detectorId) ? (
-                    <Tooltip
-                      title={t(
-                        'This Alert is directly connected to the current monitor.'
-                      )}
-                      showUnderline
-                    >
-                      {t('From Monitor')}
-                    </Tooltip>
-                  ) : (
-                    <Tooltip
-                      title={tct(
-                        'This Alert can be triggered by all issues in [projectName].',
-                        {
-                          projectName: project ? (
-                            <strong>{project.slug}</strong>
-                          ) : (
-                            'project'
-                          ),
-                        }
-                      )}
-                      showUnderline
-                    >
-                      {t('In Project')}
-                    </Tooltip>
-                  )}
-                </SimpleTable.RowCell>
-              </SimpleTable.Row>
-            ))}
-        </SimpleTableWithColumns>
+        {table}
       </Stack>
       <Pagination
         onCursor={setCursor}
@@ -217,6 +151,13 @@ export function DetectorDetailsAutomations({detector}: Props) {
     projectId: detector.projectId,
   });
 
+  const {
+    data: issueStreamDetectors,
+    isError: issueStreamDetectorsError,
+    refetch: refetchIssueStreamDetectors,
+  } = useIssueStreamDetectorsForProject(detector.projectId);
+  const issueStreamDetectorId = issueStreamDetectors?.[0]?.id;
+
   const setWorkflowIds = useCallback(
     (newWorkflowIds: string[]) => {
       addLoadingMessage();
@@ -228,7 +169,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
         {
           onSuccess: () => {
             addSuccessMessage(t('Connected alerts updated'));
-            // Invalidate the Connected Alerts table query
             queryClient.invalidateQueries({
               queryKey: automationsApiOptions(organization).queryKey,
             });
@@ -292,63 +232,99 @@ export function DetectorDetailsAutomations({detector}: Props) {
       );
 
   return (
-    <DetailSection
-      title={t('Connected Alerts')}
-      trailingItems={
-        <Flex gap="sm">
-          <Button
-            size="xs"
-            icon={<IconAdd />}
-            onClick={openCreateDrawer}
-            disabled={!canEditWorkflowConnections}
-            tooltipProps={{title: permissionTooltipText}}
-          >
-            {t('New Alert')}
-          </Button>
-          <Button
-            size="xs"
-            onClick={toggleDrawer}
-            disabled={!canEditWorkflowConnections}
-            tooltipProps={{title: permissionTooltipText}}
-            icon={<IconEdit />}
-          >
-            {t('Edit Alerts')}
-          </Button>
-        </Flex>
-      }
-    >
-      <ErrorBoundary mini>
-        <DetectorAutomationsTable
-          detectorId={detector.id}
-          projectId={detector.projectId}
-          emptyMessage={
-            project ? (
-              <ConnectedAlertsEmptyState project={project}>
-                <Button
-                  size="sm"
-                  onClick={toggleDrawer}
-                  disabled={!canEditWorkflowConnections}
-                  tooltipProps={{title: permissionTooltipText}}
-                >
-                  {t('Connect Existing Alerts')}
-                </Button>
-                <Button
-                  size="sm"
-                  icon={<IconAdd />}
-                  onClick={openCreateDrawer}
-                  disabled={!canEditWorkflowConnections}
-                  tooltipProps={{title: permissionTooltipText}}
-                >
-                  {t('Create a New Alert')}
-                </Button>
-              </ConnectedAlertsEmptyState>
-            ) : (
-              t('No alerts connected')
-            )
-          }
+    <Fragment>
+      <DetailSection
+        title={t('Connected Alerts')}
+        trailingItems={
+          <Flex gap="sm">
+            <Button
+              size="xs"
+              icon={<IconAdd />}
+              onClick={openCreateDrawer}
+              disabled={!canEditWorkflowConnections}
+              tooltipProps={{title: permissionTooltipText}}
+            >
+              {t('New Alert')}
+            </Button>
+            <Button
+              size="xs"
+              onClick={toggleDrawer}
+              disabled={!canEditWorkflowConnections}
+              tooltipProps={{title: permissionTooltipText}}
+              icon={<IconEdit />}
+            >
+              {t('Edit Alerts')}
+            </Button>
+          </Flex>
+        }
+      >
+        <ErrorBoundary mini>
+          <AutomationsTable
+            detectorId={detector.id}
+            emptyMessage={
+              project ? (
+                <Stack gap="md" align="center">
+                  <Button
+                    size="sm"
+                    onClick={toggleDrawer}
+                    disabled={!canEditWorkflowConnections}
+                    tooltipProps={{title: permissionTooltipText}}
+                  >
+                    {t('Connect Existing Alerts')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    icon={<IconAdd />}
+                    onClick={openCreateDrawer}
+                    disabled={!canEditWorkflowConnections}
+                    tooltipProps={{title: permissionTooltipText}}
+                  >
+                    {t('Create a New Alert')}
+                  </Button>
+                </Stack>
+              ) : (
+                t('No alerts connected')
+              )
+            }
+          />
+        </ErrorBoundary>
+      </DetailSection>
+
+      {issueStreamDetectorsError && (
+        <LoadingError
+          message={t('Error loading project alerts')}
+          onRetry={refetchIssueStreamDetectors}
         />
-      </ErrorBoundary>
-    </DetailSection>
+      )}
+
+      {issueStreamDetectorId && (
+        <DetailSection
+          title={t('Project Alerts')}
+          description={
+            project
+              ? tct(
+                  'Issues created by this monitor may also trigger alerts connected to [project].',
+                  {
+                    project: (
+                      <InlineProjectName display="inline-flex" align="center" gap="xs">
+                        <ProjectAvatar project={project} size={14} />
+                        <strong>{project.slug}</strong>
+                      </InlineProjectName>
+                    ),
+                  }
+                )
+              : undefined
+          }
+        >
+          <ErrorBoundary mini>
+            <AutomationsTable
+              detectorId={issueStreamDetectorId}
+              emptyMessage={t('No alerts connected to this project')}
+            />
+          </ErrorBoundary>
+        </DetailSection>
+      )}
+    </Fragment>
   );
 }
 
@@ -357,17 +333,13 @@ const Container = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 180px auto;
-
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 180px;
-
-    [data-column-name='triggered-by'] {
-      display: none;
-    }
-  }
+  grid-template-columns: 1fr 180px;
 
   @container (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr 120px;
   }
+`;
+
+const InlineProjectName = styled(Flex)`
+  vertical-align: bottom;
 `;

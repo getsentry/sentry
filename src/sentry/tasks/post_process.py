@@ -1613,11 +1613,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         feedback_filter_decorator(process_workflow_engine),
         feedback_filter_decorator(process_resource_change_bounds),
     ],
-    GroupCategory.INSTRUMENTATION: [
-        process_snoozes,
-        process_inbox_adds,
-        kick_off_seer_automation,
-    ],
 }
 
 GENERIC_POST_PROCESS_PIPELINE: list[Callable[[PostProcessJob], None]] = [

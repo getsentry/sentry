@@ -7,6 +7,8 @@ from typing import Any, Protocol
 from django.core.cache import cache
 from django.db.utils import OperationalError
 
+LAST_SEEN_INTERVAL_SECONDS = 60
+
 
 class HasLastSeen(Protocol):
     id: int
@@ -23,7 +25,7 @@ def try_bump_last_seen(
     metrics_tags: dict[str, str],
 ) -> bool:
     """Throttled last_seen bump — at most once per 60s per row via a cache-based lock."""
-    if instance.last_seen >= datetime - timedelta(seconds=60):
+    if instance.last_seen >= datetime - timedelta(seconds=LAST_SEEN_INTERVAL_SECONDS):
         metrics_tags["bumped"] = "false"
         return False
 
