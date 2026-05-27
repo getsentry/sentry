@@ -40,7 +40,7 @@ const ISSUE_DETAILS_TOUR_FORCE_HASH = '#issue-details-tour';
 export const IssueDetailsTourContext =
   createContext<TourContextType<IssueDetailsTour> | null>(null);
 
-export function useIssueDetailsTourModal() {
+function useIssueDetailsTourModal() {
   const {openModal} = useModal();
   const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
