@@ -22,43 +22,55 @@ describe('InputGroup', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({theme: themeName, size: String(size)})
+      size => ({tags: {theme: themeName, size: String(size), area: 'core'}})
     );
 
-    it.snapshot('disabled', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8, width: 300}}>
-          <InputGroup>
-            <InputGroup.Input disabled placeholder="Disabled input" />
-          </InputGroup>
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'disabled',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8, width: 300}}>
+            <InputGroup>
+              <InputGroup.Input disabled placeholder="Disabled input" />
+            </InputGroup>
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+    );
 
-    it.snapshot('with-leading-items', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8, width: 300}}>
-          <InputGroup>
-            <InputGroup.LeadingItems disablePointerEvents>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input placeholder="Search…" />
-          </InputGroup>
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'with-leading-items',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8, width: 300}}>
+            <InputGroup>
+              <InputGroup.LeadingItems disablePointerEvents>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input placeholder="Search…" />
+            </InputGroup>
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {theme: themeName, area: 'core'}}
+    );
 
-    it.snapshot('with-leading-items-disabled', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8, width: 300}}>
-          <InputGroup>
-            <InputGroup.LeadingItems disablePointerEvents>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input disabled placeholder="Search…" />
-          </InputGroup>
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'with-leading-items-disabled',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8, width: 300}}>
+            <InputGroup>
+              <InputGroup.LeadingItems disablePointerEvents>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input disabled placeholder="Search…" />
+            </InputGroup>
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+    );
   });
 });

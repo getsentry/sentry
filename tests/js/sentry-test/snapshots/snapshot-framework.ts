@@ -1,6 +1,7 @@
 import type {ReactElement} from 'react';
 
 import {closeBrowser, takeSnapshot} from './snapshot';
+import type {SnapshotTestMetadata} from './snapshot-image-metadata';
 
 interface SnapshotDetails {
   displayName: string;
@@ -39,7 +40,7 @@ function parseSnapshotDetails(testName: string, fallbackName: string): SnapshotD
 function snapshotTest(
   name: string,
   renderFn: () => ReactElement,
-  metadata: Record<string, string> = {}
+  metadata: SnapshotTestMetadata = {}
 ): void {
   test(`snapshot: ${name}`, async () => {
     const {testPath, currentTestName} = expect.getState();
@@ -67,7 +68,7 @@ snapshotTest.each = function snapshotEach<T>(table: T[]) {
   return (
     name: string,
     renderFn: (value: T) => ReactElement,
-    metadataFn?: (value: T) => Record<string, string>
+    metadataFn?: (value: T) => SnapshotTestMetadata
   ) => {
     for (const value of table) {
       const testName = name.replace('%s', String(value));
@@ -91,7 +92,7 @@ declare global {
         ) => (
           name: string,
           renderFn: (value: T) => ReactElement,
-          metadataFn?: (value: T) => Record<string, string>
+          metadataFn?: (value: T) => SnapshotTestMetadata
         ) => void;
       };
     }

@@ -10,7 +10,10 @@ import {CacheProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
 import {chromium, type Browser} from 'playwright';
 
-import type {SnapshotImageMetadata} from 'sentry-test/snapshots/snapshot-image-metadata';
+import type {
+  SnapshotImageMetadata,
+  SnapshotTestMetadata,
+} from 'sentry-test/snapshots/snapshot-image-metadata';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
@@ -101,7 +104,7 @@ interface TakeSnapshotOptions {
   displayName: string;
   fileSlug: string;
   group: string | null;
-  metadata: Record<string, string>;
+  metadata: SnapshotTestMetadata;
   renderFn: () => ReactElement;
   testFilePath: string;
 }

@@ -9,36 +9,54 @@ const themes = {light: lightTheme, dark: darkTheme};
 
 describe('Switch', () => {
   describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
-    it.snapshot.each<SwitchProps['size']>(['sm', 'lg'])('size-%s-unchecked', size => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch size={size} onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot.each<SwitchProps['size']>(['sm', 'lg'])(
+      'size-%s-unchecked',
+      size => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Switch size={size} onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      size => ({tags: {theme: themeName, size: String(size), area: 'core'}})
+    );
 
-    it.snapshot.each<SwitchProps['size']>(['sm', 'lg'])('size-%s-checked', size => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch checked size={size} onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot.each<SwitchProps['size']>(['sm', 'lg'])(
+      'size-%s-checked',
+      size => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Switch checked size={size} onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      size => ({
+        tags: {theme: themeName, size: String(size), checked: 'true', area: 'core'},
+      })
+    );
 
-    it.snapshot('disabled-unchecked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'disabled-unchecked',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Switch disabled onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+    );
 
-    it.snapshot('disabled-checked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Switch checked disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'disabled-checked',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Switch checked disabled onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {theme: themeName, disabled: 'true', checked: 'true', area: 'core'}}
+    );
   });
 });

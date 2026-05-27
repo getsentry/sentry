@@ -73,7 +73,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'default'}
+      {tags: {theme: themeName, state: 'default', area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -92,7 +92,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'active-group'}
+      {tags: {theme: themeName, state: 'active-group', area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -110,7 +110,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'filtered'}
+      {tags: {theme: themeName, state: 'filtered', area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -128,7 +128,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'no-results'}
+      {tags: {theme: themeName, state: 'no-results', area: 'snapshots'}}
     );
   });
 });

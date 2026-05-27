@@ -31,7 +31,7 @@ describe('Badge', () => {
           </div>
         </ThemeProvider>
       ),
-      variant => ({theme: themeName, variant: String(variant)})
+      variant => ({tags: {theme: themeName, variant: String(variant), area: 'core'}})
     );
   });
 });

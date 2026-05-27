@@ -17,31 +17,44 @@ describe('Checkbox', () => {
             <Checkbox checked={checked} onChange={() => {}} />
           </div>
         </ThemeProvider>
-      )
+      ),
+      checked => ({tags: {theme: themeName, checked: String(checked), area: 'core'}})
     );
 
-    it.snapshot.each<CheckboxProps['size']>(['xs', 'sm', 'md'])('size-%s', size => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Checkbox checked size={size} onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot.each<CheckboxProps['size']>(['xs', 'sm', 'md'])(
+      'size-%s',
+      size => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Checkbox checked size={size} onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      size => ({tags: {theme: themeName, size: String(size), area: 'core'}})
+    );
 
-    it.snapshot('disabled-unchecked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Checkbox disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'disabled-unchecked',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Checkbox disabled onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+    );
 
-    it.snapshot('disabled-checked', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Checkbox checked disabled onChange={() => {}} />
-        </div>
-      </ThemeProvider>
-    ));
+    it.snapshot(
+      'disabled-checked',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Checkbox checked disabled onChange={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {theme: themeName, disabled: 'true', checked: 'true', area: 'core'}}
+    );
   });
 });

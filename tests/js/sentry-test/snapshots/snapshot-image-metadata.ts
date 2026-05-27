@@ -5,5 +5,12 @@ export interface SnapshotImageMetadata {
     test_file_path: string;
   };
   group?: string | null;
+  tags?: Record<string, string>;
   // Skip height, width and image_file_name as they're handled by the CLI
+}
+
+export interface SnapshotTestMetadata {
+  display_name?: string;
+  group?: string;
+  tags?: Record<string, string>;
 }
