@@ -447,6 +447,48 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
         assert self.mock_task.delay.call_count == 10
 
+    def test_shuffle_randomizes_pk_order(self):
+        """When shuffle=True, PKs are not in ascending order."""
+        ois = self._create_org_integrations(30)
+        sorted_pks = [oi.pk for oi in ois]
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            shuffle=True,
+        )
+
+        # Complete entire cycle to collect all dispatched PKs
+        all_dispatched = []
+        while scheduler.tick():
+            all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
+            self.mock_task.reset_mock()
+        all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
+
+        assert set(all_dispatched) == set(sorted_pks)
+        assert all_dispatched != sorted_pks
+
+    def test_shuffle_false_preserves_pk_order(self):
+        """When shuffle=False (default), PKs are in ascending PK order."""
+        ois = self._create_org_integrations(30)
+        sorted_pks = [oi.pk for oi in ois]
+
+        scheduler = self._make_scheduler()
+
+        all_dispatched = []
+        while scheduler.tick():
+            all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
+            self.mock_task.reset_mock()
+        all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
+
+        assert all_dispatched == sorted_pks
+
     def test_interval_decrease_halves_batch_size(self):
         """When tick interval is halved, batch size is halved for remaining items."""
         self._create_org_integrations(30)
