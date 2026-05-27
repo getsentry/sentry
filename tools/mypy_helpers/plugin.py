@@ -10,6 +10,7 @@ from mypy.nodes import ARG_POS, MypyFile, TypeInfo
 from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
+    FunctionContext,
     FunctionSigContext,
     MethodContext,
     MethodSigContext,
@@ -187,7 +188,67 @@ def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type
         return member
 
 
+def _check_response_body_not_any(ctx: FunctionContext) -> Type:
+    """Hard-error when `Response[T](body)` is constructed in a context that
+    expects `T = <Specific>` but `body` evaluates to `Any`.
+
+    Strategy: consult the expected return type at the call site. If the
+    function's declared return is `Response[X]` where `X` is concrete, and the
+    body argument is `Any`, error. Bottom-up `T = Any` inference is then
+    visible here because `expected_type` is concrete even though
+    `default_return_type` may have absorbed `T = Any` from the body.
+
+    Unparameterized `Response(...)` calls (where T defaults to Any via the
+    stub) are unaffected — their enclosing function's expected type is also
+    `Response[Any]`.
+    """
+    if not ctx.arg_types or not ctx.arg_types[0]:
+        return ctx.default_return_type
+    body_type = ctx.arg_types[0][0]
+    if not isinstance(body_type, AnyType):
+        return ctx.default_return_type
+    if body_type.type_of_any in (TypeOfAny.special_form, TypeOfAny.from_error):
+        return ctx.default_return_type
+
+    # Inspect the surrounding type-checker frame for the expected return type.
+    # `chk.return_types` is the stack of expected return types for enclosing
+    # functions. The innermost frame is the function containing this call.
+    chk = ctx.api.expr_checker.chk  # type: ignore[attr-defined]
+    if not getattr(chk, "return_types", None):
+        return ctx.default_return_type
+    expected = chk.return_types[-1]
+    # Strip Awaitable/Coroutine wrappers, unions, etc.
+    expected_instances: list[Instance] = []
+    pending: list[Type] = [expected]
+    while pending:
+        t = pending.pop()
+        if isinstance(t, UnionType):
+            pending.extend(t.items)
+        elif isinstance(t, Instance):
+            expected_instances.append(t)
+    for inst in expected_instances:
+        if inst.type.fullname != "rest_framework.response.Response":
+            continue
+        if not inst.args:
+            continue
+        T_expected = inst.args[0]
+        if isinstance(T_expected, AnyType):
+            continue
+        ctx.api.fail(
+            f"`Response[{format_type(T_expected, ctx.api.options)}]` body is `Any` "
+            "— give the source a proper return type, or use `cast()` at the call site.",
+            ctx.context,
+        )
+        break
+    return ctx.default_return_type
+
+
 class SentryMypyPlugin(Plugin):
+    def get_function_hook(self, fullname: str) -> Callable[[FunctionContext], Type] | None:
+        if fullname == "rest_framework.response.Response":
+            return _check_response_body_not_any
+        return None
+
     def get_function_signature_hook(
         self, fullname: str
     ) -> Callable[[FunctionSigContext], FunctionLike] | None:
