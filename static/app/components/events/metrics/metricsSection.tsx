@@ -147,7 +147,10 @@ function MetricsSectionContent({
   return (
     <FoldSection sectionKey={SectionKey.METRICS} title={t('Application Metrics')}>
       <Flex direction="column" gap="xl">
-        <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
+        <MetricsSamplesTable
+          source="issueDetails"
+          overrideTableData={abbreviatedTableData}
+        />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
           <div>
             <Button
