@@ -446,7 +446,7 @@ def parse_assemble_request_payload(body: bytes) -> AssembleRequestPayload:
                 "required": ["name", "chunks"],
                 "properties": {
                     "name": {"type": "string"},
-                    "debug_id": {"type": "string"},
+                    "debug_id": {"type": "string", "pattern": "^[A-Fa-f0-9-]+$"},
                     "chunks": {
                         "type": "array",
                         "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
