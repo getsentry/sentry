@@ -1,13 +1,14 @@
-import {
-  MAX_DASHBOARD_TITLE_LENGTH,
-  MAX_WIDGET_DESCRIPTION_LENGTH,
-  MAX_WIDGET_TITLE_LENGTH,
-  NUM_DESKTOP_COLS,
-} from 'sentry/views/dashboards/constants';
+import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+
+// Must match the limits enforced by the backend serializer at
+// src/sentry/api/serializers/rest_framework/dashboard.py.
+const MAX_WIDGET_DESCRIPTION_LENGTH = 350;
+const MAX_WIDGET_TITLE_LENGTH = 255;
+const MAX_DASHBOARD_TITLE_LENGTH = 255;
 
 const entries = Object.entries(PREBUILT_DASHBOARDS) as Array<
   [`${PrebuiltDashboardId}`, (typeof PREBUILT_DASHBOARDS)[PrebuiltDashboardId]]
