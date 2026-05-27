@@ -47,25 +47,27 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-123',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-1',
-          trace: 'trace-1',
-          'gen_ai.operation.type': 'ai_client',
-          'gen_ai.input.messages': inputMessages,
-          'gen_ai.request.messages': JSON.stringify([
-            {role: 'user', content: 'Fallback message'},
-          ]),
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-123',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1000.5,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'gen_ai.generate',
+            'span.status': 'ok',
+            span_id: 'span-1',
+            trace: 'trace-1',
+            'gen_ai.operation.type': 'ai_client',
+            'gen_ai.input.messages': inputMessages,
+            'gen_ai.request.messages': JSON.stringify([
+              {role: 'user', content: 'Fallback message'},
+            ]),
+          },
+        ],
+      },
     });
 
     const {result} = renderHookWithProviders(
@@ -91,22 +93,24 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-output/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-output',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-output',
-          trace: 'trace-output',
-          'gen_ai.operation.type': 'ai_client',
-          'gen_ai.output.messages': outputMessages,
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-output',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1000.5,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'gen_ai.generate',
+            'span.status': 'ok',
+            span_id: 'span-output',
+            trace: 'trace-output',
+            'gen_ai.operation.type': 'ai_client',
+            'gen_ai.output.messages': outputMessages,
+          },
+        ],
+      },
     });
 
     const {result} = renderHookWithProviders(
@@ -132,22 +136,24 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-456/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-456',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-2',
-          trace: 'trace-2',
-          'gen_ai.operation.type': 'ai_client',
-          'gen_ai.request.messages': requestMessages,
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-456',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1000.5,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'gen_ai.generate',
+            'span.status': 'ok',
+            span_id: 'span-2',
+            trace: 'trace-2',
+            'gen_ai.operation.type': 'ai_client',
+            'gen_ai.request.messages': requestMessages,
+          },
+        ],
+      },
     });
 
     const {result} = renderHookWithProviders(
@@ -169,22 +175,24 @@ describe('useConversation', () => {
   it('uses empty string for missing optional fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-789/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-789',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-3',
-          trace: 'trace-3',
-          'gen_ai.operation.type': 'ai_client',
-          // No input or request messages provided
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-789',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1000.5,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'gen_ai.generate',
+            'span.status': 'ok',
+            span_id: 'span-3',
+            trace: 'trace-3',
+            'gen_ai.operation.type': 'ai_client',
+            // No input or request messages provided
+          },
+        ],
+      },
     });
 
     const {result} = renderHookWithProviders(
@@ -208,21 +216,23 @@ describe('useConversation', () => {
   it('uses conversation timestamps when provided', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-timestamps/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-timestamps',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-ts',
-          trace: 'trace-ts',
-          'gen_ai.operation.type': 'ai_client',
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-timestamps',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1000.5,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'gen_ai.generate',
+            'span.status': 'ok',
+            span_id: 'span-ts',
+            trace: 'trace-ts',
+            'gen_ai.operation.type': 'ai_client',
+          },
+        ],
+      },
     });
 
     const startTimestamp = 1700000000000; // Nov 14, 2023
@@ -263,21 +273,23 @@ describe('useConversation', () => {
   it('uses span.name for description and name fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-name/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-name',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'My AI Agent',
-          'span.status': 'ok',
-          span_id: 'span-name',
-          trace: 'trace-name',
-          'gen_ai.operation.type': 'ai_client',
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-name',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1000.5,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'My AI Agent',
+            'span.status': 'ok',
+            span_id: 'span-name',
+            trace: 'trace-name',
+            'gen_ai.operation.type': 'ai_client',
+          },
+        ],
+      },
     });
 
     const {result} = renderHookWithProviders(
@@ -299,34 +311,36 @@ describe('useConversation', () => {
   it('sorts nodes by start timestamp for AI spans list', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-sort/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-sort',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1002,
-          'precise.start_ts': 1001,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'Second by start, first by end',
-          'span.status': 'ok',
-          span_id: 'span-b',
-          trace: 'trace-sort',
-          'gen_ai.operation.type': 'ai_client',
-        },
-        {
-          'gen_ai.conversation.id': 'conv-sort',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1003,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'First by start, second by end',
-          'span.status': 'ok',
-          span_id: 'span-a',
-          trace: 'trace-sort',
-          'gen_ai.operation.type': 'ai_client',
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-sort',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1002,
+            'precise.start_ts': 1001,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'Second by start, first by end',
+            'span.status': 'ok',
+            span_id: 'span-b',
+            trace: 'trace-sort',
+            'gen_ai.operation.type': 'ai_client',
+          },
+          {
+            'gen_ai.conversation.id': 'conv-sort',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1003,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'First by start, second by end',
+            'span.status': 'ok',
+            span_id: 'span-a',
+            trace: 'trace-sort',
+            'gen_ai.operation.type': 'ai_client',
+          },
+        ],
+      },
     });
 
     const {result} = renderHookWithProviders(
@@ -349,7 +363,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: {data: [BASE_SPAN]},
     });
 
     const {result} = renderHookWithProviders(
@@ -379,7 +393,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: {data: [BASE_SPAN]},
     });
 
     const {result} = renderHookWithProviders(
@@ -406,7 +420,7 @@ describe('useConversation', () => {
   it('falls back to ALL_ACCESS_PROJECTS and 30d when no filters are set', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: {data: [BASE_SPAN]},
     });
 
     const {result} = renderHookWithProviders(
@@ -439,7 +453,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: {data: [BASE_SPAN]},
     });
 
     const {result} = renderHookWithProviders(
@@ -465,34 +479,36 @@ describe('useConversation', () => {
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
-      body: [
-        {
-          'gen_ai.conversation.id': 'conv-filter',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-ai',
-          trace: 'trace-1',
-          'gen_ai.operation.type': 'ai_client',
-        },
-        {
-          'gen_ai.conversation.id': 'conv-filter',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1001.5,
-          'precise.start_ts': 1001,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'http.client',
-          'span.status': 'ok',
-          span_id: 'span-http',
-          trace: 'trace-1',
-          // No gen_ai.operation.type - should be filtered out
-        },
-      ],
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-filter',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1000.5,
+            'precise.start_ts': 1000,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'gen_ai.generate',
+            'span.status': 'ok',
+            span_id: 'span-ai',
+            trace: 'trace-1',
+            'gen_ai.operation.type': 'ai_client',
+          },
+          {
+            'gen_ai.conversation.id': 'conv-filter',
+            parent_span: 'parent-1',
+            'precise.finish_ts': 1001.5,
+            'precise.start_ts': 1001,
+            project: 'test-project',
+            'project.id': 1,
+            'span.name': 'http.client',
+            'span.status': 'ok',
+            span_id: 'span-http',
+            trace: 'trace-1',
+            // No gen_ai.operation.type - should be filtered out
+          },
+        ],
+      },
     });
 
     const {result} = renderHookWithProviders(

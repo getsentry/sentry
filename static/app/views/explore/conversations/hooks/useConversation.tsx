@@ -1,5 +1,5 @@
-import {useEffect, useMemo} from 'react';
-import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
+import {useMemo} from 'react';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {
   ALL_ACCESS_PROJECTS,
@@ -178,8 +178,6 @@ function createNodeFromApiSpan(
   return node as unknown as AITraceSpanNode;
 }
 
-const MAX_PAGES = 10;
-
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
@@ -209,20 +207,11 @@ export function useConversation(
 
   const queryParams = {
     project,
-    per_page: 1000,
     ...datetimeParams,
   };
 
-  const {
-    data,
-    isFetching,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    isLoading,
-    isError,
-  } = useInfiniteQuery(
-    apiOptions.asInfinite<ConversationApiSpan[]>()(
+  const {data, isLoading, isError} = useQuery(
+    apiOptions.as<{data: ConversationApiSpan[]}>()(
       '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
       {
         path: conversation.conversationId
@@ -237,17 +226,14 @@ export function useConversation(
     )
   );
 
-  const currentNumberPages = data?.pages.length ?? 0;
-
-  useEffect(() => {
-    if (!isFetching && hasNextPage && currentNumberPages < MAX_PAGES) {
-      fetchNextPage();
-    }
-  }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
-
-  const allSpans = useMemo(() => data?.pages.flatMap(page => page.json) ?? [], [data]);
-
   const {nodes, nodeTraceMap} = useMemo(() => {
+    // Handle both response formats during rollout: {"data": [...]} envelope
+    // from the new backend, or a flat [...] array from the old paginated backend.
+    const allSpans = Array.isArray(data)
+      ? (data as ConversationApiSpan[])
+      : Array.isArray(data?.data)
+        ? data.data
+        : [];
     if (allSpans.length === 0) {
       return {nodes: [], nodeTraceMap: new Map<string, string>()};
     }
@@ -266,7 +252,7 @@ export function useConversation(
     transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
 
     return {nodes: transformedNodes, nodeTraceMap: traceMap};
-  }, [allSpans]);
+  }, [data]);
 
   if (!conversation.conversationId) {
     return {nodes: [], nodeTraceMap: new Map(), isLoading: false, error: false};
@@ -275,7 +261,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || hasNextPage,
+    isLoading,
     error: isError,
   };
 }
