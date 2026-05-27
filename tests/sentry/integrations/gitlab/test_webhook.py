@@ -344,6 +344,28 @@ class WebhookTest(GitLabTestCase):
 
         assert_success_metric(mock_record)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_merge_event_missing_author_fields(self, mock_record: MagicMock) -> None:
+        # Missing object_attributes.author_id or user.username: payload should be
+        # treated like other malformed payloads — caught by the early KeyError
+        # block, logged, and 204'd.
+        self.create_gitlab_repo("getsentry/sentry")
+
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        del payload["object_attributes"]["author_id"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        assert 0 == PullRequest.objects.count()
+
+        assert_success_metric(mock_record)
+
     def test_merge_event_create_pull_request(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)

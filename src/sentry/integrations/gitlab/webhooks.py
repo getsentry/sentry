@@ -317,6 +317,8 @@ class MergeEventWebhook(GitlabWebhook):
             body = event["object_attributes"]["description"]
             created_at = event["object_attributes"]["created_at"]
             merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
+            author_id = event["object_attributes"]["author_id"]
+            author_username = event["user"]["username"]
 
             last_commit = event["object_attributes"]["last_commit"]
             author_email = None
@@ -359,8 +361,8 @@ class MergeEventWebhook(GitlabWebhook):
                     organization=organization,
                     repo=repo,
                     integration_id=integration.id,
-                    user_id=event["object_attributes"]["author_id"],
-                    user_username=event["user"]["username"],
+                    user_id=author_id,
+                    user_username=author_username,
                     provider="gitlab",
                 )
 
