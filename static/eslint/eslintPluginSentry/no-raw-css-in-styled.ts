@@ -16,7 +16,9 @@ function tagInvolvesName(node: TSESTree.Node, name: string): boolean {
   return false;
 }
 
-function isStyledOrCssTemplate(node: TSESTree.Node): boolean {
+function isStyledOrCssTemplate(
+  node: TSESTree.Node
+): node is TSESTree.TaggedTemplateExpression {
   if (node.type !== AST_NODE_TYPES.TaggedTemplateExpression) {
     return false;
   }
@@ -24,17 +26,15 @@ function isStyledOrCssTemplate(node: TSESTree.Node): boolean {
   return tagInvolvesName(tag, 'styled') || tagInvolvesName(tag, 'css');
 }
 
-function findEnclosingStyledTemplate(
-  node: TSESTree.Node
-): TSESTree.TaggedTemplateExpression | null {
+function isInsideStyledOrCssTemplate(node: TSESTree.Node): boolean {
   let current = node.parent;
   while (current) {
     if (isStyledOrCssTemplate(current)) {
-      return current as TSESTree.TaggedTemplateExpression;
+      return true;
     }
     current = current.parent;
   }
-  return null;
+  return false;
 }
 
 function looksLikeCssDeclarations(text: string): boolean {
@@ -65,7 +65,7 @@ export const noRawCssInStyled = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        if (!findEnclosingStyledTemplate(node)) {
+        if (!isInsideStyledOrCssTemplate(node)) {
           return;
         }
 
