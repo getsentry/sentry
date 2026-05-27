@@ -15,7 +15,7 @@ export function CollapsibleBadgeRow({
   activeTagFilters,
 }: {
   tags: Record<string, string>;
-  activeTagFilters?: Record<string, Set<string>>;
+  activeTagFilters?: Record<string, string>;
   onTagClick?: (key: string, value: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -78,7 +78,7 @@ export function CollapsibleBadgeRow({
           <ClickableBadge
             key={key}
             type="button"
-            isActive={activeTagFilters?.[key]?.has(value) ?? false}
+            isActive={activeTagFilters?.[key] === value}
             onClick={e => {
               e.stopPropagation();
               onTagClick(key, value);

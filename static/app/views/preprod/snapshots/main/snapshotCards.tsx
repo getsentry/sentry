@@ -71,7 +71,7 @@ export const PairCard = memo(function PairCard({
   isSelected: boolean;
   pair: SnapshotDiffPair;
   snapshotKey: string;
-  activeTagFilters?: Record<string, Set<string>>;
+  activeTagFilters?: Record<string, string>;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
   onCopyLink?: () => void;
@@ -182,7 +182,7 @@ export const ImageCard = memo(function ImageCard({
   imageBaseUrl: string;
   isSelected: boolean;
   snapshotKey: string;
-  activeTagFilters?: Record<string, Set<string>>;
+  activeTagFilters?: Record<string, string>;
   copyData?: unknown;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
@@ -275,7 +275,7 @@ export const CardHeader = memo(function CardHeader({
   fileName: string;
   isDark: boolean;
   onToggleDark: () => void;
-  activeTagFilters?: Record<string, Set<string>>;
+  activeTagFilters?: Record<string, string>;
   diffPercent?: number | null;
   displayName?: string | null;
   onCopyLink?: () => void;

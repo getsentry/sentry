@@ -70,7 +70,7 @@ interface SnapshotMainContentProps {
   selectedItem: SidebarItem | null;
   variantIndex: number;
   viewMode: ViewMode;
-  activeTagFilters?: Record<string, Set<string>>;
+  activeTagFilters?: Record<string, string>;
   headBranch?: string | null;
   listViewRef?: React.RefObject<SnapshotListViewHandle | null>;
   onSelectSnapshot?: (key: string | null) => void;

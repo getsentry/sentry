@@ -32,7 +32,7 @@ import {SnapshotCardFrame, SnapshotGroupHeader} from './snapshotFrames';
 interface SnapshotListViewProps {
   imageBaseUrl: string;
   items: SidebarItem[];
-  activeTagFilters?: Record<string, Set<string>>;
+  activeTagFilters?: Record<string, string>;
   diffImageBaseUrl?: string;
   diffMode?: DiffMode;
   headBranch?: string | null;
@@ -629,7 +629,7 @@ const GroupContainer = memo(function GroupContainer({
   group: GroupRow;
   imageBaseUrl: string;
   selectedSnapshotKey: string | null;
-  activeTagFilters?: Record<string, Set<string>>;
+  activeTagFilters?: Record<string, string>;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
   onOpenSnapshot?: (key: string) => void;

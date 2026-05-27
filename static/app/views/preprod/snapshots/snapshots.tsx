@@ -49,6 +49,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {narrowItemByTags} from './tagFiltering';
 
 function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
@@ -83,43 +84,6 @@ function itemImages(item: SidebarItem): SnapshotImage[] {
     return item.pairs.map(p => p.head_image);
   }
   return item.images;
-}
-
-function imageMatchesTagFilters(
-  img: SnapshotImage,
-  filters: Record<string, Set<string>>
-): boolean {
-  if (!img.tags) {
-    return false;
-  }
-  return Object.entries(filters).every(([key, values]) => {
-    const tagValue = img.tags?.[key];
-    return tagValue !== undefined && values.has(tagValue);
-  });
-}
-
-function narrowItemByTags(
-  item: SidebarItem,
-  filters: Record<string, Set<string>>
-): SidebarItem | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
-    const kept = item.pairs.filter(p => imageMatchesTagFilters(p.head_image, filters));
-    if (kept.length === 0) {
-      return null;
-    }
-    if (kept.length === item.pairs.length) {
-      return item;
-    }
-    return {...item, pairs: kept};
-  }
-  const kept = item.images.filter(img => imageMatchesTagFilters(img, filters));
-  if (kept.length === 0) {
-    return null;
-  }
-  if (kept.length === item.images.length) {
-    return item;
-  }
-  return {...item, images: kept};
 }
 
 function snapshotKeyAt(item: SidebarItem, variantIdx: number): string | null {
@@ -246,10 +210,8 @@ export default function SnapshotsPage() {
       .withOptions(pushHistory)
   );
   const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
-  const [activeTagFilters, setActiveTagFilters] = useState<Record<string, Set<string>>>(
-    {}
-  );
-  const hasActiveTagFilter = Object.values(activeTagFilters).some(s => s.size > 0);
+  const [activeTagFilters, setActiveTagFilters] = useState<Record<string, string>>({});
+  const hasActiveTagFilter = Object.keys(activeTagFilters).length > 0;
 
   const availableStatuses = useMemo(
     () =>
@@ -381,12 +343,11 @@ export default function SnapshotsPage() {
 
   const handleToggleTagFilter = useCallback((key: string, value: string) => {
     setActiveTagFilters(prev => {
-      const current = prev[key];
       const result = {...prev};
-      if (current?.has(value)) {
+      if (prev[key] === value) {
         delete result[key];
       } else {
-        result[key] = new Set([value]);
+        result[key] = value;
       }
       return result;
     });
@@ -433,12 +394,11 @@ export default function SnapshotsPage() {
         }
         for (const [k, v] of Object.entries(img.tags)) {
           const passesFilters = activeTagKeys.every(filterKey => {
-            const filterValues = activeTagFilters[filterKey];
-            if (!filterValues || filterValues.size === 0) {
+            const filterValue = activeTagFilters[filterKey];
+            if (filterValue === undefined) {
               return true;
             }
-            const imgValue = img.tags?.[filterKey];
-            return imgValue !== undefined && filterValues.has(imgValue);
+            return img.tags?.[filterKey] === filterValue;
           });
           if (!passesFilters) {
             continue;

@@ -66,7 +66,7 @@ const SECTION_HEADER_HEIGHT = 28;
 
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
-  activeTagFilters: Record<string, Set<string>>;
+  activeTagFilters: Record<string, string>;
   availableTags: Map<string, Map<string, number>>;
   onSearchChange: (query: string) => void;
   onSelectItem: (itemKey: string) => void;
@@ -357,11 +357,11 @@ const TagFilterSection = memo(function TagFilterSection({
   activeTagFilters,
   onToggleTagFilter,
 }: {
-  activeTagFilters: Record<string, Set<string>>;
+  activeTagFilters: Record<string, string>;
   availableTags: Map<string, Map<string, number>>;
   onToggleTagFilter: (key: string, value: string) => void;
 }) {
-  const hasActiveFilter = Object.values(activeTagFilters).some(s => s.size > 0);
+  const hasActiveFilter = Object.keys(activeTagFilters).length > 0;
   const sortedKeys = useMemo(() => [...availableTags.keys()].sort(), [availableTags]);
 
   return (
@@ -376,7 +376,7 @@ const TagFilterSection = memo(function TagFilterSection({
           <Stack gap="lg" paddingBottom="lg" style={{maxHeight: 200, overflowY: 'auto'}}>
             {sortedKeys.map(tagKey => {
               const values = availableTags.get(tagKey)!;
-              const activeValues = activeTagFilters[tagKey];
+              const activeValue = activeTagFilters[tagKey];
               return (
                 <Stack key={tagKey} gap="xs">
                   <Text size="xs" variant="muted" bold>
@@ -386,7 +386,7 @@ const TagFilterSection = memo(function TagFilterSection({
                     {[...values.entries()]
                       .sort(([a], [b]) => a.localeCompare(b))
                       .map(([value, count]) => {
-                        const isActive = activeValues?.has(value) ?? false;
+                        const isActive = activeValue === value;
                         const isDisabled = count === 0 && !isActive;
                         return (
                           <TagChip
@@ -414,20 +414,18 @@ const TagFilterSection = memo(function TagFilterSection({
       </TagDisclosure>
       {hasActiveFilter && (
         <Flex gap="xs" wrap="wrap" padding="lg" paddingTop="0">
-          {Object.entries(activeTagFilters).flatMap(([key, values]) =>
-            [...values].map(value => (
-              <ActiveTagChip
-                key={`${key}:${value}`}
-                type="button"
-                onClick={() => onToggleTagFilter(key, value)}
-              >
-                <Text size="xs">
-                  {key}={value}
-                </Text>
-                <IconClose size="xs" />
-              </ActiveTagChip>
-            ))
-          )}
+          {Object.entries(activeTagFilters).map(([key, value]) => (
+            <ActiveTagChip
+              key={`${key}:${value}`}
+              type="button"
+              onClick={() => onToggleTagFilter(key, value)}
+            >
+              <Text size="xs">
+                {key}={value}
+              </Text>
+              <IconClose size="xs" />
+            </ActiveTagChip>
+          ))}
         </Flex>
       )}
     </Stack>
