@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 from django.utils.text import slugify
 
-from sentry.core.endpoints.organization_projects_experiment import (
+from sentry.core.endpoints.organization_projects import (
     DISABLED_FEATURE_ERROR_STRING,
-    OrganizationProjectsExperimentEndpoint,
+    OrganizationProjectsEndpoint,
     fetch_slugifed_email_username,
 )
 from sentry.models.organizationmember import OrganizationMember
@@ -19,8 +19,8 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-class OrganizationProjectsExperimentCreateTest(APITestCase):
-    endpoint = "sentry-api-0-organization-projects-experiment"
+class OrganizationProjectsCreateTest(APITestCase):
+    endpoint = "sentry-api-0-organization-projects"
     method = "post"
     p1 = "project-one"
     p2 = "project-two"
@@ -36,10 +36,42 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         return bool(re.match(pattern, team.slug)) and bool(re.match(pattern, team.name))
 
     def test_missing_permission(self) -> None:
+        # A user with no org membership at all is rejected.
         user = self.create_user()
         self.login_as(user=user)
 
         self.get_error_response(self.organization.slug, status_code=403)
+
+    @with_feature(["organizations:team-roles"])
+    def test_org_member_can_create_project(self) -> None:
+        # Members have project:read scope, which is sufficient for POST /organizations/{org}/projects/.
+        # This verifies the intentionally-lowered scope in OrganizationProjectsPermission.
+        # Orgs default to disable_member_project_creation=True; explicitly enable it here.
+        self.organization.flags.disable_member_project_creation = False
+        self.organization.save()
+
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user=member_user)
+
+        response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == project.slug == self.p1
+
+        # Endpoint auto-created a personal team for this member
+        member_email_username = fetch_slugifed_email_username(member_user.email)
+        team = Team.objects.get(slug=f"team-{member_email_username}")
+        assert project.teams.first() == team
+
+        member = OrganizationMember.objects.get(
+            user_id=member_user.id, organization=self.organization
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member, team=team, is_active=True, role="admin"
+        ).exists()
 
     def test_missing_project_name(self) -> None:
         response = self.get_error_response(self.organization.slug, status_code=400)
@@ -52,9 +84,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert response.data == {"platform": ["Invalid platform"]}
 
     @with_feature(["organizations:team-roles"])
-    @patch.object(
-        OrganizationProjectsExperimentEndpoint, "should_add_creator_to_team", return_value=False
-    )
+    @patch.object(OrganizationProjectsEndpoint, "should_add_creator_to_team", return_value=False)
     def test_not_authenticated(self, mock_add_creator: MagicMock) -> None:
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=401)
         assert response.data == {"detail": "User is not authenticated"}
@@ -289,7 +319,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles"])
     @patch(
-        "sentry.core.endpoints.organization_projects_experiment.OrganizationProjectsExperimentEndpoint.create_audit_entry"
+        "sentry.core.endpoints.organization_projects.OrganizationProjectsEndpoint.create_audit_entry"
     )
     def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:
         signal_handler = Mock()
