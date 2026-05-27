@@ -81,6 +81,7 @@ describe('EventUserFeedback', () => {
     render(<EventUserFeedback report={makeReport({user: null})} />);
 
     expect(screen.queryByRole('link', {name: 'View event'})).not.toBeInTheDocument();
+    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('JR');
     expect(document.querySelector('script')).not.toBeInTheDocument();
     const comment = document.querySelector('p');
     expect(comment?.textContent).toBe('Line one\n<script>alert("x")</script>');

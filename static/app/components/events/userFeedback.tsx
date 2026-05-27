@@ -79,7 +79,13 @@ function getAvatarUser(report: UserReport): AvatarUser | undefined {
   const user = report.user;
 
   if (!user) {
-    return undefined;
+    return {
+      id: '',
+      email: report.email,
+      name: report.name,
+      username: '',
+      ip_address: '',
+    };
   }
 
   return {
