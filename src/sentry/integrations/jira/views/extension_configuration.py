@@ -49,7 +49,7 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
                 "sentry/pipeline-error.html",
                 {"error": "Installation link expired"},
             )
-        except (BadSignature, KeyError, ValueError):
+        except (BadSignature, KeyError, TypeError, ValueError):
             return self.respond(
                 "sentry/pipeline-error.html",
                 {"error": "Invalid installation link"},
