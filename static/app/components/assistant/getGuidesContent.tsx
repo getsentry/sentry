@@ -23,13 +23,6 @@ export function getGuidesContent(): GuidesContent {
           ),
         },
         {
-          title: t('Find problematic releases'),
-          target: 'issue_sidebar_releases',
-          description: t(
-            'See which release introduced the issue and which release it last appeared in.'
-          ),
-        },
-        {
           title: t('Not your typical stack trace'),
           target: 'stacktrace',
           description: t(
