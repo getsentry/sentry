@@ -1,18 +1,18 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
+import {useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
+  LOGS_FIELDS_KEY,
   usePersistedLogsPageParams,
   type PersistedLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
-  getReadableQueryParamsFromLocation,
-  getTargetWithReadableQueryParams,
-  isDefaultFields,
+  getLogsQueryParamsUpdate,
+  getReadableQueryParamsFromParsed,
+  logsQueryParamsParsers,
 } from 'sentry/views/explore/logs/logsQueryParams';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -28,14 +28,15 @@ export function LogsLocationQueryParamsProvider({
   children,
   frozenParams,
 }: LogsLocationQueryParamsProviderProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setNuqsParams] = useQueryStates(logsQueryParamsParsers, {
+    history: 'push',
+  });
 
   const [_, setPersistentParams] = usePersistedLogsPageParams();
 
   const _readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(false, location),
-    [location]
+    () => getReadableQueryParamsFromParsed(false, queryParams),
+    [queryParams]
   );
 
   const readableQueryParams = useMemo(
@@ -60,13 +61,12 @@ export function LogsLocationQueryParamsProvider({
         }));
       }
 
-      const target = getTargetWithReadableQueryParams(location, writableQueryParams);
-      navigate(target);
+      setNuqsParams(getLogsQueryParamsUpdate(writableQueryParams));
     },
-    [location, navigate, setPersistentParams]
+    [setNuqsParams, setPersistentParams]
   );
 
-  const isUsingDefaultFields = isDefaultFields(location);
+  const isUsingDefaultFields = !queryParams[LOGS_FIELDS_KEY];
 
   return (
     <QueryParamsContextProvider

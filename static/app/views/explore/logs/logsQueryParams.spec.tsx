@@ -1,7 +1,10 @@
 import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/logs/logsQueryParams';
+import {
+  getReadableQueryParamsFromLocation,
+  getTargetWithReadableQueryParams,
+} from 'sentry/views/explore/logs/logsQueryParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -301,5 +304,43 @@ describe('getReadableQueryParamsFromLocation', () => {
         })
       )
     );
+  });
+});
+
+describe('getTargetWithReadableQueryParams', () => {
+  it('serializes writable query params through nuqs and clears legacy aggregate params', () => {
+    const location = LocationFixture({
+      pathname: '/organizations/org-slug/explore/logs/',
+      query: {
+        logsAggregate: 'count',
+        logsAggregateParam: 'message',
+        logsGroupBy: 'severity',
+        project: '1',
+      },
+    });
+
+    const target = getTargetWithReadableQueryParams(location, {
+      aggregateFields: [{groupBy: 'message.template'}, {yAxes: ['avg(foo)']}],
+      aggregateSortBys: [{field: 'avg(foo)', kind: 'desc'}],
+      fields: ['timestamp', '', 'message'],
+      query: 'severity:error',
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+    });
+
+    expect(target.pathname).toBe('/organizations/org-slug/explore/logs/');
+    expect(target.query).toMatchObject({
+      aggregateField: [
+        JSON.stringify({groupBy: 'message.template'}),
+        JSON.stringify({yAxes: ['avg(foo)']}),
+      ],
+      logsAggregateSortBys: '-avg(foo)',
+      logsFields: ['timestamp', 'message'],
+      logsQuery: 'severity:error',
+      logsSortBys: '-timestamp',
+      project: '1',
+    });
+    expect(target.query.logsAggregate).toBeUndefined();
+    expect(target.query.logsAggregateParam).toBeUndefined();
+    expect(target.query.logsGroupBy).toBeUndefined();
   });
 });
