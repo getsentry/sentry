@@ -22,3 +22,11 @@ export function getSortBysFromLocation(
 export function validateSort(sort: Sort, fields: string[]) {
   return fields.includes(sort.field);
 }
+
+export function getValidSortBys(sortBys: Sort[] | null, fields: string[]): Sort[] | null {
+  if (sortBys?.length && sortBys.every(sort => validateSort(sort, fields))) {
+    return sortBys;
+  }
+
+  return null;
+}

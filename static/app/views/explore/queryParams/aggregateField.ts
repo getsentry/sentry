@@ -4,7 +4,11 @@ import {decodeList} from 'sentry/utils/queryString';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {parseVisualize, Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  parseVisualize,
+  Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 
 export type WritableAggregateField = GroupBy | BaseVisualize;
 
@@ -48,4 +52,16 @@ export function parseAggregateField(value: any): AggregateField[] {
   }
 
   return [];
+}
+
+export function normalizeAggregateFields(
+  aggregateFields: readonly any[]
+): AggregateField[] {
+  return aggregateFields.flatMap(aggregateField => {
+    if (isGroupBy(aggregateField) || isVisualize(aggregateField)) {
+      return [aggregateField];
+    }
+
+    return parseAggregateField(aggregateField);
+  });
 }

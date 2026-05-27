@@ -9,21 +9,24 @@ import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsCon
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   getAggregateFieldsFromLocation,
-  parseAggregateField,
+  normalizeAggregateFields,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   getAggregateSortBysFromLocation,
-  validateAggregateSort,
+  getValidAggregateSortBys,
 } from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
-import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
+import {
+  defaultCursor,
+  getCursorFromLocation,
+} from 'sentry/views/explore/queryParams/cursor';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {getModeFromLocation, Mode} from 'sentry/views/explore/queryParams/mode';
+import {defaultMode, getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {
   parseAsAggregateFields,
   parseAsCrossEvents,
@@ -39,7 +42,7 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
   getSortBysFromLocation,
-  validateSort,
+  getValidSortBys,
 } from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
@@ -274,36 +277,6 @@ function defaultSortBys(fields: string[]): Sort[] {
   return [];
 }
 
-function defaultMode() {
-  return Mode.SAMPLES;
-}
-
-function defaultCursor() {
-  return '';
-}
-
-function getValidSortBys(sortBys: Sort[] | null, fields: string[]): Sort[] | null {
-  if (sortBys?.length && sortBys.every(sort => validateSort(sort, fields))) {
-    return sortBys;
-  }
-
-  return null;
-}
-
-function getValidAggregateSortBys(
-  sortBys: Sort[] | null,
-  aggregateFields: AggregateField[]
-): Sort[] | null {
-  if (
-    sortBys?.length &&
-    sortBys.every(sort => validateAggregateSort(sort, aggregateFields))
-  ) {
-    return sortBys;
-  }
-
-  return null;
-}
-
 function defaultGroupBys(): [GroupBy] {
   return [{groupBy: ''}];
 }
@@ -363,16 +336,6 @@ function getSpansAggregateFieldsFromParsed(
     ...(queryParams[SPANS_GROUP_BY_KEY] ?? defaultGroupBys()),
     ...(queryParams[SPANS_VISUALIZATION_KEY] ?? defaultVisualizes()),
   ];
-}
-
-function normalizeAggregateFields(aggregateFields: readonly any[]): AggregateField[] {
-  return aggregateFields.flatMap(aggregateField => {
-    if (isGroupBy(aggregateField) || isVisualize(aggregateField)) {
-      return [aggregateField];
-    }
-
-    return parseAggregateField(aggregateField);
-  });
 }
 
 function withRequiredAggregateFields(

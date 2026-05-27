@@ -23,20 +23,23 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   getAggregateFieldsFromLocation,
-  parseAggregateField,
+  normalizeAggregateFields,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   getAggregateSortBysFromLocation,
-  validateAggregateSort,
+  getValidAggregateSortBys,
 } from 'sentry/views/explore/queryParams/aggregateSortBy';
-import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
+import {
+  defaultCursor,
+  getCursorFromLocation,
+} from 'sentry/views/explore/queryParams/cursor';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
 import {
   defaultGroupBys,
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {getModeFromLocation, Mode} from 'sentry/views/explore/queryParams/mode';
+import {defaultMode, getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {
   parseAsAggregateFields,
   parseAsFields,
@@ -49,7 +52,7 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
   getSortBysFromLocation,
-  validateSort,
+  getValidSortBys,
 } from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -239,36 +242,6 @@ function defaultSortBys(fields: string[]) {
   return [];
 }
 
-function defaultMode() {
-  return Mode.SAMPLES;
-}
-
-function defaultCursor() {
-  return '';
-}
-
-function getValidSortBys(sortBys: Sort[] | null, fields: string[]): Sort[] | null {
-  if (sortBys?.length && sortBys.every(sort => validateSort(sort, fields))) {
-    return sortBys;
-  }
-
-  return null;
-}
-
-function getValidAggregateSortBys(
-  sortBys: Sort[] | null,
-  aggregateFields: AggregateField[]
-): Sort[] | null {
-  if (
-    sortBys?.length &&
-    sortBys.every(sort => validateAggregateSort(sort, aggregateFields))
-  ) {
-    return sortBys;
-  }
-
-  return null;
-}
-
 export function defaultVisualizes(defaultVisible: boolean) {
   return [
     new VisualizeFunction(`${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`, {
@@ -368,16 +341,6 @@ function getLogsAggregateFieldsFromParsed(
     ...(queryParams[LOGS_GROUP_BY_KEY] ?? defaultGroupBys()),
     ...(getVisualizesFromParsed(queryParams) ?? defaultVisualizes(defaultVisible)),
   ];
-}
-
-function normalizeAggregateFields(aggregateFields: readonly any[]): AggregateField[] {
-  return aggregateFields.flatMap(aggregateField => {
-    if (isGroupBy(aggregateField) || isVisualize(aggregateField)) {
-      return [aggregateField];
-    }
-
-    return parseAggregateField(aggregateField);
-  });
 }
 
 function withRequiredAggregateFields(
