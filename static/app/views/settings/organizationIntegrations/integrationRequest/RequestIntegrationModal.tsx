@@ -10,7 +10,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -31,7 +31,6 @@ const schema = z.object({
  */
 export function RequestIntegrationModal(props: Props) {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
 
   const {Header, Body, Footer, CloseButton, name, slug, type, closeModal, onSuccess} =
     props;
@@ -39,7 +38,8 @@ export function RequestIntegrationModal(props: Props) {
 
   const sendRequestMutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      api.requestPromise(endpoint, {
+      fetchMutation({
+        url: endpoint,
         method: 'POST',
         data: {
           providerSlug: slug,
@@ -79,13 +79,13 @@ export function RequestIntegrationModal(props: Props) {
       </Header>
       <Body>
         <Flex direction="column" gap="2xl">
-          <Text as="p" density="comfortable">
+          <Text as="p">
             {t(
               'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
               name
             )}
           </Text>
-          <Text as="p" density="comfortable">
+          <Text as="p">
             {t(
               '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
               name
@@ -100,7 +100,7 @@ export function RequestIntegrationModal(props: Props) {
               />
             )}
           </form.AppField>
-          <Text as="p" density="comfortable">
+          <Text as="p">
             {t(
               'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
             )}
