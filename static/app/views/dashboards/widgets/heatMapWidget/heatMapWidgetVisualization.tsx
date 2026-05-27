@@ -32,6 +32,9 @@ import {HeatMap} from './plottables/heatMap';
 import type {HeatMapPlottable} from './plottables/heatMapPlottable';
 import {HEATMAP_COLORS} from './settings';
 
+// This is the ECharts default font size for axis labels. We need to use this number to do axis label frequency calculations
+const Y_AXIS_LABEL_FONT_SIZE = 12;
+
 interface HeatMapWidgetVisualizationProps {
   /**
    * An single `HeatMap` object to render on the chart, and any number of other compatible Heat Map plottables.
@@ -94,6 +97,9 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     return typeof value === 'number' ? value : null;
   }
 
+  const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
+  const yAxisBucketCount = heatMapPlottable.heatMapSeries.meta.yAxis.bucketCount;
+
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
     // Only show the tooltip of the current chart. Otherwise, all tooltips
@@ -114,7 +120,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     let formattedXValue = ECHARTS_MISSING_DATA_VALUE;
 
     const xAxisBucketSize = heatMapPlottable.heatMapSeries.meta.xAxis.bucketSize;
-    const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
     const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
@@ -237,7 +242,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       <BaseChart
         autoHeightResize
         // will be grouped by date as we only support time as the x-axis right now.
-        // TODO(nikki): eventually this will change later and we'll pass in what kind of x-axis we have
+        // TODO(nikki): eventually this might change and we'll pass in what kind of x-axis we have
         isGroupedByDate
         showTimeInTooltip
         ref={chartRef}
@@ -275,6 +280,32 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           animation: false,
           axisLabel: {
             hideOverlap: true,
+            interval: (index, _value) => {
+              // show the first and last label
+              if (index === 0 || index === yAxisBucketCount - 1) {
+                return true;
+              }
+              // we want to make sure that there's going to be ample amount of space between each label:
+              // chart height / label size = number of labels that will fix with no space between
+              // chart height / (label size * 3) = number of labels that will fit with space between (label shown every 3 label placements)
+              // NOTE: this may change as we start putting heat widgets in dashboards with different chart heights
+              const numFittingLabels = Math.floor(
+                (chartRef.current?.ele.clientHeight ?? 0) / (Y_AXIS_LABEL_FONT_SIZE * 3)
+              );
+              const nthBucketToShow = Math.ceil(yAxisBucketCount / numFittingLabels);
+              // don't show the third last and second last labels; we want to make sure the last label
+              // isn't smushed up against another label
+              if (
+                index % nthBucketToShow === 0 &&
+                index !== yAxisBucketCount - 3 &&
+                index !== yAxisBucketCount - 2
+              ) {
+                return true;
+              }
+              return false;
+            },
+            showMinLabel: true,
+            showMaxLabel: true,
             formatter: value => {
               // NOTE: ECharts requires a `"category"` Y-axis for heat maps, but we _know_ that we only support continuous values for the Y-axis. We need to parse the value here.
               return formatYAxisValue(
