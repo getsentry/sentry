@@ -935,26 +935,30 @@ def prepare_response(
             urlparse(referer).path,
         )
         if source is not None:
-            primary = group_list[0]
-            children = group_list[1:]
+            merged = result["merge"]
+            primary_id = int(merged["parent"])
+            child_ids = [int(c) for c in merged["children"]]
+            group_by_id = {g.id: g for g in group_list}
+            primary = group_by_id[primary_id]
             publish_action(
                 action=ActionType.MERGE_FROM_OTHER,
                 source=source,
-                group_id=primary.id,
+                group_id=primary_id,
                 organization_id=primary.project.organization_id,
                 project_id=primary.project_id,
                 actor_id=actor_id,
-                metadata={"counterpart_group_ids": [g.id for g in children]},
+                metadata={"counterpart_group_ids": child_ids},
             )
-            for child in children:
+            for child_id in child_ids:
+                child = group_by_id[child_id]
                 publish_action(
                     action=ActionType.MERGE_INTO_OTHER,
                     source=source,
-                    group_id=child.id,
+                    group_id=child_id,
                     organization_id=child.project.organization_id,
                     project_id=child.project_id,
                     actor_id=actor_id,
-                    metadata={"counterpart_group_id": primary.id},
+                    metadata={"counterpart_group_id": primary_id},
                 )
 
     inbox = result.get("inbox", None)
