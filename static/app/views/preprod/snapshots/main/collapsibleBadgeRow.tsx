@@ -10,10 +10,9 @@ const ONE_ROW_HEIGHT = 20;
 
 export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
   const [expanded, setExpanded] = useState(false);
-  const [hiddenKeys, setHiddenKeys] = useState(new Set<string>());
+  const [overflowCount, setOverflowCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const badgeRefs = useRef(new Map<string, HTMLElement>());
-  const toggleButtonRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -21,37 +20,37 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
       return;
     }
 
-    const calculateHidden = () => {
-      const buttonWidth = toggleButtonRef.current?.offsetWidth ?? 0;
+    const calculate = () => {
+      const buttonEl = toggleRef.current;
+      const buttonWidth = buttonEl?.offsetWidth ?? 0;
       const containerWidth = container.offsetWidth;
 
-      const nextHidden = new Set<string>();
-      badgeRefs.current.forEach((el, key) => {
-        if (el.offsetTop >= ONE_ROW_HEIGHT) {
-          nextHidden.add(key);
-        } else if (
-          buttonWidth > 0 &&
-          el.offsetLeft + el.offsetWidth > containerWidth - buttonWidth
-        ) {
-          nextHidden.add(key);
+      let count = 0;
+      for (const child of container.children) {
+        if (child === buttonEl) {
+          continue;
         }
-      });
-      setHiddenKeys(prev =>
-        prev.size === nextHidden.size && [...prev].every(k => nextHidden.has(k))
-          ? prev
-          : nextHidden
-      );
+        const el = child as HTMLElement;
+        if (
+          el.offsetTop >= ONE_ROW_HEIGHT ||
+          (buttonWidth > 0 &&
+            el.offsetLeft + el.offsetWidth > containerWidth - buttonWidth)
+        ) {
+          count++;
+        }
+      }
+      setOverflowCount(prev => (prev === count ? prev : count));
     };
 
-    const rafId = requestAnimationFrame(calculateHidden);
-    const observer = new ResizeObserver(() => requestAnimationFrame(calculateHidden));
+    const rafId = requestAnimationFrame(calculate);
+    const observer = new ResizeObserver(() => requestAnimationFrame(calculate));
     observer.observe(container);
 
     return () => {
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [tags, expanded, hiddenKeys.size]);
+  }, [tags, expanded, overflowCount]);
 
   const entries = Object.entries(tags);
 
@@ -66,26 +65,13 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
       maxHeight={expanded ? undefined : `${ONE_ROW_HEIGHT}px`}
     >
       {entries.map(([key, value]) => (
-        <Badge
-          key={key}
-          ref={(el: HTMLElement | null) => {
-            if (el) {
-              badgeRefs.current.set(key, el);
-            } else {
-              badgeRefs.current.delete(key);
-            }
-          }}
-          variant="muted"
-          style={
-            !expanded && hiddenKeys.has(key) ? {visibility: 'hidden' as const} : undefined
-          }
-        >
+        <Badge key={key} variant="muted">
           {key}={value}
         </Badge>
       ))}
-      {hiddenKeys.size > 0 && !expanded && (
+      {overflowCount > 0 && !expanded && (
         <Flex
-          ref={toggleButtonRef}
+          ref={toggleRef}
           align="center"
           position="absolute"
           right="0"
@@ -102,7 +88,7 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
               setExpanded(true);
             }}
           >
-            {t('+%s more tags', hiddenKeys.size)}
+            {t('+%s more tags', overflowCount)}
           </Button>
         </Flex>
       )}
