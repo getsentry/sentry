@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
@@ -10,7 +10,16 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import {computeMaskSize} from 'sentry/views/preprod/snapshots/main/computeMaskSize';
 import {DiffOverlay} from 'sentry/views/preprod/snapshots/main/diffOverlay';
-import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  getSnapshotWipeFrameStyle,
+  SnapshotWipeFrame,
+  SnapshotWipeImage,
+  SnapshotWipeShell,
+} from 'sentry/views/preprod/snapshots/main/snapshotWipeFrame';
+import type {
+  SnapshotDiffPair,
+  SnapshotImage,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useBufferedImageGroup} from './useBufferedImageUrl';
 import {useSyncedD3Zoom} from './useD3Zoom';
@@ -68,7 +77,9 @@ export function DiffImageDisplay({
 
       <HiddenWhenInactive active={diffMode === 'wipe'}>
         <WipeView
+          baseImage={pair.base_image}
           baseImageUrl={baseImageUrl}
+          headImage={pair.head_image}
           headImageUrl={headImageUrl}
           headLabel={headLabel}
         />
@@ -191,11 +202,15 @@ const splitZoomContainerStyle: React.CSSProperties = {
 };
 
 function WipeView({
+  baseImage,
   baseImageUrl,
+  headImage,
   headImageUrl,
   headLabel,
 }: {
+  baseImage: SnapshotImage;
   baseImageUrl: string;
+  headImage: SnapshotImage;
   headImageUrl: string;
   headLabel: string;
 }) {
@@ -203,32 +218,41 @@ function WipeView({
     baseImageUrl,
     headImageUrl,
   ]);
+  const visualContainerRef = useRef<HTMLDivElement>(null);
+
   return (
-    <Flex flex="1" minHeight="0">
+    <Flex flex="1" minHeight="0" justify="center" align="center">
       {displayBaseUrl && displayHeadUrl && (
-        <ContentSliderDiff.Body
-          before={
-            <Flex justify="center" align="center" height="100%">
-              <ConstrainedImage
-                src={displayBaseUrl}
-                alt={t('Base')}
-                loading="eager"
-                decoding="async"
-              />
-            </Flex>
-          }
-          after={
-            <Flex justify="center" align="center" height="100%">
-              <ConstrainedImage
-                src={displayHeadUrl}
-                alt={headLabel}
-                loading="eager"
-                decoding="async"
-              />
-            </Flex>
-          }
-          minHeight="200px"
-        />
+        <SnapshotWipeShell ref={visualContainerRef}>
+          <SnapshotWipeFrame
+            style={getSnapshotWipeFrameStyle({
+              baseImage,
+              headImage,
+              maxHeight: '65vh',
+            })}
+          >
+            <ContentSliderDiff.Body
+              before={
+                <SnapshotWipeImage
+                  src={displayBaseUrl}
+                  alt={t('Base')}
+                  loading="eager"
+                  decoding="async"
+                />
+              }
+              after={
+                <SnapshotWipeImage
+                  src={displayHeadUrl}
+                  alt={headLabel}
+                  loading="eager"
+                  decoding="async"
+                />
+              }
+              showBorders={false}
+              visualContainerRef={visualContainerRef}
+            />
+          </SnapshotWipeFrame>
+        </SnapshotWipeShell>
       )}
     </Flex>
   );

@@ -1,4 +1,4 @@
-import {memo, type ReactNode, useCallback, useEffect, useState} from 'react';
+import {memo, type ReactNode, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -15,6 +15,12 @@ import {useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
 import {computeMaskSize} from './computeMaskSize';
 import {DiffOverlay} from './diffOverlay';
+import {
+  getSnapshotWipeFrameStyle,
+  SnapshotWipeFrame,
+  SnapshotWipeImage,
+  SnapshotWipeShell,
+} from './snapshotWipeFrame';
 
 export const MAX_IMAGE_HEIGHT = 480;
 
@@ -177,35 +183,45 @@ export const WipeCardBody = memo(function WipeCardBody({
   const minHeight = naturalHeight
     ? `${Math.min(Math.max(naturalHeight, WIPE_MIN_HEIGHT), MAX_IMAGE_HEIGHT)}px`
     : `${WIPE_MIN_HEIGHT}px`;
+  const visualContainerRef = useRef<HTMLDivElement>(null);
+
   return (
-    <Flex>
-      <ContentSliderDiff.Body
-        before={
-          <Flex justify="center" align="center" width="100%" height="100%">
-            <WipeImg
-              src={baseUrl}
-              alt={`${getImageName(baseImage)} (base)`}
-              loading="lazy"
-              decoding="async"
-              width={baseImage.width || undefined}
-              height={baseImage.height || undefined}
-            />
-          </Flex>
-        }
-        after={
-          <Flex justify="center" align="center" width="100%" height="100%">
-            <WipeImg
-              src={headUrl}
-              alt={`${getImageName(headImage)} (head)`}
-              loading="lazy"
-              decoding="async"
-              width={headImage.width || undefined}
-              height={headImage.height || undefined}
-            />
-          </Flex>
-        }
-        minHeight={minHeight}
-      />
+    <Flex justify="center">
+      <SnapshotWipeShell ref={visualContainerRef} $minHeight={minHeight}>
+        <SnapshotWipeFrame
+          style={getSnapshotWipeFrameStyle({
+            baseImage,
+            headImage,
+            maxHeight: `${MAX_IMAGE_HEIGHT}px`,
+          })}
+        >
+          <ContentSliderDiff.Body
+            before={
+              <SnapshotWipeImage
+                src={baseUrl}
+                alt={`${getImageName(baseImage)} (base)`}
+                loading="lazy"
+                decoding="async"
+                width={baseImage.width || undefined}
+                height={baseImage.height || undefined}
+              />
+            }
+            after={
+              <SnapshotWipeImage
+                src={headUrl}
+                alt={`${getImageName(headImage)} (head)`}
+                loading="lazy"
+                decoding="async"
+                width={headImage.width || undefined}
+                height={headImage.height || undefined}
+              />
+            }
+            minHeight={minHeight}
+            showBorders={false}
+            visualContainerRef={visualContainerRef}
+          />
+        </SnapshotWipeFrame>
+      </SnapshotWipeShell>
     </Flex>
   );
 });
@@ -300,8 +316,7 @@ function LazyImage({
     setLoaded(false);
   }, [src]);
 
-  const onLoad = useCallback(() => setLoaded(true), []);
-  const onError = useCallback(() => setLoaded(true), []);
+  const markLoaded = useCallback(() => setLoaded(true), []);
   const refCallback = useCallback((el: HTMLImageElement | null) => {
     if (el?.complete && el.naturalWidth > 0) {
       setLoaded(true);
@@ -327,8 +342,8 @@ function LazyImage({
         alt={alt}
         width={width || undefined}
         height={height || undefined}
-        onLoad={onLoad}
-        onError={onError}
+        onLoad={markLoaded}
+        onError={markLoaded}
         style={loaded ? undefined : {position: 'absolute', top: 0, left: 0, opacity: 0}}
       />
       {loaded && children}
@@ -374,14 +389,6 @@ const ImageSizer = styled('div')<{$aspectRatio?: string; $naturalWidth?: number}
 const ZoomTransformLayer = styled('div')`
   transform-origin: 0 0;
   will-change: transform;
-`;
-
-const WipeImg = styled('img')`
-  display: block;
-  max-width: 100%;
-  max-height: ${MAX_IMAGE_HEIGHT}px;
-  height: auto;
-  object-fit: contain;
 `;
 
 const OnionImg = styled('img')`

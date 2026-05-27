@@ -1,4 +1,4 @@
-import {useRef, type CSSProperties} from 'react';
+import {useCallback, useLayoutEffect, useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -23,6 +23,8 @@ interface Props {
    * Useful when we want to track analytics.
    */
   onDragHandleMouseDown?: (e: React.MouseEvent) => void;
+  showBorders?: boolean;
+  visualContainerRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -31,8 +33,16 @@ interface Props {
  * The before and after contents are not directly defined here and have to be provided, so it can be very flexible
  * (e.g. images, replays, etc).
  */
-function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) {
+function Body({
+  onDragHandleMouseDown,
+  after,
+  before,
+  minHeight = '0px',
+  showBorders = true,
+  visualContainerRef,
+}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
+  const dividerProgressRef = useRef(DEFAULT_DIVIDER_PROGRESS);
   const viewDimensions = useDimensions({elementRef: positionedRef});
 
   return (
@@ -47,7 +57,10 @@ function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) 
         {viewDimensions.width ? (
           <Sides
             viewDimensions={viewDimensions}
+            dividerProgressRef={dividerProgressRef}
             onDragHandleMouseDown={onDragHandleMouseDown}
+            showBorders={showBorders}
+            visualContainerRef={visualContainerRef}
             before={before}
             after={after}
           />
@@ -60,36 +73,79 @@ function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) 
 }
 
 const BORDER_WIDTH = 3;
+const DEFAULT_DIVIDER_PROGRESS = 0.5;
 
-interface SideProps extends Pick<Props, 'onDragHandleMouseDown' | 'before' | 'after'> {
+function getMaxDividerSize(containerWidth: number) {
+  return Math.max(BORDER_WIDTH, containerWidth - BORDER_WIDTH);
+}
+
+function getDividerProgress(size: number, containerWidth: number) {
+  if (containerWidth === 0) {
+    return DEFAULT_DIVIDER_PROGRESS;
+  }
+
+  return Math.max(0, Math.min(1, size / containerWidth));
+}
+
+function getDividerPosition(progress: number, containerWidth: number) {
+  return progress * containerWidth;
+}
+
+function setDividerCSSVars(el: HTMLElement | null, progress: number, positionPx: number) {
+  el?.style.setProperty('--divider-progress', String(progress));
+  el?.style.setProperty('--divider-position', `${positionPx}px`);
+}
+
+interface SideProps extends Pick<
+  Props,
+  'onDragHandleMouseDown' | 'before' | 'after' | 'showBorders' | 'visualContainerRef'
+> {
+  dividerProgressRef: React.MutableRefObject<number>;
   viewDimensions: ReturnType<typeof useDimensions>;
 }
 
-function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps) {
-  const beforeElemRef = useRef<HTMLDivElement>(null);
+function Sides({
+  onDragHandleMouseDown,
+  viewDimensions,
+  dividerProgressRef,
+  showBorders = true,
+  visualContainerRef,
+  before,
+  after,
+}: SideProps) {
   const dividerElem = useRef<HTMLDivElement>(null);
+  const emptyVisualContainerRef = useRef<HTMLElement>(null);
+  const visualContainerDimensions = useDimensions({
+    elementRef: visualContainerRef ?? emptyVisualContainerRef,
+  });
   const width = `${viewDimensions.width}px`;
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const initialDividerPosition = getDividerPosition(
+    dividerProgressRef.current,
+    viewDimensions.width
+  );
+  const dividerSizeStyle = {
+    '--divider-position': `${initialDividerPosition}px`,
+    '--divider-progress': dividerProgressRef.current,
+  } as CSSProperties;
 
-  const {onMouseDown, onDoubleClick, setSize} = useResizableDrawer({
-    direction: 'left',
-    initialSize: viewDimensions.width / 2,
-    min: 0,
-    onResize: newSize => {
-      const maxWidth = viewDimensions.width - BORDER_WIDTH;
-      const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize));
+  const applyDividerPosition = useCallback(
+    (position: number) => {
+      const maxWidth = getMaxDividerSize(viewDimensions.width);
+      const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, position));
+      const progress = dividerProgressRef.current;
 
-      if (beforeElemRef.current) {
-        beforeElemRef.current.style.width =
-          viewDimensions.width === 0
-            ? '100%'
-            : `${Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))}px`;
+      setDividerCSSVars(containerRef.current, progress, clampedSize);
+
+      if (visualContainerRef?.current && containerRef.current) {
+        const visualRect = visualContainerRef.current.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const visualPosition = containerRect.left - visualRect.left + clampedSize;
+        setDividerCSSVars(visualContainerRef.current, progress, visualPosition);
       }
-      if (dividerElem.current) {
-        const adjustedLeft = `${clampedSize - 6}px`;
-        dividerElem.current.style.left = adjustedLeft;
 
+      if (dividerElem.current) {
         dividerElem.current.setAttribute(
           'data-at-min-width',
           String(clampedSize === maxWidth)
@@ -100,7 +156,37 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
         );
       }
     },
+    [dividerProgressRef, viewDimensions.width, visualContainerRef]
+  );
+
+  const {onMouseDown, onDoubleClick, setSize} = useResizableDrawer({
+    direction: 'left',
+    initialSize: viewDimensions.width / 2,
+    min: 0,
+    onResize: (newSize, _oldSize, userEvent) => {
+      if (userEvent && viewDimensions.width > BORDER_WIDTH) {
+        dividerProgressRef.current = getDividerProgress(newSize, viewDimensions.width);
+      }
+
+      applyDividerPosition(
+        getDividerPosition(dividerProgressRef.current, viewDimensions.width)
+      );
+    },
   });
+
+  const syncDividerPosition = useCallback(() => {
+    applyDividerPosition(
+      getDividerPosition(dividerProgressRef.current, viewDimensions.width)
+    );
+  }, [applyDividerPosition, dividerProgressRef, viewDimensions.width]);
+
+  useLayoutEffect(() => {
+    syncDividerPosition();
+  }, [
+    syncDividerPosition,
+    visualContainerDimensions.height,
+    visualContainerDimensions.width,
+  ]);
 
   const handleContainerMouseDown = (event: React.MouseEvent<HTMLElement>) => {
     if (event.button !== 0 || !containerRef.current) {
@@ -114,13 +200,17 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
   };
 
   return (
-    <SidesContainer ref={containerRef} onMouseDown={handleContainerMouseDown}>
-      <Cover style={{width}} data-test-id="after-content">
+    <SidesContainer
+      ref={containerRef}
+      onMouseDown={handleContainerMouseDown}
+      style={dividerSizeStyle}
+    >
+      <Cover style={{width}} data-test-id="after-content" $showBorders={showBorders}>
         <Placement style={{width}}>
           <FullHeightContainer>{after}</FullHeightContainer>
         </Placement>
       </Cover>
-      <Cover ref={beforeElemRef} data-test-id="before-content">
+      <Cover data-test-id="before-content" $showBorders={showBorders}>
         <Placement style={{width}}>
           <FullHeightContainer>{before}</FullHeightContainer>
         </Placement>
@@ -191,7 +281,10 @@ const DragIndicator = styled('div')`
 const DragHandle = styled('div')`
   position: absolute;
   top: 0;
-  left: 0;
+  left: calc(
+    clamp(${BORDER_WIDTH}px, var(--divider-position), calc(100% - ${BORDER_WIDTH}px)) -
+      6px
+  );
   width: 12px;
   height: 100%;
   cursor: ew-resize;
@@ -239,7 +332,7 @@ const DragHandle = styled('div')`
   }
 `;
 
-const Cover = styled('div')`
+const Cover = styled('div')<{$showBorders: boolean}>`
   border: ${BORDER_WIDTH}px solid;
   border-radius: ${p => p.theme.space.xs};
   height: 100%;
@@ -248,11 +341,18 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.tokens.border.success.moderate};
+  border-color: ${p =>
+    p.$showBorders ? p.theme.tokens.border.success.moderate : 'transparent'};
   & + & {
+    width: clamp(
+      ${BORDER_WIDTH}px,
+      var(--divider-position),
+      calc(100% - ${BORDER_WIDTH}px)
+    );
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${p => p.theme.space.xs} 0 0 ${p => p.theme.space.xs};
-    border-color: ${p => p.theme.tokens.border.danger.moderate};
+    border-color: ${p =>
+      p.$showBorders ? p.theme.tokens.border.danger.moderate : 'transparent'};
     border-right-width: 0;
   }
 `;
