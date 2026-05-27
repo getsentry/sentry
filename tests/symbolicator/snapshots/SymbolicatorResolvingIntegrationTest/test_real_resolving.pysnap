@@ -1,12 +1,7 @@
 ---
-source: "tests/symbolicator/test_payload_full.py::test_real_resolving"
+source: tests/symbolicator/test_payload_full.py
 ---
-contexts:
-  trace:
-    span_id: 79864c52173344d4
-    status: unknown
-    trace_id: 79864c52173344d4840544cf73a450eb
-    type: trace
+contexts: null
 debug_meta:
   images:
   - arch: x86_64

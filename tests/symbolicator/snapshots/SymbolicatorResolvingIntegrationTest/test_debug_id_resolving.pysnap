@@ -1,5 +1,5 @@
 ---
-source: "tests/symbolicator/test_payload_full.py::test_debug_id_resolving"
+source: tests/symbolicator/test_payload_full.py
 ---
 contexts:
   device:
@@ -11,11 +11,6 @@ contexts:
     os: Windows 10.0.14393
     type: os
     version: 10.0.14393
-  trace:
-    span_id: 474933e6cfdb48bc
-    status: unknown
-    trace_id: 474933e6cfdb48bcb6ce2550dccb9db1
-    type: trace
 debug_meta:
   images:
   - arch: x86
