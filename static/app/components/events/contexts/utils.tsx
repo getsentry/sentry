@@ -13,6 +13,7 @@ import {
   type ContextIconProps,
 } from 'sentry/components/events/contexts/contextIcon';
 import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
+import {getARTContextData} from 'sentry/components/events/contexts/knownContext/art';
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
 import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
@@ -246,6 +247,8 @@ export function getContextTitle({
   switch (contextType) {
     case 'app':
       return t('App');
+    case 'art':
+      return t('Android Runtime');
     case 'device':
       return t('Device');
     case 'browser':
@@ -390,6 +393,8 @@ export function getFormattedContextData({
   switch (contextType) {
     case 'app':
       return getAppContextData({data: contextValue, event, meta});
+    case 'art':
+      return getARTContextData({data: contextValue, meta});
     case 'device':
       return getDeviceContextData({data: contextValue, event, meta});
     case 'memory_info': // Current
