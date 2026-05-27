@@ -73,7 +73,7 @@ describe('SingleImageDisplay', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

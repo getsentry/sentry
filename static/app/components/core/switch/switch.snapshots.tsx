@@ -18,7 +18,7 @@ describe('Switch', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({tags: {theme: themeName, size: String(size), area: 'core'}})
+      size => ({tags: {size: String(size), area: 'core'}})
     );
 
     it.snapshot.each<SwitchProps['size']>(['sm', 'lg'])(
@@ -30,9 +30,7 @@ describe('Switch', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({
-        tags: {theme: themeName, size: String(size), checked: 'true', area: 'core'},
-      })
+      size => ({tags: {size: String(size), checked: 'true', area: 'core'}})
     );
 
     it.snapshot(
@@ -44,7 +42,7 @@ describe('Switch', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+      {tags: {disabled: 'true', area: 'core'}}
     );
 
     it.snapshot(
@@ -56,7 +54,7 @@ describe('Switch', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', checked: 'true', area: 'core'}}
+      {tags: {disabled: 'true', checked: 'true', area: 'core'}}
     );
   });
 });

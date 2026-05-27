@@ -193,7 +193,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -203,7 +203,7 @@ describe('SnapshotCards', () => {
           <CardHeader {...headerProps} displayName={null} status={DiffStatus.CHANGED} />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     function snapshotCardHeaderStatus({
@@ -227,7 +227,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {tags: {theme: themeName, area: 'snapshots'}}
+        {tags: {area: 'snapshots'}}
       );
     }
 
@@ -259,7 +259,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     function snapshotPairCard({
@@ -292,7 +292,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {tags: {theme: themeName, area: 'snapshots'}}
+        {tags: {area: 'snapshots'}}
       );
     }
 
@@ -337,7 +337,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -356,7 +356,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -376,7 +376,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -395,7 +395,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

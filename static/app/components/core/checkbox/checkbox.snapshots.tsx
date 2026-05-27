@@ -18,7 +18,7 @@ describe('Checkbox', () => {
           </div>
         </ThemeProvider>
       ),
-      checked => ({tags: {theme: themeName, checked: String(checked), area: 'core'}})
+      checked => ({tags: {checked: String(checked), area: 'core'}})
     );
 
     it.snapshot.each<CheckboxProps['size']>(['xs', 'sm', 'md'])(
@@ -30,7 +30,7 @@ describe('Checkbox', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({tags: {theme: themeName, size: String(size), area: 'core'}})
+      size => ({tags: {size: String(size), area: 'core'}})
     );
 
     it.snapshot(
@@ -42,7 +42,7 @@ describe('Checkbox', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+      {tags: {disabled: 'true', area: 'core'}}
     );
 
     it.snapshot(
@@ -54,7 +54,7 @@ describe('Checkbox', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', checked: 'true', area: 'core'}}
+      {tags: {disabled: 'true', checked: 'true', area: 'core'}}
     );
   });
 });

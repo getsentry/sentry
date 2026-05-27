@@ -9,8 +9,12 @@ export interface SnapshotImageMetadata {
   // Skip height, width and image_file_name as they're handled by the CLI
 }
 
+export type SnapshotArea = 'core' | 'snapshots';
+
+export type SnapshotTags = {area: SnapshotArea} & Record<string, string>;
+
 export interface SnapshotTestMetadata {
   display_name?: string;
   group?: string;
-  tags?: Record<string, string>;
+  tags?: SnapshotTags;
 }

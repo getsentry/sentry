@@ -18,7 +18,7 @@ describe('Radio', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({tags: {theme: themeName, size, area: 'core'}})
+      size => ({tags: {size, area: 'core'}})
     );
 
     it.snapshot.each<'sm' | 'md'>(['sm', 'md'])(
@@ -30,7 +30,7 @@ describe('Radio', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({tags: {theme: themeName, size, checked: 'true', area: 'core'}})
+      size => ({tags: {size, checked: 'true', area: 'core'}})
     );
 
     it.snapshot(
@@ -42,7 +42,7 @@ describe('Radio', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+      {tags: {disabled: 'true', area: 'core'}}
     );
 
     it.snapshot(
@@ -54,7 +54,7 @@ describe('Radio', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', checked: 'true', area: 'core'}}
+      {tags: {disabled: 'true', checked: 'true', area: 'core'}}
     );
   });
 });

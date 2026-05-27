@@ -7,6 +7,7 @@ interface SnapshotDetails {
   displayName: string;
   fileSlug: string;
   group: string | null;
+  theme: string | undefined;
 }
 
 /**
@@ -27,14 +28,17 @@ function parseSnapshotDetails(testName: string, fallbackName: string): SnapshotD
       displayName: fallbackName,
       fileSlug: fallbackName.toLowerCase(),
       group: null,
+      theme: undefined,
     };
   }
 
-  const group = parts[0]!.trim().replace(/\s+/g, '/');
+  const ancestry = parts[0]!.trim();
+  const group = ancestry.replace(/\s+/g, '/');
   const displayName = parts[1]!.trim();
   const fileSlug = `${group}/${displayName}`.replace(/\s+/g, '').toLowerCase();
+  const themeMatch = ancestry.match(/\b(light|dark)\b/);
 
-  return {displayName, fileSlug, group};
+  return {displayName, fileSlug, group, theme: themeMatch?.[1]};
 }
 
 function snapshotTest(
@@ -48,17 +52,15 @@ function snapshotTest(
       throw new Error('Could not determine test file path');
     }
 
-    const {displayName, fileSlug, group} = parseSnapshotDetails(
-      currentTestName ?? '',
-      name
-    );
+    const details = parseSnapshotDetails(currentTestName ?? '', name);
 
     await takeSnapshot({
-      fileSlug,
-      displayName,
+      fileSlug: details.fileSlug,
+      displayName: details.displayName,
       renderFn,
       testFilePath: testPath,
-      group,
+      group: details.group,
+      theme: details.theme,
       metadata,
     });
   });

@@ -73,7 +73,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -92,7 +92,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -110,7 +110,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -128,7 +128,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {tags: {theme: themeName, area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

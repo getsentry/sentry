@@ -107,6 +107,7 @@ interface TakeSnapshotOptions {
   metadata: SnapshotTestMetadata;
   renderFn: () => ReactElement;
   testFilePath: string;
+  theme: string | undefined;
 }
 
 export async function takeSnapshot({
@@ -115,6 +116,7 @@ export async function takeSnapshot({
   renderFn,
   testFilePath,
   group,
+  theme,
   metadata,
 }: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
@@ -145,10 +147,16 @@ export async function takeSnapshot({
       mkdirSync(outputDir, {recursive: true});
     }
 
+    const autoTags: Record<string, string> = {};
+    if (theme) {
+      autoTags.theme = theme;
+    }
+    const tags = {...autoTags, ...metadata.tags};
+
     const meta: SnapshotImageMetadata = {
-      display_name: displayName,
-      group,
-      ...metadata,
+      display_name: metadata.display_name ?? displayName,
+      group: metadata.group ?? group,
+      tags: Object.keys(tags).length > 0 ? tags : undefined,
       context: {test_file_path: relativePath},
     };
 

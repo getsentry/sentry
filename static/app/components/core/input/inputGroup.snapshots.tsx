@@ -22,7 +22,7 @@ describe('InputGroup', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({tags: {theme: themeName, size: String(size), area: 'core'}})
+      size => ({tags: {size: String(size), area: 'core'}})
     );
 
     it.snapshot(
@@ -36,7 +36,7 @@ describe('InputGroup', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+      {tags: {disabled: 'true', area: 'core'}}
     );
 
     it.snapshot(
@@ -53,7 +53,7 @@ describe('InputGroup', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, area: 'core'}}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -70,7 +70,7 @@ describe('InputGroup', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {theme: themeName, disabled: 'true', area: 'core'}}
+      {tags: {disabled: 'true', area: 'core'}}
     );
   });
 });
