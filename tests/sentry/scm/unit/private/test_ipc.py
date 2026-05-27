@@ -254,7 +254,7 @@ def test_run_check_suite_listener() -> None:
     assert event.check_suite["status"] == "completed"
     assert event.check_suite["conclusion"] == "success"
     assert event.check_suite["pull_request_ids"] == ["10", "20"]
-    assert event.check_suite["html_url"] == ["https://example.com"]
+    assert event.check_suite["html_url"] == "https://example.com"
 
 
 def test_run_pull_request_review_listener() -> None:
