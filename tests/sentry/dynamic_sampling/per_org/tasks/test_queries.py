@@ -373,6 +373,19 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                     project=project,
                     start_ts=timestamp + timedelta(seconds=5),
                 ),
+                # missing dsc.transaction — excluded by the has:sentry.dsc.transaction filter
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "no-dsc-transaction",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=6),
+                ),
                 # other org — excluded by org scope on SnubaParams
                 self.create_span(
                     {

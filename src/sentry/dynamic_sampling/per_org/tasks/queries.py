@@ -213,7 +213,7 @@ def get_eap_transaction_volumes(
             projects=config.projects,
             organization=config.organization,
         ),
-        query_string=f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}]",
+        query_string=f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
         selected_columns=[
             DynamicSamplingQueryFields.DSC_PROJECT_ID,
             DynamicSamplingQueryFields.DSC_TRANSACTION,
@@ -231,9 +231,7 @@ def get_eap_transaction_volumes(
     )
 
     for row in result.get("data", []):
-        if (transaction := row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)) is None:
-            continue
-
+        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue
