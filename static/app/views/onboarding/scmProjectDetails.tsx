@@ -7,13 +7,17 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconGroup, IconProject, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Repository} from 'sentry/types/integrations';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -31,16 +35,30 @@ import {ScmAlertFrequency} from './components/scmAlertFrequency';
 import {ScmStepHeader} from './components/scmStepHeader';
 import type {StepProps} from './types';
 
-export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
+interface ScmProjectDetailsProps {
+  createdProjectSlug: string | undefined;
+  onComplete: StepProps['onComplete'];
+  onProjectCreated: (slug: string | undefined) => void;
+  onProjectDetailsFormChange: (form: ProjectDetailsFormState | undefined) => void;
+  projectDetailsForm: ProjectDetailsFormState | undefined;
+  selectedFeatures: ProductSolution[] | undefined;
+  selectedPlatform: OnboardingSelectedSDK | undefined;
+  selectedRepository: Repository | undefined;
+  genBackButton?: StepProps['genBackButton'];
+}
+
+export function ScmProjectDetails({
+  createdProjectSlug,
+  onComplete,
+  onProjectCreated,
+  onProjectDetailsFormChange,
+  projectDetailsForm,
+  selectedFeatures,
+  selectedPlatform,
+  selectedRepository,
+  genBackButton,
+}: ScmProjectDetailsProps) {
   const organization = useOrganization();
-  const {
-    selectedPlatform,
-    selectedFeatures,
-    createdProjectSlug,
-    setCreatedProjectSlug,
-    projectDetailsForm,
-    setProjectDetailsForm,
-  } = useOnboardingContext();
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
@@ -158,8 +176,21 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
       // Store the project slug separately so onboarding.tsx can find
       // the project via useRecentCreatedProject without corrupting
       // selectedPlatform.key (which the platform features step needs).
-      setCreatedProjectSlug(project.slug);
-      setProjectDetailsForm({
+      onProjectCreated(project.slug);
+
+      if (selectedRepository?.id) {
+        try {
+          await fetchMutation({
+            url: `/projects/${organization.slug}/${project.slug}/repo/`,
+            method: 'POST',
+            data: {repositoryId: selectedRepository.id},
+          });
+        } catch (error) {
+          Sentry.captureException(error);
+        }
+      }
+
+      onProjectDetailsFormChange({
         projectName: projectNameResolved,
         teamSlug: teamSlugResolved,
         alertRuleConfig,

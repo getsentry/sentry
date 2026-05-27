@@ -61,7 +61,7 @@ repos:
         types: [python]
       - id: sort-mypy-weaklist
         name: sort mypy weaklist
-        entry: python3 -m tools.mypy_helpers.sort_stronger_modules
+        entry: python3 -m tools.mypy_helpers.sort_weaklist
         files: ^pyproject\.toml$
         language: python
       - id: check-mypy-weaklist

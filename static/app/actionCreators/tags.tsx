@@ -5,7 +5,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {AlertStore} from 'sentry/stores/alertStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
@@ -17,16 +16,17 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {AddAlert} from 'sentry/views/app/globalAlerts';
 
 const MAX_TAGS = 1000;
 
-function tagFetchSuccess(tags: Tag[] | undefined) {
+function tagFetchSuccess(tags: Tag[] | undefined, addAlert: AddAlert) {
   // We occasionally get undefined passed in when APIs are having a bad time.
   tags = tags || [];
   const trimmedTags = tags.slice(0, MAX_TAGS);
 
   if (tags.length > MAX_TAGS) {
-    AlertStore.addAlert({
+    addAlert({
       message: t('You have too many unique tags and some have been truncated'),
       variant: 'warning',
     });
@@ -40,7 +40,8 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
 export function loadOrganizationTags(
   api: Client,
   orgSlug: string,
-  selection: PageFilters
+  selection: PageFilters,
+  addAlert: AddAlert
 ): Promise<void> {
   TagStore.reset();
 
@@ -58,7 +59,7 @@ export function loadOrganizationTags(
       method: 'GET',
       query,
     })
-    .then(tagFetchSuccess)
+    .then(tags => tagFetchSuccess(tags, addAlert))
     .catch(() => {
       addErrorMessage(t('Unable to load tags'));
     });
@@ -70,7 +71,8 @@ export function loadOrganizationTags(
 export function fetchOrganizationTags(
   api: Client,
   orgId: string,
-  projectIds: string[] | null = null
+  projectIds: string[] | null,
+  addAlert: AddAlert
 ) {
   TagStore.reset();
 
@@ -85,7 +87,7 @@ export function fetchOrganizationTags(
     query,
   });
 
-  promise.then(tagFetchSuccess);
+  promise.then(tags => tagFetchSuccess(tags, addAlert));
 
   return promise;
 }

@@ -50,11 +50,7 @@ function PagerDutyInstallStep({
           </Text>
         )}
       </Stack>
-      {isAdvancing ? (
-        <Button size="sm" disabled>
-          {t('Installing...')}
-        </Button>
-      ) : popupStatus === 'popup-open' ? (
+      {popupStatus === 'popup-open' && !isAdvancing ? (
         <Button size="sm" onClick={openPopup}>
           {t('Reopen installation window')}
         </Button>
@@ -63,6 +59,7 @@ function PagerDutyInstallStep({
           size="sm"
           variant="primary"
           onClick={openPopup}
+          busy={isAdvancing}
           disabled={!stepData?.installUrl}
         >
           {t('Install PagerDuty App')}

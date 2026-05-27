@@ -303,7 +303,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/avatar/": {"GET", "PUT"},
     "/api/0/organizations/{organization_id_or_slug}/artifactbundle/assemble/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/config/integrations/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/config/repos/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/sdk-updates/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/sdks/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/events/{project_id_or_slug}:{event_id}/": {

@@ -246,7 +246,7 @@ def resolve_fingerprint_variable(
         exception_type = get_path(event.data, "exception", "values", -1, "type")
         return exception_type or "<no-type>"
 
-    elif variable_key in ("value", "error.value"):
+    elif variable_key in ("value", "raw_value", "error.value", "error.raw_value"):
         value = get_path(event.data, "exception", "values", -1, "value")
         return value or "<no-value>"
 
@@ -337,7 +337,10 @@ def resolve_fingerprint_values(
         if resolved_value is None:  # variable wasn't recognized
             return entry
 
-        if variable_key == "message" and resolved_value != "<no-message>":
+        if variable_key in ("message", "value", "error.value") and resolved_value not in (
+            "<no-message>",
+            "<no-value>",
+        ):
             return normalize_message_for_grouping(
                 resolved_value, context, reason="fingerprint_variable", trim_message=False
             )

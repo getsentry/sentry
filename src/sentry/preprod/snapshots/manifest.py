@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Literal
+from collections.abc import Set
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class ImageMetadata(BaseModel):
@@ -13,10 +14,42 @@ class ImageMetadata(BaseModel):
     height: int = Field(ge=0)
     diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
     description: str | None = None
-    tags: list[str] | None = None
+    tags: dict[str, str] | None = None
+
+    @validator("tags", pre=True)
+    def coerce_tags(cls, v: object) -> dict[str, str] | None:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return {str(k): str(v_) for k, v_ in v.items()}
+        if isinstance(v, list):
+            return {str(tag): str(tag) for tag in v}
+        return None
 
     class Config:
         extra = "allow"
+
+        @staticmethod
+        def schema_extra(schema: dict[str, Any], model: type) -> None:
+            tags = schema.get("properties", {}).get("tags")
+            if tags:
+                schema["properties"]["tags"] = {
+                    "anyOf": [
+                        {"type": "object"},
+                        {"type": "array", "items": {"type": "string"}},
+                        {"type": "null"},
+                    ]
+                }
+
+
+_SCHEMA_FIELDS = frozenset(ImageMetadata.__fields__)
+
+
+def image_metadata_extras(
+    metadata: ImageMetadata, exclude: Set[str] | None = None
+) -> dict[str, Any]:
+    skip = _SCHEMA_FIELDS | exclude if exclude else _SCHEMA_FIELDS
+    return {k: v for k, v in metadata.dict().items() if k not in skip}
 
 
 class SnapshotManifest(BaseModel):

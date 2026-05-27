@@ -44,7 +44,7 @@ def get_vsts_external_id(data: Mapping[str, Any]) -> str:
 
 @cell_silo_endpoint
 class WorkItemWebhook(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

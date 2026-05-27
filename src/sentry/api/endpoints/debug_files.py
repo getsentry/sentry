@@ -27,6 +27,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -55,7 +56,6 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.utils.db import atomic_transaction
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"

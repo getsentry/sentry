@@ -11,7 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -26,7 +26,6 @@ from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
     GroupOpenPeriodSerializer,
 )
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 

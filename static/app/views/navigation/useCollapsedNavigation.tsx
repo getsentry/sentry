@@ -45,7 +45,9 @@ export function useCollapsedNavigation() {
   const navigationParentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (navigationParentRef.current) return;
+    if (navigationParentRef.current) {
+      return;
+    }
     const navigationParentEl = document.querySelector(
       'nav[aria-label="Primary Navigation"]'
     )?.parentElement;

@@ -12,7 +12,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 
 const BUFFER_WAIT_MS = 20;
 
-interface Props<AggregatableQueryKey, Data> {
+interface Props<AggregatableQueryKey, Data, ResponseData = Data> {
   /**
    * The queryKey reducer
    *
@@ -21,14 +21,14 @@ interface Props<AggregatableQueryKey, Data> {
    */
   getQueryOptions: (
     ids: readonly AggregatableQueryKey[]
-  ) => UseQueryOptions<ApiResponse<Data>, Error, Data, ApiQueryKey>;
+  ) => UseQueryOptions<ApiResponse<ResponseData>, Error, ResponseData, ApiQueryKey>;
 
   /**
    * Data reducer, to integrate new requests with the previous state
    */
   responseReducer: (
     prevState: undefined | Data,
-    result: ApiResponse<Data>,
+    result: ApiResponse<ResponseData>,
     aggregates: readonly AggregatableQueryKey[]
   ) => undefined | Data;
 
@@ -82,13 +82,13 @@ function isQueryKeyInList(queryList: unknown[]) {
  * - You will implement `responseReducer(prev: Data, result: ApiResponse<Data>)` which
  *   combines `defaultData` with the data that was fetched with the queryKey.
  */
-export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
+export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData = Data>({
   cacheKey,
   getQueryOptions,
   onError,
   responseReducer,
   bufferLimit = 50,
-}: Props<AggregatableQueryKey, Data>) {
+}: Props<AggregatableQueryKey, Data, ResponseData>) {
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
@@ -105,14 +105,14 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   const prevQueryKeys = useRef<AggregatableQueryKey[]>([]);
 
   const readCache = useCallback(
-    () =>
+    (aggregates = prevQueryKeys.current) =>
       queryClient
-        .getQueriesData<ApiResponse<Data>>({
+        .getQueriesData<ApiResponse<ResponseData>>({
           predicate: ({queryKey}) => isApiQueryKeyForUrl(queryKey),
         })
         .flatMap(([, val]) => (defined(val) ? [val] : []))
         .reduce<Data | undefined>(
-          (prevValue, val) => responseReducer(prevValue, val, prevQueryKeys.current),
+          (prevValue, val) => responseReducer(prevValue, val, aggregates),
           undefined
         ),
     [isApiQueryKeyForUrl, queryClient, responseReducer]
@@ -208,7 +208,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         .forEach(queryKey => queryClient.setQueryData(queryKey, true));
 
       if (newQueryKeys.length) {
-        setData(readCache());
+        setData(readCache(queryKeys));
         // Grab anything in the queue, including the newQueryKeys
         const existingQueuedQueries = cache.findAll({
           queryKey: ['aggregate', cacheKey, url, 'queued'],
@@ -242,5 +242,5 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
     });
   }, [cache, isApiQueryKeyForUrl, readCache]);
 
-  return useMemo(() => ({buffer, data}), [buffer, data]);
+  return useMemo(() => ({buffer, data, read: readCache}), [buffer, data, readCache]);
 }

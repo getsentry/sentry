@@ -253,8 +253,6 @@ class ProjectTest(APITestCase, TestCase):
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
         repository_project_path_config = RepositoryProjectPathConfig.objects.create(
-            repository=repository,
-            project=project,
             organization_integration_id=org_integration.id,
             organization_id=from_org.id,
             integration_id=integration.id,
@@ -275,7 +273,12 @@ class ProjectTest(APITestCase, TestCase):
         assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
         assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
 
-        assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 0
+        assert (
+            RepositoryProjectPathConfig.objects.filter(
+                project_repository__project_id=project.id
+            ).count()
+            == 0
+        )
 
         assert ProjectCodeOwners.objects.filter(project_id=project.id).count() == 0
 

@@ -6,7 +6,7 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
 import {Form} from 'sentry/components/forms/form';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
 import {CustomRepoType} from 'sentry/types/debugFiles';
@@ -33,8 +33,8 @@ type Props = {
   sourceConfig?: Record<string, any>;
 } & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal' | 'CloseButton'>;
 
-const HookedCustomSymbolSources = HookOrDefault({
-  hookName: 'component:disabled-custom-symbol-sources',
+const HookedCustomSymbolSources = OverrideOrDefault({
+  overrideName: 'component:disabled-custom-symbol-sources',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 

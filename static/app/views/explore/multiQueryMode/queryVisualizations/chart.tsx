@@ -133,7 +133,7 @@ export function MultiQueryModeChart({
     textValue: t('Add to Dashboard'),
     label: (
       <Feature
-        hookName="feature-disabled:dashboards-edit"
+        overrideName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
         renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
       >

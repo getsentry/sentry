@@ -35,7 +35,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     def get(
         self,

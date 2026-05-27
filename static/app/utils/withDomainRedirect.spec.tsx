@@ -1,18 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/utils/useRouter');
+jest.mock('sentry/utils/useRoutes');
 
 // /settings/:orgId/:projectId/(searches/:searchId/)alerts/
 const projectRoutes = [
@@ -127,20 +126,15 @@ describe('withDomainRedirect', () => {
     );
   });
 
-  it('redirect when :orgId is present in the routes', () => {
+  it('redirect when :orgId is present in the routes', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
-    const replaceFn = jest.fn();
-    jest.mocked(useRouter).mockReturnValue(
-      RouterFixture({
-        routes: projectRoutes,
-        replace: replaceFn,
-      })
-    );
+    jest.mocked(useRoutes).mockReturnValue(projectRoutes);
+
     const WrappedComponent = withDomainRedirect(MyComponent);
-    const {container} = render(<WrappedComponent />, {
+    const {router} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -151,9 +145,11 @@ describe('withDomainRedirect', () => {
       },
     });
 
-    expect(container).toBeEmptyDOMElement();
-    expect(replaceFn).toHaveBeenCalledTimes(1);
-    expect(replaceFn).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/settings/react/alerts/');
+    });
+    expect(router.location.search).toBe('?q=123');
+    expect(router.location.hash).toBe('#hash');
   });
 
   it('does not redirect when :orgId is not present in the routes', () => {
@@ -162,7 +158,7 @@ describe('withDomainRedirect', () => {
       slug: 'albertos-apples',
     });
 
-    jest.mocked(useRouter).mockReturnValue(RouterFixture({routes: []}));
+    jest.mocked(useRoutes).mockReturnValue([]);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {router} = render(<WrappedComponent />, {
@@ -180,7 +176,7 @@ describe('withDomainRedirect', () => {
     expect(initialLocation).toBe('/settings/account/notifications/reports/');
   });
 
-  it('updates path when :orgId is present in the routes and there is no subdomain', () => {
+  it('updates path when :orgId is present in the routes and there is no subdomain', async () => {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
@@ -189,16 +185,10 @@ describe('withDomainRedirect', () => {
       sentryUrl: 'https://sentry.io',
       subdomain: '',
     });
-    const replaceFn = jest.fn();
-    jest.mocked(useRouter).mockReturnValue(
-      RouterFixture({
-        routes: projectRoutes,
-        replace: replaceFn,
-      })
-    );
+    jest.mocked(useRoutes).mockReturnValue(projectRoutes);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
-    render(<WrappedComponent />, {
+    const {router} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -209,7 +199,10 @@ describe('withDomainRedirect', () => {
       },
     });
 
-    expect(replaceFn).toHaveBeenCalledTimes(1);
-    expect(replaceFn).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/settings/react/alerts/');
+    });
+    expect(router.location.search).toBe('?q=123');
+    expect(router.location.hash).toBe('#hash');
   });
 });

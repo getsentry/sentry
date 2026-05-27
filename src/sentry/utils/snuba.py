@@ -1351,7 +1351,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                                     quota_unit=policy_info["quota_unit"],
                                     storage_key=policy_info["storage_key"],
                                     quota_used=policy_info["quota_used"],
-                                    rejection_threshold=policy_info["rejection_threshold"],
+                                    # We won't have rejection_threshold for throttled_by errors
+                                    rejection_threshold=policy_info.get("rejection_threshold"),
                                 )
                         except KeyError:
                             logger.warning(

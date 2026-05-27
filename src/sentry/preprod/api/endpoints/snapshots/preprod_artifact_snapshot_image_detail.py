@@ -4,6 +4,7 @@ import logging
 
 import orjson
 from django.conf import settings
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,9 +16,14 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.api.models.public.snapshots import SnapshotImageDetailResponseDict
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotImageDetailImageInfo,
     SnapshotImageDetailResponse,
@@ -28,6 +34,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
     SnapshotManifest,
+    image_metadata_extras,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 
@@ -63,10 +70,9 @@ def _build_image_info(
     org_slug: str,
     project_slug: str,
 ) -> SnapshotImageDetailImageInfo:
-    known_fields = set(ImageMetadata.__fields__.keys()) | set(
-        SnapshotImageDetailImageInfo.__fields__.keys()
+    extra_fields = image_metadata_extras(
+        metadata, exclude=frozenset(SnapshotImageDetailImageInfo.__fields__)
     )
-    extra_fields = {k: v for k, v in metadata.dict().items() if k not in known_fields}
     return SnapshotImageDetailImageInfo(
         content_hash=metadata.content_hash,
         display_name=metadata.display_name,
@@ -107,14 +113,44 @@ def _resolve_base_image_info(
 # Intentionally uses a flat response format (nullable fields, no conditional shapes)
 # rather than matching the details endpoint's SnapshotDiffPair/SnapshotImageResponse split.
 # This endpoint is designed for LLM/MCP consumers that benefit from a single uniform shape.
+@extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
 class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationReleasePermission,)
 
+    @extend_schema(
+        operation_id="Retrieve Snapshot image detail",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="snapshot_id",
+                type=str,
+                location="path",
+                required=True,
+                description="The ID of the snapshot.",
+            ),
+            OpenApiParameter(
+                name="image_identifier",
+                type=str,
+                location="path",
+                required=True,
+                description="The image filename or content hash.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SnapshotImageDetailResponse", SnapshotImageDetailResponseDict
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=PreprodExamples.GET_SNAPSHOT_IMAGE_DETAIL,
+    )
     def get(
         self,
         request: Request,
@@ -122,6 +158,19 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
         snapshot_id: str,
         image_identifier: str,
     ) -> Response:
+        """
+        Retrieve detailed information for a single image within a snapshot.
+
+        The `image_identifier` can be either the image filename or its content
+        hash. The response includes head and base image metadata, comparison
+        status, diff image URL, diff percentage, and previous filename for
+        renames.
+
+        This endpoint uses a flat response format with nullable fields designed
+        for LLM/MCP consumers.
+
+        This endpoint requires a bearer token with `project:read` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", organization, actor=request.user
         ):

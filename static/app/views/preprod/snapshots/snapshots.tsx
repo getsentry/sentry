@@ -31,11 +31,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {
-  ComparisonState,
-  DiffStatus,
-  getImageName,
-} from 'sentry/views/preprod/types/snapshotTypes';
+import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -145,10 +141,8 @@ export default function SnapshotsPage() {
       // Skip retries on 4xx so error pages render instantly
       retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
-        const state = query.state.data?.json?.comparison_run_info?.state;
-        return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
-          ? 5_000
-          : false;
+        const state = query.state.data?.json?.comparison_state;
+        return state === 'pending' || state === 'processing' ? 5_000 : false;
       },
     }
   );
@@ -163,7 +157,7 @@ export default function SnapshotsPage() {
       organization,
       comparison_type: data.comparison_type,
       image_count: data.image_count,
-      approval_status: data.approval_info?.status ?? null,
+      approval_status: data.approval_status ?? null,
       has_base_build: !!data.base_artifact_id,
       project_id: data.project_id,
     });
@@ -264,7 +258,6 @@ export default function SnapshotsPage() {
   const hasDiffComparison = data?.comparison_type === 'diff';
   const comparisonType =
     viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
-  const comparisonRunInfo = data?.comparison_run_info;
 
   const isSoloView = comparisonType === 'solo' || comparisonType === 'waiting_for_base';
   const handleToggleView = useCallback(() => {
@@ -300,7 +293,7 @@ export default function SnapshotsPage() {
 
       const pushImages = (
         imgs: SnapshotImage[],
-        type: 'added' | 'removed' | 'unchanged'
+        type: 'added' | 'removed' | 'unchanged' | 'skipped'
       ) => {
         for (const [groupKey, images] of groupByKey(imgs, imageGroupKey)) {
           items.push({
@@ -318,6 +311,7 @@ export default function SnapshotsPage() {
       pushImages(data.added, 'added');
       pushImages(data.removed, 'removed');
       pushImages(data.unchanged, 'unchanged');
+      pushImages(data.skipped ?? [], 'skipped');
 
       items.sort(
         (a, b) => (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99)
@@ -403,6 +397,7 @@ export default function SnapshotsPage() {
       DiffStatus.ADDED,
       DiffStatus.RENAMED,
       DiffStatus.UNCHANGED,
+      DiffStatus.SKIPPED,
     ];
     const byType = new Map<
       DiffStatus,
@@ -433,6 +428,7 @@ export default function SnapshotsPage() {
       [DiffStatus.REMOVED]: 0,
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
+      [DiffStatus.SKIPPED]: 0,
     };
     for (const item of searchFilteredItems) {
       if (item.type in counts) {
@@ -650,10 +646,7 @@ export default function SnapshotsPage() {
   ]);
 
   const isComparisonProcessing =
-    !!comparisonRunInfo?.state &&
-    [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
-      comparisonRunInfo.state
-    );
+    data?.comparison_state === 'pending' || data?.comparison_state === 'processing';
 
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = imageBaseUrl;
@@ -825,9 +818,15 @@ const DragHandle = styled('div')`
 
 function imageSearchKey(image: SnapshotImage): string {
   const parts: string[] = [];
-  if (image.display_name) parts.push(image.display_name);
-  if (image.image_file_name) parts.push(image.image_file_name);
-  if (image.group) parts.push(image.group);
+  if (image.display_name) {
+    parts.push(image.display_name);
+  }
+  if (image.image_file_name) {
+    parts.push(image.image_file_name);
+  }
+  if (image.group) {
+    parts.push(image.group);
+  }
   return parts.join('\n').toLowerCase();
 }
 
@@ -862,8 +861,12 @@ function narrowItemBySearch(
         allMatched = false;
       }
     }
-    if (kept.length === 0) return null;
-    if (allMatched) return item;
+    if (kept.length === 0) {
+      return null;
+    }
+    if (allMatched) {
+      return item;
+    }
     return {...item, pairs: kept};
   }
   const kept: SnapshotImage[] = [];
@@ -875,7 +878,11 @@ function narrowItemBySearch(
       allMatched = false;
     }
   }
-  if (kept.length === 0) return null;
-  if (allMatched) return item;
+  if (kept.length === 0) {
+    return null;
+  }
+  if (allMatched) {
+    return item;
+  }
   return {...item, images: kept};
 }

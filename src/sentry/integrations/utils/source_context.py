@@ -61,7 +61,6 @@ def _format_context(
 
 def _resolve_integration(
     config: RepositoryProjectPathConfig,
-    use_project_repository_fk: bool = False,
 ) -> tuple[RpcIntegration, RepositoryIntegration] | None:
     """Resolve the integration and installation for a code mapping config."""
     integration = integration_service.get_integration(
@@ -71,11 +70,7 @@ def _resolve_integration(
     if not integration:
         return None
 
-    org_id = (
-        config.project_repository.project.organization_id
-        if use_project_repository_fk
-        else config.project.organization_id
-    )
+    org_id = config.project_repository.project.organization_id
     install = integration.get_installation(organization_id=org_id)
     if not isinstance(install, RepositoryIntegration):
         return None
@@ -159,7 +154,6 @@ def fetch_source_context_from_scm(
     configs: Sequence[RepositoryProjectPathConfig],
     ctx: StacktraceLinkContext,
     context_lines: int = LINES_OF_CONTEXT,
-    use_project_repository_fk: bool = False,
 ) -> SourceContextResult:
     """
     Fetch source context lines from an SCM integration for a stack trace frame.
@@ -204,9 +198,7 @@ def fetch_source_context_from_scm(
 
         org_integration_id = config.organization_integration_id
         if org_integration_id not in resolved_integrations:
-            resolved_integrations[org_integration_id] = _resolve_integration(
-                config, use_project_repository_fk=use_project_repository_fk
-            )
+            resolved_integrations[org_integration_id] = _resolve_integration(config)
 
         resolved = resolved_integrations[org_integration_id]
         if resolved is None:
@@ -216,9 +208,7 @@ def fetch_source_context_from_scm(
 
         ref = ctx.get("commit_id") or str(config.default_branch or "")
 
-        repository = (
-            config.project_repository.repository if use_project_repository_fk else config.repository
-        )
+        repository = config.project_repository.repository
         file_content, fetch_error = _fetch_file_from_scm(
             install, integration.id, repository, src_path, ref
         )

@@ -26,6 +26,7 @@ import {getHasTag} from 'sentry/utils/tag';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
@@ -56,6 +57,7 @@ export function TransactionSearchQueryBuilder({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const tags = useTags();
+  const {addAlert} = useGlobalAlerts();
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for events, users, tags, and more');
@@ -63,9 +65,9 @@ export function TransactionSearchQueryBuilder({
 
   useEffect(() => {
     if (!disableLoadingTags) {
-      loadOrganizationTags(api, organization.slug, selection);
+      loadOrganizationTags(api, organization.slug, selection, addAlert);
     }
-  }, [api, organization.slug, selection, disableLoadingTags]);
+  }, [api, organization.slug, selection, disableLoadingTags, addAlert]);
 
   const filterTags = useMemo(() => {
     const measurements = getMeasurements();

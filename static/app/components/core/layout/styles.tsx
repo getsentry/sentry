@@ -232,7 +232,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
 
   // If the active breakpoint exists in the prop, return it
   if (prop[activeBreakpoint] !== undefined) {
-    return prop[activeBreakpoint];
+    return prop[activeBreakpoint] as T;
   }
 
   let value: ResponsiveValue<T> | undefined;

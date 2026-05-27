@@ -768,7 +768,7 @@ describe('Dashboards > Dashboard', () => {
       mount({
         dashboard: dashboardWithOneWidget,
         org: testData.organization,
-        location: testData.router.location,
+        location: LocationFixture(),
         onEditWidget: mockOnEditWidget,
       });
 

@@ -4,7 +4,6 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -53,8 +52,7 @@ class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
         if not configs:
             return Response({"detail": "No code mappings found for this project"}, status=400)
 
-        use_fk = features.has("organizations:project-repository-fk-reads", project.organization)
-        result = get_stacktrace_config(configs, ctx, use_project_repository_fk=use_fk)
+        result = get_stacktrace_config(configs, ctx)
         error = result["error"]
         serialized_config = None
 

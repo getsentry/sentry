@@ -32,8 +32,8 @@ import {
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -111,8 +111,8 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
   );
 }
 
-const AutofixContentHook = HookOrDefault({
-  hookName: 'component:ai-configure-seer-quota-sidebar',
+const AutofixContentHook = OverrideOrDefault({
+  overrideName: 'component:ai-configure-seer-quota-sidebar',
   defaultComponent: AutofixContent,
 });
 
@@ -155,40 +155,43 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
     // scm integration not linked to project
     !aiConfig.seerReposLinked;
 
-  if (needOrgSetup || needProjSetup) {
-    return (
-      <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
-        <Text bold>{t('Finish Configuring Seer')}</Text>
-        <Text>
-          {t(
-            'Your organization has access to Seer, which will allow you to run Autofix on your issues, but you aren’t getting the most out of it.'
-          )}
-        </Text>
-        <Text>{t('Autofix can:')}</Text>
-        <Container as="ol" margin="0">
-          <li>{t('Determine the root cause of your issue and how to reproduce it')}</li>
-          <li>{t('Propose a solution')}</li>
-          <li>{t('Create a code fix')}</li>
-        </Container>
-        <Flex>
-          {needOrgSetup ? (
-            <LinkButton
-              to={`/settings/${organization.slug}/seer/onboarding/`}
-              icon={<IconSeer />}
-            >
-              {t('Set Up Seer')}
-            </LinkButton>
-          ) : needProjSetup ? (
-            <LinkButton
-              to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-              icon={<IconSeer />}
-            >
-              {t('Set Up Seer for This Project')}
-            </LinkButton>
-          ) : null}
+  // non seat based seer plans are allowed to run autofix without the SCM integration
+  if (organization.features.includes('seat-based-seer-enabled')) {
+    if (needOrgSetup || needProjSetup) {
+      return (
+        <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+          <Text bold>{t('Finish Configuring Seer')}</Text>
+          <Text>
+            {t(
+              'Your organization has access to Seer, which will allow you to run Autofix on your issues, but you aren’t getting the most out of it.'
+            )}
+          </Text>
+          <Text>{t('Autofix can:')}</Text>
+          <Container as="ol" margin="0">
+            <li>{t('Determine the root cause of your issue and how to reproduce it')}</li>
+            <li>{t('Propose a solution')}</li>
+            <li>{t('Create a code fix')}</li>
+          </Container>
+          <Flex>
+            {needOrgSetup ? (
+              <LinkButton
+                to={`/settings/${organization.slug}/seer/onboarding/`}
+                icon={<IconSeer />}
+              >
+                {t('Set Up Seer')}
+              </LinkButton>
+            ) : needProjSetup ? (
+              <LinkButton
+                to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                icon={<IconSeer />}
+              >
+                {t('Set Up Seer for This Project')}
+              </LinkButton>
+            ) : null}
+          </Flex>
         </Flex>
-      </Flex>
-    );
+      );
+    }
   }
 
   return (

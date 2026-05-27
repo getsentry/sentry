@@ -13,6 +13,7 @@ import {Client} from 'sentry/api';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {
   IconCheckmark,
   IconDelete,
@@ -62,9 +63,11 @@ export function SnapshotHeaderActions({
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isApproved = data.approval_info?.status === 'approved';
-  const isAutoApproved = data.approval_info?.is_auto_approved ?? false;
-  const approvers: AvatarUser[] = (data.approval_info?.approvers ?? []).map((a, i) => ({
+  const comparisonState = data.comparison_state;
+  const approvalStatus = data.approval_status;
+  const isApproved = approvalStatus === 'approved' || approvalStatus === 'auto_approved';
+  const isAutoApproved = approvalStatus === 'auto_approved';
+  const approvers: AvatarUser[] = (data.approvers ?? []).map((a, i) => ({
     id: a.id ?? `approver-${i}`,
     name: a.name ?? '',
     email: a.email ?? '',
@@ -194,8 +197,8 @@ export function SnapshotHeaderActions({
 
   return (
     <Flex align="center" gap="md">
-      {data.approval_info &&
-        (isApproved ? (
+      {comparisonState === 'success' ? (
+        isApproved ? (
           <Flex align="center" gap="xl">
             <Flex align="center" gap="xs">
               <Tag variant="success" icon={<IconCheckmark />}>
@@ -219,7 +222,7 @@ export function SnapshotHeaderActions({
               </Container>
             )}
           </Flex>
-        ) : (
+        ) : approvalStatus === 'requires_approval' ? (
           <Flex align="center" gap="sm">
             <Container display={{'2xs': 'none', lg: 'block'}}>
               <Tag variant="warning" icon={<IconTimer />}>
@@ -236,7 +239,14 @@ export function SnapshotHeaderActions({
               {t('Approve')}
             </Button>
           </Flex>
-        ))}
+        ) : null
+      ) : (
+        <SnapshotStatusBadge
+          comparisonState={comparisonState}
+          approvalStatus={approvalStatus}
+          errorMessage={data.comparison_error_message}
+        />
+      )}
 
       <ConfirmDelete
         message={t(

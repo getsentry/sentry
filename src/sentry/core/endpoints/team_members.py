@@ -65,7 +65,7 @@ class TeamMembersEndpoint(TeamEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
         operation_id="List a Team's Members",

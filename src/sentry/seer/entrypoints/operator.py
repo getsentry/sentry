@@ -8,6 +8,7 @@ from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -575,6 +576,45 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
 
+def has_seer_agent_entrypoint_access(
+    *,
+    organization: Organization | RpcOrganization,
+    entrypoint_key: SeerEntrypointKey | None = None,
+) -> bool:
+    """
+    Checks if the organization has access to Seer Agent and at least one agent entrypoint.
+    If an entrypoint_key is provided, ensures the organization has access to that specific
+    agent entrypoint.
+
+    Should not be called from the CONTROL silo since ``has_seer_agent_access_with_detail``
+    depends on subscription context that getsentry's FlagpoleFeatureHandler does not
+    populate in control silo.
+    """
+    from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
+
+    has_access, _ = has_seer_agent_access_with_detail(organization, None)
+    if not has_access:
+        return False
+
+    if entrypoint_key:
+        if entrypoint_key not in agent_entrypoint_registry.registrations:
+            logger.error(
+                "seer.operator.invalid_agent_entrypoint_key",
+                extra={
+                    "entrypoint_key": str(entrypoint_key),
+                    "organization_id": organization.id,
+                },
+            )
+            return False
+        entrypoint_cls = agent_entrypoint_registry.registrations[entrypoint_key]
+        return entrypoint_cls.has_access(organization)
+
+    return any(
+        entrypoint_cls.has_access(organization=organization)
+        for entrypoint_cls in agent_entrypoint_registry.registrations.values()
+    )
+
+
 class SeerAgentOperator[CachePayloadT]:
     """
     A class that connects to entrypoint implementations and runs Seer Agent operations.
@@ -583,6 +623,17 @@ class SeerAgentOperator[CachePayloadT]:
 
     def __init__(self, entrypoint: SeerAgentEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
+
+    @classmethod
+    def has_access(
+        cls,
+        *,
+        organization: Organization | RpcOrganization,
+        entrypoint_key: SeerEntrypointKey | None = None,
+    ) -> bool:
+        return has_seer_agent_entrypoint_access(
+            organization=organization, entrypoint_key=entrypoint_key
+        )
 
     def trigger_agent(
         self,
@@ -712,13 +763,17 @@ def _create_seer_activity(
         activity_data["run_id"] = run_id
 
     if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
-        activity_data["root_cause"] = event_payload.get("root_cause")
+        root_cause = event_payload.get("root_cause")
+        if root_cause:
+            activity_data["summary"] = root_cause.get("one_line_description")
     elif event_type == SentryAppEventType.SEER_SOLUTION_COMPLETED:
-        activity_data["solution"] = event_payload.get("solution")
-    elif event_type == SentryAppEventType.SEER_CODING_COMPLETED:
-        activity_data["changes"] = event_payload.get("changes")
+        solution = event_payload.get("solution")
+        if solution:
+            activity_data["summary"] = solution.get("one_line_summary")
     elif event_type == SentryAppEventType.SEER_PR_CREATED:
-        activity_data["pull_requests"] = event_payload.get("pull_requests")
+        pull_requests = event_payload.get("pull_requests", [])
+        if pull_requests:
+            activity_data["pull_requests"] = pull_requests
 
     Activity.objects.create_group_activity(
         group,
@@ -965,6 +1020,10 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
                     "organization_id": organization.id,
                 }
             )
+
+            if not SeerAgentOperator.has_access(organization=organization):
+                lifecycle.record_halt(halt_reason="no_operator_access")
+                return
 
             summary: str | None = None
             try:

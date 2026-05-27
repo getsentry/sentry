@@ -79,7 +79,7 @@ def get_team_admin_member_ids(org_members: Iterable[OrganizationMember]) -> set[
 
 @cell_silo_endpoint
 class SlackCommandsEndpoint(SlackDMEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

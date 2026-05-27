@@ -1,4 +1,4 @@
-import {parse} from './grammar.pegjs';
+import {parse} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/grammar.pegjs';
 
 type DurationTokenValue = {
   value: string;
@@ -14,7 +14,7 @@ type DurationTokenValue = {
  */
 export function parseFilterValueDuration(query: string): DurationTokenValue | null {
   try {
-    return parse(query);
+    return parse(query, {startRule: 'duration'});
   } catch (e) {
     return null;
   }

@@ -88,7 +88,7 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
-  applySeerSearchQuery: (item: T) => void;
+  applySeerSearchQuery: (item: T, runId?: number) => void;
   initialQuery: string;
   projectIds: number[];
   strategy: string;
@@ -154,6 +154,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     completedSteps,
     reset,
     startFailed,
+    runId,
   } = useAskSeerPolling<T>({
     projectIds,
     strategy,
@@ -227,7 +228,9 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     onInputChange: setSearchQuery,
     defaultFilter: () => true,
     onSelectionChange(key) {
-      if (typeof key !== 'string') return;
+      if (typeof key !== 'string') {
+        return;
+      }
 
       if (key === 'none-of-these') {
         trackAnalytics('ai_query.rejected', {
@@ -247,7 +250,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       }
 
       askSeerNLQueryRef.current = searchQuery.trim();
-      props.applySeerSearchQuery(item);
+      props.applySeerSearchQuery(item, runId ?? undefined);
       setDisplayAskSeerFeedback(true);
       setDisplayAskSeer(false);
       reset();
@@ -335,7 +338,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               }
 
               askSeerNLQueryRef.current = searchQuery.trim();
-              props.applySeerSearchQuery(item);
+              props.applySeerSearchQuery(item, runId ?? undefined);
               setDisplayAskSeerFeedback(true);
               setDisplayAskSeer(false);
               reset();
