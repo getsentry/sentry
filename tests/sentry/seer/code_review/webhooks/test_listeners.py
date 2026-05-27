@@ -30,11 +30,12 @@ def _make_pull_request_event(
 
     pr = raw_event["pull_request"]
     head_repo = pr["head"]["repo"]
+    base_repo = pr["base"]["repo"]
 
     return PullRequestEvent(
         action=raw_event["action"],
         pull_request={
-            "repository_id": str(head_repo["id"]),
+            "repository_id": str(base_repo["id"]),
             "id": str(pr["number"]),
             "title": pr["title"],
             "description": pr.get("body"),
