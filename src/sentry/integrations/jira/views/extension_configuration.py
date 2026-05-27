@@ -3,6 +3,7 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry import features
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.web.integration_extension_configuration import (
@@ -36,6 +37,11 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
         organization: RpcOrganization | RpcOrganizationMapping,
         params: dict,
     ) -> HttpResponseBase:
+        if not features.has(
+            "organizations:jira-confirm-installation", organization, actor=request.user
+        ):
+            return super()._dispatch_pipeline(request, organization, params)
+
         # to protect against CSRF attacks, show a confirmation page that lists the jira org and sentry org
         if request.method == "POST":
             return super()._dispatch_pipeline(request, organization, params)

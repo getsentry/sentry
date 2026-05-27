@@ -136,6 +136,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-github_enterprise-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Gate the Jira installation confirmation page that protects against CSRF attacks on the configure endpoint.
+    manager.add("organizations:jira-confirm-installation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Temporary: log full Jira Cloud `issue.updated` webhook payloads so we can design project-change link rewriting.
     manager.add("organizations:jira-issue-updated-payload-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable inviting billing members to organizations at the member limit.

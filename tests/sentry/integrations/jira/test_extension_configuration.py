@@ -4,6 +4,7 @@ from sentry.integrations.jira.views import SALT, JiraExtensionConfigurationView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -35,6 +36,7 @@ class JiraExtensionConfigurationTest(TestCase):
         params = {"signed_params": signed_data}
         assert {"metadata": metadata} == config_view.map_params_to_state(params)
 
+    @with_feature("organizations:jira-confirm-installation")
     def test_post_without_csrf_token_is_rejected(self) -> None:
         signed = _build_signed_params()
         csrf_client = Client(enforce_csrf_checks=True)
@@ -46,6 +48,7 @@ class JiraExtensionConfigurationTest(TestCase):
         assert response.status_code == 403
         assert not Integration.objects.filter(provider="jira").exists()
 
+    @with_feature("organizations:jira-confirm-installation")
     def test_get_renders_confirmation_without_installing_integration(self) -> None:
         self.login_as(self.user)
         signed = _build_signed_params(base_url="https://attacker.atlassian.net")
@@ -63,6 +66,7 @@ class JiraExtensionConfigurationTest(TestCase):
             organization_id=self.organization.id
         ).exists()
 
+    @with_feature("organizations:jira-confirm-installation")
     def test_post_with_csrf_token_runs_pipeline(self) -> None:
         self.login_as(self.user)
         signed = _build_signed_params(external_id="legit.atlassian.net")
@@ -79,4 +83,18 @@ class JiraExtensionConfigurationTest(TestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id,
             integration__provider="jira",
+        ).exists()
+
+    def test_get_without_flag_runs_pipeline_directly(self) -> None:
+        self.login_as(self.user)
+        signed = _build_signed_params(external_id="legit.atlassian.net")
+
+        response = self.client.get(
+            f"{CONFIGURE_URL}?signed_params={signed}&orgSlug={self.organization.slug}"
+        )
+
+        # without the feature flag, GET installs immediately (legacy behavior)
+        assert response.status_code == 302
+        assert Integration.objects.filter(
+            provider="jira", external_id="legit.atlassian.net"
         ).exists()
