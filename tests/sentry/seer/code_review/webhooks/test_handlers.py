@@ -37,7 +37,11 @@ class TestHandleWebhookEvent(TestCase):
         self, mock_preflight: MagicMock, mock_features: MagicMock
     ) -> None:
         """GHE webhooks proceed to preflight when the feature flag is enabled."""
-        mock_features.has.return_value = True
+
+        def _feature_check(flag: str, org: object) -> bool:
+            return flag == "organizations:seer-code-review-github-enterprise"
+
+        mock_features.has.side_effect = _feature_check
 
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB_ENTERPRISE
@@ -56,7 +60,7 @@ class TestHandleWebhookEvent(TestCase):
             integration=integration,
         )
 
-        mock_features.has.assert_called_once_with(
+        mock_features.has.assert_any_call(
             "organizations:seer-code-review-github-enterprise", self.organization
         )
         mock_preflight.assert_called_once()
@@ -214,6 +218,64 @@ class TestHandleWebhookEvent(TestCase):
         handle_webhook_event(
             github_event=GithubWebhookType.PULL_REQUEST,
             event={"action": "opened", "pull_request": {"number": 3, "draft": False}},
+            organization=self.organization,
+            repo=MagicMock(),
+            integration=integration,
+        )
+
+        self.mock_pull_request_handler.assert_called_once()
+
+    def test_skips_pull_request_when_scm_listener_flag_is_on(self) -> None:
+        """PR events are skipped when the org has opted into the SCM listener."""
+        integration = MagicMock()
+        integration.provider = IntegrationProviderSlug.GITHUB
+        integration.id = 123
+
+        with self.feature("organizations:seer-code-review-scm-listener"):
+            handle_webhook_event(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event={"action": "opened", "pull_request": {"number": 1, "draft": False}},
+                organization=self.organization,
+                repo=MagicMock(),
+                integration=integration,
+            )
+
+        self.mock_pull_request_handler.assert_not_called()
+
+    def test_still_processes_check_run_when_scm_listener_flag_is_on(self) -> None:
+        """Non-PR events still go through the old handler even when the SCM listener flag is on."""
+        mock_check_run_handler = MagicMock()
+        integration = MagicMock()
+        integration.provider = IntegrationProviderSlug.GITHUB
+        integration.id = 123
+
+        with (
+            self.feature("organizations:seer-code-review-scm-listener"),
+            patch.dict(
+                handlers_module.EVENT_TYPE_TO_HANDLER,
+                {GithubWebhookType.CHECK_RUN: mock_check_run_handler},
+                clear=False,
+            ),
+        ):
+            handle_webhook_event(
+                github_event=GithubWebhookType.CHECK_RUN,
+                event={"action": "rerequested", "check_run": {}},
+                organization=self.organization,
+                repo=MagicMock(),
+                integration=integration,
+            )
+
+        mock_check_run_handler.assert_called_once()
+
+    def test_processes_pull_request_when_scm_listener_flag_is_off(self) -> None:
+        """PR events go through the old handler when the SCM listener flag is off."""
+        integration = MagicMock()
+        integration.provider = IntegrationProviderSlug.GITHUB
+        integration.id = 123
+
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "opened", "pull_request": {"number": 1, "draft": False}},
             organization=self.organization,
             repo=MagicMock(),
             integration=integration,
