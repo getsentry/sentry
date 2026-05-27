@@ -21,8 +21,11 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
   ExpandedRowContainer,
@@ -33,7 +36,11 @@ import {
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
-import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  defaultAggregateSortBys,
+  defaultMetricQuery,
+  stripMetricParamsFromLocation,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
@@ -44,7 +51,12 @@ import {
   type SampleTableColumnKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {
+  getMetricTableColumnType,
+  getMetricsUrl,
+  makeMetricsAggregate,
+} from 'sentry/views/explore/metrics/utils';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -52,7 +64,17 @@ import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTr
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const VALUE_COLUMN_MIN_WIDTH = '50px';
-const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-metrics-samples-table-similar-spans';
+const VIEW_CONNECTED_TRACES_REFERRER = 'trace-metrics-samples-table-connected-traces';
+const OPEN_IN_EXPLORE_REFERRER = 'trace-metrics-samples-table-open-in-explore';
+const ISSUE_DETAILS_CELL_ACTIONS = ALLOWED_CELL_ACTIONS.filter(
+  action =>
+    ![
+      Actions.ADD,
+      Actions.EXCLUDE,
+      Actions.SHOW_GREATER_THAN,
+      Actions.SHOW_LESS_THAN,
+    ].includes(action)
+);
 
 const getExtraMenuItems = ({
   field,
@@ -67,7 +89,10 @@ const getExtraMenuItems = ({
   selection: PageFilters;
   source: MetricsSamplesTableSource;
 }): MenuItemProps[] | undefined => {
-  if (source !== 'traceWaterfall' || field !== TraceMetricKnownFieldKey.METRIC_NAME) {
+  if (
+    !isEmbeddedMetricsSamplesTableSource(source) ||
+    field !== TraceMetricKnownFieldKey.METRIC_NAME
+  ) {
     return undefined;
   }
 
@@ -83,15 +108,23 @@ const getExtraMenuItems = ({
     type: metricType,
     unit: metricUnit?.length > 0 ? metricUnit : undefined,
   };
+  const aggregateFields = [
+    new VisualizeFunction(
+      makeMetricsAggregate({
+        aggregate: DEFAULT_YAXIS_BY_TYPE[metric.type] ?? 'sum',
+        traceMetric: metric,
+      })
+    ),
+  ];
 
   return [
     {
-      key: 'explore-similar-spans',
-      label: t('Explore similar spans'),
+      key: 'view-connected-traces',
+      label: t('View connected traces'),
       to: getExploreUrl({
         organization,
         mode: Mode.SAMPLES,
-        referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+        referrer: VIEW_CONNECTED_TRACES_REFERRER,
         selection: {
           ...selection,
           datetime: {
@@ -106,6 +139,24 @@ const getExtraMenuItems = ({
             type: 'metrics',
             query: '',
             metric,
+          },
+        ],
+      }),
+    },
+    {
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getMetricsUrl({
+        organization,
+        referrer: OPEN_IN_EXPLORE_REFERRER,
+        selection,
+        metricQueries: [
+          {
+            metric,
+            queryParams: defaultMetricQuery().queryParams.replace({
+              aggregateFields,
+              aggregateSortBys: defaultAggregateSortBys(aggregateFields),
+            }),
           },
         ],
       }),
@@ -240,6 +291,7 @@ export function SampleTableRow({
     // instead of converting it with a duration assumption. The renderer
     // still picks up the correct formatter via meta.fields/meta.units.
     const isMetricValue = field === TraceMetricKnownFieldKey.METRIC_VALUE;
+    const shouldRemoveAddFilter = source === 'issueDetails';
     const discoverColumn: TableColumn<keyof TableDataRow> = {
       column: {
         field,
@@ -265,6 +317,7 @@ export function SampleTableRow({
           selection,
           source,
         })}
+        allowActions={shouldRemoveAddFilter ? ISSUE_DETAILS_CELL_ACTIONS : undefined}
       />
     );
   };
