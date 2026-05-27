@@ -2,12 +2,13 @@ import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Badge} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconSearch} from 'sentry/icons';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -66,9 +67,12 @@ const SECTION_HEADER_HEIGHT = 28;
 
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
+  activeTagFilters: Record<string, Set<string>>;
+  availableTags: Map<string, Map<string, number>>;
   onSearchChange: (query: string) => void;
   onSelectItem: (itemKey: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
+  onToggleTagFilter: (key: string, value: string) => void;
   searchQuery: string;
   sections: SidebarSection[];
   activeItemKey?: string | null;
@@ -84,6 +88,9 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   statusCounts,
   activeStatuses,
   onToggleStatus,
+  availableTags,
+  activeTagFilters,
+  onToggleTagFilter,
 }: SnapshotSidebarContentProps) {
   const hasActiveFilter = activeStatuses.size > 0;
   const isStatusActive = (status: DiffStatus) =>
@@ -200,6 +207,13 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
+      {availableTags.size > 0 && (
+        <TagFilterSection
+          availableTags={availableTags}
+          activeTagFilters={activeTagFilters}
+          onToggleTagFilter={onToggleTagFilter}
+        />
+      )}
       <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
         {hasGroups ? (
           <div
@@ -339,6 +353,95 @@ function StatusPill({
   );
 }
 
+const TagFilterSection = memo(function TagFilterSection({
+  availableTags,
+  activeTagFilters,
+  onToggleTagFilter,
+}: {
+  activeTagFilters: Record<string, Set<string>>;
+  availableTags: Map<string, Map<string, number>>;
+  onToggleTagFilter: (key: string, value: string) => void;
+}) {
+  const hasActiveFilter = Object.values(activeTagFilters).some(s => s.size > 0);
+  const sortedKeys = useMemo(() => [...availableTags.keys()].sort(), [availableTags]);
+
+  return (
+    <Stack borderBottom="primary" onClick={e => e.stopPropagation()}>
+      <TagDisclosure size="xs">
+        <Disclosure.Title>
+          <Flex align="center" gap="sm">
+            <Text size="sm" bold>
+              {t('Tags')}
+            </Text>
+            {hasActiveFilter && (
+              <Badge variant="highlight">
+                {Object.values(activeTagFilters).reduce((sum, s) => sum + s.size, 0)}
+              </Badge>
+            )}
+          </Flex>
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <Stack gap="lg" paddingBottom="lg" style={{maxHeight: 200, overflowY: 'auto'}}>
+            {sortedKeys.map(tagKey => {
+              const values = availableTags.get(tagKey)!;
+              const activeValues = activeTagFilters[tagKey];
+              return (
+                <Stack key={tagKey} gap="xs">
+                  <Text size="xs" variant="muted" bold>
+                    {tagKey}
+                  </Text>
+                  <Flex gap="xs" wrap="wrap">
+                    {[...values.entries()]
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([value, count]) => {
+                        const isActive = activeValues?.has(value) ?? false;
+                        const isDisabled = count === 0 && !isActive;
+                        return (
+                          <TagChip
+                            key={value}
+                            type="button"
+                            isActive={isActive}
+                            disabled={isDisabled}
+                            onClick={() => onToggleTagFilter(tagKey, value)}
+                          >
+                            <Text size="xs" variant={isActive ? 'accent' : 'muted'}>
+                              {value}
+                            </Text>
+                            <Text size="xs" variant="muted">
+                              {count}
+                            </Text>
+                          </TagChip>
+                        );
+                      })}
+                  </Flex>
+                </Stack>
+              );
+            })}
+          </Stack>
+        </Disclosure.Content>
+      </TagDisclosure>
+      {hasActiveFilter && (
+        <Flex gap="xs" wrap="wrap" padding="lg" paddingTop="0">
+          {Object.entries(activeTagFilters).flatMap(([key, values]) =>
+            [...values].map(value => (
+              <ActiveTagChip
+                key={`${key}:${value}`}
+                type="button"
+                onClick={() => onToggleTagFilter(key, value)}
+              >
+                <Text size="xs">
+                  {key}={value}
+                </Text>
+                <IconClose size="xs" />
+              </ActiveTagChip>
+            ))
+          )}
+        </Flex>
+      )}
+    </Stack>
+  );
+});
+
 function setTitleOnOverflow(e: React.PointerEvent<HTMLElement>) {
   const el = e.currentTarget;
   el.title = el.scrollWidth > el.clientWidth ? (el.textContent ?? '') : '';
@@ -425,6 +528,58 @@ const SectionDisclosure = styled(Disclosure)`
     > button {
       border-radius: 0;
     }
+  }
+`;
+
+const TagDisclosure = styled(Disclosure)`
+  width: 100%;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
+  }
+`;
+
+const TagChip = styled('button')<{isActive: boolean}>`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: 2px ${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid
+    ${p =>
+      p.isActive ? p.theme.tokens.border.accent.vibrant : p.theme.tokens.border.primary};
+  background: ${p =>
+    p.isActive ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
+  cursor: pointer;
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+  }
+`;
+
+const ActiveTagChip = styled('button')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: 2px ${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
+  cursor: pointer;
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

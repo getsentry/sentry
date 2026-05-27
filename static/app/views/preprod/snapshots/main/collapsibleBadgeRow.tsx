@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +9,13 @@ import {t} from 'sentry/locale';
 
 const ONE_ROW_HEIGHT = 20;
 
-export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
+export function CollapsibleBadgeRow({
+  tags,
+  onTagClick,
+}: {
+  tags: Record<string, string>;
+  onTagClick?: (key: string, value: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [overflowCount, setOverflowCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,11 +71,24 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
       position="relative"
       maxHeight={expanded ? undefined : `${ONE_ROW_HEIGHT}px`}
     >
-      {entries.map(([key, value]) => (
-        <Badge key={key} variant="muted">
-          {key}={value}
-        </Badge>
-      ))}
+      {entries.map(([key, value]) =>
+        onTagClick ? (
+          <ClickableBadge
+            key={key}
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              onTagClick(key, value);
+            }}
+          >
+            {key}={value}
+          </ClickableBadge>
+        ) : (
+          <Badge key={key} variant="muted">
+            {key}={value}
+          </Badge>
+        )
+      )}
       {overflowCount > 0 && !expanded && (
         <Flex
           ref={toggleRef}
@@ -95,3 +115,24 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
     </Flex>
   );
 }
+
+const ClickableBadge = styled('button')`
+  display: inline-flex;
+  align-items: center;
+  height: ${ONE_ROW_HEIGHT}px;
+  padding: 0 ${p => p.theme.space.md};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background: transparent;
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+    color: ${p => p.theme.tokens.content.primary};
+  }
+`;

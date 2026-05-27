@@ -38,6 +38,7 @@ interface SnapshotListViewProps {
   onOpenSnapshot?: (key: string) => void;
   onScrollProgress?: (progress: number, firstVisibleIndex: number) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onTagClick?: (key: string, value: string) => void;
   onVisibleGroupChange?: (name: string | null) => void;
   overlayColor?: string;
   ref?: React.Ref<SnapshotListViewHandle>;
@@ -190,6 +191,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   diffImageBaseUrl,
   ref,
   onVisibleGroupChange,
+  onTagClick,
 }: SnapshotListViewProps) {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -597,6 +599,7 @@ export const SnapshotListView = memo(function SnapshotListView({
                 diffMode={diffMode}
                 overlayColor={overlayColor}
                 diffImageBaseUrl={diffImageBaseUrl}
+                onTagClick={onTagClick}
               />
             </RowPositioner>
           );
@@ -616,6 +619,7 @@ const GroupContainer = memo(function GroupContainer({
   diffMode,
   overlayColor,
   diffImageBaseUrl,
+  onTagClick,
 }: {
   diffMode: DiffMode;
   group: GroupRow;
@@ -625,6 +629,7 @@ const GroupContainer = memo(function GroupContainer({
   headBranch?: string | null;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onTagClick?: (key: string, value: string) => void;
   overlayColor?: string;
 }) {
   const organization = useOrganization();
@@ -659,6 +664,7 @@ const GroupContainer = memo(function GroupContainer({
         onOpenSnapshot={onOpenSnapshot}
         onCopyLink={onCopyLink}
         onCopyMetadata={onCopyMetadata}
+        onTagClick={onTagClick}
       />
     ) : (
       <ImageCard
@@ -674,6 +680,7 @@ const GroupContainer = memo(function GroupContainer({
         onOpenSnapshot={onOpenSnapshot}
         onCopyLink={onCopyLink}
         onCopyMetadata={onCopyMetadata}
+        onTagClick={onTagClick}
       />
     );
   });

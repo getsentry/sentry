@@ -74,6 +74,7 @@ interface SnapshotMainContentProps {
   listViewRef?: React.RefObject<SnapshotListViewHandle | null>;
   onSelectSnapshot?: (key: string | null) => void;
   onSortByChange?: (sort: SortBy) => void;
+  onTagClick?: (key: string, value: string) => void;
   onVisibleGroupChange?: (name: string | null) => void;
   selectedSnapshotKey?: string | null;
   sortBy?: SortBy;
@@ -106,6 +107,7 @@ export function SnapshotMainContent({
   canNavigatePrev,
   canNavigateNext,
   navButtonRefs,
+  onTagClick,
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
   const [isDark, setIsDark] = useState(false);
@@ -218,6 +220,7 @@ export function SnapshotMainContent({
           overlayColor={overlayColor}
           diffImageBaseUrl={diffImageBaseUrl}
           onVisibleGroupChange={onVisibleGroupChange}
+          onTagClick={onTagClick}
         />
       </Flex>
     );
@@ -268,6 +271,7 @@ export function SnapshotMainContent({
           diffPercent: currentPair.diff,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+          onTagClick,
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
@@ -321,6 +325,7 @@ export function SnapshotMainContent({
           status: DiffStatus.RENAMED,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+          onTagClick,
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
@@ -381,6 +386,7 @@ export function SnapshotMainContent({
         status,
         copyData: currentImage,
         copyUrl: buildSnapshotLink(currentImage.image_file_name),
+        onTagClick,
         onCopyLink: () =>
           trackAnalytics('preprod.snapshots.details.image_link_copied', {
             organization,

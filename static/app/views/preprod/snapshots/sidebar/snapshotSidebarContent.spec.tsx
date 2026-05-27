@@ -39,6 +39,9 @@ function renderSidebar(sections: SidebarSection[]) {
       statusCounts={statusCounts}
       activeStatuses={new Set()}
       onToggleStatus={noop}
+      availableTags={new Map()}
+      activeTagFilters={{}}
+      onToggleTagFilter={noop}
     />
   );
 }
