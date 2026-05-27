@@ -52,7 +52,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
           maximumSignificantDigits: NUMBER_MAX_FRACTION_DIGITS,
         });
       }
-      return formatNumberWithDynamicDecimalPoints(value, NUMBER_MAX_FRACTION_DIGITS);
+      return formatNumberWithDynamicDecimalPoints(value);
     case 'percentage':
       return formatPercentage(value, 3);
     case 'duration': {
