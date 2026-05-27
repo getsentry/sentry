@@ -34,6 +34,7 @@ const TEXT_LIKE_INTRINSICS = new Set([
   'u',
 ]);
 const TOOLTIP_PROPS_SUPPORTED_BY_INFO_TEXT = new Set(['title', 'showUnderline']);
+const TOOLTIP_PROPS_TO_STRIP = new Set(['showUnderline']);
 
 function getElementName(nameNode: TSESTree.JSXTagNameExpression): string {
   switch (nameNode.type) {
@@ -206,8 +207,23 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
       return fixer.insertTextBeforeRange([0, 0], infoImport);
     }
 
-    function getAttributeText(attributes: TSESTree.JSXOpeningElement['attributes']) {
-      return attributes.map(attr => context.sourceCode.getText(attr)).join(' ');
+    function getAttributeText(
+      attributes: TSESTree.JSXOpeningElement['attributes'],
+      stripNames?: Set<string>
+    ) {
+      return attributes
+        .filter(attr => {
+          if (!stripNames) {
+            return true;
+          }
+          return !(
+            attr.type === AST_NODE_TYPES.JSXAttribute &&
+            attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
+            stripNames.has(attr.name.name)
+          );
+        })
+        .map(attr => context.sourceCode.getText(attr))
+        .join(' ');
     }
 
     function buildOpeningTag(name: string, attributes: string[]) {
@@ -240,7 +256,10 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                       const textChild = getSingleTextElementChild(node);
                       if (textChild && textChild.closingElement !== null) {
                         const attributes = [
-                          getAttributeText(node.openingElement.attributes),
+                          getAttributeText(
+                            node.openingElement.attributes,
+                            TOOLTIP_PROPS_TO_STRIP
+                          ),
                           getAttributeText(textChild.openingElement.attributes),
                         ];
                         const childrenText = context.sourceCode.text.slice(
@@ -259,7 +278,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                         return fixes;
                       }
 
-                      const fixes = [
+                      const fixes: TSESLint.RuleFix[] = [
                         fixer.replaceText(node.openingElement.name, infoTextName),
                         fixer.replaceText(node.closingElement.name, infoTextName),
                         fixer.insertTextAfter(
@@ -267,6 +286,20 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                           ' variant="inherit"'
                         ),
                       ];
+                      for (const attr of node.openingElement.attributes) {
+                        if (
+                          attr.type === AST_NODE_TYPES.JSXAttribute &&
+                          attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
+                          TOOLTIP_PROPS_TO_STRIP.has(attr.name.name)
+                        ) {
+                          const src = context.sourceCode.getText();
+                          let start = attr.range[0];
+                          while (start > 0 && src[start - 1] === ' ') {
+                            start--;
+                          }
+                          fixes.push(fixer.removeRange([start, attr.range[1]]));
+                        }
+                      }
                       const importFix = getInfoTextImportFix(fixer);
                       if (importFix !== null) {
                         fixes.push(importFix);

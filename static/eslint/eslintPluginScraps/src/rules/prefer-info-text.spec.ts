@@ -256,6 +256,22 @@ import {InfoText} from '@sentry/scraps/info';
       `),
       ],
     },
+
+    {
+      name: 'showUnderline is stripped in suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" showUnderline>Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x">Some text here</InfoText>;
+      `),
+      ],
+    },
     {
       name: 'Tooltip with extra props still flagged',
       code: `
