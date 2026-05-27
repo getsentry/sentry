@@ -128,14 +128,28 @@ PRIDE_LOADING_MESSAGES = [
 ]
 
 
-def _is_pride_month() -> bool:
-    return datetime.now(timezone.utc).month == 6
+def _get_organization_from_context(context):
+    org_context = context.get("org_context")
+    if org_context is not None:
+        return getattr(org_context, "organization", None)
+    return None
 
 
-@register.simple_tag
-def loading_message():
+def _is_themed_loader(context) -> bool:
+    if datetime.now(timezone.utc).month != 6:
+        return False
+    organization = _get_organization_from_context(context)
+    if organization is not None:
+        from sentry import features
+
+        return features.has("organizations:sentry-pride-logo-footer", organization)
+    return True
+
+
+@register.simple_tag(takes_context=True)
+def loading_message(context):
     options = list(LOADING_MESSAGES)
-    if _is_pride_month():
+    if _is_themed_loader(context):
         options.extend(PRIDE_LOADING_MESSAGES)
     return mark_safe(random.choice(options))
 
@@ -145,7 +159,9 @@ def loader(context):
     from django.template.loader import render_to_string
 
     template_name = (
-        "sentry/partial/loader-pride.html" if _is_pride_month() else "sentry/partial/loader.html"
+        "sentry/partial/loader-pride.html"
+        if _is_themed_loader(context)
+        else "sentry/partial/loader.html"
     )
     return mark_safe(render_to_string(template_name, context.flatten()))
 
