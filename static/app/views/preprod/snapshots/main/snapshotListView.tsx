@@ -32,6 +32,7 @@ import {SnapshotCardFrame, SnapshotGroupHeader} from './snapshotFrames';
 interface SnapshotListViewProps {
   imageBaseUrl: string;
   items: SidebarItem[];
+  activeTagFilters?: Record<string, Set<string>>;
   diffImageBaseUrl?: string;
   diffMode?: DiffMode;
   headBranch?: string | null;
@@ -192,6 +193,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   ref,
   onVisibleGroupChange,
   onTagClick,
+  activeTagFilters,
 }: SnapshotListViewProps) {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -600,6 +602,7 @@ export const SnapshotListView = memo(function SnapshotListView({
                 overlayColor={overlayColor}
                 diffImageBaseUrl={diffImageBaseUrl}
                 onTagClick={onTagClick}
+                activeTagFilters={activeTagFilters}
               />
             </RowPositioner>
           );
@@ -620,11 +623,13 @@ const GroupContainer = memo(function GroupContainer({
   overlayColor,
   diffImageBaseUrl,
   onTagClick,
+  activeTagFilters,
 }: {
   diffMode: DiffMode;
   group: GroupRow;
   imageBaseUrl: string;
   selectedSnapshotKey: string | null;
+  activeTagFilters?: Record<string, Set<string>>;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
   onOpenSnapshot?: (key: string) => void;
@@ -665,6 +670,7 @@ const GroupContainer = memo(function GroupContainer({
         onCopyLink={onCopyLink}
         onCopyMetadata={onCopyMetadata}
         onTagClick={onTagClick}
+        activeTagFilters={activeTagFilters}
       />
     ) : (
       <ImageCard
@@ -681,6 +687,7 @@ const GroupContainer = memo(function GroupContainer({
         onCopyLink={onCopyLink}
         onCopyMetadata={onCopyMetadata}
         onTagClick={onTagClick}
+        activeTagFilters={activeTagFilters}
       />
     );
   });

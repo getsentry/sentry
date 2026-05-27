@@ -2,7 +2,6 @@ import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Badge} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -369,16 +368,9 @@ const TagFilterSection = memo(function TagFilterSection({
     <Stack borderBottom="primary" onClick={e => e.stopPropagation()}>
       <TagDisclosure size="xs">
         <Disclosure.Title>
-          <Flex align="center" gap="sm">
-            <Text size="sm" bold>
-              {t('Tags')}
-            </Text>
-            {hasActiveFilter && (
-              <Badge variant="highlight">
-                {Object.values(activeTagFilters).reduce((sum, s) => sum + s.size, 0)}
-              </Badge>
-            )}
-          </Flex>
+          <Text size="sm" bold>
+            {t('Tags')}
+          </Text>
         </Disclosure.Title>
         <Disclosure.Content>
           <Stack gap="lg" paddingBottom="lg" style={{maxHeight: 200, overflowY: 'auto'}}>

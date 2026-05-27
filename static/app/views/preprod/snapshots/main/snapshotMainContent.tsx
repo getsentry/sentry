@@ -70,6 +70,7 @@ interface SnapshotMainContentProps {
   selectedItem: SidebarItem | null;
   variantIndex: number;
   viewMode: ViewMode;
+  activeTagFilters?: Record<string, Set<string>>;
   headBranch?: string | null;
   listViewRef?: React.RefObject<SnapshotListViewHandle | null>;
   onSelectSnapshot?: (key: string | null) => void;
@@ -108,6 +109,7 @@ export function SnapshotMainContent({
   canNavigateNext,
   navButtonRefs,
   onTagClick,
+  activeTagFilters,
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
   const [isDark, setIsDark] = useState(false);
@@ -221,6 +223,7 @@ export function SnapshotMainContent({
           diffImageBaseUrl={diffImageBaseUrl}
           onVisibleGroupChange={onVisibleGroupChange}
           onTagClick={onTagClick}
+          activeTagFilters={activeTagFilters}
         />
       </Flex>
     );
@@ -272,6 +275,7 @@ export function SnapshotMainContent({
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
           onTagClick,
+          activeTagFilters,
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
@@ -326,6 +330,7 @@ export function SnapshotMainContent({
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
           onTagClick,
+          activeTagFilters,
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
@@ -387,6 +392,7 @@ export function SnapshotMainContent({
         copyData: currentImage,
         copyUrl: buildSnapshotLink(currentImage.image_file_name),
         onTagClick,
+        activeTagFilters,
         onCopyLink: () =>
           trackAnalytics('preprod.snapshots.details.image_link_copied', {
             organization,

@@ -12,8 +12,10 @@ const ONE_ROW_HEIGHT = 20;
 export function CollapsibleBadgeRow({
   tags,
   onTagClick,
+  activeTagFilters,
 }: {
   tags: Record<string, string>;
+  activeTagFilters?: Record<string, Set<string>>;
   onTagClick?: (key: string, value: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -76,6 +78,7 @@ export function CollapsibleBadgeRow({
           <ClickableBadge
             key={key}
             type="button"
+            isActive={activeTagFilters?.[key]?.has(value) ?? false}
             onClick={e => {
               e.stopPropagation();
               onTagClick(key, value);
@@ -116,16 +119,20 @@ export function CollapsibleBadgeRow({
   );
 }
 
-const ClickableBadge = styled('button')`
+const ClickableBadge = styled('button')<{isActive: boolean}>`
   display: inline-flex;
   align-items: center;
   height: ${ONE_ROW_HEIGHT}px;
   padding: 0 ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  background: transparent;
+  border: 1px solid
+    ${p =>
+      p.isActive ? p.theme.tokens.border.accent.vibrant : p.theme.tokens.border.primary};
+  background: ${p =>
+    p.isActive ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
   font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
+  color: ${p =>
+    p.isActive ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
   cursor: pointer;
   white-space: nowrap;
   box-sizing: border-box;

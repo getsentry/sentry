@@ -381,18 +381,12 @@ export default function SnapshotsPage() {
 
   const handleToggleTagFilter = useCallback((key: string, value: string) => {
     setActiveTagFilters(prev => {
-      const current = prev[key] ?? new Set<string>();
-      const next = new Set(current);
-      if (next.has(value)) {
-        next.delete(value);
-      } else {
-        next.add(value);
-      }
+      const current = prev[key];
       const result = {...prev};
-      if (next.size === 0) {
+      if (current?.has(value)) {
         delete result[key];
       } else {
-        result[key] = next;
+        result[key] = new Set([value]);
       }
       return result;
     });
@@ -438,10 +432,7 @@ export default function SnapshotsPage() {
           continue;
         }
         for (const [k, v] of Object.entries(img.tags)) {
-          const passesOtherFilters = activeTagKeys.every(filterKey => {
-            if (filterKey === k) {
-              return true;
-            }
+          const passesFilters = activeTagKeys.every(filterKey => {
             const filterValues = activeTagFilters[filterKey];
             if (!filterValues || filterValues.size === 0) {
               return true;
@@ -449,7 +440,7 @@ export default function SnapshotsPage() {
             const imgValue = img.tags?.[filterKey];
             return imgValue !== undefined && filterValues.has(imgValue);
           });
-          if (!passesOtherFilters) {
+          if (!passesFilters) {
             continue;
           }
           let values = tagMap.get(k);
@@ -853,6 +844,7 @@ export default function SnapshotsPage() {
           canNavigateNext={singleViewNav.canNext}
           navButtonRefs={navButtonRefs}
           onTagClick={handleToggleTagFilter}
+          activeTagFilters={activeTagFilters}
         />
       </Flex>
     </Flex>
