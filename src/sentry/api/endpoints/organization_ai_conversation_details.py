@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
@@ -21,7 +22,6 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.utils.dates import parse_stats_period
 
 MAX_RETENTION_DAYS = 30
-MAX_SPANS = 1000
 
 _WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
 
@@ -93,28 +93,49 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     {"detail": f"end time cannot be older than {MAX_RETENTION_DAYS} days"},
                     status=400,
                 )
-            params_to_try = [snuba_params]
-        else:
-            params_to_try = self._build_widening_params(
-                snuba_params, request.GET.get("statsPeriod"), now
-            )
 
         with handle_query_errors():
-            for params in params_to_try:
-                data = self._fetch_conversation_spans(params, conversation_id)
-                if data:
-                    return Response({"data": data})
-            return Response({"data": []})
+            if has_explicit_range:
+                resolved_params = snuba_params
+            else:
+                resolved_params = self._resolve_time_window(
+                    snuba_params, request.GET.get("statsPeriod"), now, conversation_id
+                )
+
+            def data_fn(offset: int, limit: int) -> list:
+                return self._fetch_spans(resolved_params, conversation_id, offset, limit)
+
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                default_per_page=100,
+                max_per_page=1000,
+            )
+
+    def _resolve_time_window(
+        self,
+        base_params: SnubaParams,
+        stats_period: str | None,
+        now: datetime,
+        conversation_id: str,
+    ) -> SnubaParams:
+        """Probe progressively wider windows to find which contains the conversation."""
+        candidates = self._build_widening_params(base_params, stats_period, now)
+        for params in candidates:
+            if self._fetch_spans(params, conversation_id, offset=0, limit=1):
+                return params
+        return candidates[-1]
 
     def _build_widening_params(
         self, base_params: SnubaParams, stats_period: str | None, now: datetime
     ) -> list[SnubaParams]:
+        max_retention = timedelta(days=MAX_RETENTION_DAYS)
         requested_delta: timedelta | None = (
             parse_stats_period(stats_period) if stats_period else None
         )
 
         steps: list[timedelta] = []
-        if requested_delta:
+        if requested_delta and requested_delta < max_retention:
             steps.append(requested_delta)
         for step in _WIDENING_STEPS:
             if not steps or step > steps[-1]:
@@ -123,14 +144,20 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
     @sentry_sdk.trace
-    def _fetch_conversation_spans(self, snuba_params: SnubaParams, conversation_id: str) -> list:
+    def _fetch_spans(
+        self,
+        snuba_params: SnubaParams,
+        conversation_id: str,
+        offset: int,
+        limit: int,
+    ) -> list:
         result = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
             selected_columns=AI_CONVERSATION_ATTRIBUTES,
             orderby=["precise.start_ts"],
-            offset=0,
-            limit=MAX_SPANS,
+            offset=offset,
+            limit=limit,
             referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
             config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
