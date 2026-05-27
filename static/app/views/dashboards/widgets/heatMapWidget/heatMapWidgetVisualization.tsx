@@ -33,6 +33,7 @@ import type {HeatMapPlottable} from './plottables/heatMapPlottable';
 import {HEATMAP_COLORS} from './settings';
 
 // This is the ECharts default font size for axis labels. We need to use this number to do axis label frequency calculations
+// Source: https://echarts.apache.org/en/option.html#yAxis.axisLabel.fontSize
 const Y_AXIS_LABEL_FONT_SIZE = 12;
 
 interface HeatMapWidgetVisualizationProps {
@@ -292,6 +293,10 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               const numFittingLabels = Math.floor(
                 (chartRef.current?.ele.clientHeight ?? 0) / (Y_AXIS_LABEL_FONT_SIZE * 3)
               );
+              // show all labels if we can't find the client height
+              if (numFittingLabels === 0) {
+                return true;
+              }
               const nthBucketToShow = Math.ceil(yAxisBucketCount / numFittingLabels);
               // don't show the third last and second last labels; we want to make sure the last label
               // isn't smushed up against another label
