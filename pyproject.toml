@@ -1284,7 +1284,6 @@ module = [
     "sentry.release_health.tasks",
     "sentry.releases",
     "sentry.releases.endpoints.*",
-    "sentry.relocation.tasks.*",
     "sentry.remote_subscriptions.*",
     "sentry.replays",
     "sentry.replays._case_studies.*",
