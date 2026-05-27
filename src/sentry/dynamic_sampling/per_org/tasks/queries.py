@@ -29,6 +29,8 @@ class DynamicSamplingQueryFilters(StrEnum):
 
 class DynamicSamplingQueryFields(StrEnum):
     ROOT_PROJECT = "sentry.dsc.root_project"
+    PROJECT_ID = "sentry.dsc.project_id"
+    TRANSACTION = "sentry.dsc.transaction"
     COUNT = "count()"
     COUNT_SAMPLE = "count_sample()"
 
@@ -42,7 +44,7 @@ class ProjectVolume:
 
 
 @dataclass
-class _EAPProjectTransactionVolumesAccumulator:
+class ProjectTransactionVolumesAccumulator:
     transaction_counts: list[tuple[str, float]] = field(default_factory=list)
     total_num_transactions: float = 0
     num_classes: int = 0
@@ -186,15 +188,26 @@ def get_eap_transaction_volumes(
 
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
-    volumes_by_project: defaultdict[int, _EAPProjectTransactionVolumesAccumulator] = defaultdict(
-        _EAPProjectTransactionVolumesAccumulator
+    volumes_by_project: defaultdict[int, ProjectTransactionVolumesAccumulator] = defaultdict(
+        ProjectTransactionVolumesAccumulator
     )
 
-    orderby = ["sentry.dsc.project_id", "sentry.dsc.transaction"]
+    orderby: list[str] = [
+        DynamicSamplingQueryFields.PROJECT_ID,
+        DynamicSamplingQueryFields.TRANSACTION,
+    ]
     if order_by_volume == "asc":
-        orderby = ["count()", "sentry.dsc.project_id", "sentry.dsc.transaction"]
+        orderby = [
+            DynamicSamplingQueryFields.COUNT,
+            DynamicSamplingQueryFields.PROJECT_ID,
+            DynamicSamplingQueryFields.TRANSACTION,
+        ]
     elif order_by_volume == "desc":
-        orderby = ["-count()", "sentry.dsc.project_id", "sentry.dsc.transaction"]
+        orderby = [
+            f"-{DynamicSamplingQueryFields.COUNT}",
+            DynamicSamplingQueryFields.PROJECT_ID,
+            DynamicSamplingQueryFields.TRANSACTION,
+        ]
 
     root_project_filter = ",".join(str(project.id) for project in config.projects)
     result = Spans.run_table_query(
@@ -204,8 +217,12 @@ def get_eap_transaction_volumes(
             projects=config.projects,
             organization=config.organization,
         ),
-        query_string=f"is_transaction:true sentry.dsc.project_id:[{root_project_filter}]",
-        selected_columns=["sentry.dsc.project_id", "sentry.dsc.transaction", "count()"],
+        query_string=f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.PROJECT_ID}:[{root_project_filter}]",
+        selected_columns=[
+            DynamicSamplingQueryFields.PROJECT_ID,
+            DynamicSamplingQueryFields.TRANSACTION,
+            DynamicSamplingQueryFields.COUNT,
+        ],
         orderby=orderby,
         offset=0,
         limit=max_transactions,
@@ -218,14 +235,14 @@ def get_eap_transaction_volumes(
     )
 
     for row in result.get("data", []):
-        if (transaction := row.get("sentry.dsc.transaction")) is None:
+        if (transaction := row.get(DynamicSamplingQueryFields.TRANSACTION)) is None:
             continue
 
-        total = _get_aggregate_float(row, "count()")
+        total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue
 
-        project_id = _get_aggregate_int(row, "sentry.dsc.project_id")
+        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.PROJECT_ID)
         project_volumes = volumes_by_project[project_id]
 
         project_volumes.transaction_counts.append((str(transaction), total))
