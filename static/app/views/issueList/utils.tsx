@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
@@ -80,6 +81,24 @@ export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
+
+const ISSUE_STREAM_SORT_LOCALSTORAGE_KEY = 'issue-stream-sort';
+
+function makeSortStorageKey(orgSlug: string): string {
+  return `${ISSUE_STREAM_SORT_LOCALSTORAGE_KEY}:${orgSlug}`;
+}
+
+export function getStoredIssueSort(orgSlug: string): IssueSortOptions | null {
+  const value = localStorageWrapper.getItem(makeSortStorageKey(orgSlug));
+  if (value && Object.values(IssueSortOptions).includes(value as IssueSortOptions)) {
+    return value as IssueSortOptions;
+  }
+  return null;
+}
+
+export function setStoredIssueSort(orgSlug: string, sort: IssueSortOptions): void {
+  localStorageWrapper.setItem(makeSortStorageKey(orgSlug), sort);
+}
 
 export function createIssueLink({
   organization,

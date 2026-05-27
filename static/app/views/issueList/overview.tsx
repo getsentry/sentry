@@ -68,6 +68,8 @@ import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
+  getStoredIssueSort,
+  setStoredIssueSort,
   isForReviewQuery,
   IssueSortOptions,
   Query,
@@ -213,10 +215,13 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (location.query.query as string)
     : initialQuery;
-  const sort = decodeScalar(
-    location.query.sort,
-    DEFAULT_ISSUE_STREAM_SORT
-  ) as IssueSortOptions;
+  const hasRecommendedSort = organization.features.includes(
+    'issue-stream-recommended-sort'
+  );
+  const defaultSort = hasRecommendedSort
+    ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+    : DEFAULT_ISSUE_STREAM_SORT;
+  const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
     let currentPeriod: string;
@@ -250,7 +255,7 @@ function IssueListOverviewInner({
       params.start = getUtcDateString(params.start);
     }
 
-    if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
+    if (sort !== IssueSortOptions.DATE) {
       params.sort = sort;
     }
 
@@ -675,6 +680,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
+    setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     transitionTo({sort: newSort});
   };
 
