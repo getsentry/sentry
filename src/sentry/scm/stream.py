@@ -13,6 +13,7 @@ from sentry.scm.types import (
     PullRequestEvent,
     SubscriptionEvent,
 )
+from sentry.seer.code_review.webhooks.listeners import pull_request_listener  # noqa: F401
 
 # DEFAULT LISTENERS
 #
