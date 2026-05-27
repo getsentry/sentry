@@ -12,7 +12,7 @@ from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, get_automation_handoff
+from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
 from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -53,7 +53,6 @@ logger = logging.getLogger(__name__)
 # entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
 # incidents, since a run should not take nearly that long to complete.
 PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
-AUTOFIX_FALLBACK_CAUSE_ID = 0
 
 
 def has_seer_autofix_entrypoint_access(
@@ -691,44 +690,6 @@ def process_autofix_updates(
                     ept_lifecycle.record_failure(failure_reason=e)
 
 
-def get_stopping_point_status(
-    stopping_point: AutofixStoppingPoint, autofix_state: AutofixState
-) -> dict | None:
-    """
-    Gets the most recent matching step state from a given stopping point.
-    """
-    # The most recent of a repeated step is at the end of the list, that's what we want to surface
-    steps = reversed(autofix_state.steps)
-    match stopping_point:
-        case AutofixStoppingPoint.ROOT_CAUSE:
-            step = next(
-                (
-                    step
-                    for step in steps
-                    if step.get("key") in {"root_cause_analysis", "root_cause_analysis_processing"}
-                ),
-                None,
-            )
-        case AutofixStoppingPoint.SOLUTION:
-            step = next(
-                (step for step in steps if step.get("key") in {"solution", "solution_processing"}),
-                None,
-            )
-        case AutofixStoppingPoint.CODE_CHANGES:
-            step = next((step for step in steps if step.get("key") == "changes"), None)
-        case AutofixStoppingPoint.OPEN_PR:
-            step = next(
-                (
-                    step
-                    for step in steps
-                    if step.get("key") == "changes"
-                    and any(change.get("pull_request") for change in step.get("changes", []))
-                ),
-                None,
-            )
-    return step
-
-
 def get_autofix_explorer_status(
     stopping_point: AutofixStoppingPoint, autofix_state: SeerRunState
 ) -> bool | None:
@@ -785,32 +746,6 @@ def get_autofix_explorer_status(
     # no block matching the stopping point found, so return None
     # to indicate the step has not run before
     return None
-
-
-def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
-    """
-    Gets the latest cause_id from a given autofix state.
-    """
-    if not autofix_state:
-        return AUTOFIX_FALLBACK_CAUSE_ID
-    root_cause_step = next(
-        (
-            step
-            # If there are multiple RCA steps, we want the latest, so we reverse the list
-            for step in reversed(autofix_state.steps)
-            if step.get("key") == "root_cause_analysis"
-        ),
-        None,
-    )
-    if not root_cause_step:
-        return AUTOFIX_FALLBACK_CAUSE_ID
-
-    root_causes = root_cause_step.get("causes", [])
-    if not root_causes:
-        return AUTOFIX_FALLBACK_CAUSE_ID
-
-    # The most recent cause is at the end of the list
-    return root_causes[-1].get("id", AUTOFIX_FALLBACK_CAUSE_ID)
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
