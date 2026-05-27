@@ -10,7 +10,6 @@ from sentry.middleware import is_frontend_request
 
 logger = logging.getLogger(__name__)
 
-MCP_CLIENT_ID_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_ID"
 MCP_CLIENT_NAME_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_NAME"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 

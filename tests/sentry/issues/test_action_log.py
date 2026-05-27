@@ -305,3 +305,42 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         ]
         assert len(reviewed_calls) == 1
         assert reviewed_calls[0].kwargs["group_id"] == group_in_inbox.id
+
+    @patch(PUBLISH_UPDATE)
+    def test_archive_already_archived_skips_action(self, mock_publish: MagicMock) -> None:
+        self.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
+        response = self.client.put(
+            self.url,
+            data={"status": "ignored", "substatus": "archived_until_escalating"},
+            format="json",
+        )
+        assert response.status_code == 200
+        archive_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.ARCHIVE
+        ]
+        assert len(archive_calls) == 0
+
+    @patch(PUBLISH_UPDATE)
+    def test_unresolve_already_unresolved_skips_action(self, mock_publish: MagicMock) -> None:
+        response = self.client.put(self.url, data={"status": "unresolved"}, format="json")
+        assert response.status_code == 200
+        unresolve_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.UNRESOLVE
+        ]
+        assert len(unresolve_calls) == 0
+
+    @patch(PUBLISH_UPDATE)
+    def test_unassign_with_existing_assignee_emits_action(self, mock_publish: MagicMock) -> None:
+        self.client.put(
+            self.url,
+            data={"assignedTo": f"user:{self.user.id}"},
+            format="json",
+        )
+        mock_publish.reset_mock()
+        response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
+        assert response.status_code == 200
+        unassign_calls = [
+            c for c in mock_publish.call_args_list if c.kwargs["action"] == ActionType.UNASSIGN
+        ]
+        assert len(unassign_calls) == 1
+        assert unassign_calls[0].kwargs["group_id"] == self.group.id

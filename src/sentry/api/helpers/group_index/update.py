@@ -767,8 +767,8 @@ def handle_other_status_updates(
         new_substatus = SUBSTATUS_UPDATE_CHOICES[result["substatus"]]
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
-    changed_group_ids = set(queryset.exclude(status=new_status).values_list("id", flat=True))
     with transaction.atomic(router.db_for_write(Group)):
+        changed_group_ids = set(queryset.exclude(status=new_status).values_list("id", flat=True))
         status_updated = queryset.exclude(status=new_status).update(
             status=new_status, substatus=new_substatus
         )
