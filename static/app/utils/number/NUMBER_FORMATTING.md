@@ -268,7 +268,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatYAxisValue(value, 'number'/'integer', ...)`
 
-[formatYAxisValue.tsx](static/app/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue.tsx) · Integers → `formatAbbreviatedNumber`. Non-integers → `formatNumberWithDynamicDecimalPoints(value, 4)` (ECharts treats heat map y-axis as categories so it will not do a great job at formatting and providing round values. Hence we are rounding them off ourselves).
+[formatYAxisValue.tsx](static/app/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue.tsx) · NOTE: This function is ONLY for HEAT MAPS! Integers → `formatAbbreviatedNumber`. Non-integers → `formatNumberWithDynamicDecimalPoints(value, 4)` (ECharts treats heat map y-axis as categories so it will not do a great job at formatting and providing round values. Hence we are rounding them off ourselves).
 
 ### `formatTooltipValue(value, 'number'/'integer', ...)`
 
