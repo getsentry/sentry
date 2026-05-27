@@ -14,6 +14,7 @@ import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/so
 import {LogsLocationQueryParamsProvider} from 'sentry/views/explore/logs/logsLocationQueryParamsProvider';
 import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {
+  useSetQueryParamsAggregateCursor,
   useSetQueryParamsAggregateFields,
   useSetQueryParamsAggregateSortBys,
   useSetQueryParamsQuery,
@@ -25,6 +26,7 @@ function Wrapper({children}: {children: ReactNode}) {
 
 function useLogsQueryParamSetters() {
   return {
+    setAggregateCursor: useSetQueryParamsAggregateCursor(),
     setAggregateFields: useSetQueryParamsAggregateFields(),
     setAggregateSortBys: useSetQueryParamsAggregateSortBys(),
     setQuery: useSetQueryParamsQuery(),
@@ -109,6 +111,26 @@ describe('LogsLocationQueryParamsProvider', () => {
 
     await waitFor(() => {
       expect(router.location.query[LOGS_AGGREGATE_SORT_BYS_KEY]).toBe('count(message)');
+    });
+  });
+
+  it('clears aggregate cursor when set to undefined', async () => {
+    const {result, router} = renderHookWithProviders(useLogsQueryParamSetters, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/logs/',
+          query: {
+            [LOGS_AGGREGATE_CURSOR_KEY]: '50:0:1',
+          },
+        },
+      },
+    });
+
+    act(() => result.current.setAggregateCursor(undefined));
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AGGREGATE_CURSOR_KEY]).toBeUndefined();
     });
   });
 });

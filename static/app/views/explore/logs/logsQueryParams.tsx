@@ -183,11 +183,8 @@ export function getLogsQueryParamsUpdate(writableQueryParams: WritableQueryParam
   if (defined(writableQueryParams.cursor) || writableQueryParams.cursor === null) {
     update[LOGS_CURSOR_KEY] = writableQueryParams.cursor;
   }
-  if (
-    defined(writableQueryParams.aggregateCursor) ||
-    writableQueryParams.aggregateCursor === null
-  ) {
-    update[LOGS_AGGREGATE_CURSOR_KEY] = writableQueryParams.aggregateCursor;
+  if (Object.hasOwn(writableQueryParams, 'aggregateCursor')) {
+    update[LOGS_AGGREGATE_CURSOR_KEY] = writableQueryParams.aggregateCursor ?? null;
   }
   if (defined(writableQueryParams.fields) || writableQueryParams.fields === null) {
     update[LOGS_FIELDS_KEY] =

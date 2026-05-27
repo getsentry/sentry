@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
+  useSetQueryParamsAggregateCursor,
   useSetQueryParamsAggregateFields,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
@@ -14,6 +15,7 @@ function Wrapper({children}: {children: ReactNode}) {
 
 function useSpansQueryParamSetters() {
   return {
+    setAggregateCursor: useSetQueryParamsAggregateCursor(),
     setAggregateFields: useSetQueryParamsAggregateFields(),
     setQuery: useSetQueryParamsQuery(),
   };
@@ -76,5 +78,25 @@ describe('SpansQueryParamsProvider', () => {
     expect(router.location.query.visualize).toBeUndefined();
     expect(router.location.query.cursor).toBeUndefined();
     expect(router.location.query.aggregateCursor).toBeUndefined();
+  });
+
+  it('clears aggregate cursor when set to undefined', async () => {
+    const {result, router} = renderHookWithProviders(useSpansQueryParamSetters, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            aggregateCursor: '50:0:1',
+          },
+        },
+      },
+    });
+
+    act(() => result.current.setAggregateCursor(undefined));
+
+    await waitFor(() => {
+      expect(router.location.query.aggregateCursor).toBeUndefined();
+    });
   });
 });

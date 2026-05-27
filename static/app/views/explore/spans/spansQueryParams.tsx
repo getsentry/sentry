@@ -205,11 +205,8 @@ export function getSpansQueryParamsUpdate(writableQueryParams: WritableQueryPara
   if (defined(writableQueryParams.cursor) || writableQueryParams.cursor === null) {
     update[SPANS_CURSOR_KEY] = writableQueryParams.cursor;
   }
-  if (
-    defined(writableQueryParams.aggregateCursor) ||
-    writableQueryParams.aggregateCursor === null
-  ) {
-    update[SPANS_AGGREGATE_CURSOR] = writableQueryParams.aggregateCursor;
+  if (Object.hasOwn(writableQueryParams, 'aggregateCursor')) {
+    update[SPANS_AGGREGATE_CURSOR] = writableQueryParams.aggregateCursor ?? null;
   }
   if (defined(writableQueryParams.fields) || writableQueryParams.fields === null) {
     update[SPANS_FIELD_KEY] =
