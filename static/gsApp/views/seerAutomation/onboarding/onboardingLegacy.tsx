@@ -128,7 +128,9 @@ function ProjectRowWithUpdate({
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   const handleProjectClick = useCallback(() => {
-    if (!repositories) return;
+    if (!repositories) {
+      return;
+    }
 
     const currentPreference = projectStates[project.id]?.preference;
     const currentRepoIds =
@@ -300,13 +302,19 @@ function ProjectsWithoutRepos({
   }, [projects, projectStates]);
 
   const projectsWithoutRepos = useMemo(() => {
-    if (isLoading) return [];
+    if (isLoading) {
+      return [];
+    }
 
     const filtered = projects.filter(project => {
-      if (successfullyConnectedProjects.has(project.id)) return false;
+      if (successfullyConnectedProjects.has(project.id)) {
+        return false;
+      }
 
       const state = projectStates[project.id];
-      if (!state || state.isPending) return false;
+      if (!state || state.isPending) {
+        return false;
+      }
 
       let repoCount = state.preference?.repositories?.length || 0;
       if (repoCount === 0 && state.codeMappingRepos) {
@@ -316,7 +324,9 @@ function ProjectsWithoutRepos({
     });
 
     // Apply search filter
-    if (!searchQuery.trim()) return filtered;
+    if (!searchQuery.trim()) {
+      return filtered;
+    }
 
     const query = searchQuery.toLowerCase();
     return filtered.filter(
@@ -611,7 +621,9 @@ export function SeerAutomationOnboarding() {
   const projectsWithoutRepos = useMemo(() => {
     return filteredProjects.filter(project => {
       // Exclude projects that have been successfully connected this session
-      if (successfullyConnectedProjects.has(project.id)) return false;
+      if (successfullyConnectedProjects.has(project.id)) {
+        return false;
+      }
 
       // Exclude projects that already have repositories
       const state = projectStates[project.id];

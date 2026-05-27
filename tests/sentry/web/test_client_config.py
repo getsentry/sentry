@@ -145,7 +145,6 @@ def test_client_config_features() -> None:
             {
                 "auth:register": True,
                 "system:multi-region": True,
-                "organizations:create-org-control": True,
             }
         ),
     ):
@@ -154,7 +153,6 @@ def test_client_config_features() -> None:
         assert "features" in result
         assert "system:multi-region" in result["features"]
         assert "auth:register" in result["features"]
-        assert "organizations:create-org-control" in result["features"]
 
 
 @no_silo_test

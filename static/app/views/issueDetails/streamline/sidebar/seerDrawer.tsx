@@ -2,8 +2,7 @@ import {useCallback, useRef} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import {SeerDrawer as LegacySeerDrawer} from 'sentry/components/events/autofix/v1/drawer';
-import {SeerDrawer as ExplorerSeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
+import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -12,22 +11,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-interface SeerDrawerProps {
-  event: Event;
-  group: Group;
-  project: Project;
-}
-
-export function SeerDrawer({group, project, event}: SeerDrawerProps) {
-  const organization = useOrganization();
-
-  if (organization.features.includes('autofix-on-explorer')) {
-    return <ExplorerSeerDrawer group={group} project={project} />;
-  }
-
-  return <LegacySeerDrawer event={event} group={group} project={project} />;
-}
+export {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 
 export const useOpenSeerDrawer = ({
   group,
@@ -59,7 +43,7 @@ export const useOpenSeerDrawer = ({
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
 
-    openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
+    openDrawer(() => <SeerDrawer group={group} project={project} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
       resizable: true,

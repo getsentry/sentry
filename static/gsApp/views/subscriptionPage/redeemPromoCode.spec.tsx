@@ -30,7 +30,7 @@ describe('Redeem promo code', () => {
         route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
-    expect(screen.queryAllByText('Redeem Promotional Code')).toHaveLength(2);
+    expect(screen.getByText('Redeem Promotional Code')).toBeInTheDocument();
   });
 
   it('does not render redeem promo code page for YY partnership orgs', async () => {

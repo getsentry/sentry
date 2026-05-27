@@ -229,7 +229,9 @@ export function SeerAutomationProjectList() {
         await Promise.all(
           batch.map(projectId => {
             const project = projects.find(p => p.id === projectId);
-            if (!project) return Promise.resolve();
+            if (!project) {
+              return Promise.resolve();
+            }
 
             const updateData: any = {autofixAutomationTuning: value};
             if (value !== 'off') {
@@ -249,7 +251,9 @@ export function SeerAutomationProjectList() {
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
-        if (!project) return;
+        if (!project) {
+          return;
+        }
         queryClient.invalidateQueries({
           queryKey: makeDetailedProjectQueryKey({
             orgSlug: organization.slug,
@@ -271,7 +275,9 @@ export function SeerAutomationProjectList() {
         await Promise.all(
           batch.map(projectId => {
             const project = projects.find(p => p.id === projectId);
-            if (!project) return Promise.resolve();
+            if (!project) {
+              return Promise.resolve();
+            }
             return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
               method: 'PUT',
               data: {seerScannerAutomation: value},
@@ -285,7 +291,9 @@ export function SeerAutomationProjectList() {
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
-        if (!project) return;
+        if (!project) {
+          return;
+        }
         queryClient.invalidateQueries({
           queryKey: makeDetailedProjectQueryKey({
             orgSlug: organization.slug,

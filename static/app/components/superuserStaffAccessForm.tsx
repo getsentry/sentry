@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -205,14 +205,14 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
           isLoading ? (
             <LoadingIndicator />
           ) : (
-            <React.Fragment>
+            <Fragment>
               {error && <Alert variant="danger">{errorType}</Alert>}
               <WebAuthn
                 mode="sudo"
                 authenticators={authenticators}
                 onWebAuthn={this.handleWebAuthn}
               />
-            </React.Fragment>
+            </Fragment>
           )
         ) : (
           <Form

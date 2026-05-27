@@ -308,6 +308,7 @@ function TableComponent({
 
             return {
               location,
+              navigate,
               organization,
               projects,
               theme,
@@ -490,12 +491,6 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {
-  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
-
-  if (!hasTextWidgets) {
-    return null;
-  }
-
   return <TextWidgetVisualization text={props.widget.description} />;
 }
 

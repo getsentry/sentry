@@ -32,8 +32,8 @@ describe('useTraceMetricsSeriesQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: [],
           conditions: '',
           orderby: '',
@@ -46,7 +46,7 @@ describe('useTraceMetricsSeriesQuery', () => {
       body: {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -73,7 +73,7 @@ describe('useTraceMetricsSeriesQuery', () => {
         '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
-            yAxis: ['avg(value,test_metric,millisecond,-)'],
+            yAxis: ['avg(value,test_metric,millisecond,none)'],
           }),
         })
       );
@@ -86,8 +86,8 @@ describe('useTraceMetricsSeriesQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: [],
           conditions: 'environment:production',
           orderby: '',
@@ -100,7 +100,7 @@ describe('useTraceMetricsSeriesQuery', () => {
       body: {
         timeSeries: [
           {
-            yAxis: 'avg(value,test_metric,millisecond,-)',
+            yAxis: 'avg(value,test_metric,millisecond,none)',
             values: [{timestamp: 1, value: 100}],
             groupBy: [],
             meta: {
@@ -143,8 +143,8 @@ describe('useTraceMetricsSeriesQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['project', 'avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['project', 'avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: ['project'],
           conditions: '',
           orderby: '',
@@ -197,8 +197,8 @@ describe('useTraceMetricsTableQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['project', 'avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['project', 'avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: ['project'],
           conditions: '',
           orderby: '',
@@ -212,7 +212,7 @@ describe('useTraceMetricsTableQuery', () => {
         data: [
           {
             project: 'frontend',
-            'avg(value,test_metric,millisecond,-)': 150,
+            'avg(value,test_metric,millisecond,none)': 150,
           },
         ],
       },
@@ -245,8 +245,8 @@ describe('useTraceMetricsTableQuery', () => {
       queries: [
         {
           name: 'test',
-          fields: ['project', 'avg(value,test_metric,millisecond,-)'],
-          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          fields: ['project', 'avg(value,test_metric,millisecond,none)'],
+          aggregates: ['avg(value,test_metric,millisecond,none)'],
           columns: ['project'],
           conditions: '',
           orderby: '',
@@ -260,7 +260,7 @@ describe('useTraceMetricsTableQuery', () => {
         data: [
           {
             project: 'frontend',
-            'avg(value,test_metric,millisecond,-)': 150,
+            'avg(value,test_metric,millisecond,none)': 150,
           },
         ],
       },

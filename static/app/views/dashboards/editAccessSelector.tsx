@@ -361,6 +361,7 @@ export function EditAccessSelector({
           />
         </Flex>
       }
+      position="bottom-end"
       strategy="fixed"
       preventOverflowOptions={{mainAxis: false}}
       disabled={disabled}

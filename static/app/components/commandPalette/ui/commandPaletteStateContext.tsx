@@ -22,6 +22,10 @@ export type CMDKNavStack = {
 export type CommandPaletteState = {
   action: CMDKNavStack | null;
   input: React.RefObject<HTMLInputElement | null>;
+  // Controls whether the rendered action list updates from the collection store.
+  // 'frozen' keeps the visible list stable while the user navigates with the
+  // keyboard. Any other dispatched action resets to 'active'.
+  list: 'active' | 'frozen';
   open: boolean;
   // When true, action and query are cleared the next time the modal opens.
   // Set by 'trigger action' so the close animation plays without a jarring
@@ -49,7 +53,8 @@ type CommandPaletteAction =
     }
   | {type: 'trigger action'}
   | {type: 'pop action'}
-  | {type: 'reset on open'};
+  | {type: 'reset on open'}
+  | {type: 'freeze list'};
 
 const CommandPaletteStateContext = createContext<CommandPaletteState | null>(null);
 const CommandPaletteDispatchContext =
@@ -61,6 +66,8 @@ function commandPaletteReducer(
 ): CommandPaletteState {
   const type = action.type;
   switch (type) {
+    case 'freeze list':
+      return {...state, list: 'frozen'};
     case 'toggle modal':
       if (!state.open && state.resetOnOpen) {
         return {
@@ -70,11 +77,13 @@ function commandPaletteReducer(
           query: '',
           resetOnOpen: false,
           pendingReset: false,
+          list: 'active',
         };
       }
       return {
         ...state,
         open: !state.open,
+        list: 'active',
       };
     case 'reset':
       return {
@@ -83,11 +92,12 @@ function commandPaletteReducer(
         query: '',
         pendingReset: false,
         resetOnOpen: false,
+        list: 'active',
       };
     case 'reset on open':
-      return {...state, resetOnOpen: true};
+      return {...state, resetOnOpen: true, list: 'active'};
     case 'set query':
-      return {...state, query: action.query};
+      return {...state, query: action.query, list: 'active'};
     case 'push action':
       return {
         ...state,
@@ -101,15 +111,17 @@ function commandPaletteReducer(
           previous: state.action,
         },
         query: action.query ?? '',
+        list: 'active',
       };
     case 'pop action':
       return {
         ...state,
         action: state.action?.previous ?? null,
         query: state.action?.value?.query ?? state.query,
+        list: 'active',
       };
     case 'trigger action':
-      return {...state, pendingReset: true};
+      return {...state, pendingReset: true, list: 'active'};
     default:
       unreachable(type);
       return state;
@@ -149,6 +161,7 @@ export function CommandPaletteStateProvider({
     open: false,
     pendingReset: false,
     resetOnOpen: false,
+    list: 'active',
   });
 
   return (

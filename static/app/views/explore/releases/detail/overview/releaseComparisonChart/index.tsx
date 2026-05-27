@@ -50,7 +50,7 @@ import {
 } from 'sentry/views/explore/releases/utils';
 
 import {ReleaseComparisonChartRow} from './releaseComparisonChartRow';
-import ReleaseEventsChart from './releaseEventsChart';
+import {ReleaseEventsChart} from './releaseEventsChart';
 import ReleaseSessionsChart from './releaseSessionsChart';
 
 export type ReleaseComparisonRow = {

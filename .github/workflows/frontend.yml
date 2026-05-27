@@ -30,6 +30,7 @@ jobs:
       mdx_typecheckable: ${{ steps.changes.outputs.mdx_typecheckable }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
       merge_base: ${{ steps.merge_base.outputs.merge_base }}
+      merge_base_strategy: ${{ steps.merge_base.outputs.merge_base_strategy }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -57,13 +58,17 @@ jobs:
             if echo "$CHANGED" | grep -qvE '^static/'; then
               echo "Non-frontend file changed — running full Jest suite"
               MERGE_BASE=""
+              STRATEGY="non_frontend_changes"
             else
               echo "Merge base: $MERGE_BASE (Jest will use --changedSince)"
+              STRATEGY="changedSince"
             fi
           else
             echo "Could not compute merge base — running full Jest suite"
+            STRATEGY="no_merge_base"
           fi
           echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
+          echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
 
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -220,6 +225,7 @@ jobs:
           # When set, Jest uses --changedSince to run only tests affected by this PR.
           # Empty on master or when non-frontend files changed (falls back to full suite).
           MERGE_BASE: ${{ needs.files-changed.outputs.merge_base }}
+          MERGE_BASE_STRATEGY: ${{ needs.files-changed.outputs.merge_base_strategy }}
         run: pnpm run test-ci --forceExit
 
   form-field-registry:

@@ -477,7 +477,9 @@ export function SearchQueryBuilderCombobox<
           /^\w$/.test(e.key) ||
           e.key === ','
         ) {
-          if (isOpen || isCtrlKeyPressed(e)) return;
+          if (isOpen || isCtrlKeyPressed(e)) {
+            return;
+          }
           state.open();
           return;
         }

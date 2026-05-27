@@ -5,6 +5,7 @@ import {
   extractMessagesFromNodes,
   getNodeTimestamp,
   mergeEmptyTurns,
+  messagesToMarkdown,
   parseAssistantContent,
   parseUserContent,
   partitionSpansByType,
@@ -1053,6 +1054,121 @@ describe('conversationMessages utilities', () => {
     it('returns empty array when no generation spans', () => {
       const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
+    });
+  });
+
+  describe('messagesToMarkdown', () => {
+    it('formats user messages with email', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'user-1',
+          role: 'user',
+          content: 'Hello world',
+          timestamp: 1000,
+          nodeId: 'n1',
+          userEmail: 'dev@example.com',
+        },
+      ]);
+      expect(result).toBe('### dev@example.com\n\nHello world');
+    });
+
+    it('formats user messages without email as User', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'user-1',
+          role: 'user',
+          content: 'Hello',
+          timestamp: 1000,
+          nodeId: 'n1',
+        },
+      ]);
+      expect(result).toBe('### User\n\nHello');
+    });
+
+    it('formats assistant messages with model and duration', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Here is the answer',
+          timestamp: 1000,
+          nodeId: 'n1',
+          modelName: 'claude-sonnet-4-20250514',
+          duration: 2.5,
+        },
+      ]);
+      expect(result).toBe('### claude-sonnet-4-20250514 — 2.5s\n\nHere is the answer');
+    });
+
+    it('formats assistant messages with agent name', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Done',
+          timestamp: 1000,
+          nodeId: 'n1',
+          agentName: 'My Agent',
+        },
+      ]);
+      expect(result).toBe('### My Agent\n\nDone');
+    });
+
+    it('includes tool calls', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'I ran the tools',
+          timestamp: 1000,
+          nodeId: 'n1',
+          toolCalls: [
+            {name: 'bash', nodeId: 't1', hasError: false},
+            {name: 'read', nodeId: 't2', hasError: false},
+          ],
+        },
+      ]);
+      expect(result).toContain('> Called tools: `bash`, `read`');
+      expect(result).toContain('I ran the tools');
+    });
+
+    it('formats a full conversation with separators between messages', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'user-1',
+          role: 'user',
+          content: 'What files?',
+          timestamp: 1000,
+          nodeId: 'n1',
+          userEmail: 'dev@example.com',
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Here they are',
+          timestamp: 1001,
+          nodeId: 'n1',
+          modelName: 'gpt-4o',
+          duration: 1.2,
+        },
+      ]);
+      expect(result).toBe(
+        [
+          '### dev@example.com',
+          '',
+          'What files?',
+          '',
+          '---',
+          '',
+          '### gpt-4o — 1.2s',
+          '',
+          'Here they are',
+        ].join('\n')
+      );
+    });
+
+    it('returns empty string for empty messages', () => {
+      expect(messagesToMarkdown([])).toBe('');
     });
   });
 });

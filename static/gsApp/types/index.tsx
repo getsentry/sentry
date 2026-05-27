@@ -360,6 +360,7 @@ export type Subscription = {
   hadCustomDynamicSampling: boolean;
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
+  hasMigratedToBillingPlatform: boolean;
   hasOverageNotificationsDisabled: boolean;
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;

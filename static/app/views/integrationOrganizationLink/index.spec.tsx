@@ -58,7 +58,6 @@ describe('IntegrationOrganizationLink', () => {
     const org2Lite = pick(org2, ['slug', 'name', 'id']);
     getOrgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      match: [MockApiClient.matchQuery({include_feature_flags: 1})],
       body: [org1Lite, org2Lite],
     });
   });

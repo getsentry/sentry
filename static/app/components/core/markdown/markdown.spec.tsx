@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -265,7 +265,7 @@ describe('Markdown', () => {
             Text: ({children}) => {
               const parts = children.split(/(PROJ-\d+)/);
               return (
-                <React.Fragment>
+                <Fragment>
                   {parts.map((part, i) =>
                     /PROJ-\d+/.test(part) ? (
                       <a key={i} href={`/issues/${part}/`}>
@@ -275,7 +275,7 @@ describe('Markdown', () => {
                       part
                     )
                   )}
-                </React.Fragment>
+                </Fragment>
               );
             },
           }}

@@ -49,7 +49,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
-delete_logger = logging.getLogger("sentry.deletions.api")
+logger = logging.getLogger(__name__)
 
 
 def get_group_global_count(group: Group) -> str:
@@ -390,7 +390,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 sample_rate=1.0,
                 tags={"status": e.status_code, "detail": "group_details:update:Response"},
             )
-            logging.exception(
+            logger.exception(
                 "group_details:put client.ApiError",
             )
             return Response(e.body, status=e.status_code)

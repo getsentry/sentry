@@ -41,19 +41,11 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import to_valid_int_id
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
-from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-)
 from sentry.incidents.endpoints.serializers.workflow_engine_combined import (
     WorkflowEngineCombinedRuleSerializer,
 )
@@ -107,10 +99,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
 
@@ -211,24 +200,11 @@ def create_metric_alert(
         return Response({"uuid": client.uuid}, status=202)
     else:
         alert_rule = validator.save()
-        if features.has("organizations:workflow-engine-metric-alert-endpoints-post", organization):
-            try:
-                detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-                return Response(
-                    serialize(
-                        detector,
-                        request.user,
-                        WorkflowEngineDetectorSerializer(),
-                    ),
-                    status=status.HTTP_201_CREATED,
-                )
-            except Detector.DoesNotExist:
-                logger.error(
-                    "Alert rule was not dual written. Returning serialized rule instead of detector",
-                    extra={"rule_id": alert_rule.id},
-                )
-                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
-        return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        return Response(
+            serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AlertRuleFetchMixin(Endpoint):
@@ -238,10 +214,6 @@ class AlertRuleFetchMixin(Endpoint):
     This mixin requires access to paginate() method from Endpoint.
     Can be used with any endpoint base class (OrganizationEndpoint, ProjectEndpoint, etc).
     """
-
-    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
-    # with the broad workflow-engine-rule-serializers flag.
-    workflow_engine_method_flags: dict[str, str] = {}
 
     def fetch_metric_alerts(
         self,
@@ -260,53 +232,30 @@ class AlertRuleFetchMixin(Endpoint):
                 extra={"organization": organization.id},
             )
 
-        method_flag = self.workflow_engine_method_flags.get(request.method or "")
-        use_workflow_engine = (
-            features.has("organizations:workflow-engine-rule-serializers", organization)
-            or method_flag is not None
-            and features.has(method_flag, organization)
+        # Filter to metric alerts only, then check if dual-written or single-written
+        detectors = (
+            Detector.objects.filter(
+                type="metric_issue",
+                project__in=projects,
+            )
+            .filter(
+                Q(alertruledetector__alert_rule_id__isnull=False)  # Dual-written
+                | Q(alertruledetector__isnull=True)  # Single-written
+            )
+            .distinct()
+        )  # Deduplicate after JOIN
+        if not features.has("organizations:performance-view", organization):
+            detectors = filter_detectors_by_datasets(detectors, [Dataset.Events])
+        response = self.paginate(
+            request,
+            queryset=detectors,
+            order_by="-date_added",
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
+            default_per_page=25,
+            count_hits=True,
         )
-
-        if use_workflow_engine:
-            # Filter to metric alerts only, then check if dual-written or single-written
-            detectors = (
-                Detector.objects.filter(
-                    type="metric_issue",
-                    project__in=projects,
-                )
-                .filter(
-                    Q(alertruledetector__alert_rule_id__isnull=False)  # Dual-written
-                    | Q(alertruledetector__isnull=True)  # Single-written
-                )
-                .distinct()
-            )  # Deduplicate after JOIN
-            if not features.has("organizations:performance-view", organization):
-                detectors = filter_detectors_by_datasets(detectors, [Dataset.Events])
-            response = self.paginate(
-                request,
-                queryset=detectors,
-                order_by="-date_added",
-                paginator_cls=OffsetPaginator,
-                on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
-                default_per_page=25,
-                count_hits=True,
-            )
-            response[ALERT_RULES_COUNT_HEADER] = detectors.count()
-        else:
-            alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-            report_used_legacy_models()
-            if not features.has("organizations:performance-view", organization):
-                alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-            response = self.paginate(
-                request,
-                queryset=alert_rules,
-                order_by="-date_added",
-                paginator_cls=OffsetPaginator,
-                on_results=lambda x: serialize(x, request.user),
-                default_per_page=25,
-                count_hits=True,
-            )
-            response[ALERT_RULES_COUNT_HEADER] = alert_rules.count()
+        response[ALERT_RULES_COUNT_HEADER] = detectors.count()
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
@@ -765,26 +714,14 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAlertRulePermission,)
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
-    }
 
     @extend_schema(
         operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=None,
-        responses={
-            200: inline_sentry_response_serializer(
-                "ListMetricAlertRules", list[AlertRuleSerializerResponse]
-            ),
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated
@@ -805,18 +742,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
 
     @extend_schema(
         operation_id="(DEPRECATED) Create a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=OrganizationAlertRuleIndexPostSerializer,
-        responses={
-            201: AlertRuleSerializer,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/detectors/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+    )
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         ## Deprecated

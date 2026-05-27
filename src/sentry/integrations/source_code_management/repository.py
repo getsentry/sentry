@@ -238,13 +238,6 @@ class RepositoryIntegration(
 
         return None
 
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        """
-        Get all repositories which are in our database but no longer exist as far as
-        the external service is concerned.
-        """
-        return []
-
     def record_event(self, event: SCMIntegrationInteractionType) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
             interaction_type=event,

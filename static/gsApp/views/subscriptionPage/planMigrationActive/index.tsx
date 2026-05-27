@@ -12,7 +12,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import ZendeskLink from 'getsentry/components/zendeskLink';
+import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import {ANNUAL} from 'getsentry/constants';
 import {CohortId, type PlanMigration, type Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
