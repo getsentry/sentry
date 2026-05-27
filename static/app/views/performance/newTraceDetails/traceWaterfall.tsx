@@ -787,6 +787,5 @@ export const TraceGrid = styled('div')<{
         ? 'min-content 1fr'
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
-
   border-radius: ${p => p.theme.radius.md};
 `;
