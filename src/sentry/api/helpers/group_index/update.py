@@ -767,6 +767,7 @@ def handle_other_status_updates(
         new_substatus = SUBSTATUS_UPDATE_CHOICES[result["substatus"]]
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
+    changed_group_ids = set(queryset.exclude(status=new_status).values_list("id", flat=True))
     with transaction.atomic(router.db_for_write(Group)):
         status_updated = queryset.exclude(status=new_status).update(
             status=new_status, substatus=new_substatus
@@ -809,14 +810,15 @@ def handle_other_status_updates(
                 ActionType.ARCHIVE if new_status == GroupStatus.IGNORED else ActionType.UNRESOLVE
             )
             for group in group_list:
-                publish_action(
-                    action=action,
-                    source=source,
-                    group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
-                    actor_id=actor_id,
-                )
+                if group.id in changed_group_ids:
+                    publish_action(
+                        action=action,
+                        source=source,
+                        group_id=group.id,
+                        organization_id=group.project.organization_id,
+                        project_id=group.project_id,
+                        actor_id=actor_id,
+                    )
 
     return result
 

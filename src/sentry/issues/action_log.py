@@ -14,7 +14,8 @@ MCP_CLIENT_ID_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_ID"
 MCP_CLIENT_NAME_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_NAME"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
-MCP_APPLICATION_ID: int | None = None
+_MCP_APPLICATION_ID_NOT_CHECKED = -1
+MCP_APPLICATION_ID: int = _MCP_APPLICATION_ID_NOT_CHECKED
 
 KNOWN_MCP_CLIENTS: dict[str, str] = {
     "claude code": "claude-code",
@@ -43,8 +44,8 @@ class ActionSource(StrEnum):
 
 def _get_mcp_application_id() -> int | None:
     global MCP_APPLICATION_ID
-    if MCP_APPLICATION_ID is not None:
-        return MCP_APPLICATION_ID
+    if MCP_APPLICATION_ID != _MCP_APPLICATION_ID_NOT_CHECKED:
+        return MCP_APPLICATION_ID if MCP_APPLICATION_ID > 0 else None
 
     from sentry.models.apiapplication import ApiApplication
 
@@ -56,6 +57,7 @@ def _get_mcp_application_id() -> int | None:
     except Exception:
         logger.exception("Failed to look up MCP application ID")
 
+    MCP_APPLICATION_ID = 0
     return None
 
 
