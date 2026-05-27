@@ -53,16 +53,16 @@ export function ProblemSection({evidenceData}: ProblemSectionProps) {
         <DetailRow label={t('Seen')} value={formatCount(evidenceData.count)} />
         {hasEstimatedCost && (
           <Flex align="baseline" gap="sm" wrap="wrap">
+            <Text variant="muted">{t('Estimated cost')}</Text>
             <Flex align="center" gap="xs">
-              <Text variant="muted">{t('Estimated cost')}</Text>
+              <Text>{formatEstimatedCostUsd(evidenceData.estimatedCostUsd)}</Text>
               <InfoTip
                 size="xs"
                 title={t(
-                  "This is a rough approximation based on a snapshot of the customer's span data, not the whole billing period."
+                  'This estimate is based on a recent sample of this span, so it may not match your final bill for the billing period.'
                 )}
               />
             </Flex>
-            <Text>{formatEstimatedCostUsd(evidenceData.estimatedCostUsd)}</Text>
           </Flex>
         )}
         <DetailRow
