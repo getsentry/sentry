@@ -81,6 +81,34 @@ def test_reraises_snuba_timeout_and_emits_timeout_status() -> None:
 
 
 @override_options(_GATE_OPTIONS)
+def test_adds_org_context_to_captured_snuba_timeout() -> None:
+    error = SnubaRPCTimeout("timed out")
+
+    @track_dynamic_sampling
+    def boom(org_id: int) -> None:
+        raise error
+
+    timer, timer_tags = _capture_timer_tags()
+
+    with (
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics") as mock_metrics,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.sentry_sdk") as sdk,
+        pytest.raises(SnubaRPCTimeout),
+    ):
+        mock_metrics.timer.side_effect = timer
+        boom(123)
+
+    scope = sdk.isolation_scope.return_value.__enter__.return_value
+    assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
+    emit.assert_called_once_with(
+        "dynamic_sampling.boom.status", DynamicSamplingStatus.SNUBA_TIMEOUT
+    )
+    scope.set_tag.assert_called_once_with("org_id", 123)
+    sdk.capture_exception.assert_called_once_with(error)
+
+
+@override_options(_GATE_OPTIONS)
 def test_reraises_snuba_error_and_emits_snuba_error_status() -> None:
     error = SnubaRPCError("snuba failed")
 

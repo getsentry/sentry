@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from enum import StrEnum
@@ -83,6 +84,26 @@ def _get_status_from_result(result: object) -> DynamicSamplingStatus:
     return DynamicSamplingStatus.COMPLETED
 
 
+def _get_org_id_from_call(
+    func: Callable[..., object], args: tuple[object, ...], kwargs: dict[str, object]
+) -> object | None:
+    bound_arguments = inspect.signature(func).bind_partial(*args, **kwargs).arguments
+    return bound_arguments.get("org_id")
+
+
+def _capture_exception_with_org_context(
+    func: Callable[..., object], args: tuple[object, ...], kwargs: dict[str, object], exc: Exception
+) -> None:
+    org_id = _get_org_id_from_call(func, args, kwargs)
+    if org_id is None:
+        sentry_sdk.capture_exception(exc)
+        return
+
+    with sentry_sdk.isolation_scope() as scope:
+        scope.set_tag("org_id", org_id)
+        sentry_sdk.capture_exception(exc)
+
+
 @contextmanager
 def emit_duration(metric: str) -> Generator[Callable[[object], DynamicSamplingStatus]]:
     with metrics.timer(metric, sample_rate=metrics_sample_rate()) as duration_tags:
@@ -118,15 +139,15 @@ def track_dynamic_sampling(func: F) -> F:
             except DynamicSamplingException as exc:
                 result = exc.status
             except SnubaRPCTimeout as exc:
-                sentry_sdk.capture_exception(exc)
+                _capture_exception_with_org_context(func, args, kwargs, exc)
                 emit_status(status_metric, DynamicSamplingStatus.SNUBA_TIMEOUT)
                 raise
             except SnubaRPCError as exc:
-                sentry_sdk.capture_exception(exc)
+                _capture_exception_with_org_context(func, args, kwargs, exc)
                 emit_status(status_metric, DynamicSamplingStatus.SNUBA_ERROR)
                 raise
             except Exception as exc:
-                sentry_sdk.capture_exception(exc)
+                _capture_exception_with_org_context(func, args, kwargs, exc)
                 emit_status(status_metric, DynamicSamplingStatus.FAILED)
                 raise
 
