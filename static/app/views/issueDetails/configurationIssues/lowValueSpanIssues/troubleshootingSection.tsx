@@ -107,9 +107,11 @@ export function TroubleshootingSection({evidenceData}: TroubleshootingSectionPro
             )}
           </Text>
         </Stack>
-        <Heading as="h4">{t('3. Filter automatic instrumentation exactly')}</Heading>
+        <Stack gap="xs">
+          <Heading as="h4">{t('3. Filter automatic instrumentation exactly')}</Heading>
+          <AutomaticInstrumentationFix evidenceData={evidenceData} />
+        </Stack>
       </Stack>
-      <AutomaticInstrumentationFix evidenceData={evidenceData} />
       <Flex align="center" gap="xs">
         <IconDocs size="xs" />
         <ExternalLink href={getSpanFilteringDocsUrl(evidenceData)}>
