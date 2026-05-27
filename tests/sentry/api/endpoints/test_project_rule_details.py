@@ -1357,20 +1357,11 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
-
-class CrossOrgAlertRuleWorkflowUpdateTest(ProjectRuleDetailsBaseTestCase):
-    """Verify that cross-org AlertRuleWorkflow links are filtered out on update."""
-
-    method = "PUT"
-
     @patch("sentry.signals.alert_rule_edited.send_robust")
-    def test_put_falls_back_when_arw_points_to_cross_org_workflow(
-        self, send_robust: MagicMock
-    ) -> None:
+    def test_cross_org_arw_falls_back_to_legacy_serializer(self, send_robust: MagicMock) -> None:
         other_org = self.create_organization(owner=self.user)
         cross_org_workflow = self.create_workflow(organization=other_org)
 
-        # Point the ARW to a workflow in another org
         arw = AlertRuleWorkflow.objects.get(rule_id=self.rule.id)
         arw.update(workflow=cross_org_workflow)
 
@@ -1393,47 +1384,9 @@ class CrossOrgAlertRuleWorkflowUpdateTest(ProjectRuleDetailsBaseTestCase):
                 **payload,
             )
 
-        # Should fall back to legacy serializer (rule id, not workflow id)
         assert response.data["id"] == str(self.rule.id)
-
-        # Cross-org workflow must not have been mutated
         cross_org_workflow.refresh_from_db()
         assert cross_org_workflow.name != "updated rule"
-
-
-class CrossOrgAlertRuleWorkflowDeleteTest(ProjectRuleDetailsBaseTestCase):
-    """Verify that cross-org AlertRuleWorkflow links don't cascade deletes across orgs."""
-
-    method = "DELETE"
-
-    def test_delete_does_not_cascade_to_cross_org_legacy_rule(self) -> None:
-        # Create a dual-written rule and its workflow
-        rule = self.create_project_rule(self.project)
-        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        workflow = arw.workflow
-
-        # Create a rule in another org
-        other_org = self.create_organization(owner=self.user)
-        other_project = self.create_project(organization=other_org)
-        other_rule = self.create_project_rule(other_project)
-
-        # Simulate cross-org link: our workflow's ARW points to the other org's rule
-        arw.update(rule_id=other_rule.id)
-
-        fake_workflow_id = get_fake_id_from_object_id(workflow.id)
-        self.get_success_response(
-            self.organization.slug, self.project.slug, fake_workflow_id, status_code=202
-        )
-
-        with self.tasks():
-            run_scheduled_deletions()
-
-        # Our workflow should be deleted
-        assert not Workflow.objects.filter(id=workflow.id).exists()
-
-        # The cross-org rule must NOT have been deleted
-        other_rule.refresh_from_db()
-        assert other_rule.status == ObjectStatus.ACTIVE
 
 
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
@@ -1496,6 +1449,29 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
+
+    def test_delete_does_not_cascade_to_cross_org_rule(self) -> None:
+        rule = self.create_project_rule(self.project)
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = arw.workflow
+
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
+        other_rule = self.create_project_rule(other_project)
+
+        arw.update(rule_id=other_rule.id)
+
+        fake_workflow_id = get_fake_id_from_object_id(workflow.id)
+        self.get_success_response(
+            self.organization.slug, self.project.slug, fake_workflow_id, status_code=202
+        )
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        other_rule.refresh_from_db()
+        assert other_rule.status == ObjectStatus.ACTIVE
 
 
 class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
