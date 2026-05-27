@@ -11,6 +11,8 @@ from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import I
 from sentry.monitors.consumers.incident_occurrences_consumer import (
     MONITORS_INCIDENT_OCCURRENCES,
     MonitorIncidentOccurenceStrategyFactory,
+    PendingTickDecision,
+    process_incident_occurrence_from_kafka,
 )
 from sentry.monitors.models import (
     CheckInStatus,
@@ -211,5 +213,86 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
         assert mock_send_incident_occurrence.call_count == 0
 
         # The failed check-in is updated as UNKNOWN
+        self.failed_checkin.refresh_from_db()
+        assert self.failed_checkin.status == CheckInStatus.UNKNOWN
+
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.send_incident_occurrence")
+    def test_taskbroker_task_simple(self, mock_send_incident_occurrence: mock.MagicMock) -> None:
+        """Test the taskbroker passthrough task processes messages correctly."""
+        ts = timezone.now().replace(second=0, microsecond=0)
+
+        message: IncidentOccurrence = {
+            "clock_tick_ts": int(ts.timestamp()),
+            "received_ts": int(self.failed_checkin.date_added.timestamp()),
+            "incident_id": self.incident.id,
+            "failed_checkin_id": self.failed_checkin.id,
+            "previous_checkin_ids": [self.failed_checkin.id],
+        }
+
+        message_bytes = MONITORS_INCIDENT_OCCURRENCES.encode(message)
+        process_incident_occurrence_from_kafka(message_bytes)
+
+        assert mock_send_incident_occurrence.call_count == 1
+        assert mock_send_incident_occurrence.mock_calls[0] == mock.call(
+            self.failed_checkin,
+            [self.failed_checkin],
+            self.incident,
+            self.failed_checkin.date_added.replace(microsecond=0),
+        )
+
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.send_incident_occurrence")
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.memoized_tick_decision")
+    @override_options({"crons.system_incidents.use_decisions": True})
+    def test_taskbroker_task_pending_decision_raises(
+        self,
+        mock_memoized_tick_decision,
+        mock_send_incident_occurrence,
+    ):
+        """Test the taskbroker task raises PendingTickDecision for retry when decision is pending."""
+        mock_memoized_tick_decision.return_value = TickAnomalyDecision.ABNORMAL
+
+        ts = timezone.now().replace(second=0, microsecond=0)
+
+        message: IncidentOccurrence = {
+            "clock_tick_ts": int(ts.timestamp()),
+            "received_ts": int(self.failed_checkin.date_added.timestamp()),
+            "incident_id": self.incident.id,
+            "failed_checkin_id": self.failed_checkin.id,
+            "previous_checkin_ids": [self.failed_checkin.id],
+        }
+
+        message_bytes = MONITORS_INCIDENT_OCCURRENCES.encode(message)
+
+        with pytest.raises(PendingTickDecision):
+            process_incident_occurrence_from_kafka(message_bytes)
+
+        assert mock_send_incident_occurrence.call_count == 0
+
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.send_incident_occurrence")
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.memoized_tick_decision")
+    @override_options({"crons.system_incidents.use_decisions": True})
+    def test_taskbroker_task_incident_decision(
+        self,
+        mock_memoized_tick_decision,
+        mock_send_incident_occurrence,
+    ):
+        """Test the taskbroker task handles INCIDENT decision by updating check-in status."""
+        mock_memoized_tick_decision.return_value = TickAnomalyDecision.INCIDENT
+
+        ts = timezone.now().replace(second=0, microsecond=0)
+
+        message: IncidentOccurrence = {
+            "clock_tick_ts": int(ts.timestamp()),
+            "received_ts": int(self.failed_checkin.date_added.timestamp()),
+            "incident_id": self.incident.id,
+            "failed_checkin_id": self.failed_checkin.id,
+            "previous_checkin_ids": [self.failed_checkin.id],
+        }
+
+        message_bytes = MONITORS_INCIDENT_OCCURRENCES.encode(message)
+        process_incident_occurrence_from_kafka(message_bytes)
+
+        assert mock_send_incident_occurrence.call_count == 0
+
         self.failed_checkin.refresh_from_db()
         assert self.failed_checkin.status == CheckInStatus.UNKNOWN

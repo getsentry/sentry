@@ -16,12 +16,16 @@ from cachetools.func import ttl_cache
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 from sentry_sdk.tracing import Span, Transaction
+from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.logic.incident_occurrence import send_incident_occurrence
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident
 from sentry.monitors.system_incidents import TickAnomalyDecision, get_clock_tick_decision
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import ingest_monitors_incident_occurrences_raw_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -29,6 +33,12 @@ logger = logging.getLogger(__name__)
 MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
     Topic.MONITORS_INCIDENT_OCCURRENCES
 )
+
+
+class PendingTickDecision(Exception):
+    """Raised when the tick decision is still pending and we need to retry."""
+
+    pass
 
 
 @ttl_cache(ttl=5)
@@ -41,17 +51,14 @@ def memoized_tick_decision(tick: datetime) -> TickAnomalyDecision | None:
     return get_clock_tick_decision(tick)
 
 
-def _process_incident_occurrence(
-    message: Message[KafkaPayload | FilteredPayload], txn: Transaction | Span
-) -> None:
+def _process_incident_occurrence(message_bytes: bytes, txn: Transaction | Span) -> None:
     """
     Process a incident occurrence message. This will immediately dispatch an
     issue occurrence via send_incident_occurrence.
-    """
-    assert not isinstance(message.payload, FilteredPayload)
-    assert isinstance(message.value, BrokerValue)
 
-    wrapper: IncidentOccurrence = MONITORS_INCIDENT_OCCURRENCES.decode(message.payload.value)
+    Raises PendingTickDecision if the tick decision is pending and processing should be delayed.
+    """
+    wrapper: IncidentOccurrence = MONITORS_INCIDENT_OCCURRENCES.decode(message_bytes)
     clock_tick = datetime.fromtimestamp(wrapper["clock_tick_ts"], UTC)
 
     # May be used as a killswitch if system incident decisions become incorrect
@@ -65,16 +72,13 @@ def _process_incident_occurrence(
         # incident occurrence, or if we should drop the occurrence and mark the
         # associated check-ins as UNKNOWN due to a system incident.
         txn.set_tag("result", "delayed")
-
-        # XXX(epurkhiser): MessageRejected tells arroyo that we can't process
-        # this message right now and it should try again
-        raise MessageRejected()
+        raise PendingTickDecision()
 
     try:
         incident = MonitorIncident.objects.get(id=int(wrapper["incident_id"]))
     except MonitorIncident.DoesNotExist:
         logger.exception("missing_incident")
-        return None
+        return
 
     # previous_checkin_ids includes the failed_checkin_id
     checkins = MonitorCheckIn.objects.filter(id__in=wrapper["previous_checkin_ids"])
@@ -89,7 +93,7 @@ def _process_incident_occurrence(
     # Unlikely, but if we can't find all the check-ins we can't produce an occurrence
     if failed_checkin is None or not has_all(previous_checkins):
         logger.error("missing_check_ins")
-        return None
+        return
 
     received = datetime.fromtimestamp(wrapper["received_ts"], UTC)
 
@@ -115,7 +119,7 @@ def _process_incident_occurrence(
         # Do NOT send the occurrence
         txn.set_tag("result", "dropped")
         metrics.incr("monitors.incident_ocurrences.dropped_incident_occurrence")
-        return None
+        return
 
     try:
         send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
@@ -126,11 +130,35 @@ def _process_incident_occurrence(
 
 
 def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]) -> None:
+    assert not isinstance(message.payload, FilteredPayload)
+    assert isinstance(message.value, BrokerValue)
+
     with sentry_sdk.start_transaction(
         op="_process_incident_occurrence",
         name="monitors.incident_occurrence_consumer",
     ) as txn:
-        _process_incident_occurrence(message, txn)
+        try:
+            _process_incident_occurrence(message.payload.value, txn)
+        except PendingTickDecision:
+            # XXX(epurkhiser): MessageRejected tells arroyo that we can't process
+            # this message right now and it should try again
+            raise MessageRejected()
+
+
+@instrumented_task(
+    name="sentry.monitors.consumers.incident_occurrences_consumer.process_incident_occurrence_from_kafka",
+    namespace=ingest_monitors_incident_occurrences_raw_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(times=10, delay=5, on=(PendingTickDecision,)),
+    silo_mode=SiloMode.CELL,
+)
+def process_incident_occurrence_from_kafka(message_bytes: bytes) -> None:
+    """Process an incident occurrence from raw Kafka message bytes (taskbroker raw mode)."""
+    with sentry_sdk.start_transaction(
+        op="_process_incident_occurrence",
+        name="monitors.incident_occurrence_consumer",
+    ) as txn:
+        _process_incident_occurrence(message_bytes, txn)
 
 
 class MonitorIncidentOccurenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

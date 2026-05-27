@@ -38,6 +38,11 @@ crons_tasks = app.taskregistry.create_namespace(
     app_feature="crons",
 )
 
+ingest_monitors_incident_occurrences_raw_tasks = app.taskregistry.create_namespace(
+    "ingest.monitors.incident_occurrences.raw",
+    app_feature="crons",
+)
+
 deletion_tasks = app.taskregistry.create_namespace(
     "deletions",
     processing_deadline_duration=60 * 20,
