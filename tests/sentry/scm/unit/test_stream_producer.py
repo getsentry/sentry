@@ -122,3 +122,28 @@ def test_produce_to_scm_stream_rollout_disabled() -> None:
     # Would have raised if enabled.
     assert reported_exception is None
     assert metrics == []
+
+
+def test_produce_to_scm_stream_rollout_disabled_process_in_listener() -> None:
+    metrics = []
+
+    def record_count(k, a, t):
+        metrics.append((k, a, t))
+
+    event: SubscriptionEvent = {
+        "event": PULL_REQUEST_OPENED_EVENT_EXAMPLE.decode("utf-8"),
+        "event_type_hint": "pull_request",
+        "extra": {"process_in_listener": True},
+        "received_at": 0,
+        "sentry_meta": [],
+        "type": "github",
+    }
+    produce_event_to_scm_stream(
+        event,
+        "control",
+        produce_to_listener=lambda a, b, c, d: None,
+        record_count=record_count,
+        rollout_enabled=lambda _: False,
+    )
+
+    assert metrics == [("sentry.scm.produce_event_to_scm_stream.success", 1, {})]

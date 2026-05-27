@@ -29,7 +29,9 @@ def produce_event_to_scm_stream(
     they are github_enterprise webhooks with their skipped_validation explicitly marked. There is
     no guarantee or requirement for down-stream consumers to validate their message's authenticity.
     """
-    if not rollout_enabled("sentry.scm.stream.rollout"):
+    if not rollout_enabled("sentry.scm.stream.rollout") and not event.get("extra", {}).get(
+        "process_in_listener"
+    ):
         return None
 
     try:
