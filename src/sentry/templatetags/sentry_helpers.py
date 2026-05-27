@@ -139,11 +139,11 @@ def _is_themed_loader(context) -> bool:
     if django_timezone.localtime().month != 6:
         return False
     organization = _get_organization_from_context(context)
-    if organization is not None:
-        from sentry import features
+    if organization is None:
+        return False
+    from sentry import features
 
-        return features.has("organizations:sentry-pride-logo-footer", organization)
-    return True
+    return features.has("organizations:sentry-pride-logo-footer", organization)
 
 
 @register.simple_tag(takes_context=True)
