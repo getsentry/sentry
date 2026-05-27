@@ -21,6 +21,7 @@ from sentry.api.exceptions import BadRequest
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.types import (
@@ -38,7 +39,7 @@ from sentry.search.eap.utils import (
     translate_search_type_for_internal_column,
     translate_to_sentry_conventions,
 )
-from sentry.search.utils import parse_datetime_string
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 from sentry.utils.snuba_rpc import trace_item_details_rpc
@@ -366,9 +367,15 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        start, end = get_date_range_from_params(request.GET, optional=True)
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams:
+            return Response("date range parameters invalid", status=400)
         if "timestamp" in request.GET:
-            example_timestamp = parse_datetime_string(request.GET["timestamp"])
+            try:
+                example_timestamp = parse_datetime_string(request.GET["timestamp"])
+            except InvalidQuery:
+                return Response("timestamp parameter invalid", status=400)
             time_buffer = 1.5
             example_start = example_timestamp - timedelta(days=time_buffer)
             example_end = example_timestamp + timedelta(days=time_buffer)

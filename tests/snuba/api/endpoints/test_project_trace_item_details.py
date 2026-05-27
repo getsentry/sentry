@@ -733,3 +733,34 @@ class ProjectTraceItemDetailsEndpointTest(
             trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
 
             assert trace_details_response.status_code == 404, trace_details_response.content
+
+    def test_with_invalid_timestamp(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
+                },
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        for extra_data in [
+            {"timestamp": "beepboop"},
+            {"statsPeriod": "hello"},
+        ]:
+            trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
+
+            assert trace_details_response.status_code == 400, trace_details_response.content
