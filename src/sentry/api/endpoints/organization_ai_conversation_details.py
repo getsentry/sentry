@@ -11,8 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import TimeoutException, handle_query_errors
+from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
@@ -22,9 +21,9 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.utils.dates import parse_stats_period
 
 MAX_RETENTION_DAYS = 30
+MAX_SPANS = 1000
 
-# Try progressively wider windows before giving up.
-_WIDENING_STEPS = [timedelta(days=7), timedelta(days=MAX_RETENTION_DAYS)]
+_WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
 
 AI_CONVERSATION_ATTRIBUTES = [
     "span_id",
@@ -64,8 +63,6 @@ AI_CONVERSATION_ATTRIBUTES = [
     "user.ip",
 ]
 
-_TIMEOUT_DETAIL = "Query timed out. Try searching with a narrower time range."
-
 
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
@@ -76,9 +73,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
 
-        stats_period = request.GET.get("statsPeriod")
-        has_explicit_range = request.GET.get("start") or request.GET.get("end")
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -86,6 +80,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         now = timezone.now()
         max_retention_cutoff = now - timedelta(days=MAX_RETENTION_DAYS)
+        has_explicit_range = request.GET.get("start") or request.GET.get("end")
 
         if has_explicit_range:
             if snuba_params.start and snuba_params.start < max_retention_cutoff:
@@ -98,84 +93,44 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     {"detail": f"end time cannot be older than {MAX_RETENTION_DAYS} days"},
                     status=400,
                 )
-            data_fn = self._make_direct_data_fn(snuba_params, conversation_id)
+            params_to_try = [snuba_params]
         else:
-            params_sequence = self._build_widening_sequence(snuba_params, stats_period, now)
-            data_fn = self._make_widening_data_fn(params_sequence, conversation_id)
-
-        try:
-            with handle_query_errors():
-                return self.paginate(
-                    request=request,
-                    paginator=GenericOffsetPaginator(data_fn=data_fn),
-                    default_per_page=100,
-                    max_per_page=1000,
-                )
-        except TimeoutException:
-            sentry_sdk.set_tag("ai_conversations.detail_timeout", True)
-            return Response(
-                {"detail": _TIMEOUT_DETAIL, "code": "query_timeout"},
-                status=504,
+            params_to_try = self._build_widening_params(
+                snuba_params, request.GET.get("statsPeriod"), now
             )
 
-    def _build_widening_sequence(
+        with handle_query_errors():
+            for params in params_to_try:
+                data = self._fetch_conversation_spans(params, conversation_id)
+                if data:
+                    return Response({"data": data})
+            return Response({"data": []})
+
+    def _build_widening_params(
         self, base_params: SnubaParams, stats_period: str | None, now: datetime
     ) -> list[SnubaParams]:
-        # parse_stats_period returns None for invalid input; skip to default steps
-        requested_delta = parse_stats_period(stats_period) if stats_period else None
+        requested_delta: timedelta | None = (
+            parse_stats_period(stats_period) if stats_period else None
+        )
 
         steps: list[timedelta] = []
-        if requested_delta and requested_delta < timedelta(days=MAX_RETENTION_DAYS):
+        if requested_delta:
             steps.append(requested_delta)
-
         for step in _WIDENING_STEPS:
             if not steps or step > steps[-1]:
                 steps.append(step)
 
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
-    def _make_direct_data_fn(self, snuba_params: SnubaParams, conversation_id: str):
-        def data_fn(offset: int, limit: int) -> list:
-            return self._fetch_conversation_spans(snuba_params, conversation_id, offset, limit)
-
-        return data_fn
-
-    def _make_widening_data_fn(self, params_sequence: list[SnubaParams], conversation_id: str):
-        winning_params: SnubaParams | None = None
-
-        def data_fn(offset: int, limit: int) -> list:
-            nonlocal winning_params
-
-            if winning_params is not None:
-                return self._fetch_conversation_spans(
-                    winning_params, conversation_id, offset, limit
-                )
-
-            for params in params_sequence:
-                result = self._fetch_conversation_spans(params, conversation_id, offset, limit)
-                if result:
-                    winning_params = params
-                    return result
-
-            return []
-
-        return data_fn
-
     @sentry_sdk.trace
-    def _fetch_conversation_spans(
-        self,
-        snuba_params: SnubaParams,
-        conversation_id: str,
-        offset: int,
-        limit: int,
-    ) -> list:
+    def _fetch_conversation_spans(self, snuba_params: SnubaParams, conversation_id: str) -> list:
         result = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
             selected_columns=AI_CONVERSATION_ATTRIBUTES,
             orderby=["precise.start_ts"],
-            offset=offset,
-            limit=limit,
+            offset=0,
+            limit=MAX_SPANS,
             referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
             config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
