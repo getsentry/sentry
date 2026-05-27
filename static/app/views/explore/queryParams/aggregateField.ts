@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {decodeList} from 'sentry/utils/queryString';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {defaultGroupBys, isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import {
   isVisualize,
@@ -64,4 +64,29 @@ export function normalizeAggregateFields(
 
     return parseAggregateField(aggregateField);
   });
+}
+
+export function withRequiredAggregateFields(
+  aggregateFields: AggregateField[],
+  getDefaultVisualizes: () => readonly Visualize[]
+): AggregateField[] {
+  let hasGroupBy = false;
+  let hasVisualize = false;
+  for (const aggregateField of aggregateFields) {
+    if (isGroupBy(aggregateField)) {
+      hasGroupBy = true;
+    } else if (isVisualize(aggregateField)) {
+      hasVisualize = true;
+    }
+  }
+
+  if (!hasGroupBy) {
+    aggregateFields.push(...defaultGroupBys());
+  }
+
+  if (!hasVisualize) {
+    aggregateFields.push(...getDefaultVisualizes());
+  }
+
+  return aggregateFields;
 }

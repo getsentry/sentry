@@ -6,10 +6,11 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
+  type AggregateField,
   getAggregateFieldsFromLocation,
   normalizeAggregateFields,
+  withRequiredAggregateFields,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   getAggregateSortBysFromLocation,
@@ -21,8 +22,8 @@ import {
   getCursorFromLocation,
 } from 'sentry/views/explore/queryParams/cursor';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
-import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
+  defaultGroupBys,
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
@@ -277,10 +278,6 @@ function defaultSortBys(fields: string[]): Sort[] {
   return [];
 }
 
-function defaultGroupBys(): [GroupBy] {
-  return [{groupBy: ''}];
-}
-
 export function defaultVisualizes(): [Visualize] {
   return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
@@ -292,28 +289,7 @@ function getSpansAggregateFieldsFromLocation(location: Location): AggregateField
   );
 
   if (aggregateFields?.length) {
-    let hasGroupBy = false;
-    let hasVisualize = false;
-    for (const aggregateField of aggregateFields) {
-      if (isGroupBy(aggregateField)) {
-        hasGroupBy = true;
-      } else if (isVisualize(aggregateField)) {
-        hasVisualize = true;
-      }
-    }
-
-    // We have at least 1 group by or 1 visualize, insert some
-    // defaults to make sure we have at least 1 of both
-
-    if (!hasGroupBy) {
-      aggregateFields.push(...defaultGroupBys());
-    }
-
-    if (!hasVisualize) {
-      aggregateFields.push(...defaultVisualizes());
-    }
-
-    return aggregateFields;
+    return withRequiredAggregateFields(aggregateFields, defaultVisualizes);
   }
 
   return [
@@ -329,40 +305,16 @@ function getSpansAggregateFieldsFromParsed(
   const aggregateFields = queryParams[SPANS_AGGREGATE_FIELD_KEY];
 
   if (aggregateFields?.length) {
-    return withRequiredAggregateFields(normalizeAggregateFields(aggregateFields));
+    return withRequiredAggregateFields(
+      normalizeAggregateFields(aggregateFields),
+      defaultVisualizes
+    );
   }
 
   return [
     ...(queryParams[SPANS_GROUP_BY_KEY] ?? defaultGroupBys()),
     ...(queryParams[SPANS_VISUALIZATION_KEY] ?? defaultVisualizes()),
   ];
-}
-
-function withRequiredAggregateFields(
-  aggregateFields: AggregateField[]
-): AggregateField[] {
-  let hasGroupBy = false;
-  let hasVisualize = false;
-  for (const aggregateField of aggregateFields) {
-    if (isGroupBy(aggregateField)) {
-      hasGroupBy = true;
-    } else if (isVisualize(aggregateField)) {
-      hasVisualize = true;
-    }
-  }
-
-  // We have at least 1 group by or 1 visualize, insert some
-  // defaults to make sure we have at least 1 of both
-
-  if (!hasGroupBy) {
-    aggregateFields.push(...defaultGroupBys());
-  }
-
-  if (!hasVisualize) {
-    aggregateFields.push(...defaultVisualizes());
-  }
-
-  return aggregateFields;
 }
 
 function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {

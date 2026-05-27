@@ -20,10 +20,11 @@ import {
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
+  type AggregateField,
   getAggregateFieldsFromLocation,
   normalizeAggregateFields,
+  withRequiredAggregateFields,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   getAggregateSortBysFromLocation,
@@ -286,28 +287,9 @@ function getLogsAggregateFieldsFromLocation(
   );
 
   if (aggregateFields?.length) {
-    let hasGroupBy = false;
-    let hasVisualize = false;
-    for (const aggregateField of aggregateFields) {
-      if (isGroupBy(aggregateField)) {
-        hasGroupBy = true;
-      } else if (isVisualize(aggregateField)) {
-        hasVisualize = true;
-      }
-    }
-
-    // We have at least 1 group by or 1 visualize, insert some
-    // defaults to make sure we have at least 1 of both
-
-    if (!hasGroupBy) {
-      aggregateFields.push(...defaultGroupBys());
-    }
-
-    if (!hasVisualize) {
-      aggregateFields.push(...defaultVisualizes(defaultVisible));
-    }
-
-    return aggregateFields;
+    return withRequiredAggregateFields(aggregateFields, () =>
+      defaultVisualizes(defaultVisible)
+    );
   }
 
   // TODO: support a list of aggregate fields,
@@ -325,9 +307,8 @@ function getLogsAggregateFieldsFromParsed(
   const aggregateFields = queryParams[LOGS_AGGREGATE_FIELD_KEY];
 
   if (aggregateFields?.length) {
-    return withRequiredAggregateFields(
-      normalizeAggregateFields(aggregateFields),
-      defaultVisible
+    return withRequiredAggregateFields(normalizeAggregateFields(aggregateFields), () =>
+      defaultVisualizes(defaultVisible)
     );
   }
 
@@ -335,34 +316,6 @@ function getLogsAggregateFieldsFromParsed(
     ...(queryParams[LOGS_GROUP_BY_KEY] ?? defaultGroupBys()),
     ...(getVisualizesFromParsed(queryParams) ?? defaultVisualizes(defaultVisible)),
   ];
-}
-
-function withRequiredAggregateFields(
-  aggregateFields: AggregateField[],
-  defaultVisible: boolean
-): AggregateField[] {
-  let hasGroupBy = false;
-  let hasVisualize = false;
-  for (const aggregateField of aggregateFields) {
-    if (isGroupBy(aggregateField)) {
-      hasGroupBy = true;
-    } else if (isVisualize(aggregateField)) {
-      hasVisualize = true;
-    }
-  }
-
-  // We have at least 1 group by or 1 visualize, insert some
-  // defaults to make sure we have at least 1 of both
-
-  if (!hasGroupBy) {
-    aggregateFields.push(...defaultGroupBys());
-  }
-
-  if (!hasVisualize) {
-    aggregateFields.push(...defaultVisualizes(defaultVisible));
-  }
-
-  return aggregateFields;
 }
 
 export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
