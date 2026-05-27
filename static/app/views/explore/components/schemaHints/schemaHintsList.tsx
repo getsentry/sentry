@@ -243,6 +243,7 @@ export function SchemaHintsList({
         measureDiv.style.width = styles.width;
 
         const measureDivRect = measureDiv.getBoundingClientRect();
+        // Render items in hidden div to measure
         [...filterTagsSorted, seeFullListTag].forEach(hint => {
           const el = container.children[0]?.cloneNode(true) as HTMLElement;
           const button = el?.firstChild as HTMLElement | null;
@@ -433,22 +434,29 @@ export function SchemaHintsList({
   };
 
   if (isLoading) {
+    const placeholderWidths = [
+      '8%',
+      '10%',
+      '9%',
+      '11%',
+      '8%',
+      '10%',
+      '9%',
+      '8%',
+      '11%',
+      '9%',
+      '8%',
+      '10%',
+      '9%',
+      '8%',
+    ];
     return (
       <Flex aria-label={t('Schema Hints List')} gap="md" wrap="nowrap" overflow="hidden">
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="11%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="11%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
+        {placeholderWidths.map((width, index) => (
+          <Container key={index} flexShrink={0} width={width}>
+            <Placeholder width="100%" height="28px" />
+          </Container>
+        ))}
       </Flex>
     );
   }
