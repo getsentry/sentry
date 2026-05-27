@@ -413,12 +413,12 @@ describe('getTargetWithReadableQueryParams', () => {
         JSON.stringify({groupBy: 'transaction'}),
         JSON.stringify({yAxes: ['avg(span.duration)']}),
       ],
-      aggregateSort: '-avg(span.duration)',
+      aggregateSort: ['-avg(span.duration)'],
       extrapolate: '0',
       field: ['timestamp', 'span.op'],
       project: '1',
       query: 'span.op:db',
-      sort: '-timestamp',
+      sort: ['-timestamp'],
     });
     expect(target.query.groupBy).toBeUndefined();
     expect(target.query.visualize).toBeUndefined();

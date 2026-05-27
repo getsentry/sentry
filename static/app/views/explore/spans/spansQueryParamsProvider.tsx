@@ -20,9 +20,14 @@ export function SpansQueryParamsProvider({children}: SpansQueryParamsProviderPro
     history: 'push',
   });
 
+  // nuqs creates new object references for all params on every URL change,
+  // even for values that didn't change. Use value-based comparison via
+  // JSON.stringify so downstream memos/effects have stable references.
+  const queryParamsKey = JSON.stringify(queryParams);
   const readableQueryParams = useMemo(
     () => getReadableQueryParamsFromParsed(queryParams),
-    [queryParams]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryParamsKey intentionally replaces queryParams for value-based comparison
+    [queryParamsKey]
   );
 
   const setWritableQueryParams = useCallback(

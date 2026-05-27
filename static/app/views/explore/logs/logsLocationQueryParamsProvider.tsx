@@ -34,9 +34,11 @@ export function LogsLocationQueryParamsProvider({
 
   const [_, setPersistentParams] = usePersistedLogsPageParams();
 
+  const queryParamsKey = JSON.stringify(queryParams);
   const _readableQueryParams = useMemo(
     () => getReadableQueryParamsFromParsed(false, queryParams),
-    [queryParams]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryParamsKey intentionally replaces queryParams for value-based comparison
+    [queryParamsKey]
   );
 
   const readableQueryParams = useMemo(

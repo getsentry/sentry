@@ -333,10 +333,10 @@ describe('getTargetWithReadableQueryParams', () => {
         JSON.stringify({groupBy: 'message.template'}),
         JSON.stringify({yAxes: ['avg(foo)']}),
       ],
-      logsAggregateSortBys: '-avg(foo)',
+      logsAggregateSortBys: ['-avg(foo)'],
       logsFields: ['timestamp', 'message'],
       logsQuery: 'severity:error',
-      logsSortBys: '-timestamp',
+      logsSortBys: ['-timestamp'],
       project: '1',
     });
     expect(target.query.logsAggregate).toBeUndefined();

@@ -67,6 +67,7 @@ const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
 const SPANS_ID_KEY = ID_KEY;
 const SPANS_TITLE_KEY = TITLE_KEY;
 const SPANS_CROSS_EVENTS_KEY = 'crossEvents';
+const SPANS_TABLE_KEY = 'table';
 
 export const spansQueryParamsParsers = {
   [SPANS_MODE_KEY]: parseAsMode,
@@ -83,6 +84,7 @@ export const spansQueryParamsParsers = {
   [SPANS_ID_KEY]: parseAsString,
   [SPANS_TITLE_KEY]: parseAsString,
   [SPANS_CROSS_EVENTS_KEY]: parseAsCrossEvents,
+  [SPANS_TABLE_KEY]: parseAsString,
 };
 
 type SpansQueryParams = inferParserType<typeof spansQueryParamsParsers>;
@@ -172,6 +174,7 @@ export function getReadableQueryParamsFromParsed(
     title: queryParams[SPANS_TITLE_KEY] ?? undefined,
 
     crossEvents: queryParams[SPANS_CROSS_EVENTS_KEY] ?? undefined,
+    table: queryParams[SPANS_TABLE_KEY] ?? undefined,
   });
 }
 
@@ -235,6 +238,9 @@ export function getSpansQueryParamsUpdate(writableQueryParams: WritableQueryPara
     writableQueryParams.crossEvents === null
   ) {
     update[SPANS_CROSS_EVENTS_KEY] = writableQueryParams.crossEvents;
+  }
+  if (defined(writableQueryParams.table) || writableQueryParams.table === null) {
+    update[SPANS_TABLE_KEY] = writableQueryParams.table;
   }
 
   return update;

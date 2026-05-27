@@ -1,7 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -455,10 +455,13 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'enabled', organization: logsOrganization}),
+        additionalWrapper: createWrapper({
+          autoRefresh: 'enabled',
+          organization: logsOrganization,
+        }),
       }
     );
 
@@ -469,10 +472,10 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: createWrapper({autoRefresh: 'idle'}),
       }
     );
 
@@ -483,10 +486,10 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockMultiAxisTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: createWrapper({autoRefresh: 'idle'}),
       }
     );
 
@@ -497,10 +500,10 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockMultiGroupTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: createWrapper({autoRefresh: 'idle'}),
       }
     );
 
@@ -511,10 +514,10 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockMultiAxisGroupTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: createWrapper({autoRefresh: 'idle'}),
       }
     );
 
@@ -525,12 +528,12 @@ describe('useStreamingTimeseriesResult', () => {
     it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockSingleAxisTimeseries();
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({autoRefresh: 'enabled'}),
+          additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
         }
       );
 
@@ -599,12 +602,12 @@ describe('useStreamingTimeseriesResult', () => {
     it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockMultiGroupTimeseries();
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({
+          additionalWrapper: createWrapper({
             autoRefresh: 'enabled',
             groupBy: [OurLogKnownFieldKey.SEVERITY],
           }),
@@ -837,12 +840,12 @@ describe('useStreamingTimeseriesResult', () => {
       const mockTimeseriesData = getMockMultiGroupTimeseries();
       const ingestDelayMs = 8500n * 1_000_000n; // Set delay to match last bucket timestamp
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, ingestDelayMs),
         {
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({
+          additionalWrapper: createWrapper({
             autoRefresh: 'enabled',
             groupBy: [OurLogKnownFieldKey.SEVERITY],
           }),
@@ -944,12 +947,12 @@ describe('useStreamingTimeseriesResult', () => {
     it('should handle multiple group-by fields correctly', async () => {
       const mockTimeseriesData = getMockMultipleGroupByTimeseries();
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({
+          additionalWrapper: createWrapper({
             autoRefresh: 'enabled',
             groupBy: ['severity', 'component'],
           }),

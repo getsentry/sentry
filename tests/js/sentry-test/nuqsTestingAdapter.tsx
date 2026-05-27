@@ -47,8 +47,12 @@ export function SentryNuqsTestingAdapter({
       // eslint-disable-next-line react-hooks/rules-of-hooks
       const navigate = useNavigate();
 
-      // Get search params from the current location
-      const searchParams = new URLSearchParams(location.search || '');
+      // Get search params from the current location.
+      // Prefer location.search, but fall back to location.query because many
+      // test mocks (LocationFixture, jest.mocked(useLocation)) only set query.
+      const searchParams = location.search
+        ? new URLSearchParams(location.search)
+        : searchParamsFromQuery(location.query);
 
       const updateUrl: AdapterInterface['updateUrl'] = (search, options) => {
         const newSearchParams = new URLSearchParams(search);
@@ -72,8 +76,9 @@ export function SentryNuqsTestingAdapter({
       };
 
       const getSearchParamsSnapshot = () => {
-        // Always read from the current location
-        return new URLSearchParams(location.search || '');
+        return location.search
+          ? new URLSearchParams(location.search)
+          : searchParamsFromQuery(location.query);
       };
 
       return {
@@ -94,4 +99,26 @@ export function SentryNuqsTestingAdapter({
   );
 
   return <AdapterProvider defaultOptions={defaultOptions}>{children}</AdapterProvider>;
+}
+
+function searchParamsFromQuery(
+  query: Record<string, string | string[] | null | undefined> | undefined
+): URLSearchParams {
+  const params = new URLSearchParams();
+  if (!query) {
+    return params;
+  }
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        params.append(key, v);
+      }
+    } else {
+      params.append(key, value);
+    }
+  }
+  return params;
 }

@@ -124,10 +124,22 @@ export function serializeQueryParamsToLocation<Parsers extends ParserMap>(
   const target = serialize(base, values);
   const [pathname = location.pathname, queryString = ''] = target.split('?');
 
+  const urlSearchParams = new URLSearchParams(queryString);
+  const query: Record<string, string | string[]> = {};
+  for (const key of new Set(urlSearchParams.keys())) {
+    const allValues = urlSearchParams.getAll(key);
+    const parser = parsers[key as keyof Parsers] as {type?: string} | undefined;
+    if (allValues.length > 1 || parser?.type === 'multi') {
+      query[key] = allValues;
+    } else {
+      query[key] = allValues[0]!;
+    }
+  }
+
   return {
     ...location,
     pathname,
     search: queryString ? `?${queryString}` : '',
-    query: qs.parse(queryString),
+    query,
   };
 }
