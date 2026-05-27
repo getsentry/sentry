@@ -246,17 +246,15 @@ def create_code_mapping(
                 defaults={"source": ProjectRepositorySource.AUTO_EVENT},
             )
             _, created = RepositoryProjectPathConfig.objects.get_or_create(
-                project=project,
+                project_repository=project_repo,
                 stack_root=code_mapping.stacktrace_root,
                 source_root=code_mapping.source_path,
                 defaults={
-                    "repository": repository,
                     "organization_integration_id": org_integration.id,
                     "integration_id": org_integration.integration_id,
                     "organization_id": org_integration.organization_id,
                     "default_branch": code_mapping.repo.branch,
                     "automatically_generated": True,
-                    "project_repository": project_repo,
                 },
             )
     if created or tags["dry_run"]:

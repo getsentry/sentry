@@ -32,7 +32,9 @@ threshold_translators = {
 
 data_condition_type_translators = {
     Condition.GREATER.value: lambda threshold: threshold - 100,
+    Condition.GREATER_OR_EQUAL.value: lambda threshold: threshold - 100,
     Condition.LESS.value: lambda threshold: 100 - threshold,
+    Condition.LESS_OR_EQUAL.value: lambda threshold: 100 - threshold,
 }
 
 

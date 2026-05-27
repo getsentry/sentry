@@ -91,6 +91,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.ReleaseHeadCommit, BulkModelDeletionTask)
     manager.register(models.ReleaseProject, BulkModelDeletionTask)
     manager.register(models.ReleaseProjectEnvironment, BulkModelDeletionTask)
+    manager.register(models.ProjectRepository, defaults.ProjectRepositoryDeletionTask)
     manager.register(models.Repository, defaults.RepositoryDeletionTask)
     manager.register(models.Rule, defaults.RuleDeletionTask)
     manager.register(models.SavedSearch, BulkModelDeletionTask)

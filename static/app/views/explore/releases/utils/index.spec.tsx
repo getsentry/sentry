@@ -1,6 +1,5 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ReleaseFixture} from 'sentry-fixture/release';
-
-import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {getReleaseBounds, getReleaseParams, searchReleaseVersion} from './index';
 
@@ -105,12 +104,12 @@ describe('releases/utils', () => {
   });
 
   describe('getReleaseParams', () => {
-    const {router} = initializeOrg();
+    const locationFixture = LocationFixture();
     const releaseBounds = getReleaseBounds(ReleaseFixture());
 
     it('returns params related to a release', () => {
       const location = {
-        ...router.location,
+        ...locationFixture,
         query: {
           pageStatsPeriod: '30d',
           project: ['456'],
@@ -134,7 +133,7 @@ describe('releases/utils', () => {
     it('returns release start/end if no other datetime is present', () => {
       expect(
         getReleaseParams({
-          location: {...router.location, query: {}},
+          location: {...locationFixture, query: {}},
           releaseBounds,
         })
       ).toEqual({
@@ -147,7 +146,7 @@ describe('releases/utils', () => {
       expect(
         getReleaseParams({
           location: {
-            ...router.location,
+            ...locationFixture,
             query: {pageStart: '2021-03-23T01:02:30Z', pageEnd: '2022-03-23T01:02:30Z'},
           },
           releaseBounds,

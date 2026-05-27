@@ -3,6 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -19,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
   encodeMetricQueryParams,
@@ -74,6 +76,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const location = useLocation();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
+  const {setRunId} = useAiQueryContext();
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();
@@ -105,10 +108,12 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     .join(' ')
     .trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails.queryToUse) {
+  } else if (!inputValue && queryDetails.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 
@@ -140,7 +145,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             metric_context: {
               metric_name: traceMetric.name,
               metric_type: traceMetric.type,
-              metric_unit: traceMetric.unit ?? 'none',
+              metric_unit: traceMetric.unit ?? NONE_UNIT,
             },
           },
         },
@@ -168,8 +173,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
-      if (!result) return;
+    (result: AskSeerSearchQuery, runId?: number) => {
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         groupBys,
@@ -291,6 +298,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         visualize_count: visualizations?.length ?? 0,
       });
 
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
+
       // Single navigate with both metric params and datetime
       // (Previously, setQueryParams and navigate were called separately,
       // causing the second navigate to overwrite the first with stale location)
@@ -318,6 +329,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       organization,
       pageFilters.selection,
       queryParams,
+      setRunId,
     ]
   );
 
@@ -391,7 +403,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           metric_context: {
             metric_name: traceMetric.name,
             metric_type: traceMetric.type,
-            metric_unit: traceMetric.unit ?? 'none',
+            metric_unit: traceMetric.unit ?? NONE_UNIT,
           },
         }}
         applySeerSearchQuery={applySeerSearchQuery}

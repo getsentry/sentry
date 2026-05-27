@@ -5,6 +5,7 @@ import orjson
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class TestGroupAutofixUpdate(APITestCase):
@@ -71,8 +72,11 @@ class TestGroupAutofixUpdate(APITestCase):
         mock_request.return_value.status = 202
         mock_request.return_value.json.return_value = {}
 
-        self.group.refresh_from_db()
-        assert self.group.seer_autofix_last_triggered is None
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=456,
+            last_triggered_at=before_now(days=1),
+        )
 
         response = self.client.post(
             self.url,
@@ -90,6 +94,35 @@ class TestGroupAutofixUpdate(APITestCase):
 
         self.group.refresh_from_db()
         assert isinstance(self.group.seer_autofix_last_triggered, datetime)
+
+        seer_run.refresh_from_db()
+        assert seer_run.last_triggered_at == self.group.seer_autofix_last_triggered
+
+    @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
+    def test_autofix_update_does_not_mirror_to_seer_run_in_other_org(self, mock_request: MagicMock):
+        mock_request.return_value.status = 202
+        mock_request.return_value.json.return_value = {}
+
+        other_org = self.create_organization()
+        other_org_seer_run = self.create_seer_run(
+            organization=other_org,
+            seer_run_state_id=789,
+            last_triggered_at=before_now(days=1),
+        )
+        original_last_triggered_at = other_org_seer_run.last_triggered_at
+
+        response = self.client.post(
+            self.url,
+            data={
+                "run_id": 789,
+                "payload": {"type": "some_update", "data": "value"},
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        other_org_seer_run.refresh_from_db()
+        assert other_org_seer_run.last_triggered_at == original_last_triggered_at
 
     @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
     def test_coding_payload_blocked_when_coding_disabled(self, mock_request: MagicMock) -> None:

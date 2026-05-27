@@ -324,7 +324,7 @@ def _errors_query(
 def _run_errors_query(
     errors_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-):
+) -> list[dict[str, Any]]:
     result = errors_query.run_query(referrer)
     error_data = errors_query.process_results(result)["data"]
     for event in error_data:
@@ -551,7 +551,7 @@ def _serialize_columnar_uptime_item(
     region_config = get_region_config(row_dict["region"].val_str)
     region_name = region_config.name if region_config else "Unknown"
 
-    def get_value(attr_name: str, attr_value: AttributeValue):
+    def get_value(attr_name: str, attr_value: AttributeValue) -> int | str | float | bool | None:
         if attr_value.is_null:
             return None
         resolved_column = columns_by_name[attr_name]
@@ -697,7 +697,7 @@ def query_trace_data(
             control_data=errors_data,
             experimental_data=eap_errors_data,
             callsite=callsite,
-            is_experimental_data_a_null_result=len(eap_errors_data) == 0,
+            is_experimental_data_nullish=len(eap_errors_data) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),

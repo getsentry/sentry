@@ -61,7 +61,9 @@ function usePhaseTimer(
   const scheduleRef = useRef<(idx: number) => void>(() => {});
   scheduleRef.current = (idx: number) => {
     const phase = configRef.current[idx];
-    if (!phase) return;
+    if (!phase) {
+      return;
+    }
 
     timerRef.current = window.setTimeout(() => {
       const nextIdx = idx + 1;
@@ -80,13 +82,17 @@ function usePhaseTimer(
   };
 
   function start() {
-    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+    }
     setPhaseIndex(0);
     scheduleRef.current(0);
   }
 
   function cancel() {
-    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+    }
     timerRef.current = null;
     setPhaseIndex(null);
   }
@@ -94,7 +100,9 @@ function usePhaseTimer(
   useEffect(() => {
     const timer = timerRef;
     return () => {
-      if (timer.current !== null) clearTimeout(timer.current);
+      if (timer.current !== null) {
+        clearTimeout(timer.current);
+      }
     };
   }, []);
 
@@ -206,7 +214,9 @@ export function useSyncRepositories(
 
   // Detect sync completion by comparing last_sync on each poll result.
   useEffect(() => {
-    if (!isSyncing || !query.data) return;
+    if (!isSyncing || !query.data) {
+      return;
+    }
 
     const currentLastSync = query.data.configData?.last_sync as string | undefined;
     if (currentLastSync !== lastSyncBefore) {

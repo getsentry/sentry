@@ -17,7 +17,7 @@ function ProfilingContainer() {
 
   const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/profiling/',
-    newPathPrefix: '/explore/profiling/',
+    newPathPrefix: '/explore/profiles/',
   });
 
   if (redirectPath) {
@@ -26,7 +26,7 @@ function ProfilingContainer() {
 
   return (
     <Feature
-      hookName="feature-disabled:profiling-page"
+      overrideName="feature-disabled:profiling-page"
       features={profilingFeature}
       organization={organization}
       renderDisabled={() => (

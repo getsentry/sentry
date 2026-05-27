@@ -33,12 +33,20 @@
         {% if pending_links_count %}
           <legend>Unlinked Members</legend>
 
+          {% if require_link %}
           <p>
             There are currently {{ pending_links_count }} member(s) who have
             not yet linked their account with {{ provider_name }}. Until this
             is done they will be unable to access the organization.
-
           </p>
+          {% else %}
+          <p>
+            There are currently {{ pending_links_count }} member(s) who have
+            not yet linked their account with {{ provider_name }}. They can
+            still access the organization using their email and password, but
+            will not be able to log in via {{ provider_name }} until linked.
+          </p>
+          {% endif %}
 
           <p>
             <button class="btn btn-primary" name="op" value="reinvite">Send Reminders</button>

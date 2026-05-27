@@ -55,6 +55,7 @@ class AgentChatRequest(TypedDict):
     run_id: int | None
     insert_index: int | None
     on_page_context: str | None
+    external_idempotency_key: NotRequired[str]
     page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
@@ -72,6 +73,7 @@ class AgentChatRequest(TypedDict):
     category_value: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
+    enable_frontend_code_search: NotRequired[bool]
     max_iterations: NotRequired[int]
     proxy_headers: NotRequired[dict[str, str] | None]
     ui_tools: NotRequired[str | None]
@@ -88,6 +90,7 @@ class AgentRunsRequest(TypedDict):
     expand: NotRequired[str]
     start: NotRequired[datetime]
     end: NotRequired[datetime]
+    query: NotRequired[str]
 
 
 class AgentUpdateRequest(TypedDict):

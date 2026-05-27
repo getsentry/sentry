@@ -6,10 +6,10 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t, tn} from 'sentry/locale';
-import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/hooks';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/overrides';
 
 import type {OAuthCallbackData} from './shared/oauthLoginStep';
 import {OAuthLoginStep} from './shared/oauthLoginStep';
@@ -127,8 +127,8 @@ function DefaultGitHubMultiOrgInstall({
   );
 }
 
-const GitHubMultiOrgInstall = HookOrDefault({
-  hookName: 'component:scm-github-multi-org-install',
+const GitHubMultiOrgInstall = OverrideOrDefault({
+  overrideName: 'component:scm-github-multi-org-install',
   defaultComponent: DefaultGitHubMultiOrgInstall,
 });
 
@@ -207,7 +207,7 @@ function FreshInstallSteps({
   onInstall: () => void;
   popupBlockedNotice?: React.ReactNode;
 }) {
-  if (isAdvancing) {
+  if (isWaitingForCallback || isAdvancing) {
     return (
       <Stack gap="lg" align="start">
         <Text>
@@ -215,22 +215,7 @@ function FreshInstallSteps({
             'Complete the installation in the popup window. Once finished, this page will update automatically.'
           )}
         </Text>
-        <Button size="sm" disabled>
-          {t('Completing...')}
-        </Button>
-      </Stack>
-    );
-  }
-
-  if (isWaitingForCallback) {
-    return (
-      <Stack gap="lg" align="start">
-        <Text>
-          {t(
-            'Complete the installation in the popup window. Once finished, this page will update automatically.'
-          )}
-        </Text>
-        <Button size="sm" onClick={onInstall}>
+        <Button size="sm" onClick={onInstall} busy={isAdvancing}>
           {t('Reopen installation window')}
         </Button>
       </Stack>

@@ -546,8 +546,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
-                        {"type": "user", "id": str(self.user.id), "identifier": "admin@sentry.io"},
-                        {"type": "team", "id": str(self.team.id), "identifier": "tiger-team"},
+                        {"type": "user", "id": str(self.user.id), "name": "admin@sentry.io"},
+                        {"type": "team", "id": str(self.team.id), "name": "tiger-team"},
                     ],
                 }
             ],

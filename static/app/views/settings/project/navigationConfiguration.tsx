@@ -1,14 +1,14 @@
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject, Project} from 'sentry/types/project';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
   debugFilesNeedsReview?: boolean;
   organization?: Organization;
-  project?: Project;
+  project?: DetailedProject | Project;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -18,7 +18,9 @@ export function getNavigationConfiguration({
   organization,
   debugFilesNeedsReview,
 }: ConfigParams): NavigationSection[] {
-  const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
+  const plugins = (
+    'plugins' in (project ?? {}) ? ((project as DetailedProject)?.plugins ?? []) : []
+  ).filter(plugin => plugin.enabled);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return [

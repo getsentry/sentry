@@ -1,6 +1,6 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -11,8 +11,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 describe('Frame Variables', () => {
   it('renders', async () => {
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: '0'});
-    const projectDetails = ProjectFixture({
+    const project = DetailedProjectFixture({id: '0'});
+    const projectDetails = DetailedProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });

@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -43,6 +44,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
+import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
@@ -72,17 +74,17 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const crossEvents = useQueryParamsCrossEvents();
   const setQueryParams = useSetQueryParams();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
+  const {selection} = usePageFilters();
 
   const organization = useOrganization();
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasCrossEventQueryingFlag = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
 
-  const hasCrossEvents =
-    hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+  const hasAbsoluteDateSelection = Boolean(
+    selection.datetime.start && selection.datetime.end && !selection.datetime.period
+  );
 
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useSpanItemAttributes({}, 'number');
@@ -118,9 +120,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
         mode === Mode.SAMPLES
           ? (key: string) => {
               if (ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)) {
-                return t(
-                  "This key won't affect the results because samples mode does not support aggregate functions"
-                );
+                return <SamplesModeAggregateFilterWarning />;
               }
               return;
             }
@@ -172,20 +172,30 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
         >
           {tourProps => (
             <div {...tourProps}>
-              <Grid
-                gap="md"
-                columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}
-              >
-                <StyledPageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter {...datePageFilterProps} />
-                </StyledPageFilterBar>
-                <SpansSearchBar
-                  spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
-                />
-                {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
-                {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
+              <Grid gap="md">
+                <Grid
+                  gap="md"
+                  columns={{
+                    sm: '1fr',
+                    md: 'minmax(300px, auto) 1fr min-content',
+                  }}
+                >
+                  <StyledPageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter {...datePageFilterProps} />
+                  </StyledPageFilterBar>
+                  <SpansSearchBar
+                    spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
+                  />
+                  <CrossEventQueryingDropdown />
+                  {hasCrossEvents && !hasAbsoluteDateSelection ? (
+                    <SpansTabCrossEventSearchBars />
+                  ) : null}
+                </Grid>
+                {hasCrossEvents && hasAbsoluteDateSelection ? (
+                  <SpansTabCrossEventSearchBars hasIndependentDateColumn />
+                ) : null}
               </Grid>
               {hasCrossEvents ? null : (
                 <ExploreSchemaHintsSection>

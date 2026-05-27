@@ -9,6 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.utils import to_valid_int_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
@@ -35,13 +36,15 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
+
         notes_by_user = Activity.objects.filter(
             group=group, type=ActivityType.NOTE.value, user_id=request.user.id
         )
         if not len(notes_by_user):
             raise ResourceDoesNotExist
 
-        user_note = [n for n in notes_by_user if n.id == int(note_id)]
+        user_note = [n for n in notes_by_user if n.id == note_id_int]
         if not user_note or len(user_note) > 1:
             raise ResourceDoesNotExist
         note = user_note[0]
@@ -78,9 +81,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
 
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
+
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id
+                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id_int
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist

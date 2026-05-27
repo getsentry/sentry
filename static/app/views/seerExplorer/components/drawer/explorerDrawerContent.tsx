@@ -5,14 +5,16 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
@@ -30,6 +32,8 @@ import {
   useSeerExplorerDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
+export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
+
 export function ExplorerDrawerContent({
   getPageReferrer,
   initialQuery,
@@ -42,7 +46,6 @@ export function ExplorerDrawerContent({
   const user = useUser();
   const {closeDrawer} = useDrawer();
 
-  const [inputValue, setInputValue] = useState('');
   const [showThinking, setShowThinking] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -75,6 +78,17 @@ export function ExplorerDrawerContent({
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
+  // Persist the input draft per-run so drawer closes / run switches
+  // don't lose the user's in-progress text.
+  const {
+    value: inputValue,
+    setValue: setInputValue,
+    reset: clearInput,
+  } = useDeferredSessionStorage(
+    runId === null ? null : `${INPUT_STORAGE_KEY_PREFIX}:${runId}`,
+    ''
+  );
+
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
     sessionData.owner_user_id !== null &&
@@ -98,14 +112,6 @@ export function ExplorerDrawerContent({
     lastAutoSubmittedQueryRef.current = query;
     sendMessage(query, blocks.length);
   }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
-
-  const latestTodoBlockIndex = useMemo(() => {
-    for (let i = blocks.length - 1; i >= 0; i--) {
-      const block = blocks[i];
-      if (block && Array.isArray(block.todos) && block.todos.length > 0) return i;
-    }
-    return -1;
-  }, [blocks]);
 
   // - Pending user input (file approval + questions) -------------------------
   const {
@@ -147,7 +153,9 @@ export function ExplorerDrawerContent({
   });
 
   const handleCopyLink = useCallback(async () => {
-    if (runId === null) return;
+    if (runId === null) {
+      return;
+    }
     try {
       const url = getExplorerUrl(runId);
       await navigator.clipboard.writeText(url);
@@ -159,9 +167,30 @@ export function ExplorerDrawerContent({
   }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl = runId
-    ? getConversationsUrlForExternalUse('sentry', runId)
-    : undefined;
+  const conversationsUrl = useMemo(() => {
+    if (runId === null) {
+      return;
+    }
+    let minTs = Infinity;
+    let maxTs = -Infinity;
+    for (const block of blocks) {
+      const ts = Date.parse(block.timestamp);
+      if (Number.isNaN(ts)) {
+        continue;
+      }
+      if (ts < minTs) {
+        minTs = ts;
+      }
+      if (ts > maxTs) {
+        maxTs = ts;
+      }
+    }
+    return getConversationsUrlForExternalUse('sentry', runId, {
+      start: minTs === Infinity ? undefined : new Date(minTs).toISOString(),
+      end: maxTs === -Infinity ? undefined : new Date(maxTs).toISOString(),
+      project: SEER_AGENTS_PROJECT_ID,
+    });
+  }, [runId, blocks]);
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -202,7 +231,7 @@ export function ExplorerDrawerContent({
 
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
-    clearInput: () => setInputValue(''),
+    clearInput,
     inputValue,
     focusInput,
     textAreaRef: textareaRef,
@@ -233,9 +262,9 @@ export function ExplorerDrawerContent({
       return;
     }
     sendMessage(inputValue.trim(), blocks.length);
-    setInputValue('');
+    clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage, blocks.length]);
+  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -386,11 +415,10 @@ export function ExplorerDrawerContent({
                   }}
                   block={block}
                   blockIndex={index}
+                  blocks={blocks}
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
-                  isAwaitingFileApproval={isFileApprovalPending}
-                  isAwaitingQuestion={isQuestionPending}
-                  isLatestTodoBlock={index === latestTodoBlockIndex}
+                  interactionPending={isFileApprovalPending || isQuestionPending}
                   readOnly={readOnly}
                   showThinking={showThinking}
                 />
@@ -425,7 +453,7 @@ export function ExplorerDrawerContent({
         canSendMessage={canSendMessage}
         interruptState={interruptState}
         isTimedOut={isTimedOut}
-        onClear={() => setInputValue('')}
+        onClear={clearInput}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}

@@ -20,7 +20,7 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
     case 'url':
       return z.url();
     case 'choice_mapper':
-      return z.object({});
+      return z.looseObject({});
     case 'project_mapper':
     case 'table':
       return z.array(z.any());

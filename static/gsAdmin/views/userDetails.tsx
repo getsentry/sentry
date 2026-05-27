@@ -1,12 +1,13 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -30,6 +31,8 @@ import {UserOverview} from 'admin/components/users/userOverview';
 import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
 export function UserDetails() {
+  const {openModal} = useModal();
+
   const api = useApi({persistInFlight: true});
   const {userId} = useParams<{userId: string}>();
   const queryClient = useQueryClient();

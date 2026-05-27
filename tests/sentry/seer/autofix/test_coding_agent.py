@@ -26,7 +26,6 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
 )
 from sentry.seer.models import SeerRepoDefinition
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
@@ -44,7 +43,7 @@ class TestLaunchAgentsForRepos(TestCase):
             external_id="123456",
             name="getsentry/sentry",
         )
-        SeerProjectRepository.objects.create(project=self.project, repository=repository)
+        self.create_seer_project_repository(project=self.project, repository=repository)
 
         # Create a basic autofix state with a solution that references a repo
         self.autofix_state = AutofixState(
@@ -285,6 +284,8 @@ class TestLaunchAgentsForRepos(TestCase):
         mock_get_prompt.assert_called_once()
         call_args = mock_get_prompt.call_args
         assert call_args[0][3] == "AIML-2301"
+        launch_request = mock_installation.launch.call_args[0][0]
+        assert launch_request.issue_short_id == "AIML-2301"
         assert mock_store_states.call_args.kwargs["organization_id"] == self.organization.id
 
 

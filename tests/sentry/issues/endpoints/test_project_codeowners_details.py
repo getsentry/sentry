@@ -87,6 +87,12 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.data["id"] == str(self.codeowners.id)
         assert response.data["raw"] == raw.strip()
         assert response.data["dateSynced"] is not None
+        assert response.data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+        assert response.data["schema"]["rules"]
+        for rule in response.data["schema"]["rules"]:
+            for owner in rule["owners"]:
+                assert "name" in owner
+                assert "identifier" not in owner
         codeowner = ProjectCodeOwners.objects.get(id=self.codeowners.id)
         assert codeowner.date_updated.strftime("%Y-%m-%d %H:%M:%S") == "2023-10-03 00:00:00"
         assert codeowner.date_synced is not None

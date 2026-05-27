@@ -17,7 +17,7 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {Project, ProjectStats} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -25,7 +25,6 @@ import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
@@ -33,11 +32,10 @@ import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/cr
 import {ProjectStatsGraph} from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
+type ProjectListItem = Project & {stats?: ProjectStats};
 
 function OrganizationProjects() {
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
-
   const navigate = useNavigate();
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
@@ -47,17 +45,20 @@ function OrganizationProjects() {
     isPending,
     isError,
   } = useQuery({
-    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {
-        ...location.query,
-        query,
-        per_page: ITEMS_PER_PAGE,
-        statsPeriod: '24h',
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
-      staleTime: 0,
-    }),
+    ...apiOptions.as<ProjectListItem[]>()(
+      '/organizations/$organizationIdOrSlug/projects/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          ...location.query,
+          query,
+          per_page: ITEMS_PER_PAGE,
+          statsPeriod: '24h',
+          collapse: ['latestDeploys', 'unusedFeatures'],
+        },
+        staleTime: 0,
+      }
+    ),
     select: selectJsonWithHeaders,
   });
 
@@ -85,7 +86,7 @@ function OrganizationProjects() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Projects'), organization.slug, false)}
       />
-      <SettingsPageHeader title="Projects" action={hasPageFrame ? undefined : action} />
+      <SettingsPageHeader title="Projects" />
       <SearchWrapper>
         <Flex align="center" gap="md">
           <Container flex={1}>
@@ -98,7 +99,7 @@ function OrganizationProjects() {
               />
             )}
           </Container>
-          {hasPageFrame && action}
+          {action}
         </Flex>
       </SearchWrapper>
       <Panel>
@@ -113,7 +114,7 @@ function OrganizationProjects() {
                   <ProjectItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
-                  <ProjectStatsGraph project={project} />
+                  <ProjectStatsGraph stats={project.stats} />
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}

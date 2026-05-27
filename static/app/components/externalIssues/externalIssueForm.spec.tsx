@@ -527,6 +527,120 @@ describe('ExternalIssueForm', () => {
         'New default from server'
       );
     });
+
+    it('should preserve async select value after dynamic refetch when value is not in initial choices', async () => {
+      // Catch-all mock for the search endpoint
+      MockApiClient.addMockResponse({
+        url: '/extensions/jira/search/org-slug/5',
+        body: [],
+      });
+
+      // Initial config: project field is async select with limited choices
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        match: [MockApiClient.matchQuery({action: 'create'})],
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Project',
+              required: true,
+              choices: [
+                ['1', 'PROJ1 - Project 1'],
+                ['2', 'PROJ2 - Project 2'],
+              ],
+              type: 'select',
+              name: 'project',
+              updatesForm: true,
+              url: '/extensions/jira/search/org-slug/5',
+              default: '1',
+            },
+          ],
+        },
+      });
+
+      // Search results include a project not in initial choices
+      MockApiClient.addMockResponse({
+        url: '/extensions/jira/search/org-slug/5',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'project',
+            query: 'Hidden',
+          }),
+        ],
+        body: [
+          {label: 'PROJ1 - Project 1', value: '1'},
+          {label: 'HIDDEN - Hidden Project', value: '99'},
+        ],
+      });
+
+      // After selecting project 99, the refetch returns config where choices
+      // still don't include project 99 (backend only returns first N projects)
+      const dynamicRefetch = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        match: [MockApiClient.matchQuery({action: 'create', project: '99'})],
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Project',
+              required: true,
+              choices: [
+                ['1', 'PROJ1 - Project 1'],
+                ['2', 'PROJ2 - Project 2'],
+              ],
+              type: 'select',
+              name: 'project',
+              updatesForm: true,
+              url: '/extensions/jira/search/org-slug/5',
+              default: '99',
+            },
+            {
+              label: 'Summary',
+              required: false,
+              type: 'text',
+              name: 'summary',
+              default: 'Default summary for hidden project',
+            },
+          ],
+        },
+      });
+
+      render(
+        <ExternalIssueForm
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          onChange={onChange}
+          group={group}
+          integration={integration}
+        />,
+        {organization}
+      );
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+      // Search for the hidden project via async select
+      const projectField = screen.getByRole('textbox', {name: 'Project'});
+      await userEvent.click(projectField);
+      await userEvent.type(projectField, 'Hidden');
+
+      // Wait for async search results and select the hidden project
+      expect(await screen.findByText('HIDDEN - Hidden Project')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('HIDDEN - Hidden Project'));
+
+      // Wait for the dynamic refetch
+      await waitFor(() => expect(dynamicRefetch).toHaveBeenCalled());
+
+      // The hidden project should remain selected (label visible) even though
+      // it's not in the refetched config's choices
+      expect(await screen.findByText('HIDDEN - Hidden Project')).toBeInTheDocument();
+
+      // Dependent fields from the refetch should also appear
+      expect(screen.getByRole('textbox', {name: 'Summary'})).toHaveValue(
+        'Default summary for hidden project'
+      );
+    });
   });
   describe('link', () => {
     let externalIssueField!: any;

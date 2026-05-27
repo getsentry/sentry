@@ -46,7 +46,7 @@ export const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCa
 
     const projectId = project?.id ?? null;
     const hasProjectId = typeof projectId === 'string' && projectId.length > 0;
-    const organizationId = project?.organization.id ?? null;
+    const organizationId = project?.organization?.id ?? null;
 
     if (isPending) {
       return (

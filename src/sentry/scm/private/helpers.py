@@ -1,6 +1,8 @@
+import time
 from typing import cast
 
 import sentry_sdk
+from django.db.models import Q
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.rate_limit import RateLimitProvider
@@ -8,9 +10,10 @@ from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
+from sentry.integrations.github.client import GITHUB_RATE_LIMIT_WINDOW, REFERRER_ALLOCATION
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.rate_limit import RedisRateLimitProvider
+from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 
@@ -32,13 +35,16 @@ def fetch_service_provider(
     except (IntegrationError, OrganizationIntegrationNotFound):
         return None
 
-    if integration.provider == "github":
-        return GitHubProvider(
-            client,
-            organization_id,
-            repository,
+    if integration.provider in ("github", "github_enterprise"):
+        rate_limiter = DynamicRateLimiter(
+            get_time_in_seconds=lambda: int(time.time()),
+            integration_id=integration.id,
+            provider=integration.provider,
             rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
+            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
+            referrer_allocation=REFERRER_ALLOCATION,
         )
+        return GitHubProvider(client, organization_id, repository, rate_limiter=rate_limiter)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
     else:
@@ -51,9 +57,9 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             repo = RepositoryModel.objects.get(organization_id=organization_id, id=repository_id)
         else:
             repo = RepositoryModel.objects.get(
+                Q(external_id=repository_id[1]) | Q(name=repository_id[1]),
                 organization_id=organization_id,
                 provider=f"integrations:{repository_id[0]}",
-                external_id=repository_id[1],
             )
     except RepositoryModel.DoesNotExist:
         return None

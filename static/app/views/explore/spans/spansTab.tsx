@@ -182,7 +182,7 @@ function SpanTabContentSectionInner({
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
-  const {isReady} = usePageFilters();
+  const {isReady, selection} = usePageFilters();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -207,11 +207,8 @@ function SpanTabContentSectionInner({
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    currentSelectedDateRange: selection.datetime,
   });
-
-  const hasCrossEventQueries = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
 
   const queryType =
     tab === Mode.AGGREGATE
@@ -232,7 +229,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const spansTableResult = useExploreSpansTable({
@@ -241,7 +238,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const tracesTableQuery = useQuery({
@@ -250,7 +247,7 @@ function SpanTabContentSectionInner({
       limit,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     }),
     select: selectJsonWithHeaders,
@@ -267,7 +264,7 @@ function SpanTabContentSectionInner({
       enabled: isReady,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     });
 
@@ -361,7 +358,6 @@ function SpanTabContentSectionInner({
               visualizes={visualizes}
               setVisualizes={setVisualizes}
               samplingMode={timeseriesSamplingMode}
-              setTab={setTab}
               rawSpanCounts={rawSpanCounts}
             />
             <ExploreTables

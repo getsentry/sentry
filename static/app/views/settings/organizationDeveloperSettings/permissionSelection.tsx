@@ -143,7 +143,13 @@ function SpecialPermissionField({
       name={name}
       onChange={onChange}
     >
-      {({id, onChange: formOnChange, value: checked}: any) => {
+      {({
+        id,
+        onChange: formOnChange,
+      }: {
+        id: string;
+        onChange: (value: boolean, event: ChangeEvent<HTMLInputElement>) => void;
+      }) => {
         const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
           formOnChange(event.target.checked, event);
         };
@@ -156,7 +162,7 @@ function SpecialPermissionField({
                   id={id}
                   name={name}
                   disabled={disabled}
-                  checked={checked === true}
+                  checked={value}
                   onChange={handleChange}
                 />
               </Flex>

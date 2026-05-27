@@ -3,7 +3,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +25,7 @@ describe('AutofixSection', () => {
       },
     ],
   });
-  const mockProject = ProjectFixture();
+  const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
     features: ['gen-ai-features'],
@@ -488,6 +488,74 @@ describe('AutofixSection', () => {
   });
 
   it('shows org setup UI when SCM integration is missing', async () => {
+    const seatBasedOrg = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${seatBasedOrg.slug}/seer/onboarding-check/`,
+      body: {
+        hasSupportedScmIntegration: false,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+        needsConfigReminder: false,
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization: seatBasedOrg,
+    });
+
+    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
+    const link = screen.getByRole('button', {name: 'Set Up Seer'});
+    expect(link).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/seer/onboarding/`
+    );
+  });
+
+  it('shows project setup UI when repos are not linked', async () => {
+    const seatBasedOrg = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+        seerReposLinked: false,
+      }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization: seatBasedOrg,
+    });
+
+    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
+    const link = screen.getByRole('button', {
+      name: 'Set Up Seer for This Project',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
+    );
+  });
+
+  it('skips setup UI for non-seat-based orgs without SCM integration', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
       body: {
@@ -508,41 +576,8 @@ describe('AutofixSection', () => {
       organization,
     });
 
-    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {name: 'Set Up Seer'});
-    expect(link).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/seer/onboarding/`
-    );
-  });
-
-  it('shows project setup UI when repos are not linked', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-        seerReposLinked: false,
-      }),
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {
-      name: 'Set Up Seer for This Project',
-    });
-    expect(link).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
-    );
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
   });
 
   it('shows empty state when there are no artifacts', async () => {

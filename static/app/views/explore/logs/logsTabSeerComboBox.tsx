@@ -3,6 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -56,6 +57,7 @@ export function LogsTabSeerComboBox() {
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const analyticsArea = useAnalyticsArea();
+  const {setRunId} = useAiQueryContext();
   const {
     currentInputValueRef,
     query,
@@ -83,10 +85,12 @@ export function LogsTabSeerComboBox() {
     ?.join(' ')
     ?.trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails?.queryToUse) {
+  } else if (!inputValue && queryDetails?.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 
@@ -134,8 +138,10 @@ export function LogsTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
-      if (!result) return;
+    (result: AskSeerSearchQuery, runId?: number) => {
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         groupBys,
@@ -249,6 +255,10 @@ export function LogsTabSeerComboBox() {
         group_by_count: groupBys.length,
       });
 
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
+
       // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
@@ -260,6 +270,7 @@ export function LogsTabSeerComboBox() {
       organization,
       pageFilters.selection,
       queryParams.aggregateFields,
+      setRunId,
     ]
   );
 

@@ -27,7 +27,7 @@ from sentry.organizations.services.organization import RpcOrganization, RpcUserO
 
 @control_silo_endpoint
 class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

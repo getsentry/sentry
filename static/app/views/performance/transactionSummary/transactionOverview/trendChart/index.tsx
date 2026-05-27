@@ -63,7 +63,9 @@ export function TrendChart({
   const api = useApi();
   const theme = useTheme();
 
-  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+  const metricsCardinality = useMetricsCardinalityContext();
+  const isCardinalityCheckLoading = metricsCardinality?.isLoading;
+  const outcome = metricsCardinality?.outcome;
   const shouldGetBreakpoint =
     withBreakpoint && !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
@@ -247,7 +249,7 @@ export function TrendChart({
               <Content
                 series={timeSeriesMetricsData}
                 errored={!trendsData && !isLoading}
-                loading={isLoading || isCardinalityCheckLoading}
+                loading={isLoading || !!isCardinalityCheckLoading}
                 reloading={isLoading}
                 timeFrame={metricsTimeFrame}
                 withBreakpoint
@@ -273,7 +275,7 @@ export function TrendChart({
               <Content
                 series={timeseriesData}
                 errored={errored}
-                loading={loading || isCardinalityCheckLoading}
+                loading={loading || !!isCardinalityCheckLoading}
                 reloading={reloading}
                 timeFrame={timeFrame}
                 {...contentCommonProps}

@@ -95,6 +95,10 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       url: `/organizations/${organization.slug}/teams/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
   });
 
   async function drillIntoGeneralSettings() {
@@ -110,56 +114,50 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
-  it.isKnownFlake(
-    'shows a "Current Project" tag on the active project entry',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-            route: '/settings/:orgId/projects/:projectId/',
-          },
-        }
-      );
+  it('shows a "Current Project" tag on the active project entry', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      expect(await screen.findByText('Current')).toBeInTheDocument();
-    }
-  );
+    expect(await screen.findByText('Current')).toBeInTheDocument();
+  });
 
-  it.isKnownFlake(
-    'places the current route project first when on a :projectId route',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-            route: '/settings/:orgId/projects/:projectId/',
-          },
-        }
-      );
+  it('places the current route project first when on a :projectId route', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      const option = (await screen.findAllByRole('option')).find(
-        el => !el.hasAttribute('aria-disabled')
-      );
-      expect(option).toHaveAccessibleName('project-b');
-    }
-  );
+    const option = (await screen.findAllByRole('option')).find(
+      el => !el.hasAttribute('aria-disabled')
+    );
+    expect(option).toHaveAccessibleName('project-b');
+  });
 
   it('does not duplicate the current project in the list', async () => {
     render(
@@ -302,6 +300,10 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       url: `/organizations/${organization.slug}/teams/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
   });
 
   function renderPalette() {
@@ -399,4 +401,26 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       ).toBeInTheDocument();
     }
   );
+
+  it('searches for projects and navigates to project page', async () => {
+    const projectToFind = ProjectFixture({
+      id: '2',
+      slug: 'test-project',
+      name: 'Test Project',
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [projectToFind],
+      match: [MockApiClient.matchQuery({query: 'test'})],
+    });
+
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'test');
+
+    expect(await screen.findByRole('option', {name: 'test-project'})).toBeInTheDocument();
+  });
 });

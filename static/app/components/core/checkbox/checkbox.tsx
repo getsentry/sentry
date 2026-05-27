@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -21,7 +22,7 @@ const NativeHiddenCheckbox = styled('input')`
   width: 100%;
   margin: 0;
   padding: 0;
-  cursor: pointer;
+  cursor: ${p => (p.disabled || p.readOnly ? 'initial' : 'pointer')};
 
   & + * {
     background-color: ${p =>
@@ -106,7 +107,12 @@ export function Checkbox({
   };
 
   return (
-    <CheckboxWrapper size={size} {...wrapperProps}>
+    <CheckboxWrapper
+      size={size}
+      disabled={props.disabled}
+      readOnly={props.readOnly}
+      {...wrapperProps}
+    >
       <NativeHiddenCheckbox
         ref={mergeRefs(nativeCheckBoxRef, ref)}
         checked={checked !== 'indeterminate' && checked}
@@ -125,7 +131,7 @@ export function Checkbox({
           </CheckboxIcon>
         )}
       </FakeCheckbox>
-      {!props.disabled && (
+      {!(props.disabled || props.readOnly) && (
         <InteractionStateLayer
           higherOpacity={checked === true || checked === 'indeterminate'}
         />
@@ -134,11 +140,18 @@ export function Checkbox({
   );
 }
 
-const CheckboxWrapper = styled('div')<{
+const CheckboxWrapper = styled('div', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' &&
+    isPropValid(prop) &&
+    !['disabled', 'readOnly'].includes(prop),
+})<{
   size: NonNullable<CheckboxProps['size']>;
+  disabled?: boolean;
+  readOnly?: boolean;
 }>`
   position: relative;
-  cursor: pointer;
+  cursor: ${p => (p.disabled || p.readOnly ? 'initial' : 'pointer')};
   display: inline-flex;
   justify-content: flex-start;
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};

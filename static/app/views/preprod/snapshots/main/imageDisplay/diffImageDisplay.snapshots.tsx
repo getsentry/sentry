@@ -74,6 +74,7 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
+    tags: null,
     width: 320,
     ...overrides,
   };

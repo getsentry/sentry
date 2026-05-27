@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +9,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('CursorIntegrationCta', () => {
   const project = ProjectFixture();
-  const enabledProject = ProjectFixture({
+  const enabledProject = DetailedProjectFixture({
     ...project,
     seerScannerAutomation: true,
     autofixAutomationTuning: 'medium',
@@ -193,7 +193,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('enables automation when setup button is clicked and automation is disabled', async () => {
-      const projectWithoutAutomation = ProjectFixture({
+      const projectWithoutAutomation = DetailedProjectFixture({
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
@@ -281,7 +281,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('does not enable automation when already enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
@@ -367,7 +367,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('shows configure stage when handoff is configured but automation is disabled', async () => {
-      const projectWithoutAutomation = ProjectFixture({
+      const projectWithoutAutomation = DetailedProjectFixture({
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
       });
@@ -427,7 +427,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('shows configured stage when handoff is set up and automation is enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });
@@ -448,10 +448,10 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('treats missing scanner automation as enabled when tuning is enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         autofixAutomationTuning: 'medium',
+        seerScannerAutomation: undefined,
       });
-      delete projectWithAutomation.seerScannerAutomation;
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
         body: projectWithAutomation,
@@ -469,7 +469,7 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('does not show setup button in configured stage', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
       });

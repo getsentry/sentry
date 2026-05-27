@@ -102,7 +102,7 @@ class TableRequest:
     sort_column_aliases: set[str] = field(default_factory=set)
 
 
-def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
+def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
     for row in timeseries:
         for axis in y_axes:
             if row[axis] and row[axis] != 0:
@@ -311,6 +311,10 @@ class RPCBase:
                 raise InvalidSearchQuery("orderby must also be in the selected columns or groupby")
             else:
                 resolved_column = resolver.resolve_column(stripped_orderby)[0]
+                if resolver.should_hide_api_column(stripped_orderby, resolved_column):
+                    raise InvalidSearchQuery(
+                        "orderby must also be in the selected columns or groupby"
+                    )
 
             # Virtual context columns transform values (e.g. "1" -> "low") which
             # can produce an undesirable alphabetical sort order. When a sort_column
@@ -324,6 +328,10 @@ class RPCBase:
                     internal_name=context_def.sort_column,
                     search_type="string",
                 )
+                if resolver.should_hide_api_column(stripped_orderby, sort_col):
+                    raise InvalidSearchQuery(
+                        "orderby must also be in the selected columns or groupby"
+                    )
                 orderby_resolved = sort_col
                 all_columns.append(sort_col)
                 sort_column_aliases.add(sort_alias)
@@ -392,7 +400,7 @@ class RPCBase:
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
         try:
-            rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+            rpc_response = snuba_rpc.table_rpc([rpc_request], debug=debug)[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -428,7 +436,9 @@ class RPCBase:
 
     @classmethod
     @sentry_sdk.trace
-    def run_bulk_table_queries(cls, queries: list[TableQuery]):
+    def run_bulk_table_queries(
+        cls, queries: list[TableQuery], debug: str | bool = False
+    ) -> dict[str, EAPResponse]:
         """Validate the bulk queries"""
         names: set[str] = set()
         for query in queries:
@@ -473,7 +483,9 @@ class RPCBase:
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     @classmethod
-    def process_column_confidence(cls, column_value, final_confidence, attribute) -> None:
+    def process_column_confidence(
+        cls, column_value: Any, final_confidence: ConfidenceData, attribute: str
+    ) -> None:
         for index, result in enumerate(column_value.results):
             final_confidence[index][attribute] = CONFIDENCES.get(
                 column_value.reliabilities[index], None

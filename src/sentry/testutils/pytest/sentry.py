@@ -106,6 +106,48 @@ def _configure_test_env_cells() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
+_COLLECT_ALLOWED_FILES: frozenset[str] | None = None
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    # Skip importing test files not in SELECTED_TESTS_FILE (selective CI runs only).
+    global _COLLECT_ALLOWED_FILES
+    selected_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_file:
+        return None
+
+    if _COLLECT_ALLOWED_FILES is None:
+        p = Path(selected_file)
+        if not p.exists():
+            _COLLECT_ALLOWED_FILES = frozenset()
+        else:
+            with p.open() as f:
+                _COLLECT_ALLOWED_FILES = frozenset(
+                    line.strip().split("::")[0] for line in f if line.strip()
+                )
+
+    if not _COLLECT_ALLOWED_FILES:
+        return None  # empty or missing file → run all tests
+
+    if (
+        collection_path.is_dir()
+        or collection_path.suffix != ".py"
+        or collection_path.name == "conftest.py"
+    ):
+        return None
+
+    try:
+        rel = str(collection_path.relative_to(config.rootpath))
+    except ValueError:
+        return None
+
+    if not rel.startswith("tests/"):
+        return None
+
+    # firstresult hook: True=ignore, None=defer; False short-circuits other ignore hooks.
+    return True if rel not in _COLLECT_ALLOWED_FILES else None
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 

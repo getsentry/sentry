@@ -1,4 +1,4 @@
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 
 export interface UseReplayForCriticalFlowOptions {
   /**
@@ -30,6 +30,6 @@ const noop = (_: UseReplayForCriticalFlowOptions) => {};
  * through to a noop.
  */
 export function useReplayForCriticalFlow(options: UseReplayForCriticalFlowOptions) {
-  const useImpl = HookStore.get('react-hook:use-replay-for-critical-flow')[0] ?? noop;
+  const useImpl = getOverride('react-hook:use-replay-for-critical-flow') ?? noop;
   useImpl(options);
 }

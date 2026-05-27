@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +11,7 @@ describe('ConfigForm', () => {
   const organization = OrganizationFixture();
 
   it('renders the Attach Screenshots field with correct label and help text', async () => {
-    const project = ProjectFixture({tempestFetchScreenshots: false});
+    const project = DetailedProjectFixture({tempestFetchScreenshots: false});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -26,7 +26,7 @@ describe('ConfigForm', () => {
   });
 
   it('renders the switch in the correct initial state when false', async () => {
-    const project = ProjectFixture({tempestFetchScreenshots: false});
+    const project = DetailedProjectFixture({tempestFetchScreenshots: false});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -41,7 +41,7 @@ describe('ConfigForm', () => {
   });
 
   it('renders the switch in the correct initial state when true', async () => {
-    const project = ProjectFixture({tempestFetchScreenshots: true});
+    const project = DetailedProjectFixture({tempestFetchScreenshots: true});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -56,7 +56,7 @@ describe('ConfigForm', () => {
   });
 
   it('calls the API with correct data when toggling the switch', async () => {
-    const project = ProjectFixture({tempestFetchScreenshots: false});
+    const project = DetailedProjectFixture({tempestFetchScreenshots: false});
     const updatedProject = {...project, tempestFetchScreenshots: true};
 
     const putMock = MockApiClient.addMockResponse({
@@ -82,7 +82,7 @@ describe('ConfigForm', () => {
   });
 
   it('updates ProjectsStore on successful save', async () => {
-    const project = ProjectFixture({tempestFetchScreenshots: false});
+    const project = DetailedProjectFixture({tempestFetchScreenshots: false});
     const updatedProject = {...project, tempestFetchScreenshots: true};
 
     MockApiClient.addMockResponse({
@@ -106,7 +106,7 @@ describe('ConfigForm', () => {
   });
 
   it('handles undefined tempestFetchScreenshots gracefully', async () => {
-    const project = ProjectFixture({tempestFetchScreenshots: undefined});
+    const project = DetailedProjectFixture({tempestFetchScreenshots: undefined});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,

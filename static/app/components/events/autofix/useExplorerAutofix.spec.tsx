@@ -420,7 +420,7 @@ describe('useExplorerAutofix - createPR', () => {
       expect.objectContaining({
         method: 'POST',
         query: {mode: 'explorer'},
-        data: {step: 'open_pr', run_id: 42},
+        data: {step: 'open_pr', run_id: 42, referrer: 'api.web'},
       })
     );
   });
@@ -441,7 +441,7 @@ describe('useExplorerAutofix - createPR', () => {
       expect.objectContaining({
         method: 'POST',
         query: {mode: 'explorer'},
-        data: {step: 'open_pr', run_id: 42, repo_name: 'org/repo'},
+        data: {step: 'open_pr', run_id: 42, repo_name: 'org/repo', referrer: 'api.web'},
       })
     );
   });

@@ -217,7 +217,7 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-export const StackTraceContentPanel = styled(Panel)`
+const StackTraceContentPanel = styled(Panel)`
   position: relative;
   overflow: hidden;
 `;

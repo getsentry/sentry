@@ -93,10 +93,6 @@ export type IssueTypeConfig = {
     tagDistribution: DisabledWithReasonConfig;
   };
   /**
-   * Should show the "Fix with Seer" section for this issue type
-   */
-  instrumentationFixSection: DisabledWithReasonConfig;
-  /**
    * Is the Issue Summary available for this issue
    */
   issueSummary: DisabledWithReasonConfig;

@@ -8,7 +8,7 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
+import {useOnDemandControl} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   WidgetType,
@@ -104,6 +104,7 @@ export function WidgetQueries({
   const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
+  const onDemandControlContext = useOnDemandControl();
 
   let setIsMetricsData: undefined | ((value?: boolean) => void);
   let setIsMetricsExtractedData:
@@ -200,26 +201,22 @@ export function WidgetQueries({
   };
 
   return (
-    <OnDemandControlConsumer>
-      {OnDemandControlContext => (
-        <WidgetQueriesWithOnDemandControl
-          widget={widget}
-          dashboardFilters={dashboardFilters}
-          cursor={cursor}
-          limit={limit}
-          onDataFetched={onDataFetched}
-          onDataFetchStart={onDataFetchStart}
-          selection={selection}
-          config={config}
-          afterFetchSeriesData={afterFetchSeriesData}
-          afterFetchTableData={afterFetchTableData}
-          mepSettingContext={mepSettingContext}
-          OnDemandControlContext={OnDemandControlContext}
-          widgetInterval={widgetInterval}
-        >
-          {children}
-        </WidgetQueriesWithOnDemandControl>
-      )}
-    </OnDemandControlConsumer>
+    <WidgetQueriesWithOnDemandControl
+      widget={widget}
+      dashboardFilters={dashboardFilters}
+      cursor={cursor}
+      limit={limit}
+      onDataFetched={onDataFetched}
+      onDataFetchStart={onDataFetchStart}
+      selection={selection}
+      config={config}
+      afterFetchSeriesData={afterFetchSeriesData}
+      afterFetchTableData={afterFetchTableData}
+      mepSettingContext={mepSettingContext}
+      OnDemandControlContext={onDemandControlContext}
+      widgetInterval={widgetInterval}
+    >
+      {children}
+    </WidgetQueriesWithOnDemandControl>
   );
 }

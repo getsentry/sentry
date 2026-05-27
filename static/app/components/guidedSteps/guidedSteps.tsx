@@ -13,7 +13,7 @@ import orderBy from 'lodash/orderBy';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -205,12 +205,12 @@ function Step(props: StepProps) {
         headingContent
       )}
 
-      <StepDetails>
+      <Container minWidth="0" area="details">
         {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
         )}
-      </StepDetails>
+      </Container>
     </StepWrapper>
   );
 }
@@ -368,11 +368,6 @@ const ChildrenWrapper = styled('div')<{isActive: boolean}>`
   p {
     margin-bottom: ${p => p.theme.space.md};
   }
-`;
-
-const StepDetails = styled('div')`
-  grid-area: details;
-  min-width: 0;
 `;
 
 GuidedSteps.Step = Step;

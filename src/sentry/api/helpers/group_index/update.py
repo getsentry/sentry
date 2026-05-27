@@ -1052,7 +1052,7 @@ def handle_is_public(
 
 
 def handle_assigned_to(
-    assigned_actor: Actor,
+    assigned_actor: Actor | None,
     assigned_by: str | None,
     integration: str | None,
     group_list: Sequence[Group],
@@ -1073,7 +1073,7 @@ def handle_assigned_to(
         if integration in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
         else dict()
     )
-    if assigned_actor:
+    if assigned_actor is not None:
         resolved_actor = assigned_actor.resolve()
         for group in group_list:
             assignment = GroupAssignee.objects.assign(

@@ -1,16 +1,18 @@
 import {useEffect, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -33,7 +35,13 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
+import {
+  getTraceMetaErrorCount,
+  getTraceMetaMetricsCount,
+  getTraceMetaPerformanceIssueCount,
+  getTraceMetaSpanCount,
+  useTraceMeta,
+} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
 import {
@@ -107,17 +115,22 @@ function useInitialLogsData(): OurLogsResponseItem[] | undefined {
 
 function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
+  const logsEnabled = isLogsEnabled(organization);
+  const metricsEnabled = canUseMetricsUI(organization);
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsData = useInitialLogsData();
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
+  const metaMetricsCount = getTraceMetaMetricsCount(meta.data);
   const {metricsData} = useInitialTraceMetricData({
     traceId: traceSlug,
     queryParams,
-    enabled: true,
+    enabled: meta.status !== 'pending' && metaMetricsCount === undefined,
   });
+  const traceMetricsData =
+    metaMetricsCount === undefined ? metricsData : {count: metaMetricsCount};
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -144,9 +157,13 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   });
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
+    isLoading: meta.status === 'pending' || tree.type === 'loading',
     tree,
     logs: logsData,
-    metrics: metricsData,
+    meta: meta.data,
+    metrics: traceMetricsData,
+    logsEnabled,
+    metricsEnabled,
   });
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
@@ -161,9 +178,9 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     durationMs: tree.root.children[0]?.space?.[1],
     nodeCount: tree.list.length,
     services: Array.from(tree.projects.values()).map(p => p.slug),
-    errors: meta.data?.errors,
-    performanceIssues: meta.data?.performance_issues,
-    spanCount: meta.data?.span_count,
+    errors: getTraceMetaErrorCount(meta.data),
+    performanceIssues: getTraceMetaPerformanceIssueCount(meta.data),
+    spanCount: getTraceMetaSpanCount(meta.data),
     webVitals: tree.indicators.map(i => ({
       type: i.type,
       label: i.label,
@@ -179,7 +196,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <LayoutPageWithHiddenFooter flex={1}>
+        <ViewportConstrainedPage>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}
@@ -188,7 +205,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             traceSlug={traceSlug}
             traceEventView={traceEventView}
             logs={logsData}
-            metrics={metricsData}
+            metrics={traceMetricsData}
           />
           <TraceInnerLayout>
             <ErrorsOnlyWarnings
@@ -237,21 +254,13 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
               <TraceAiTab traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
-        </LayoutPageWithHiddenFooter>
+        </ViewportConstrainedPage>
       </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
 
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
-
-// @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
-// When that feature is enabled, the footer is no longer rendered at the bottom of the page.
-const LayoutPageWithHiddenFooter = styled(Stack)`
-  ~ footer {
-    display: none;
-  }
-`;
 
 function TraceInnerLayout(props: FlexProps) {
   const hasPageFrame = useHasPageFrameFeature();

@@ -6,7 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {
@@ -384,24 +384,27 @@ function AddToDashboardModal({
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
           tooltipOptions: {position: 'right', isHoverable: true},
-        },
+        } satisfies SelectValue<string>,
         ...dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true
           )
-          .map(({title, id, widgetDisplay}) => ({
-            label: title,
-            value: id,
-            disabled: widgetDisplay.length + widgets.length >= MAX_WIDGETS,
-            tooltip:
-              widgetDisplay.length + widgets.length >= MAX_WIDGETS &&
-              tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                maxWidgets: MAX_WIDGETS,
-              }),
-            tooltipOptions: {position: 'right'},
-          })),
-      ].filter(Boolean) as Array<SelectValue<string>>;
+          .map(
+            ({title, id, widgetDisplay}) =>
+              ({
+                label: title,
+                value: id,
+                disabled: widgetDisplay.length + widgets.length >= MAX_WIDGETS,
+                tooltip:
+                  widgetDisplay.length + widgets.length >= MAX_WIDGETS &&
+                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  }),
+                tooltipOptions: {position: 'right'},
+              }) satisfies SelectValue<string>
+          ),
+      ].filter(Boolean);
     },
     [currentDashboardId, dashboards, widgets.length]
   );
@@ -435,7 +438,7 @@ function AddToDashboardModal({
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
       <Body>
-        <Wrapper>
+        <Container marginBottom="xl">
           <DashboardCreateLimitWrapper>
             {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
               <Select
@@ -453,9 +456,9 @@ function AddToDashboardModal({
               />
             )}
           </DashboardCreateLimitWrapper>
-        </Wrapper>
+        </Container>
         {!hasMultipleWidgets && (
-          <Wrapper>
+          <Container marginBottom="xl">
             <SectionHeader title={t('Widget Name')} optional />
             <Input
               type="text"
@@ -463,9 +466,9 @@ function AddToDashboardModal({
               placeholder={t('Name')}
               onChange={e => updateWidgetTitle(e.target.value)}
             />
-          </Wrapper>
+          </Container>
         )}
-        <Wrapper>
+        <Container marginBottom="xl">
           {hasMultipleWidgets
             ? tct(
                 'Adding [count] widgets to the selected dashboard. Any conflicting filters from these queries will be overridden by Dashboard filters.',
@@ -474,7 +477,7 @@ function AddToDashboardModal({
             : t(
                 'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
               )}
-        </Wrapper>
+        </Container>
         {!hasMultipleWidgets && (
           <MetricsCardinalityProvider organization={organization} location={location}>
             <MetricsDataSwitcher
@@ -504,7 +507,6 @@ function AddToDashboardModal({
                   >
                     <WidgetCardWrapper>
                       <WidgetCard
-                        organization={organization}
                         isEditingDashboard={false}
                         showContextMenu={false}
                         widgetLimitReached={false}
@@ -585,10 +587,6 @@ function AddToDashboardModal({
 }
 
 export default AddToDashboardModal;
-
-const Wrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const StyledButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
