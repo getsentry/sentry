@@ -391,6 +391,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         serialized = serializer.validated_data
         trace_id = serialized.get("trace_id")
         item_type = serialized.get("item_type")
+        sentry_sdk.set_tag("trace_item_details.item_type", item_type)
         referrer = serialized.get("referrer", Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value)
 
         trace_item_type = None
