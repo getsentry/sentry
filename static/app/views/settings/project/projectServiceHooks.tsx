@@ -2,8 +2,10 @@ import {Fragment} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -11,7 +13,6 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -38,27 +39,28 @@ type RowProps = {
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
-    <FieldGroup
-      label={
+    <Flex align="center" padding="xl" borderBottom="secondary">
+      <Flex direction="column" gap="xs" width="50%" paddingRight="md" flexShrink={0}>
         <Link
           data-test-id="project-service-hook"
           to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}
         >
           <Truncate value={hook.url} />
         </Link>
-      }
-      help={
-        <small>
-          {hook.events && hook.events.length !== 0 ? (
-            hook.events.join(', ')
-          ) : (
-            <em>{t('no events configured')}</em>
-          )}
-        </small>
-      }
-    >
-      <Switch checked={hook.status === 'active'} size="lg" onChange={onToggleActive} />
-    </FieldGroup>
+        {hook.events && hook.events.length !== 0 ? (
+          <Text variant="muted" size="sm">
+            {hook.events.join(', ')}
+          </Text>
+        ) : (
+          <Text variant="muted" size="sm" italic>
+            {t('no events configured')}
+          </Text>
+        )}
+      </Flex>
+      <Flex flex="1" paddingLeft="xl">
+        <Switch checked={hook.status === 'active'} size="lg" onChange={onToggleActive} />
+      </Flex>
+    </Flex>
   );
 }
 

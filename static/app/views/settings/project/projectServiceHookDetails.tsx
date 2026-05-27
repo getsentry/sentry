@@ -2,6 +2,8 @@ import {Fragment, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -11,7 +13,6 @@ import {
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -195,29 +196,41 @@ export default function ProjectServiceHookDetails() {
             <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify this
             signature before trusting the information provided in the webhook.
           </PanelAlert>
-          <FieldGroup
-            label={t('Secret')}
-            flexibleControlStateSize
-            inline={false}
-            help={t('The shared secret used for generating event HMAC signatures.')}
-          >
+          <Flex direction="column" gap="md" padding="xl">
+            <Flex direction="column" gap="xs">
+              <Text>{t('Secret')}</Text>
+              <Text variant="muted" size="sm">
+                {t('The shared secret used for generating event HMAC signatures.')}
+              </Text>
+            </Flex>
             <TextCopyInput>{hook.secret}</TextCopyInput>
-          </FieldGroup>
+          </Flex>
         </PanelBody>
       </Panel>
       <Panel>
         <PanelHeader>{t('Delete Hook')}</PanelHeader>
         <PanelBody>
-          <FieldGroup
-            label={t('Delete Hook')}
-            help={t('Removing this hook is immediate and permanent.')}
-          >
-            <div>
-              <Button variant="danger" onClick={() => deleteMutation.mutate()}>
-                {t('Delete Hook')}
-              </Button>
-            </div>
-          </FieldGroup>
+          <Flex align="center" padding="xl">
+            <Flex
+              direction="column"
+              gap="xs"
+              width="50%"
+              paddingRight="md"
+              flexShrink={0}
+            >
+              <Text>{t('Delete Hook')}</Text>
+              <Text variant="muted" size="sm">
+                {t('Removing this hook is immediate and permanent.')}
+              </Text>
+            </Flex>
+            <Flex flex="1" paddingLeft="xl">
+              <div>
+                <Button variant="danger" onClick={() => deleteMutation.mutate()}>
+                  {t('Delete Hook')}
+                </Button>
+              </div>
+            </Flex>
+          </Flex>
         </PanelBody>
       </Panel>
     </Fragment>
