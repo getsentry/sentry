@@ -2,10 +2,40 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {
   BasePlatformOptions,
+  ContentBlock,
+  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+
+export const metricsVerify = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isMetricsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      ),
+    },
+    {
+      type: 'code',
+      language: 'ruby',
+      code: `# Counter metric
+Sentry.metrics.count('button_click', value: 1)
+
+# Gauge metric
+Sentry.metrics.gauge('queue.depth', 42)
+
+# Distribution metric
+Sentry.metrics.distribution('page_load', 15.0,
+  unit: 'millisecond',
+  attributes: { page: '/home' }
+)`,
+    },
+  ],
+});
 
 export const metrics = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,

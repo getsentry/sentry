@@ -1,11 +1,52 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  ContentBlock,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+
+const getInstallSnippet = (params: DocsParams, defaultVersion = '0.48.2') => {
+  const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
+  return `[dependencies]
+sentry = { version = "${version}", features = ["metrics"] }`;
+};
+
+export const metricsVerify = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isMetricsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      ),
+    },
+    {
+      type: 'code',
+      language: 'rust',
+      code: `use sentry::metrics;
+
+// Counter metric
+metrics::counter("button_click", 1).capture();
+
+// Gauge metric
+metrics::gauge("queue.depth", 42).capture();
+
+// Distribution metric
+metrics::distribution("page_load", 15.5)
+    .unit(sentry::protocol::Unit::Millisecond)
+    .attribute("page", "/home")
+    .capture();`,
+    },
+  ],
+});
 
 export const metrics: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
@@ -19,8 +60,7 @@ export const metrics: OnboardingConfig = {
         {
           type: 'code',
           language: 'toml',
-          code: `[dependencies]
-sentry = { version = "0.48.2", features = ["metrics"] }`,
+          code: getInstallSnippet(params),
         },
       ],
     },

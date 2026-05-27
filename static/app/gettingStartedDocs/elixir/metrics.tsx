@@ -1,11 +1,12 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 const getInstallSnippet = () => `
 defp deps do
@@ -18,10 +19,9 @@ defp deps do
 end`;
 
 const getVerifySnippet = (params: DocsParams) => `
-Sentry.init(
+config :sentry,
   dsn: "${params.dsn.public}",
   environment_name: Mix.env()
-)
 
 # Counter metric
 Sentry.Metrics.count(
@@ -45,6 +45,34 @@ Sentry.Metrics.distribution(
   unit: "millisecond",
   attributes: %{page: "/home"}
 )`;
+
+export const metricsVerify = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isMetricsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      ),
+    },
+    {
+      type: 'code',
+      language: 'elixir',
+      code: `# Counter metric
+Sentry.Metrics.count("button_click", 1)
+
+# Gauge metric
+Sentry.Metrics.gauge("queue.depth", 42)
+
+# Distribution metric
+Sentry.Metrics.distribution("page_load", 15.0,
+  unit: "millisecond",
+  attributes: %{page: "/home"}
+)`,
+    },
+  ],
+});
 
 export const metrics: OnboardingConfig = {
   install: () => [

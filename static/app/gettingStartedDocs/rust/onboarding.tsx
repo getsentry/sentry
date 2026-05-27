@@ -6,14 +6,23 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
+import {metricsVerify} from './metrics';
+
 type Params = DocsParams;
 
 const getInstallSnippet = (params: Params, defaultVersion = '0.42.0') => {
   const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
-  return params.isLogsSelected
+  const features: string[] = [];
+  if (params.isLogsSelected) {
+    features.push('"logs"');
+  }
+  if (params.isMetricsSelected) {
+    features.push('"metrics"');
+  }
+  return features.length > 0
     ? `
 [dependencies]
-sentry = { version = "${version}", features = ["logs"] }`
+sentry = { version = "${version}", features = [${features.join(', ')}] }`
     : `
 [dependencies]
 sentry = "${version}"`;
@@ -122,6 +131,7 @@ export const onboarding: OnboardingConfig = {
           language: 'rust',
           code: getVerifySnippet(params),
         },
+        metricsVerify(params),
       ],
     },
   ],

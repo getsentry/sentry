@@ -1,28 +1,42 @@
-const {metrics: rustMetrics} = jest.requireActual(
-  'sentry/gettingStartedDocs/rust/metrics'
-);
+import {ProjectFixture} from 'sentry-fixture/project';
+
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
+import {docs} from '.';
+
+function renderMockRequests() {
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/',
+    body: [ProjectFixture()],
+  });
+}
 
 describe('metrics', () => {
-  const mockParams = {
-    dsn: {
-      public: 'https://test@example.com/123',
-    },
-  };
+  it('renders metrics onboarding docs', () => {
+    renderMockRequests();
 
-  it('generates metrics onboarding config', () => {
-    const installSteps = rustMetrics.install();
-    expect(installSteps).toHaveLength(1);
-    expect(installSteps[0].type).toBe('install');
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.METRICS],
+    });
 
-    const verifySteps = rustMetrics.verify(mockParams);
-    expect(verifySteps).toHaveLength(1);
-    expect(verifySteps[0].type).toBe('verify');
+    expect(
+      screen.getByText(textWithMarkupMatcher(/metrics::counter/))
+    ).toBeInTheDocument();
+  });
 
-    const codeSnippet = verifySteps[0].content[1].code;
-    expect(codeSnippet).toContain('sentry::init');
-    expect(codeSnippet).toContain(mockParams.dsn.public);
-    expect(codeSnippet).toContain('metrics::counter');
-    expect(codeSnippet).toContain('metrics::gauge');
-    expect(codeSnippet).toContain('metrics::distribution');
+  it('does not render metrics configuration when metrics is not enabled', () => {
+    renderMockRequests();
+
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/metrics::counter/))
+    ).not.toBeInTheDocument();
   });
 });
