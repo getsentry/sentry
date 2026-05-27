@@ -210,20 +210,14 @@ export default function ProjectServiceHookDetails() {
       <Panel>
         <PanelHeader>{t('Delete Hook')}</PanelHeader>
         <PanelBody>
-          <Flex align="center" padding="xl">
-            <Flex
-              direction="column"
-              gap="xs"
-              width="50%"
-              paddingRight="md"
-              flexShrink={0}
-            >
+          <Flex align="center" gap="xl" padding="xl">
+            <Flex direction="column" gap="xs" width="50%" flexShrink={0}>
               <Text>{t('Delete Hook')}</Text>
               <Text variant="muted" size="sm">
                 {t('Removing this hook is immediate and permanent.')}
               </Text>
             </Flex>
-            <Flex flex="1" paddingLeft="xl">
+            <Flex flex="1">
               <div>
                 <Button variant="danger" onClick={() => deleteMutation.mutate()}>
                   {t('Delete Hook')}

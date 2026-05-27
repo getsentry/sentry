@@ -39,8 +39,8 @@ type RowProps = {
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
-    <Flex align="center" padding="xl" borderBottom="secondary">
-      <Flex direction="column" gap="xs" width="50%" paddingRight="md" flexShrink={0}>
+    <Flex align="center" gap="xl" padding="xl" borderBottom="secondary">
+      <Flex direction="column" gap="xs" width="50%" flexShrink={0}>
         <Link
           data-test-id="project-service-hook"
           to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}
@@ -57,7 +57,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
           </Text>
         )}
       </Flex>
-      <Flex flex="1" paddingLeft="xl">
+      <Flex flex="1">
         <Switch checked={hook.status === 'active'} size="lg" onChange={onToggleActive} />
       </Flex>
     </Flex>
