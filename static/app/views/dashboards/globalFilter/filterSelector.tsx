@@ -16,6 +16,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {
@@ -342,9 +343,14 @@ export function FilterSelector({
       activeFilterValues={filterValues}
       operator={stagedOperator}
       options={translatedOptions}
-      queryResult={queryResult}
     />
   );
+
+  const loadingFooter = isFetching ? (
+    <Flex justify="center" padding="xs">
+      <FooterLoadingIndicator size={14} />
+    </Flex>
+  ) : null;
 
   if (!canSelectMultipleValues) {
     return (
@@ -360,6 +366,7 @@ export function FilterSelector({
         onClose={() => {
           setStagedFilterValues([]);
         }}
+        menuFooter={loadingFooter}
         menuTitle={
           <MenuTitleWrapper>
             {t('%s Filter', getDatasetLabel(globalFilter.dataset))}
@@ -421,17 +428,22 @@ export function FilterSelector({
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
       menuFooter={
-        hasStagedChanges ? (
-          <Flex gap="md" align="center" justify="end">
-            <MenuComponents.CancelButton
-              onClick={() => dispatch({type: 'remove staged'})}
-            />
-            <MenuComponents.ApplyButton
-              onClick={() => {
-                dispatch({type: 'remove staged'});
-                handleChange(stagedSelect.value);
-              }}
-            />
+        hasStagedChanges || isFetching ? (
+          <Flex direction="column" gap="md">
+            {loadingFooter}
+            {hasStagedChanges && (
+              <Flex gap="md" align="center" justify="end">
+                <MenuComponents.CancelButton
+                  onClick={() => dispatch({type: 'remove staged'})}
+                />
+                <MenuComponents.ApplyButton
+                  onClick={() => {
+                    dispatch({type: 'remove staged'});
+                    handleChange(stagedSelect.value);
+                  }}
+                />
+              </Flex>
+            )}
           </Flex>
         ) : null
       }
@@ -515,6 +527,12 @@ export const MenuTitleWrapper = styled('span')`
   display: inline-block;
   padding-top: ${p => p.theme.space.xs};
   padding-bottom: ${p => p.theme.space.xs};
+`;
+
+const FooterLoadingIndicator = styled(LoadingIndicator)`
+  && {
+    margin: 0;
+  }
 `;
 
 const OperatorFlex = styled(Flex)`
