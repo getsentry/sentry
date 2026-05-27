@@ -19,7 +19,6 @@ import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
@@ -46,9 +45,9 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateCursor,
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
@@ -59,7 +58,6 @@ interface AggregatesTableProps {
 export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
   const {projects} = useProjects();
 
   const {result, eventView} = aggregatesTableResult;
@@ -73,6 +71,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const setSorts = useSetQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
   const aggregateCursor = useQueryParamsAggregateCursor();
+  const setAggregateCursor = useSetQueryParamsAggregateCursor();
 
   const visibleAggregateFields = useMemo(
     () =>
@@ -110,8 +109,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
-  const cursorHandler: CursorHandler = (cursor, path, q) =>
-    navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}});
+  const cursorHandler: CursorHandler = cursor => setAggregateCursor(cursor);
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
