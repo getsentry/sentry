@@ -179,7 +179,7 @@ def get_eap_project_volumes(
 def get_eap_transaction_volumes(
     config: BaseDynamicSamplingConfiguration,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-    order_by_volume: Literal["asc", "desc"] | None = None,
+    order_by_volume: Literal["asc", "desc"] = "asc",
     max_transactions: int = 100,
 ) -> list[ProjectTransactions]:
     end_time = datetime.now(UTC)
@@ -198,7 +198,7 @@ def get_eap_transaction_volumes(
             DynamicSamplingQueryFields.DSC_PROJECT_ID,
             DynamicSamplingQueryFields.DSC_TRANSACTION,
         ]
-    elif order_by_volume == "desc":
+    else:
         orderby = [
             f"-{DynamicSamplingQueryFields.COUNT}",
             DynamicSamplingQueryFields.DSC_PROJECT_ID,
