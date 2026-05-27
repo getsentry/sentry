@@ -87,7 +87,7 @@ export function RequestIntegrationModal(props: Props) {
           </Text>
           <Text as="p">
             {t(
-              '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
+              'You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
               name
             )}
           </Text>
