@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SidebarGroup {
@@ -415,7 +416,8 @@ const TagFilterSection = memo(function TagFilterSection({
       {hasActiveFilter && (
         <Flex gap="xs" wrap="wrap" padding="lg" paddingTop="0">
           {Object.entries(activeTagFilters).map(([key, value]) => (
-            <ActiveTagChip
+            <TagChip
+              isActive
               key={`${key}:${value}`}
               type="button"
               onClick={() => onToggleTagFilter(key, value)}
@@ -424,7 +426,7 @@ const TagFilterSection = memo(function TagFilterSection({
                 {key}={value}
               </Text>
               <IconClose size="xs" />
-            </ActiveTagChip>
+            </TagChip>
           ))}
         </Flex>
       )}
@@ -531,45 +533,6 @@ const TagDisclosure = styled(Disclosure)`
     > button {
       border-radius: 0;
     }
-  }
-`;
-
-const TagChip = styled('button')<{isActive: boolean}>`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: 2px ${p => p.theme.space.md};
-  border-radius: ${p => p.theme.radius.md};
-  border: 1px solid
-    ${p =>
-      p.isActive ? p.theme.tokens.border.accent.vibrant : p.theme.tokens.border.primary};
-  background: ${p =>
-    p.isActive ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
-  cursor: pointer;
-
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: default;
-    pointer-events: none;
-  }
-`;
-
-const ActiveTagChip = styled('button')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: 2px ${p => p.theme.space.md};
-  border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
-  background: ${p => p.theme.tokens.background.transparent.accent.muted};
-  cursor: pointer;
-
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
   }
 `;
 

@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
+import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
 
 const ONE_ROW_HEIGHT = 20;
 
@@ -119,26 +120,16 @@ export function CollapsibleBadgeRow({
   );
 }
 
-const ClickableBadge = styled('button')<{isActive: boolean}>`
-  display: inline-flex;
-  align-items: center;
+const ClickableBadge = styled(TagChip)`
   height: ${ONE_ROW_HEIGHT}px;
   padding: 0 ${p => p.theme.space.md};
-  border-radius: ${p => p.theme.radius.md};
-  border: 1px solid
-    ${p =>
-      p.isActive ? p.theme.tokens.border.accent.vibrant : p.theme.tokens.border.primary};
-  background: ${p =>
-    p.isActive ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p =>
     p.isActive ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
-  cursor: pointer;
   white-space: nowrap;
   box-sizing: border-box;
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
     color: ${p => p.theme.tokens.content.primary};
   }
