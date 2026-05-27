@@ -37,7 +37,7 @@ export function getAggregateFieldsFromLocation(
   return aggregateFields;
 }
 
-function parseAggregateField(value: any): AggregateField[] {
+export function parseAggregateField(value: any): AggregateField[] {
   if (isGroupBy(value)) {
     return [value];
   }

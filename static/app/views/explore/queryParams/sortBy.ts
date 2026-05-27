@@ -19,6 +19,6 @@ export function getSortBysFromLocation(
   return null;
 }
 
-function validateSort(sort: Sort, fields: string[]) {
+export function validateSort(sort: Sort, fields: string[]) {
   return fields.includes(sort.field);
 }
