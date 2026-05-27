@@ -1,5 +1,6 @@
 import time
 import uuid
+from datetime import timedelta
 from typing import Any, Literal
 
 import sentry_sdk
@@ -17,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import BadRequest
+from sentry.api.utils import get_date_range_from_params
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.project import Project
@@ -36,8 +38,10 @@ from sentry.search.eap.utils import (
     translate_search_type_for_internal_column,
     translate_to_sentry_conventions,
 )
+from sentry.search.utils import parse_datetime_string
 from sentry.snuba.referrer import Referrer
-from sentry.utils import json, snuba_rpc
+from sentry.utils import json
+from sentry.utils.snuba_rpc import trace_item_details_rpc
 
 _NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
 _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
@@ -362,6 +366,21 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        start, end = get_date_range_from_params(request.GET, optional=True)
+        if "timestamp" in request.GET:
+            example_timestamp = parse_datetime_string(request.GET["timestamp"])
+            time_buffer = 1.5
+            example_start = example_timestamp - timedelta(days=time_buffer)
+            example_end = example_timestamp + timedelta(days=time_buffer)
+            if start is not None:
+                start = max(start, example_start)
+            else:
+                start = example_start
+            if end is not None:
+                end = min(end, example_end)
+            else:
+                end = example_end
+
         serialized = serializer.validated_data
         trace_id = serialized.get("trace_id")
         item_type = serialized.get("item_type")
@@ -377,12 +396,14 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             raise BadRequest(detail=f"Unknown trace item type: {item_type}")
 
         start_timestamp_proto = ProtoTimestamp()
-        start_timestamp_proto.FromSeconds(0)
-
         end_timestamp_proto = ProtoTimestamp()
-
-        # due to clock drift, the end time can be in the future - add a week to be safe
-        end_timestamp_proto.FromSeconds(int(time.time()) + 60 * 60 * 24 * 7)
+        if start is not None and end is not None:
+            start_timestamp_proto.FromDatetime(start)
+            end_timestamp_proto.FromDatetime(end)
+        else:
+            start_timestamp_proto.FromSeconds(0)
+            # due to clock drift, the end time can be in the future - add a week to be safe
+            end_timestamp_proto.FromSeconds(int(time.time()) + 60 * 60 * 24 * 7)
 
         trace_id = request.GET.get("trace_id")
         if not trace_id:
@@ -403,7 +424,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             trace_id=trace_id,
         )
 
-        resp = MessageToDict(snuba_rpc.trace_item_details_rpc(req))
+        resp = MessageToDict(trace_item_details_rpc(req))
 
         use_sentry_conventions = features.has(
             "organizations:performance-sentry-conventions-fields",

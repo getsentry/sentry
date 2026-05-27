@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from unittest import mock
 
 import pytest
@@ -32,7 +33,7 @@ class ProjectTraceItemDetailsEndpointTest(
         self.one_min_ago = before_now(minutes=1)
         self.trace_uuid = str(uuid.uuid4()).replace("-", "")
 
-    def do_request(self, event_type: str, item_id: str, features=None):
+    def do_request(self, event_type: str, item_id: str, extra_data=None, features=None):
         item_details_url = reverse(
             "sentry-api-0-project-trace-item-details",
             kwargs={
@@ -43,13 +44,16 @@ class ProjectTraceItemDetailsEndpointTest(
         )
         if features is None:
             features = self.features
+        data = {
+            "item_type": event_type,
+            "trace_id": self.trace_uuid,
+        }
+        if extra_data is not None:
+            data.update(extra_data)
         with self.feature(features):
             return self.client.get(
                 item_details_url,
-                {
-                    "item_type": event_type,
-                    "trace_id": self.trace_uuid,
-                },
+                data,
             )
 
     def test_simple(self) -> None:
@@ -639,3 +643,93 @@ class ProjectTraceItemDetailsEndpointTest(
             "meta": {},
             "timestamp": mock.ANY,
         }
+
+    def test_with_timestamp(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
+                },
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        for extra_data in [
+            {"timestamp": self.one_min_ago.isoformat()},
+            {"statsPeriod": "24h"},
+        ]:
+            trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
+
+            assert trace_details_response.status_code == 200, trace_details_response.content
+
+            timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
+            assert trace_details_response.data["attributes"] == [
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
+                {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+                {
+                    "name": "observed_timestamp",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
+                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
+                {
+                    "name": "timestamp_precise",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                {"name": "message", "type": "str", "value": "foo"},
+                {"name": "severity", "type": "str", "value": "INFO"},
+                {"name": "str_attr", "type": "str", "value": "1"},
+                {"name": "trace", "type": "str", "value": self.trace_uuid},
+            ]
+            assert trace_details_response.data["itemId"] == item_id
+            assert (
+                trace_details_response.data["timestamp"]
+                == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+            )
+
+    def test_with_incorrect_timestamp(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
+                },
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        for extra_data in [
+            {"timestamp": (self.one_min_ago - timedelta(days=30)).isoformat()},
+            {"statsPeriodEnd": "24h", "statsPeriodStart": "48h"},
+        ]:
+            trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
+
+            assert trace_details_response.status_code == 404, trace_details_response.content
