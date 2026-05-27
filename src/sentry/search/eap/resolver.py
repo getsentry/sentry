@@ -60,7 +60,7 @@ from sentry.search.eap.columns import (
 from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -81,6 +81,10 @@ def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[st
         elif isinstance(term, event_search.ParenExpression):
             out |= collect_issue_short_ids_from_parsed_terms(term.children)
     return out
+
+
+class HiddenApiAttribute(InvalidSearchQuery):
+    pass
 
 
 @dataclass(frozen=True)
@@ -531,12 +535,14 @@ class SearchResolver:
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
         resolved_column, context_definition = self.resolve_column(term.key.name)
+        self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
 
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
             resolved_column, value = self.map_search_term_context_to_original_column(
                 term, context_definition
             )
+            self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
             context_definition = None
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
@@ -755,6 +761,8 @@ class SearchResolver:
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{resolved_column.public_alias} is not valid search term")
 
+        self._raise_if_hidden_api_attribute(context.to_column_name, resolved_column)
+
         return resolved_column
 
     def map_search_term_context_to_original_column(
@@ -812,6 +820,7 @@ class SearchResolver:
         self, term: event_search.AggregateFilter
     ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+        self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
         proto_definition = resolved_column.proto_definition
 
         if not isinstance(
@@ -967,7 +976,14 @@ class SearchResolver:
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
-            resolved_column, context = self.resolve_column(column, match)
+            try:
+                resolved_column, context = self.resolve_column(column, match)
+            except HiddenApiAttribute:
+                continue
+            if isinstance(resolved_column, ResolvedAttribute) and self._should_hide_api_attribute(
+                column, resolved_column
+            ):
+                continue
             if (
                 self.config.disable_array_attributes
                 and isinstance(resolved_column, ResolvedAttribute)
@@ -1024,11 +1040,48 @@ class SearchResolver:
         resolved_contexts = []
         for column in columns:
             col, context = self.resolve_attribute(column)
+            self._raise_if_hidden_api_attribute(column, col)
             if self.config.disable_array_attributes and col.internal_type == constants.ARRAY:
                 continue
             resolved_columns.append(col)
             resolved_contexts.append(context)
         return resolved_columns, resolved_contexts
+
+    def should_hide_api_column(
+        self, column: str, resolved_column: ResolvedAttribute | ResolvedFunction
+    ) -> bool:
+        if not isinstance(resolved_column, ResolvedAttribute):
+            return False
+        return self._should_hide_api_attribute(column, resolved_column)
+
+    def _should_hide_api_attribute(
+        self, column: str, resolved_attribute: ResolvedAttribute
+    ) -> bool:
+        if self.config.api_attribute_visibility_item_type is None:
+            return False
+
+        from sentry.search.eap.utils import can_expose_attribute_to_api
+
+        item_type = SupportedTraceItemType(self.config.api_attribute_visibility_item_type)
+        if column in self.definitions.contexts and resolved_attribute.internal_name != column:
+            visibility_attribute = resolved_attribute.internal_name
+        elif column in self.definitions.contexts or column in self.definitions.columns:
+            visibility_attribute = column
+        else:
+            visibility_attribute = resolved_attribute.internal_name
+        return not can_expose_attribute_to_api(
+            visibility_attribute,
+            item_type,
+            include_internal=self.config.api_attribute_visibility_include_internal,
+        )
+
+    def _raise_if_hidden_api_attribute(
+        self, column: str, resolved_column: ResolvedAttribute | ResolvedFunction
+    ) -> None:
+        if isinstance(resolved_column, ResolvedAttribute) and self._should_hide_api_attribute(
+            column, resolved_column
+        ):
+            raise HiddenApiAttribute(f"Could not parse {column}")
 
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None
@@ -1126,7 +1179,10 @@ class SearchResolver:
         """Helper function to resolve a list of functions instead of 1 attribute at a time"""
         resolved_functions, resolved_contexts = [], []
         for column in columns:
-            function, context = self.resolve_function(column)
+            try:
+                function, context = self.resolve_function(column)
+            except HiddenApiAttribute:
+                continue
             resolved_functions.append(function)
             resolved_contexts.append(context)
         return resolved_functions, resolved_contexts
@@ -1182,6 +1238,9 @@ class SearchResolver:
                     parsed_args.append(argument_definition.default_arg)
                 else:
                     parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                    self._raise_if_hidden_api_attribute(
+                        argument_definition.default_arg, parsed_argument
+                    )
                     parsed_args.append(parsed_argument)
                 missing_args -= 1
                 continue
@@ -1196,6 +1255,7 @@ class SearchResolver:
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
+                    self._raise_if_hidden_api_attribute(argument, parsed_argument)
                     parsed_args.append(parsed_argument)
                 else:
                     if argument_definition.argument_types is None:
@@ -1282,7 +1342,10 @@ class SearchResolver:
         formulas = []
         contexts = []
         for equation in equations:
-            formula, context = self.resolve_equation(equation)
+            try:
+                formula, context = self.resolve_equation(equation)
+            except HiddenApiAttribute:
+                continue
             formulas.append(formula)
             contexts.extend(context)
         return formulas, contexts
@@ -1303,6 +1366,8 @@ class SearchResolver:
             col, context = self.resolve_column(
                 operation, public_alias_override=f"equation|{equation}"
             )
+            if isinstance(col, ResolvedAttribute):
+                self._raise_if_hidden_api_attribute(operation, col)
             return col, [context] if context else []
         elif isinstance(operation, float):
             return (
@@ -1378,6 +1443,8 @@ class SearchResolver:
         # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
         # Columns in equations must pass default_value=0 otherwise they may become a null and ruin the entire formula
         col, context = self.resolve_column(operation, default_value=0)
+        if isinstance(col, ResolvedAttribute):
+            self._raise_if_hidden_api_attribute(operation, col)
         contexts = [context] if context is not None else []
         proto_definition = col.proto_definition
 

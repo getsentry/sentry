@@ -1,14 +1,43 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock
 
+from sentry.api.authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    SessionNoAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
+)
 from sentry.data_export.base import ExportQueryType, ExportStatus
+from sentry.data_export.endpoints.data_export import is_api_or_agent_request
 from sentry.data_export.models import ExportedData
 from sentry.data_export.writers import OutputMode
 from sentry.search.utils import parse_datetime_string
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba import MAX_FIELDS
+
+
+def test_is_api_or_agent_request() -> None:
+    """
+    Only session/cookie auth is UI; every other authenticator (including
+    `ViewerContextAuthentication`, which deliberately sets
+    `request.auth = None` to mimic session permissions) is an agent caller.
+    """
+
+    def req(authenticator: object) -> MagicMock:
+        r = MagicMock()
+        r.successful_authenticator = authenticator
+        return r
+
+    assert is_api_or_agent_request(req(SessionNoAuthTokenAuthentication())) is False
+    assert is_api_or_agent_request(req(UserAuthTokenAuthentication())) is True
+    assert is_api_or_agent_request(req(OrgAuthTokenAuthentication())) is True
+    assert is_api_or_agent_request(req(ApiKeyAuthentication())) is True
+    assert is_api_or_agent_request(req(ViewerContextAuthentication())) is True
+    assert is_api_or_agent_request(req(None)) is True
 
 
 class DataExportTest(APITestCase):

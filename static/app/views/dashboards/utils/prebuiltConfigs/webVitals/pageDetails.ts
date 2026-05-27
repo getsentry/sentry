@@ -4,7 +4,7 @@ import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -117,8 +117,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.lcp)'],
-          aggregates: ['p75(measurements.lcp)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.LCP_SUMMARY,
@@ -152,8 +152,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.inp)'],
-          aggregates: ['p75(measurements.inp)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.INP_SUMMARY,
@@ -187,8 +187,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.cls)'],
-          aggregates: ['p75(measurements.cls)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.CLS_SUMMARY,
@@ -222,8 +222,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.ttfb)'],
-          aggregates: ['p75(measurements.ttfb)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.TTFB_SUMMARY,
@@ -279,12 +279,12 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: 'has:measurements.lcp',
+          conditions: `has:${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE}`,
           fields: [
             'project',
             'trace',
-            'lcp.element',
-            'measurements.lcp',
+            SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT,
+            SpanFields.BROWSER_WEB_VITAL_LCP_VALUE,
             'profile.id',
             'replay.id',
             'measurements.score.ratio.lcp',
@@ -294,8 +294,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           columns: [
             'project',
             'trace',
-            'lcp.element',
-            'measurements.lcp',
+            SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT,
+            SpanFields.BROWSER_WEB_VITAL_LCP_VALUE,
             'profile.id',
             'replay.id',
             'measurements.score.ratio.lcp',
@@ -321,11 +321,11 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: 'has:measurements.inp',
+          conditions: `has:${SpanFields.BROWSER_WEB_VITAL_INP_VALUE}`,
           fields: [
             'project',
             'trace',
-            'measurements.inp',
+            SpanFields.BROWSER_WEB_VITAL_INP_VALUE,
             'profile.id',
             'replay.id',
             'measurements.score.ratio.inp',
@@ -335,7 +335,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           columns: [
             'project',
             'trace',
-            'measurements.inp',
+            SpanFields.BROWSER_WEB_VITAL_INP_VALUE,
             'profile.id',
             'replay.id',
             'measurements.score.ratio.inp',
@@ -361,11 +361,11 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          conditions: 'has:measurements.cls',
+          conditions: `has:${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE}`,
           fields: [
             'project',
             'trace',
-            'measurements.cls',
+            SpanFields.BROWSER_WEB_VITAL_CLS_VALUE,
             'profile.id',
             'replay.id',
             'measurements.score.ratio.cls',
@@ -375,7 +375,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           columns: [
             'project',
             'trace',
-            'measurements.cls',
+            SpanFields.BROWSER_WEB_VITAL_CLS_VALUE,
             'profile.id',
             'replay.id',
             'measurements.score.ratio.cls',
