@@ -83,7 +83,7 @@ describe('MonitorForm', () => {
     expect(screen.getByText('"At 5 minutes past the hour"')).toBeInTheDocument();
   });
 
-  it.isKnownFlake('submits a new monitor', async () => {
+  it('submits a new monitor', async () => {
     const mockHandleSubmitSuccess = jest.fn();
 
     const apiEndpont = `/organizations/${organization.slug}/monitors/`;
@@ -299,7 +299,7 @@ describe('MonitorForm', () => {
     );
   });
 
-  it.isKnownFlake('filters non-ASCII characters from crontab schedule', async () => {
+  it('filters non-ASCII characters from crontab schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"

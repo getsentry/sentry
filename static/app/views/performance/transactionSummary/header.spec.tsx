@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -21,18 +22,17 @@ function initializeData(opts?: InitialOpts) {
     features: features ?? [],
   });
 
-  const initialData = initializeOrg({
+  initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {
-          project: project.id,
-        },
-      },
-    },
     projects: [],
   });
-  const router = initialData.router;
+  const router = RouterFixture({
+    location: {
+      query: {
+        project: project.id,
+      },
+    },
+  });
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     version: 2,

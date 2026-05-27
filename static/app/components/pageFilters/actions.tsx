@@ -111,6 +111,10 @@ export type InitializeUrlStateParams = {
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   /**
+   * the maximum number of sequential days that can be selected on the date page filter
+   */
+  maxDateRange?: number;
+  /**
    * When set, the stats period will fallback to the `maxPickableDays` days if the stored selection exceeds the limit.
    */
   maxPickableDays?: number;
@@ -157,6 +161,7 @@ export function initializeUrlState({
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   maxPickableDays,
+  maxDateRange,
   shouldPersist = true,
   shouldForceProject,
   defaultSelection,
@@ -308,6 +313,7 @@ export function initializeUrlState({
   }
 
   let shouldUseMaxPickableDays = false;
+  let shouldUseMaxDateRange = false;
 
   if (maxPickableDays && pageFilters.datetime) {
     let {start, end} = pageFilters.datetime;
@@ -320,16 +326,33 @@ export function initializeUrlState({
 
     if (start && end) {
       const periodStart = new Date(start);
+      const periodEnd = new Date(end);
       const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
+      const maxTimeRange = (maxDateRange ?? maxPickableDays) * 24 * 60 * 60 * 1000;
       const maxStart = new Date(maxPeriod.start);
-      if (periodStart.getTime() < maxStart.getTime()) {
-        shouldUseMaxPickableDays = true;
-        pageFilters.datetime = {
-          period: `${maxPickableDays}d`,
-          start: null,
-          end: null,
-          utc: datetime.utc,
-        };
+      if (maxDateRange) {
+        if (
+          periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
+          periodStart.getTime() < maxStart.getTime()
+        ) {
+          shouldUseMaxDateRange = true;
+          pageFilters.datetime = {
+            period: `${maxDateRange}d`,
+            start: null,
+            end: null,
+            utc: datetime.utc,
+          };
+        }
+      } else {
+        if (periodStart.getTime() < maxStart.getTime()) {
+          shouldUseMaxPickableDays = true;
+          pageFilters.datetime = {
+            period: `${maxPickableDays}d`,
+            start: null,
+            end: null,
+            utc: datetime.utc,
+          };
+        }
       }
     }
   }
@@ -343,21 +366,31 @@ export function initializeUrlState({
     );
   }
 
-  const newDatetime = shouldUseMaxPickableDays
-    ? {
-        period: `${maxPickableDays}d`,
-        start: null,
-        end: null,
-        utc: datetime.utc,
-      }
-    : {
-        ...datetime,
-        period:
-          parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
-            ? datetime.period
-            : null,
-        utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
-      };
+  let newDatetime: PageFiltersUpdate;
+  if (shouldUseMaxDateRange) {
+    newDatetime = {
+      period: `${maxDateRange}d`,
+      start: null,
+      end: null,
+      utc: datetime.utc,
+    };
+  } else if (shouldUseMaxPickableDays) {
+    newDatetime = {
+      period: `${maxPickableDays}d`,
+      start: null,
+      end: null,
+      utc: datetime.utc,
+    };
+  } else {
+    newDatetime = {
+      ...datetime,
+      period:
+        parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
+          ? datetime.period
+          : null,
+      utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
+    };
+  }
 
   if (!skipInitializeUrlParams) {
     updateParams({project, environment, ...newDatetime}, location, navigate, {

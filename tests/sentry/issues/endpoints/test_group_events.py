@@ -8,7 +8,7 @@ from urllib3.exceptions import ReadTimeoutError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -590,7 +590,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
 
         url = f"/api/0/issues/{event_1.group.id}/events/"
 
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+        with self.options({EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True}):
             response = self.do_request(url)
 
         assert response.status_code == 200, response.content
@@ -633,29 +633,18 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             events.append(event)
         return event.group, events
 
-    def test_platform_tag_collision_without_option(self) -> None:
+    def test_platform_tag_collision_resolved_correctly(self) -> None:
         self.login_as(user=self.user)
         group, _events = self._store_platform_tag_collision_events()
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/?query=platform:SJ1"
         response = self.do_request(url)
         assert response.status_code == 200
-        assert len(response.data) == 0
-
-    def test_platform_tag_collision_with_option(self) -> None:
-        self.login_as(user=self.user)
-        group, _events = self._store_platform_tag_collision_events()
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/?query=platform:SJ1"
-        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
-            response = self.do_request(url)
-        assert response.status_code == 200
         assert len(response.data) == 3
 
-    def test_explicit_tag_query_works_regardless_of_option(self) -> None:
+    def test_explicit_tag_query_works(self) -> None:
         self.login_as(user=self.user)
         group, _events = self._store_platform_tag_collision_events()
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/?query=tags[platform]:SJ1"
-        for option_value in (False, True):
-            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
-                response = self.do_request(url)
-            assert response.status_code == 200
-            assert len(response.data) == 3
+        response = self.do_request(url)
+        assert response.status_code == 200
+        assert len(response.data) == 3

@@ -16,8 +16,6 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -152,8 +150,6 @@ def format_duration(minutes: int | float) -> str:
 def generate_incident_trigger_email_context(
     project: Project,
     organization: Organization,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
-    incident_serialized_response: DetailedIncidentSerializerResponse,
     metric_issue_context: MetricIssueContext,
     alert_context: AlertContext,
     open_period_context: OpenPeriodContext,
@@ -207,8 +203,6 @@ def generate_incident_trigger_email_context(
         try:
             chart_url = build_metric_alert_chart(
                 organization=organization,
-                alert_rule_serialized_response=alert_rule_serialized_response,
-                selected_incident_serialized=incident_serialized_response,
                 snuba_query=snuba_query,
                 alert_context=alert_context,
                 open_period_context=open_period_context,
@@ -302,8 +296,6 @@ def email_users(
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
     alert_context: AlertContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
-    incident_serialized_response: DetailedIncidentSerializerResponse,
     trigger_status: TriggerStatus,
     targets: list[tuple[int, str]],
     project: Project,
@@ -323,8 +315,6 @@ def email_users(
             project=project,
             organization=project.organization,
             metric_issue_context=metric_issue_context,
-            alert_rule_serialized_response=alert_rule_serialized_response,
-            incident_serialized_response=incident_serialized_response,
             alert_context=alert_context,
             open_period_context=open_period_context,
             trigger_status=trigger_status,

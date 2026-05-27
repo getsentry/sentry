@@ -142,7 +142,7 @@ export default function ProfilingContent() {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
-    <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Profiles')} orgSlug={organization.slug}>
       <PageFiltersContainer
         maxPickableDays={datePageFilterProps.maxPickableDays}
         defaultSelection={
@@ -388,7 +388,7 @@ function ProfilingContentPageHeader() {
   return (
     <Fragment>
       <TopBar.Slot name="title">
-        {t('Profiling')}
+        {t('Profiles')}
         {titleTooltip}
       </TopBar.Slot>
       <TopBar.Slot name="feedback">

@@ -264,6 +264,7 @@ export function SnapshotMainContent({
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
+          tags: image.tags,
           status: DiffStatus.CHANGED,
           diffPercent: currentPair.diff,
           copyData: currentPair,
@@ -317,6 +318,7 @@ export function SnapshotMainContent({
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
+          tags: image.tags,
           status: DiffStatus.RENAMED,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
@@ -342,14 +344,22 @@ export function SnapshotMainContent({
   }
   const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
   let status: DiffStatus | null;
-  if (selectedItem.type === 'solo') {
-    status = null;
-  } else if (selectedItem.type === 'added') {
-    status = DiffStatus.ADDED;
-  } else if (selectedItem.type === 'removed') {
-    status = DiffStatus.REMOVED;
-  } else {
-    status = DiffStatus.UNCHANGED;
+  switch (selectedItem.type) {
+    case 'solo':
+      status = null;
+      break;
+    case 'added':
+      status = DiffStatus.ADDED;
+      break;
+    case 'removed':
+      status = DiffStatus.REMOVED;
+      break;
+    case 'skipped':
+      status = DiffStatus.SKIPPED;
+      break;
+    case 'unchanged':
+    default:
+      status = DiffStatus.UNCHANGED;
   }
 
   return (
@@ -368,6 +378,7 @@ export function SnapshotMainContent({
       headerProps={{
         displayName: currentImage.display_name,
         fileName: currentImage.image_file_name,
+        tags: currentImage.tags,
         status,
         copyData: currentImage,
         copyUrl: buildSnapshotLink(currentImage.image_file_name),

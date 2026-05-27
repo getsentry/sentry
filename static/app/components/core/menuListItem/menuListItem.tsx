@@ -253,7 +253,7 @@ function BaseMenuListItem({
   detailsProps = {},
   showDetailsInOverlay = false,
   tooltip,
-  tooltipOptions = {delay: 500},
+  tooltipOptions,
   ref,
   ...props
 }: Props) {
@@ -277,6 +277,7 @@ function BaseMenuListItem({
             ? tooltip({disabled, isFocused, isSelected})
             : tooltip
         }
+        delay={500}
         {...tooltipOptions}
       >
         <StyledInnerWrap

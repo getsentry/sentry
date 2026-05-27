@@ -1,5 +1,4 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -20,6 +19,12 @@ interface MessageToolCallsProps {
   toolCalls: ToolCall[];
 }
 
+const hoverStyle = css`
+  &:hover {
+    opacity: 0.85;
+  }
+`;
+
 export function MessageToolCalls({
   toolCalls,
   selectedNodeId,
@@ -27,18 +32,29 @@ export function MessageToolCalls({
   onSelectNode,
 }: MessageToolCallsProps) {
   const organization = useOrganization();
+  const theme = useTheme();
+
   return (
     <Flex direction="column" gap="xs" padding="sm md xs md">
       {toolCalls.map(tool => {
         const toolNode = nodeMap.get(tool.nodeId);
         const isToolSelected = tool.nodeId === selectedNodeId;
         return (
-          <ToolCallLine
+          <Container
             key={tool.nodeId}
             background="tertiary"
             radius="sm"
             padding="xs sm"
             cursor="pointer"
+            css={hoverStyle}
+            style={
+              isToolSelected
+                ? {
+                    outline: `2px solid ${tool.hasError ? theme.tokens.content.danger : theme.tokens.focus.default}`,
+                    outlineOffset: '-2px',
+                  }
+                : undefined
+            }
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               trackAnalytics('conversations.message.click-tool-call', {organization});
@@ -53,17 +69,15 @@ export function MessageToolCalls({
                   {t('Called tool')}
                 </Text>
               </Container>
-              <ClickableTag
+              <Tag
                 variant={tool.hasError ? 'danger' : 'info'}
                 icon={tool.hasError ? <IconFire /> : undefined}
-                hasError={tool.hasError}
-                isSelected={isToolSelected}
               >
                 {tool.name}
-              </ClickableTag>
+              </Tag>
               {toolNode && <ToolInputPreview node={toolNode} />}
             </Flex>
-          </ToolCallLine>
+          </Container>
         );
       })}
     </Flex>
@@ -81,22 +95,3 @@ function ToolInputPreview({node}: {node: AITraceSpanNode}) {
     </Text>
   );
 }
-
-const ToolCallLine = styled(Container)`
-  &:hover {
-    opacity: 0.85;
-  }
-`;
-
-const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
-  cursor: pointer;
-  padding: 0 ${p => p.theme.space.xs};
-  ${p =>
-    p.isSelected &&
-    css`
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-      outline: 2px solid
-        ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
-      outline-offset: -2px;
-    `}
-`;

@@ -85,15 +85,6 @@ export function getRegionNameChoices(): Array<[string, string]> {
   });
 }
 
-export function getRegionUrl(name: string): string | null {
-  const regions = getRegions();
-  const found = regions.find(item => item.name === name);
-  if (found) {
-    return found.url;
-  }
-  return null;
-}
-
 export function shouldDisplayRegions(): boolean {
   return getRegions().length > 1;
 }

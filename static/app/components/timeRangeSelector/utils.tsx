@@ -277,7 +277,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
       timePeriodIsWithinLimit({
         amount: userSuppliedAmount,
         unit: matchingUnit,
-        maxDays,
+        maxDays: maxDateRange ?? maxDays,
         supportedPeriods,
       })
     ) {

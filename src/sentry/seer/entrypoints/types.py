@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.sentry_apps.metrics import SentryAppEventType
 
@@ -112,11 +113,11 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
     key: SeerEntrypointKey
 
     @staticmethod
-    def has_access(organization: Organization) -> bool:
+    def has_access(organization: Organization | RpcOrganization) -> bool:
         """
-        Used to gate access unless the organization has access to at least one entrypoint.
-        The caller will check for seer-access prior to this check, so no need to repeat
-        that check on the entrypoint.
+        Entrypoint-specific access gate. The operator checks general Seer Agent access
+        (``has_seer_agent_access_with_detail``) prior to this, so only entrypoint-specific
+        conditions belong here.
         """
         ...
 

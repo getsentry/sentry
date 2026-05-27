@@ -293,7 +293,7 @@ export default function SnapshotsPage() {
 
       const pushImages = (
         imgs: SnapshotImage[],
-        type: 'added' | 'removed' | 'unchanged'
+        type: 'added' | 'removed' | 'unchanged' | 'skipped'
       ) => {
         for (const [groupKey, images] of groupByKey(imgs, imageGroupKey)) {
           items.push({
@@ -311,6 +311,7 @@ export default function SnapshotsPage() {
       pushImages(data.added, 'added');
       pushImages(data.removed, 'removed');
       pushImages(data.unchanged, 'unchanged');
+      pushImages(data.skipped ?? [], 'skipped');
 
       items.sort(
         (a, b) => (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99)
@@ -396,6 +397,7 @@ export default function SnapshotsPage() {
       DiffStatus.ADDED,
       DiffStatus.RENAMED,
       DiffStatus.UNCHANGED,
+      DiffStatus.SKIPPED,
     ];
     const byType = new Map<
       DiffStatus,
@@ -426,6 +428,7 @@ export default function SnapshotsPage() {
       [DiffStatus.REMOVED]: 0,
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
+      [DiffStatus.SKIPPED]: 0,
     };
     for (const item of searchFilteredItems) {
       if (item.type in counts) {
@@ -815,9 +818,15 @@ const DragHandle = styled('div')`
 
 function imageSearchKey(image: SnapshotImage): string {
   const parts: string[] = [];
-  if (image.display_name) parts.push(image.display_name);
-  if (image.image_file_name) parts.push(image.image_file_name);
-  if (image.group) parts.push(image.group);
+  if (image.display_name) {
+    parts.push(image.display_name);
+  }
+  if (image.image_file_name) {
+    parts.push(image.image_file_name);
+  }
+  if (image.group) {
+    parts.push(image.group);
+  }
   return parts.join('\n').toLowerCase();
 }
 
@@ -852,8 +861,12 @@ function narrowItemBySearch(
         allMatched = false;
       }
     }
-    if (kept.length === 0) return null;
-    if (allMatched) return item;
+    if (kept.length === 0) {
+      return null;
+    }
+    if (allMatched) {
+      return item;
+    }
     return {...item, pairs: kept};
   }
   const kept: SnapshotImage[] = [];
@@ -865,7 +878,11 @@ function narrowItemBySearch(
       allMatched = false;
     }
   }
-  if (kept.length === 0) return null;
-  if (allMatched) return item;
+  if (kept.length === 0) {
+    return null;
+  }
+  if (allMatched) {
+    return item;
+  }
   return {...item, images: kept};
 }

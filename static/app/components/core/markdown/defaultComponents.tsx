@@ -1,4 +1,4 @@
-import React, {type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
@@ -69,11 +69,7 @@ export function DefaultLink({
 }
 
 export function DefaultCodeBlock({children, lang}: {children: string; lang?: string}) {
-  return (
-    <CodeBlock dark language={lang}>
-      {children}
-    </CodeBlock>
-  );
+  return <CodeBlock language={lang}>{children}</CodeBlock>;
 }
 
 export function DefaultHtmlBlock({html}: {html: string}) {
@@ -151,25 +147,30 @@ export function DefaultHorizontalRule() {
 }
 
 export function DefaultText({children}: {children: string}) {
-  return <React.Fragment>{children}</React.Fragment>;
+  return <Fragment>{children}</Fragment>;
 }
 
 export function DefaultLineBreak() {
   return <br />;
 }
 
-export const DefaultTable = styled('table')`
-  width: 100%;
+export function DefaultTable({children}: {children: ReactNode}) {
+  return (
+    <Container border="primary" radius="md" overflowX="auto">
+      <StyledTable>{children}</StyledTable>
+    </Container>
+  );
+}
+
+const StyledTable = styled('table')`
+  min-width: 100%;
   border-collapse: collapse;
-  border-radius: ${p => p.theme.radius.md};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-  overflow: hidden;
 `;
 
 export const DefaultTableHead = styled('thead')`
   background: ${p => p.theme.tokens.background.tertiary};
   border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
+  white-space: nowrap;
 `;
 
 export const DefaultTableBody = styled('tbody')`

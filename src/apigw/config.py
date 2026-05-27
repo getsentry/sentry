@@ -46,9 +46,22 @@ def load_config(app: App) -> None:
     app.config.proxy.max_concurrency = int(os.environ.get("APIGW_PROXY_MAX_CONCURRENCY", 512))
     app.config.proxy.max_failures = int(os.environ.get("APIGW_PROXY_MAX_FAILURES", 16))
     app.config.proxy.failure_window = int(os.environ.get("APIGW_PROXY_FAILURE_WINDOW", 60))
+    app.config.proxy.latency_buckets = [50, 100, 250, 1000, 10000, 60000]
+
+    app.config.proxy.client_max_connections = None
+    app.config.proxy.client_keepalive_max_connections = None
+    app.config.proxy.client_keepalive_timeout = int(
+        os.environ.get("APIGW_PROXY_KEEPALIVE_TIMEOUT", 95)
+    )
 
     if proxy_timeout := os.environ.get("APIGW_PROXY_TIMEOUT"):
         app.config.proxy.timeout = int(proxy_timeout)
+
+    if proxy_client_max_conns := os.environ.get("APIGW_PROXY_MAX_CONNS"):
+        app.config.proxy.client_max_connections = int(proxy_client_max_conns)
+
+    if proxy_client_keepalive_max := os.environ.get("APIGW_PROXY_KEEPALIVE"):
+        app.config.proxy.client_keepalive_max_connections = int(proxy_client_keepalive_max)
 
     app.config.Sentry.environment = os.environ.get("APIGW_SENTRY_ENVIRONMENT", "development")
     app.config.Sentry.dsn = os.environ.get("APIGW_SENTRY_DSN", "")
@@ -61,5 +74,9 @@ def load_config(app: App) -> None:
 
     app.config.Prometheus.metrics_route_hostname = app.config.internal_fqdn
     app.config.Prometheus.enable_ws_metrics = False
-    app.config.Prometheus.http_histogram_buckets = [35, 100, 500, 1000, 5000, "INF"]
+    app.config.Prometheus.http_histogram_buckets = [35, 100, 500, 1000, 5000]
     app.config.Prometheus.exclude_routes = ["internal.health"]
+
+    from django.conf import settings
+
+    app.config.cells.default = settings.SENTRY_MONOLITH_REGION
