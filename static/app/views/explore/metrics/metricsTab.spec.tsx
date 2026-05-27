@@ -281,7 +281,9 @@ describe('MetricsTabContent', () => {
     const addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
     await userEvent.click(addButtons[0]!);
 
-    expect(await screen.findAllByTestId('metric-panel')).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+    });
 
     await waitFor(() => {
       expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
