@@ -404,7 +404,9 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         volumes = get_eap_transaction_volumes(
-            self.get_config(organization), time_interval=timedelta(hours=1)
+            self.get_config(organization),
+            time_interval=timedelta(hours=1),
+            order_by_volume="desc",
         )
 
         assert volumes == [

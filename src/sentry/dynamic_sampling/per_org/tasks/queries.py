@@ -188,22 +188,16 @@ def get_eap_transaction_volumes(
         ProjectTransactionVolumesAccumulator
     )
 
-    orderby: list[str] = [
+    count_order = (
+        DynamicSamplingQueryFields.COUNT
+        if order_by_volume == "asc"
+        else f"-{DynamicSamplingQueryFields.COUNT}"
+    )
+    orderby = [
+        count_order,
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
         DynamicSamplingQueryFields.DSC_TRANSACTION,
     ]
-    if order_by_volume == "asc":
-        orderby = [
-            DynamicSamplingQueryFields.COUNT,
-            DynamicSamplingQueryFields.DSC_PROJECT_ID,
-            DynamicSamplingQueryFields.DSC_TRANSACTION,
-        ]
-    else:
-        orderby = [
-            f"-{DynamicSamplingQueryFields.COUNT}",
-            DynamicSamplingQueryFields.DSC_PROJECT_ID,
-            DynamicSamplingQueryFields.DSC_TRANSACTION,
-        ]
 
     root_project_filter = ",".join(str(project.id) for project in config.projects)
     result = Spans.run_table_query(
