@@ -9,7 +9,7 @@ from fixtures.github import (
     CHECK_RUN_COMPLETED_EVENT_EXAMPLE,
     CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
 )
-from sentry.scm.types import CheckRunEvent, SubscriptionEvent, SubscriptionEventSentryMeta
+from sentry.scm.types import CheckRunEvent, SubscriptionEvent
 from sentry.seer.code_review.webhooks.check_run import process_check_run
 from sentry.testutils.cases import TestCase
 
@@ -26,14 +26,12 @@ def _make_subscription_event(
         type="github",
         event_type_hint="check_run",
         event=event_data.decode("utf-8"),
-        extra={"process_in_listener": process_in_listener},
-        sentry_meta=[
-            SubscriptionEventSentryMeta(
-                id=None,
-                integration_id=integration_id,
-                organization_id=organization_id,
-            )
-        ],
+        extra={
+            "process_in_listener": process_in_listener,
+            "organization_id": organization_id,
+            "integration_id": integration_id,
+        },
+        sentry_meta=None,
     )
 
 

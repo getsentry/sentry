@@ -168,9 +168,9 @@ def process_check_run(e: CheckRunEvent) -> None:
         tags=get_tags(
             json.loads(e.subscription_event["event"]),
             github_event="check_run",
-            organization_id=e.subscription_event["sentry_meta"][0]["organization_id"],
+            organization_id=int(e.subscription_event["extra"]["organization_id"]),
             organization_slug="",
-            integration_id=e.subscription_event["sentry_meta"][0]["integration_id"],
+            integration_id=int(e.subscription_event["extra"]["integration_id"]),
         ),
     )
 

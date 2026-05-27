@@ -995,6 +995,8 @@ class CheckRunEventWebhook(GitHubWebhook):
     ) -> None:
         if features.has("organizations:check-run-listener", organization):
             self._process_in_listener = True
+            self._organization_id = organization.id
+            self._integration_id = integration.id
 
         super()._handle(
             github_event=github_event,
@@ -1173,6 +1175,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         extra: dict[str, str | None | bool | int | float] = {}
         if getattr(event_handler, "_process_in_listener", False):
             extra["process_in_listener"] = True
+            extra["organization_id"] = getattr(event_handler, "_organization_id", 0)
+            extra["integration_id"] = getattr(event_handler, "_integration_id", 0)
 
         produce_event_to_scm_stream(
             {
