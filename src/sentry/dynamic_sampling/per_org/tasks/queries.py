@@ -28,7 +28,6 @@ class DynamicSamplingQueryFilters(StrEnum):
 
 
 class DynamicSamplingQueryFields(StrEnum):
-    ROOT_PROJECT = "sentry.dsc.root_project"
     PROJECT_ID = "sentry.dsc.project_id"
     TRANSACTION = "sentry.dsc.transaction"
     COUNT = "count()"
@@ -146,11 +145,11 @@ def get_eap_project_volumes(
             ),
             "query_string": DynamicSamplingQueryFilters.IS_SEGMENT,
             "selected_columns": [
-                DynamicSamplingQueryFields.ROOT_PROJECT,
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.COUNT,
                 DynamicSamplingQueryFields.COUNT_SAMPLE,
             ],
-            "orderby": [DynamicSamplingQueryFields.ROOT_PROJECT],
+            "orderby": [DynamicSamplingQueryFields.DSC_PROJECT_ID],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
             "config": SearchResolverConfig(
                 auto_fields=True,
@@ -161,13 +160,13 @@ def get_eap_project_volumes(
     ):
         total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
         keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
-        root_project = row.get(DynamicSamplingQueryFields.ROOT_PROJECT)
-        if root_project is None:
+        dsc_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
+        if dsc_project_id is None:
             continue
 
         project_volumes.append(
             ProjectVolume(
-                project_id=ProjectId(int(root_project)),
+                project_id=ProjectId(int(dsc_project_id)),
                 total=total,
                 keep=keep,
                 drop=max(total - keep, 0),
