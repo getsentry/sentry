@@ -279,7 +279,11 @@ def serialize_meta(
     return meta_result
 
 
-def serialize_links(attributes: list[dict]) -> list[dict] | None:
+def serialize_links(
+    attributes: list[dict],
+    trace_item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> list[dict] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
     link_attribute = None
     for attribute in attributes:
@@ -294,7 +298,7 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
         value = link_attribute.get("value", {}).get("valStr", None)
         if value is not None:
             links = json.loads(value)
-            return [serialize_link(link) for link in links]
+            return [serialize_link(link, trace_item_type, include_internal) for link in links]
         else:
             return None
     except Exception as e:
@@ -302,7 +306,11 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
         return None
 
 
-def serialize_link(link: dict) -> dict:
+def serialize_link(
+    link: dict,
+    trace_item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> dict:
     clean_link = {
         "itemId": link["span_id"],
         "traceId": link["trace_id"],
@@ -316,6 +324,9 @@ def serialize_link(link: dict) -> dict:
             {"name": k, "value": v, "type": infer_type(v)}
             for k, v in attributes.items()
             if infer_type(v) is not None
+            and (
+                include_internal or not is_internal_sentry_convention_attribute(k, trace_item_type)
+            )
         ]
 
     return clean_link
@@ -464,7 +475,9 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "meta": serialize_meta(
                 resp["attributes"], item_type, include_internal=include_internal
             ),
-            "links": serialize_links(resp["attributes"]),
+            "links": serialize_links(
+                resp["attributes"], item_type, include_internal=include_internal
+            ),
         }
 
         return Response(resp_dict)

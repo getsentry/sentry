@@ -2,10 +2,12 @@ import pytest
 
 from sentry.api.endpoints.project_trace_item_details import (
     convert_rpc_attribute_to_json,
+    serialize_links,
     serialize_meta,
 )
 from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.utils import json
 
 
 def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_array_flag() -> None:
@@ -199,3 +201,59 @@ class TestInternalConventionVisibilityFiltering:
         result = serialize_meta(attributes, SupportedTraceItemType.SPANS, include_internal=True)
 
         assert any("dsc.environment" in key for key in result)
+
+    def test_serialize_links_hides_internal_convention_link_attributes(self) -> None:
+        attributes = [
+            {
+                "name": "sentry.links",
+                "value": {
+                    "valStr": json.dumps(
+                        [
+                            {
+                                "span_id": "abc123",
+                                "trace_id": "def456",
+                                "attributes": {
+                                    "sentry.dsc.environment": "production",
+                                    "visible.attr": "value",
+                                },
+                            }
+                        ]
+                    )
+                },
+            }
+        ]
+
+        result = serialize_links(attributes, SupportedTraceItemType.SPANS)
+
+        assert result is not None
+        link_attr_names = [a["name"] for a in result[0].get("attributes", [])]
+        assert "sentry.dsc.environment" not in link_attr_names
+        assert "visible.attr" in link_attr_names
+
+    def test_serialize_links_shows_internal_attrs_when_include_internal(self) -> None:
+        attributes = [
+            {
+                "name": "sentry.links",
+                "value": {
+                    "valStr": json.dumps(
+                        [
+                            {
+                                "span_id": "abc123",
+                                "trace_id": "def456",
+                                "attributes": {
+                                    "sentry.dsc.environment": "production",
+                                    "visible.attr": "value",
+                                },
+                            }
+                        ]
+                    )
+                },
+            }
+        ]
+
+        result = serialize_links(attributes, SupportedTraceItemType.SPANS, include_internal=True)
+
+        assert result is not None
+        link_attr_names = [a["name"] for a in result[0].get("attributes", [])]
+        assert "sentry.dsc.environment" in link_attr_names
+        assert "visible.attr" in link_attr_names
