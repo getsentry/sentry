@@ -56,10 +56,10 @@ export type HeadingPropsWithRenderFunction = BaseHeadingProps &
   >;
 
 export const Heading = styled(
-  (props: HeadingProps | HeadingPropsWithRenderFunction) => {
+  (props: (HeadingProps | HeadingPropsWithRenderFunction) & {className?: string}) => {
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
-      return props.children({className: (props as any).className});
+      return props.children({className: props.className ?? ''});
     }
     const {children, as, ...rest} = props as HeadingProps;
     const HeadingComponent = as;

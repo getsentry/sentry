@@ -4,8 +4,6 @@ import sentry_sdk
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -19,8 +17,6 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
-    get_alert_rule_serializer,
-    get_detailed_incident_serializer,
     get_detector_serializer,
 )
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
@@ -49,9 +45,7 @@ def _send_via_notification_platform(
     open_period_context: OpenPeriodContext,
     notification_uuid: str,
     organization: Organization,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
     detector_serialized_response: DetectorSerializerResponse,
-    incident_serialized_response: DetailedIncidentSerializerResponse,
 ) -> None:
     if notification_context.integration_id is None:
         raise ValueError("Integration ID is None")
@@ -68,19 +62,13 @@ def _send_via_notification_platform(
     )
 
     chart_url = None
-    if (
-        features.has("organizations:metric-alert-chartcuterie", organization)
-        and alert_rule_serialized_response
-        and incident_serialized_response
-    ):
+    if features.has("organizations:metric-alert-chartcuterie", organization):
         try:
             chart_url = build_metric_alert_chart(
                 organization=organization,
-                alert_rule_serialized_response=alert_rule_serialized_response,
                 snuba_query=metric_issue_context.snuba_query,
                 alert_context=alert_context,
                 open_period_context=open_period_context,
-                selected_incident_serialized=incident_serialized_response,
                 subscription=metric_issue_context.subscription,
                 detector_serialized_response=detector_serialized_response,
             )
@@ -147,18 +135,7 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
         if not open_period:
             raise ValueError("Open period not found")
 
-        alert_rule_serialized_response = get_alert_rule_serializer(detector)
         detector_serialized_response = get_detector_serializer(detector)
-        incident_serialized_response = get_detailed_incident_serializer(open_period)
-
-        logger.info(
-            "notification_action.execute_via_metric_alert_handler.slack",
-            extra={
-                "action_id": alert_context.action_identifier_id,
-                "serialized_incident": incident_serialized_response,
-                "serialized_alert_rule": alert_rule_serialized_response,
-            },
-        )
 
         if NotificationService.has_access(organization, NotificationSource.METRIC_ALERT):
             _send_via_notification_platform(
@@ -168,9 +145,7 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
                 open_period_context=open_period_context,
                 notification_uuid=notification_uuid,
                 organization=organization,
-                alert_rule_serialized_response=alert_rule_serialized_response,
                 detector_serialized_response=detector_serialized_response,
-                incident_serialized_response=incident_serialized_response,
             )
         else:
             send_incident_alert_notification(
@@ -180,8 +155,6 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
                 open_period_context=open_period_context,
                 organization=organization,
                 notification_uuid=notification_uuid,
-                alert_rule_serialized_response=alert_rule_serialized_response,
-                incident_serialized_response=incident_serialized_response,
                 detector_serialized_response=detector_serialized_response,
             )
 

@@ -29,12 +29,11 @@ import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/se
 function useSeerState(group: Group, project: Project) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const isExplorer = organization.features.includes('autofix-on-explorer');
   const issueTypeConfig = getConfigForIssueType(group, project);
   const issueTypeSupportsSeer = issueTypeConfig.autofix || issueTypeConfig.issueSummary;
 
   const autofix = useExplorerAutofix(group.id, {
-    enabled: aiConfig.areAiFeaturesAllowed && isExplorer,
+    enabled: aiConfig.areAiFeaturesAllowed,
   });
 
   const sections = useMemo(
@@ -56,7 +55,6 @@ function useSeerState(group: Group, project: Project) {
   return {
     organization,
     aiConfig,
-    isExplorer,
     issueTypeSupportsSeer,
     autofix,
     completedRootCause,
@@ -80,7 +78,6 @@ export function SeerCommandPaletteActions({
   const {
     organization,
     aiConfig,
-    isExplorer,
     issueTypeSupportsSeer,
     autofix,
     completedRootCause,
@@ -96,7 +93,7 @@ export function SeerCommandPaletteActions({
   );
   const codingAgentIntegrations = codingAgentResponse?.integrations;
 
-  if (!aiConfig.areAiFeaturesAllowed || !isExplorer || !issueTypeSupportsSeer || !event) {
+  if (!aiConfig.areAiFeaturesAllowed || !issueTypeSupportsSeer || !event) {
     return null;
   }
 

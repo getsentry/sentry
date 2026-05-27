@@ -42,7 +42,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -81,7 +80,6 @@ function ConfigureIntegration() {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
   const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'settings';
   const {integrationId, providerKey} = useParams<{
@@ -521,8 +519,7 @@ function ConfigureIntegration() {
         title={integration ? integration.provider.name : 'Configure Integration'}
       />
       <SettingsPageHeader
-        noTitleStyles
-        title={<IntegrationItem integration={integration} compact={hasPageFrame} />}
+        title={<IntegrationItem integration={integration} compact />}
         action={getAction()}
       />
       {renderMainContent()}

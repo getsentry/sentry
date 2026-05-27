@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -13,7 +13,6 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
-from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -21,6 +20,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers.models.event import GroupEventDetailsResponse
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -34,10 +34,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.issues.endpoints.project_event_details import (
-    GroupEventDetailsResponse,
-    wrap_event_response,
-)
+from sentry.issues.endpoints.project_event_details import wrap_event_response
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -59,7 +56,7 @@ from sentry.utils.snuba import get_snuba_column_name
 def issue_search_query_to_conditions(
     query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
 ) -> tuple[list[Condition], list[Any]]:
-    from sentry.utils.snuba import resolve_column, resolve_conditions
+    from sentry.utils.snuba import resolve_conditions
 
     dataset = (
         Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
@@ -101,11 +98,7 @@ def issue_search_query_to_conditions(
 
     # the transformed conditions is generic and isn't 'dataset aware', we need to map the generic columns
     # being queried to the appropriate dataset column
-    column_resolver: Callable[[str], str]
-    if options.get("issues.search.use-tag-aware-condition-resolver"):
-        column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
-    else:
-        column_resolver = resolve_column(dataset)
+    column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
 
     resolved_legacy_conditions = resolve_conditions(legacy_conditions, column_resolver) or []
 

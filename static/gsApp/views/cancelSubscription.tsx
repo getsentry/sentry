@@ -291,7 +291,7 @@ const ButtonList = styled('div')`
 function CancelSubscriptionPage() {
   const title = t('Cancel Subscription');
   return (
-    <SubscriptionPageContainer background="secondary" data-test-id="cancel-subscription">
+    <SubscriptionPageContainer data-test-id="cancel-subscription">
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       <CancelSubscriptionForm />

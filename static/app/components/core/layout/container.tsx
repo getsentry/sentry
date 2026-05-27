@@ -241,11 +241,13 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
 
 export const Container = styled(
   <T extends ContainerElement = 'div'>(
-    props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
+    props: (ContainerProps<T> | ContainerPropsWithRenderFunction<T>) & {
+      className?: string;
+    }
   ) => {
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
-      return props.children({className: (props as any).className});
+      return props.children({className: props.className ?? ''});
     }
 
     const {as, ...rest} = props;
