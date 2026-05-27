@@ -9,7 +9,6 @@ import {
   useState,
 } from 'react';
 import {flushSync} from 'react-dom';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -789,8 +788,5 @@ export const TraceGrid = styled('div')<{
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
 
-  ${p =>
-    css`
-      border-radius: ${p.theme.radius.md};
-    `}
+  border-radius: ${p => p.theme.radius.md};
 `;

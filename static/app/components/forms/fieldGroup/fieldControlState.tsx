@@ -14,7 +14,11 @@ export const FieldControlState = styled('div')<FieldControlStateProps>`
 
   ${p =>
     p.flexibleControlStateSize
-      ? `&:not(:empty) { margin-left: ${p.theme.space.lg} }`
+      ? css`
+          &:not(:empty) {
+            margin-left: ${p.theme.space.lg};
+          }
+        `
       : css`
           width: 24px;
           margin-left: ${p.theme.space.xs};
