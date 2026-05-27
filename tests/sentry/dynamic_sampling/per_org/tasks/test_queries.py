@@ -60,7 +60,7 @@ class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
                         projects=[project, other_project],
                         organization=organization,
                     ),
-                    "query_string": "is_transaction:true",
+                    "query_string": DynamicSamplingQueryFilters.IS_SEGMENT,
                     "selected_columns": ["project.id", "count()", "count_sample()"],
                     "orderby": ["project.id"],
                     "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME.value,

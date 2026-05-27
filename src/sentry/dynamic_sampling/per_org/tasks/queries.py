@@ -22,7 +22,7 @@ from sentry.snuba.spans_rpc import Spans
 
 
 class DynamicSamplingQueryFilters(StrEnum):
-    IS_SEGMENT = "is_segment:true"
+    IS_SEGMENT = "sentry.is_segment:true"
 
 
 class DynamicSamplingQueryFields(StrEnum):
