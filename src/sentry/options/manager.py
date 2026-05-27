@@ -287,7 +287,11 @@ class OptionsManager:
     def _record_seen(self, key: str) -> None:
         """Emit one log line per key per process lifetime so reads can be
         audited in GCP. Logs before adding to _seen so a logging failure
-        doesn't permanently suppress the event."""
+        doesn't permanently suppress the event. In debug mode, mark keys as
+        seen without logging to keep local tooling output clean."""
+        if settings.DEBUG:
+            self._seen.add(key)
+            return
         logger.info("option.seen", extra={"option_key": key})
         self._seen.add(key)
 
