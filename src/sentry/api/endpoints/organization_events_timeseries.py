@@ -366,12 +366,24 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
+        stats_meta = StatsMeta(
+            dataset=DATASET_LABELS[dataset],
+            start=snuba_params.start_date.timestamp() * 1000,
+            end=snuba_params.end_date.timestamp() * 1000,
+        )
+        if snuba_params.debug:
+            debug_info = None
+            if isinstance(result, SnubaTSResult) and "debug_info" in result.data["meta"]:
+                debug_info = result.data["meta"]["debug_info"]
+            elif isinstance(result, dict):
+                debug_info = {}
+                for key, keyed_result in result.items():
+                    if "debug_info" in keyed_result.data["meta"]:
+                        debug_info[key] = keyed_result.data["meta"]["debug_info"]
+            # ignore typing here cause we don't want the openapi docs to include debug_info
+            stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
         response = StatsResponse(
-            meta=StatsMeta(
-                dataset=DATASET_LABELS[dataset],
-                start=snuba_params.start_date.timestamp() * 1000,
-                end=snuba_params.end_date.timestamp() * 1000,
-            ),
+            meta=stats_meta,
             timeSeries=self.serialize_result(result, axes, rollup, now),
         )
         return response

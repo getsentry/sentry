@@ -53,6 +53,7 @@ describe('OrganizationCreate', () => {
   it('creates a new org', async () => {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
+      host: ConfigStore.get('links').sentryUrl,
       method: 'POST',
       body: OrganizationFixture(),
     });
@@ -84,7 +85,7 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
-        host: undefined,
+        host: ConfigStore.get('links').sentryUrl,
       });
     });
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
@@ -95,6 +96,7 @@ describe('OrganizationCreate', () => {
 
   it('creates a new org with customer domain feature', async () => {
     const orgCreateMock = MockApiClient.addMockResponse({
+      host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',
       method: 'POST',
       body: OrganizationFixture(),
@@ -119,7 +121,7 @@ describe('OrganizationCreate', () => {
         method: 'POST',
         success: expect.any(Function),
         error: expect.any(Function),
-        host: undefined,
+        host: ConfigStore.get('links').sentryUrl,
       });
     });
 
@@ -131,6 +133,7 @@ describe('OrganizationCreate', () => {
 
   function multiRegionSetup() {
     const orgCreateMock = MockApiClient.addMockResponse({
+      host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',
       method: 'POST',
       body: OrganizationFixture(),
@@ -163,7 +166,7 @@ describe('OrganizationCreate', () => {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: undefined,
+        host: ConfigStore.get('links').sentryUrl,
         data: {defaultTeam: true, name: 'Good Burger'},
       });
     });
@@ -195,14 +198,13 @@ describe('OrganizationCreate', () => {
     );
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = 'https://us.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        host: ConfigStore.get('links').sentryUrl,
+        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'us'},
       });
     });
 
@@ -228,14 +230,13 @@ describe('OrganizationCreate', () => {
     );
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = 'https://de.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        host: ConfigStore.get('links').sentryUrl,
+        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
       });
     });
 
@@ -245,11 +246,8 @@ describe('OrganizationCreate', () => {
     );
   });
 
-  it('submits to the control URL when create-org-control is active', async () => {
-    ConfigStore.set(
-      'features',
-      new Set(['system:multi-region', 'organizations:create-org-control'])
-    );
+  it('submits to the control URL when multi-region is active', async () => {
+    ConfigStore.set('features', new Set(['system:multi-region']));
     ConfigStore.set('urlPrefix', 'https://sentry.io');
     ConfigStore.set('regions', [
       {url: 'https://us.example.com', name: 'us'},
@@ -259,6 +257,7 @@ describe('OrganizationCreate', () => {
       },
     ]);
     const orgCreateMock = MockApiClient.addMockResponse({
+      host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',
       method: 'POST',
       body: OrganizationFixture(),

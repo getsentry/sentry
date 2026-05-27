@@ -3,8 +3,6 @@ from __future__ import annotations
 import enum
 import logging
 
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -115,8 +113,6 @@ def send_incident_alert_notification(
     notification_context: NotificationContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
-    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None = None,
 ) -> bool:
     from .card_builder.incident_attachment import build_incident_attachment
