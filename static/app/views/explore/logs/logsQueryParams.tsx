@@ -58,10 +58,10 @@ import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
-export const LOGS_MODE_KEY = 'mode';
+const LOGS_MODE_KEY = 'mode';
 export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
-export const LOGS_ID_KEY = ID_KEY;
-export const LOGS_TITLE_KEY = TITLE_KEY;
+const LOGS_ID_KEY = ID_KEY;
+const LOGS_TITLE_KEY = TITLE_KEY;
 
 export const logsQueryParamsParsers = {
   [LOGS_MODE_KEY]: parseAsMode,
@@ -79,11 +79,7 @@ export const logsQueryParamsParsers = {
   [LOGS_TITLE_KEY]: parseAsString,
 };
 
-export type LogsQueryParams = inferParserType<typeof logsQueryParamsParsers>;
-
-export function isDefaultFields(location: Location): boolean {
-  return getFieldsFromLocation(location, LOGS_FIELDS_KEY) ? false : true;
-}
+type LogsQueryParams = inferParserType<typeof logsQueryParamsParsers>;
 
 export function getReadableQueryParamsFromLocation(
   defaultVisible: boolean,

@@ -53,20 +53,20 @@ import {
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export const SPANS_MODE_KEY = 'mode';
-export const SPANS_QUERY_KEY = 'query';
-export const SPANS_CURSOR_KEY = 'cursor';
+const SPANS_MODE_KEY = 'mode';
+const SPANS_QUERY_KEY = 'query';
+const SPANS_CURSOR_KEY = 'cursor';
 export const SPANS_FIELD_KEY = 'field';
-export const SPANS_SORT_KEY = 'sort';
-export const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
-export const SPANS_AGGREGATE_CURSOR = 'aggregateCursor';
-export const SPANS_GROUP_BY_KEY = 'groupBy';
-export const SPANS_VISUALIZATION_KEY = 'visualize';
-export const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
-export const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
-export const SPANS_ID_KEY = ID_KEY;
-export const SPANS_TITLE_KEY = TITLE_KEY;
-export const SPANS_CROSS_EVENTS_KEY = 'crossEvents';
+const SPANS_SORT_KEY = 'sort';
+const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
+const SPANS_AGGREGATE_CURSOR = 'aggregateCursor';
+const SPANS_GROUP_BY_KEY = 'groupBy';
+const SPANS_VISUALIZATION_KEY = 'visualize';
+const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
+const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
+const SPANS_ID_KEY = ID_KEY;
+const SPANS_TITLE_KEY = TITLE_KEY;
+const SPANS_CROSS_EVENTS_KEY = 'crossEvents';
 
 export const spansQueryParamsParsers = {
   [SPANS_MODE_KEY]: parseAsMode,
@@ -85,14 +85,10 @@ export const spansQueryParamsParsers = {
   [SPANS_CROSS_EVENTS_KEY]: parseAsCrossEvents,
 };
 
-export type SpansQueryParams = inferParserType<typeof spansQueryParamsParsers>;
+type SpansQueryParams = inferParserType<typeof spansQueryParamsParsers>;
 
 export function useSpansDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
-}
-
-export function isDefaultFields(location: Location): boolean {
-  return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
 }
 
 export function getReadableQueryParamsFromLocation(
