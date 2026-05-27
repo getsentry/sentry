@@ -318,7 +318,11 @@ export const QUOTA_FIELDS = [
     label: (
       <Fragment>
         {t('Spend Allocations')}{' '}
-        <QuestionTooltip position="top" title="Business plan only" size="xs" />
+        <QuestionTooltip
+          position="top"
+          title="Notification settings only apply to data categories and features included in your plan. Check your subscription overview for details."
+          size="xs"
+        />
       </Fragment>
     ),
     help: t('Receive notifications about your spend allocations.'),
