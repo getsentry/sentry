@@ -103,6 +103,31 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         assert event is not None
         assert event.actor_user_id == self.user.id
 
+    def test_mute_everyone_does_not_disable_cross_org_workflow(self) -> None:
+        """Snoozing for everyone must not disable a workflow in another org."""
+        arw = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert_rule.id)
+
+        other_org = self.create_organization(owner=self.user)
+        cross_org_workflow = self.create_workflow(organization=other_org)
+
+        # Simulate cross-org link
+        arw.update(workflow=cross_org_workflow)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.issue_alert_rule.id,
+                target="everyone",
+                status_code=201,
+            )
+
+        assert RuleSnooze.objects.filter(rule=self.issue_alert_rule.id).exists()
+
+        # The cross-org workflow must NOT have been disabled
+        cross_org_workflow.refresh_from_db()
+        assert cross_org_workflow.enabled is True
+
     def test_mute_issue_alert_everyone_until(self) -> None:
         """Test that an issue alert rule can be muted for everyone for a period of time"""
         data = {"target": "everyone", "until": self.until}
