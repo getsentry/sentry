@@ -20,7 +20,7 @@ interface Props extends ModalRenderProps {
 }
 
 const schema = z.object({
-  slug: z.string().min(1, t('Slug is required')),
+  slug: z.string().min(1, t('Field is required')),
 });
 
 function CreateTeamModal({
