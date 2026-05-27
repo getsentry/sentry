@@ -941,6 +941,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
+    "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
