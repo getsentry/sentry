@@ -42,9 +42,6 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
         ):
             return super()._dispatch_pipeline(request, organization, params)
 
-        # to protect against CSRF attacks, show a confirmation page that lists the jira org and sentry org
-        if request.method == "POST":
-            return super()._dispatch_pipeline(request, organization, params)
         try:
             state = self.map_params_to_state(params)
         except SignatureExpired:
@@ -58,7 +55,11 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
                 {"error": "Invalid installation link"},
             )
 
+        if request.method == "POST":
+            return super()._dispatch_pipeline(request, organization, params)
+
         metadata = state.get("metadata") or {}
+        # to protect against CSRF attacks, show a confirmation page that lists the jira org and sentry org
         return self.respond(
             "sentry/integrations/jira-confirm.html",
             {
