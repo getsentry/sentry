@@ -41,6 +41,22 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         with open(os.path.join(auth_dir, "model.pyi"), "w") as f:
             f.write("class AuthenticatedToken: ...")
 
+        # stub for rest_framework.response.Response — make it Generic[T] with a
+        # body-less overload, mirroring fixtures/stubs-for-mypy/rest_framework/
+        # response.pyi. The Response-body-Any plugin hook needs this shape to
+        # see resolved T values.
+        rf_dir = _fill_init_pyi(tmpdir, "rest_framework")
+        with open(os.path.join(rf_dir, "response.pyi"), "w") as f:
+            f.write(
+                "from typing import Any, Generic, TypeVar, overload\n"
+                "T = TypeVar('T', default=Any)\n"
+                "class Response(Generic[T]):\n"
+                "    @overload\n"
+                "    def __init__(self, *, status: int | None = ...) -> None: ...\n"
+                "    @overload\n"
+                "    def __init__(self, data: T, status: int | None = ...) -> None: ...\n"
+            )
+
         ret = subprocess.run(
             (
                 *(sys.executable, "-m", "mypy"),
@@ -310,3 +326,114 @@ Found 1 error in 1 file (checked 1 source file)
     ret, out = call_mypy(src)
     assert ret
     assert out == expected
+
+
+def test_response_any_body_unparameterized_silent() -> None:
+    """Bare `Response(any_value)` is the existing pattern across the codebase.
+    The plugin must NOT fire on it — only parameterized usage."""
+    src = """\
+from typing import Any
+from rest_framework.response import Response
+
+def untyped() -> Any: ...
+
+def view() -> Response:
+    return Response(untyped())
+"""
+    ret, _ = call_mypy(src)
+    assert ret == 0
+
+
+def test_response_any_body_parameterized_errors() -> None:
+    """`Response[Specific](untyped_call())` is the case the plugin closes —
+    a parameterized return whose body is `Any` from an untyped serializer."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+def view() -> Response[Shape]:
+    return Response(untyped())
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "body is `Any`" in out
+
+
+def test_response_typed_body_parameterized_silent() -> None:
+    """Parameterized Response with a properly-typed body passes silently."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def typed() -> Shape:
+    return {"a": 1}
+
+def view() -> Response[Shape]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_cast_escape_valve() -> None:
+    """`cast(T, untyped_call())` is the sanctioned escape valve for untyped
+    serializers — it should suppress the plugin error."""
+    src = """\
+from typing import Any, TypedDict, cast
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+def view() -> Response[Shape]:
+    return Response(cast(Shape, untyped()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_body_less_parameterized_silent() -> None:
+    """Error early-returns like `Response(status=404)` must keep working even
+    when the enclosing function returns `Response[Specific]`."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def view(x: int) -> Response[Shape]:
+    if x < 0:
+        return Response(status=404)
+    return Response({"a": x})
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_extra_key_drift_caught_by_core_mypy() -> None:
+    """Core mypy (no plugin needed) catches dict-literal drift via TypedDict
+    inference. Verify the plugin doesn't shadow this check."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def view() -> Response[Shape]:
+    return Response({"a": 1, "extra": 2})
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert 'Extra key "extra"' in out
