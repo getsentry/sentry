@@ -108,6 +108,9 @@ class CodeReviewPreflightService:
         # GitLab LA orgs run with no seat-based billing wired up yet — skip the
         # contributor lookup entirely. Once they're moved onto seat-based-seer
         # (which takes precedence below) this bypass is no longer taken.
+        # The PR_AUTHOR_EXCLUDED check below is skipped on this path because it
+        # is keyed off contributor.alias (GitHub-shaped usernames). GitLab bot
+        # filtering is tracked as a follow-up on SCM-99.
         if self._is_gitlab_la_org and not self._is_seat_based_seer_plan_org:
             return None
 
