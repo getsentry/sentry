@@ -1788,7 +1788,6 @@ module = [
     "tests.sentry.api.endpoints.test_organization_auth_providers",
     "tests.sentry.api.endpoints.test_organization_auth_token_details",
     "tests.sentry.api.endpoints.test_organization_auth_tokens",
-    "tests.sentry.api.endpoints.test_organization_code_mapping_codeowners",
     "tests.sentry.api.endpoints.test_organization_config_integrations",
     "tests.sentry.api.endpoints.test_organization_events_trends_v2",
     "tests.sentry.api.endpoints.test_organization_fork",
