@@ -178,6 +178,7 @@ function InstallationConfigStep({
                 value={field.state.value}
                 onChange={field.handleChange}
                 rows={3}
+                monospace
                 placeholder={
                   '-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----'
                 }
