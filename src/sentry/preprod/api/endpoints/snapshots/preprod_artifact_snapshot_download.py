@@ -40,8 +40,8 @@ from sentry.utils.zip import is_unsafe_path
 
 logger = logging.getLogger(__name__)
 
-FETCH_MAX_WORKERS = 32
-FETCH_BATCH_SIZE = 200
+FETCH_MAX_WORKERS = 16
+FETCH_BATCH_SIZE = 100
 BATCH_TIMEOUT = 300
 
 

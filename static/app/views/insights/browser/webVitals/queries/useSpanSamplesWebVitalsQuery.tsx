@@ -71,24 +71,24 @@ export function useSpanSamplesWebVitalsQuery({
   let ratioField: SpanFields | undefined;
   switch (webVital) {
     case 'lcp':
-      field = SpanFields.LCP;
+      field = SpanFields.BROWSER_WEB_VITAL_LCP_VALUE;
       ratioField = SpanFields.LCP_SCORE_RATIO;
       break;
     case 'cls':
-      field = SpanFields.CLS;
+      field = SpanFields.BROWSER_WEB_VITAL_CLS_VALUE;
       ratioField = SpanFields.CLS_SCORE_RATIO;
       break;
     case 'fcp':
-      field = SpanFields.FCP;
+      field = SpanFields.BROWSER_WEB_VITAL_FCP_VALUE;
       ratioField = SpanFields.FCP_SCORE_RATIO;
       break;
     case 'ttfb':
-      field = SpanFields.TTFB;
+      field = SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE;
       ratioField = SpanFields.TTFB_SCORE_RATIO;
       break;
     case 'inp':
     default:
-      field = SpanFields.INP;
+      field = SpanFields.BROWSER_WEB_VITAL_INP_VALUE;
       ratioField = SpanFields.INP_SCORE_RATIO;
       break;
   }
@@ -115,8 +115,8 @@ export function useSpanSamplesWebVitalsQuery({
         SpanFields.SPAN_SELF_TIME,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
-        SpanFields.LCP_ELEMENT,
-        SpanFields.CLS_SOURCE,
+        SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT,
+        SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1,
         SpanFields.ID,
       ],
       enabled,
@@ -129,7 +129,7 @@ export function useSpanSamplesWebVitalsQuery({
       ? data.map(row => {
           return {
             ...row,
-            [`measurements.${webVital}`]: row[ratioField] > 0 ? row[field] : undefined,
+            [field]: row[ratioField] > 0 ? row[field] : undefined,
             'user.display':
               row[SpanFields.USER_EMAIL] ??
               row[SpanFields.USER_USERNAME] ??
