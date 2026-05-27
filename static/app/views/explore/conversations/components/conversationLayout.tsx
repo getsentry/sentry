@@ -1,9 +1,8 @@
 import type React from 'react';
 import {useRef} from 'react';
-import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
-import {SplitPanel, useSplitPanelDivider} from '@sentry/scraps/splitPanel';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -15,41 +14,6 @@ const LEFT_PANEL_MIN = 400;
 const RIGHT_PANEL_MIN = 400;
 const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
-
-/**
- * Minimal resize divider matching the trace drawer style:
- * a 1px border line with an invisible wider hit area for dragging.
- */
-function BorderDivider() {
-  const {props, isHeld, orientation} = useSplitPanelDivider();
-  return (
-    <BorderDividerLine {...props} data-is-held={isHeld} data-orientation={orientation} />
-  );
-}
-
-const BorderDividerLine = styled('div')`
-  width: 0;
-  height: 100%;
-  position: relative;
-  user-select: none;
-  border-left: ${DIVIDER_WIDTH}px solid ${p => p.theme.tokens.border.primary};
-
-  /* Invisible wider hit area for dragging */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -5px;
-    width: 11px;
-    cursor: ew-resize;
-    z-index: 1;
-  }
-
-  &[data-is-held='true'] {
-    border-left-color: ${p => p.theme.tokens.border.accent.moderate};
-  }
-`;
 
 /**
  * Resizable two-column layout for conversation views.
@@ -86,7 +50,7 @@ export function ConversationSplitLayout({
         >
           {left}
         </SplitPanel.Panel>
-        <BorderDivider />
+        <SplitPanel.Divider />
         <SplitPanel.Panel>{right}</SplitPanel.Panel>
       </SplitPanel>
     </Flex>

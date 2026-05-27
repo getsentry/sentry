@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/splitPanel/splitPanel.tsx
 ---
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {Text} from '@sentry/scraps/text';
 
@@ -38,10 +38,10 @@ The composable shape makes the call site read top-to-bottom: first pane, divider
 The first pane is sized; the second fills.
 
 <Storybook.Demo>
-  <Container border="primary" radius="md" style={{width: 600, height: 160}}>
+  <Flex border="primary" radius="md" overflow="hidden" style={{width: 600, height: 160}}>
     <SplitPanel orientation="horizontal">
       <SplitPanel.Panel defaultSize={240} minSize={120} maxSize={480}>
-        <Flex align="center" justify="center" flex="1" background="secondary">
+        <Flex align="center" justify="center" flex="1" background="primary">
           <Text>Left</Text>
         </Flex>
       </SplitPanel.Panel>
@@ -52,7 +52,7 @@ The first pane is sized; the second fills.
         </Flex>
       </SplitPanel.Panel>
     </SplitPanel>
-  </Container>
+  </Flex>
 </Storybook.Demo>
 
 ```tsx
@@ -72,10 +72,10 @@ The first pane is sized; the second fills.
 Use `orientation="vertical"` to split top/bottom. The first pane is still the sized one.
 
 <Storybook.Demo>
-  <Container border="primary" radius="md" style={{width: 600, height: 240}}>
+  <Flex border="primary" radius="md" overflow="hidden" style={{width: 600, height: 240}}>
     <SplitPanel orientation="vertical">
       <SplitPanel.Panel defaultSize={100} minSize={60} maxSize={180}>
-        <Flex align="center" justify="center" flex="1" background="secondary">
+        <Flex align="center" justify="center" flex="1" background="primary">
           <Text>Top</Text>
         </Flex>
       </SplitPanel.Panel>
@@ -86,7 +86,7 @@ Use `orientation="vertical"` to split top/bottom. The first pane is still the si
         </Flex>
       </SplitPanel.Panel>
     </SplitPanel>
-  </Container>
+  </Flex>
 </Storybook.Demo>
 
 ```tsx
@@ -147,21 +147,30 @@ function ResizableLayout() {
 
 ## Custom Divider
 
-Pass an `icon` to replace the default grab handle. The ARIA roles, keyboard handlers, and hit area stay intact.
+For most cases, use `<SplitPanel.Divider>` — a thin 1px line matching the rest of the app. If you need a different visual (e.g. a grab handle, a thicker bar, a colored line for a critical section), build your own divider with the `useSplitPanelDivider` hook. It returns the ARIA props, event handlers, and `isHeld` state needed to make any element behave like the divider.
 
 ```tsx
-<SplitPanel orientation="horizontal">
-  <SplitPanel.Panel defaultSize={300} minSize={200} maxSize={600}>
-    <LeftContent />
-  </SplitPanel.Panel>
-  <SplitPanel.Divider icon={<MyDividerIcon />} />
-  <SplitPanel.Panel>
-    <RightContent />
-  </SplitPanel.Panel>
-</SplitPanel>
+import styled from '@emotion/styled';
+import {useSplitPanelDivider} from '@sentry/scraps/splitPanel';
+
+function GrabHandleDivider() {
+  const {props, isHeld} = useSplitPanelDivider();
+  return (
+    <GrabHandle {...props} data-is-held={isHeld}>
+      <IconGrabbable size="sm" />
+    </GrabHandle>
+  );
+}
+
+const GrabHandle = styled('div')`
+  display: grid;
+  place-items: center;
+  width: ${p => p.theme.space.xl};
+  cursor: ew-resize;
+`;
 ```
 
-For a divider with a different visual treatment (for example, a 1px border line), wrap the `<SplitPanel.Divider>` in a styled component that overrides the appearance. The divider itself is a flex item, so it can be styled in place.
+Then drop your component in place of `<SplitPanel.Divider>` inside the `<SplitPanel>` children.
 
 ## Tracking Resize Events
 

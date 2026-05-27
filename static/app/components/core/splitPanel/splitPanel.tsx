@@ -9,7 +9,6 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import {IconGrabbable} from 'sentry/icons';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
@@ -123,13 +122,7 @@ export type SplitPanelPanelProps = {
   minSize?: number;
 };
 
-export type SplitPanelDividerProps = {
-  /**
-   * Replace the default grab icon. The divider element itself (ARIA roles,
-   * keyboard handlers, hit area) is unchanged.
-   */
-  icon?: React.ReactNode;
-};
+export type SplitPanelDividerProps = Record<string, never>;
 
 function Panel({children}: SplitPanelPanelProps) {
   const {isReady, orientation, size} = useSplitPanelContext('SplitPanel.Panel');
@@ -154,12 +147,12 @@ function useIsSizedPanel() {
   return useContext(IsSizedPanelContext);
 }
 
-function Divider({icon}: SplitPanelDividerProps) {
+function Divider() {
   const {isHeld, max, min, onDoubleClick, onKeyDown, onMouseDown, orientation, size} =
     useSplitPanelContext('SplitPanel.Divider');
 
   return (
-    <DividerHandle
+    <DividerLine
       aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
       aria-valuemax={Number.isFinite(max) ? max : undefined}
       aria-valuemin={min}
@@ -171,9 +164,7 @@ function Divider({icon}: SplitPanelDividerProps) {
       onMouseDown={onMouseDown}
       role="separator"
       tabIndex={0}
-    >
-      {icon ?? <IconGrabbable size="sm" />}
-    </DividerHandle>
+    />
   );
 }
 
@@ -334,6 +325,8 @@ SplitPanel.Divider = Divider;
 const SplitPanelRoot = styled('div')`
   position: relative;
   display: flex;
+  width: 100%;
+  height: 100%;
   min-height: 0;
   min-width: 0;
   flex-grow: 1;
@@ -362,37 +355,57 @@ const PanelContainer = styled('div')<{sizePx: number | undefined}>`
   ${p => (p.sizePx === undefined ? 'flex: 1 1 0;' : `flex: 0 0 ${p.sizePx}px;`)}
 `;
 
-const DividerHandle = styled('div')`
-  display: grid;
-  place-items: center;
+const DividerLine = styled('div')`
+  position: relative;
   flex-shrink: 0;
-  user-select: inherit;
-  background: inherit;
+  user-select: none;
 
-  &:focus-visible {
-    outline: 2px solid ${p => p.theme.tokens.focus.default};
-    outline-offset: -2px;
-  }
-  &:hover {
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-  &[data-is-held='true'] {
-    user-select: none;
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  /* Invisible wider hit area for dragging */
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
   }
 
   &[data-orientation='horizontal'] {
-    cursor: ew-resize;
+    width: 0;
     height: 100%;
-    width: ${p => p.theme.space.xl};
-  }
-  &[data-orientation='vertical'] {
-    cursor: ns-resize;
-    width: 100%;
-    height: ${p => p.theme.space.xl};
+    cursor: ew-resize;
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
-    & > svg {
-      transform: rotate(90deg);
+    &::before {
+      top: 0;
+      bottom: 0;
+      left: -5px;
+      width: 11px;
     }
+
+    &:hover,
+    &[data-is-held='true'] {
+      border-left-color: ${p => p.theme.tokens.border.accent.moderate};
+    }
+  }
+
+  &[data-orientation='vertical'] {
+    width: 100%;
+    height: 0;
+    cursor: ns-resize;
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+
+    &::before {
+      left: 0;
+      right: 0;
+      top: -5px;
+      height: 11px;
+    }
+
+    &:hover,
+    &[data-is-held='true'] {
+      border-top-color: ${p => p.theme.tokens.border.accent.moderate};
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;
