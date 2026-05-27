@@ -2,6 +2,8 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -10,7 +12,6 @@ import type {IntegrationType} from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   name: string;
@@ -77,34 +78,34 @@ export function RequestIntegrationModal(props: Props) {
         <CloseButton />
       </Header>
       <Body>
-        <TextBlock>
-          {t(
-            'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
-            name
-          )}
-        </TextBlock>
-        <TextBlock>
-          {t(
-            '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
-            name
-          )}
-        </TextBlock>
-        <form.AppField name="message">
-          {field => (
-            <field.Layout.Stack label={t('Message')}>
+        <Flex direction="column" gap="2xl">
+          <Text as="p" density="comfortable">
+            {t(
+              'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
+              name
+            )}
+          </Text>
+          <Text as="p" density="comfortable">
+            {t(
+              '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
+              name
+            )}
+          </Text>
+          <form.AppField name="message">
+            {field => (
               <field.TextArea
                 value={field.state.value}
                 onChange={field.handleChange}
                 placeholder={t('Optional message…')}
               />
-            </field.Layout.Stack>
-          )}
-        </form.AppField>
-        <TextBlock>
-          {t(
-            'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
-          )}
-        </TextBlock>
+            )}
+          </form.AppField>
+          <Text as="p" density="comfortable">
+            {t(
+              'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
+            )}
+          </Text>
+        </Flex>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Send Request')}</form.SubmitButton>
