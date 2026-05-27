@@ -270,6 +270,8 @@ def test_run_pull_request_review_listener() -> None:
     review_event = PullRequestReviewEventParser(
         action="submitted",
         pull_request_review=PullRequestReviewEventDataParser("99", "approved", "42"),
+        author=AuthorParser(id="user-1", username="reviewer"),
+        is_bot=False,
         subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
     message = msgspec.json.encode(review_event).decode("utf-8")
@@ -676,6 +678,8 @@ def test_serialize_deserialize_pull_request_review_event() -> None:
             "state": "approved",
             "pull_request_id": "42",
         },
+        author={"id": "user-1", "username": "reviewer"},
+        is_bot=False,
         subscription_event={
             "event": "raw_event_data",
             "event_type_hint": "pull_request_review",
@@ -776,6 +780,8 @@ def test_serialize_event_dispatches_correctly() -> None:
     pr_review_event = PullRequestReviewEvent(
         action="submitted",
         pull_request_review={"id": "1", "state": "approved", "pull_request_id": "42"},
+        author={"id": "user-1", "username": "reviewer"},
+        is_bot=False,
         subscription_event={
             "event": "",
             "event_type_hint": None,
@@ -854,6 +860,8 @@ def test_deserialize_event_dispatches_correctly() -> None:
     pr_review_parser = PullRequestReviewEventParser(
         action="submitted",
         pull_request_review=PullRequestReviewEventDataParser("1", "approved", "42"),
+        author=AuthorParser(id="user-1", username="reviewer"),
+        is_bot=False,
         subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
     )
     pr_review_bytes = msgspec.json.encode(pr_review_parser).decode("utf-8")
@@ -1062,6 +1070,8 @@ def test_produce_to_listeners_pull_request_review() -> None:
         return PullRequestReviewEvent(
             action="submitted",
             pull_request_review={"id": "1", "state": "approved", "pull_request_id": "42"},
+            author={"id": "user-1", "username": "reviewer"},
+            is_bot=False,
             subscription_event=event,
         )
 

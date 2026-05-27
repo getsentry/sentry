@@ -141,6 +141,8 @@ class PullRequestReviewEventDataParser(msgspec.Struct, gc=False, frozen=True):
 class PullRequestReviewEventParser(msgspec.Struct, gc=False, frozen=True):
     action: PullRequestReviewAction
     pull_request_review: PullRequestReviewEventDataParser
+    author: AuthorParser
+    is_bot: bool
     subscription_event: SubscriptionEventParser
 
 
@@ -275,6 +277,8 @@ def deserialize_pull_request_review_event(event_data: str) -> PullRequestReviewE
             "state": parsed.pull_request_review.state,
             "pull_request_id": parsed.pull_request_review.pull_request_id,
         },
+        author={"id": parsed.author.id, "username": parsed.author.username},
+        is_bot=parsed.is_bot,
         subscription_event=_map_subscription_event(parsed.subscription_event),
     )
 
@@ -374,6 +378,8 @@ def serialize_pull_request_review_event(event: PullRequestReviewEvent) -> str:
     structured_event = PullRequestReviewEventParser(
         action=event.action,
         pull_request_review=review_data,
+        author=AuthorParser(id=event.author["id"], username=event.author["username"]),
+        is_bot=event.is_bot,
         subscription_event=_map_subscription_event_parser(event.subscription_event),
     )
     return encoder.encode(structured_event).decode("utf-8")
