@@ -163,6 +163,18 @@ def process_check_run(e: CheckRunEvent) -> None:
         )
         return
 
+    external_id = e.check_run["external_id"]
+    try:
+        int(external_id)
+    except (ValueError, TypeError):
+        logger.exception(Log.INVALID_PAYLOAD.value)
+        record_webhook_handler_error(
+            GithubWebhookType.CHECK_RUN,
+            action,
+            CodeReviewErrorType.INVALID_PAYLOAD,
+        )
+        return
+
     organization_id = int(e.subscription_event["extra"]["organization_id"])
     integration_id = int(e.subscription_event["extra"]["integration_id"])
     event = json.loads(e.subscription_event["event"])
@@ -201,7 +213,7 @@ def process_check_run(e: CheckRunEvent) -> None:
 
     process_github_webhook_event.delay(
         seer_path=SeerEndpoint.PR_REVIEW_RERUN.value,
-        event_payload={"original_run_id": e.check_run["external_id"]},
+        event_payload={"original_run_id": external_id},
         tags=get_tags(
             event,
             github_event="check_run",

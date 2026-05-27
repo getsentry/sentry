@@ -174,3 +174,20 @@ class ProcessCheckRunTest(TestCase):
         process_check_run(event)
 
         mock_task.delay.assert_not_called()
+
+    @patch("sentry.seer.code_review.webhooks.check_run.CodeReviewPreflightService")
+    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event")
+    def test_skips_when_external_id_not_numeric(
+        self, mock_task: MagicMock, mock_preflight_cls: MagicMock
+    ) -> None:
+        event = _make_check_run_event(
+            CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE,
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        )
+        event.check_run["external_id"] = "not-a-number"
+
+        process_check_run(event)
+
+        mock_task.delay.assert_not_called()
+        mock_preflight_cls.assert_not_called()
