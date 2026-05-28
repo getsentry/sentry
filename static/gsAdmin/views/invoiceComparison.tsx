@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
@@ -114,7 +114,10 @@ export function InvoiceComparison() {
     }),
   });
 
-  const sortedRows = useMemo(() => data?.rows ?? [], [data]);
+  // The endpoint returns rows pre-sorted by |delta_pct| desc; this component
+  // does not re-sort. See AdminInvoiceComparisonEndpoint and its test_sort_*
+  // tests for the contract.
+  const rows = data?.rows ?? [];
 
   const onSubmit = () => {
     if (!startInput || !endInput) {
@@ -284,14 +287,14 @@ export function InvoiceComparison() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedRows.length === 0 && (
+                  {rows.length === 0 && (
                     <tr>
                       <td colSpan={6}>
                         <em>No invoices in this range on either side.</em>
                       </td>
                     </tr>
                   )}
-                  {sortedRows.map(row => (
+                  {rows.map(row => (
                     <tr key={row.organization_id}>
                       <td>
                         {row.organization_slug ? (
