@@ -417,7 +417,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             trace_id=trace_id,
         )
 
-        resp = MessageToDict(trace_item_details_rpc(req))
+        resp = MessageToDict(trace_item_details_rpc(req, debug=debug))
 
         include_arrays = features.has(
             "organizations:trace-item-details-array-fields",
