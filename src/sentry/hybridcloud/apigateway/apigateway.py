@@ -9,7 +9,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.hybridcloud.apigateway.cell_request_resolvers import CellResolverMappings
+from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.hybridcloud.apigateway.proxy import (
     proxy_cell_request,
     proxy_error_embed_request,
@@ -18,6 +18,7 @@ from sentry.hybridcloud.apigateway.proxy import (
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.cell import get_cell_by_name
 from sentry.utils import metrics
+from sentry.web.frontend.base import CellSiloView
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,17 @@ def _get_view_silo_mode(view_func: Callable[..., HttpResponseBase]) -> frozenset
         return None
     endpoint_silo_limit: SiloLimit = view_class.silo_limit
     return endpoint_silo_limit.modes
+
+
+def _get_view_cell_resolver(
+    view_func: Callable[..., HttpResponseBase],
+) -> CellRequestResolver | None:
+    view_class = getattr(view_func, "view_class", None)
+    silo_limit = getattr(view_class, "silo_limit", None)
+    if silo_limit and isinstance(silo_limit, CellSiloView):
+        return silo_limit.control_silo_resolver
+
+    return None
 
 
 def proxy_request_if_needed(
@@ -65,8 +77,9 @@ def proxy_request_if_needed(
         )
         return proxy_request(request, org_id_or_slug, url_name)
 
-    if options.get("apigateway.cell_resolver.enabled") and url_name in CellResolverMappings:
-        cell = CellResolverMappings[url_name].resolve(request, view_func, view_kwargs)
+    resolver = _get_view_cell_resolver(view_func)
+    if options.get("apigateway.cell_resolver.enabled") and resolver is not None:
+        cell = resolver.resolve(request, view_func, view_kwargs)
 
         if cell:
             metrics.incr(

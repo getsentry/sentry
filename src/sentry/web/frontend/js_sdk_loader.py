@@ -10,6 +10,7 @@ from packaging.version import Version
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.hybridcloud.apigateway.cell_request_resolvers import SdkPublicKeyResolver
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models.project import Project
@@ -55,7 +56,7 @@ class LoaderContext(TypedDict):
     publicKey: NotRequired[str | None]
 
 
-@cell_silo_view
+@cell_silo_view(control_silo_resolver=SdkPublicKeyResolver())
 class JavaScriptSdkLoader(View):
     def _get_loader_config(
         self, key: ProjectKey | None, sdk_version: Version | None

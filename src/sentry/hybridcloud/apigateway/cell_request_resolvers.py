@@ -79,9 +79,3 @@ class ErrorEmbedResolver(CellRequestResolver):
             return get_cell_by_name(cell_segment)
         except Exception:
             return None
-
-
-CellResolverMappings: dict[str, CellRequestResolver] = {
-    "sentry-error-page-embed": ErrorEmbedResolver(),
-    "sentry-js-sdk-loader": SdkPublicKeyResolver(),
-}

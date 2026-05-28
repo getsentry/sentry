@@ -13,6 +13,7 @@ from django.views.generic import View
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
+from sentry.hybridcloud.apigateway.cell_request_resolvers import ErrorEmbedResolver
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -76,7 +77,7 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-@cell_silo_view
+@cell_silo_view(control_silo_resolver=ErrorEmbedResolver())
 class ErrorPageEmbedView(View):
     """
     View for the crash report modal.
