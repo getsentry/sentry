@@ -1266,9 +1266,16 @@ export type UserReport = {
   event: {eventID: string; id: string};
   eventID: string;
   id: string;
-  issue: Group;
   name: string;
-  user: User;
+  user: {
+    avatarUrl: string | null;
+    email: string | null;
+    id: string;
+    ipAddress: string | null;
+    name: string | null;
+    username: string | null;
+  } | null;
+  issue?: Group | null;
 };
 
 export type KeyValueListDataItem = {
