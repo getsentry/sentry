@@ -13,6 +13,7 @@ import {
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
@@ -206,7 +207,9 @@ export function AutoSaveForm<
           error instanceof RequestError ? setFieldErrors(formApi, error) : false;
         if (!hasBackendErrors) {
           setFieldErrors(formApi, {
-            [name]: {message: t('Failed to save')},
+            [name]: {
+              message: getRequestErrorUserMessage(error, t('Failed to save')),
+            },
           } as never);
         }
       };
