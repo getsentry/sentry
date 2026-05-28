@@ -46,6 +46,7 @@ type Summary = {
   truncated: boolean;
   unmatched_invoice_count: number;
   unmatched_invoice_pct: number;
+  unmatched_org_count: number;
   unmatched_truncated: boolean;
 };
 
@@ -366,7 +367,7 @@ export function InvoiceComparison() {
               {data.summary.unmatched_truncated && (
                 <TruncatedNote size="sm" variant="muted">
                   showing top {data.unmatched.length} of{' '}
-                  {data.summary.unmatched_invoice_count}+
+                  {data.summary.unmatched_org_count} orgs
                 </TruncatedNote>
               )}
             </PanelHeader>
