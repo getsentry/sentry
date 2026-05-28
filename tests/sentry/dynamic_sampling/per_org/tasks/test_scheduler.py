@@ -139,10 +139,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.get_eap_organization_volume",
-                return_value=None,
-            ),
-            patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
                 return_value=None,
             ) as get_volume,
@@ -168,10 +164,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.get_eap_organization_volume",
-                return_value=None,
-            ),
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
