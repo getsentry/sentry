@@ -119,9 +119,6 @@ export function KeyRow({
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
   margin: 0;
-  > *:last-child {
-    padding-bottom: ${p => p.theme.space['2xl']};
-  }
 `;
 
 const PanelHeaderLink = styled(Link)`

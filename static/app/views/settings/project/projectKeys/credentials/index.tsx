@@ -1,7 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {z} from 'zod';
 
+import {
+  defaultFormOptions,
+  FieldGroup as ScrapsFieldGroup,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -40,24 +46,43 @@ interface SecurityTabProps {
   securityEndpoint: string;
 }
 
+const securitySchema = z.object({
+  securityEndpoint: z.string(),
+});
+
 function SecurityTab({securityEndpoint}: SecurityTabProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {securityEndpoint},
+    validators: {onChange: securitySchema},
+  });
+
   return (
-    <FieldGroup
-      label={t('Security Header Endpoint')}
-      help={tct('Use your security header endpoint for features like [link].', {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
-            {t('CSP and Expect-CT reports')}
-          </ExternalLink>
-        ),
-      })}
-      inline={false}
-      flexibleControlStateSize
-    >
-      <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
-        {securityEndpoint}
-      </TextCopyInput>
-    </FieldGroup>
+    <form.AppForm form={form}>
+      <ScrapsFieldGroup hideBorder>
+        <form.AppField name="securityEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('Security Header Endpoint')}
+              hintText={tct(
+                'Use your security header endpoint for features like [link].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
+                      {t('CSP and Expect-CT reports')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            >
+              <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </ScrapsFieldGroup>
+    </form.AppForm>
   );
 }
 
@@ -65,27 +90,43 @@ interface MinidumpTabProps {
   minidumpEndpoint: string;
 }
 
+const minidumpSchema = z.object({
+  minidumpEndpoint: z.string(),
+});
+
 function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {minidumpEndpoint},
+    validators: {onChange: minidumpSchema},
+  });
+
   return (
-    <FieldGroup
-      label={t('Minidump Endpoint')}
-      help={tct(
-        'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/native/guides/minidumps/">
-              minidump crash reports
-            </ExternalLink>
-          ),
-        }
-      )}
-      inline={false}
-      flexibleControlStateSize
-    >
-      <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
-        {minidumpEndpoint}
-      </TextCopyInput>
-    </FieldGroup>
+    <form.AppForm form={form}>
+      <ScrapsFieldGroup hideBorder>
+        <form.AppField name="minidumpEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('Minidump Endpoint')}
+              hintText={tct(
+                'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/native/guides/minidumps/">
+                      minidump crash reports
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            >
+              <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </ScrapsFieldGroup>
+    </form.AppForm>
   );
 }
 
@@ -93,18 +134,34 @@ interface UnrealTabProps {
   unrealEndpoint: string;
 }
 
+const unrealSchema = z.object({
+  unrealEndpoint: z.string(),
+});
+
 function UnrealTab({unrealEndpoint}: UnrealTabProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {unrealEndpoint},
+    validators: {onChange: unrealSchema},
+  });
+
   return (
-    <FieldGroup
-      label={t('Unreal Engine Endpoint')}
-      help={t('Use this endpoint to configure your UE Crash Reporter.')}
-      inline={false}
-      flexibleControlStateSize
-    >
-      <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
-        {unrealEndpoint}
-      </TextCopyInput>
-    </FieldGroup>
+    <form.AppForm form={form}>
+      <ScrapsFieldGroup hideBorder>
+        <form.AppField name="unrealEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('Unreal Engine Endpoint')}
+              hintText={t('Use this endpoint to configure your UE Crash Reporter.')}
+            >
+              <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </ScrapsFieldGroup>
+    </form.AppForm>
   );
 }
 
@@ -117,6 +174,12 @@ interface CredentialsTabProps {
   showSecretKey: boolean;
 }
 
+const credentialsSchema = z.object({
+  publicKey: z.string(),
+  secretKey: z.string(),
+  projectId: z.string(),
+});
+
 function CredentialsTab({
   publicKey,
   secretKey,
@@ -125,41 +188,50 @@ function CredentialsTab({
   showSecretKey,
   showProjectId,
 }: CredentialsTabProps) {
-  const fields = useMemo(() => {
-    return [
-      {
-        label: t('Public Key'),
-        value: publicKey,
-        show: showPublicKey,
-      },
-      {
-        label: t('Secret Key'),
-        value: secretKey,
-        show: showSecretKey,
-      },
-      {
-        label: t('Project ID'),
-        value: projectId,
-        show: showProjectId,
-      },
-    ];
-  }, [publicKey, secretKey, projectId, showPublicKey, showSecretKey, showProjectId]);
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {publicKey, secretKey, projectId},
+    validators: {onChange: credentialsSchema},
+  });
+
   return (
-    <Fragment>
-      {fields.map(
-        field =>
-          field.show && (
-            <FieldGroup
-              key={field.label}
-              label={field.label}
-              inline={false}
-              flexibleControlStateSize
-            >
-              <TextCopyInput aria-label={field.label}>{field.value}</TextCopyInput>
-            </FieldGroup>
-          )
-      )}
-    </Fragment>
+    <form.AppForm form={form}>
+      <ScrapsFieldGroup hideBorder>
+        {showPublicKey && (
+          <form.AppField name="publicKey">
+            {field => (
+              <field.Layout.Stack label={t('Public Key')}>
+                <TextCopyInput aria-label={t('Public Key')}>
+                  {field.state.value}
+                </TextCopyInput>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        )}
+        {showSecretKey && (
+          <form.AppField name="secretKey">
+            {field => (
+              <field.Layout.Stack label={t('Secret Key')}>
+                <TextCopyInput aria-label={t('Secret Key')}>
+                  {field.state.value}
+                </TextCopyInput>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        )}
+        {showProjectId && (
+          <form.AppField name="projectId">
+            {field => (
+              <field.Layout.Stack label={t('Project ID')}>
+                <TextCopyInput aria-label={t('Project ID')}>
+                  {field.state.value}
+                </TextCopyInput>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        )}
+      </ScrapsFieldGroup>
+    </form.AppForm>
   );
 }
 
