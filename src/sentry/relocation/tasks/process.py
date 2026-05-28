@@ -319,7 +319,7 @@ def fulfill_cross_region_export_request(
     requesting_cell_name: str,
     replying_cell_name: str,
     org_slug: str,
-    encrypt_with_public_key: str,
+    encrypt_with_public_key: bytes | str,
     # Unix timestamp, in seconds.
     scheduled_at: int,
 ) -> None:
@@ -334,7 +334,11 @@ def fulfill_cross_region_export_request(
     """
     from sentry.relocation.tasks.transfer import process_relocation_transfer_region
 
-    encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
+    # Handle both bytes (new) and base64 string (legacy)
+    if isinstance(encrypt_with_public_key, str):
+        encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
+    else:
+        encrypt_with_public_key_bytes = encrypt_with_public_key
 
     logger_data = {
         "uuid": uuid_str,

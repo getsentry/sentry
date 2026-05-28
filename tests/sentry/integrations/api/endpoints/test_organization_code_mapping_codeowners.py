@@ -18,6 +18,10 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
 
         self.login_as(user=self.user)
 
+        # Restrict project membership so that team assignment controls access.
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
         self.project = self.create_project(
             organization=self.organization, teams=[self.team], name="Bengal"
@@ -58,6 +62,43 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
         return_value=GITHUB_CODEOWNER,
     )
     def test_codeowner_contents(self, mock_get_codeowner_file: MagicMock) -> None:
+        resp = self.client.get(self.url)
+        assert resp.status_code == 200
+        assert resp.data == GITHUB_CODEOWNER
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        return_value=GITHUB_CODEOWNER,
+    )
+    def test_user_without_project_access_cannot_read_codeowners(
+        self, mock_get_codeowner_file: MagicMock
+    ) -> None:
+        outsider = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=outsider,
+            has_global_access=False,
+            teams=[],
+        )
+        self.login_as(user=outsider)
+        resp = self.client.get(self.url)
+        assert resp.status_code == 403
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        return_value=GITHUB_CODEOWNER,
+    )
+    def test_user_with_project_access_can_read_codeowners(
+        self, mock_get_codeowner_file: MagicMock
+    ) -> None:
+        insider = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=insider,
+            has_global_access=False,
+            teams=[self.team],
+        )
+        self.login_as(user=insider)
         resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert resp.data == GITHUB_CODEOWNER

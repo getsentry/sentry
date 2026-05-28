@@ -366,12 +366,11 @@ class DiscordApiPipelineTest(APITestCase):
             args=[self.organization.slug, IntegrationPipeline.pipeline_name],
         )
 
-    def _initialize_pipeline(self) -> Any:
-        return self.client.post(
-            self._get_pipeline_url(),
-            data={"action": "initialize", "provider": "discord"},
-            format="json",
-        )
+    def _initialize_pipeline(self, initial_data: dict[str, Any] | None = None) -> Any:
+        payload: dict[str, Any] = {"action": "initialize", "provider": "discord"}
+        if initial_data is not None:
+            payload["initialData"] = initial_data
+        return self.client.post(self._get_pipeline_url(), data=payload, format="json")
 
     def _advance_step(self, data: dict[str, Any]) -> Any:
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
@@ -459,3 +458,82 @@ class DiscordApiPipelineTest(APITestCase):
             organization_id=self.organization.id,
             integration=integration,
         ).exists()
+
+    @responses.activate
+    def test_app_directory_initialize_returns_auto_advance_data(self) -> None:
+        resp = self._initialize_pipeline(
+            initial_data={
+                "code": "discord-auth-code",
+                "guildId": self.guild_id,
+                "useConfigure": "1",
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        data = resp.data["data"]
+        assert data["appDirectoryInstall"] is True
+        assert data["code"] == "discord-auth-code"
+        assert data["guildId"] == self.guild_id
+        assert "state" in data
+        assert "oauthUrl" not in data
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
+    def test_app_directory_full_flow(self, mock_set_application_command: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={"id": self.guild_id, "name": self.guild_name},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=COMMANDS,
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DISCORD_BASE_URL}/oauth2/token",
+            json={"access_token": "access_token"},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me",
+            json={"id": "user_1234"},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
+        )
+
+        resp = self._initialize_pipeline(
+            initial_data={
+                "code": "discord-auth-code",
+                "guildId": self.guild_id,
+                "useConfigure": "1",
+            }
+        )
+        data = resp.data["data"]
+        assert data["appDirectoryInstall"] is True
+        pipeline_signature = data["state"]
+
+        resp = self._advance_step(
+            {
+                "code": data["code"],
+                "state": pipeline_signature,
+                "guildId": data["guildId"],
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        # Token exchange must echo `configure_url` as redirect_uri because OAuth
+        # was initiated from Discord's App Directory with that URL.
+        token_calls = [c for c in responses.calls if c.request.url.endswith("/oauth2/token")]
+        assert len(token_calls) == 1
+        token_body = token_calls[0].request.body
+        if isinstance(token_body, bytes):
+            token_body = token_body.decode()
+        assert "configure" in token_body
