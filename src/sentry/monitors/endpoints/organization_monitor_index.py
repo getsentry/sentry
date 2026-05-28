@@ -104,7 +104,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: AuthenticatedHttpRequest, organization: Organization) -> Response:
+    def get(
+        self, request: AuthenticatedHttpRequest, organization: Organization
+    ) -> Response[list[MonitorSerializerResponse]]:
         """
         Lists monitors, including nested monitor environments. May be filtered to a project or environment.
         """
@@ -309,7 +311,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: AuthenticatedHttpRequest, organization) -> Response:
+    def put(
+        self, request: AuthenticatedHttpRequest, organization
+    ) -> Response[MonitorBulkEditResponse]:
         """
         Bulk edit the muted and disabled status of a list of monitors determined by slug
         """
