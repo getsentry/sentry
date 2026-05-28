@@ -246,6 +246,7 @@ def _schedule_task(
     )
 
     try:
+        validated: SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
         if is_closed:
             validated = SeerCodeReviewTaskRequestForPrClosed.parse_obj(payload)
         else:

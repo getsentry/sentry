@@ -1,10 +1,12 @@
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import patch
 
 import orjson
 import pytest
 
 from fixtures.gitlab import MERGE_REQUEST_OPENED_EVENT, GitLabTestCase
+from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -12,7 +14,7 @@ from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_
 from sentry.testutils.helpers.features import with_feature
 
 
-def _make_event(action: str = "open", **overrides: object) -> dict:
+def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
     event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
     event["object_attributes"]["action"] = action
     for key, value in overrides.items():
@@ -20,7 +22,7 @@ def _make_event(action: str = "open", **overrides: object) -> dict:
     return event
 
 
-def _rpc_org(org) -> RpcOrganization:
+def _rpc_org(org: Organization) -> RpcOrganization:
     return RpcOrganization(
         id=org.id,
         slug=org.slug,
@@ -74,7 +76,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
 
         self.repo = repo
 
-    def _call_handler(self, event: dict) -> None:
+    def _call_handler(self, event: dict[str, Any]) -> None:
         handle_merge_request_event(
             event=event,
             organization=_rpc_org(self.organization),
