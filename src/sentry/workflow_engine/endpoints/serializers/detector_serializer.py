@@ -3,6 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
+from django.db.models import OuterRef, Subquery
 from drf_spectacular.utils import extend_schema_serializer
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -98,14 +99,21 @@ class DetectorSerializer(Serializer):
             for mapping in alert_rule_mappings
         }
 
-        latest_detector_group_values = (
-            DetectorGroup.objects.filter(detector__in=item_list)
-            .order_by("detector_id", "-date_added")
-            .distinct("detector_id")
-            .values_list("detector_id", "group_id")
+        # LIMIT 1 subquery, not DISTINCT ON: Postgres lacks skip scan, so
+        # DISTINCT ON reads all rows per detector before deduplicating.
+        # LIMIT 1 stops after one index probe per detector.
+        # Impact is _dramatic_ for high cardinality DetectorGroups like error Detectors.
+        latest_group_subquery = (
+            DetectorGroup.objects.filter(detector_id=OuterRef("pk"))
+            .order_by("-date_added")
+            .values("group_id")[:1]
         )
         latest_group_ids_by_detector_id = {
-            detector_id: group_id for detector_id, group_id in latest_detector_group_values
+            d.id: d.latest_group_id
+            for d in Detector.objects.filter(id__in=[item.id for item in item_list]).annotate(
+                latest_group_id=Subquery(latest_group_subquery)
+            )
+            if d.latest_group_id is not None
         }
         project_ids = {item.project_id for item in item_list}
         latest_groups = list(
