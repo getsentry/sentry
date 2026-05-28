@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from abc import ABC
 from collections.abc import Mapping
@@ -85,6 +86,11 @@ def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
 class GitlabWebhook(SCMWebhook, ABC):
     EVENT_TYPE: IntegrationWebhookEventType
     WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
+            raise TypeError(f"{cls.__name__} must define EVENT_TYPE class attribute")
 
     @property
     def event_type(self) -> IntegrationWebhookEventType:
@@ -381,8 +387,6 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
-            # No commit author to attribute the PR to. Stop this processor cleanly
-            # rather than raising, which _handle would catch and mislabel as an error.
             raise Http404()
 
         author = CommitAuthor.objects.get_or_create(

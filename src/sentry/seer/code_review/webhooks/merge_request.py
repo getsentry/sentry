@@ -32,7 +32,7 @@ from ..metrics import (
     record_webhook_received,
 )
 from ..preflight import CodeReviewPreflightService
-from ..utils import SeerEndpoint
+from ..utils import SeerEndpoint, _common_codegen_request_payload
 
 logger = logging.getLogger(__name__)
 
@@ -200,8 +200,6 @@ def _build_payload(
     repo: Repository,
     target_commit_sha: str,
 ) -> dict[str, Any]:
-    from ..utils import _common_codegen_request_payload
-
     is_close = action in CLOSE_ACTIONS
     payload = _common_codegen_request_payload(
         add_experiment_enabled=not is_close,
