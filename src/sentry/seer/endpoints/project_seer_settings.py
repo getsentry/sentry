@@ -37,7 +37,6 @@ from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
-    bulk_update_seer_project_settings,
     get_automation_handoff,
     get_valid_automated_run_stopping_points,
     update_seer_project_settings,
@@ -374,7 +373,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        update_seer_project_settings(project, data)
+        update_seer_project_settings([project.id], data)
 
         self.create_audit_entry(
             request=request,
@@ -450,7 +449,8 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
                 return Response({"detail": "Invalid search query"}, status=400)
 
         projects = list(queryset)
-        bulk_update_seer_project_settings(projects, data)
+        if projects:
+            update_seer_project_settings([p.id for p in projects], data)
 
         self.create_audit_entry(
             request=request,

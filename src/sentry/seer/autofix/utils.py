@@ -733,11 +733,12 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     scanner_automation: bool
 
 
-def _get_seer_project_options_to_update(
-    data: SeerProjectSettingsUpdate,
-) -> tuple[dict[str, Any], list[str]]:
-    """Return (options_to_set, options_to_clear) for the given Seer project settings update.
-    Clear the option if it's the default; otherwise, set it."""
+def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
+    """Apply Seer project settings to one or more projects.
+    For any ProjectOptions, delete the row if we're setting that field to its default."""
+    if not project_ids or not data:
+        return
+
     options_to_set: dict[str, Any] = {}
     options_to_clear: list[str] = []
 
@@ -767,7 +768,7 @@ def _get_seer_project_options_to_update(
         _set_or_clear("sentry:seer_scanner_automation", data["scanner_automation"], default=True)
 
     if "stopping_point" not in data:
-        return options_to_set, options_to_clear
+        pass
     elif data["stopping_point"] == "off":
         # Disable automation and leave stopping point and handoff_auto_create_pr unchanged
         # so that reenabling restores the prior state.
@@ -795,45 +796,16 @@ def _get_seer_project_options_to_update(
             options_to_set["sentry:seer_automation_handoff_auto_create_pr"] = True
         else:
             options_to_clear.append("sentry:seer_automation_handoff_auto_create_pr")
-    return options_to_set, options_to_clear
 
-
-def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpdate) -> None:
-    """Apply high-level Seer settings to a single project."""
-    options_to_set, options_to_delete = _get_seer_project_options_to_update(data)
-
-    with transaction.atomic(using=router.db_for_write(ProjectOption)):
-        # Lock project rows to serialize concurrent writes.
-        Project.objects.select_for_update().filter(id=project.id).first()
-
-        for key in options_to_delete:
-            project.delete_option(key)
-        for key, value in options_to_set.items():
-            project.update_option(key, value)
-
-
-def bulk_update_seer_project_settings(
-    projects: list[Project], data: SeerProjectSettingsUpdate
-) -> None:
-    """Apply high-level Seer settings to multiple projects in bulk."""
-    if not projects:
+    if not options_to_set and not options_to_clear:
         return
 
-    options_to_set, options_to_delete = _get_seer_project_options_to_update(data)
-    if not options_to_set and not options_to_delete:
-        return
-
-    project_ids = [p.id for p in projects]
-
     with transaction.atomic(using=router.db_for_write(ProjectOption)):
-        # Lock project rows to serialize concurrent writes.
-        list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
-
-        if options_to_delete:
+        if options_to_clear:
             # Use _raw_delete to skip per-row post_delete signals that each trigger reload_cache.
             # For efficiency, we reload once per project after the transaction instead.
             ProjectOption.objects.filter(
-                project_id__in=project_ids, key__in=options_to_delete
+                project_id__in=project_ids, key__in=options_to_clear
             )._raw_delete(using=router.db_for_write(ProjectOption))
 
         if options_to_set:
