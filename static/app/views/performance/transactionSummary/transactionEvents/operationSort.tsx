@@ -157,7 +157,6 @@ const DropdownWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   width: 220px;
   overflow: visible;
-  z-index: ${p => p.theme.zIndex.tooltip};
 
   &:before,
   &:after {

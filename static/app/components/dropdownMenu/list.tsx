@@ -1,5 +1,4 @@
 import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -82,7 +81,7 @@ export function DropdownMenuList({
   menuFooter,
   overlayState,
   overlayPositionProps,
-  zIndex,
+  zIndex: _zIndex,
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
@@ -225,7 +224,6 @@ export function DropdownMenuList({
       );
     });
 
-  const theme = useTheme();
   const contextValue = useMemo(
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
@@ -235,10 +233,7 @@ export function DropdownMenuList({
   );
   return (
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper
-        zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
-        {...overlayPositionProps}
-      >
+      <PositionWrapper {...overlayPositionProps}>
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}

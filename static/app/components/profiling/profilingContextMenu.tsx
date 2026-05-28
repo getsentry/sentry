@@ -17,7 +17,6 @@ const Menu = styled(({ref, ...props}: MenuProps) => {
 })`
   position: absolute;
   font-size: ${p => p.theme.font.size.md};
-  z-index: ${p => p.theme.zIndex.dropdown};
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -277,7 +276,6 @@ const Layer = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
-  z-index: ${p => p.theme.zIndex.dropdown - 1};
 `;
 
 export {Layer as ProfilingContextMenuLayer};

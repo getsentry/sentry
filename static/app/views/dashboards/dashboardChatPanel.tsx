@@ -1,5 +1,4 @@
 import {memo, useCallback, useEffect, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -41,7 +40,6 @@ export function DashboardChatPanel({
   widgetErrors,
   showWarningMessage,
 }: DashboardChatPanelProps) {
-  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -105,7 +103,7 @@ export function DashboardChatPanel({
       width="100%"
       background="primary"
       margin="0 auto"
-      style={{zIndex: theme.zIndex.dropdown, marginBottom: '24px'}}
+      style={{marginBottom: '24px'}}
     >
       <Flex justify="between">
         <ChatHistoryToggle

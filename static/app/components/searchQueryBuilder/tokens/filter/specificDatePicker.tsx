@@ -259,7 +259,6 @@ function TimeInput({ref, disabled, time, setTime}: TimeInputProps) {
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
-  z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
 const SearchBarDatePickerOverlay = styled(Overlay)`

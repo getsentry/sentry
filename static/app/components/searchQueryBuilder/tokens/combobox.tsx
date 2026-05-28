@@ -693,7 +693,6 @@ const UnstyledInput = styled(Input)`
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
-  z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
 const ListBoxOverlay = styled(Overlay)`
