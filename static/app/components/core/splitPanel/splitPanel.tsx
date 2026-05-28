@@ -184,7 +184,7 @@ function findSizedPanelProps(children: React.ReactNode): SplitPanelPanelProps | 
   return result;
 }
 
-export function SplitPanel({
+function Root({
   children,
   orientation = 'horizontal',
   onMouseDown,
@@ -331,21 +331,24 @@ export function SplitPanel({
 
   return (
     <SplitPanelContext.Provider value={contextValue}>
-      <SplitPanelRoot
+      <RootElement
         ref={containerRef}
         className={isHeld ? 'disable-iframe-pointer' : undefined}
         data-orientation={orientation}
       >
         {wrappedChildren}
-      </SplitPanelRoot>
+      </RootElement>
     </SplitPanelContext.Provider>
   );
 }
 
-SplitPanel.Panel = Panel;
-SplitPanel.Divider = Divider;
+export const SplitPanel = {
+  Root,
+  Panel,
+  Divider,
+};
 
-const SplitPanelRoot = styled('div')`
+const RootElement = styled('div')`
   position: relative;
   display: flex;
   width: 100%;

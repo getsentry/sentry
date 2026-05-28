@@ -42,7 +42,7 @@ export function ConversationSplitLayout({
 
   return (
     <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
-      <SplitPanel orientation="horizontal" onResize={setStoredSize}>
+      <SplitPanel.Root orientation="horizontal" onResize={setStoredSize}>
         <SplitPanel.Panel
           defaultSize={storedSize}
           minSize={LEFT_PANEL_MIN}
@@ -52,7 +52,7 @@ export function ConversationSplitLayout({
         </SplitPanel.Panel>
         <SplitPanel.Divider />
         <SplitPanel.Panel>{right}</SplitPanel.Panel>
-      </SplitPanel>
+      </SplitPanel.Root>
     </Flex>
   );
 }

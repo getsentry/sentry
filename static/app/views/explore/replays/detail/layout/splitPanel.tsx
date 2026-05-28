@@ -46,12 +46,12 @@ export function ReplaySplitPanel({availableSize, children, layout, orientation}:
   );
 
   return (
-    <SplitPanel
+    <SplitPanel.Root
       orientation={orientation}
       onMouseDown={setStartPosition}
       onResize={handleResize}
     >
       {children}
-    </SplitPanel>
+    </SplitPanel.Root>
   );
 }

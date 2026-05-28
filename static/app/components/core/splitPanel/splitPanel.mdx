@@ -30,7 +30,7 @@ export function HorizontalSplitDemo() {
         overflow="hidden"
         style={{width: CONTAINER_WIDTH, height: 160}}
       >
-        <SplitPanel orientation="horizontal" onResize={setSize}>
+        <SplitPanel.Root orientation="horizontal" onResize={setSize}>
           <SplitPanel.Panel defaultSize={CONTAINER_WIDTH / 2} minSize={120}>
             <Flex align="center" justify="center" flex="1" background="primary">
               <Text>Left</Text>
@@ -42,7 +42,7 @@ export function HorizontalSplitDemo() {
               <Text>Right</Text>
             </Flex>
           </SplitPanel.Panel>
-        </SplitPanel>
+        </SplitPanel.Root>
       </Flex>
       <Text variant="muted">
         Left: {leftPct.toFixed(1)}% | Right: {rightPct.toFixed(1)}%
@@ -64,7 +64,7 @@ export function VerticalSplitDemo() {
         overflow="hidden"
         style={{width: 600, height: CONTAINER_HEIGHT}}
       >
-        <SplitPanel orientation="vertical" onResize={setSize}>
+        <SplitPanel.Root orientation="vertical" onResize={setSize}>
           <SplitPanel.Panel defaultSize={CONTAINER_HEIGHT / 2} minSize={60}>
             <Flex align="center" justify="center" flex="1" background="primary">
               <Text>Top</Text>
@@ -76,7 +76,7 @@ export function VerticalSplitDemo() {
               <Text>Bottom</Text>
             </Flex>
           </SplitPanel.Panel>
-        </SplitPanel>
+        </SplitPanel.Root>
       </Flex>
       <Text variant="muted">
         Top: {topPct.toFixed(1)}% | Bottom: {bottomPct.toFixed(1)}%
@@ -90,7 +90,7 @@ export function VerticalSplitDemo() {
 ## Basic Usage
 
 ```tsx
-<SplitPanel orientation="horizontal">
+<SplitPanel.Root orientation="horizontal">
   <SplitPanel.Panel defaultSize={300} minSize={200} maxSize={600}>
     <LeftContent />
   </SplitPanel.Panel>
@@ -98,7 +98,7 @@ export function VerticalSplitDemo() {
   <SplitPanel.Panel>
     <RightContent />
   </SplitPanel.Panel>
-</SplitPanel>
+</SplitPanel.Root>
 ```
 
 The composable shape makes the call site read top-to-bottom: first pane, divider, second pane. There's no `availableSize` prop — the root measures itself with `useDimensions`.
@@ -112,7 +112,7 @@ The first pane is sized; the second fills.
 </Storybook.Demo>
 
 ```tsx
-<SplitPanel orientation="horizontal">
+<SplitPanel.Root orientation="horizontal">
   <SplitPanel.Panel defaultSize={300} minSize={120}>
     <LeftContent />
   </SplitPanel.Panel>
@@ -120,7 +120,7 @@ The first pane is sized; the second fills.
   <SplitPanel.Panel>
     <RightContent />
   </SplitPanel.Panel>
-</SplitPanel>
+</SplitPanel.Root>
 ```
 
 ## Vertical Split
@@ -132,7 +132,7 @@ Use `orientation="vertical"` to split top/bottom. The first pane is still the si
 </Storybook.Demo>
 
 ```tsx
-<SplitPanel orientation="vertical">
+<SplitPanel.Root orientation="vertical">
   <SplitPanel.Panel defaultSize={120} minSize={60}>
     <TopContent />
   </SplitPanel.Panel>
@@ -140,7 +140,7 @@ Use `orientation="vertical"` to split top/bottom. The first pane is still the si
   <SplitPanel.Panel>
     <BottomContent />
   </SplitPanel.Panel>
-</SplitPanel>
+</SplitPanel.Root>
 ```
 
 ## Collapsing a Pane
@@ -148,7 +148,7 @@ Use `orientation="vertical"` to split top/bottom. The first pane is still the si
 To collapse the fill pane, omit the `<SplitPanel.Divider>` and second `<SplitPanel.Panel>`. The sized pane's DOM identity is preserved across collapses, so its content state is not lost.
 
 ```tsx
-<SplitPanel orientation="horizontal">
+<SplitPanel.Root orientation="horizontal">
   <SplitPanel.Panel defaultSize={300} minSize={200} maxSize={600}>
     <LeftContent />
   </SplitPanel.Panel>
@@ -160,7 +160,7 @@ To collapse the fill pane, omit the `<SplitPanel.Divider>` and second `<SplitPan
       </SplitPanel.Panel>
     </>
   )}
-</SplitPanel>
+</SplitPanel.Root>
 ```
 
 ## Persisting Size
@@ -174,7 +174,7 @@ function ResizableLayout() {
   const [storedSize, setStoredSize] = useLocalStorageState('my-feature.split-size', 300);
 
   return (
-    <SplitPanel orientation="horizontal" onResize={setStoredSize}>
+    <SplitPanel.Root orientation="horizontal" onResize={setStoredSize}>
       <SplitPanel.Panel defaultSize={storedSize} minSize={200} maxSize={600}>
         <LeftContent />
       </SplitPanel.Panel>
@@ -182,7 +182,7 @@ function ResizableLayout() {
       <SplitPanel.Panel>
         <RightContent />
       </SplitPanel.Panel>
-    </SplitPanel>
+    </SplitPanel.Root>
   );
 }
 ```
@@ -212,14 +212,14 @@ const GrabHandle = styled('div')`
 `;
 ```
 
-Then drop your component in place of `<SplitPanel.Divider>` inside the `<SplitPanel>` children.
+Then drop your component in place of `<SplitPanel.Divider>` inside the `<SplitPanel.Root>` children.
 
 ## Tracking Resize Events
 
 `onMouseDown` fires when the user starts dragging (receives the current size as a percentage). `onResize` fires as the size changes (receives the new size in pixels). Use these for analytics or to drive linked UI.
 
 ```tsx
-<SplitPanel
+<SplitPanel.Root
   orientation="horizontal"
   onMouseDown={sizePct => trackStart(sizePct)}
   onResize={newSize => trackEnd(newSize)}
@@ -231,7 +231,7 @@ Then drop your component in place of `<SplitPanel.Divider>` inside the `<SplitPa
   <SplitPanel.Panel>
     <RightContent />
   </SplitPanel.Panel>
-</SplitPanel>
+</SplitPanel.Root>
 ```
 
 ## Imperative Controls
