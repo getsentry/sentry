@@ -2,12 +2,15 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {useSpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
@@ -494,12 +497,26 @@ function EAPSpanNodeDetailsContent({
     }
   }, [hasProfileDetails, hasLogDetails, organization]);
 
+  // The presence of this attribute indicates that the EAP span was sent as a v2 span
+  // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
+  const isSdkSentV2Span = attributes.some(a => a.name === 'observed_timestamp_nanos');
+
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.LegacyTitleText>
-            <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.TitleText>
+              {t('Span')}
+              {isSdkSentV2Span && (
+                <Fragment>
+                  {' '}
+                  <Tooltip title={t('Streamed Span')}>
+                    <IconBroadcast size="xs" />
+                  </Tooltip>
+                </Fragment>
+              )}
+            </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
               subTitle={`ID: ${node.id}`}
               clipboardText={node.id}
