@@ -5,7 +5,6 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -36,16 +35,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {RouteError} from 'sentry/views/routeError';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
-interface GitHubIntegrationInstallation {
-  account: {
-    login: string;
-    type: string;
-  };
-  sender: {
-    id: number;
-    login: string;
-  };
-}
+import {GitHubInstallationCallout} from './gitHubInstallationCallout';
 
 function trackExternalAnalytics({
   eventName,
@@ -126,20 +116,6 @@ export default function IntegrationOrganizationLink() {
       addErrorMessage(t('Failed to retrieve integration details'));
     }
   }, [isProviderQueryEnabled, providerQuery.error, providerQuery.isPending, provider]);
-
-  const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
-  const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
-    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
-    [`/../../extensions/github/installation/${installationId}/`],
-    {staleTime: Infinity, enabled: isInstallationQueryEnabled}
-  );
-  const installationData = installationQuery.data ?? null;
-
-  useEffect(() => {
-    if (isInstallationQueryEnabled && installationQuery.error) {
-      addErrorMessage(t('Failed to retrieve GitHub installation details'));
-    }
-  }, [isInstallationQueryEnabled, installationQuery.error]);
 
   // These two queries are recomputed when an organization is selected
   const isPendingSelection =
@@ -303,55 +279,6 @@ export default function IntegrationOrganizationLink() {
     selectedOrgSlug,
   ]);
 
-  const renderCallout = useCallback(() => {
-    if (integrationSlug !== 'github') {
-      return null;
-    }
-
-    if (!installationData) {
-      return (
-        <Alert.Container>
-          <Alert variant="warning">
-            {t(
-              'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
-
-    const sender_url = `https://github.com/${installationData?.sender.login}`;
-    const target_url = `https://github.com/${installationData?.account.login}`;
-
-    const alertText = tct(
-      'GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.',
-      {
-        account_type: <strong>{installationData?.account.type}</strong>,
-        account_login: (
-          <strong>
-            <ExternalLink href={target_url}>
-              {installationData?.account.login}
-            </ExternalLink>
-          </strong>
-        ),
-        sender_id: <strong>{installationData?.sender.id}</strong>,
-        sender_login: (
-          <strong>
-            <ExternalLink href={sender_url}>
-              {installationData?.sender.login}
-            </ExternalLink>
-          </strong>
-        ),
-      }
-    );
-
-    return (
-      <Alert.Container>
-        <Alert variant="info">{alertText}</Alert>
-      </Alert.Container>
-    );
-  }, [integrationSlug, installationData]);
-
   if (isPendingOrganizations) {
     return <LoadingIndicator />;
   }
@@ -376,7 +303,9 @@ export default function IntegrationOrganizationLink() {
     <NarrowLayout>
       <SentryDocumentTitle title={t('Choose Installation Organization')} />
       <h3>{t('Finish integration installation')}</h3>
-      {renderCallout()}
+      {integrationSlug === 'github' && installationId && (
+        <GitHubInstallationCallout installationId={installationId} />
+      )}
       <p>
         {tct(
           `Please pick a specific [organization:organization] to link with
