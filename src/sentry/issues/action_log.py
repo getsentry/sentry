@@ -70,13 +70,13 @@ def resolve_action_source(request: Request | None) -> str:
         return ActionSource.SYSTEM
 
     application_id = getattr(request.auth, "application_id", None)
-    mcp_app_id = _get_mcp_application_id()
+    mcp_app_id = _get_mcp_application_id() if application_id is not None else None
     if mcp_app_id and application_id == mcp_app_id:
         client_name = request.META.get(MCP_CLIENT_NAME_HEADER, "")
         normalized = client_name.strip().lower()
         slug = KNOWN_MCP_CLIENTS.get(normalized)
         if slug:
-            return f"mcp:{slug}"
+            return f"{ActionSource.MCP}:{slug}"
         return ActionSource.MCP
 
     seer_referrer = request.META.get(SEER_REFERRER_HEADER, "")
@@ -111,7 +111,6 @@ class ActionType(StrEnum):
     VIEW = "view"
     RESOLVE = "resolve"
     UNRESOLVE = "unresolve"
-    UNARCHIVE = "unarchive"
     ARCHIVE = "archive"
     ASSIGN = "assign"
     UNASSIGN = "unassign"

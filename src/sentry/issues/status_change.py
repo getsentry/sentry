@@ -142,7 +142,6 @@ def handle_status_update(
                 )
 
     for group in group_list:
-        old_status = group.status
         group.status = new_status
         group.substatus = new_substatus
 
@@ -155,12 +154,7 @@ def handle_status_update(
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
-        if new_status == GroupStatus.IGNORED:
-            action = ActionType.ARCHIVE
-        elif old_status == GroupStatus.IGNORED:
-            action = ActionType.UNARCHIVE
-        else:
-            action = ActionType.UNRESOLVE
+        action = ActionType.ARCHIVE if new_status == GroupStatus.IGNORED else ActionType.UNRESOLVE
         publish_action_from_context(
             action=action,
             group_id=group.id,
