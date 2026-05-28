@@ -107,6 +107,15 @@ def handle_merge_request_event(
         )
         return
 
+    # GitLab fires "update" for any MR edit (title, labels, assignee, etc.).
+    # oldrev is only present when the source branch received new commits, which
+    # is the equivalent of GitHub's "synchronize" event that ON_NEW_COMMIT models.
+    if action == MergeRequestAction.UPDATE and "oldrev" not in object_attributes:
+        record_webhook_filtered(
+            GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
+        )
+        return
+
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:

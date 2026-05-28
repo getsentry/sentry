@@ -16,6 +16,7 @@ from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
@@ -354,22 +355,42 @@ def _build_repo_definition(
 ) -> dict[str, Any]:
     """
     Build the repository definition for code review requests.
-    """
-    # Extract owner and repo name from full repository name (format: "owner/repo")
-    repo_name_sections = repo.name.split("/")
-    if len(repo_name_sections) < 2:
-        raise ValueError(f"Invalid repository name format: {repo.name}")
 
+    GitHub and GitLab expose repo identity and visibility differently, so each
+    provider has its own builder. Anything unrecognized falls back to GitHub.
+    """
     # repo.provider uses the "integrations:<slug>" format; Seer expects the bare slug
     provider = repo.provider.removeprefix("integrations:") if repo.provider else "github"
+
+    if provider == IntegrationProviderSlug.GITLAB.value:
+        return _build_gitlab_repo_definition(repo, provider, target_commit_sha, event_payload)
+    return _build_github_repo_definition(repo, provider, target_commit_sha, event_payload)
+
+
+def _split_full_name(full_name: str) -> tuple[str, str]:
+    """Split a "owner/repo" (or "group/subgroup/repo") slug into (owner, name)."""
+    sections = full_name.split("/")
+    if len(sections) < 2:
+        raise ValueError(f"Invalid repository name format: {full_name}")
+    return sections[0], "/".join(sections[1:])
+
+
+def _base_repo_definition(
+    repo: Repository,
+    provider: str,
+    owner: str,
+    name: str,
+    target_commit_sha: str,
+    is_private: bool | None,
+) -> dict[str, Any]:
     repo_definition = {
         "provider": provider,
-        "owner": repo_name_sections[0],
-        "name": "/".join(repo_name_sections[1:]),
+        "owner": owner,
+        "name": name,
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
         "organization_id": repo.organization_id,
-        "is_private": event_payload.get("repository", {}).get("private"),
+        "is_private": is_private,
     }
 
     # add integration_id which is used in pr_closed_step for product metrics dashboarding only
@@ -377,6 +398,36 @@ def _build_repo_definition(
         repo_definition["integration_id"] = str(repo.integration_id)
 
     return repo_definition
+
+
+def _build_github_repo_definition(
+    repo: Repository,
+    provider: str,
+    target_commit_sha: str,
+    event_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    # GitHub stores Repository.name as the "owner/repo" slug.
+    owner, name = _split_full_name(repo.name)
+    is_private = event_payload.get("repository", {}).get("private")
+    return _base_repo_definition(repo, provider, owner, name, target_commit_sha, is_private)
+
+
+def _build_gitlab_repo_definition(
+    repo: Repository,
+    provider: str,
+    target_commit_sha: str,
+    event_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    # GitLab stores Repository.name as the display "name_with_namespace"
+    # (e.g. "Cool Group / Sentry"); the URL slug lives in config["path"].
+    owner, name = _split_full_name(repo.config.get("path") or repo.name)
+
+    # GitLab has no repository.private; visibility lives in project.visibility_level
+    # (0 = private, 10 = internal, 20 = public). Leave as None when absent.
+    visibility_level = event_payload.get("project", {}).get("visibility_level")
+    is_private = visibility_level != 20 if visibility_level is not None else None
+
+    return _base_repo_definition(repo, provider, owner, name, target_commit_sha, is_private)
 
 
 def get_pr_author_id(event: Mapping[str, Any]) -> str | None:

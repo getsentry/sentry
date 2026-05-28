@@ -43,6 +43,8 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
     def _setup_code_review(
         self,
         triggers: list[CodeReviewTrigger] | None = None,
+        name: str = "Cool Group / Sentry",
+        path: str = "cool-group/sentry",
     ) -> None:
         if triggers is None:
             triggers = [
@@ -50,7 +52,11 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ]
 
-        repo = self.create_gitlab_repo(name="cool-group/sentry")
+        # GitLab stores Repository.name as the display "name_with_namespace"; the
+        # URL slug used to address the project lives in config["path"].
+        repo = self.create_gitlab_repo(name=name)
+        repo.config["path"] = path
+        repo.save()
 
         trigger_values = [t.value for t in triggers]
         self.create_repository_settings(
@@ -115,7 +121,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_update_uses_review_request_endpoint(self) -> None:
         self._setup_code_review()
-        event = _make_event("update")
+        event = _make_event("update", oldrev="0" * 40)
 
         with self.tasks():
             self._call_handler(event)
@@ -123,6 +129,17 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
         assert call_kwargs["path"] == "/v1/code_review/review-request"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_update_without_oldrev_is_skipped(self) -> None:
+        self._setup_code_review()
+        event = _make_event("update")
+        assert "oldrev" not in event["object_attributes"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_draft_mr(self) -> None:
@@ -233,7 +250,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_update_filtered_when_trigger_disabled(self) -> None:
         self._setup_code_review(triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW])
-        event = _make_event("update")
+        event = _make_event("update", oldrev="0" * 40)
 
         with self.tasks():
             self._call_handler(event)
@@ -287,6 +304,86 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         assert payload["data"]["repo"]["provider"] == "gitlab"
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_payload_owner_and_name_use_path_not_display_name(self) -> None:
+        # Repository.name is the display "Cool Group / Sentry"; Seer must receive
+        # the URL slugs derived from config["path"] ("cool-group/sentry").
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["owner"] == "cool-group"
+        assert repo["name"] == "sentry"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_payload_owner_and_name_handle_subgroups(self) -> None:
+        self._setup_code_review(name="Group / Subgroup / Project", path="group/subgroup/project")
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["owner"] == "group"
+        assert repo["name"] == "subgroup/project"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_payload_is_private_true_for_private_project(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        event["project"]["visibility_level"] = 0
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is True
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_payload_is_private_true_for_internal_project(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        event["project"]["visibility_level"] = 10
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is True
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_payload_is_private_false_for_public_project(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        event["project"]["visibility_level"] = 20
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is False
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_payload_is_private_none_when_visibility_absent(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        del event["project"]["visibility_level"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is None
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_payload_trigger_on_ready_for_review_for_open(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -302,7 +399,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_payload_trigger_on_new_commit_for_update(self) -> None:
         self._setup_code_review()
-        event = _make_event("update")
+        event = _make_event("update", oldrev="0" * 40)
 
         with self.tasks():
             self._call_handler(event)
