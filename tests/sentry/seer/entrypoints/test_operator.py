@@ -579,7 +579,6 @@ class SeerOperatorTest(TestCase):
             == "https://github.com/owner/repo/pull/42"
         )
 
-    @with_feature("organizations:seer-activity-timeline")
     @patch("sentry.seer.entrypoints.operator.invoke_workflow_activity_handlers")
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_invokes_workflow_activity_handlers(
