@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_events_heatmap import _format_long_float
+from sentry.api.endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
@@ -445,29 +445,31 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
 
 class TestFormatLongFloat:
     def test_small_number_no_scientific_notation(self) -> None:
-        result = _format_long_float(8.527e-06)
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(8.527e-06)
         assert "e" not in result
         assert "E" not in result
         assert result == "0.000008527"
 
     def test_normal_number(self) -> None:
-        result = _format_long_float(123.456)
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(123.456)
         assert "e" not in result
         assert result == "123.456"
 
     def test_huge_number_no_scientific_notation(self) -> None:
-        result = _format_long_float(123456789012345678901234567890)
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(
+            123456789012345678901234567890
+        )
         assert "e" not in result
         assert "E" not in result
         assert result == "123456789012345678901234567890"
 
     def test_zero(self) -> None:
-        result = _format_long_float(0.0)
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(0.0)
         assert result == "0.0"
 
     def test_very_small_number_is_parseable(self) -> None:
         # Ensure the formatted string looks like a plain decimal Python float
-        result = _format_long_float(1.23e-10)
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(1.23e-10)
         assert "e" not in result
         assert "E" not in result
         float(result)  # must not raise

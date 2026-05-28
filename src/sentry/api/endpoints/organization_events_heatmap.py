@@ -83,7 +83,8 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         }
     )
 
-    def _format_long_float(self, value: float) -> str:
+    @staticmethod
+    def _format_long_float(value: float) -> str:
         """
         Python's default float-to-string uses scientific notation for very small
         values (e.g. 8.527e-06), which the search query parser does not support.
