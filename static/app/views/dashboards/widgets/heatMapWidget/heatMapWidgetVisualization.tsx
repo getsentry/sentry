@@ -302,8 +302,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               // isn't smushed up against another label
               if (
                 index % nthBucketToShow === 0 &&
-                index !== yAxisBucketCount - 3 &&
-                index !== yAxisBucketCount - 2
+                (nthBucketToShow === 1 ||
+                  (index !== yAxisBucketCount - 3 && index !== yAxisBucketCount - 2))
               ) {
                 return true;
               }
