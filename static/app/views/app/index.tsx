@@ -223,10 +223,10 @@ export function App() {
       <AppProviders preloadData={preloadData}>
         <MainContainer tabIndex={-1}>
           <AppAlerts />
-          <GlobalModal />
-          <Indicators className="indicators-container" />
           <Override name="component:replay-init" />
           <ErrorBoundary>{renderBody()}</ErrorBoundary>
+          <GlobalModal />
+          <Indicators className="indicators-container" />
         </MainContainer>
       </AppProviders>
     </Profiler>
