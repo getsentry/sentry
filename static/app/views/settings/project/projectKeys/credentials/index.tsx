@@ -1,17 +1,13 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {
-  defaultFormOptions,
-  FieldGroup as ScrapsFieldGroup,
-  useScrapsForm,
-} from '@sentry/scraps/form';
+import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
@@ -59,7 +55,7 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
 
   return (
     <form.AppForm form={form}>
-      <ScrapsFieldGroup hideBorder>
+      <FieldGroup hideBorder>
         <form.AppField name="securityEndpoint">
           {field => (
             <field.Layout.Stack
@@ -81,7 +77,7 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
-      </ScrapsFieldGroup>
+      </FieldGroup>
     </form.AppForm>
   );
 }
@@ -103,7 +99,7 @@ function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
 
   return (
     <form.AppForm form={form}>
-      <ScrapsFieldGroup hideBorder>
+      <FieldGroup hideBorder>
         <form.AppField name="minidumpEndpoint">
           {field => (
             <field.Layout.Stack
@@ -125,7 +121,7 @@ function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
-      </ScrapsFieldGroup>
+      </FieldGroup>
     </form.AppForm>
   );
 }
@@ -147,7 +143,7 @@ function UnrealTab({unrealEndpoint}: UnrealTabProps) {
 
   return (
     <form.AppForm form={form}>
-      <ScrapsFieldGroup hideBorder>
+      <FieldGroup hideBorder>
         <form.AppField name="unrealEndpoint">
           {field => (
             <field.Layout.Stack
@@ -160,7 +156,7 @@ function UnrealTab({unrealEndpoint}: UnrealTabProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
-      </ScrapsFieldGroup>
+      </FieldGroup>
     </form.AppForm>
   );
 }
@@ -196,7 +192,7 @@ function CredentialsTab({
 
   return (
     <form.AppForm form={form}>
-      <ScrapsFieldGroup hideBorder>
+      <FieldGroup hideBorder>
         {showPublicKey && (
           <form.AppField name="publicKey">
             {field => (
@@ -230,7 +226,7 @@ function CredentialsTab({
             )}
           </form.AppField>
         )}
-      </ScrapsFieldGroup>
+      </FieldGroup>
     </form.AppForm>
   );
 }
@@ -298,6 +294,22 @@ export function ProjectKeyCredentials({
 
   const [showDeprecatedDsn] = useQueryState('showDeprecated', parseAsBoolean);
 
+  const dsnForm = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      dsn: data.dsn.public,
+      dsnDeprecated: data.dsn.secret,
+      useCase: data.useCase ?? '',
+    },
+    validators: {
+      onChange: z.object({
+        dsn: z.string(),
+        dsnDeprecated: z.string(),
+        useCase: z.string(),
+      }),
+    },
+  });
+
   const tabParser = useMemo(
     () => ({
       ...parseAsStringLiteral(availableTabs.map(tab => tab.key)),
@@ -354,67 +366,82 @@ export function ProjectKeyCredentials({
 
   return (
     <Fragment>
-      {showDsnPublic && (
-        <FieldGroup
-          label={t('DSN')}
-          inline={false}
-          flexibleControlStateSize
-          help={tct('The DSN tells the SDK where to send the events to. [link]', {
-            link: showDsn ? (
-              <Link
-                to={{
-                  query: {
-                    ...location.query,
-                    showDeprecated: showDeprecatedDsn ? undefined : 'true',
-                  },
-                }}
-              >
-                {showDeprecatedDsn ? t('Hide deprecated DSN') : t('Show deprecated DSN')}
-              </Link>
-            ) : null,
-          })}
-        >
-          <TextCopyInput aria-label={t('DSN URL')}>{data.dsn.public}</TextCopyInput>
-          {showDeprecatedDsn && (
-            <StyledField
-              label={null}
-              help={t(
-                'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+      <dsnForm.AppForm form={dsnForm}>
+        <FieldGroup hideBorder>
+          {showDsnPublic && (
+            <dsnForm.AppField name="dsn">
+              {field => (
+                <field.Layout.Stack
+                  label={t('DSN')}
+                  hintText={tct(
+                    'The DSN tells the SDK where to send the events to. [link]',
+                    {
+                      link: showDsn ? (
+                        <Link
+                          to={{
+                            query: {
+                              ...location.query,
+                              showDeprecated: showDeprecatedDsn ? undefined : 'true',
+                            },
+                          }}
+                        >
+                          {showDeprecatedDsn
+                            ? t('Hide deprecated DSN')
+                            : t('Show deprecated DSN')}
+                        </Link>
+                      ) : null,
+                    }
+                  )}
+                >
+                  <TextCopyInput aria-label={t('DSN URL')}>
+                    {field.state.value}
+                  </TextCopyInput>
+                  {showDeprecatedDsn && (
+                    <Flex direction="column" gap="sm" paddingTop="2xs">
+                      <Text size="sm" variant="muted">
+                        {t(
+                          'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                        )}
+                      </Text>
+                      <TextCopyInput>{data.dsn.secret}</TextCopyInput>
+                    </Flex>
+                  )}
+                </field.Layout.Stack>
               )}
-              inline={false}
-              flexibleControlStateSize
-            >
-              <TextCopyInput>{data.dsn.secret}</TextCopyInput>
-            </StyledField>
+            </dsnForm.AppField>
+          )}
+
+          {!showDsnPublic && showDsn && (
+            <dsnForm.AppField name="dsnDeprecated">
+              {field => (
+                <field.Layout.Stack
+                  label={t('DSN (Deprecated)')}
+                  hintText={t(
+                    'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                  )}
+                >
+                  <TextCopyInput>{field.state.value}</TextCopyInput>
+                </field.Layout.Stack>
+              )}
+            </dsnForm.AppField>
+          )}
+
+          {data.useCase && (
+            <dsnForm.AppField name="useCase">
+              {field => (
+                <field.Layout.Row
+                  label={t('Use Case')}
+                  hintText={t(
+                    'Whether the DSN is for the user or for internal data submissions.'
+                  )}
+                >
+                  <Text>{field.state.value}</Text>
+                </field.Layout.Row>
+              )}
+            </dsnForm.AppField>
           )}
         </FieldGroup>
-      )}
-
-      {!showDsnPublic && showDsn && (
-        <FieldGroup
-          label={t('DSN (Deprecated)')}
-          help={t(
-            'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
-          )}
-          inline={false}
-          flexibleControlStateSize
-        >
-          <TextCopyInput>{data.dsn.secret}</TextCopyInput>
-        </FieldGroup>
-      )}
-
-      {data.useCase && (
-        <FieldGroup
-          label={t('Use Case')}
-          help={t('Whether the DSN is for the user or for internal data submissions.')}
-          inline
-          flexibleControlStateSize
-        >
-          <StyledField label={null} inline={false} flexibleControlStateSize>
-            {data.useCase}
-          </StyledField>
-        </FieldGroup>
-      )}
+      </dsnForm.AppForm>
 
       {availableTabs.length > 0 && (
         <Fragment>
@@ -431,7 +458,3 @@ export function ProjectKeyCredentials({
     </Fragment>
   );
 }
-
-const StyledField = styled(FieldGroup)`
-  padding: ${p => p.theme.space['2xs']} 0 0 0;
-`;
