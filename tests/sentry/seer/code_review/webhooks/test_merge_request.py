@@ -21,6 +21,10 @@ from sentry.utils.redis import redis_clusters
 def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
     event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
     event["object_attributes"]["action"] = action
+    # GitLab sends "changes" as a top-level payload field; everything else here
+    # (oldrev, draft, work_in_progress, last_commit, ...) lives in object_attributes.
+    if "changes" in overrides:
+        event["changes"] = overrides.pop("changes")
     for key, value in overrides.items():
         event["object_attributes"][key] = value
     return event
@@ -166,6 +170,8 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         self._setup_code_review()
         event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
         assert "oldrev" not in event["object_attributes"]
+        # GitLab delivers "changes" at the top level, not under object_attributes.
+        assert "changes" in event and "changes" not in event["object_attributes"]
 
         with self.tasks():
             self._call_handler(event)

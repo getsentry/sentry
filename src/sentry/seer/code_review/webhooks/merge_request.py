@@ -21,8 +21,8 @@ The code-review tests seed OrganizationContributors manually; consider a test th
 omits it to lock in the intended production behavior (related to Issue 1).
 
 GitLab has no dedicated "ready_for_review" action: un-drafting an MR arrives as an
-"update" whose ``changes`` flips draft/work_in_progress to false, which is treated
-as an ON_READY_FOR_REVIEW trigger (see ``_resolve_review_trigger``).
+"update" whose top-level ``changes`` flips draft/work_in_progress to false, which is
+treated as an ON_READY_FOR_REVIEW trigger (see ``_resolve_review_trigger``).
 """
 
 from __future__ import annotations
@@ -116,15 +116,15 @@ CODE_REVIEW_TO_SEER_TRIGGER: dict[CodeReviewTrigger, SeerCodeReviewTrigger] = {
 }
 
 
-def _is_undraft_update(object_attributes: Mapping[str, Any]) -> bool:
+def _is_undraft_update(changes: Mapping[str, Any]) -> bool:
     """
     True when an "update" event marks a draft MR ready for review.
 
     GitLab has no dedicated "ready_for_review" action (unlike GitHub); un-drafting
     arrives as an "update" whose ``changes`` shows draft/work_in_progress flipping
-    from true to false.
+    from true to false. ``changes`` is a top-level payload field, not part of
+    ``object_attributes``.
     """
-    changes = object_attributes.get("changes") or {}
     for field in ("draft", "work_in_progress"):
         change = changes.get(field) or {}
         if change.get("previous") is True and change.get("current") is False:
@@ -133,7 +133,7 @@ def _is_undraft_update(object_attributes: Mapping[str, Any]) -> bool:
 
 
 def _resolve_review_trigger(
-    action: MergeRequestAction, object_attributes: Mapping[str, Any]
+    action: MergeRequestAction, event: Mapping[str, Any]
 ) -> CodeReviewTrigger | None:
     """
     Map a non-close MR action to the repo trigger that gates a review, or None when
@@ -146,9 +146,11 @@ def _resolve_review_trigger(
     if action == MergeRequestAction.OPEN:
         return CodeReviewTrigger.ON_READY_FOR_REVIEW
     if action == MergeRequestAction.UPDATE:
-        if _is_undraft_update(object_attributes):
+        # GitLab puts "changes" at the top level of the payload, while "oldrev"
+        # (present only when commits were pushed) lives in "object_attributes".
+        if _is_undraft_update(event.get("changes") or {}):
             return CodeReviewTrigger.ON_READY_FOR_REVIEW
-        if "oldrev" in object_attributes:
+        if "oldrev" in (event.get("object_attributes") or {}):
             return CodeReviewTrigger.ON_NEW_COMMIT
     return None
 
@@ -191,7 +193,7 @@ def handle_merge_request_event(
     # commit (ON_NEW_COMMIT) or the MR being opened / marked ready (ON_READY_FOR_REVIEW).
     review_trigger: CodeReviewTrigger | None = None
     if action not in CLOSE_ACTIONS:
-        review_trigger = _resolve_review_trigger(action, object_attributes)
+        review_trigger = _resolve_review_trigger(action, event)
         if review_trigger is None:
             record_webhook_filtered(
                 GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
