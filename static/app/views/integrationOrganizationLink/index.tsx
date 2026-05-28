@@ -67,6 +67,29 @@ function trackExternalAnalytics({
   );
 }
 
+/**
+ * Landing page that completes an integration install initiated from a
+ * third-party "app directory" or marketplace listing. After the user authorizes
+ * on the provider side, the provider redirects here so the user can pick which
+ * Sentry organization the install should land in, and then the install
+ * pipeline is driven with the params the provider supplied.
+ *
+ * Provider-initiated entry points handled here:
+ *
+ *  - GitHub
+ *    `/extensions/github/link/?installationId=…` (redirected from
+ *    `/extensions/external-install/github/:installationId`). Drives the
+ *    pipeline with `gitHubAppListingParams`.
+ *
+ *  - Discord
+ *    `/extensions/discord/link/?code=…&guild_id=…` (redirected from
+ *    `/extensions/discord/configure/`). Drives the pipeline with
+ *    `discordAppDirectoryParams`.
+ *
+ *  - Anything else
+ *    falls through to {@link finishLegacyInstallation}, which bounces to the
+ *    legacy `/extensions/<slug>/configure/` backend endpoint.
+ */
 export default function IntegrationOrganizationLink() {
   const location = useLocation();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
@@ -155,8 +178,9 @@ export default function IntegrationOrganizationLink() {
   const {startFlow} = useAddIntegration();
 
   // Lands the user on the integration's settings page after a successful
-  // API-driven install. Used as `startFlow`'s `onInstall` callback.
-  const onInstallWithInstallationId = useCallback(
+  // API-driven install. Used as `startFlow`'s `onInstall` callback by both
+  // the GitHub App listing and Discord App Directory entry points.
+  const onInstall = useCallback(
     (data: Integration) => {
       const orgId = organization?.slug;
       const normalizedUrl = normalizeUrl(
@@ -168,6 +192,31 @@ export default function IntegrationOrganizationLink() {
     },
     [organization]
   );
+
+  // GitHub App listing installs arrive here with `installationId` as a URL
+  // path segment. The install button uses this as `initialData` for the
+  // pipeline modal.
+  const gitHubAppListingParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'github' || !installationId) {
+      return null;
+    }
+    return {installation_id: installationId};
+  }, [integrationSlug, installationId]);
+
+  // Discord App Directory installs arrive here with `code` and `guild_id` in
+  // the URL query (forwarded from `/extensions/discord/configure/`). The
+  // install button uses these as `initialData` for the pipeline modal.
+  const discordAppDirectoryParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'discord') {
+      return null;
+    }
+    const code = location.query.code;
+    const guildId = location.query.guild_id;
+    if (typeof code !== 'string' || typeof guildId !== 'string') {
+      return null;
+    }
+    return {code, guild_id: guildId, use_configure: '1'};
+  }, [integrationSlug, location.query]);
 
   // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
   // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
@@ -194,17 +243,12 @@ export default function IntegrationOrganizationLink() {
       return;
     }
 
-    // GitHub is the only provider currently driven through the API pipeline
-    // modal from this view — users land here after installing the Sentry
-    // GitHub App from github.com, with the `installationId` in the URL query
-    // (forwarded from `/extensions/external-install/...`).
-    if (provider.key === 'github' && installationId) {
-      startFlow({
-        provider,
-        organization,
-        onInstall: onInstallWithInstallationId,
-        urlParams: {installation_id: installationId},
-      });
+    // Each provider-initiated entry point contributes its own params bag.
+    // Whichever one is non-null routes through the API pipeline modal;
+    // otherwise we fall back to the legacy server-driven install flow.
+    const urlParams = gitHubAppListingParams ?? discordAppDirectoryParams;
+    if (urlParams) {
+      startFlow({provider, organization, onInstall, urlParams});
       return;
     }
 
@@ -212,9 +256,10 @@ export default function IntegrationOrganizationLink() {
   }, [
     provider,
     organization,
-    installationId,
+    gitHubAppListingParams,
+    discordAppDirectoryParams,
     startFlow,
-    onInstallWithInstallationId,
+    onInstall,
     finishLegacyInstallation,
   ]);
 
