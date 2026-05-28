@@ -97,6 +97,10 @@ class InsertedSubsegment(NamedTuple):
     subsegment: Subsegment
     result: EvalshaResult
 
+    @classmethod
+    def from_redis_result(cls, subsegment: Subsegment, result: Sequence[Any]) -> InsertedSubsegment:
+        return cls(subsegment, EvalshaResult.from_redis_result(result))
+
     @property
     def project_and_trace(self) -> str:
         return self.subsegment.project_and_trace
