@@ -84,9 +84,15 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self,
         organization: Organization,
     ) -> BaseDynamicSamplingConfiguration:
-        with patch(
-            "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=1.0,
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.tasks.configuration.get_eap_organization_volume",
+                return_value=None,
+            ),
         ):
             return get_configuration(organization.id)
 
@@ -207,8 +213,8 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self.create_project(organization=organization)
 
         with patch(
-            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
-            return_value={"data": []},
+            "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
+            return_value=[],
         ):
             project_volumes = get_eap_project_volumes(
                 self.get_config(organization), time_interval=timedelta(hours=1)
@@ -259,8 +265,8 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.tasks.queries.Spans.run_table_query",
-            return_value={"data": []},
+            "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
+            return_value=[],
         ) as run_table_query:
             project_volumes = get_eap_project_volumes(
                 self.get_config(organization), time_interval=timedelta(hours=1)
@@ -268,7 +274,8 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert project_volumes == []
         run_table_query.assert_called_once()
-        assert run_table_query.call_args.kwargs["params"].projects == []
+        query = run_table_query.call_args.args[0]
+        assert query["params"].projects == []
 
 
 class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
