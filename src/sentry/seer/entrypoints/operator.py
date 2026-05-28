@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -564,8 +564,7 @@ def _create_seer_activity(
     if not activity_type:
         return
 
-    organization = group.project.organization
-    if not features.has("organizations:seer-activity-timeline", organization):
+    if not options.get("issues.record-seer-actions-as-activities"):
         return
 
     run_id = event_payload.get("run_id")
