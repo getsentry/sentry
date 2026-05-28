@@ -76,4 +76,5 @@ class SnubaRateLimitMeta:
     quota_unit: str | None
     quota_used: int | None
     rejection_threshold: int | None
+    throttle_threshold: int | None
     storage_key: str | None

@@ -35,7 +35,7 @@ from sentry.seer.autofix.introspection import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
-    read_preference_from_sentry_db,
+    get_automation_handoff,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import (
@@ -536,7 +536,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         ]:
             return None
 
-        return read_preference_from_sentry_db(group.project).automation_handoff
+        return get_automation_handoff(group.project.get_option)
 
     @classmethod
     def _clear_handoff_preference(
