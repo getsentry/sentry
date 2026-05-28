@@ -1,6 +1,31 @@
 """
 Handler for GitLab merge_request webhook events.
 https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
+
+Known limitations
+-----------------
+
+1. Code review does not fire in production yet: GitLab contributors are never
+   seeded. ``handle_merge_request_event`` runs ``CodeReviewPreflightService``,
+   whose ``_check_billing`` looks up ``OrganizationContributors`` by
+   ``(organization_id, integration_id, external_identifier=str(author_id))`` and
+   returns ``ORG_CONTRIBUTOR_NOT_FOUND`` (before the beta exemption) when the row
+   is missing. GitHub creates that row via ``track_contributor_seat`` in
+   ``PullRequestEventWebhook._handle`` on PR creation; the GitLab merge-request
+   path (PR persistence inline in ``MergeEventWebhook.__call__``) does not, and
+   nothing else seeds GitLab contributors. Until contributor seeding is added,
+   every GitLab MR is filtered with ``ORG_CONTRIBUTOR_NOT_FOUND``. The handler
+   tests pass only because they seed the row manually.
+
+2. Un-drafting an MR ("mark ready for review") does not trigger a review.
+   GitHub has a dedicated ``ready_for_review`` action mapped to
+   ``ON_READY_FOR_REVIEW``; GitLab has none. Marking a draft MR ready arrives as
+   ``action="update"`` with no new commits, so ``oldrev`` is absent and the event
+   is filtered as ``UNSUPPORTED_ACTION``. The initial draft ``open`` is skipped by
+   the draft check. As a result, an MR opened as a draft and later marked ready is
+   never reviewed unless a new commit is subsequently pushed. Fixing this requires
+   detecting the un-draft transition (``changes.draft`` / ``changes.work_in_progress``
+   flipping to ``false`` on ``update`` events).
 """
 
 from __future__ import annotations
