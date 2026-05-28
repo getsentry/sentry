@@ -183,7 +183,7 @@ class DetectorSerializer(Serializer):
         self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
-        return {
+        result: DetectorSerializerResponse = {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
             "name": obj.name,
@@ -204,3 +204,4 @@ class DetectorSerializer(Serializer):
             "ruleId": alert_rule_mapping.get("rule_id"),
             "latestGroup": attrs.get("latest_group"),
         }
+        return result
