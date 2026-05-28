@@ -1,6 +1,7 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import type {UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
@@ -23,8 +24,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,7 +48,7 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {usePrefetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
@@ -319,7 +318,7 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, traceItemsResult} = useFetchTraceItemDetailsOnHover({
+  const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
     traceItemId: rowId,
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
@@ -345,7 +344,7 @@ export const LogRowContent = memo(function LogRowContent({
     projectSlug,
     meta,
     project,
-    traceItemMeta: traceItemsResult?.data?.meta,
+    traceItemMeta,
     timestampRelativeTo: embeddedOptions?.replay?.timestampRelativeTo,
     onReplayTimeClick: embeddedOptions?.replay?.onReplayTimeClick,
     logStart,
@@ -780,7 +779,7 @@ function LogRowDetailsActions({
   fullLogDataResult,
   tableDataRow,
 }: {
-  fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
+  fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
   tableDataRow: LogTableRowItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;

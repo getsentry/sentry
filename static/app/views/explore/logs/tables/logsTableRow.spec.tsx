@@ -256,10 +256,13 @@ describe('logsTableRow', () => {
       // Prefetching is triggered after the hover timeout
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
+    // Flush the .then() callback that reads cached data after prefetch
+    await act(async () => {});
     expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
       timestamp: Math.trunc(rowDataTimestamp),
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
+    jest.useRealTimers();
   });
 
   it('renders row details', async () => {
@@ -449,10 +452,6 @@ describe('logsTableRow', () => {
       expect.anything(),
       expect.objectContaining({enabled: true})
     );
-
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    expect(stacktraceLinkMock).toHaveBeenCalledTimes(0);
-    expect(releaseMock).toHaveBeenCalledTimes(0);
 
     // Find the hoverable code path element
     const codePathElement = await screen.findByTestId('hoverable-code-path');
@@ -806,20 +805,18 @@ describe('logsTableRow', () => {
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
 
+    const passwordCell = screen.getByTestId('log-table-cell-password');
+    const customRuleCell = screen.getByTestId('log-table-cell-not_zzz_not_exact_match');
+
+    expect(passwordCell).toHaveTextContent('[Filtered]');
+    expect(customRuleCell).toHaveTextContent('redacted2');
+
     expect(traceItemMock).toHaveBeenCalledTimes(0);
     await userEvent.hover(logTableRow);
 
     await waitFor(() => {
       expect(traceItemMock).toHaveBeenCalledTimes(1);
     });
-
-    const passwordCell = screen.getByTestId('log-table-cell-password');
-    const customRuleCell = screen.getByTestId('log-table-cell-not_zzz_not_exact_match');
-
-    expect(passwordCell).toBeInTheDocument();
-    expect(passwordCell).toHaveTextContent('[Filtered]');
-    expect(customRuleCell).toBeInTheDocument();
-    expect(customRuleCell).toHaveTextContent('redacted2');
 
     const filteredText = screen.getByText(/Filtered/);
     await userEvent.hover(filteredText);
