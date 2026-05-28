@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {type RefObject, useCallback, useEffect, useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,6 +12,7 @@ import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/wi
 import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
 import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
@@ -49,18 +50,33 @@ function computeEquationReferencedLabels(
 }
 
 interface MetricQueryRowsProps {
-  onEquationRemoved: () => void;
   selectedLabel: string | undefined;
   setSelectedLabel: (label: string | undefined) => void;
+  equationSnapshot?: RefObject<EquationModeSnapshot | null>;
 }
 
 export function MetricQueryRows({
   selectedLabel,
   setSelectedLabel,
-  onEquationRemoved,
+  equationSnapshot,
 }: MetricQueryRowsProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const metricQueries = useMultiMetricsQueryParams();
+
+  // Keep the snapshot ref in sync so useTraceMetricsVisualizeModeState can
+  // restore this state after a mode or dataset toggle.
+  useEffect(() => {
+    if (equationSnapshot) {
+      equationSnapshot.current = {
+        queries: metricQueries.map(q => ({
+          metric: q.metric,
+          queryParams: q.queryParams,
+          label: q.label,
+        })),
+        selectedLabel,
+      };
+    }
+  }, [equationSnapshot, metricQueries, selectedLabel]);
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({type: 'aggregate'});
 
@@ -181,11 +197,7 @@ export function MetricQueryRows({
     ]
   );
 
-  function handleRowRemoved(removedLabel: string, isEquation: boolean) {
-    if (!isEquation && removedLabel !== selectedLabel) {
-      return;
-    }
-
+  function handleRowRemoved(removedLabel: string) {
     const fallback = functionQueries.find(q => q.label !== removedLabel);
     if (fallback) {
       setSelectedLabel(fallback.label);
@@ -199,12 +211,6 @@ export function MetricQueryRows({
           dispatch
         );
       }
-    }
-
-    if (isEquation) {
-      dispatch({type: BuilderStateAction.SET_QUERY, payload: ['']});
-      onEquationRemoved();
-    } else if (fallback) {
       dispatch({
         type: BuilderStateAction.SET_QUERY,
         payload: [fallback.queryParams.query],
@@ -227,7 +233,7 @@ export function MetricQueryRows({
             key={metricQuery.label ?? ''}
             metricQuery={metricQuery}
             isSelected={isSelected}
-            onRemove={() => handleRowRemoved(metricQuery.label ?? '', false)}
+            onRemove={() => handleRowRemoved(metricQuery.label ?? '')}
             onSubcomponentChanged={handleSubcomponentChanged}
           >
             <MetricToolbar
@@ -244,7 +250,6 @@ export function MetricQueryRows({
         <BuilderStateMetricsQueryParamsProvider
           metricQuery={equationQuery}
           isSelected={isEquationSelected}
-          onRemove={() => handleRowRemoved(equationQuery.label ?? '', true)}
         >
           <MetricToolbar
             label={equationQuery.label ?? ''}
@@ -252,6 +257,7 @@ export function MetricQueryRows({
             isSelected={isEquationSelected}
             onRowSelection={onRowSelection}
             onReferenceLabelsChange={setEquationReferencedLabels}
+            deleteDisabledReason={t('An equation is required')}
           />
         </BuilderStateMetricsQueryParamsProvider>
       )}

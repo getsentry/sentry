@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css, useTheme} from '@emotion/react';
@@ -55,6 +55,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
@@ -309,6 +310,11 @@ export function Visualize({
   const canShowTraceMetricEquations =
     state.dataset === WidgetType.TRACEMETRICS &&
     canUseMetricsEquationsInDashboards(organization);
+
+  const {handleModeToggle, equationSnapshot} = useTraceMetricsVisualizeModeState({
+    isEquationMode,
+    onSetEquationMode,
+  });
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -617,10 +623,6 @@ export function Visualize({
     tableFieldOptions,
   ]);
 
-  const handleEquationRemoved = useCallback(() => {
-    onSetEquationMode?.(false);
-  }, [onSetEquationMode]);
-
   return (
     <Fragment>
       <SectionHeader
@@ -631,7 +633,7 @@ export function Visualize({
         <Container paddingBottom="md">
           <SegmentedControl
             value={isEquationMode ? 'equation' : 'series'}
-            onChange={value => onSetEquationMode?.(value === 'equation')}
+            onChange={value => handleModeToggle(value === 'equation')}
             size="sm"
           >
             <SegmentedControl.Item key="series">{t('Series')}</SegmentedControl.Item>
@@ -640,7 +642,7 @@ export function Visualize({
         </Container>
       )}
       {isEquationMode && canShowTraceMetricEquations ? (
-        <MetricsEquationVisualize onEquationRemoved={handleEquationRemoved} />
+        <MetricsEquationVisualize equationSnapshot={equationSnapshot} />
       ) : (
         <Fragment>
           <StyledFieldGroup
