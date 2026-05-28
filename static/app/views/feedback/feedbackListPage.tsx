@@ -314,12 +314,6 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   gap: ${p => p.theme.space.xl};
   place-items: stretch;
 
-  padding: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-  }
-
   grid-template-rows: max-content minmax(0, 1fr);
   grid-template-areas:
     'top top'
