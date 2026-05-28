@@ -242,3 +242,74 @@ class TestCategorizeImageDiffSelective:
         assert result.skipped == {"b.png", "c.png"}
         assert result.removed == set()
         assert result.matched == {"a.png"}
+
+
+class TestCategorizeImageDiffSelectiveRegex:
+    def test_regex_all_categories(self) -> None:
+        head = SnapshotManifest(
+            images={"new.png": _meta("h_new"), "matched.png": _meta("h1")},
+            selective=True,
+            all_image_file_names_as_regex=[r".*\.png"],
+        )
+        base = SnapshotManifest(
+            images={
+                "matched.png": _meta("h1"),
+                "skipped.png": _meta("h2"),
+                "deleted.txt": _meta("h3"),
+            }
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert result.added == {"new.png"}
+        assert result.matched == {"matched.png"}
+        assert result.skipped == {"skipped.png"}
+        assert result.removed == {"deleted.txt"}
+
+    def test_regex_multiple_patterns(self) -> None:
+        head = SnapshotManifest(
+            images={"dark/a.png": _meta("h1")},
+            selective=True,
+            all_image_file_names_as_regex=[r"dark/.*", r"light/.*"],
+        )
+        base = SnapshotManifest(
+            images={
+                "dark/a.png": _meta("h1"),
+                "light/b.png": _meta("h2"),
+                "other/c.png": _meta("h3"),
+            }
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert result.matched == {"dark/a.png"}
+        assert result.skipped == {"light/b.png"}
+        assert result.removed == {"other/c.png"}
+
+    def test_regex_rename_old_name_not_matching(self) -> None:
+        head = SnapshotManifest(
+            images={"new.png": _meta("shared")},
+            selective=True,
+            all_image_file_names_as_regex=[r"new\.png"],
+        )
+        base = SnapshotManifest(images={"old.png": _meta("shared")})
+
+        result = categorize_image_diff(head, base)
+
+        assert result.renamed_pairs == [("new.png", "old.png")]
+        assert result.removed == set()
+
+    def test_regex_rename_old_name_matching_is_detected_from_skipped(self) -> None:
+        head = SnapshotManifest(
+            images={"screens/new.png": _meta("shared")},
+            selective=True,
+            all_image_file_names_as_regex=[r"screens/.*"],
+        )
+        base = SnapshotManifest(images={"screens/old.png": _meta("shared")})
+
+        result = categorize_image_diff(head, base)
+
+        assert result.renamed_pairs == [("screens/new.png", "screens/old.png")]
+        assert result.skipped == set()
+        assert result.added == set()
+        assert result.removed == set()
