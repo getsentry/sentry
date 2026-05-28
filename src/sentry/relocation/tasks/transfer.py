@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.db.models import Subquery
 from django.utils import timezone
@@ -46,7 +47,7 @@ def find_relocation_transfer_region() -> None:
 
 def _find_relocation_transfer(
     model_cls: type[BaseRelocationTransfer],
-    process_task: Task,
+    process_task: Task[..., Any],
 ) -> None:
     """
     Advance the scheduled_for time for all transfers that are
