@@ -49,6 +49,7 @@ export function TabPanels(props: TabPanelsProps) {
       orientation={orientation}
       key={tabListState?.selectedKey}
     >
+      {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
       {selectedPanel?.props.children}
     </TabPanel>
   );

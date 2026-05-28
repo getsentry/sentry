@@ -817,7 +817,7 @@ export function buildToolLinkUrl(
         const endDate = new Date(end_ts * 1000).toISOString();
 
         return {
-          pathname: `/explore/profiling/profile/${project.slug}/flamegraph/`,
+          pathname: `/explore/profiles/profile/${project.slug}/flamegraph/`,
           query: {
             start: startDate,
             end: endDate,
@@ -829,7 +829,7 @@ export function buildToolLinkUrl(
 
       // Transaction profiles use profile_id in the path
       return {
-        pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
+        pathname: `/organizations/${orgSlug}/explore/profiles/profile/${project.slug}/${profile_id}/flamegraph/`,
         ...(thread_id && {query: {tid: thread_id}}),
       };
     }
@@ -1074,7 +1074,9 @@ export function useSeerExplorerDeepLink({
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
     if (!paramValue || typeof paramValue !== 'string') {

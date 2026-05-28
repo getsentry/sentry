@@ -232,7 +232,6 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                 if (isUnsupported) {
                   return;
                 }
-                // TODO: Handle sorting by equation better
                 addToDashboard(metricQuery);
               },
               disabled: isUnsupported,

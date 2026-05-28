@@ -10,7 +10,9 @@ export function trackEngagementAnalytics(
   isSentryBuilt: boolean
 ) {
   // Handle edge-case of dashboard with no widgets.
-  if (!widgets.length) return;
+  if (!widgets.length) {
+    return;
+  }
 
   // For attributing engagement metrics initially track the ratio
   // of widgets reading from Transactions, Spans, Errors, and Issues, and Logs.

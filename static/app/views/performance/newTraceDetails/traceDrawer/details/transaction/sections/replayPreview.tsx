@@ -9,7 +9,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 const REPLAY_CLIP_OFFSETS = {
   durationAfterMs: 5_000,

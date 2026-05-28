@@ -1,6 +1,7 @@
 import type React from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -263,6 +264,7 @@ export function SnapshotMainContent({
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
+          tags: image.tags,
           status: DiffStatus.CHANGED,
           diffPercent: currentPair.diff,
           copyData: currentPair,
@@ -316,6 +318,7 @@ export function SnapshotMainContent({
         headerProps={{
           displayName: image.display_name,
           fileName: image.image_file_name,
+          tags: image.tags,
           status: DiffStatus.RENAMED,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
@@ -375,6 +378,7 @@ export function SnapshotMainContent({
       headerProps={{
         displayName: currentImage.display_name,
         fileName: currentImage.image_file_name,
+        tags: currentImage.tags,
         status,
         copyData: currentImage,
         copyUrl: buildSnapshotLink(currentImage.image_file_name),
@@ -809,13 +813,16 @@ const ColorTrigger = styled('button')<{color: string}>`
   padding: 0;
   ${p =>
     p.color === TRANSPARENT_COLOR &&
-    `background-image: linear-gradient(
-      to top right,
-      transparent calc(50% - 2px),
-      ${p.theme.tokens.content.danger} calc(50% - 1px),
-      ${p.theme.tokens.content.danger} calc(50% + 1px),
-      transparent calc(50% + 2px)
-    );`}
+    css`
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-image: linear-gradient(
+        to top right,
+        transparent calc(50% - 2px),
+        ${p.theme.tokens.content.danger} calc(50% - 1px),
+        ${p.theme.tokens.content.danger} calc(50% + 1px),
+        transparent calc(50% + 2px)
+      );
+    `}
 
   &:hover {
     border-color: ${p => p.theme.tokens.border.accent};
@@ -854,13 +861,16 @@ const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
   outline-offset: 1px;
   ${p =>
     p.color === TRANSPARENT_COLOR &&
-    `background-image: linear-gradient(
-      to top right,
-      transparent calc(50% - 1.5px),
-      ${p.theme.tokens.content.danger} calc(50% - 0.5px),
-      ${p.theme.tokens.content.danger} calc(50% + 0.5px),
-      transparent calc(50% + 1.5px)
-    );`}
+    css`
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-image: linear-gradient(
+        to top right,
+        transparent calc(50% - 1.5px),
+        ${p.theme.tokens.content.danger} calc(50% - 0.5px),
+        ${p.theme.tokens.content.danger} calc(50% + 0.5px),
+        transparent calc(50% + 1.5px)
+      );
+    `}
 `;
 
 function ToolbarContainer({

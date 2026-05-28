@@ -11,7 +11,7 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Actor} from 'sentry/types/core';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
 import type {SpaceSize} from 'sentry/utils/theme';
@@ -30,7 +30,7 @@ export interface BaseBadgeProps {
 interface AllBaseBadgeProps extends BaseBadgeProps {
   displayName: React.ReactNode;
   actor?: Actor;
-  organization?: Organization;
+  organization?: OrganizationSummary;
   project?: AvatarProject;
   team?: Team;
   user?: AvatarUser;

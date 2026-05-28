@@ -4,25 +4,20 @@ from unittest import mock
 
 import pytest
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils import json, kafka_config, outcomes
+from sentry.utils import json, outcomes
 from sentry.utils.outcomes import Outcome, track_outcome
 
 
 @pytest.fixture(autouse=True)
 def setup():
-    # Rely on the fact that the publisher is initialized lazily
-    with mock.patch.object(kafka_config, "get_kafka_producer_cluster_options") as mck_get_options:
-        with mock.patch.object(outcomes, "KafkaPublisher") as mck_publisher:
-            # Reset internals of the outcomes module
-            with mock.patch.object(outcomes, "outcomes_publisher", None):
-                with mock.patch.object(outcomes, "billing_publisher", None):
-                    yield types.SimpleNamespace(
-                        mock_get_kafka_producer_cluster_options=mck_get_options,
-                        mock_publisher=mck_publisher,
-                    )
+    with mock.patch.object(outcomes.outcomes_producer, "produce") as mck_outcomes:
+        with mock.patch.object(outcomes.billing_producer, "produce") as mck_billing:
+            yield types.SimpleNamespace(
+                mock_outcomes_produce=mck_outcomes,
+                mock_billing_produce=mck_billing,
+            )
 
 
 @pytest.mark.parametrize(
@@ -81,16 +76,13 @@ def test_track_outcome_default(setup) -> None:
         reason="project_id",
     )
 
-    cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
-    assert cluster_args == (kafka_config.get_topic_definition(Topic.OUTCOMES)["cluster"],)
-
-    assert outcomes.outcomes_publisher
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
+    setup.mock_billing_produce.assert_not_called()
+    (arroyo_topic, kafka_payload), _ = setup.mock_outcomes_produce.call_args
 
     # not billing because it's not accepted/rate limited
-    assert topic_name == "outcomes"
+    assert arroyo_topic.name == "outcomes"
 
-    data = json.loads(payload)
+    data = json.loads(kafka_payload.value)
     del data["timestamp"]
     assert data == {
         "org_id": 1,
@@ -102,8 +94,6 @@ def test_track_outcome_default(setup) -> None:
         "category": None,
         "quantity": 1,
     }
-
-    assert outcomes.billing_publisher is None
 
 
 def test_track_outcome_billing(setup) -> None:
@@ -119,14 +109,9 @@ def test_track_outcome_billing(setup) -> None:
         outcome=Outcome.ACCEPTED,
     )
 
-    cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
-    assert cluster_args == (kafka_config.get_topic_definition(Topic.OUTCOMES)["cluster"],)
-
-    assert outcomes.outcomes_publisher
-    (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
-    assert topic_name == "outcomes-billing"
-
-    assert outcomes.billing_publisher is None
+    setup.mock_billing_produce.assert_not_called()
+    (arroyo_topic, _), _ = setup.mock_outcomes_produce.call_args
+    assert arroyo_topic.name == "outcomes-billing"
 
 
 def test_track_outcome_billing_topic(setup) -> None:
@@ -141,14 +126,9 @@ def test_track_outcome_billing_topic(setup) -> None:
         outcome=Outcome.ACCEPTED,
     )
 
-    cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
-    assert cluster_args == (kafka_config.get_topic_definition(Topic.OUTCOMES)["cluster"],)
-
-    assert outcomes.outcomes_publisher
-    (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
-    assert topic_name == "outcomes-billing"
-
-    assert outcomes.billing_publisher is None
+    setup.mock_billing_produce.assert_not_called()
+    (arroyo_topic, _), _ = setup.mock_outcomes_produce.call_args
+    assert arroyo_topic.name == "outcomes-billing"
 
 
 def test_track_outcome_billing_cluster(settings, setup) -> None:
@@ -164,14 +144,9 @@ def test_track_outcome_billing_cluster(settings, setup) -> None:
             outcome=Outcome.ACCEPTED,
         )
 
-        cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
-        assert cluster_args == ("different",)
-
-        assert outcomes.billing_publisher
-        (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
-        assert topic_name == "outcomes-billing"
-
-        assert outcomes.outcomes_publisher is None
+        setup.mock_outcomes_produce.assert_not_called()
+        (arroyo_topic, _), _ = setup.mock_billing_produce.call_args
+        assert arroyo_topic.name == "outcomes-billing"
 
 
 def test_outcome_api_name() -> None:
@@ -196,9 +171,9 @@ def test_track_outcome_with_quantity(setup) -> None:
         quantity=5,
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
 
-    data = json.loads(payload)
+    data = json.loads(kafka_payload.value)
     assert data["quantity"] == 5
 
 
@@ -215,9 +190,9 @@ def test_track_outcome_with_event_id(setup) -> None:
         event_id="abcdef1234567890abcdef1234567890",
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
 
-    data = json.loads(payload)
+    data = json.loads(kafka_payload.value)
     assert data["event_id"] == "abcdef1234567890abcdef1234567890"
 
 
@@ -244,9 +219,9 @@ def test_track_outcome_with_category(setup, category: DataCategory) -> None:
         category=category,
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
 
-    data = json.loads(payload)
+    data = json.loads(kafka_payload.value)
     assert data["category"] == category.value
 
 
@@ -297,8 +272,8 @@ def test_track_outcome_with_provided_timestamp(setup) -> None:
         timestamp=provided_timestamp,
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
-    data = json.loads(payload)
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
+    data = json.loads(kafka_payload.value)
     assert data["timestamp"] == "2021-01-01T12:00:00.000000Z"
 
 
@@ -353,8 +328,8 @@ def test_track_outcome_with_none_key_id(setup) -> None:
         outcome=Outcome.FILTERED,
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
-    data = json.loads(payload)
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
+    data = json.loads(kafka_payload.value)
     assert data["key_id"] is None
 
 
@@ -370,8 +345,8 @@ def test_track_outcome_with_none_reason(setup) -> None:
         reason=None,
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
-    data = json.loads(payload)
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
+    data = json.loads(kafka_payload.value)
     assert data["reason"] is None
 
 
@@ -387,8 +362,8 @@ def test_track_outcome_with_none_category(setup) -> None:
         category=None,
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
-    data = json.loads(payload)
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
+    data = json.loads(kafka_payload.value)
     assert data["category"] is None
 
 
@@ -405,8 +380,8 @@ def test_track_outcome_with_non_positive_quantity(setup, quantity: int) -> None:
         quantity=quantity,
     )
 
-    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
-    data = json.loads(payload)
+    (_, kafka_payload), _ = setup.mock_outcomes_produce.call_args
+    data = json.loads(kafka_payload.value)
     assert data["quantity"] == quantity
 
 
@@ -436,15 +411,11 @@ def test_metrics_incr_called_with_correct_tags(setup) -> None:
         )
 
 
-def test_track_outcome_publisher_initialization(setup) -> None:
+def test_track_outcome_routes_to_outcomes_producer(setup) -> None:
     """
-    Tests that the publisher is correctly initialized when clusters are the same.
+    When the billing and outcomes topics share a cluster, billing outcomes
+    are routed through the outcomes producer (to the billing topic name).
     """
-    # Ensure publishers are None
-    outcomes.outcomes_publisher = None
-    outcomes.billing_publisher = None
-
-    # Trigger track_outcome to initialize the publisher
     track_outcome(
         org_id=1,
         project_id=1,
@@ -452,23 +423,18 @@ def test_track_outcome_publisher_initialization(setup) -> None:
         outcome=Outcome.ACCEPTED,
     )
 
-    # Since outcome is billing but clusters are the same, outcomes_publisher should be initialized
-    assert outcomes.billing_publisher is None
-    assert outcomes.outcomes_publisher is not None
+    setup.mock_outcomes_produce.assert_called_once()
+    setup.mock_billing_produce.assert_not_called()
 
 
-def test_track_outcome_publisher_initialization_different_cluster(settings, setup) -> None:
+def test_track_outcome_routes_to_billing_producer_when_clusters_differ(settings, setup) -> None:
     """
-    Tests that the publisher is correctly initialized when clusters are different.
+    When the billing topic lives on a different cluster from the outcomes
+    topic, billing outcomes use the billing producer and non-billing outcomes
+    continue to use the outcomes producer.
     """
-    # Ensure publishers are None
-    outcomes.outcomes_publisher = None
-    outcomes.billing_publisher = None
-
-    # Simulate different clusters for 'outcomes' and 'outcomes-billing' topics
     cluster_patch = {"outcomes-billing": "different_cluster", "outcomes": "default_cluster"}
     with mock.patch.dict(settings.KAFKA_TOPIC_TO_CLUSTER, cluster_patch):
-        # Trigger track_outcome to initialize the publisher
         track_outcome(
             org_id=1,
             project_id=1,
@@ -476,15 +442,12 @@ def test_track_outcome_publisher_initialization_different_cluster(settings, setu
             outcome=Outcome.ACCEPTED,
         )
 
-        # Since outcome is billing and clusters are different, billing_publisher should be initialized
-        assert outcomes.billing_publisher is not None
-        assert outcomes.outcomes_publisher is None  # type: ignore[unreachable]
+        setup.mock_billing_produce.assert_called_once()
+        setup.mock_outcomes_produce.assert_not_called()
 
-        # Reset publishers
-        outcomes.outcomes_publisher = None
-        outcomes.billing_publisher = None
+        setup.mock_billing_produce.reset_mock()
+        setup.mock_outcomes_produce.reset_mock()
 
-        # Trigger track_outcome to initialize the publisher for non-billing outcomes
         track_outcome(
             org_id=1,
             project_id=1,
@@ -492,5 +455,5 @@ def test_track_outcome_publisher_initialization_different_cluster(settings, setu
             outcome=Outcome.FILTERED,
         )
 
-        assert outcomes.billing_publisher is None
-        assert outcomes.outcomes_publisher is not None
+        setup.mock_outcomes_produce.assert_called_once()
+        setup.mock_billing_produce.assert_not_called()
