@@ -21,6 +21,7 @@ def custom_exception_handler(exc, context):
                 storage_key=exc.storage_key,
                 quota_used=exc.quota_used,
                 rejection_threshold=exc.rejection_threshold,
+                throttle_threshold=exc.throttle_threshold,
             )
 
         # capture the rate limited exception so we can see it in Sentry

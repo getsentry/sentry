@@ -10,6 +10,13 @@ const heightEstimations = {
   xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
 
+/**
+ * Matches `theme.space.xs` used as vertical padding on ListWrap (ul).
+ * Added to the virtualizer's wrapper height so the ListWrap's top/bottom
+ * padding remains visible when the list shrinks to a small number of items.
+ */
+const listPaddingVertical = 4;
+
 // explicitly using object here because Record<PropertyKey, unknown> requires an index signature
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
 type ObjectLike = object;
@@ -51,7 +58,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize(),
+          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
           width: '100%',
           position: 'relative',
         },

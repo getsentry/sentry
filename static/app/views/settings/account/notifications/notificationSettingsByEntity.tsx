@@ -17,7 +17,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -38,7 +38,7 @@ interface NotificationSettingsByEntityProps {
   handleRemoveNotificationOption: (id: string) => void;
   notificationOptions: NotificationOptionsObject[];
   notificationType: string;
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 }
 
 export function NotificationSettingsByEntity({
@@ -92,7 +92,7 @@ export function NotificationSettingsByEntity({
   // always loading all projects even though we only need it sometimes
   const entities = entityType === 'project' ? projects || [] : organizations;
   // create maps by the project id for constant time lookups
-  const entityById = keyBy<Organization | Project>(entities, 'id');
+  const entityById = keyBy<OrganizationSummary | Project>(entities, 'id');
 
   const handleOrgChange = (organizationId: string) => {
     navigate(
@@ -136,7 +136,7 @@ export function NotificationSettingsByEntity({
       const idBadgeProps =
         entityType === 'project'
           ? {project: entity as Project}
-          : {organization: entity as Organization};
+          : {organization: entity as OrganizationSummary};
 
       return (
         <Item key={entity.id}>
@@ -190,7 +190,7 @@ export function NotificationSettingsByEntity({
       const idBadgeProps =
         entityType === 'project'
           ? {project: entity as Project}
-          : {organization: entity as Organization};
+          : {organization: entity as OrganizationSummary};
 
       return {
         label: entityType === 'project' ? obj.slug : obj.name,

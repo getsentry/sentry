@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
 
 import type {Subscription} from 'getsentry/types';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
@@ -69,9 +69,9 @@ export function CustomerStatus({customer}: Props) {
     <Fragment>
       {typeof label !== 'object' && label}
       <br />
-      <Tooltip title={getTooltip(customer)}>
+      <InfoText variant="inherit" title={getTooltip(customer)}>
         <small>{`${customer.planDetails?.name} Plan (${customer.planTier})`}</small>
-      </Tooltip>
+      </InfoText>
     </Fragment>
   );
 }

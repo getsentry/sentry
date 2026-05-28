@@ -38,8 +38,8 @@ import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {IssueFrameActions} from './issueFrameActions';
 import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';

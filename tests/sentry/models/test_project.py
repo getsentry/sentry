@@ -638,6 +638,28 @@ class ProjectTest(APITestCase, TestCase):
         assert workflow.organization_id == to_org.id
         assert when_condition_group.organization_id == to_org.id
 
+    def test_transfer_to_organization_updates_workflow_environment(self) -> None:
+        from_org = self.create_organization()
+        to_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        project = self.create_project(teams=[team])
+
+        env = self.create_environment(project=project, name="production")
+        detector = self.create_detector(project=project)
+        workflow = self.create_workflow(organization=from_org, environment=env)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        project.transfer_to(organization=to_org)
+
+        workflow.refresh_from_db()
+
+        assert workflow.organization_id == to_org.id
+        assert workflow.environment_id is not None
+        assert workflow.environment_id != env.id
+        new_env = Environment.objects.get(id=workflow.environment_id)
+        assert new_env.organization_id == to_org.id
+        assert new_env.name == "production"
+
     def test_transfer_to_organization_nulls_detector_owner(self) -> None:
         from_user = self.create_user()
         from_org = self.create_organization(owner=from_user)
