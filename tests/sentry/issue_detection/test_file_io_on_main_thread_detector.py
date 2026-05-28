@@ -112,6 +112,11 @@ class FileIOMainThreadDetectorTest(TestCase):
         event["spans"][0]["data"]["file.path"] = "somethins/stuff/blah/yup/KBLayout_iPhone.dat"
         assert self.find_problems(event) == []
 
+    def test_ignores_keyboard_files_plural(self) -> None:
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
+        event["spans"][0]["data"]["file.path"] = "somethins/stuff/blah/yup/KBLayouts_iPhone.dat"
+        assert self.find_problems(event) == []
+
     def test_gives_problem_correct_title(self) -> None:
         event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True

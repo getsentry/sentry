@@ -1112,6 +1112,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tag.op" in keys
         assert "tag.op2" in keys
 
+    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_empty_attribute_type_for_all_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1130,12 +1131,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         keys = {(item["key"], item["attributeType"]) for item in response.data}
-        # TODO: add this assert back when we stop doublewriting;
-        # assert len(keys) == 3
+        assert len(keys) == 3
         assert ("tags[tag.boolean,boolean]", "boolean") in keys
-        assert ("tags[tag.boolean,number]", "number") in keys
         assert ("tag.string", "string") in keys
+        assert ("tags[tag.number,number]", "number") in keys
 
+    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_multiple_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1155,10 +1156,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         keys = {(item["key"], item["attributeType"]) for item in response.data}
-        # TODO: add this assert back when we stop doublewriting;
-        # assert len(keys) == 2
+        assert len(keys) == 2
         assert ("tags[tag.boolean,boolean]", "boolean") not in keys
-        assert ("tags[tag.boolean,number]", "number") in keys
+        assert ("tags[tag.number,number]", "number") in keys
         assert ("tag.string", "string") in keys
 
 

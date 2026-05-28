@@ -3,6 +3,7 @@ type ConversationOpenSource = 'table_conversation_id' | 'table_input' | 'table_o
 export type ConversationsEventParameters = {
   'conversations.detail.click-errors-link': Record<string, unknown>;
   'conversations.detail.click-trace-link': Record<string, unknown>;
+  'conversations.detail.copy-conversation': Record<string, unknown>;
   'conversations.detail.copy-conversation-id': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
@@ -28,6 +29,7 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.detail.page-view': 'Conversations: Detail Page View',
   'conversations.detail.tab-switch': 'Conversations: Detail Tab Switch',
   'conversations.detail.select-span': 'Conversations: Detail Select Span',
+  'conversations.detail.copy-conversation': 'Conversations: Detail Copy Conversation',
   'conversations.detail.copy-conversation-id':
     'Conversations: Detail Copy Conversation ID',
   'conversations.detail.click-trace-link': 'Conversations: Detail Click Trace Link',

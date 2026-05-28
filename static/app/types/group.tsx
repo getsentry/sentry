@@ -629,6 +629,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_SOLUTION_COMPLETED,
   GroupActivityType.SEER_CODING_STARTED,
   GroupActivityType.SEER_CODING_COMPLETED,
+  GroupActivityType.SEER_PR_CREATED,
 ]);
 
 interface GroupActivityBase {
@@ -1265,9 +1266,16 @@ export type UserReport = {
   event: {eventID: string; id: string};
   eventID: string;
   id: string;
-  issue: Group;
   name: string;
-  user: User;
+  user: {
+    avatarUrl: string | null;
+    email: string | null;
+    id: string;
+    ipAddress: string | null;
+    name: string | null;
+    username: string | null;
+  } | null;
+  issue?: Group | null;
 };
 
 export type KeyValueListDataItem = {

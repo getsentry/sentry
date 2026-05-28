@@ -49,6 +49,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    should_balance_projects: bool = True
     projects: list[Project]
 
     def __init__(self, organization: Organization) -> None:
@@ -161,6 +162,7 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
 
 class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration):
     project_target_sample_rates: ProjectTargetSampleRates
+    should_balance_projects: bool = False
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)

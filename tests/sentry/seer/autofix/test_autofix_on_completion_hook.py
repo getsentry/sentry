@@ -452,8 +452,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             auto_create_pr=True,
         )
 
-    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
-    def test_get_handoff_config_returns_none_when_not_root_cause_step(self, mock_read_pref) -> None:
+    @patch("sentry.seer.autofix.on_completion_hook.get_automation_handoff")
+    def test_get_handoff_config_returns_none_when_not_root_cause_step(
+        self, mock_get_handoff
+    ) -> None:
         """Returns None without reading preferences when current step is not ROOT_CAUSE."""
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
@@ -462,11 +464,11 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         )
 
         assert result is None
-        mock_read_pref.assert_not_called()
+        mock_get_handoff.assert_not_called()
 
-    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.on_completion_hook.get_automation_handoff")
     def test_get_handoff_config_returns_none_when_stopping_at_root_cause(
-        self, mock_read_pref
+        self, mock_get_handoff
     ) -> None:
         """Returns None without reading preferences when stopping point is ROOT_CAUSE."""
         result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
@@ -476,7 +478,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         )
 
         assert result is None
-        mock_read_pref.assert_not_called()
+        mock_get_handoff.assert_not_called()
 
     def test_get_handoff_config_returns_none_when_no_handoff_configured(self) -> None:
         """Returns None when project has no automation handoff configured."""

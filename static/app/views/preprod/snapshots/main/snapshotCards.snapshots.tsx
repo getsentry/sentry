@@ -10,6 +10,11 @@ import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {CardHeader, ImageCard, PairCard} from './snapshotCards';
 
+jest.mock('@sentry/scraps/badge', () => ({
+  ...jest.requireActual('sentry/components/core/badge/badge'),
+  ...jest.requireActual('sentry/components/core/badge/tag'),
+}));
+
 jest.mock('@sentry/scraps/layout', () => {
   const actual = jest.requireActual('@sentry/scraps/layout');
   return {
@@ -120,6 +125,7 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
+    tags: {lang: 'en', dir: 'ltr', theme: 'light'},
     width: 320,
     ...overrides,
   };
@@ -172,6 +178,7 @@ describe('SnapshotCards', () => {
       fileName: 'button.light.png',
       isDark: false,
       onToggleDark: noop,
+      tags: {lang: 'en', dir: 'ltr', theme: 'light'} as Record<string, string>,
     };
 
     it.snapshot(
@@ -186,7 +193,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'card-header-display-name-and-filename'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -196,7 +203,7 @@ describe('SnapshotCards', () => {
           <CardHeader {...headerProps} displayName={null} status={DiffStatus.CHANGED} />
         </Wrapper>
       ),
-      {theme: themeName, state: 'card-header-filename-only'}
+      {tags: {area: 'snapshots'}}
     );
 
     function snapshotCardHeaderStatus({
@@ -220,7 +227,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {theme: themeName, state: `card-header-${state}`}
+        {tags: {area: 'snapshots'}}
       );
     }
 
@@ -252,7 +259,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'card-header-static'}
+      {tags: {area: 'snapshots'}}
     );
 
     function snapshotPairCard({
@@ -285,7 +292,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {theme: themeName, state: `pair-card-${state}`}
+        {tags: {area: 'snapshots'}}
       );
     }
 
@@ -330,7 +337,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-added-selected-with-display-name'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -349,7 +356,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-removed-unselected'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -369,7 +376,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-renamed-with-pair-metadata'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -388,7 +395,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-solo-filename-only-no-status'}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

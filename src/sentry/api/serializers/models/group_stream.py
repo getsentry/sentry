@@ -281,7 +281,7 @@ class _Filtered(TypedDict):
 class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
-    shareId: NotRequired[str]
+    shareId: NotRequired[str | None]
     shortId: NotRequired[str]
     title: NotRequired[str]
     culprit: NotRequired[str | None]
@@ -304,7 +304,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     numComments: NotRequired[int]
-    assignedTo: NotRequired[ActorSerializerResponse]
+    assignedTo: NotRequired[ActorSerializerResponse | None]
     isBookmarked: NotRequired[bool]
     isSubscribed: NotRequired[bool]
     subscriptionDetails: NotRequired[SubscriptionDetails | None]
@@ -490,8 +490,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item]["sentryAppIssues"] = sentry_app_issues
 
-        if self._expand("latestEventHasAttachments") and features.has(
-            "organizations:event-attachments", item.project.organization
+        if (
+            self._expand("latestEventHasAttachments")
+            and item_list
+            and features.has("organizations:event-attachments", item_list[0].project.organization)
         ):
             for item in item_list:
                 latest_event = item.get_latest_event()

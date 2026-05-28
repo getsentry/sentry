@@ -14,6 +14,10 @@ import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
 } from 'sentry/views/automations/hooks';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanEditAutomation,
+} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 interface EditAutomationActionsProps {
@@ -24,6 +28,8 @@ interface EditAutomationActionsProps {
 export function EditAutomationActions({automation, form}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const canEdit = useCanEditAutomation();
+  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
@@ -63,16 +69,30 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           variant="secondary"
           size="sm"
           onClick={toggleDisabled}
-          disabled={isUpdating}
+          disabled={!canEdit || isUpdating}
+          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
-        <Button variant="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
+        <Button
+          variant="danger"
+          onClick={handleDelete}
+          disabled={!canEdit || isDeleting}
+          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          size="sm"
+        >
           {t('Delete')}
         </Button>
         <Observer>
           {() => (
-            <Button type="submit" variant="primary" size="sm" busy={form.isSaving}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              busy={form.isSaving}
+              disabled={!canEdit}
+              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+            >
               {t('Save')}
             </Button>
           )}

@@ -67,7 +67,7 @@ type SharedIssueStackTraceProps =
  * The shared issue page is viewed by unauthenticated users, so this component
  * intentionally avoids the following from {@link IssueStackTrace}:
  * - {@link IssueFrameActions}: calls stacktrace-link and source-map-debug APIs
- * - {@link IssueStackTraceFrameContext}: calls stacktrace-coverage API (Codecov)
+ * - {@link IssueStackTraceFrameContext}: fetches SCM source context when expanded (authenticated)
  * - {@link StacktraceBanners}: depends on authenticated project context
  * - {@link SuspectCommits}: requires group and project data
  *

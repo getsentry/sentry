@@ -225,10 +225,6 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
-        if self.last_org and features.has(
-            "organizations:create-org-control", self.last_org, actor=self.user
-        ):
-            yield "organizations:create-org-control"
 
     @property
     def needs_upgrade(self) -> bool:
