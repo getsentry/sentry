@@ -1,8 +1,14 @@
 import {type RefObject, useCallback, useEffect, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {generateFieldAsString, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  EQUATION_PREFIX,
+  explodeFieldString,
+  generateFieldAsString,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -14,6 +20,7 @@ import {
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 
 interface SeriesModeSnapshot {
   fields: QueryFieldValue[];
@@ -72,8 +79,37 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         type: BuilderStateAction.SET_QUERY,
         payload: seriesSnapshot.current.query,
       });
+      return;
     }
-  }, [state.displayType, dispatch]);
+
+    // No series snapshot to return to, so we derive it from the equation state
+    const aggregateSource = getTraceMetricAggregateSource(
+      state.displayType,
+      state.yAxis,
+      state.fields
+    );
+    const equationField = aggregateSource?.find(f => f.kind === FieldValueKind.EQUATION);
+
+    let derivedFields: QueryFieldValue[] = [];
+    if (equationField?.kind === 'equation') {
+      const {metricQueries} = parseAggregateExpression(
+        `${EQUATION_PREFIX}${equationField.field}`
+      );
+      derivedFields = metricQueries
+        .map(q => q.queryParams.visualizes[0]?.yAxis)
+        .filter((yAxis): yAxis is string => !!yAxis)
+        .map(yAxis => explodeFieldString(yAxis));
+    }
+
+    if (derivedFields.length === 0) {
+      // If nothing was derived, push the default field
+      derivedFields = [getDatasetConfig(WidgetType.TRACEMETRICS).defaultField];
+    }
+
+    seriesSnapshot.current = {fields: derivedFields, query: []};
+    const actionType = getTraceMetricAggregateActionType(state.displayType);
+    dispatch({type: actionType, payload: derivedFields});
+  }, [state.displayType, state.yAxis, state.fields, dispatch]);
 
   const restoreEquationState = useCallback(() => {
     const snapshot = equationSnapshot.current;

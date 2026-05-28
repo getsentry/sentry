@@ -368,6 +368,92 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
+  it('derives series fields from equation subcomponents when no series snapshot exists', async () => {
+    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    expect(result.current.isEquationMode).toBe(true);
+
+    mockNavigate.mockClear();
+    act(() => {
+      result.current.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: serializeFields([
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+              },
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  it('deduplicates subcomponents when deriving series from equation', async () => {
+    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + sum(value,alpha_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    mockNavigate.mockClear();
+    act(() => {
+      result.current.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: serializeFields([
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
   it('does not dispatch when equation snapshot is empty', () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
