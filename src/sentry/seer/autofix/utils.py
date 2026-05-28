@@ -910,13 +910,13 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
             seer_project_repository__in=seer_project_repos
         ).delete()
 
-        overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+        branch_overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
         for seer_project_repo in seer_project_repos:
             project_repo = seer_project_repo.project_repository
             for override in branch_overrides_by_key.get(
                 (project_repo.project_id, project_repo.repository_id), []
             ):
-                overrides_to_create.append(
+                branch_overrides_to_create.append(
                     SeerProjectRepositoryBranchOverride(
                         seer_project_repository=seer_project_repo,
                         tag_name=override["tag_name"],
@@ -925,8 +925,8 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
                     )
                 )
 
-        if overrides_to_create:
-            SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
+        if branch_overrides_to_create:
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(branch_overrides_to_create)
 
     return [sr.id for sr in seer_project_repos]
 
