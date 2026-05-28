@@ -110,6 +110,8 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
             )
         except ObjectDoesNotExist as exc:
             raise DynamicSamplingException(DynamicSamplingStatus.NO_SUBSCRIPTION) from exc
+        if not self.is_enabled:
+            return
         self.projects = self._get_projects()
         self.sliding_window_sample_rate = self._get_sliding_window_sample_rate()
 
