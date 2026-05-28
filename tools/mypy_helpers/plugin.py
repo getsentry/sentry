@@ -225,15 +225,31 @@ def _check_response_body_not_any(ctx: FunctionContext) -> Type:
     if not getattr(chk, "return_types", None):
         return ctx.default_return_type
     expected = chk.return_types[-1]
-    # Strip Awaitable/Coroutine wrappers, unions, etc.
+    # Strip Awaitable/Coroutine wrappers (async views return
+    # `Coroutine[Any, Any, Response[T]]`) and union arms.
     expected_instances: list[Instance] = []
     pending: list[Type] = [expected]
+    _ASYNC_WRAPPERS = frozenset(
+        {
+            "typing.Coroutine",
+            "typing.Awaitable",
+            "typing.AsyncGenerator",
+            "typing.AsyncIterator",
+            "typing.AsyncIterable",
+        }
+    )
     while pending:
         t = pending.pop()
         if isinstance(t, UnionType):
             pending.extend(t.items)
         elif isinstance(t, Instance):
-            expected_instances.append(t)
+            if t.type.fullname in _ASYNC_WRAPPERS and t.args:
+                # Coroutine[Y, S, R] → return type R is the last type arg.
+                # Awaitable/AsyncGenerator/etc. — recurse into all args, the
+                # `Response[T]` we care about will surface from whichever slot.
+                pending.extend(t.args)
+            else:
+                expected_instances.append(t)
     for inst in expected_instances:
         if inst.type.fullname != "rest_framework.response.Response":
             continue

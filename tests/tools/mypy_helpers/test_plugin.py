@@ -478,3 +478,42 @@ def view() -> Response[Shape]:
     ret, out = call_mypy(src)
     assert ret, out
     assert "body is `Any`" in out
+
+
+def test_response_any_body_async_view() -> None:
+    """Async views return `Coroutine[..., Response[T]]`. The plugin must unwrap
+    the Coroutine wrapper and still validate the inner Response body type."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+async def view() -> Response[Shape]:
+    return Response(untyped())
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "body is `Any`" in out
+
+
+def test_response_typed_body_async_view_silent() -> None:
+    """Async view with a properly-typed body passes silently."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def typed() -> Shape:
+    return {"a": 1}
+
+async def view() -> Response[Shape]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
