@@ -80,13 +80,24 @@ def _get_connection() -> Session:
     return _connection.session
 
 
+def close_connection() -> None:
+    if not hasattr(_connection, "session"):
+        return
+
+    _connection.session.close()
+    del _connection.session
+
+
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
     """
     Convert the Responses class from requests into the drf Response
     """
 
     def stream_response() -> Generator[bytes]:
-        yield from response.iter_content(PROXY_CHUNK_SIZE)
+        try:
+            yield from response.iter_content(PROXY_CHUNK_SIZE)
+        finally:
+            response.close()
 
     streamed_response = StreamingHttpResponse(
         streaming_content=stream_response(),

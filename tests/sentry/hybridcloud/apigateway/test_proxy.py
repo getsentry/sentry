@@ -1,6 +1,9 @@
+from collections.abc import Generator
+from unittest.mock import Mock
 from urllib.parse import urlencode
 
 import httpx
+import pytest
 import responses
 from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -27,6 +30,23 @@ from sentry.utils import json
 
 proxy_request = async_to_sync(_proxy_request)
 url_name = "sentry-api-0-projets"
+
+
+@pytest.fixture(autouse=True)
+def close_sync_proxy_connection() -> Generator[None]:
+    yield
+    sync_proxy.close_connection()
+
+
+def test_sync_response_closes_upstream_after_streaming() -> None:
+    response = Mock()
+    response.headers = {"Content-Type": "application/json"}
+    response.iter_content.return_value = iter([b'{"proxy": true}'])
+    response.status_code = 200
+
+    streaming_response = sync_proxy._parse_response(response, "http://us.internal.sentry.io/test")
+    assert close_streaming_response(streaming_response) == b'{"proxy": true}'
+    response.close.assert_called_once_with()
 
 
 @control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
