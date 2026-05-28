@@ -441,7 +441,7 @@ class _QueryField extends Component<Props> {
       skipParameterPlaceholder,
       fieldValue,
       useMenuPortal,
-      theme,
+      theme: _theme,
       disableParameterSelector,
     } = this.props;
 
@@ -468,16 +468,6 @@ class _QueryField extends Component<Props> {
         const portalProps = useMenuPortal
           ? {
               menuPortalTarget: document.body,
-              styles: {
-                menuPortal: (provided: CSSObject) => ({
-                  ...provided,
-                  // This ensures that the dropdown appears above the widget builder
-                  // because the default dropdown z-index is too low
-                  zIndex: theme?.zIndex.widgetBuilderDrawer
-                    ? theme.zIndex.widgetBuilderDrawer + 1
-                    : undefined,
-                }),
-              },
             }
           : {};
 
@@ -493,7 +483,6 @@ class _QueryField extends Component<Props> {
             disabled={disabled || disableParameterSelector}
             menuPortalTarget={portalProps.menuPortalTarget}
             styles={{
-              ...portalProps.styles,
               ...(inFieldLabels ? undefined : this.FieldSelectStyles),
             }}
             components={this.FieldSelectComponents}

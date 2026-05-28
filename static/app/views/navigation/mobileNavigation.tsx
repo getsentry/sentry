@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Grid, Stack} from '@sentry/scraps/layout';
@@ -149,7 +148,6 @@ export function MobileNavigation() {
 }
 
 function MobileNavigationHeader(props: FlexProps<'header'>) {
-  const theme = useTheme();
   return (
     <Flex
       top={0}
@@ -165,7 +163,6 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
       justify="between"
       position="sticky"
       overscrollBehavior="none"
-      style={{zIndex: theme.zIndex.sidebar}}
       {...props}
     />
   );
@@ -194,7 +191,6 @@ function MobilePrimaryNavigation() {
 }
 
 export function MobilePageFrameNavigation() {
-  const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
@@ -272,7 +268,6 @@ export function MobilePageFrameNavigation() {
             bottom={0}
             width="100vw"
             maxWidth="368px"
-            style={{zIndex: theme.zIndex.modal}}
           >
             <MobilePrimaryNavigation />
           </Flex>,
@@ -290,7 +285,6 @@ interface NavigationOverlayPortalProps {
 }
 
 function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
-  const theme = useTheme();
   const ref = useRef<HTMLDivElement | null>(null);
   const hasPageFrame = useHasPageFrameFeature();
 
@@ -315,7 +309,6 @@ function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
       right={0}
       bottom={0}
       left={0}
-      style={{zIndex: theme.zIndex.modal}}
     >
       {props.children}
     </Flex>,

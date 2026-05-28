@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -292,7 +292,6 @@ export function Visualize({
 }: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
-  const theme = useTheme();
   const {state, dispatch} = useWidgetBuilderContext();
   const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
@@ -1044,11 +1043,7 @@ export function Visualize({
                   })}
                 </Stack>
               </SortableContext>
-              <DragOverlay
-                dropAnimation={null}
-                zIndex={theme.zIndex.modal}
-                modifiers={[correctDragOverlayOffset]}
-              >
+              <DragOverlay dropAnimation={null} modifiers={[correctDragOverlayOffset]}>
                 {activeId && (
                   <VisualizeGhostField
                     activeId={Number(activeId)}

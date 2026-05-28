@@ -233,11 +233,7 @@ export function GlobalModal({onClose}: Props) {
     <Fragment>
       <AnimatePresence>
         {backdrop && visible && (
-          <Backdrop
-            key="backdrop"
-            zIndex="modal"
-            {...(typeof backdrop === 'object' ? backdrop : {})}
-          />
+          <Backdrop key="backdrop" {...(typeof backdrop === 'object' ? backdrop : {})} />
         )}
       </AnimatePresence>
       <ModalContainer
@@ -371,7 +367,6 @@ const fullPageCss = css`
 const ModalContainer = styled('div')`
   ${fullPageCss};
   right: var(--scrollbar-size, 0);
-  z-index: ${p => p.theme.zIndex.modal};
   display: flex;
   justify-content: center;
   align-items: flex-start;

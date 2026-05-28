@@ -53,7 +53,6 @@ interface PrimaryNavigationSidebarProps {
 }
 
 function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
-  const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
 
   return (
@@ -66,7 +65,6 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       background="primary"
       direction="column"
       align="center"
-      style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >
       {children}
@@ -358,7 +356,6 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
 
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const TriggerWrap = props.triggerWrap ?? Fragment;
-  const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
   const hasPageFrame = useHasPageFrameFeature();
@@ -377,7 +374,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
       usePortal
       size={sizeContext}
       portalContainerRef={portalContainerRef}
-      zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
@@ -766,7 +762,7 @@ function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayPro
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.modal} {...props.overlayProps}>
+      <PositionWrapper {...props.overlayProps}>
         <motion.div
           initial={isDesktop ? {opacity: 0, scale: 0.98} : undefined}
           animate={isDesktop ? {opacity: 1, scale: 1} : undefined}

@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -27,7 +26,6 @@ import {
 const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent({className}: {className?: string}) {
-  const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
 
@@ -68,9 +66,6 @@ function TopBarContent({className}: {className?: string}) {
       position="sticky"
       borderBottom="primary"
       top={barTop}
-      style={{
-        zIndex: theme.zIndex.sidebarPanel - 1,
-      }}
     >
       <SizeProvider size="sm">
         <Slot.Outlet name="title">
