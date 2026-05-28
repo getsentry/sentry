@@ -110,11 +110,80 @@ FLAMEGRAPH_RESPONSE: dict[str, Any] = {
 }
 
 
+PROFILE_DETAILS_RESPONSE = {
+    "event_id": "9b29bbe17e9d4ee3a6d0fe9b2e8a3b1c",
+    "project_id": 1,
+    "version": "2",
+    "platform": "python",
+    "environment": "production",
+    "received": "2026-04-15T18:22:31.000Z",
+    "timestamp": "2026-04-15T18:22:31.000Z",
+    "release": {
+        "id": 123456,
+        "version": "1.0.0",
+        "status": "open",
+        "shortVersion": "1.0.0",
+        "versionInfo": {
+            "package": None,
+            "version": {"raw": "1.0.0"},
+            "description": "1.0.0",
+            "buildHash": None,
+        },
+        "ref": None,
+        "url": None,
+        "dateReleased": "2026-04-15T18:00:00Z",
+        "dateCreated": "2026-04-15T18:00:00Z",
+        "data": {},
+        "newGroups": 0,
+        "owner": None,
+        "commitCount": 0,
+        "lastCommit": None,
+        "deployCount": 0,
+        "lastDeploy": None,
+        "authors": [],
+        "projects": [
+            {"id": 1, "slug": "my-project", "name": "my-project", "platform": "python"}
+        ],
+        "firstEvent": "2026-04-15T18:05:00Z",
+        "lastEvent": "2026-04-15T18:30:00Z",
+        "currentProjectMeta": {},
+    },
+    "os": {"name": "Linux", "version": "5.15.0", "build_number": ""},
+    "device": {"architecture": "x86_64"},
+    "runtime": {"name": "CPython", "version": "3.13.0"},
+    "profile": {
+        "samples": [
+            {"stack_id": 0, "thread_id": 1, "elapsed_since_start_ns": 1_000_000},
+        ],
+        "stacks": [[0, 1]],
+        "frames": [
+            {"function": "main", "module": "app.main", "in_app": True, "lineno": 10},
+            {"function": "do_work", "module": "app.worker", "in_app": True, "lineno": 42},
+        ],
+        "thread_metadata": {"1": {"name": "MainThread"}},
+    },
+    "transaction": {
+        "name": "GET /api/0/projects/{org}/{proj}/files/dsyms/",
+        "trace_id": "0123456789abcdef0123456789abcdef",
+        "id": "9b29bbe17e9d4ee3a6d0fe9b2e8a3b1c",
+        "active_thread_id": 1,
+    },
+}
+
+
 class ProfilingExamples:
     FLAMEGRAPH = [
         OpenApiExample(
             "Return a flamegraph for the organization",
             value=FLAMEGRAPH_RESPONSE,
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    PROFILE_DETAILS = [
+        OpenApiExample(
+            "Return a single profile by ID",
+            value=PROFILE_DETAILS_RESPONSE,
             response_only=True,
             status_codes=["200"],
         )
