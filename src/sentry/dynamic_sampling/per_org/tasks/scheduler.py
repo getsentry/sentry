@@ -53,7 +53,6 @@ def _next_bucket_index() -> int:
 @track_dynamic_sampling
 def schedule_per_org_calculations() -> None:
     bucket_index = _next_bucket_index()
-
     bucket_tag = {"bucket_index": str(bucket_index)}
     dispatched = 0
     skipped = 0
