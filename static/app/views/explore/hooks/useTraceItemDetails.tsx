@@ -2,7 +2,10 @@ import {useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Meta} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -41,7 +44,7 @@ interface UseTraceItemDetailsProps {
    */
   enabled?: boolean;
   /**
-   * Optional unix timestamp to disambiguate trace item lookup.
+   * Optional Unix timestamp in seconds to disambiguate trace item lookup.
    */
   timestamp?: number;
 }
@@ -82,9 +85,24 @@ type TraceItemDetailsUrlParams = {
 
 type TraceItemDetailsQueryParams = {
   referrer: string;
-  timestamp: number | undefined;
   traceId: string;
   traceItemType: TraceItemDataset;
+  end?: string;
+  start?: string;
+  statsPeriod?: string | null;
+  timestamp?: number;
+  utc?: string;
+};
+
+type TraceItemDetailsApiQuery = {
+  item_type: TraceItemDataset;
+  referrer: string;
+  trace_id: string;
+  end?: string;
+  start?: string;
+  statsPeriod?: string | null;
+  timestamp?: number;
+  utc?: string;
 };
 
 export type TraceItemResponseAttribute =
@@ -98,6 +116,7 @@ export type TraceItemResponseAttribute =
  */
 export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const {fetching} = useProjects();
   const project = useProjectFromId({project_id: props.projectId});
   const enabled = (props.enabled ?? true) && !!project;
@@ -109,9 +128,14 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
     );
   }
 
+  const timeQueryParams =
+    props.timestamp === undefined
+      ? normalizeDateTimeParams(selection.datetime)
+      : {timestamp: props.timestamp};
+
   const queryParams: TraceItemDetailsQueryParams = {
     referrer: props.referrer,
-    timestamp: props.timestamp,
+    ...timeQueryParams,
     traceItemType: props.traceItemType,
     traceId: props.traceId,
   };
@@ -143,13 +167,26 @@ function traceItemDetailsQueryKey({
   queryParams: TraceItemDetailsQueryParams;
   urlParams: TraceItemDetailsUrlParams;
 }): ApiQueryKey {
-  const query: Record<string, unknown> = {
+  const query: TraceItemDetailsApiQuery = {
     item_type: queryParams.traceItemType,
     referrer: queryParams.referrer,
     trace_id: queryParams.traceId,
   };
 
-  if (queryParams.timestamp !== undefined) {
+  if (queryParams.timestamp === undefined) {
+    if (defined(queryParams.statsPeriod)) {
+      query.statsPeriod = queryParams.statsPeriod;
+    }
+    if (defined(queryParams.start)) {
+      query.start = queryParams.start;
+    }
+    if (defined(queryParams.end)) {
+      query.end = queryParams.end;
+    }
+    if (defined(queryParams.utc)) {
+      query.utc = queryParams.utc;
+    }
+  } else {
     query.timestamp = queryParams.timestamp;
   }
 

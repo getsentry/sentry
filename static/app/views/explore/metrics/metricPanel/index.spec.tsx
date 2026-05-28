@@ -349,7 +349,7 @@ describe('MetricPanel', () => {
     expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
   });
 
-  it('fetches trace meta for expanded samples with the row timestamp', async () => {
+  it('fetches expanded sample details with the row timestamp', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = metricFixtures.detailedFixtures[0]!;
     const timestamp = new Date(row.timestamp).getTime() / 1000;

@@ -1,0 +1,143 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+describe('useTraceItemDetails', () => {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({id: '1', slug: 'project-slug'});
+
+  function initializePageFilters(
+    datetime: Parameters<typeof PageFiltersStore.onInitializeUrlState>[0]['datetime']
+  ) {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [Number(project.id)],
+      environments: [],
+      datetime,
+    });
+  }
+
+  function addTraceItemDetailsMock() {
+    return MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/item-id/`,
+      body: {
+        itemId: 'item-id',
+        links: null,
+        meta: {},
+        timestamp: '2025-04-03T15:50:10.000Z',
+        attributes: [],
+      },
+    });
+  }
+
+  function renderTraceItemDetailsHook(timestamp?: number) {
+    return renderHookWithProviders(
+      () =>
+        useTraceItemDetails({
+          projectId: project.id,
+          traceItemId: 'item-id',
+          traceId: '1234567890abcdef1234567890abcdef',
+          traceItemType: TraceItemDataset.LOGS,
+          referrer: 'api.explore.log-item-details',
+          timestamp,
+        }),
+      {organization}
+    );
+  }
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    act(() => ProjectsStore.loadInitialData([project]));
+  });
+
+  it('uses timestamp instead of page filter datetime when timestamp is passed', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    renderTraceItemDetailsHook(123);
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      timestamp: 123,
+    });
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty(
+      'statsPeriod'
+    );
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('start');
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('end');
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('utc');
+  });
+
+  it('uses page filter relative datetime when timestamp is not passed', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    renderTraceItemDetailsHook();
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      statsPeriod: '14d',
+    });
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('timestamp');
+  });
+
+  it('uses page filter absolute datetime when timestamp is not passed', async () => {
+    initializePageFilters({
+      period: null,
+      start: '2025-04-03T15:00:00.000Z',
+      end: '2025-04-03T16:00:00.000Z',
+      utc: true,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    renderTraceItemDetailsHook();
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      start: '2025-04-03T15:00:00.000',
+      end: '2025-04-03T16:00:00.000',
+      utc: 'true',
+    });
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('timestamp');
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty(
+      'statsPeriod'
+    );
+  });
+
+  it('passes zero as a valid timestamp', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    renderTraceItemDetailsHook(0);
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      timestamp: 0,
+    });
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty(
+      'statsPeriod'
+    );
+  });
+});
