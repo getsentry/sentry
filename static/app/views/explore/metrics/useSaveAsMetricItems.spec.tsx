@@ -10,6 +10,7 @@ import * as modal from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
 import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
@@ -24,10 +25,17 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/actionCreators/modal');
+jest.mock('sentry/views/discover/utils');
 
 const mockedUseLocation = jest.mocked(useLocation);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
+const mockHandleAddQueryToDashboard = jest.mocked(
+  discoverUtils.handleAddQueryToDashboard
+);
+const mockHandleAddMultipleQueriesToDashboard = jest.mocked(
+  discoverUtils.handleAddMultipleQueriesToDashboard
+);
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
@@ -205,6 +213,170 @@ describe('useSaveAsMetricItems', () => {
           label: 'A: p50, p75(metric.a)',
         }),
       ])
+    );
+  });
+
+  it('disables equations in add-to-dashboard without the feature flag', () => {
+    const equation =
+      'equation|sum(value,metric.a,counter,none) + avg(value,metric.a,counter,none)';
+    const encodedMetricQuery = encodeMetricQueryParams({
+      metric: {name: 'metric.a', type: 'counter'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeEquation(equation)],
+        aggregateSortBys: [{field: equation, kind: 'desc'}],
+        cursor: '',
+        fields: [],
+        sortBys: [],
+      }),
+      label: 'ƒ1',
+    });
+
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({
+        query: {
+          interval: '5m',
+          metric: [encodedMetricQuery],
+        },
+      })
+    );
+
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
+
+    const addToDashboardItem = result.current.find(
+      item => item.key === 'add-to-dashboard'
+    ) as
+      | {children?: Array<{disabled: boolean; key: string; tooltip: string}>}
+      | undefined;
+
+    const equationChild = addToDashboardItem?.children?.find(
+      item => item.key === 'add-to-dashboard-0'
+    );
+
+    expect(equationChild?.disabled).toBe(true);
+    expect(equationChild?.tooltip).toBe(
+      'Equations cannot currently be added to a dashboard'
+    );
+  });
+
+  it('enables equations in add-to-dashboard with the feature flag', () => {
+    const orgWithEquationsInDashboards = OrganizationFixture({
+      features: [
+        'tracemetrics-enabled',
+        'tracemetrics-equations-in-alerts',
+        'tracemetrics-equations-in-dashboards',
+      ],
+    });
+
+    // Break the equation into its components to match how metric queries are encoded:
+    // sum, avg, and the final equation combining them.
+    const function1 = new VisualizeFunction('sum(value,metric.a,counter,none)');
+    const function2 = new VisualizeFunction('avg(value,metric.a,counter,none)');
+    const equation = `equation|${function1.yAxis} + ${function2.yAxis}`;
+    const equationObj = new VisualizeEquation(equation);
+
+    const metricFunctions = [function1, function2, equationObj];
+    const encodedMetricQueries = metricFunctions.map(fn =>
+      encodeMetricQueryParams({
+        metric: {name: 'metric.a', type: 'counter'},
+        queryParams: new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.AGGREGATE,
+          query: 'release:1.2.3',
+          aggregateCursor: '',
+          aggregateFields: [fn],
+          aggregateSortBys: [{field: fn.yAxis, kind: 'desc'}],
+          cursor: '',
+          fields: [],
+          sortBys: [],
+        }),
+      })
+    );
+
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({
+        query: {
+          interval: '5m',
+          metric: encodedMetricQueries,
+        },
+      })
+    );
+
+    function createWrapperWithEquationFlags() {
+      return function ({children}: {children?: React.ReactNode}) {
+        return (
+          <OrganizationContext.Provider value={orgWithEquationsInDashboards}>
+            <QueryClientProvider client={queryClient}>
+              <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
+            </QueryClientProvider>
+          </OrganizationContext.Provider>
+        );
+      };
+    }
+
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapperWithEquationFlags(),
+      initialProps: {
+        interval: '5m',
+      },
+    });
+
+    const addToDashboardItem = result.current.find(
+      item => item.key === 'add-to-dashboard'
+    ) as
+      | {
+          children?: Array<{
+            disabled: boolean;
+            key: string;
+            label: string;
+            onAction: () => void;
+            tooltip: string | undefined;
+          }>;
+        }
+      | undefined;
+
+    const equationChild = addToDashboardItem?.children?.find(
+      item => item.key === 'add-to-dashboard-2'
+    );
+
+    expect(equationChild?.label).toBe('ƒ1');
+    expect(equationChild?.disabled).toBe(false);
+    expect(equationChild?.tooltip).toBeUndefined();
+
+    equationChild?.onAction?.();
+
+    expect(mockHandleAddQueryToDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventView: expect.objectContaining({
+          yAxis: equation,
+        }),
+        yAxis: equation,
+      })
+    );
+
+    mockHandleAddQueryToDashboard.mockClear();
+    mockHandleAddMultipleQueriesToDashboard.mockClear();
+
+    const addAllToDashboard = addToDashboardItem?.children?.find(
+      item => item.key === 'add-to-dashboard-all'
+    );
+
+    addAllToDashboard?.onAction?.();
+
+    expect(mockHandleAddMultipleQueriesToDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventViews: expect.arrayContaining([
+          expect.objectContaining({
+            yAxis: equation,
+          }),
+        ]),
+      })
     );
   });
 

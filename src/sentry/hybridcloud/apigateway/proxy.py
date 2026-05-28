@@ -55,6 +55,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-project-preprod-artifact-download": 90.0,
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-download": 90.0,
 }
 
 # stream 0.5 MB at a time
@@ -147,7 +148,7 @@ def proxy_error_embed_request(
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
-    metric_tags = {"region": cell.name, "url_name": url_name}
+    metric_tags = {"destination_cell": cell.name, "url_name": url_name}
     circuit_breaker: CircuitBreaker | None = None
     use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
 

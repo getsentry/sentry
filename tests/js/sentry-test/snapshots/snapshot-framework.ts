@@ -1,11 +1,13 @@
 import type {ReactElement} from 'react';
 
 import {closeBrowser, takeSnapshot} from './snapshot';
+import type {SnapshotTestMetadata} from './snapshot-image-metadata';
 
 interface SnapshotDetails {
   displayName: string;
   fileSlug: string;
   group: string | null;
+  theme: string | undefined;
 }
 
 /**
@@ -26,20 +28,23 @@ function parseSnapshotDetails(testName: string, fallbackName: string): SnapshotD
       displayName: fallbackName,
       fileSlug: fallbackName.toLowerCase(),
       group: null,
+      theme: undefined,
     };
   }
 
-  const group = parts[0]!.trim().replace(/\s+/g, '/');
+  const ancestry = parts[0]!.trim();
+  const group = ancestry.replace(/\s+/g, '/');
   const displayName = parts[1]!.trim();
   const fileSlug = `${group}/${displayName}`.replace(/\s+/g, '').toLowerCase();
+  const themeMatch = ancestry.match(/\b(light|dark)\b/);
 
-  return {displayName, fileSlug, group};
+  return {displayName, fileSlug, group, theme: themeMatch?.[1]};
 }
 
 function snapshotTest(
   name: string,
   renderFn: () => ReactElement,
-  metadata: Record<string, string> = {}
+  metadata: SnapshotTestMetadata = {}
 ): void {
   test(`snapshot: ${name}`, async () => {
     const {testPath, currentTestName} = expect.getState();
@@ -47,17 +52,15 @@ function snapshotTest(
       throw new Error('Could not determine test file path');
     }
 
-    const {displayName, fileSlug, group} = parseSnapshotDetails(
-      currentTestName ?? '',
-      name
-    );
+    const details = parseSnapshotDetails(currentTestName ?? '', name);
 
     await takeSnapshot({
-      fileSlug,
-      displayName,
+      fileSlug: details.fileSlug,
+      displayName: details.displayName,
       renderFn,
       testFilePath: testPath,
-      group,
+      group: details.group,
+      theme: details.theme,
       metadata,
     });
   });
@@ -67,7 +70,7 @@ snapshotTest.each = function snapshotEach<T>(table: T[]) {
   return (
     name: string,
     renderFn: (value: T) => ReactElement,
-    metadataFn?: (value: T) => Record<string, string>
+    metadataFn?: (value: T) => SnapshotTestMetadata
   ) => {
     for (const value of table) {
       const testName = name.replace('%s', String(value));
@@ -91,7 +94,7 @@ declare global {
         ) => (
           name: string,
           renderFn: (value: T) => ReactElement,
-          metadataFn?: (value: T) => Record<string, string>
+          metadataFn?: (value: T) => SnapshotTestMetadata
         ) => void;
       };
     }

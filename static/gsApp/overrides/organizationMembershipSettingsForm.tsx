@@ -206,16 +206,16 @@ export function OrganizationMembershipSettingsForm({
           confirm={value =>
             value
               ? t(
-                  'This will allow any members of your organization to create, edit, and delete alert rules in all projects. Do you want to continue?'
+                  'This will allow any members of your organization to create, edit, and delete monitors and alert rules in all projects. Do you want to continue?'
                 )
               : undefined
           }
         >
           {field => (
             <field.Layout.Row
-              label={t('Let Members Create and Edit Alerts')}
+              label={t('Let Members Create and Edit Monitors and Alerts')}
               hintText={t(
-                'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+                'Allow members to create, edit, and delete monitors and alert rules by granting them the `alerts:write` scope.'
               )}
             >
               <field.Switch

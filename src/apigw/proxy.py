@@ -1,10 +1,11 @@
 import asyncio
+import time
 from typing import Any, AsyncIterator
 from urllib.parse import urljoin
 
 import httpx
 import prometheus_client
-from emmett55 import response
+from emmett55 import Pipe, current, response
 
 from . import app
 from .circuitbreaker import (
@@ -31,6 +32,7 @@ TIMEOUT_OVERRIDES = [
     (["/files/dsyms/"], 90.0),
     (["/installablepreprodartifact/"], 90.0),
     (["/objectstore/"], 90.0),
+    (["/preprodartifacts/snapshots/", "/download/"], 90.0),
 ]
 
 
@@ -70,6 +72,27 @@ metric_cb_overflow = prometheus_client.Counter(
 metric_cb_reject = prometheus_client.Counter(
     "apigw_proxy_circuitbreaker_rejected", "Circuitbreaker rejected", labelnames=["target"]
 )
+metric_latency = prometheus_client.Histogram(
+    "apigw_proxy_latency",
+    "Latency histogram (ms)",
+    labelnames=["target"],
+    buckets=app.config.proxy.latency_buckets,
+)
+
+
+class ProxyLatencyPipe(Pipe):
+    @staticmethod
+    def track(target: str) -> None:
+        current._proxy_latency_data = (target, time.perf_counter_ns())
+
+    async def open_request(self) -> None:
+        current._proxy_latency_data = None
+
+    async def close_request(self) -> None:
+        if not current._proxy_latency_data:
+            return
+        target, ts = current._proxy_latency_data
+        metric_latency.labels(target=target).observe((time.perf_counter_ns() - ts) / 1_000_000)
 
 
 def build_proxied_headers(request: Any, target: str) -> list[tuple[str, str]]:
@@ -153,6 +176,7 @@ async def proxy_cell_request(cell: Cell, request: Any) -> Any:
                     content=request.body,
                     timeout=timeout,
                 )
+                ProxyLatencyPipe.track(cell.name)
                 resp = await proxy_client.send(req, stream=True, follow_redirects=False)
                 if resp.status_code >= 502:
                     circuitbreaker.incr_failures()
@@ -197,6 +221,7 @@ async def proxy_control_request(request: Any) -> Any:
             content=request.body,
             timeout=app.config.proxy.timeout,
         )
+        ProxyLatencyPipe.track("control")
         resp = await proxy_client.send(req, stream=True, follow_redirects=False)
         return await adapt_response(resp)
     except asyncio.CancelledError:

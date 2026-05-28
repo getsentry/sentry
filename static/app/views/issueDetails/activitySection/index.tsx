@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,7 +17,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
@@ -31,9 +31,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -45,6 +45,74 @@ function getAuthorName(item: GroupActivity) {
     return item.user.name;
   }
   return 'Sentry';
+}
+
+function getActivityMarker(item: GroupActivity, color: string) {
+  if (item.sentry_app) {
+    return (
+      <AvatarMarker color={color}>
+        <SentryAppAvatar
+          data-test-id="sentry-app-activity-marker"
+          sentryApp={item.sentry_app}
+          size={22}
+        />
+      </AvatarMarker>
+    );
+  }
+  if (item.user) {
+    return (
+      <AvatarMarker color={color}>
+        <UserAvatar data-test-id="user-activity-marker" user={item.user} size={22} />
+      </AvatarMarker>
+    );
+  }
+  return <SentryMarker color={color} data-test-id="sentry-activity-marker" />;
+}
+
+function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
+  const defaultConfig = {
+    title: theme.tokens.content.primary,
+    icon: theme.tokens.content.secondary,
+    iconBorder: theme.tokens.content.secondary,
+  };
+
+  switch (type) {
+    case GroupActivityType.SET_RESOLVED:
+    case GroupActivityType.SET_RESOLVED_BY_AGE:
+    case GroupActivityType.SET_RESOLVED_IN_RELEASE:
+    case GroupActivityType.SET_RESOLVED_IN_COMMIT:
+    case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST:
+    case GroupActivityType.MARK_REVIEWED:
+    case GroupActivityType.SEER_RCA_COMPLETED:
+    case GroupActivityType.SEER_SOLUTION_COMPLETED:
+    case GroupActivityType.SEER_CODING_COMPLETED:
+    case GroupActivityType.SEER_PR_CREATED:
+      return {
+        ...defaultConfig,
+        icon: theme.tokens.graphics.success.vibrant,
+        iconBorder: theme.tokens.border.success.vibrant,
+      };
+    case GroupActivityType.SET_UNRESOLVED:
+    case GroupActivityType.SET_REGRESSION:
+      return {
+        ...defaultConfig,
+        icon: theme.tokens.graphics.danger.vibrant,
+        iconBorder: theme.tokens.border.danger.vibrant,
+      };
+    case GroupActivityType.SET_ESCALATING:
+    case GroupActivityType.SET_PRIORITY:
+      return {
+        ...defaultConfig,
+        icon: theme.tokens.graphics.warning.vibrant,
+        iconBorder: theme.tokens.border.warning.vibrant,
+      };
+    case GroupActivityType.SET_IGNORED:
+      return {
+        ...defaultConfig,
+      };
+    default:
+      return defaultConfig;
+  }
 }
 
 function TimelineItem({
@@ -65,8 +133,11 @@ function TimelineItem({
   teams: Team[];
 }) {
   const organization = useOrganization();
+  const theme = useTheme();
   const [editing, setEditing] = useState(false);
+  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
   const authorName = getAuthorName(item);
+  const colorConfig = getActivityColorConfig(theme, item.type);
   const {title, message} = getGroupActivityItem(
     item,
     organization,
@@ -77,8 +148,12 @@ function TimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const Icon = iconMapping?.componentFunction
-    ? iconMapping.componentFunction({
+  const componentFunction =
+    useTwoColumnLayout && item.type === GroupActivityType.NOTE
+      ? undefined
+      : iconMapping?.componentFunction;
+  const Icon = componentFunction
+    ? componentFunction({
         data: item.data,
         user: item.user,
         sentry_app: item.sentry_app,
@@ -102,6 +177,8 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
+      marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
+      colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
         Icon && (
           <Icon
@@ -127,9 +204,7 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper size={size}>
-          <NoteBody text={message} />
-        </NoteWrapper>
+        <NoteBody text={message} />
       ) : (
         <Text as="div" size={size}>
           {message}
@@ -295,7 +370,7 @@ export function ActivitySection({
 
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
   const visibleActivities = showSeerActivities
-    ? group.activity
+    ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
   const filteredActivities = visibleActivities.filter(
@@ -362,8 +437,11 @@ export function ActivitySection({
           ) : (
             <Fragment>
               {filteredActivities.slice(0, 3).map(renderActivityItem)}
-              <ActivityTimelineItem
-                title={
+              <MoreActivityRow>
+                <MoreActivityIcon>
+                  <RotatedEllipsisIcon direction="up" />
+                </MoreActivityIcon>
+                <Container marginTop="xs">
                   <LinkButton
                     aria-label={t('View all activity')}
                     to={activityLink}
@@ -378,9 +456,8 @@ export function ActivitySection({
                   >
                     {t('View %s more', filteredActivities.length - 3)}
                   </LinkButton>
-                }
-                icon={<RotatedEllipsisIcon direction="up" />}
-              />
+                </Container>
+              </MoreActivityRow>
             </Fragment>
           )}
         </Timeline.Container>
@@ -398,7 +475,6 @@ const TitleTooltip = styled(Tooltip)`
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: center;
-  grid-template-columns: 22px minmax(50px, 1fr) auto;
 `;
 
 const Timestamp = styled(TimeSince)`
@@ -407,14 +483,75 @@ const Timestamp = styled(TimeSince)`
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
-  transform: rotate(90deg) translateY(1px);
+  position: relative;
+  left: 1px;
+  transform: rotate(90deg) translate(1px, 1px);
 `;
 
-const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
-  ${textStyles}
-  font-size: ${p => (p.size === 'md' ? p.theme.font.size.md : p.theme.font.size.sm)};
+const MoreActivityRow = styled('div')`
+  position: relative;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-column-gap: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.md} 0 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 50%;
+    bottom: 0;
+    width: 1px;
+    background: ${p => p.theme.tokens.background.primary};
+  }
+`;
+
+const MoreActivityIcon = styled('div')`
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  min-height: 22px;
+  color: ${p => p.theme.tokens.content.secondary};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const ActivityInputFrame = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
+  min-width: 0;
+`;
+
+const AvatarMarker = styled('span')<{color: string}>`
+  display: block;
+  position: relative;
+  border-radius: 100%;
+  line-height: 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 100%;
+    box-shadow: inset 0 0 0 2px ${p => p.color};
+    pointer-events: none;
+  }
+`;
+
+const SentryMarker = styled('span')<{color: string}>`
+  width: 12px;
+  height: 12px;
+  border-radius: 100%;
+  background: ${p => p.theme.tokens.background.primary};
+  display: grid;
+  place-items: center;
+
+  &::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 100%;
+    background: ${p => p.color};
+  }
 `;

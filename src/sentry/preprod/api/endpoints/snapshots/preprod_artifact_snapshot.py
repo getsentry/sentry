@@ -9,6 +9,7 @@ import pydantic
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,6 +22,10 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -32,6 +37,10 @@ from sentry.preprod.analytics import (
 )
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
+)
+from sentry.preprod.api.models.public.snapshots import (
+    SnapshotCreateResponseDict,
+    SnapshotDetailsResponseDict,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotApprover,
@@ -180,16 +189,40 @@ def _format_pydantic_error(e: pydantic.ValidationError) -> str:
     return f"Invalid image metadata: {msg}"
 
 
+@extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
 class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationReleasePermission,)
 
+    @extend_schema(
+        operation_id="Delete a Snapshot",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="snapshot_id",
+                type=str,
+                location="path",
+                required=True,
+                description="The ID of the snapshot to delete.",
+            ),
+        ],
+        request=None,
+        responses={204: None, 403: RESPONSE_FORBIDDEN, 404: RESPONSE_NOT_FOUND},
+    )
     def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+        """
+        Delete a snapshot and all associated data (images, comparisons, metrics).
+
+        This is a permanent, irreversible operation. The snapshot and its images
+        will no longer be accessible after deletion.
+
+        This endpoint requires a bearer token with `project:write` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", organization, actor=request.user
         ):
@@ -246,7 +279,49 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         return Response(status=204)
 
+    @extend_schema(
+        operation_id="Retrieve Snapshot details",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="snapshot_id",
+                type=str,
+                location="path",
+                required=True,
+                description="The ID of the snapshot.",
+            ),
+            OpenApiParameter(
+                name="compact_metadata",
+                type=str,
+                location="query",
+                required=False,
+                description="Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, and description only.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SnapshotDetailsResponse", SnapshotDetailsResponseDict
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=PreprodExamples.GET_SNAPSHOT_DETAILS,
+    )
     def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+        """
+        Retrieve full details for a snapshot, including categorized image lists
+        and comparison status.
+
+        When a comparison exists, images are categorized into `changed`, `added`,
+        `removed`, `renamed`, `unchanged`, `errored`, and `skipped` lists with
+        counts. Without a comparison, only the `images` list is populated.
+
+        Use `compact_metadata=1` to strip image objects down to `display_name`,
+        `image_file_name`, `group`, and `description` only.
+
+        This endpoint requires a bearer token with `project:read` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", organization, actor=request.user
         ):
@@ -529,11 +604,12 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         return Response(response_data)
 
 
+@extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
 class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -545,7 +621,33 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         }
     )
 
+    @extend_schema(
+        operation_id="Upload a Snapshot",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SnapshotCreateResponse", SnapshotCreateResponseDict
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=PreprodExamples.CREATE_SNAPSHOT,
+    )
     def post(self, request: Request, project: Project) -> Response:
+        """
+        Upload a new snapshot with image metadata.
+
+        The request body is a JSON object containing `app_id` (required),
+        `images` (required, a mapping of filenames to image metadata objects),
+        and optional VCS fields (`head_sha`, `base_sha`, `provider`,
+        `head_repo_name`, `head_ref`, `base_repo_name`, `base_ref`, `pr_number`).
+
+        When VCS info with a `base_sha` is provided and a matching base snapshot
+        exists, a comparison is automatically triggered.
+
+        This endpoint requires a bearer token with `project:write` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", project.organization, actor=request.user
         ):

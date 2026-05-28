@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
+import {IconBug} from 'sentry/icons/iconBug';
 import {IconLab} from 'sentry/icons/iconLab';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
@@ -16,6 +17,7 @@ const defaultTitles: Record<FeatureBadgeProps['type'], string> = {
   experimental: t(
     'This feature is experimental! Try it out and let us know what you think. No promises!'
   ),
+  debug: t('This UI is for debugging purposes only'),
 };
 
 const variantMap: Record<FeatureBadgeProps['type'], TagVariant> = {
@@ -23,6 +25,7 @@ const variantMap: Record<FeatureBadgeProps['type'], TagVariant> = {
   beta: 'warning',
   new: 'success',
   experimental: 'muted',
+  debug: 'danger',
 };
 
 const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
@@ -30,10 +33,11 @@ const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
   beta: <IconLab isSolid size="xs" aria-hidden />,
   new: <IconBroadcast size="xs" aria-hidden />,
   experimental: <IconLab isSolid size="xs" aria-hidden />,
+  debug: <IconBug size="xs" aria-hidden />,
 };
 
 export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'> {
-  type: 'alpha' | 'beta' | 'new' | 'experimental';
+  type: 'alpha' | 'beta' | 'new' | 'experimental' | 'debug';
   tooltipProps?: Partial<TooltipProps>;
 }
 

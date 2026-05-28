@@ -532,7 +532,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## Enterprise
 /src/sentry/api/endpoints/oauth_userinfo.py                             @getsentry/foundations
 /src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/foundations
-/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/foundations
+/src/sentry/core/endpoints/organization_projects.py                     @getsentry/foundations
 /src/sentry/api/endpoints/organization_stats*.py                        @getsentry/foundations
 /src/sentry/api/endpoints/release_threshold*.py                         @getsentry/replay-backend
 /src/sentry/api/endpoints/user_social_identity*                         @getsentry/foundations
@@ -550,7 +550,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/settings/organizationAuth/                            @getsentry/foundations
 /static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/foundations
 /tests/sentry/api/endpoints/test_auth*.py                               @getsentry/foundations
-/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/foundations
+/tests/sentry/core/endpoints/test_organization_projects_create.py       @getsentry/foundations
 /tests/sentry/api/test_data_secrecy.py                                  @getsentry/foundations
 /tests/sentry/api/test_scim*.py                                         @getsentry/foundations
 /tests/sentry/auth/test_staff.py                                        @getsentry/foundations
@@ -583,8 +583,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## Telemetry Experience
-/src/sentry/autopilot/                                                           @getsentry/telemetry-experience
-/tests/sentry/autopilot/                                                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sampling_project_span_counts.py           @getsentry/telemetry-experience

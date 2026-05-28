@@ -104,7 +104,7 @@ export function NightShift({canWrite, project}: Props) {
       title={
         <Flex gap="xs" align="center">
           {t('Manually trigger night shift')}
-          <FeatureBadge type="alpha" />
+          <FeatureBadge type="debug" />
         </Flex>
       }
     >

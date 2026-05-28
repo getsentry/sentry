@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import orjson
 
-from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
-from sentry.spans.segment_key import SegmentKey
+from sentry.spans.buffer_types import (
+    EvalshaResult,
+    FlushCandidate,
+    InsertedSubsegment,
+    LoadedSegment,
+    SegmentIngestMetadata,
+    Span,
+    Subsegment,
+)
+from sentry.spans.segment_key import PayloadKey, SegmentKey
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
@@ -127,3 +135,33 @@ def test_inserted_subsegment_exposes_queue_and_cleanup_metadata() -> None:
     assert inserted.queue_shard == 3
     assert not inserted.is_detached_segment
     assert detached.is_detached_segment
+
+
+def test_segment_ingest_metadata_from_redis_results() -> None:
+    assert SegmentIngestMetadata.from_redis_results(b"3", b"42") == SegmentIngestMetadata(
+        ingested_count=3,
+        ingested_byte_count=42,
+    )
+    assert SegmentIngestMetadata.from_redis_results(None, None) == SegmentIngestMetadata()
+
+
+def test_loaded_segment_exposes_candidate_payloads_and_metadata() -> None:
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    queue_key = b"span-buf:q:0"
+    payload_key = PayloadKey(b"span-buf:s:{1:%s:salted}:salted" % (b"a" * 32))
+    payload = _payload("a" * 16)
+
+    loaded_segment = LoadedSegment(
+        FlushCandidate(0, queue_key, segment_key, 5),
+        payloads=[payload],
+        payload_keys=[payload_key],
+        ingest_metadata=SegmentIngestMetadata(1, len(payload)),
+    )
+
+    assert loaded_segment.segment_key == segment_key
+    assert loaded_segment.queue_key == queue_key
+    assert loaded_segment.shard == 0
+    assert loaded_segment.score == 5
+    assert loaded_segment.payloads == [payload]
+    assert loaded_segment.payload_keys == [payload_key]
+    assert loaded_segment.ingest_metadata == SegmentIngestMetadata(1, len(payload))

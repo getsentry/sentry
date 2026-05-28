@@ -20,7 +20,7 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {
   CallbackSearchState,
@@ -109,7 +109,7 @@ function ErrorsSearchBar({
   recentSearches,
   searchSource,
 }: ErrorsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer && onSearch) {
     return <IssueListSeerComboBox onSearch={onSearch} />;

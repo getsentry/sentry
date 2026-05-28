@@ -69,6 +69,7 @@ function makeBuild(
       images_removed: 0,
       images_changed: 3,
       images_unchanged: 19,
+      images_skipped: 0,
     },
     ...overrides,
   };
@@ -99,8 +100,7 @@ describe('PreprodBuildsSnapshotTable', () => {
     }
 
     it.snapshot('status-approved', () => renderTable(makeBuild()), {
-      theme: themeName,
-      state: 'status-approved',
+      tags: {area: 'snapshots'},
     });
 
     it.snapshot(
@@ -117,10 +117,11 @@ describe('PreprodBuildsSnapshotTable', () => {
               images_removed: 0,
               images_changed: 3,
               images_unchanged: 19,
+              images_skipped: 0,
             },
           })
         ),
-      {theme: themeName, state: 'status-needs-approval'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -137,10 +138,11 @@ describe('PreprodBuildsSnapshotTable', () => {
               images_removed: 0,
               images_changed: 0,
               images_unchanged: 0,
+              images_skipped: 0,
             },
           })
         ),
-      {theme: themeName, state: 'status-no-base-build'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -151,7 +153,7 @@ describe('PreprodBuildsSnapshotTable', () => {
             snapshot_comparison_info: undefined,
           })
         ),
-      {theme: themeName, state: 'status-no-comparison'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -168,10 +170,11 @@ describe('PreprodBuildsSnapshotTable', () => {
               images_removed: 0,
               images_changed: 0,
               images_unchanged: 20,
+              images_skipped: 0,
             },
           })
         ),
-      {theme: themeName, state: 'changes-no-changes'}
+      {tags: {area: 'snapshots'}}
     );
   });
 });
