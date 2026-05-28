@@ -407,7 +407,7 @@ const TagFilterSection = memo(function TagFilterSection({
         </Disclosure.Content>
       </TagDisclosure>
       {hasActiveFilter && (
-        <Flex gap="xs" wrap="wrap" padding="lg" paddingTop="0">
+        <Flex gap="xs" wrap="wrap" padding="sm lg">
           {Object.entries(activeTagFilters).map(([key, value]) => (
             <TagChip
               isActive
@@ -528,7 +528,6 @@ const TagDisclosure = styled(Disclosure)`
     }
   }
 `;
-
 const VirtualRowPositioner = styled('div')`
   position: absolute;
   top: 0;
