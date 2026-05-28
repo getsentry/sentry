@@ -49,7 +49,9 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DataConditionHandlerResponse]]:
         """
         Returns a list of data conditions for a given org
         """

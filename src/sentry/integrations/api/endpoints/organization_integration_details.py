@@ -73,7 +73,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         organization_context: RpcUserOrganizationContext,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[OrganizationIntegrationResponse]:
         org_integration = self.get_organization_integration(
             organization_context.organization.id, integration_id
         )
