@@ -531,7 +531,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(perf_group.id)
 
     def test_has_seer_last_run(self) -> None:
-        """Test filtering issues by whether they have seer_autofix_last_triggered set."""
+        """Test filtering issues by whether they have seer_explorer_autofix_last_triggered set."""
         event1 = self.store_event(
             data={
                 "fingerprint": ["no-seer-group"],
@@ -563,28 +563,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
 
-        # Query for issues that have seer_autofix_last_triggered set
+        # Query for issues that have seer_explorer_autofix_last_triggered set
         response = self.get_success_response(query="has:issue.seer_last_run")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group_with_legacy_seer.id)
+        assert response.data[0]["id"] == str(group_with_explorer_seer.id)
 
-        # Query for issues that do NOT have seer_autofix_last_triggered set
+        # Query for issues that do NOT have seer_explorer_autofix_last_triggered set
         response = self.get_success_response(query="!has:issue.seer_last_run")
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(group_with_explorer_seer.id)
+        assert response.data[0]["id"] == str(group_with_legacy_seer.id)
         assert response.data[1]["id"] == str(group_without_seer.id)
-
-        # Query for issues that have seer_explorer_autofix_last_triggered set
-        with self.feature("organizations:autofix-on-explorer"):
-            response = self.get_success_response(query="has:issue.seer_last_run")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(group_with_explorer_seer.id)
-
-            # Query for issues that do NOT have seer_explorer_autofix_last_triggered set
-            response = self.get_success_response(query="!has:issue.seer_last_run")
-            assert len(response.data) == 2
-            assert response.data[0]["id"] == str(group_with_legacy_seer.id)
-            assert response.data[1]["id"] == str(group_without_seer.id)
 
     def test_lookup_by_event_id(self) -> None:
         project = self.project
