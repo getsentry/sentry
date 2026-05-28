@@ -355,9 +355,6 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         """A project configured with an external handoff should return the agent,
         integration ID, and autoCreatePr from the handoff config."""
         self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
         self.project.update_option(
@@ -374,9 +371,6 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
     def test_get_external_agent_with_auto_create_pr(self) -> None:
         """autoCreatePr should reflect the handoff config value."""
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
