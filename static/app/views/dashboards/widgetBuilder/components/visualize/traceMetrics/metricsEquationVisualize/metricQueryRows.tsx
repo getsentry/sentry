@@ -67,14 +67,7 @@ export function MetricQueryRows({
   // restore this state after a mode or dataset toggle.
   useEffect(() => {
     if (equationSnapshot) {
-      equationSnapshot.current = {
-        queries: metricQueries.map(q => ({
-          metric: q.metric,
-          queryParams: q.queryParams,
-          label: q.label,
-        })),
-        selectedLabel,
-      };
+      equationSnapshot.current = {queries: metricQueries, selectedLabel};
     }
   }, [equationSnapshot, metricQueries, selectedLabel]);
   const referenceMap = useMetricReferences(metricQueries);
