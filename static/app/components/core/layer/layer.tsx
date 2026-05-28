@@ -11,7 +11,7 @@ interface LayerContextValue {
   variant: LayerVariant | null;
 }
 
-const LayerContext = createContext<LayerContextValue>({
+export const LayerContext = createContext<LayerContextValue>({
   variant: null,
   depth: 0,
   portalOutlet: null,

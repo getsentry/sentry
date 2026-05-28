@@ -1,5 +1,5 @@
 import {Fragment, PureComponent} from 'react';
-import {useTheme} from '@emotion/react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {AnimatePresence} from 'framer-motion';
@@ -8,6 +8,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {usePortalContainer} from '@sentry/scraps/layer';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -90,7 +91,7 @@ export function SaveAsDropdown({
   const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({
     position: 'bottom',
   });
-  const theme = useTheme();
+  const layerPortal = usePortalContainer();
 
   return (
     <div>
@@ -103,36 +104,39 @@ export function SaveAsDropdown({
       >
         {t('Save as')}
       </Button>
-      <AnimatePresence>
-        {isOpen && (
-          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-            <StyledOverlay arrowProps={arrowProps} animated>
-              <FocusScope contain restoreFocus autoFocus>
-                <form onSubmit={modifiedHandleCreateQuery}>
-                  <Flex gap="md" direction="column">
-                    <Input
-                      type="text"
-                      name="query_name"
-                      placeholder={t('Display name')}
-                      value={queryName || ''}
-                      onChange={onChangeInput}
-                      disabled={disabled}
-                    />
-                    <SaveAsButton
-                      type="submit"
-                      onClick={modifiedHandleCreateQuery}
-                      variant="primary"
-                      disabled={disabled || !queryName}
-                    >
-                      {t('Save for Organization')}
-                    </SaveAsButton>
-                  </Flex>
-                </form>
-              </FocusScope>
-            </StyledOverlay>
-          </PositionWrapper>
-        )}
-      </AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <PositionWrapper {...overlayProps}>
+              <StyledOverlay arrowProps={arrowProps} animated>
+                <FocusScope contain restoreFocus autoFocus>
+                  <form onSubmit={modifiedHandleCreateQuery}>
+                    <Flex gap="md" direction="column">
+                      <Input
+                        type="text"
+                        name="query_name"
+                        placeholder={t('Display name')}
+                        value={queryName || ''}
+                        onChange={onChangeInput}
+                        disabled={disabled}
+                      />
+                      <SaveAsButton
+                        type="submit"
+                        onClick={modifiedHandleCreateQuery}
+                        variant="primary"
+                        disabled={disabled || !queryName}
+                      >
+                        {t('Save for Organization')}
+                      </SaveAsButton>
+                    </Flex>
+                  </form>
+                </FocusScope>
+              </StyledOverlay>
+            </PositionWrapper>
+          )}
+        </AnimatePresence>,
+        layerPortal ?? document.body
+      )}
     </div>
   );
 }

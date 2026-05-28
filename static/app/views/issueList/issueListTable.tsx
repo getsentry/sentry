@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Layer} from '@sentry/scraps/layer';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -11,7 +12,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
@@ -102,8 +102,8 @@ export function IssueListTable({
                 groupIds={groupIds}
                 onActionTaken={onActionTaken}
               />
-              {(groupIds.length > 0 || issuesLoading) && (
-                <HoverOverlayGroupProvider>
+              <Layer variant="nav">
+                {(groupIds.length > 0 || issuesLoading) && (
                   <IssueListActions
                     selection={selection}
                     query={query}
@@ -116,9 +116,7 @@ export function IssueListTable({
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
                   />
-                </HoverOverlayGroupProvider>
-              )}
-              <HoverOverlayGroupProvider>
+                )}
                 <PanelBody>
                   <VisuallyCompleteWithData
                     hasData={groupIds.length > 0}
@@ -142,7 +140,7 @@ export function IssueListTable({
                     />
                   </VisuallyCompleteWithData>
                 </PanelBody>
-              </HoverOverlayGroupProvider>
+              </Layer>
             </ContainerPanel>
           </div>
         )}
