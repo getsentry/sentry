@@ -10,14 +10,16 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_get_returns_configured_urls(self) -> None:
+    def test_get_returns_configured_urls_and_enabled(self) -> None:
         ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://a.com\nhttp://b.com")
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
         response = self.get_success_response(
             self.organization.slug, self.project.slug, status_code=200
         )
 
         assert response.data["urls"] == ["http://a.com", "http://b.com"]
+        assert response.data["enabled"] is True
 
     def test_get_returns_empty_when_no_urls(self) -> None:
         response = self.get_success_response(
@@ -25,6 +27,33 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         )
 
         assert response.data["urls"] == []
+        assert response.data["enabled"] is False
+
+    def test_put_enables_webhooks(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            enabled=True,
+            status_code=200,
+        )
+
+        assert response.data["enabled"] is True
+        assert ProjectOption.objects.get_value(self.project, "webhooks:enabled") is True
+
+    def test_put_disables_webhooks(self) -> None:
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            enabled=False,
+            status_code=200,
+        )
+
+        assert response.data["enabled"] is False
+        assert ProjectOption.objects.get_value(self.project, "webhooks:enabled") is False
 
     def test_post_stores_valid_urls(self) -> None:
         response = self.get_success_response(

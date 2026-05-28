@@ -12,20 +12,22 @@ from sentry.models.project import Project
 from sentry.net.socket import is_valid_url
 from sentry.sentry_apps.services.legacy_webhook.service import split_urls
 
+_url_validator = URLValidator(schemes=["http", "https"])
 
-class LegacyWebhookUrlsSerializer(serializers.Serializer):
-    urls = serializers.ListField(
-        child=serializers.CharField(
-            max_length=2048, validators=[URLValidator(schemes=["http", "https"])]
-        ),
-        required=True,
-    )
+
+class LegacyWebhookUrlsSerializer(serializers.Serializer[None]):
+    urls = serializers.ListField(child=serializers.CharField(max_length=2048), required=True)
 
     def validate_urls(self, value: list[str]) -> list[str]:
         for url in value:
+            _url_validator(url)
             if not is_valid_url(url):
                 raise serializers.ValidationError("Not a valid URL.")
         return value
+
+
+class LegacyWebhookEnabledSerializer(serializers.Serializer[None]):
+    enabled = serializers.BooleanField(required=True)
 
 
 @cell_silo_endpoint
@@ -33,6 +35,7 @@ class ProjectLegacyWebhooksEndpoint(ProjectEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
@@ -40,7 +43,17 @@ class ProjectLegacyWebhooksEndpoint(ProjectEndpoint):
     def get(self, request: Request, project: Project) -> Response:
         urls_raw = ProjectOption.objects.get_value(project, "webhooks:urls", default="")
         urls = split_urls(urls_raw)
-        return Response({"urls": urls})
+        enabled = ProjectOption.objects.get_value(project, "webhooks:enabled", default=False)
+        return Response({"urls": urls, "enabled": enabled})
+
+    def put(self, request: Request, project: Project) -> Response:
+        serializer = LegacyWebhookEnabledSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        enabled = serializer.validated_data["enabled"]
+        ProjectOption.objects.set_value(project, "webhooks:enabled", enabled)
+        return Response({"enabled": enabled}, status=200)
 
     def post(self, request: Request, project: Project) -> Response:
         serializer = LegacyWebhookUrlsSerializer(data=request.data)
