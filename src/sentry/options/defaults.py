@@ -934,8 +934,6 @@ register(
 )
 
 
-# unused
-
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -949,8 +947,6 @@ register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MO
 # Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
 register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-
-# unused
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2785,9 +2781,6 @@ register(
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-
-# Sampling rates for testing Rust-based grouping enhancers
 
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
