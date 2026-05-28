@@ -37,6 +37,7 @@ from sentry.seer.entrypoints.types import (
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
 
@@ -448,12 +449,11 @@ class SeerOperatorTest(TestCase):
             },
         }
 
-        with self.feature("organizations:seer-activity-timeline"):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
 
         activity = Activity.objects.get(
             group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
@@ -474,12 +474,11 @@ class SeerOperatorTest(TestCase):
             },
         }
 
-        with self.feature("organizations:seer-activity-timeline"):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
 
         activity = Activity.objects.get(
             group=self.group, type=ActivityType.SEER_SOLUTION_COMPLETED.value
@@ -497,12 +496,11 @@ class SeerOperatorTest(TestCase):
             "code_changes": {"getsentry/sentry": [{"diff": "...", "path": "foo.py"}]},
         }
 
-        with self.feature("organizations:seer-activity-timeline"):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_CODING_COMPLETED,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_CODING_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
 
         activity = Activity.objects.get(
             group=self.group, type=ActivityType.SEER_CODING_COMPLETED.value
@@ -515,12 +513,11 @@ class SeerOperatorTest(TestCase):
     def test_create_seer_activity_all_mapped_event_types(self, _mock_has_access):
         for seer_event, expected_activity_type in SEER_EVENT_TO_ACTIVITY_TYPE.items():
             event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
-            with self.feature("organizations:seer-activity-timeline"):
-                process_autofix_updates(
-                    event_type=seer_event,
-                    event_payload=event_payload,
-                    organization_id=self.organization.id,
-                )
+            process_autofix_updates(
+                event_type=seer_event,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
             assert Activity.objects.filter(
                 group=self.group, type=expected_activity_type.value
             ).exists(), f"Activity not created for {seer_event}"
@@ -529,25 +526,25 @@ class SeerOperatorTest(TestCase):
     def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access):
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
-        with self.feature("organizations:seer-activity-timeline"):
-            process_autofix_updates(
-                event_type=SentryAppEventType.ISSUE_CREATED,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
+        process_autofix_updates(
+            event_type=SentryAppEventType.ISSUE_CREATED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
 
         seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
         assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_create_seer_activity_feature_flag_disabled(self, _mock_has_access):
+    def test_create_seer_activity_option_disabled(self, _mock_has_access):
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
-        process_autofix_updates(
-            event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
-            event_payload=event_payload,
-            organization_id=self.organization.id,
-        )
+        with override_options({"issues.record-seer-actions-as-activities": False}):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
 
         seer_type_values = [t.value for t in SEER_EVENT_TO_ACTIVITY_TYPE.values()]
         assert not Activity.objects.filter(group=self.group, type__in=seer_type_values).exists()
@@ -569,12 +566,11 @@ class SeerOperatorTest(TestCase):
             ],
         }
 
-        with self.feature("organizations:seer-activity-timeline"):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
 
         activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
         assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
