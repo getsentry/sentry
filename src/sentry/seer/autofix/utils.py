@@ -628,7 +628,7 @@ def build_repo_definition_from_project_repo(
     )
 
 
-def build_automation_handoff(
+def get_automation_handoff(
     get_option: Callable[[str], Any],
 ) -> SeerAutomationHandoffConfiguration | None:
     """Build a SeerAutomationHandoffConfiguration from option key/value pairs, or None if incomplete."""
@@ -668,7 +668,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
         project_id=project.id,
         repositories=repo_definitions,
         automated_run_stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
-        automation_handoff=build_automation_handoff(project.get_option),
+        automation_handoff=get_automation_handoff(project.get_option),
         autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
@@ -719,7 +719,7 @@ def bulk_read_preferences_from_sentry_db(
             automated_run_stopping_point=_get_project_option(
                 "sentry:seer_automated_run_stopping_point"
             ),
-            automation_handoff=build_automation_handoff(_get_project_option),
+            automation_handoff=get_automation_handoff(_get_project_option),
             autofix_automation_tuning=_get_project_option("sentry:autofix_automation_tuning"),
         )
 
