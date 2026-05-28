@@ -250,9 +250,12 @@ class TraceEvent:
             offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
             for group_id in self.event["occurrence_to_issue_id"][problem.id]:
                 if group_id not in memoized_groups:
-                    memoized_groups[group_id] = Group.objects.get(
-                        id=group_id, project=self.event["project.id"]
-                    )
+                    try:
+                        memoized_groups[group_id] = Group.objects.get(
+                            id=group_id, project=self.event["project.id"]
+                        )
+                    except Group.DoesNotExist:
+                        continue
                 group = memoized_groups[group_id]
                 if event_span.get("span_id") in offender_span_ids:
                     start_timestamp = float(event_span["precise.start_ts"])
@@ -360,7 +363,7 @@ class TraceEvent:
                             control_data=occurrence_ids,
                             experimental_data=eap_occurrence_ids,
                             callsite=callsite,
-                            is_experimental_data_a_null_result=len(eap_occurrence_ids) == 0,
+                            is_experimental_data_nullish=len(eap_occurrence_ids) == 0,
                             reasonable_match_comparator=lambda snuba, eap: {
                                 row["occurrence_id"] for row in eap
                             }.issubset({row["occurrence_id"] for row in snuba}),
@@ -827,7 +830,7 @@ def query_trace_data(
             control_data=transformed_results[1],
             experimental_data=eap_errors,
             callsite=errors_callsite,
-            is_experimental_data_a_null_result=len(eap_errors) == 0,
+            is_experimental_data_nullish=len(eap_errors) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),

@@ -23,14 +23,15 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   findSpanAttributeValue,
@@ -78,6 +79,7 @@ export function Attributes({
   const [searchQuery, setSearchQuery] = useState('');
   const {selection} = usePageFilters();
   const currentLocation = useLocation();
+  const navigate = useNavigate();
   const traceState = useTraceState();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
@@ -187,10 +189,15 @@ export function Attributes({
   // a JSON-encoded array. NOTE: This happens a lot because EAP doesn't support
   // array values, so SDKs often store array values as JSON-encoded strings.
   sortedAndFilteredAttributes.forEach(attribute => {
-    if (Object.hasOwn(customRenderers, attribute.name)) return;
-    if (attribute.type !== 'str') return;
-    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value))
+    if (Object.hasOwn(customRenderers, attribute.name)) {
       return;
+    }
+    if (attribute.type !== 'str') {
+      return;
+    }
+    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value)) {
+      return;
+    }
 
     customRenderers[attribute.name] = jsonRenderer;
   });
@@ -228,6 +235,7 @@ export function Attributes({
               rendererExtra={{
                 theme,
                 location,
+                navigate,
                 organization,
               }}
               getCustomActions={getTraceAttributesTreeActions({

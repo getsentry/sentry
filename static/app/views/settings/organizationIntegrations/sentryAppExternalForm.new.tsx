@@ -120,8 +120,12 @@ function cloneSchemaFields(
       // would otherwise render unbounded. Honor schema-provided values when
       // present.
       if (nextField.type === 'textarea') {
-        if (nextField.maxRows === undefined) nextField.maxRows = 10;
-        if (nextField.autosize === undefined) nextField.autosize = true;
+        if (nextField.maxRows === undefined) {
+          nextField.maxRows = 10;
+        }
+        if (nextField.autosize === undefined) {
+          nextField.autosize = true;
+        }
       }
 
       if (nextField.default && getFieldDefault) {
@@ -148,16 +152,6 @@ function cloneFieldGroups(fieldGroups: FieldGroups): FieldGroups {
     required_fields: cloneSchemaFields(fieldGroups.required_fields),
     optional_fields: cloneSchemaFields(fieldGroups.optional_fields),
   };
-}
-
-function normalizeChoices(
-  choices: readonly Choice[] | undefined
-): Array<[string, string]> {
-  return (
-    choices?.map(
-      ([value, label]) => [String(value), choiceLabelToString(label)] as [string, string]
-    ) ?? []
-  );
 }
 
 function omitValues(
@@ -242,11 +236,8 @@ function updateSchemaFieldChoices(
   fieldName: string,
   choices: Choices
 ): FieldGroups {
-  const normalizedChoices = normalizeChoices(choices);
   const updateGroup = (fields?: FieldFromSchema[]) =>
-    fields?.map(field =>
-      field.name === fieldName ? {...field, choices: normalizedChoices} : field
-    ) ?? [];
+    fields?.map(field => (field.name === fieldName ? {...field, choices} : field)) ?? [];
 
   return {
     required_fields: updateGroup(fieldGroups.required_fields),
@@ -271,26 +262,27 @@ function choiceLabelToString(label: Choice[1]) {
 function mergeFieldChoices(
   field: FieldFromSchema,
   resetValues: ResetValues | undefined
-): Array<[string, string]> {
-  const choices = normalizeChoices(field.choices);
+): Choices {
+  const choices = field.choices ?? [];
 
   const savedSetting = getSavedSetting(resetValues, field.name);
   const savedValue = savedSetting?.value;
   if (
     (typeof savedValue === 'string' || typeof savedValue === 'number') &&
     savedSetting?.label &&
-    !choices.some(([value]) => value === String(savedValue))
+    !choices.some(([value]) => String(value) === String(savedValue))
   ) {
-    return [[String(savedValue), savedSetting.label], ...choices];
+    return [[savedValue, savedSetting.label], ...choices];
   }
 
   return choices;
 }
 
-function toSelectValues(
-  choices: ReadonlyArray<[string, string]>
-): Array<SelectValue<string>> {
-  return choices.map(([value, label]) => ({value, label}));
+function toSelectValues(choices: Choices): Array<SelectValue<string>> {
+  return choices.map(([value, label]) => ({
+    value: value as unknown as string,
+    label: choiceLabelToString(label),
+  }));
 }
 
 function getBaseFieldDefaultValue(
@@ -496,13 +488,17 @@ export function SentryAppExternalFormNew({
 
       while (triggerQueue.length > 0) {
         const trigger = triggerQueue.shift()!;
-        if (processedTriggers.has(trigger)) continue;
+        if (processedTriggers.has(trigger)) {
+          continue;
+        }
         processedTriggers.add(trigger);
 
         const dependentFields = getAllSchemaFields(workingFieldGroups).filter(
           field => field.depends_on?.includes(trigger) && !fetchedFields.has(field.name)
         );
-        if (!dependentFields.length) continue;
+        if (!dependentFields.length) {
+          continue;
+        }
 
         for (const field of dependentFields) {
           fetchedFields.add(field.name);
@@ -528,21 +524,27 @@ export function SentryAppExternalFormNew({
           }))
         );
 
-        if (requestVersion !== dependentFetchVersionRef.current) return null;
+        if (requestVersion !== dependentFetchVersionRef.current) {
+          return null;
+        }
 
         const folded = foldChoiceResults(workingFieldGroups, workingDefaults, results);
         workingFieldGroups = folded.updatedFieldGroups;
         workingDefaults = folded.nextDefaultValues;
 
         for (const result of results) {
-          if (result.defaultValue === undefined) continue;
+          if (result.defaultValue === undefined) {
+            continue;
+          }
           // Preserve saved/user values: only apply a fetched defaultValue if
           // the field doesn't already have an effective value. Without this
           // check, the mount-time cascade clobbers a saved selection (e.g.
           // alert-rule-action settings round-tripping from the DB) with the
           // schema's default, and the next BFS iteration fetches its
           // dependents with the wrong parent value.
-          if (hasValue(workingValues[result.fieldName])) continue;
+          if (hasValue(workingValues[result.fieldName])) {
+            continue;
+          }
           workingValues = {...workingValues, [result.fieldName]: result.defaultValue};
           triggerQueue.push(result.fieldName);
         }
@@ -624,7 +626,9 @@ export function SentryAppExternalFormNew({
       }
     }
     const seedTriggers = Object.keys(initialFieldValues);
-    if (!seedTriggers.length) return;
+    if (!seedTriggers.length) {
+      return;
+    }
 
     const requestVersion = dependentFetchVersionRef.current + 1;
     dependentFetchVersionRef.current = requestVersion;
@@ -758,7 +762,15 @@ export function SentryAppExternalFormNew({
           };
         case 'select':
           return {
-            choices: mergeFieldChoices(field, normalizedResetValues),
+            // The adapter types choices as [string, string], but react-select
+            // round-trips the original value type at runtime — see
+            // BackendJsonSubmitForm's transformChoices which only renames
+            // tuple positions to {value, label}. Cast so a schema choice with
+            // a numeric value (e.g. an integration's project/board ID) reaches
+            // the wire with its type preserved.
+            choices: mergeFieldChoices(field, normalizedResetValues) as Array<
+              [string, string]
+            >,
             default: defaultValue,
             disabled,
             help: field.help,
@@ -829,15 +841,10 @@ export function SentryAppExternalFormNew({
 
             setAsyncOptionsCache(prev => ({
               ...prev,
-              [field.name]: normalizeChoices(choices),
+              [field.name]: choices,
             }));
 
-            return toSelectValues(
-              choices.map(
-                ([value, label]) =>
-                  [String(value), choiceLabelToString(label)] as [string, string]
-              )
-            );
+            return toSelectValues(choices);
           },
         });
     }
@@ -894,7 +901,9 @@ export function SentryAppExternalFormNew({
         directlyImpactedNames
       );
       const nextDefaultValues = {...externalDefaultValues};
-      for (const name of directlyImpactedNames) delete nextDefaultValues[name];
+      for (const name of directlyImpactedNames) {
+        delete nextDefaultValues[name];
+      }
 
       currentFormValuesRef.current = nextCurrentValues;
       setIsFetchingDependentFields(true);
@@ -908,7 +917,9 @@ export function SentryAppExternalFormNew({
           initialValues: nextCurrentValues,
           requestVersion,
         });
-        if (!cascadeResult) return;
+        if (!cascadeResult) {
+          return;
+        }
         allImpactedNames = cascadeResult.impactedNames;
 
         // Only apply newly-resolved defaults for the impacted fields.

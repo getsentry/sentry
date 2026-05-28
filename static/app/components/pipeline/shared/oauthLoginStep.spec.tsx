@@ -197,7 +197,7 @@ describe('OAuthLoginStep', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows loading state when isLoading is true', () => {
+  it('shows busy state when isLoading is true', () => {
     render(
       <OAuthLoginStep
         serviceName="GitLab"
@@ -207,6 +207,9 @@ describe('OAuthLoginStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Authorize GitLab'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 });

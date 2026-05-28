@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from collections.abc import Mapping
 from datetime import datetime
@@ -13,6 +15,8 @@ from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 from django.conf import settings
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -25,6 +29,11 @@ from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
+
+
+def get_dedupe_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
+    cluster = settings.SENTRY_SPAN_DEDUPE_CLUSTER or settings.SENTRY_SPAN_BUFFER_CLUSTER
+    return redis.redis_clusters.get_binary(cluster)
 
 
 def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
@@ -49,7 +58,7 @@ def _check_span_duplicates(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     filter_duplicates = options.get("spans.process-segments.dedupe-filter-enable")
 
     try:
-        client = redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
+        client = get_dedupe_redis_client()
         with client.pipeline(transaction=False) as p:
             for span in spans:
                 dedupe_key = f"segments-consumer:dedupe:{span['project_id']}:{span['trace_id']}:{span['span_id']}"

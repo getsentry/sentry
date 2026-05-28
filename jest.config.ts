@@ -39,6 +39,8 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  MERGE_BASE,
+  MERGE_BASE_STRATEGY,
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
@@ -46,8 +48,12 @@ const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 const optionalTags: {
   balancer?: boolean;
   balancer_strategy?: string;
+  merge_base: string;
+  merge_base_strategy: string;
 } = {
   balancer: false,
+  merge_base: MERGE_BASE || '',
+  merge_base_strategy: MERGE_BASE_STRATEGY || 'full',
 };
 
 if (!!JEST_TEST_BALANCER && !CI) {
@@ -64,13 +70,9 @@ if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
     const listTestArguments = ['exec', 'jest', '--listTests', '--json'];
 
-    if (process.env.MERGE_BASE) {
-      console.log('MERGE_BASE detected:', process.env.MERGE_BASE);
-      listTestArguments.push(
-        '--changedSince',
-        process.env.MERGE_BASE,
-        '--passWithNoTests'
-      );
+    if (MERGE_BASE) {
+      console.log('MERGE_BASE detected:', MERGE_BASE);
+      listTestArguments.push('--changedSince', MERGE_BASE, '--passWithNoTests');
     }
 
     const stdout = execFileSync('pnpm', listTestArguments, {
@@ -311,7 +313,7 @@ const config: Config.InitialOptions = {
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
-  passWithNoTests: !!process.env.MERGE_BASE,
+  passWithNoTests: !!MERGE_BASE,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
@@ -321,7 +323,15 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
   ],
   testMatch: testMatch || ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/tests/sentry/lang/javascript/',
+    // ESM-style helper scripts (e.g. scripts/genPlatformProductInfo.ts use
+    // `const __dirname = path.dirname(fileURLToPath(import.meta.url))`) that
+    // SWC's CJS transform redeclares — collides with Node's module wrapper.
+    // None of these are tests; keep them out of Jest's discovery entirely.
+    '<rootDir>/scripts/',
+  ],
+  modulePathIgnorePatterns: ['<rootDir>/scripts/'],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',

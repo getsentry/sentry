@@ -21,11 +21,6 @@ describe('Subscription > Notifications', () => {
       body: {reservedPercent: [90], perProductOndemandPercent: [80, 50]},
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
     });
@@ -53,7 +48,11 @@ describe('Subscription > Notifications', () => {
   it('renders', async () => {
     render(<Notifications subscription={subscription} />, {organization});
 
-    expect(await screen.findByText('Manage Spend Notifications')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Receive notifications when your organization's usage exceeds a threshold"
+      )
+    ).toBeInTheDocument();
   });
 
   it('redirects without flag', () => {

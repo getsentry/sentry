@@ -1,5 +1,6 @@
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -87,7 +88,9 @@ function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
   const [activeId, setActiveId] = useState('');
 
   useLayoutEffect(() => {
-    if (entries.length === 0) return void 0;
+    if (entries.length === 0) {
+      return void 0;
+    }
 
     const observer = new IntersectionObserver(
       intersectionEntries => {
@@ -175,7 +178,9 @@ export function StoryTableOfContents() {
   const nestedEntries = useMemo(() => nestContentEntries(entries), [entries]);
   const [activeId, setActiveId] = useActiveSection(entries);
 
-  if (nestedEntries.length === 0) return null;
+  if (nestedEntries.length === 0) {
+    return null;
+  }
 
   return (
     <StoryIndexContainer>
@@ -312,7 +317,7 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
 
   ${p =>
     p.isActive &&
-    `
+    css`
       &::before {
         content: '';
         display: block;

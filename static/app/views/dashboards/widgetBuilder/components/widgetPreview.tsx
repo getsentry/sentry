@@ -101,7 +101,6 @@ export function WidgetPreview({
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
       isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
-      organization={organization}
       selection={pageFilters.selection}
       widget={
         widget.widgetType === WidgetType.SPANS && isTimeSeries

@@ -3,11 +3,11 @@ import {useCallback} from 'react';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsTimeseriesRequest} from 'sentry/views/explore/logs/useLogsTimeseriesRequest';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {
@@ -24,7 +24,7 @@ interface UseLogsTimeseriesImplOptions {
 }
 
 interface UseLogsTimeseriesOptions extends UseLogsTimeseriesImplOptions {
-  tableData: ReturnType<typeof useLogsPageDataQueryResult>;
+  tableData: UseInfiniteLogsQueryResult;
 }
 
 export function useLogsTimeseries({

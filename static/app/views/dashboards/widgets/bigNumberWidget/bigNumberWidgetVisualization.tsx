@@ -8,6 +8,7 @@ import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
@@ -57,6 +58,7 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
   }
 
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   // Create old-school renderer meta, so we can pass it to field renderers
@@ -76,6 +78,7 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
 
   const baggage = {
     location,
+    navigate,
     organization,
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };

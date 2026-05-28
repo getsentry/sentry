@@ -32,7 +32,6 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
@@ -849,7 +848,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rules")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, suggested_api="/api/0/organizations/:slug/workflows/")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-workflow-index"
+    )
     def get(self, request: Request, project: Project) -> Response:
         """
         ## Deprecated
@@ -865,24 +866,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         """
         expand = request.GET.getlist("expand", ["lastTriggered"])
 
-        queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
-        serializer: WorkflowEngineRuleSerializer | RuleSerializer
-        if features.has(
-            "organizations:workflow-engine-issue-alert-endpoints-get", project.organization
-        ) or features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            queryset = Workflow.objects.filter(
-                detectorworkflow__detector__project=project,
-                status=ObjectStatus.ACTIVE,
-            ).distinct()
-            serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
-        else:
-            queryset = Rule.objects.filter(
-                project=project,
-                status=ObjectStatus.ACTIVE,
-            ).select_related("project")
-            # Mark that we're using legacy Rule models
-            report_used_legacy_models()
-            serializer = RuleSerializer(expand=expand, project_slug=project.slug)
+        queryset = Workflow.objects.filter(
+            detectorworkflow__detector__project=project,
+            status=ObjectStatus.ACTIVE,
+        ).distinct()
+        serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
 
         return self.paginate(
             request=request,
@@ -909,7 +897,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
-        suggested_api="/api/0/organizations/:slug/workflows/",
+        suggested_api="sentry-api-0-organization-workflow-index",
     )
     def post(self, request: Request, project) -> Response:
         """
@@ -1076,7 +1064,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "organizations:workflow-engine-issue-alert-endpoints-post", project.organization
         ):
             try:
-                workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+                workflow = AlertRuleWorkflow.objects.get(
+                    rule_id=rule.id,
+                    workflow__organization=project.organization,
+                ).workflow
                 return Response(
                     serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
                     status=201,

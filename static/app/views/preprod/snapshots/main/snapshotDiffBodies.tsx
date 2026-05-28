@@ -1,4 +1,5 @@
 import {memo, type ReactNode, useCallback, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -325,8 +326,6 @@ function LazyImage({
         ref={refCallback}
         src={src}
         alt={alt}
-        loading="lazy"
-        decoding="async"
         width={width || undefined}
         height={height || undefined}
         onLoad={onLoad}
@@ -367,7 +366,12 @@ const ImageSizer = styled('div')<{$aspectRatio?: string; $naturalWidth?: number}
   width: ${p => (p.$naturalWidth ? `${p.$naturalWidth}px` : '100%')};
   max-width: 100%;
   max-height: ${MAX_IMAGE_HEIGHT}px;
-  ${p => (p.$aspectRatio ? `aspect-ratio: ${p.$aspectRatio};` : '')}
+  ${p =>
+    p.$aspectRatio
+      ? css`
+          aspect-ratio: ${p.$aspectRatio};
+        `
+      : ''}
   display: flex;
   justify-content: center;
   overflow: visible;
