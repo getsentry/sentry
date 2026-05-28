@@ -40,8 +40,6 @@ function renderSidebar(sections: SidebarSection[]) {
       activeStatuses={new Set()}
       onToggleStatus={noop}
       availableTags={new Map()}
-      activeTagFilters={{}}
-      onToggleTagFilter={noop}
     />
   );
 }

@@ -10,6 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
+import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SidebarGroup {
@@ -67,12 +68,10 @@ const SECTION_HEADER_HEIGHT = 28;
 
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
-  activeTagFilters: Record<string, string>;
   availableTags: Map<string, Map<string, number>>;
   onSearchChange: (query: string) => void;
   onSelectItem: (itemKey: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
-  onToggleTagFilter: (key: string, value: string) => void;
   searchQuery: string;
   sections: SidebarSection[];
   activeItemKey?: string | null;
@@ -89,8 +88,6 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   activeStatuses,
   onToggleStatus,
   availableTags,
-  activeTagFilters,
-  onToggleTagFilter,
 }: SnapshotSidebarContentProps) {
   const hasActiveFilter = activeStatuses.size > 0;
   const isStatusActive = (status: DiffStatus) =>
@@ -207,13 +204,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
-      {availableTags.size > 0 && (
-        <TagFilterSection
-          availableTags={availableTags}
-          activeTagFilters={activeTagFilters}
-          onToggleTagFilter={onToggleTagFilter}
-        />
-      )}
+      {availableTags.size > 0 && <TagFilterSection availableTags={availableTags} />}
       <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
         {hasGroups ? (
           <div
@@ -355,13 +346,10 @@ function StatusPill({
 
 const TagFilterSection = memo(function TagFilterSection({
   availableTags,
-  activeTagFilters,
-  onToggleTagFilter,
 }: {
-  activeTagFilters: Record<string, string>;
   availableTags: Map<string, Map<string, number>>;
-  onToggleTagFilter: (key: string, value: string) => void;
 }) {
+  const {activeTagFilters, onToggleTagFilter} = useTagFilters()!;
   const hasActiveFilter = Object.keys(activeTagFilters).length > 0;
   const sortedKeys = useMemo(() => [...availableTags.keys()].sort(), [availableTags]);
 

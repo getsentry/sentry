@@ -7,18 +7,14 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
+import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
 
 const ONE_ROW_HEIGHT = 20;
 
-export function CollapsibleBadgeRow({
-  tags,
-  onTagClick,
-  activeTagFilters,
-}: {
-  tags: Record<string, string>;
-  activeTagFilters?: Record<string, string>;
-  onTagClick?: (key: string, value: string) => void;
-}) {
+export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
+  const tagFilters = useTagFilters();
+  const onTagClick = tagFilters?.onToggleTagFilter;
+  const activeTagFilters = tagFilters?.activeTagFilters;
   const [expanded, setExpanded] = useState(false);
   const [overflowCount, setOverflowCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);

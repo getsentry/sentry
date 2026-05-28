@@ -62,8 +62,6 @@ export const PairCard = memo(function PairCard({
   onOpenSnapshot,
   onCopyLink,
   onCopyMetadata,
-  onTagClick,
-  activeTagFilters,
 }: {
   copyUrl: string;
   diffMode: DiffMode;
@@ -71,14 +69,12 @@ export const PairCard = memo(function PairCard({
   isSelected: boolean;
   pair: SnapshotDiffPair;
   snapshotKey: string;
-  activeTagFilters?: Record<string, string>;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
-  onTagClick?: (key: string, value: string) => void;
   overlayColor?: string;
 }) {
   const [isDark, setIsDark] = useState(false);
@@ -152,8 +148,6 @@ export const PairCard = memo(function PairCard({
           showBottomBorder={false}
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
-          onTagClick={onTagClick}
-          activeTagFilters={activeTagFilters}
         />
         <Container padding="0 xl xl">{body}</Container>
       </SnapshotVariantFrame>
@@ -173,8 +167,6 @@ export const ImageCard = memo(function ImageCard({
   onOpenSnapshot,
   onCopyLink,
   onCopyMetadata,
-  onTagClick,
-  activeTagFilters,
 }: {
   cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
   copyUrl: string;
@@ -182,13 +174,11 @@ export const ImageCard = memo(function ImageCard({
   imageBaseUrl: string;
   isSelected: boolean;
   snapshotKey: string;
-  activeTagFilters?: Record<string, string>;
   copyData?: unknown;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
-  onTagClick?: (key: string, value: string) => void;
 }) {
   const [isDark, setIsDark] = useState(false);
   const imageUrl = `${imageBaseUrl}${image.key}/`;
@@ -242,8 +232,6 @@ export const ImageCard = memo(function ImageCard({
           showBottomBorder={false}
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
-          onTagClick={onTagClick}
-          activeTagFilters={activeTagFilters}
         />
         <Container padding="0 xl xl">
           <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
@@ -267,21 +255,17 @@ export const CardHeader = memo(function CardHeader({
   showBottomBorder = true,
   onCopyLink,
   onCopyMetadata,
-  onTagClick,
-  activeTagFilters,
 }: {
   copyData: unknown;
   copyUrl: string;
   fileName: string;
   isDark: boolean;
   onToggleDark: () => void;
-  activeTagFilters?: Record<string, string>;
   diffPercent?: number | null;
   displayName?: string | null;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onDoubleClick?: () => void;
-  onTagClick?: (key: string, value: string) => void;
   showBottomBorder?: boolean;
   status?: DiffStatus | null;
   tags?: Record<string, string> | null;
@@ -326,13 +310,7 @@ export const CardHeader = memo(function CardHeader({
           <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
         </Flex>
       </Flex>
-      {tags && Object.keys(tags).length > 0 && (
-        <CollapsibleBadgeRow
-          tags={tags}
-          onTagClick={onTagClick}
-          activeTagFilters={activeTagFilters}
-        />
-      )}
+      {tags && Object.keys(tags).length > 0 && <CollapsibleBadgeRow tags={tags} />}
     </CardHeaderRow>
   );
 });

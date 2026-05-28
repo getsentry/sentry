@@ -49,6 +49,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
 
 function imageGroupKey(img: SnapshotImage): string {
@@ -352,6 +353,11 @@ export default function SnapshotsPage() {
       return result;
     });
   }, []);
+
+  const tagFilterContextValue = useMemo(
+    () => ({activeTagFilters, onToggleTagFilter: handleToggleTagFilter}),
+    [activeTagFilters, handleToggleTagFilter]
+  );
 
   // Pre-computed lowercase text per image/pair for fast substring search filtering
   const memberSearchKeys = useMemo(
@@ -740,74 +746,72 @@ export default function SnapshotsPage() {
   };
 
   const snapshotContent = (
-    <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
-      <Flex
-        flexShrink={0}
-        overflow="auto"
-        borderRight="primary"
-        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
-        maxWidth={{sm: '300px', md: 'none'}}
-        style={{
-          width: sidebarWidth,
-          height: hasPageFrameFeature
-            ? 'calc(100dvh - var(--top-bar-height, 53px))'
-            : 'calc(100vh - 205px)',
-        }}
-      >
-        <SnapshotSidebarContent
-          sections={sidebarSections}
-          activeItemKey={activeItemKey}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSelectItem={handleSelectItem}
-          statusCounts={statusCounts}
-          activeStatuses={activeStatuses}
-          onToggleStatus={handleToggleStatus}
-          availableTags={availableTags}
-          activeTagFilters={activeTagFilters}
-          onToggleTagFilter={handleToggleTagFilter}
-        />
+    <TagFilterProvider value={tagFilterContextValue}>
+      <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
+        <Flex
+          flexShrink={0}
+          overflow="auto"
+          borderRight="primary"
+          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+          maxWidth={{sm: '300px', md: 'none'}}
+          style={{
+            width: sidebarWidth,
+            height: hasPageFrameFeature
+              ? 'calc(100dvh - var(--top-bar-height, 53px))'
+              : 'calc(100vh - 205px)',
+          }}
+        >
+          <SnapshotSidebarContent
+            sections={sidebarSections}
+            activeItemKey={activeItemKey}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectItem={handleSelectItem}
+            statusCounts={statusCounts}
+            activeStatuses={activeStatuses}
+            onToggleStatus={handleToggleStatus}
+            availableTags={availableTags}
+          />
+        </Flex>
+        <DragHandle
+          data-is-held={isHeld}
+          onMouseDown={onMouseDown}
+          onDoubleClick={onDoubleClick}
+        >
+          <IconGrabbable size="sm" />
+        </DragHandle>
+        <Flex flex="1" minWidth={0} overflow="hidden">
+          <SnapshotMainContent
+            selectedItem={singleViewItem}
+            variantIndex={singleViewVariantIndex}
+            imageBaseUrl={imageBaseUrl}
+            listViewRef={listViewRef}
+            diffImageBaseUrl={diffImageBaseUrl}
+            overlayColor={overlayColor}
+            onOverlayColorChange={setOverlayColor}
+            diffMode={effectiveDiffMode}
+            onDiffModeChange={setDiffMode}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            listItems={listItems}
+            hasDiffComparison={hasDiffComparison}
+            isSoloView={isSoloView}
+            onToggleSoloView={handleToggleView}
+            comparisonType={comparisonType}
+            headBranch={data?.vcs_info?.head_ref}
+            selectedSnapshotKey={selectedSnapshotKey}
+            onSelectSnapshot={setSelectedSnapshotKey}
+            onVisibleGroupChange={setVisibleItemKey}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            onNavigateSingleView={navigateSingleView}
+            canNavigatePrev={singleViewNav.canPrev}
+            canNavigateNext={singleViewNav.canNext}
+            navButtonRefs={navButtonRefs}
+          />
+        </Flex>
       </Flex>
-      <DragHandle
-        data-is-held={isHeld}
-        onMouseDown={onMouseDown}
-        onDoubleClick={onDoubleClick}
-      >
-        <IconGrabbable size="sm" />
-      </DragHandle>
-      <Flex flex="1" minWidth={0} overflow="hidden">
-        <SnapshotMainContent
-          selectedItem={singleViewItem}
-          variantIndex={singleViewVariantIndex}
-          imageBaseUrl={imageBaseUrl}
-          listViewRef={listViewRef}
-          diffImageBaseUrl={diffImageBaseUrl}
-          overlayColor={overlayColor}
-          onOverlayColorChange={setOverlayColor}
-          diffMode={effectiveDiffMode}
-          onDiffModeChange={setDiffMode}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          listItems={listItems}
-          hasDiffComparison={hasDiffComparison}
-          isSoloView={isSoloView}
-          onToggleSoloView={handleToggleView}
-          comparisonType={comparisonType}
-          headBranch={data?.vcs_info?.head_ref}
-          selectedSnapshotKey={selectedSnapshotKey}
-          onSelectSnapshot={setSelectedSnapshotKey}
-          onVisibleGroupChange={setVisibleItemKey}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          onNavigateSingleView={navigateSingleView}
-          canNavigatePrev={singleViewNav.canPrev}
-          canNavigateNext={singleViewNav.canNext}
-          navButtonRefs={navButtonRefs}
-          onTagClick={handleToggleTagFilter}
-          activeTagFilters={activeTagFilters}
-        />
-      </Flex>
-    </Flex>
+    </TagFilterProvider>
   );
 
   if (isPending) {

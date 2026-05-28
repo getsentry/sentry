@@ -71,8 +71,6 @@ describe('SnapshotSidebarContent', () => {
             activeStatuses={new Set()}
             onToggleStatus={noop}
             availableTags={new Map()}
-            activeTagFilters={{}}
-            onToggleTagFilter={noop}
           />
         </Wrapper>
       ),
@@ -93,8 +91,6 @@ describe('SnapshotSidebarContent', () => {
             activeStatuses={new Set()}
             onToggleStatus={noop}
             availableTags={new Map()}
-            activeTagFilters={{}}
-            onToggleTagFilter={noop}
           />
         </Wrapper>
       ),
@@ -114,8 +110,6 @@ describe('SnapshotSidebarContent', () => {
             activeStatuses={new Set([DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
             availableTags={new Map()}
-            activeTagFilters={{}}
-            onToggleTagFilter={noop}
           />
         </Wrapper>
       ),
@@ -135,8 +129,6 @@ describe('SnapshotSidebarContent', () => {
             activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
             availableTags={new Map()}
-            activeTagFilters={{}}
-            onToggleTagFilter={noop}
           />
         </Wrapper>
       ),
