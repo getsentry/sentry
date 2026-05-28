@@ -242,8 +242,6 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
     def test_put_automation_tuning(self, mock_is_seat_based) -> None:
         """Seat-based: automationTuning accepts off and medium."""
-        mock_is_seat_based.return_value = False
-
         response = self.client.put(self.url, data={"automationTuning": "off"}, format="json")
         assert response.status_code == 200
         assert (
