@@ -44,9 +44,26 @@ type Summary = {
   row_count: number;
   start: string;
   truncated: boolean;
+  unmatched_invoice_count: number;
+  unmatched_invoice_pct: number;
+  unmatched_truncated: boolean;
 };
 
-type ComparisonResponse = {rows: Row[]; summary: Summary};
+type UnmatchedSide = 'legacy_only' | 'platform_only';
+
+type UnmatchedRow = {
+  amount: number;
+  invoice_count: number;
+  organization_id: number;
+  organization_slug: string | null;
+  side: UnmatchedSide;
+};
+
+type ComparisonResponse = {
+  rows: Row[];
+  summary: Summary;
+  unmatched: UnmatchedRow[];
+};
 
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
   match: 'success',
@@ -135,12 +152,12 @@ export function InvoiceComparison() {
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
         <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
         window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). Only orgs that have invoices on <strong>both</strong> sides in the window
-        appear in the table; one-sided orgs are excluded from rows but counted in the
-        summary above. All invoices for an org are summed on each side with a count shown
-        in parentheses. Sorted by absolute % delta (relative to legacy), largest first —
-        rows where the percentage is undefined (legacy=$0 with non-zero platform) sort to
-        the top as ∞.
+        submit). The <strong>Unmatched</strong> summary stat is the percent of invoices in
+        the window that belong to one-sided orgs (legacy-only + platform-only / total) —
+        zero means perfect parity. The first table compares orgs with invoices on{' '}
+        <strong>both</strong> sides, sorted by absolute % delta (relative to legacy),
+        largest first. The second table lists one-sided orgs by absolute amount so you can
+        spot-check the worst missing invoices.
       </p>
 
       <Panel>
@@ -205,7 +222,7 @@ export function InvoiceComparison() {
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
               <Grid
-                columns="repeat(6, 1fr)"
+                columns="repeat(7, 1fr)"
                 gap="xl"
                 css={css`
                   @media (max-width: 900px) {
@@ -268,6 +285,18 @@ export function InvoiceComparison() {
                     )}
                   </Text>
                 </Flex>
+                <Flex direction="column">
+                  <Text size="sm" variant="muted">
+                    Unmatched
+                  </Text>
+                  <Text size="lg" bold>
+                    {formatPercent(data.summary.unmatched_invoice_pct)}
+                    <TruncatedNote size="sm" variant="muted">
+                      ({data.summary.unmatched_invoice_count} of{' '}
+                      {data.summary.legacy_count + data.summary.platform_count})
+                    </TruncatedNote>
+                  </Text>
+                </Flex>
               </Grid>
             </PanelBody>
           </Panel>
@@ -324,6 +353,57 @@ export function InvoiceComparison() {
                       <td>
                         <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader>
+              Unmatched orgs (one side only, sorted by |amount|)
+              {data.summary.unmatched_truncated && (
+                <TruncatedNote size="sm" variant="muted">
+                  showing top {data.unmatched.length} of{' '}
+                  {data.summary.unmatched_invoice_count}+
+                </TruncatedNote>
+              )}
+            </PanelHeader>
+            <PanelBody>
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Organization</th>
+                    <th>Side</th>
+                    <RightHeader>Amount</RightHeader>
+                    <RightHeader>Invoices</RightHeader>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.unmatched.length === 0 && (
+                    <tr>
+                      <td colSpan={4}>
+                        <em>No unmatched invoices in this range.</em>
+                      </td>
+                    </tr>
+                  )}
+                  {data.unmatched.map(row => (
+                    <tr key={`${row.side}-${row.organization_id}`}>
+                      <td>
+                        {row.organization_slug ? (
+                          <Link to={`/_admin/customers/${row.organization_slug}/`}>
+                            {row.organization_slug}
+                          </Link>
+                        ) : (
+                          <span>org#{row.organization_id}</span>
+                        )}
+                      </td>
+                      <td>
+                        <Tag variant="danger">{row.side}</Tag>
+                      </td>
+                      <RightCell>{formatDollars(row.amount)}</RightCell>
+                      <RightCell>{row.invoice_count}</RightCell>
                     </tr>
                   ))}
                 </tbody>
