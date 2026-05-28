@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
+from sentry.spans.buffer_logger import DeadlineUpdateLog
 from sentry.spans.buffer_types import (
     FlushCandidate,
     InsertedSubsegment,
@@ -24,6 +25,7 @@ add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 type RedisClient = RedisCluster[bytes] | StrictRedis[bytes]
 type PreparePayloads = Callable[[list[Span]], set[str | bytes]]
 type DecompressPayload = Callable[[bytes], list[bytes]]
+type GetDebugTraceLogger = Callable[[], Any]
 
 
 class SpansBufferStore:
@@ -162,6 +164,65 @@ class SpansBufferStore:
             InsertedSubsegment.from_redis_result(subsegment, redis_result)
             for subsegment, redis_result in zip(subsegments, redis_results)
         ]
+
+    def update_queue(
+        self,
+        trees: dict[tuple[str, str], list[Span]],
+        inserted_subsegments: Sequence[InsertedSubsegment],
+        *,
+        now: int,
+        redis_ttl: int,
+        timeout: int,
+        root_timeout: int,
+        get_debug_trace_logger: GetDebugTraceLogger,
+    ) -> None:
+        with metrics.timer("spans.buffer.process_spans.update_queue"):
+            queue_deletes: dict[QueueKey, set[bytes]] = {}
+            queue_adds: dict[QueueKey, MutableMapping[str | bytes, int]] = {}
+
+            for inserted_subsegment in inserted_subsegments:
+                subsegment = inserted_subsegment.subsegment
+                result = inserted_subsegment.result
+
+                queue_key = self.get_queue_key(inserted_subsegment.queue_shard)
+
+                # If the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than usual.
+                offset = root_timeout if result.has_root_span else timeout
+
+                zadd_items = queue_adds.setdefault(queue_key, {})
+
+                new_deadline = now + offset
+                zadd_items[result.segment_key] = new_deadline
+
+                DeadlineUpdateLog(
+                    segment_key=result.segment_key,
+                    project_and_trace=inserted_subsegment.project_and_trace,
+                    queue_key=queue_key,
+                    new_deadline=new_deadline,
+                    message_timestamp=now,
+                    has_root_span=result.has_root_span,
+                ).emit(self.client, get_debug_trace_logger)
+
+                delete_set = queue_deletes.setdefault(queue_key, set())
+                if not inserted_subsegment.is_detached_segment:
+                    delete_set.update(
+                        self.get_span_key(subsegment.project_and_trace, span.span_id)
+                        for span in trees[subsegment.key]
+                    )
+                delete_set.discard(result.segment_key)
+
+            with self.client.pipeline(transaction=False) as p:
+                for queue_key, adds in queue_adds.items():
+                    if adds:
+                        p.zadd(queue_key, adds)
+                        p.expire(queue_key, redis_ttl)
+
+                for queue_key, deletes in queue_deletes.items():
+                    if deletes:
+                        p.zrem(queue_key, *deletes)
+
+                p.execute()
 
     def acquire_flush_locks(
         self, flush_candidates: Sequence[FlushCandidate]

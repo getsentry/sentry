@@ -9,7 +9,13 @@ import orjson
 import zstandard
 
 from sentry.spans.buffer_store import SpansBufferStore
-from sentry.spans.buffer_types import FlushCandidate
+from sentry.spans.buffer_types import (
+    EvalshaResult,
+    FlushCandidate,
+    InsertedSubsegment,
+    Span,
+    Subsegment,
+)
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -60,6 +66,16 @@ class _StorageRedis:
 
     def zadd(self, key: bytes, mapping: dict[bytes, int]) -> None:
         self.zsets.setdefault(key, {}).update(mapping)
+
+    def zrem(self, key: bytes, *values: bytes) -> None:
+        for value in values:
+            self.zsets.get(key, {}).pop(value, None)
+
+    def zscore(self, key: bytes, value: bytes) -> float | None:
+        return self.zsets.get(key, {}).get(value)
+
+    def expire(self, key: bytes, ttl: int) -> None:
+        return None
 
     def smembers(self, key: bytes) -> builtins.set[bytes]:
         return self.sets.get(key, builtins.set())
@@ -129,6 +145,15 @@ class _StoragePipeline:
 
     def set(self, key: bytes, value: bytes | int, ex: int | None = None, nx: bool = False) -> None:
         self.commands.append(("set", (key, value, ex, nx)))
+
+    def zadd(self, key: bytes, mapping: dict[bytes, int]) -> None:
+        self.commands.append(("zadd", (key, mapping)))
+
+    def zrem(self, key: bytes, *values: bytes) -> None:
+        self.commands.append(("zrem", (key, *values)))
+
+    def expire(self, key: bytes, ttl: int) -> None:
+        self.commands.append(("expire", (key, ttl)))
 
     def zrangebyscore(
         self,
@@ -211,6 +236,172 @@ def test_acquire_flush_locks_returns_all_candidates_when_disabled() -> None:
         flush_candidates = storage.acquire_flush_locks([first_candidate, second_candidate])
 
     assert flush_candidates == [first_candidate, second_candidate]
+
+
+def test_update_queue_writes_deadlines_and_removes_stale_span_keys() -> None:
+    storage, client = _storage()
+    trace_id = "a" * 32
+    project_and_trace = f"1:{trace_id}"
+    parent_span_id = "f" * 16
+    queue_key = storage.get_queue_key(3)
+    first_span = Span(
+        trace_id=trace_id,
+        span_id="1" * 16,
+        parent_span_id=parent_span_id,
+        segment_id=None,
+        project_id=1,
+        payload=_payload("1" * 16),
+        partition=3,
+    )
+    second_span = Span(
+        trace_id=trace_id,
+        span_id="2" * 16,
+        parent_span_id=parent_span_id,
+        segment_id=None,
+        project_id=1,
+        payload=_payload("2" * 16),
+        partition=3,
+    )
+    subsegment = Subsegment(
+        project_and_trace=project_and_trace,
+        parent_span_id=parent_span_id,
+        salt="salted",
+        spans=[first_span],
+    )
+    segment_key = _segment_id(1, trace_id, parent_span_id)
+    result = EvalshaResult(
+        segment_key=segment_key,
+        has_root_span=True,
+        latency_ms=15,
+        latency_metrics=[],
+        gauge_metrics=[],
+    )
+    debug_trace_logger = mock.Mock()
+    debug_trace_logger._should_log_trace.return_value = True
+    client.zadd(
+        queue_key,
+        {
+            segment_key: 80,
+            storage.get_span_key(project_and_trace, first_span.span_id): 90,
+            storage.get_span_key(project_and_trace, second_span.span_id): 95,
+        },
+    )
+
+    storage.update_queue(
+        {subsegment.key: [first_span, second_span]},
+        [InsertedSubsegment(subsegment, result)],
+        now=100,
+        redis_ttl=3600,
+        timeout=60,
+        root_timeout=10,
+        get_debug_trace_logger=lambda: debug_trace_logger,
+    )
+
+    assert client.zsets[queue_key] == {segment_key: 110}
+    debug_trace_logger.log_deadline_update.assert_called_once_with(
+        segment_key=segment_key,
+        project_and_trace=project_and_trace,
+        old_deadline=80,
+        new_deadline=110,
+        message_timestamp=100,
+        has_root_span=True,
+    )
+
+
+def test_update_queue_uses_timeout_for_non_root_segments() -> None:
+    storage, client = _storage()
+    trace_id = "a" * 32
+    project_and_trace = f"1:{trace_id}"
+    parent_span_id = "f" * 16
+    queue_key = storage.get_queue_key(3)
+    span = Span(
+        trace_id=trace_id,
+        span_id="1" * 16,
+        parent_span_id=parent_span_id,
+        segment_id=None,
+        project_id=1,
+        payload=_payload("1" * 16),
+        partition=3,
+    )
+    subsegment = Subsegment(
+        project_and_trace=project_and_trace,
+        parent_span_id=parent_span_id,
+        salt="salted",
+        spans=[span],
+    )
+    segment_key = _segment_id(1, trace_id, parent_span_id)
+    result = EvalshaResult(
+        segment_key=segment_key,
+        has_root_span=False,
+        latency_ms=15,
+        latency_metrics=[],
+        gauge_metrics=[],
+    )
+    debug_trace_logger = mock.Mock()
+    debug_trace_logger._should_log_trace.return_value = False
+
+    storage.update_queue(
+        {subsegment.key: [span]},
+        [InsertedSubsegment(subsegment, result)],
+        now=100,
+        redis_ttl=3600,
+        timeout=60,
+        root_timeout=10,
+        get_debug_trace_logger=lambda: debug_trace_logger,
+    )
+
+    # Without a root span the deadline uses `timeout` (60), not `root_timeout` (10).
+    assert client.zsets[queue_key] == {segment_key: 160}
+
+
+def test_update_queue_keeps_child_span_keys_for_detached_segments() -> None:
+    storage, client = _storage()
+    trace_id = "a" * 32
+    project_and_trace = f"1:{trace_id}"
+    parent_span_id = "f" * 16
+    salt = "salted"
+    queue_key = storage.get_queue_key(3)
+    span = Span(
+        trace_id=trace_id,
+        span_id="1" * 16,
+        parent_span_id=parent_span_id,
+        segment_id=None,
+        project_id=1,
+        payload=_payload("1" * 16),
+        partition=3,
+    )
+    subsegment = Subsegment(
+        project_and_trace=project_and_trace,
+        parent_span_id=parent_span_id,
+        salt=salt,
+        spans=[span],
+    )
+    # A detached segment's key ends with the subsegment salt; its child span keys
+    # must be left in the queue rather than removed.
+    detached_segment_key = f"span-buf:s:{{1:{trace_id}:{salt}}}:{salt}".encode("ascii")
+    result = EvalshaResult(
+        segment_key=detached_segment_key,
+        has_root_span=False,
+        latency_ms=15,
+        latency_metrics=[],
+        gauge_metrics=[],
+    )
+    debug_trace_logger = mock.Mock()
+    debug_trace_logger._should_log_trace.return_value = False
+    span_key = storage.get_span_key(project_and_trace, span.span_id)
+    client.zadd(queue_key, {span_key: 90})
+
+    storage.update_queue(
+        {subsegment.key: [span]},
+        [InsertedSubsegment(subsegment, result)],
+        now=100,
+        redis_ttl=3600,
+        timeout=60,
+        root_timeout=10,
+        get_debug_trace_logger=lambda: debug_trace_logger,
+    )
+
+    assert client.zsets[queue_key] == {span_key: 90, detached_segment_key: 160}
 
 
 def test_load_payload_keys_from_distributed_keys() -> None:
