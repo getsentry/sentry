@@ -136,8 +136,6 @@ def _get_organization_from_context(context):
 
 
 def _is_themed_loader(context) -> bool:
-    if django_timezone.localtime().month != 6:
-        return False
     organization = _get_organization_from_context(context)
     if organization is None:
         return False
