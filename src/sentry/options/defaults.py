@@ -2708,6 +2708,12 @@ register(
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
+register(
+    "relocation.daily-limit.large",
+    default=0,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "profiling.killswitch.ingest-profiles",
