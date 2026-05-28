@@ -272,13 +272,14 @@ const AVG_FRAME_DELAY_WIDGET: PrebuiltWidget = {
 const ABOUT_THIS_PAGE_TEXT_WIDGET: PrebuiltWidget = {
   id: 'about-this-page-text',
   title: t('About this page'),
-  description: `Top-level widgets show overall app health: average app start, TTID/TTFD, rendering, and crash-free session metrics.
+  description:
+    t(`Top-level widgets show overall app health: average app start, TTID/TTFD, rendering, and crash-free session metrics.
 
 Tables show which screens contribute most to those metrics.
 
 App start metrics in this dashboard only include launches that open the app UI, not headless or background starts.
 
-[Read the Mobile Vitals docs](https://docs.sentry.io/product/dashboards/sentry-dashboards/mobile/mobile-vitals/) for detailed definitions of app start, TTID/TTFD, and frame metrics.`,
+[Read the Mobile Vitals docs](https://docs.sentry.io/product/insights/mobile/mobile-vitals/) for detailed definitions of app start, TTID/TTFD, and frame metrics.`),
   displayType: DisplayType.TEXT,
   interval: '1h',
   queries: [],
