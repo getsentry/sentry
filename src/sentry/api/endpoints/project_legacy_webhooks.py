@@ -1,3 +1,5 @@
+from django.core.validators import URLValidator
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,6 +11,21 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.net.socket import is_valid_url
 from sentry.sentry_apps.services.legacy_webhook.service import split_urls
+
+
+class LegacyWebhookUrlsSerializer(serializers.Serializer):
+    urls = serializers.ListField(
+        child=serializers.CharField(
+            max_length=2048, validators=[URLValidator(schemes=["http", "https"])]
+        ),
+        required=True,
+    )
+
+    def validate_urls(self, value: list[str]) -> list[str]:
+        for url in value:
+            if not is_valid_url(url):
+                raise serializers.ValidationError("Not a valid URL.")
+        return value
 
 
 @cell_silo_endpoint
@@ -26,16 +43,11 @@ class ProjectLegacyWebhooksEndpoint(ProjectEndpoint):
         return Response({"urls": urls})
 
     def post(self, request: Request, project: Project) -> Response:
-        urls = request.data.get("urls", [])
-        if not isinstance(urls, list):
-            return Response({"detail": "urls must be a list"}, status=400)
+        serializer = LegacyWebhookUrlsSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        for url in urls:
-            if not isinstance(url, str):
-                return Response({"detail": "Each URL must be a string"}, status=400)
-            if not url.startswith(("http://", "https://")) or not is_valid_url(url):
-                return Response({"detail": f"Invalid URL: {url}"}, status=400)
-
+        urls = serializer.validated_data["urls"]
         ProjectOption.objects.set_value(project, "webhooks:urls", "\n".join(urls))
         return Response({"urls": urls}, status=200)
 

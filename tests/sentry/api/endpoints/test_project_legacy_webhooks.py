@@ -48,7 +48,7 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
             status_code=400,
         )
 
-        assert "Invalid URL" in response.data["detail"]
+        assert "urls" in response.data
 
     def test_post_rejects_non_list(self) -> None:
         response = self.get_error_response(
@@ -59,7 +59,7 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
             status_code=400,
         )
 
-        assert response.data["detail"] == "urls must be a list"
+        assert "urls" in response.data
 
     def test_delete_clears_urls(self) -> None:
         ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://example.com")
