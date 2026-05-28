@@ -1,21 +1,35 @@
 from collections.abc import Callable
 from typing import Literal, overload
 
-from sentry.scm.types import CheckRunEvent, CommentEvent, PullRequestEvent
+from sentry.scm.types import (
+    CheckRunEvent,
+    CheckSuiteEvent,
+    CommentEvent,
+    PullRequestEvent,
+    PullRequestReviewEvent,
+)
 
 type CheckRunEventListener = Callable[[CheckRunEvent], None]
+type CheckSuiteEventListener = Callable[[CheckSuiteEvent], None]
 type CommentEventListener = Callable[[CommentEvent], None]
 type PullRequestEventListener = Callable[[PullRequestEvent], None]
+type PullRequestReviewEventListener = Callable[[PullRequestReviewEvent], None]
 
 
 class SourceCodeManagerEventStream:
     def __init__(self):
         self.check_run_listeners: dict[str, CheckRunEventListener] = {}
+        self.check_suite_listeners: dict[str, CheckSuiteEventListener] = {}
         self.comment_listeners: dict[str, CommentEventListener] = {}
         self.pull_request_listeners: dict[str, PullRequestEventListener] = {}
+        self.pull_request_review_listeners: dict[str, PullRequestReviewEventListener] = {}
 
     def listen_for_check_run(self, fn: CheckRunEventListener) -> CheckRunEventListener:
         self.check_run_listeners[fn.__name__] = fn
+        return fn
+
+    def listen_for_check_suite(self, fn: CheckSuiteEventListener) -> CheckSuiteEventListener:
+        self.check_suite_listeners[fn.__name__] = fn
         return fn
 
     def listen_for_comment(self, fn: CommentEventListener) -> CommentEventListener:
@@ -26,10 +40,21 @@ class SourceCodeManagerEventStream:
         self.pull_request_listeners[fn.__name__] = fn
         return fn
 
+    def listen_for_pull_request_review(
+        self, fn: PullRequestReviewEventListener
+    ) -> PullRequestReviewEventListener:
+        self.pull_request_review_listeners[fn.__name__] = fn
+        return fn
+
     @overload
     def listen_for(
         self, event_type: Literal["check_run"]
     ) -> Callable[[CheckRunEventListener], CheckRunEventListener]: ...
+
+    @overload
+    def listen_for(
+        self, event_type: Literal["check_suite"]
+    ) -> Callable[[CheckSuiteEventListener], CheckSuiteEventListener]: ...
 
     @overload
     def listen_for(
@@ -41,6 +66,11 @@ class SourceCodeManagerEventStream:
         self, event_type: Literal["pull_request"]
     ) -> Callable[[PullRequestEventListener], PullRequestEventListener]: ...
 
+    @overload
+    def listen_for(
+        self, event_type: Literal["pull_request_review"]
+    ) -> Callable[[PullRequestReviewEventListener], PullRequestReviewEventListener]: ...
+
     def listen_for(self, event_type: str):
         """
         Decorator to register a callback for a specific event type.
@@ -50,6 +80,10 @@ class SourceCodeManagerEventStream:
             def handle_check_run(event: CheckRunEvent) -> None:
                 ...
 
+            @scm_event_stream.listen_for(event_type="check_suite")
+            def handle_check_suite(event: CheckSuiteEvent) -> None:
+                ...
+
             @scm_event_stream.listen_for(event_type="comment")
             def handle_comment(event: CommentEvent) -> None:
                 ...
@@ -57,17 +91,25 @@ class SourceCodeManagerEventStream:
             @scm_event_stream.listen_for(event_type="pull_request")
             def handle_pr(event: PullRequestEvent) -> None:
                 ...
+
+            @scm_event_stream.listen_for(event_type="pull_request_review")
+            def handle_pr_review(event: PullRequestReviewEvent) -> None:
+                ...
         """
         if event_type == "check_run":
             return self.listen_for_check_run
+        elif event_type == "check_suite":
+            return self.listen_for_check_suite
         elif event_type == "comment":
             return self.listen_for_comment
         elif event_type == "pull_request":
             return self.listen_for_pull_request
+        elif event_type == "pull_request_review":
+            return self.listen_for_pull_request_review
         else:
             raise ValueError(
                 f"Invalid event_type: {event_type}. "
-                f"Must be 'check_run', 'comment', or 'pull_request'"
+                f"Must be 'check_run', 'check_suite', 'comment', 'pull_request', or 'pull_request_review'"
             )
 
 
@@ -84,12 +126,20 @@ Listeners can be registered by using the `listen_for` method on the `scm_event_s
 def handle_check_run(event: CheckRunEvent) -> None:
     ...
 
+@scm_event_stream.listen_for(event_type="check_suite")
+def handle_check_suite(event: CheckSuiteEvent) -> None:
+    ...
+
 @scm_event_stream.listen_for(event_type="comment")
 def handle_comment(event: CommentEvent) -> None:
     ...
 
 @scm_event_stream.listen_for(event_type="pull_request")
 def handle_pr(event: PullRequestEvent) -> None:
+    ...
+
+@scm_event_stream.listen_for(event_type="pull_request_review")
+def handle_pr_review(event: PullRequestReviewEvent) -> None:
     ...
 ```
 

@@ -1,18 +1,25 @@
-from typing import Optional
+from typing import Optional, assert_never
 
 import msgspec
 from scm.types import (
+    BuildConclusion,
+    BuildStatus,
     CheckRunAction,
+    CheckSuiteAction,
     CommentAction,
     EventTypeHint,
     PullRequestAction,
+    PullRequestReviewAction,
+    PullRequestReviewState,
 )
 
 from sentry.scm.types import (
     CheckRunEvent,
+    CheckSuiteEvent,
     CommentEvent,
     EventType,
     PullRequestEvent,
+    PullRequestReviewEvent,
     SubscriptionEvent,
 )
 
@@ -20,7 +27,6 @@ from sentry.scm.types import (
 #   * "installation"
 #   * "installation_repositories"
 #   * "issues"
-#   * "pull_request_review"
 #   * "pull_request_review_comment"
 #   * "push"
 
@@ -96,9 +102,46 @@ class GitHubPullRequestRepo(msgspec.Struct, gc=False):
     private: bool
 
 
+class GitHubCheckSuiteEvent(msgspec.Struct, gc=False):
+    action: CheckSuiteAction
+    check_suite: "GitHubCheckSuite"
+
+
+class GitHubCheckSuitePullRequest(msgspec.Struct, gc=False):
+    id: int
+    number: int
+
+
+class GitHubCheckSuite(msgspec.Struct, gc=False):
+    id: int
+    status: BuildStatus
+    conclusion: BuildConclusion | None
+    html_url: str
+    pull_requests: list[GitHubCheckSuitePullRequest]
+
+
+class GitHubPullRequestReviewEvent(msgspec.Struct, gc=False):
+    action: PullRequestReviewAction
+    review: "GitHubReview"
+    pull_request: "GitHubPullRequestReviewPullRequest"
+
+
+class GitHubPullRequestReviewPullRequest(msgspec.Struct, gc=False):
+    id: int
+    number: int
+
+
+class GitHubReview(msgspec.Struct, gc=False):
+    id: int
+    state: PullRequestReviewState
+    user: GitHubUser
+
+
 check_run_decoder = msgspec.json.Decoder(GitHubCheckRunEvent)
+check_suite_decoder = msgspec.json.Decoder(GitHubCheckSuiteEvent)
 issue_comment_decoder = msgspec.json.Decoder(GitHubIssueCommentEvent)
 pull_request_decoder = msgspec.json.Decoder(GitHubPullRequestEvent)
+pull_request_review_decoder = msgspec.json.Decoder(GitHubPullRequestReviewEvent)
 
 
 def deserialize_github_check_run_event(event: SubscriptionEvent) -> CheckRunEvent:
@@ -158,6 +201,45 @@ def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullReque
     )
 
 
+def deserialize_github_check_suite_event(event: SubscriptionEvent) -> CheckSuiteEvent:
+    e = check_suite_decoder.decode(event["event"])
+
+    return CheckSuiteEvent(
+        action=e.action,
+        check_suite={
+            "id": str(e.check_suite.id),
+            "status": e.check_suite.status,
+            "conclusion": e.check_suite.conclusion,
+            "html_url": e.check_suite.html_url,
+            "pull_request_ids": [str(pr.number) for pr in e.check_suite.pull_requests],
+        },
+        subscription_event=event,
+    )
+
+
+def deserialize_github_pull_request_review_event(
+    event: SubscriptionEvent,
+) -> PullRequestReviewEvent:
+    e = pull_request_review_decoder.decode(event["event"])
+
+    user = e.review.user
+
+    return PullRequestReviewEvent(
+        action=e.action,
+        pull_request_review={
+            "id": str(e.review.id),
+            "state": e.review.state,
+            "pull_request_id": str(e.pull_request.number),
+        },
+        author={
+            "id": str(user.id),
+            "username": user.login,
+        },
+        is_bot=user.type == "Bot" if user.type else False,
+        subscription_event=event,
+    )
+
+
 def deserialize_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint | None:
     if event["event_type_hint"] == "pull_request":
         return "pull_request"
@@ -165,6 +247,10 @@ def deserialize_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHin
         return "comment"
     elif event["event_type_hint"] == "check_run":
         return "check_run"
+    elif event["event_type_hint"] == "check_suite":
+        return "check_suite"
+    elif event["event_type_hint"] == "pull_request_review":
+        return "pull_request_review"
     else:
         return None
 
@@ -176,7 +262,13 @@ def deserialize_github_event(event: SubscriptionEvent) -> EventType | None:
 
     if event_type_hint == "check_run":
         return deserialize_github_check_run_event(event)
+    elif event_type_hint == "check_suite":
+        return deserialize_github_check_suite_event(event)
     elif event_type_hint == "comment":
         return deserialize_github_comment_event(event)
-    else:
+    elif event_type_hint == "pull_request":
         return deserialize_github_pull_request_event(event)
+    elif event_type_hint == "pull_request_review":
+        return deserialize_github_pull_request_review_event(event)
+    else:
+        assert_never(event_type_hint)
