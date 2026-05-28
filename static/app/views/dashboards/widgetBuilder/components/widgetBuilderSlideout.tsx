@@ -147,6 +147,9 @@ function WidgetBuilderSlideoutInner({
   );
 
   const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+
+  // Tracks whether the user has entered the metrics equation mode since we
+  // do not render the filter bar. The metrics equations UI has filters built in.
   const isInEquationMode = traceMetricsVisualizeMode.isEquationMode;
 
   useEffect(() => {
