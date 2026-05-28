@@ -203,13 +203,14 @@ export function AutoSaveForm<
         if (resetOnErrorRef.current) {
           formApi.reset();
         }
-        const hasBackendErrors =
-          error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+        const isRequestError = error instanceof RequestError;
+        const hasBackendErrors = isRequestError ? setFieldErrors(formApi, error) : false;
         if (!hasBackendErrors) {
+          const message = isRequestError
+            ? getRequestErrorUserMessage(error, t('Failed to save'))
+            : t('Failed to save');
           setFieldErrors(formApi, {
-            [name]: {
-              message: getRequestErrorUserMessage(error, t('Failed to save')),
-            },
+            [name]: {message},
           } as never);
         }
       };
