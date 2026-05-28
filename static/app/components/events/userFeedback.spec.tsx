@@ -86,4 +86,13 @@ describe('EventUserFeedback', () => {
     const comment = document.querySelector('p');
     expect(comment?.textContent).toBe('Line one\n<script>alert("x")</script>');
   });
+
+  it('renders when name and email are null', () => {
+    render(
+      <EventUserFeedback report={makeReport({name: null, email: null, user: null})} />
+    );
+
+    expect(screen.getByText('Line one', {exact: false})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /copy/i})).not.toBeInTheDocument();
+  });
 });
