@@ -91,35 +91,6 @@ export async function leaveTeamPromise(
   return data;
 }
 
-export function createTeam(api: Client, team: Pick<Team, 'slug'>, params: OrgSlug) {
-  return api
-    .requestPromise(`/organizations/${params.orgId}/teams/`, {
-      method: 'POST',
-      data: team,
-    })
-    .then(
-      data => {
-        TeamStore.onCreateSuccess(data);
-        addSuccessMessage(
-          tct('[team] has been added to the [organization] organization', {
-            team: `#${data.slug}`,
-            organization: params.orgId,
-          })
-        );
-        return data;
-      },
-      err => {
-        addErrorMessage(
-          tct('Unable to create [team] in the [organization] organization', {
-            team: `#${team.slug}`,
-            organization: params.orgId,
-          })
-        );
-        throw err;
-      }
-    );
-}
-
 export function removeTeam(api: Client, params: OrgAndTeamSlug) {
   return api
     .requestPromise(`/teams/${params.orgId}/${params.teamId}/`, {

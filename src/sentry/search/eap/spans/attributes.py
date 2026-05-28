@@ -556,7 +556,10 @@ def _update_attribute_definitions_with_deprecations(
                     deprecation_status=status,
                 )
                 # TODO: Introduce units to attribute schema.
-                if replacement not in attribute_definitions:
+                if (
+                    replacement not in attribute_definitions
+                    and replacement not in span_attribute_definitions_by_internal_name
+                ):
                     attribute_definitions[replacement] = replace(
                         deprecated_attr,
                         public_alias=replacement,
@@ -575,7 +578,10 @@ def _update_attribute_definitions_with_deprecations(
                     deprecation_status=status,
                 )
 
-                if replacement not in attribute_definitions:
+                if (
+                    replacement not in attribute_definitions
+                    and replacement not in span_attribute_definitions_by_internal_name
+                ):
                     attribute_definitions[replacement] = ResolvedAttribute(
                         public_alias=replacement,
                         internal_name=replacement,
@@ -585,9 +591,10 @@ def _update_attribute_definitions_with_deprecations(
             span_attribute_definitions_by_internal_name[key] = attribute_definitions[
                 deprecated_public_alias
             ]
-            span_attribute_definitions_by_internal_name[replacement] = attribute_definitions[
-                replacement
-            ]
+            if replacement in attribute_definitions:
+                span_attribute_definitions_by_internal_name[replacement] = attribute_definitions[
+                    replacement
+                ]
 
 
 try:
