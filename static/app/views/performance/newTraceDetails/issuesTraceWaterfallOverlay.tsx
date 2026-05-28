@@ -1,17 +1,16 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Link} from '@sentry/scraps/link';
-
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -48,6 +47,7 @@ export function IssueTraceWaterfallOverlay({
   viewManager,
 }: TraceOverlayProps) {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const [rowPositions, setRowPositions] = useState<RowPosition[] | null>(null);
   const location = useLocation();
 
@@ -76,7 +76,7 @@ export function IssueTraceWaterfallOverlay({
         return;
       }
 
-      const rows = document.querySelectorAll('.TraceRow:not(.Hidden)');
+      const rows = container.querySelectorAll('.TraceRow:not(.Hidden)');
       const newPositions: RowPosition[] = [];
       const containerRect = container.getBoundingClientRect();
 
@@ -117,12 +117,6 @@ export function IssueTraceWaterfallOverlay({
     };
   }, [viewManager, containerRef, tree]);
 
-  const handleLinkClick = useCallback(() => {
-    trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
-      organization,
-    });
-  }, [organization]);
-
   // Link to an offender span in the trace view if the event includes an occurrence.
   // Keeps the highlighted span consistent across issues and trace waterfalls.
   const spanId = event.occurrence?.evidenceData?.offenderSpanIds?.[0];
@@ -131,26 +125,54 @@ export function IssueTraceWaterfallOverlay({
     : [`txn-${event.eventID}`];
   const baseLink = getTraceLinkForIssue(traceTarget, baseNodePath);
 
+  function handleLinkClick(
+    clickEvent: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) {
+    trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
+      organization,
+    });
+
+    // Let the browser handle modified clicks (cmd/ctrl/shift/alt) and non-left
+    // clicks (e.g. middle click to open in a new tab) natively. Only intercept a
+    // plain left-click to perform SPA navigation.
+    if (
+      clickEvent.button !== 0 ||
+      clickEvent.metaKey ||
+      clickEvent.ctrlKey ||
+      clickEvent.shiftKey ||
+      clickEvent.altKey
+    ) {
+      return;
+    }
+
+    clickEvent.preventDefault();
+    navigate(href);
+  }
+
   return (
     <OverlayWrapper>
       <FallbackOverlayContainer
-        to={baseLink}
-        onClick={handleLinkClick}
+        href={baseLink}
+        onClick={clickEvent => handleLinkClick(clickEvent, baseLink)}
         style={{inset: 0}}
       />
-      {rowPositions?.map(pos => (
-        <IssuesTraceOverlayContainer
-          key={pos.pathToNode[0]}
-          to={getTraceLinkForIssue(traceTarget, pos.pathToNode)}
-          onClick={handleLinkClick}
-          style={{
-            top: `${pos.top}px`,
-            left: `${pos.left}px`,
-            width: '100%',
-            height: `${pos.height}px`,
-          }}
-        />
-      ))}
+      {rowPositions?.map(pos => {
+        const href = getTraceLinkForIssue(traceTarget, pos.pathToNode);
+        return (
+          <IssuesTraceOverlayContainer
+            key={pos.pathToNode[0]}
+            href={href}
+            onClick={clickEvent => handleLinkClick(clickEvent, href)}
+            style={{
+              top: `${pos.top}px`,
+              left: `${pos.left}px`,
+              width: '100%',
+              height: `${pos.height}px`,
+            }}
+          />
+        );
+      })}
     </OverlayWrapper>
   );
 }
@@ -185,13 +207,19 @@ const OverlayWrapper = styled('div')`
   overflow: hidden;
 `;
 
-const FallbackOverlayContainer = styled(Link)`
+// These overlays are intentionally plain <a> elements rather than router
+// <Link>s. On this surface (many absolutely-positioned links over the
+// virtualized waterfall) router Links measured noticeably slower to hover,
+// showing up as large browser layerization tasks; plain anchors keep the hover
+// path cheap. Real hrefs are preserved and SPA navigation is handled in
+// handleLinkClick.
+const FallbackOverlayContainer = styled('a')`
   position: absolute;
   display: block;
   pointer-events: auto;
 `;
 
-const IssuesTraceOverlayContainer = styled(Link)`
+const IssuesTraceOverlayContainer = styled('a')`
   position: absolute;
   display: block;
   pointer-events: auto;
