@@ -9,7 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features, options, roles
 from sentry import ratelimits as ratelimiter
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -253,11 +253,9 @@ class OrganizationIndexEndpoint(Endpoint):
 
         owner_only = request.GET.get("owner") in ("1", "true")
 
-        if owner_only:
-            return Response(
-                {"detail": "The control-silo organizations endpoint does not support owner=1."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # This is used when closing an account.
+        if owner_only and request.user.is_authenticated:
+            return self._get_owned_from_control(request)
 
         queryset = OrganizationMapping.objects.distinct()
 
@@ -357,6 +355,50 @@ class OrganizationIndexEndpoint(Endpoint):
                 serializer=ControlSiloOrganizationMappingSerializer(),
             ),
             paginator_cls=paginator_cls,
+        )
+
+    def _get_owned_from_control(self, request: Request) -> Response:
+        assert request.user.id is not None
+        owner_role = roles.get_top_dog().id
+
+        owner_org_ids = OrganizationMemberMapping.objects.filter(
+            user_id=request.user.id,
+            role=owner_role,
+        ).values_list("organization_id", flat=True)
+
+        org_mappings = list(
+            OrganizationMapping.objects.filter(
+                organization_id__in=owner_org_ids,
+                status=OrganizationStatus.ACTIVE,
+            ).order_by("name")
+        )
+
+        owner_counts = (
+            OrganizationMemberMapping.objects.filter(
+                organization_id__in=[m.organization_id for m in org_mappings],
+                role=owner_role,
+                user_id__isnull=False,
+                user__is_active=True,
+            )
+            .values("organization_id")
+            .annotate(count=Count("id"))
+        )
+        single_owner_org_ids = {row["organization_id"] for row in owner_counts if row["count"] == 1}
+
+        serialized = serialize(
+            org_mappings,
+            request.user,
+            serializer=ControlSiloOrganizationMappingSerializer(),
+        )
+
+        return Response(
+            [
+                {
+                    "organization": data,
+                    "singleOwner": mapping.organization_id in single_owner_org_ids,
+                }
+                for mapping, data in zip(org_mappings, serialized)
+            ]
         )
 
     def post(self, request: Request) -> Response:
