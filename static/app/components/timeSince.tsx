@@ -18,7 +18,10 @@ type RelaxedDateType = string | number | Date;
 
 type UnitStyle = 'human' | 'regular' | 'short' | 'extraShort';
 
-interface Props extends Omit<React.TimeHTMLAttributes<HTMLTimeElement>, 'color'> {
+interface Props extends Omit<
+  React.TimeHTMLAttributes<HTMLTimeElement>,
+  'color' | 'title'
+> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    *
