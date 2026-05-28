@@ -269,12 +269,32 @@ const AVG_FRAME_DELAY_WIDGET: PrebuiltWidget = {
   },
 };
 
+const PLAYBOOK_TEXT_WIDGET: PrebuiltWidget = {
+  id: 'playbook-text',
+  title: t('Playbook'),
+  description: `Top-level widgets show overall app health: average app start, TTID/TTFD, rendering, and crash-free session metrics.
+
+Tables show which screens contribute most to those metrics.
+
+App start metrics in this dashboard only include launches that open the app UI, not headless or background starts.
+
+[Read the Mobile Vitals docs](https://docs.sentry.io/product/dashboards/sentry-dashboards/mobile/mobile-vitals/) for detailed definitions of app start, TTID/TTFD, and frame metrics.`,
+  displayType: DisplayType.TEXT,
+  interval: '1h',
+  queries: [],
+  layout: {
+    h: 2,
+    x: 4,
+    y: 0,
+    w: 2,
+    minH: 2,
+  },
+};
+
 const APP_START_TABLE: PrebuiltWidget = {
   id: 'app-start-table',
   title: t('App Starts'),
-  description: t(
-    "On iOS, cold and warm start classification may differ from Apple's definitions. Sentry defines a cold start as a launch after first install, reboot, or update; all other launches are warm starts. Warm start results may differ between prewarmed and non-prewarmed launches."
-  ),
+  description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -435,6 +455,7 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   widgets: [
     ...FIRST_ROW_WIDGETS,
     ...SECOND_ROW_WIDGETS,
+    PLAYBOOK_TEXT_WIDGET,
     APP_START_TABLE,
     SCREEN_LOAD_TABLE,
     SCREEN_RENDERING_TABLE,
