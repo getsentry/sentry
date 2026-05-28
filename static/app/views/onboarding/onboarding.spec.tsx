@@ -898,7 +898,7 @@ describe('Onboarding', () => {
         body: createdProject,
       });
       const createRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${controlOrganization.slug}/experimental/projects/`,
+        url: `/organizations/${controlOrganization.slug}/projects/`,
         method: 'POST',
         body: createdProject,
       });
