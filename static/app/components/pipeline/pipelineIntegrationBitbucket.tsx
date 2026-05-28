@@ -59,11 +59,7 @@ function BitbucketAuthorizeStep({
           </Text>
         )}
       </Stack>
-      {isAdvancing ? (
-        <Button size="sm" disabled>
-          {t('Authorizing...')}
-        </Button>
-      ) : isWaitingForCallback ? (
+      {isWaitingForCallback && !isAdvancing ? (
         <Button size="sm" onClick={openPopup}>
           {t('Reopen authorization window')}
         </Button>
@@ -72,6 +68,7 @@ function BitbucketAuthorizeStep({
           size="sm"
           variant="primary"
           onClick={openPopup}
+          busy={isAdvancing}
           disabled={!stepData?.authorizeUrl}
         >
           {t('Authorize Bitbucket')}

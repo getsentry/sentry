@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FeedbackItemUsername} from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import {FeedbackTimestampsTooltip} from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
@@ -26,8 +26,8 @@ export function MessageTitle({feedbackItem, eventData}: Props) {
       <Flex gap="md">
         {isSpam ? (
           <Tag key="spam" variant="danger">
-            <Tooltip
-              isHoverable
+            <InfoText
+              variant="inherit"
               position="left"
               title={tct(
                 'This feedback was automatically marked as spam. Learn more by [link:reading our docs.]',
@@ -39,7 +39,7 @@ export function MessageTitle({feedbackItem, eventData}: Props) {
               )}
             >
               {t('spam')}
-            </Tooltip>
+            </InfoText>
           </Tag>
         ) : null}
         <StyledTimeSince

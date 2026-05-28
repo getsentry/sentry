@@ -61,7 +61,7 @@ describe('GitHubOAuthLoginStep', () => {
     });
   });
 
-  it('shows loading state when isAdvancing is true', () => {
+  it('shows busy state when isAdvancing is true', () => {
     render(
       <GitHubOAuthLoginStep
         {...makeStepProps({
@@ -71,7 +71,10 @@ describe('GitHubOAuthLoginStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Authorize GitHub'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('disables authorize button when isInitializing', () => {
@@ -276,7 +279,7 @@ describe('OrgSelectionStep', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows completing state when isAdvancing in fresh install view', () => {
+  it('shows busy state when isAdvancing in fresh install view', () => {
     render(
       <OrgSelectionStep
         {...makeStepProps({
@@ -289,6 +292,8 @@ describe('OrgSelectionStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Completing...'})).toBeDisabled();
+    expect(
+      screen.getByRole('button', {name: 'Reopen installation window'})
+    ).toHaveAttribute('aria-busy', 'true');
   });
 });

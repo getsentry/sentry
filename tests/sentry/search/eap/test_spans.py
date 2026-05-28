@@ -1,7 +1,9 @@
 import os
 from datetime import datetime
+from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, ATTRIBUTE_NAMES
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -28,6 +30,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -40,11 +43,86 @@ from sentry.search.eap.spans.attributes import (
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
+
+
+class AttributeVisibilityTest(TestCase):
+    def test_public_convention_attribute_visible_to_everyone(self) -> None:
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT, SupportedTraceItemType.SPANS
+        )
+
+    def test_internal_convention_attribute_hidden_unless_included(self) -> None:
+        assert not can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT, SupportedTraceItemType.SPANS
+        )
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
+
+    def test_internal_convention_public_alias_is_hidden(self) -> None:
+        with mock.patch.dict(
+            eap_utils.PUBLIC_ALIAS_TO_INTERNAL_MAPPING[SupportedTraceItemType.SPANS],
+            {
+                "public.alias": ResolvedAttribute(
+                    public_alias="public.alias",
+                    internal_name=ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+                    search_type="string",
+                )
+            },
+        ):
+            assert not can_expose_attribute_to_api("public.alias", SupportedTraceItemType.SPANS)
+
+    def test_internal_convention_translated_public_alias_is_hidden(self) -> None:
+        with mock.patch.dict(
+            eap_utils.INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS[SupportedTraceItemType.SPANS]["string"],
+            {ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT: "public.alias"},
+        ):
+            assert not can_expose_attribute_to_api(
+                ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT, SupportedTraceItemType.SPANS
+            )
+
+    def test_internal_convention_replacement_is_hidden(self) -> None:
+        with mock.patch.dict(
+            eap_utils.SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS[SupportedTraceItemType.SPANS],
+            {"deprecated.attr": ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT},
+        ):
+            assert not can_expose_attribute_to_api("deprecated.attr", SupportedTraceItemType.SPANS)
+
+    def test_public_convention_deprecated_alias_visible_to_everyone(self) -> None:
+        aliases = ATTRIBUTE_METADATA[ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT].aliases
+
+        assert aliases is not None
+        assert can_expose_attribute_to_api(aliases[0], SupportedTraceItemType.SPANS)
+
+    def test_stripped_internal_prefix_alias_is_hidden(self) -> None:
+        assert not can_expose_attribute_to_api(
+            "_internal.normalized_description", SupportedTraceItemType.SPANS
+        )
+        assert can_expose_attribute_to_api(
+            "_internal.normalized_description",
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
+
+    def test_stripped_dsc_convention_alias_is_hidden(self) -> None:
+        assert not can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix("sentry."),
+            SupportedTraceItemType.SPANS,
+        )
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix("sentry."),
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
 
 
 class SearchResolverQueryTest(TestCase):
@@ -448,6 +526,45 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_query_hides_internal_api_attributes_in_where(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
+            resolver.resolve_query(f"{hidden_attribute}:foo")
+
+    def test_query_hides_internal_api_attributes_in_having(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
+            resolver.resolve_query(f"count_unique({hidden_attribute}):>0")
+
+    def test_query_hides_internal_api_attributes_in_if_subquery(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=TRACE_METRICS_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
+            resolver.resolve_query(f"count_if(`{hidden_attribute}:foo`, value):>0")
+
     def test_aggregate_query_on_attributes_with_units(self) -> None:
         for value in ["1000", "1s", "1000ms"]:
             where, having, _ = self.resolver.resolve_query(f"avg(measurements.lcp):>{value}")
@@ -744,6 +861,82 @@ class SearchResolverColumnTest(TestCase):
             name="foo", type=AttributeKey.Type.TYPE_DOUBLE
         )
         assert virtual_context is None
+
+    def test_resolve_columns_hides_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            [
+                "span.op",
+                f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+            ]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == ["span.op"]
+        assert resolved_contexts == [None]
+
+    def test_resolve_columns_hides_functions_with_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            ["span.op", f"count_unique({hidden_attribute})"]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == ["span.op"]
+        assert resolved_contexts == [None]
+
+    def test_resolve_equations_hides_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        resolved_equations, resolved_contexts = resolver.resolve_equations(
+            [f"count_unique({hidden_attribute}) / count()", "count() / 1"]
+        )
+
+        assert [column.public_alias for column in resolved_equations] == ["equation|count() / 1"]
+        assert resolved_contexts == []
+
+    def test_resolve_columns_includes_internal_api_attributes_when_configured(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS,
+                api_attribute_visibility_include_internal=True,
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            [
+                "span.op",
+                f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+            ]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == [
+            "span.op",
+            f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+        ]
+        assert resolved_contexts == [None, None]
 
     def test_sum_function(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")

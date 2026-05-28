@@ -234,7 +234,6 @@ from sentry.integrations.api.endpoints.external_user_details import ExternalUser
 from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
-from sentry.integrations.api.endpoints.integration_proxy2 import InternalIntegrationProxy2Endpoint
 from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -490,7 +489,6 @@ from sentry.relocation.api.endpoints.public_key import RelocationPublicKeyEndpoi
 from sentry.relocation.api.endpoints.recover import RelocationRecoverEndpoint
 from sentry.relocation.api.endpoints.retry import RelocationRetryEndpoint
 from sentry.relocation.api.endpoints.unpause import RelocationUnpauseEndpoint
-from sentry.replays.endpoints.data_export_notifications import DataExportNotificationsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -550,6 +548,7 @@ from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShift
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
     ProjectSeerRepoEndpoint,
+    ProjectSeerReposEndpoint,
 )
 from sentry.seer.endpoints.project_seer_settings import (
     OrganizationSeerProjectSettingsEndpoint,
@@ -3384,6 +3383,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-seer-preferences",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/repos/$",
+        ProjectSeerReposEndpoint.as_view(),
+        name="sentry-api-0-project-seer-repos",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/repos/(?P<repo_id>\d+)/$",
         ProjectSeerRepoEndpoint.as_view(),
         name="sentry-api-0-project-seer-repo",
@@ -3619,12 +3623,6 @@ INTERNAL_URLS = [
         name="sentry-api-0-internal-integration-proxy",
     ),
     re_path(
-        # If modifying, ensure PROXY_BASE_PATH is updated as well
-        r"^integration-proxy2/$",
-        InternalIntegrationProxy2Endpoint.as_view(),
-        name="sentry-api-0-internal-integration-proxy2",
-    ),
-    re_path(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
         InternalRpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
@@ -3795,11 +3793,6 @@ urlpatterns = [
         r"^accept-invite/(?P<organization_id_or_slug>[^/]+)/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-organization-accept-organization-invite",
-    ),
-    re_path(
-        r"^data-export/notifications/google-cloud/$",
-        DataExportNotificationsEndpoint.as_view(),
-        name="sentry-api-0-data-export-notifications",
     ),
     re_path(
         r"^notification-defaults/$",

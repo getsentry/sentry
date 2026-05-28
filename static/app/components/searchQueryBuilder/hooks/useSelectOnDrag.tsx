@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 type DraggingState = {
@@ -88,7 +88,9 @@ function getItemIndexAtPosition(
 ) {
   for (const [i, key] of keys.entries()) {
     const coords = coordinates[key];
-    if (!coords) continue;
+    if (!coords) {
+      continue;
+    }
 
     // If we are above this item, we must be in between this and the
     // previous item on the row above it.
@@ -116,7 +118,7 @@ function getItemIndexAtPosition(
  * and should behave similarly to selection within a textarea.
  */
 export function useSelectOnDrag(state: ListState<ParseResultToken>) {
-  const {wrapperRef} = useSearchQueryBuilder();
+  const {wrapperRef} = useSearchQueryBuilderLayout();
   const dragState = useRef<DraggingState | null>(null);
   const cachedTokenCoordinates = useRef<TokenCoordinateCache | null>(null);
   // Mouse move events fire more than once per frame, so we use this ref to

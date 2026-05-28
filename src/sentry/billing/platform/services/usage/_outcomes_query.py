@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
 from sentry_protos.billing.v1.date_pb2 import Date
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
     CategoryUsage,
@@ -191,6 +192,10 @@ def _build_response(rows: list[dict], last_usage_ts: datetime | None) -> GetUsag
     for row in rows:
         day = row["time"]
         category = sentry_to_proto_category(int(row["category"]))
+        if category == ProtoDataCategory.DATA_CATEGORY_UNKNOWN:
+            # Sentry category has no proto mapping; skipping prevents it
+            # from colliding with a different proto category at the same int.
+            continue
         days_map[day][category] = {
             "total": int(row["total"]),
             "accepted": int(row["accepted"]),

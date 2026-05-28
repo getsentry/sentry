@@ -28,7 +28,9 @@ function getProjectRole(
   project: DetailedProject | undefined,
   role: 'debugFilesRole' | 'attachmentsRole'
 ): string | undefined {
-  if (!project) return undefined;
+  if (!project) {
+    return undefined;
+  }
 
   if (role === 'debugFilesRole') {
     return project.debugFilesRole ?? undefined;
