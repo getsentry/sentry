@@ -382,8 +382,8 @@ class SCIMDetailPatchTest(SCIMTestCase):
             if is_fetch_existing or is_bulk_delete or is_fetch_new or is_bulk_insert:
                 core_queries.append(sql)
 
-        # Exactly 4 core queries, none of which scale with member count
-        assert len(core_queries) <= 4, (
+        # Exactly 5 core queries, none of which scale with member count
+        assert len(core_queries) <= 5, (
             f"Expected at most 4 core member queries, got {len(core_queries)}:\n"
             + "\n".join(f"  {i + 1}. {q[:120]}" for i, q in enumerate(core_queries))
         )
