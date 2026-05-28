@@ -69,11 +69,13 @@ function trackExternalAnalytics({
 
 export default function IntegrationOrganizationLink() {
   const location = useLocation();
-  const {integrationSlug, installationId} = useParams<{
-    integrationSlug: string;
-    // installationId present for Github flow
-    installationId?: string;
-  }>();
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
+  // GitHub installs forwarded here from `/extensions/external-install/...`
+  // carry `installationId` in the query string.
+  const installationId =
+    typeof location.query.installationId === 'string'
+      ? location.query.installationId
+      : undefined;
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string | null>(null);
 
   const {
@@ -194,7 +196,8 @@ export default function IntegrationOrganizationLink() {
 
     // GitHub is the only provider currently driven through the API pipeline
     // modal from this view — users land here after installing the Sentry
-    // GitHub App from github.com, with the `installationId` in the URL.
+    // GitHub App from github.com, with the `installationId` in the URL query
+    // (forwarded from `/extensions/external-install/...`).
     if (provider.key === 'github' && installationId) {
       startFlow({
         provider,
