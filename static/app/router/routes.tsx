@@ -760,25 +760,6 @@ function buildRoutes(): RouteObject[] {
       path: 'issue-tracking/',
       redirectTo: '/settings/:orgId/:projectId/plugins/',
     },
-    {
-      path: 'hooks/',
-      name: t('Service Hooks'),
-      component: make(() => import('sentry/views/settings/project/projectServiceHooks')),
-    },
-    {
-      path: 'hooks/new/',
-      name: t('Create Service Hook'),
-      component: make(
-        () => import('sentry/views/settings/project/projectCreateServiceHook')
-      ),
-    },
-    {
-      path: 'hooks/:hookId/',
-      name: t('Service Hook Details'),
-      component: make(
-        () => import('sentry/views/settings/project/projectServiceHookDetails')
-      ),
-    },
   ];
   const projectSettingsRoutes: SentryRouteObject = {
     path: 'projects/:projectId/',
@@ -2884,10 +2865,6 @@ function buildRoutes(): RouteObject[] {
           {
             path: 'filters/',
             redirectTo: '/settings/:orgId/projects/:projectId/filters/',
-          },
-          {
-            path: 'hooks/',
-            redirectTo: '/settings/:orgId/projects/:projectId/hooks/',
           },
           {
             path: 'keys/',

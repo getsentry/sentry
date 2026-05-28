@@ -23,6 +23,8 @@ export function mentionStyle({theme, minHeight, inputStyle}: Options) {
   };
 
   return {
+    width: '100%',
+
     control: {
       backgroundColor: 'transparent',
       fontSize: theme.font.size.md,
@@ -48,7 +50,6 @@ export function mentionStyle({theme, minHeight, inputStyle}: Options) {
         maxHeight: 142,
         minWidth: 220,
         overflow: 'auto',
-        zIndex: theme.zIndex.dropdown,
         backgroundColor: theme.tokens.background.primary,
         border: '1px solid rgba(0,0,0,0.15)',
         borderRadius: theme.radius.md,

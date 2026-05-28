@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
@@ -595,11 +595,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
-            "issue.seer_last_run": ScalarCondition(
-                "seer_explorer_autofix_last_triggered"
-                if features.has("organizations:autofix-on-explorer", organization)
-                else "seer_autofix_last_triggered"
-            ),
+            "issue.seer_last_run": ScalarCondition("seer_explorer_autofix_last_triggered"),
             "issue.id": QCallbackCondition(
                 lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
             ),

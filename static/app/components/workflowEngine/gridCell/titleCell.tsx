@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
@@ -130,13 +131,13 @@ const TitleBase = styled('div')<{noHover?: boolean}>`
 
   ${p =>
     !p.noHover &&
-    `
-    &:hover {
-      ${NameText} {
-        text-decoration: underline;
+    css`
+      &:hover {
+        ${NameText} {
+          text-decoration: underline;
+        }
       }
-    }
-  `}
+    `}
 `;
 
 const TitleWrapper = TitleBase.withComponent(Link);

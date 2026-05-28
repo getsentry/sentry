@@ -40,8 +40,8 @@ import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 
 import {useOptionalDebugMetaSearch} from './debugMeta/debugMetaSearchContext';
 import {combineStatus} from './debugMeta/utils';

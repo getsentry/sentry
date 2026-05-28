@@ -64,6 +64,7 @@ export function useExploreLogsTableRow(props: {
   projectId: string;
   traceId: string;
   enabled?: boolean;
+  timestamp?: number | null;
 }) {
   const {isReady: pageFiltersReady} = usePageFilters();
   return useTraceItemDetails({
@@ -73,6 +74,7 @@ export function useExploreLogsTableRow(props: {
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
+    timestamp: props.timestamp,
   });
 }
 

@@ -32,32 +32,14 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "AI features are disabled for this organization.")
 
-    def test_no_explorer_flags_enabled(self) -> None:
+    def test_no_explorer_flag_enabled(self) -> None:
         with self.feature("organizations:gen-ai-features"):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
-    def test_only_seer_explorer_flag(self) -> None:
+    def test_seer_explorer_flag_enabled(self) -> None:
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
-        ):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (True, None)
-
-    def test_only_autofix_on_explorer_flag(self) -> None:
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:autofix-on-explorer": True}
-        ):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (True, None)
-
-    def test_all_explorer_flags_enabled(self) -> None:
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-                "organizations:seer-explorer": True,
-                "organizations:autofix-on-explorer": True,
-            }
         ):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
@@ -69,7 +51,6 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
             {
                 "organizations:gen-ai-features": True,
                 "organizations:seer-explorer": True,
-                "organizations:autofix-on-explorer": True,
             }
         ):
             result = has_seer_agent_access_with_detail(self.org, self.user)

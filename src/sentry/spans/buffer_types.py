@@ -112,15 +112,6 @@ class InsertedSubsegment(NamedTuple):
         return self.result.segment_key.endswith(self.subsegment.salt.encode("ascii"))
 
 
-class LoadedSegmentData(NamedTuple):
-    """
-    Raw payload data loaded for flush candidates.
-    """
-
-    payloads: dict[SegmentKey, list[bytes]]
-    payload_keys: dict[SegmentKey, list[PayloadKey]]
-
-
 class OutputSpan(NamedTuple):
     """
     A span payload after flush-time segment metadata has been attached.
@@ -141,6 +132,56 @@ class FlushCandidate(NamedTuple):
     queue_key: QueueKey
     segment_key: SegmentKey
     score: float
+
+
+class SegmentIngestMetadata(NamedTuple):
+    """
+    Ingest-time metadata stored alongside a segment.
+
+    These values may be missing when Redis data expired before the flusher loaded
+    the segment, or when another flusher won a race and cleaned up first.
+    """
+
+    ingested_count: int | None = None
+    ingested_byte_count: int | None = None
+
+    @classmethod
+    def from_redis_results(
+        cls,
+        ingested_count: bytes | int | None,
+        ingested_byte_count: bytes | int | None,
+    ) -> SegmentIngestMetadata:
+        return cls(
+            int(ingested_count) if ingested_count is not None else None,
+            int(ingested_byte_count) if ingested_byte_count is not None else None,
+        )
+
+
+class LoadedSegment(NamedTuple):
+    """
+    A flush candidate with its loaded payloads and ingest metadata.
+    """
+
+    flush_candidate: FlushCandidate
+    payloads: list[bytes]
+    payload_keys: list[PayloadKey]
+    ingest_metadata: SegmentIngestMetadata = SegmentIngestMetadata()
+
+    @property
+    def segment_key(self) -> SegmentKey:
+        return self.flush_candidate.segment_key
+
+    @property
+    def shard(self) -> int:
+        return self.flush_candidate.shard
+
+    @property
+    def queue_key(self) -> QueueKey:
+        return self.flush_candidate.queue_key
+
+    @property
+    def score(self) -> float:
+        return self.flush_candidate.score
 
 
 class FlushedSegment(NamedTuple):
