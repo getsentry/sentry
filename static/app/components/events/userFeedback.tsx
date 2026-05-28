@@ -21,8 +21,6 @@ type Props = {
 export function EventUserFeedback({eventLink, report}: Props) {
   const {copy} = useCopyToClipboard();
   const showEmailLabel = !isSameIdentity(report.name, report.email);
-  const copyEmail = () =>
-    copy(report.email, {successMessage: t('Copied email to clipboard')});
 
   return (
     <Flex data-test-id="activity-item" gap="md">
@@ -34,20 +32,26 @@ export function EventUserFeedback({eventLink, report}: Props) {
             <Text as="span" bold size="md">
               {report.name}
             </Text>
-            <Button
-              aria-label={showEmailLabel ? undefined : t('Copy email address')}
-              variant="transparent"
-              onClick={copyEmail}
-              size="zero"
-              tooltipProps={{delay: 0, title: t('Copy email address')}}
-              icon={<IconCopy size="xs" variant="muted" />}
-            >
-              {showEmailLabel && (
-                <Text as="span" size="sm" variant="muted">
-                  {report.email}
-                </Text>
-              )}
-            </Button>
+            {report.email ? (
+              <Button
+                aria-label={showEmailLabel ? undefined : t('Copy email address')}
+                variant="transparent"
+                onClick={() =>
+                  copy(report.email ?? '', {
+                    successMessage: t('Copied email to clipboard'),
+                  })
+                }
+                size="zero"
+                tooltipProps={{delay: 0, title: t('Copy email address')}}
+                icon={<IconCopy size="xs" variant="muted" />}
+              >
+                {showEmailLabel && (
+                  <Text as="span" size="sm" variant="muted">
+                    {report.email}
+                  </Text>
+                )}
+              </Button>
+            ) : null}
 
             {eventLink && (
               <Text as="span" size="sm">
@@ -71,8 +75,8 @@ export function EventUserFeedback({eventLink, report}: Props) {
   );
 }
 
-function isSameIdentity(name: string, email: string) {
-  return name.trim().toLowerCase() === email.trim().toLowerCase();
+function isSameIdentity(name: string | null, email: string | null) {
+  return name?.trim().toLowerCase() === email?.trim().toLowerCase();
 }
 
 function getAvatarUser(report: UserReport): AvatarUser | undefined {
@@ -81,8 +85,8 @@ function getAvatarUser(report: UserReport): AvatarUser | undefined {
   if (!user) {
     return {
       id: '',
-      email: report.email,
-      name: report.name,
+      email: report.email ?? '',
+      name: report.name ?? '',
       username: '',
       ip_address: '',
     };
@@ -91,7 +95,7 @@ function getAvatarUser(report: UserReport): AvatarUser | undefined {
   return {
     id: user.id,
     email: user.email ?? '',
-    name: user.name ?? report.name,
+    name: user.name ?? report.name ?? '',
     username: user.username ?? '',
     ip_address: user.ipAddress ?? '',
     avatarUrl: user.avatarUrl ?? undefined,
