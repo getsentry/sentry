@@ -214,6 +214,14 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         mock_publish.assert_not_called()
 
+    @patch(PUBLISH_STATUS_CTX)
+    def test_unarchive_emits_unarchive_not_unresolve(self, mock_publish: MagicMock) -> None:
+        self.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
+        response = self.client.put(self.url, data={"status": "unresolved"}, format="json")
+        assert response.status_code == 200
+        mock_publish.assert_called_once()
+        assert mock_publish.call_args.kwargs["action"] == ActionType.UNARCHIVE
+
     @patch(PUBLISH_PRIORITY_CTX)
     def test_priority_change_emits_action(self, mock_publish: MagicMock) -> None:
         response = self.client.put(self.url, data={"priority": "high"}, format="json")

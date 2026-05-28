@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 MCP_CLIENT_NAME_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_NAME"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
-_MCP_APPLICATION_ID_NOT_CHECKED = -1
-MCP_APPLICATION_ID: int = _MCP_APPLICATION_ID_NOT_CHECKED
+MCP_APP_ID_CACHE_KEY = "action_log.mcp_application_id"
+MCP_APP_ID_CACHE_TTL = 300
 
 KNOWN_MCP_CLIENTS: dict[str, str] = {
     "claude code": "claude-code",
@@ -46,22 +46,23 @@ class ActionSource(StrEnum):
 
 
 def _get_mcp_application_id() -> int | None:
-    global MCP_APPLICATION_ID
-    if MCP_APPLICATION_ID != _MCP_APPLICATION_ID_NOT_CHECKED:
-        return MCP_APPLICATION_ID if MCP_APPLICATION_ID > 0 else None
+    from django.core.cache import cache
+
+    cached = cache.get(MCP_APP_ID_CACHE_KEY)
+    if cached is not None:
+        return cached if cached > 0 else None
 
     from sentry.models.apiapplication import ApiApplication
 
     try:
         app = ApiApplication.objects.filter(name__icontains="sentry-mcp").first()
-        if app:
-            MCP_APPLICATION_ID = app.id
-            return MCP_APPLICATION_ID
+        app_id = app.id if app else 0
     except Exception:
         logger.exception("Failed to look up MCP application ID")
+        return None
 
-    MCP_APPLICATION_ID = 0
-    return None
+    cache.set(MCP_APP_ID_CACHE_KEY, app_id, MCP_APP_ID_CACHE_TTL)
+    return app_id if app_id > 0 else None
 
 
 def resolve_action_source(request: Request | None) -> str:
@@ -110,6 +111,7 @@ class ActionType(StrEnum):
     VIEW = "view"
     RESOLVE = "resolve"
     UNRESOLVE = "unresolve"
+    UNARCHIVE = "unarchive"
     ARCHIVE = "archive"
     ASSIGN = "assign"
     UNASSIGN = "unassign"
