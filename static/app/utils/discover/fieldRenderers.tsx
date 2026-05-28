@@ -6,6 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -332,9 +333,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
         return (
           <NumberContainer>
-            <Tooltip title={formatTooltipValue(data[field], 'number')}>
+            <InfoText variant="inherit" title={formatTooltipValue(data[field], 'number')}>
               <span>{`<${NUMBER_MIN_VALUE}`}</span>
-            </Tooltip>
+            </InfoText>
           </NumberContainer>
         );
       }

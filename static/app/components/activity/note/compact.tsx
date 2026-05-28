@@ -1,8 +1,7 @@
 import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
-import type {Theme} from '@emotion/react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -152,7 +151,6 @@ export function CompactNoteInput({
               borderRadius: theme.radius.md,
             },
           }),
-          width: '100%',
         }}
         placeholder={placeholder}
         onChange={handleChange}
@@ -200,46 +198,7 @@ export function CompactNoteInput({
   );
 }
 
-const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
-  if (!p.error) {
-    return '';
-  }
-
-  return css`
-    color: ${p.theme.tokens.content.danger};
-    margin: -1px;
-    border: 1px solid ${p.theme.tokens.border.danger};
-    border-radius: ${p.theme.radius.md};
-
-    &:before {
-      display: block;
-      content: '';
-      width: 0;
-      height: 0;
-      border-top: 7px solid transparent;
-      border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.colors.red400};
-      position: absolute;
-      left: -7px;
-      top: 12px;
-    }
-
-    &:after {
-      display: block;
-      content: '';
-      width: 0;
-      height: 0;
-      border-top: 6px solid transparent;
-      border-bottom: 6px solid transparent;
-      border-right: 6px solid #fff;
-      position: absolute;
-      left: -5px;
-      top: 12px;
-    }
-  `;
-};
-
-const NoteInputForm = styled('form')<{error?: string}>`
+const NoteInputForm = styled('form')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
@@ -247,6 +206,4 @@ const NoteInputForm = styled('form')<{error?: string}>`
   width: 100%;
   min-width: 0;
   transition: padding 0.2s ease-in-out;
-
-  ${getNoteInputErrorStyles};
 `;

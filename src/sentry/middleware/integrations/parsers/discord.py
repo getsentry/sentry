@@ -12,6 +12,7 @@ from rest_framework.request import Request
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLAG
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
+from sentry.integrations.discord.views.configure_redirect import DiscordConfigureRedirectView
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
@@ -22,9 +23,6 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.integrations.web.discord_extension_configuration import (
-    DiscordExtensionConfigurationView,
-)
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
 from sentry.types.cell import Cell
 
@@ -38,7 +36,7 @@ class DiscordRequestParser(BaseRequestParser):
     control_classes = [
         DiscordLinkIdentityView,
         DiscordUnlinkIdentityView,
-        DiscordExtensionConfigurationView,
+        DiscordConfigureRedirectView,
     ]
 
     # Dynamically set to avoid RawPostDataException from double reads

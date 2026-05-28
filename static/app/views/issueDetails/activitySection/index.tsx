@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -17,7 +17,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
@@ -32,9 +31,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -205,9 +204,7 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper size={size}>
-          <NoteBody text={message} />
-        </NoteWrapper>
+        <NoteBody text={message} />
       ) : (
         <Text as="div" size={size}>
           {message}
@@ -373,14 +370,13 @@ export function ActivitySection({
 
   const showSeerActivities = organization.features.includes('seer-activity-timeline');
   const visibleActivities = showSeerActivities
-    ? group.activity
+    ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
   const filteredActivities = visibleActivities.filter(
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
-  const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem
@@ -441,8 +437,11 @@ export function ActivitySection({
           ) : (
             <Fragment>
               {filteredActivities.slice(0, 3).map(renderActivityItem)}
-              <ActivityTimelineItem
-                title={
+              <MoreActivityRow>
+                <MoreActivityIcon>
+                  <RotatedEllipsisIcon direction="up" />
+                </MoreActivityIcon>
+                <Container marginTop="xs">
                   <LinkButton
                     aria-label={t('View all activity')}
                     to={activityLink}
@@ -457,10 +456,8 @@ export function ActivitySection({
                   >
                     {t('View %s more', filteredActivities.length - 3)}
                   </LinkButton>
-                }
-                marker={useTwoColumnLayout ? <span /> : undefined}
-                icon={<RotatedEllipsisIcon direction="up" />}
-              />
+                </Container>
+              </MoreActivityRow>
             </Fragment>
           )}
         </Timeline.Container>
@@ -486,12 +483,39 @@ const Timestamp = styled(TimeSince)`
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
-  transform: rotate(90deg) translateY(1px);
+  position: relative;
+  left: 1px;
+  transform: rotate(90deg) translate(1px, 1px);
 `;
 
-const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
-  ${textStyles}
-  font-size: ${p => (p.size === 'md' ? p.theme.font.size.md : p.theme.font.size.sm)};
+const MoreActivityRow = styled('div')`
+  position: relative;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-column-gap: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.md} 0 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 50%;
+    bottom: 0;
+    width: 1px;
+    background: ${p => p.theme.tokens.background.primary};
+  }
+`;
+
+const MoreActivityIcon = styled('div')`
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  min-height: 22px;
+  color: ${p => p.theme.tokens.content.secondary};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const ActivityInputFrame = styled('div')`

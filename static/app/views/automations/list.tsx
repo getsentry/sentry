@@ -25,6 +25,10 @@ import {AutomationListTable} from 'sentry/views/automations/components/automatio
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanEditAutomation,
+} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -131,6 +135,7 @@ function TableHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const hasPageFrameFeature = useHasPageFrameFeature();
+  const canCreateAlert = useCanEditAutomation();
   const initialQuery =
     typeof location.query.query === 'string' ? location.query.query : '';
 
@@ -159,6 +164,11 @@ function TableHeader() {
         {hasPageFrameFeature ? (
           <LinkButton
             to={makeAutomationCreatePathname(organization.slug)}
+            disabled={!canCreateAlert}
+            tooltipProps={{
+              title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
+              isHoverable: true,
+            }}
             variant="primary"
             icon={<IconAdd />}
             size="sm"
@@ -174,6 +184,7 @@ function TableHeader() {
 function Actions() {
   const organization = useOrganization();
   const hasPageFrameFeature = useHasPageFrameFeature();
+  const canCreateAlert = useCanEditAutomation();
   return (
     <Flex gap="sm">
       <AlertsMonitorsShowcaseButton />
@@ -181,6 +192,11 @@ function Actions() {
       {hasPageFrameFeature ? null : (
         <LinkButton
           to={makeAutomationCreatePathname(organization.slug)}
+          disabled={!canCreateAlert}
+          tooltipProps={{
+            title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
+            isHoverable: true,
+          }}
           variant="primary"
           icon={<IconAdd />}
           size="sm"

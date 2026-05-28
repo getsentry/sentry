@@ -36,7 +36,6 @@ export type KnownGetsentryApiUrls =
   | '/customers/$organizationIdOrSlug/members/'
   | '/customers/$organizationIdOrSlug/migrate-google-domain/'
   | '/customers/$organizationIdOrSlug/ondemand-budgets/'
-  | '/customers/$organizationIdOrSlug/plan-migrations/'
   | '/customers/$organizationIdOrSlug/policies/'
   | '/customers/$organizationIdOrSlug/product-trial/'
   | '/customers/$organizationIdOrSlug/projects/$projectIdOrSlug/stats/'
