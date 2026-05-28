@@ -380,8 +380,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
 
     def put(self, request: Request, project: Project) -> Response:
         serializer = ProjectSettingsUpdateSerializer(
-            data=request.data,
-            context={"organization": project.organization},
+            data=request.data, context={"organization": project.organization}
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
