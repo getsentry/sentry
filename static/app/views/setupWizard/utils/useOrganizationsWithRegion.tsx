@@ -4,7 +4,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
+import type {OrganizationSummaryWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationsWithRegion() {
   const {memberRegions, links} = useLegacyStore(ConfigStore);
@@ -18,12 +18,12 @@ export function useOrganizationsWithRegion() {
     retry: false,
     select: response => {
       const regionByUrl = new Map(memberRegions.map(region => [region.url, region]));
-      return response.json.flatMap((org): OrganizationWithRegion[] => {
+      return response.json.flatMap((org): OrganizationSummaryWithRegion[] => {
         const region = regionByUrl.get(org.links.regionUrl);
         if (!region) {
           return [];
         }
-        return [{...org, region} as OrganizationWithRegion];
+        return [{...org, region} as OrganizationSummaryWithRegion];
       });
     },
   });
