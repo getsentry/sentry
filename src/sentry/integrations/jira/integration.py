@@ -392,7 +392,9 @@ class JiraIntegration(IssueSyncIntegration):
             project_ids = [pm.external_id for pm in project_mappings]
             if not project_ids:
                 return []
-            response = client.get_projects_paginated(params={"id": project_ids})
+            response = client.get_projects_paginated(
+                params={"id": project_ids, "maxResults": len(project_ids)}
+            )
             active_ids = {p["id"] for p in response.get("values", [])}
             return [pm for pm in project_mappings if pm.external_id in active_ids]
 
