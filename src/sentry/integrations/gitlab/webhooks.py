@@ -36,6 +36,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -396,7 +397,10 @@ class MergeEventWebhook(GitlabWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = (_handle_merge_request_event,)
+    WEBHOOK_EVENT_PROCESSORS = (
+        _handle_merge_request_event,
+        handle_merge_request_event,
+    )
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
