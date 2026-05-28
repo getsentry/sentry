@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -17,6 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {Stepper} from 'sentry/views/onboarding/components/stepper';
+import {ScmConnect} from 'sentry/views/onboarding/scmConnect';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export enum ScmCreateProjectStepId {
@@ -106,6 +107,30 @@ export function ScmCreateProject() {
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === STEPS.length - 1;
 
+  // Wipe state derived from the repository when the repo changes. Matches
+  // the onboarding ScmConnectAdapter's clearDerivedState contract.
+  const clearDerivedState = () =>
+    setState(s => ({
+      ...s,
+      selectedPlatform: undefined,
+      selectedFeatures: undefined,
+      createdProjectSlug: undefined,
+      projectDetailsForm: undefined,
+    }));
+
+  // Shared Back button. Passed to ScmConnect via genBackButton so it can place
+  // it in its own footer; also used by placeholder steps' wizard footer.
+  const renderBackButton = () => {
+    if (isFirst) {
+      return null;
+    }
+    return (
+      <Button onClick={goBack} icon={<IconArrow direction="left" />} variant="link">
+        {t('Back')}
+      </Button>
+    );
+  };
+
   return (
     <SentryDocumentTitle title={stepObj.title}>
       <Stack flex={1} gap="2xl" padding="2xl">
@@ -120,40 +145,46 @@ export function ScmCreateProject() {
           />
         </Flex>
 
-        <Stack gap="md">
-          <Text variant="muted" size="sm" uppercase bold>
-            {t('Step %s of %s', stepIndex + 1, STEPS.length)}
-          </Text>
-          <Heading as="h2" size="3xl">
-            {stepObj.title}
-          </Heading>
-        </Stack>
+        {stepObj.id === ScmCreateProjectStepId.CONNECT_REPOSITORY ? (
+          <ScmConnect
+            selectedIntegration={state.selectedIntegration}
+            selectedRepository={state.selectedRepository}
+            onIntegrationChange={integration =>
+              setState(s => ({...s, selectedIntegration: integration}))
+            }
+            onRepositoryChange={repo => setState(s => ({...s, selectedRepository: repo}))}
+            onClearDerivedState={clearDerivedState}
+            onComplete={() => goNext()}
+            genBackButton={renderBackButton}
+          />
+        ) : (
+          <Fragment>
+            <Stack gap="md">
+              <Text variant="muted" size="sm" uppercase bold>
+                {t('Step %s of %s', stepIndex + 1, STEPS.length)}
+              </Text>
+              <Heading as="h2" size="3xl">
+                {stepObj.title}
+              </Heading>
+            </Stack>
 
-        <StepContent stepId={stepObj.id} state={state} setState={setState} />
+            <StepContent stepId={stepObj.id} state={state} setState={setState} />
 
-        <Flex align="center" justify="between" paddingTop="2xl">
-          <Flex>
-            {!isFirst && (
-              <Button
-                variant="link"
-                onClick={goBack}
-                icon={<IconArrow direction="left" />}
-              >
-                {t('Back')}
-              </Button>
-            )}
-          </Flex>
-          <Flex gap="md">
-            {!isLast && (
-              <Button variant="transparent" onClick={goNext}>
-                {t('Skip for now')}
-              </Button>
-            )}
-            <Button variant="primary" onClick={goNext} disabled={isLast}>
-              {isLast ? t('Create project') : t('Continue')}
-            </Button>
-          </Flex>
-        </Flex>
+            <Flex align="center" justify="between" paddingTop="2xl">
+              <Flex>{renderBackButton()}</Flex>
+              <Flex gap="md">
+                {!isLast && (
+                  <Button variant="transparent" onClick={goNext}>
+                    {t('Skip for now')}
+                  </Button>
+                )}
+                <Button variant="primary" onClick={goNext} disabled={isLast}>
+                  {isLast ? t('Create project') : t('Continue')}
+                </Button>
+              </Flex>
+            </Flex>
+          </Fragment>
+        )}
       </Stack>
     </SentryDocumentTitle>
   );
@@ -165,17 +196,12 @@ interface StepContentProps {
   stepId: ScmCreateProjectStepId;
 }
 
-// Placeholder step bodies. VDY-74/75/76 will replace these with the
-// decoupled SCM components (ScmConnect, ScmPlatformFeatures,
-// ScmProjectDetails) wired to the local wizard state above.
+// Placeholder step bodies for steps not yet wired up. VDY-75/76 will replace
+// these with the decoupled SCM components (ScmPlatformFeatures,
+// ScmProjectDetails) wired to the local wizard state above. CONNECT_REPOSITORY
+// is handled inline by ScmConnect, so it is not represented here.
 function StepContent({stepId}: StepContentProps) {
   switch (stepId) {
-    case ScmCreateProjectStepId.CONNECT_REPOSITORY:
-      return (
-        <Text variant="muted">
-          {t('Connect a repository step content goes here (VDY-74).')}
-        </Text>
-      );
     case ScmCreateProjectStepId.PLATFORM_FEATURES:
       return (
         <Text variant="muted">
@@ -188,5 +214,7 @@ function StepContent({stepId}: StepContentProps) {
           {t('Project details step content goes here (VDY-76).')}
         </Text>
       );
+    default:
+      return null;
   }
 }
