@@ -424,8 +424,14 @@ def _build_gitlab_repo_definition(
     event_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     # GitLab stores Repository.name as the display "name_with_namespace"
-    # (e.g. "Cool Group / Sentry"); the URL slug lives in config["path"].
-    owner, name = _split_full_name(repo.config.get("path") or repo.name)
+    # (e.g. "Cool Group / Sentry"), which is not a valid URL slug. The slug
+    # ("cool-group/sentry") lives in config["path"], kept current by the webhook's
+    # update_repo_data(), and is the only valid source for owner/name. Falling back
+    # to repo.name would silently produce slugs with spaces, so require the path.
+    path = repo.config.get("path")
+    if not path:
+        raise ValueError(f"GitLab repository {repo.id} is missing config['path']")
+    owner, name = _split_full_name(path)
 
     # GitLab has no repository.private; visibility lives in project.visibility_level
     # (0 = private, 10 = internal, 20 = public). Leave as None when absent.
