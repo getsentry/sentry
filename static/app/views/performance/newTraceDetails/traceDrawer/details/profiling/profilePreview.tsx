@@ -29,8 +29,8 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 
 interface SpanProfileProps {

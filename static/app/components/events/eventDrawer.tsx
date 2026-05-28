@@ -6,7 +6,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
