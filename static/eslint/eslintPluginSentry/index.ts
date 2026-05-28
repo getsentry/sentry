@@ -4,6 +4,7 @@ import {noDigitsInTn} from './no-digits-in-tn';
 import {noDynamicTranslations} from './no-dynamic-translations';
 import {noFlagComments} from './no-flag-comments';
 import {noQueryDataTypeParameters} from './no-query-data-type-parameters';
+import {noRawCssInStyled} from './no-raw-css-in-styled';
 import {noStaticTranslations} from './no-static-translations';
 import {noStyledShortcut} from './no-styled-shortcut';
 import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
@@ -17,6 +18,7 @@ export const rules = {
   'no-dynamic-translations': noDynamicTranslations,
   'no-flag-comments': noFlagComments,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
+  'no-raw-css-in-styled': noRawCssInStyled,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
   'no-unnecessary-type-annotation': noUnnecessaryTypeAnnotation,

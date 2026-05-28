@@ -31,9 +31,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 

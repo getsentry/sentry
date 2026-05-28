@@ -66,12 +66,19 @@ export const StyledPanelItem = styled(PanelItem)<{
       : null};
   ${p =>
     p.align === 'center'
-      ? `
-  justify-content: space-around;`
+      ? css`
+          justify-content: space-around;
+        `
       : p.align === 'left' || p.align === 'right'
-        ? `text-align: ${p.align};`
+        ? css`
+            text-align: ${p.align};
+          `
         : undefined}
-  ${p => p.span && `grid-column: auto / span ${p.span};`}
+  ${p =>
+    p.span &&
+    css`
+      grid-column: auto / span ${p.span};
+    `}
   white-space: nowrap;
 `;
 
