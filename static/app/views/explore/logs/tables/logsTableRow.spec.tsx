@@ -223,6 +223,10 @@ describe('logsTableRow', () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('hovering the row causes prefetching of the row details', async () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
@@ -253,10 +257,9 @@ describe('logsTableRow', () => {
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
-      timestamp: rowDataTimestamp,
+      timestamp: Math.trunc(rowDataTimestamp),
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
-    jest.useRealTimers();
   });
 
   it('renders row details', async () => {
@@ -315,7 +318,7 @@ describe('logsTableRow', () => {
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
-      timestamp: rowDataTimestamp,
+      timestamp: Math.trunc(rowDataTimestamp),
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
 
