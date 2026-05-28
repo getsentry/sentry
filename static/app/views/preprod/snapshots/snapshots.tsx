@@ -386,40 +386,57 @@ export default function SnapshotsPage() {
 
   const availableTags = useMemo(() => {
     const hasStatusFilter = activeStatuses.size > 0 && comparisonType === 'diff';
-    const baseItems = hasStatusFilter
-      ? searchFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
-      : searchFilteredItems;
-
     const activeTagKeys = Object.keys(activeTagFilters);
+    const trimmedQuery = searchQuery.trim().toLowerCase();
     const tagMap = new Map<string, Map<string, number>>();
 
-    for (const item of baseItems) {
+    for (let i = 0; i < sidebarItems.length; i++) {
+      const item = sidebarItems[i]!;
+      const passesStatus =
+        !hasStatusFilter || activeStatuses.has(item.type as DiffStatus);
+
       for (const img of itemImages(item)) {
         if (!img.tags) {
           continue;
         }
-        for (const [k, v] of Object.entries(img.tags)) {
-          const passesFilters = activeTagKeys.every(filterKey => {
-            const filterValue = activeTagFilters[filterKey];
-            if (filterValue === undefined) {
-              return true;
-            }
-            return img.tags?.[filterKey] === filterValue;
-          });
-          if (!passesFilters) {
-            continue;
+
+        const passesSearch =
+          !trimmedQuery ||
+          narrowItemBySearch(item, memberSearchKeys[i]!, trimmedQuery) !== null;
+
+        const passesTagFilters = activeTagKeys.every(filterKey => {
+          const filterValue = activeTagFilters[filterKey];
+          if (filterValue === undefined) {
+            return true;
           }
+          return img.tags?.[filterKey] === filterValue;
+        });
+
+        const counted = passesStatus && passesSearch && passesTagFilters;
+
+        for (const [k, v] of Object.entries(img.tags)) {
           let values = tagMap.get(k);
           if (!values) {
             values = new Map<string, number>();
             tagMap.set(k, values);
           }
-          values.set(v, (values.get(v) ?? 0) + 1);
+          if (counted) {
+            values.set(v, (values.get(v) ?? 0) + 1);
+          } else if (!values.has(v)) {
+            values.set(v, 0);
+          }
         }
       }
     }
     return tagMap;
-  }, [searchFilteredItems, activeStatuses, comparisonType, activeTagFilters]);
+  }, [
+    sidebarItems,
+    memberSearchKeys,
+    searchQuery,
+    activeStatuses,
+    comparisonType,
+    activeTagFilters,
+  ]);
 
   const tagFilteredItems = useMemo(() => {
     if (!hasActiveTagFilter) {
