@@ -277,7 +277,7 @@ def fetch_associated_groups(
             snuba_result,
             eap_result,
             callsite,
-            is_experimental_data_a_null_result=len(eap_result) == 0,
+            is_experimental_data_nullish=len(eap_result) == 0,
             reasonable_match_comparator=lambda snuba, eap: (
                 eap.keys() <= snuba.keys() and all(eap[gid] <= snuba[gid] for gid in eap)
             ),

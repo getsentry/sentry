@@ -3,8 +3,12 @@ import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Meta} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -40,6 +44,10 @@ interface UseTraceItemDetailsProps {
    * Alias for `enabled` in react-query.
    */
   enabled?: boolean;
+  /**
+   * Optional Unix timestamp in seconds to disambiguate trace item lookup.
+   */
+  timestamp?: number | null;
 }
 
 export type TraceItemAttributeMeta = Pick<Meta, 'len' | 'rem'>;
@@ -80,6 +88,22 @@ type TraceItemDetailsQueryParams = {
   referrer: string;
   traceId: string;
   traceItemType: TraceItemDataset;
+  end?: string;
+  start?: string;
+  statsPeriod?: string | null;
+  timestamp?: number;
+  utc?: string;
+};
+
+type TraceItemDetailsApiQuery = {
+  item_type: TraceItemDataset;
+  referrer: string;
+  trace_id: string;
+  end?: string;
+  start?: string;
+  statsPeriod?: string | null;
+  timestamp?: number;
+  utc?: string;
 };
 
 export type TraceItemResponseAttribute =
@@ -93,6 +117,7 @@ export type TraceItemResponseAttribute =
  */
 export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const {fetching} = useProjects();
   const project = useProjectFromId({project_id: props.projectId});
   const enabled = (props.enabled ?? true) && !!project;
@@ -104,6 +129,10 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
     );
   }
 
+  const timeQueryParams = defined(props.timestamp)
+    ? {timestamp: normalizeTimestampToSeconds(props.timestamp)}
+    : normalizeDateTimeParams(selection.datetime);
+
   const result = useQuery({
     ...traceItemDetailsApiOptions({
       organizationSlug: organization.slug,
@@ -112,6 +141,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
       traceItemType: props.traceItemType,
       referrer: props.referrer,
       traceId: props.traceId,
+      ...timeQueryParams,
     }),
     enabled,
     retry: shouldRetryHandler,
@@ -128,7 +158,22 @@ function traceItemDetailsApiOptions({
   traceItemType,
   referrer,
   traceId,
+  timestamp,
+  statsPeriod,
+  start,
+  end,
+  utc,
 }: TraceItemDetailsUrlParams & TraceItemDetailsQueryParams) {
+  const timeQuery: Partial<TraceItemDetailsApiQuery> =
+    timestamp === undefined
+      ? {
+          ...(defined(statsPeriod) ? {statsPeriod} : {}),
+          ...(defined(start) ? {start} : {}),
+          ...(defined(end) ? {end} : {}),
+          ...(defined(utc) ? {utc} : {}),
+        }
+      : {timestamp};
+
   return apiOptions.as<TraceItemDetailsResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',
     {
@@ -144,6 +189,7 @@ function traceItemDetailsApiOptions({
         item_type: traceItemType,
         referrer,
         trace_id: traceId,
+        ...timeQuery,
       },
       staleTime: Infinity,
     }
@@ -156,6 +202,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   traceId,
   traceItemType,
   referrer,
+  timestamp,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
   timeout,
@@ -175,6 +222,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   hoverPrefetchDisabled?: boolean;
 }) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const project = useProjectFromId({project_id: projectId});
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -191,6 +239,9 @@ export function usePrefetchTraceItemDetailsOnHover({
         if (!currentProject?.slug) {
           return;
         }
+        const timeQueryParams = defined(timestamp)
+          ? {timestamp: normalizeTimestampToSeconds(timestamp)}
+          : normalizeDateTimeParams(selection.datetime);
         const options = traceItemDetailsApiOptions({
           organizationSlug: organization.slug,
           projectSlug: currentProject.slug,
@@ -198,6 +249,7 @@ export function usePrefetchTraceItemDetailsOnHover({
           traceItemType,
           referrer,
           traceId,
+          ...timeQueryParams,
         });
         queryClient.fetchQuery(options).then(
           response => {

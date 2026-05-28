@@ -3,9 +3,13 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.rule import Rule
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.tasks.sentry_apps import send_alert_webhook_v2
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -32,7 +36,7 @@ def split_urls(value: str) -> list[str]:
     return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
-def _get_triggering_rule_name(invocation: ActionInvocation) -> str:
+def get_triggering_rule_name(invocation: ActionInvocation) -> str:
     try:
         workflow = Workflow.objects.get(id=invocation.workflow_id)
         label = workflow.name
@@ -45,7 +49,10 @@ def _get_triggering_rule_name(invocation: ActionInvocation) -> str:
     ).first()
     if alert_rule_workflow:
         try:
-            label = Rule.objects.get(id=alert_rule_workflow.rule_id).label
+            label = Rule.objects.get(
+                id=alert_rule_workflow.rule_id,
+                project__organization_id=workflow.organization_id,
+            ).label
         except Rule.DoesNotExist:
             logger.exception(
                 "Rule not found when querying for AlertRuleWorkflow",
@@ -60,7 +67,7 @@ def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookP
     event = invocation.event_data.event
     if not isinstance(event, GroupEvent):
         raise TypeError(f"Legacy webhook payload requires a GroupEvent, got {type(event).__name__}")
-    triggering_rules = [_get_triggering_rule_name(invocation)]
+    triggering_rules = [get_triggering_rule_name(invocation)]
     event_data = dict(event.data or {})
     data: LegacyWebhookPayload = {
         "id": str(group.id),
@@ -81,6 +88,46 @@ def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookP
         },
     }
     return data
+
+
+def send_sentry_app_webhook(
+    *,
+    group_event: GroupEvent,
+    sentry_app_slug: str | None,
+    rule_label: str,
+    organization: Organization,
+) -> None:
+    logging_context = {
+        "organization_id": organization.id,
+        "sentry_app_slug": sentry_app_slug,
+    }
+
+    if not sentry_app_slug:
+        logger.warning("webhook_action_handler.missing_target_identifier", extra=logging_context)
+        return
+
+    sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+    if sentry_app is None:
+        logger.warning(
+            "webhook_action_handler.sentry_app_not_found",
+            extra=logging_context,
+        )
+        return
+
+    if features.has("organizations:legacy-webhook-dry-run", organization):
+        logger.info(
+            "webhook_action_handler.sentry_app_dry_run",
+            extra=logging_context,
+        )
+        return
+
+    send_alert_webhook_v2.delay(
+        rule_label=rule_label,
+        sentry_app_id=sentry_app.id,
+        instance_id=group_event.event_id,
+        group_id=group_event.group_id,
+        occurrence_id=getattr(group_event, "occurrence_id", None),
+    )
 
 
 def send_legacy_webhooks_for_invocation(invocation: ActionInvocation) -> None:

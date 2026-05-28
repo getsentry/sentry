@@ -48,7 +48,7 @@ function trailToCrumb(
           query: omit(trail.payload.query, ['cursor', 'query']),
           organization,
         }),
-        label: t('Profiling'),
+        label: t('Profiles'),
         preservePageFilters: true,
       };
     }

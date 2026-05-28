@@ -164,7 +164,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
         )
 
         with (
-            self.feature("organization:workflow-engine-evaluate-seer-activities"),
+            self.feature("organizations:workflow-engine-evaluate-seer-activities"),
             mock.patch(
                 "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
             ) as mock_delay,

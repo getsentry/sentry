@@ -36,8 +36,8 @@ from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
-    build_automation_handoff,
     bulk_update_seer_project_settings,
+    get_automation_handoff,
     get_valid_automated_run_stopping_points,
     update_seer_project_settings,
 )
@@ -89,7 +89,7 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
         scanner_automation=project.get_option("sentry:seer_scanner_automation"),
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
-        handoff=build_automation_handoff(project.get_option),
+        handoff=get_automation_handoff(project.get_option),
         repos_count=SeerProjectRepository.objects.filter(
             project_repository__project=project,
             project_repository__repository__status=ObjectStatus.ACTIVE,
@@ -131,7 +131,7 @@ def _bulk_get_project_settings(projects: list[Project]) -> dict[int, SeerProject
             automation_tuning=_get_option("sentry:autofix_automation_tuning"),
             scanner_automation=_get_option("sentry:seer_scanner_automation"),
             stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
-            handoff=build_automation_handoff(_get_option),
+            handoff=get_automation_handoff(_get_option),
             repos_count=repo_counts.get(project.id, 0),
         )
 

@@ -315,12 +315,16 @@ export const LogRowContent = memo(function LogRowContent({
   const prefetchTimeout = autorefreshEnabled
     ? DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH
     : DEFAULT_TRACE_ITEM_HOVER_TIMEOUT;
+  const logTimestampSeconds = isRegularLogResponseItem(dataRow)
+    ? getLogRowTimestampMillis(dataRow) / 1000
+    : null;
   const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
     traceItemId: rowId,
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
+    timestamp: logTimestampSeconds,
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
@@ -614,6 +618,9 @@ function LogRowDetails({
     logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
+    timestamp: isRegularLogResponseItem(dataRow)
+      ? getLogRowTimestampMillis(dataRow) / 1000
+      : null,
     enabled: !missingLogId && !isPseudoRow,
   });
 

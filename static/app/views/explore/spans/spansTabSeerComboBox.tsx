@@ -6,7 +6,11 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
@@ -78,13 +82,9 @@ export function SpansTabSeerComboBox() {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
-  const {
-    currentInputValueRef,
-    query,
-    committedQuery,
-    askSeerSuggestedQueryRef,
-    enableAISearch,
-  } = useSearchQueryBuilder();
+  const {query, committedQuery} = useSearchQueryBuilderState();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
   const useTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
@@ -108,10 +108,12 @@ export function SpansTabSeerComboBox() {
     ?.join(' ')
     ?.trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails?.queryToUse) {
+  } else if (!inputValue && queryDetails?.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 

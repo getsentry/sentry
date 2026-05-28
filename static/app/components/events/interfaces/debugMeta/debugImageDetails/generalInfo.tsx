@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Processings} from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
@@ -57,7 +58,11 @@ const Label = styled('div')<{coloredBg?: boolean}>`
   color: ${p => p.theme.tokens.content.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
     ${p => p.theme.space.md};
-  ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
+  ${p =>
+    p.coloredBg &&
+    css`
+      background-color: ${p.theme.tokens.background.secondary};
+    `}
 `;
 
 const Value = styled(Label)`
@@ -66,5 +71,9 @@ const Value = styled(Label)`
   color: ${p => p.theme.tokens.content.secondary};
   padding: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.mono};
-  ${p => p.coloredBg && `background-color: ${p.theme.tokens.background.secondary};`}
+  ${p =>
+    p.coloredBg &&
+    css`
+      background-color: ${p.theme.tokens.background.secondary};
+    `}
 `;
