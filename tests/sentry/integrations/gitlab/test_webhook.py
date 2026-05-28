@@ -15,11 +15,13 @@ from fixtures.gitlab import (
     WEBHOOK_TOKEN,
     GitLabTestCase,
 )
+from sentry.integrations.gitlab.webhooks import MergeEventWebhook
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
+from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -367,6 +369,33 @@ class WebhookTest(GitLabTestCase):
             if c.args and c.args[0] == "gitlab.webhook.processor.error"
         ]
         assert error_metrics == []
+
+    def test_merge_event_invokes_code_review_handler(self) -> None:
+        # The code-review handler is wired into the endpoint via the processor
+        # tuple. Confirm both that it is registered and that an inbound
+        # merge_request event is dispatched into it with the expected context.
+        assert handle_merge_request_event in MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS
+
+        self.create_gitlab_repo("getsentry/sentry")
+
+        # wraps the real handler so it still runs while we record the invocation
+        spy = MagicMock(wraps=handle_merge_request_event)
+        with patch.object(MergeEventWebhook, "WEBHOOK_EVENT_PROCESSORS", (spy,)):
+            response = self.client.post(
+                self.url,
+                data=MERGE_REQUEST_OPENED_EVENT,
+                content_type="application/json",
+                HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+                HTTP_X_GITLAB_EVENT="Merge Request Hook",
+            )
+
+        assert response.status_code == 204
+        spy.assert_called_once()
+        call_kwargs = spy.call_args.kwargs
+        assert call_kwargs["event"]["object_attributes"]["action"] == "open"
+        assert call_kwargs["integration"].id == self.integration.id
+        assert call_kwargs["organization"].id == self.organization.id
+        assert call_kwargs["repo"].name == "getsentry/sentry"
 
     def test_merge_event_create_pull_request(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
