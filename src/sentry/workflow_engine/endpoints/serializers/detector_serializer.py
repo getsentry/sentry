@@ -21,8 +21,6 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
-
-
 class DetectorSerializerResponseOptional(TypedDict, total=False):
     owner: ActorSerializerResponse | None
     createdBy: str | None
