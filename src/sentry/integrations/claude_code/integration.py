@@ -321,7 +321,10 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         return ClaudeCodeIntegrationMetadata.parse_obj(fresh.metadata or {})
 
     def get_vault_id_for_installation(self, installation_id: int) -> str | None:
-        return self._get_metadata().installation_vault_ids.get(str(installation_id))
+        metadata = self._read_fresh_metadata()
+        if metadata is None:
+            return None
+        return metadata.installation_vault_ids.get(str(installation_id))
 
     def set_vault_id_for_installation(self, installation_id: int, vault_id: str) -> None:
         with self._vault_metadata_lock().acquire():
@@ -342,15 +345,18 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             return vault_id
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        metadata = self._get_metadata()
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return
 
-        if "environment_id" in data:
-            metadata.environment_id = data["environment_id"] or None
+            if "environment_id" in data:
+                metadata.environment_id = data["environment_id"] or None
 
-        if "workspace_is_default" in data:
-            metadata.workspace_name = "default" if data["workspace_is_default"] else None
+            if "workspace_is_default" in data:
+                metadata.workspace_name = "default" if data["workspace_is_default"] else None
 
-        self._persist_metadata(metadata)
+            self._persist_metadata(metadata)
         super().update_organization_config({})
 
     def get_config_data(self) -> Mapping[str, Any]:
@@ -401,20 +407,23 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         state = client.launch(webhook_url=webhook_url, request=request)
         state.integration_id = self.model.id
 
-        metadata = self._get_metadata()
-        metadata_changed = False
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return state
+            metadata_changed = False
 
-        if client.environment_id and client.environment_id != metadata.environment_id:
-            metadata.environment_id = client.environment_id
-            metadata_changed = True
+            if client.environment_id and client.environment_id != metadata.environment_id:
+                metadata.environment_id = client.environment_id
+                metadata_changed = True
 
-        if client.agent_id and client.agent_id != metadata.agent_id:
-            metadata.agent_id = client.agent_id
-            metadata.agent_version = client.agent_version
-            metadata_changed = True
+            if client.agent_id and client.agent_id != metadata.agent_id:
+                metadata.agent_id = client.agent_id
+                metadata.agent_version = client.agent_version
+                metadata_changed = True
 
-        if metadata_changed:
-            self._persist_metadata(metadata)
+            if metadata_changed:
+                self._persist_metadata(metadata)
 
         return state
 
