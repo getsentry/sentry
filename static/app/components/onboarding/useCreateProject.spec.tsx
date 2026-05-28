@@ -21,6 +21,18 @@ describe('useCreateProject', () => {
   const project = ProjectFixture({slug: 'my-project'});
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
     jest.spyOn(ProjectsStore, 'onCreateSuccess');
   });
 
@@ -36,7 +48,10 @@ describe('useCreateProject', () => {
     result.current.mutate({platform, name: 'my-project'});
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalled());
-    expect(ProjectsStore.onCreateSuccess).toHaveBeenCalledWith(project, organization.slug);
+    expect(ProjectsStore.onCreateSuccess).toHaveBeenCalledWith(
+      project,
+      organization.slug
+    );
   });
 
   it('POSTs to /teams/{org}/{team}/projects/ when a team slug is provided', async () => {
