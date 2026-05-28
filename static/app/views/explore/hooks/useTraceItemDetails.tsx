@@ -46,7 +46,7 @@ interface UseTraceItemDetailsProps {
   /**
    * Optional Unix timestamp in seconds to disambiguate trace item lookup.
    */
-  timestamp?: number;
+  timestamp?: number | null;
 }
 
 export type TraceItemAttributeMeta = Pick<Meta, 'len' | 'rem'>;
@@ -128,10 +128,9 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
     );
   }
 
-  const timeQueryParams =
-    props.timestamp === undefined
-      ? normalizeDateTimeParams(selection.datetime)
-      : {timestamp: props.timestamp};
+  const timeQueryParams = defined(props.timestamp)
+    ? {timestamp: props.timestamp}
+    : normalizeDateTimeParams(selection.datetime);
 
   const queryParams: TraceItemDetailsQueryParams = {
     referrer: props.referrer,

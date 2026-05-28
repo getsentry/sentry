@@ -37,7 +37,7 @@ describe('useTraceItemDetails', () => {
     });
   }
 
-  function renderTraceItemDetailsHook(timestamp?: number) {
+  function renderTraceItemDetailsHook(timestamp?: number | null) {
     return renderHookWithProviders(
       () =>
         useTraceItemDetails({
@@ -90,6 +90,24 @@ describe('useTraceItemDetails', () => {
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
     renderTraceItemDetailsHook();
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      statsPeriod: '14d',
+    });
+    expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('timestamp');
+  });
+
+  it('uses page filter stats period as fallback when timestamp is null', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    renderTraceItemDetailsHook(null);
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
     expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
