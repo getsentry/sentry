@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -37,24 +37,12 @@ describe('useTraceItemDetails', () => {
     });
   }
 
-  function renderTraceItemDetailsHook(timestamp?: number | null) {
-    return renderHookWithProviders(
-      () =>
-        useTraceItemDetails({
-          projectId: project.id,
-          traceItemId: 'item-id',
-          traceId: '1234567890abcdef1234567890abcdef',
-          traceItemType: TraceItemDataset.LOGS,
-          referrer: 'api.explore.log-item-details',
-          timestamp,
-        }),
-      {organization}
-    );
-  }
-
   beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
+  });
+
+  afterEach(() => {
     MockApiClient.clearMockResponses();
-    act(() => ProjectsStore.loadInitialData([project]));
   });
 
   it('uses timestamp instead of page filter datetime when timestamp is passed', async () => {
@@ -66,7 +54,17 @@ describe('useTraceItemDetails', () => {
     });
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
-    renderTraceItemDetailsHook(123);
+    renderHookWithProviders(useTraceItemDetails, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 123,
+      },
+    });
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
     expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
@@ -89,7 +87,16 @@ describe('useTraceItemDetails', () => {
     });
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
-    renderTraceItemDetailsHook();
+    renderHookWithProviders(useTraceItemDetails, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+      },
+    });
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
     expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
@@ -107,7 +114,17 @@ describe('useTraceItemDetails', () => {
     });
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
-    renderTraceItemDetailsHook(null);
+    renderHookWithProviders(useTraceItemDetails, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: null,
+      },
+    });
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
     expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
@@ -125,7 +142,16 @@ describe('useTraceItemDetails', () => {
     });
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
-    renderTraceItemDetailsHook();
+    renderHookWithProviders(useTraceItemDetails, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+      },
+    });
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
     expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
@@ -148,7 +174,17 @@ describe('useTraceItemDetails', () => {
     });
     const traceItemDetailsMock = addTraceItemDetailsMock();
 
-    renderTraceItemDetailsHook(0);
+    renderHookWithProviders(useTraceItemDetails, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 0,
+      },
+    });
 
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
     expect(traceItemDetailsMock.mock.calls[0]![1].query).toMatchObject({
