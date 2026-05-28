@@ -312,6 +312,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-disable-coding-setting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitLab as a supported SCM provider for Seer
     manager.add("organizations:seer-gitlab-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Kill switch for OrganizationContributors seat tracking on GitLab merge_request webhooks.
+    # Pair with organizations:seat-based-seer-enabled before tracking can actually write rows.
+    manager.add("organizations:gitlab-track-contributor-seat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Disable select orgs from ingesting mobile replay events.
     # Enable double-read from EAP for session health data validation
     manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

@@ -14,6 +14,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
@@ -356,7 +357,9 @@ class MergeEventWebhook(GitlabWebhook):
                 },
             )
 
-            if created:
+            if created and features.has(
+                "organizations:gitlab-track-contributor-seat", organization
+            ):
                 track_contributor_seat(
                     organization=organization,
                     repo=repo,

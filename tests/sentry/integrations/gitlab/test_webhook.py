@@ -384,7 +384,12 @@ class WebhookTest(GitLabTestCase):
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
-    @with_feature("organizations:seat-based-seer-enabled")
+    @with_feature(
+        [
+            "organizations:gitlab-track-contributor-seat",
+            "organizations:seat-based-seer-enabled",
+        ]
+    )
     @patch("sentry.integrations.gitlab.webhooks.track_contributor_seat")
     def test_merge_event_calls_track_contributor_seat(self, mock_track: MagicMock) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
@@ -409,12 +414,32 @@ class WebhookTest(GitLabTestCase):
         assert kwargs["provider"] == "gitlab"
 
     @patch("sentry.integrations.gitlab.webhooks.track_contributor_seat")
+    def test_merge_event_no_track_without_gitlab_flag(self, mock_track: MagicMock) -> None:
+        # Without organizations:gitlab-track-contributor-seat the webhook does
+        # not invoke the helper at all — kill switch.
+        self.create_gitlab_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        mock_track.assert_not_called()
+        assert OrganizationContributors.objects.count() == 0
+
+    @with_feature("organizations:gitlab-track-contributor-seat")
+    @patch("sentry.integrations.gitlab.webhooks.track_contributor_seat")
     def test_merge_event_track_contributor_seat_no_op_without_seat_based(
         self, mock_track: MagicMock
     ) -> None:
-        # The webhook always invokes track_contributor_seat; without
-        # organizations:seat-based-seer-enabled the helper short-circuits inside
-        # should_increment_contributor_seat and writes nothing.
+        # With the gitlab flag enabled but without
+        # organizations:seat-based-seer-enabled the helper is invoked but
+        # short-circuits inside should_increment_contributor_seat and writes
+        # nothing.
         self.create_gitlab_repo("getsentry/sentry")
         self.create_group(project=self.project, short_id=9)
 
@@ -429,6 +454,7 @@ class WebhookTest(GitLabTestCase):
         mock_track.assert_called_once()
         assert OrganizationContributors.objects.count() == 0
 
+    @with_feature("organizations:gitlab-track-contributor-seat")
     @patch("sentry.integrations.gitlab.webhooks.track_contributor_seat")
     def test_merge_event_track_contributor_seat_only_on_create(self, mock_track: MagicMock) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
