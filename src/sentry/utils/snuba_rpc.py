@@ -273,13 +273,15 @@ def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
     return response
 
 
-def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResponse:
+def trace_item_details_rpc(
+    req: TraceItemDetailsRequest, debug: str | bool = False
+) -> TraceItemDetailsResponse:
     """
     An RPC which requests all of the details about a specific trace item.
     For example, you might say "give me all of the attributes for the log with id 1234" or
     "give me all of the attributes for the span with id 12345 and trace_id 34567"
     """
-    resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req)
+    resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req, debug=debug)
     response = TraceItemDetailsResponse()
     response.ParseFromString(resp.data)
     return response
