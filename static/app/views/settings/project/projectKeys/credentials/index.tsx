@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -55,7 +56,7 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
 
   return (
     <form.AppForm form={form}>
-      <FieldGroup hideBorder>
+      <FieldList>
         <form.AppField name="securityEndpoint">
           {field => (
             <field.Layout.Stack
@@ -77,7 +78,7 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
-      </FieldGroup>
+      </FieldList>
     </form.AppForm>
   );
 }
@@ -99,7 +100,7 @@ function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
 
   return (
     <form.AppForm form={form}>
-      <FieldGroup hideBorder>
+      <FieldList>
         <form.AppField name="minidumpEndpoint">
           {field => (
             <field.Layout.Stack
@@ -121,7 +122,7 @@ function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
-      </FieldGroup>
+      </FieldList>
     </form.AppForm>
   );
 }
@@ -143,7 +144,7 @@ function UnrealTab({unrealEndpoint}: UnrealTabProps) {
 
   return (
     <form.AppForm form={form}>
-      <FieldGroup hideBorder>
+      <FieldList>
         <form.AppField name="unrealEndpoint">
           {field => (
             <field.Layout.Stack
@@ -156,7 +157,7 @@ function UnrealTab({unrealEndpoint}: UnrealTabProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
-      </FieldGroup>
+      </FieldList>
     </form.AppForm>
   );
 }
@@ -192,7 +193,7 @@ function CredentialsTab({
 
   return (
     <form.AppForm form={form}>
-      <FieldGroup hideBorder>
+      <FieldList>
         {showPublicKey && (
           <form.AppField name="publicKey">
             {field => (
@@ -226,7 +227,7 @@ function CredentialsTab({
             )}
           </form.AppField>
         )}
-      </FieldGroup>
+      </FieldList>
     </form.AppForm>
   );
 }
@@ -366,8 +367,8 @@ export function ProjectKeyCredentials({
 
   return (
     <Fragment>
-      <dsnForm.AppForm form={dsnForm}>
-        <FieldGroup hideBorder>
+      <FieldList>
+        <dsnForm.AppForm form={dsnForm}>
           {showDsnPublic && (
             <dsnForm.AppField name="dsn">
               {field => (
@@ -440,8 +441,8 @@ export function ProjectKeyCredentials({
               )}
             </dsnForm.AppField>
           )}
-        </FieldGroup>
-      </dsnForm.AppForm>
+        </dsnForm.AppForm>
+      </FieldList>
 
       {availableTabs.length > 0 && (
         <Fragment>
@@ -458,3 +459,14 @@ export function ProjectKeyCredentials({
     </Fragment>
   );
 }
+
+const FieldList = styled('div')`
+  > * {
+    padding: ${p => p.theme.space.xl};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;

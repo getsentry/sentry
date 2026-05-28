@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {z} from 'zod';
 
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -42,7 +43,7 @@ export function VercelTab({
 
   return (
     <form.AppForm form={form}>
-      <FieldGroup hideBorder>
+      <FieldList>
         <form.AppField name="logDrainEndpoint">
           {field => (
             <field.Layout.Stack
@@ -118,7 +119,18 @@ export function VercelTab({
             </form.AppField>
           </Fragment>
         )}
-      </FieldGroup>
+      </FieldList>
     </form.AppForm>
   );
 }
+
+const FieldList = styled('div')`
+  > * {
+    padding: ${p => p.theme.space.xl};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;

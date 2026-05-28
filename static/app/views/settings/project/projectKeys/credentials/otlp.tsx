@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -78,7 +78,7 @@ export function OtlpTab({
 
   return (
     <form.AppForm form={form}>
-      <FieldGroup hideBorder>
+      <FieldList>
         <form.AppField name="otlpEndpoint">
           {field => (
             <field.Layout.Stack
@@ -184,10 +184,21 @@ export function OtlpTab({
             </field.Layout.Stack>
           )}
         </form.AppField>
-      </FieldGroup>
+      </FieldList>
     </form.AppForm>
   );
 }
+
+const FieldList = styled('div')`
+  > * {
+    padding: ${p => p.theme.space.xl};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;
 
 const UnsetHeightCodeBlock = styled(CodeBlock)`
   pre {

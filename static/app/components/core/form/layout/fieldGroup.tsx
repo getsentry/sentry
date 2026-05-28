@@ -9,7 +9,6 @@ export function FieldGroup({
   title,
   children,
   hasButtons,
-  hideBorder,
 }: {
   children: React.ReactNode;
   hasButtons?: boolean;
@@ -17,7 +16,7 @@ export function FieldGroup({
   title?: React.ReactNode;
 }) {
   return (
-    <Panel hideBorder={hideBorder}>
+    <Panel>
       {title ? <PanelHeader hasButtons={hasButtons}>{title}</PanelHeader> : null}
       <PanelBody>{children}</PanelBody>
     </Panel>
