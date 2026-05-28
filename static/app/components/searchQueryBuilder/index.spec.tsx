@@ -19,7 +19,8 @@ import {
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {
   QueryInterfaceType,
@@ -5807,7 +5808,8 @@ describe('SearchQueryBuilder', () => {
         });
 
         function AskSeerTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer, query} = useSearchQueryBuilder();
+          const {displayAskSeer} = useSearchQueryBuilderAI();
+          const {query} = useSearchQueryBuilderState();
           return displayAskSeer ? (
             <AskSeerComboBox
               initialQuery={query}
