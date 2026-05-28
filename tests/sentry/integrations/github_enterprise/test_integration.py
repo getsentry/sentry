@@ -10,7 +10,6 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import orjson
 import pytest
 import responses
-from django.http import HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -1250,8 +1249,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             )
 
 
-class InstallationConfigViewGitHubComFlagGateTest(TestCase):
-    """The form must reject github.com installs when the org lacks the feature flag."""
+class InstallationConfigViewGitHubComInstallTest(TestCase):
+    """The form must accept github.com and GHES installs and route correctly."""
 
     def _make_post_data(self, url: str) -> dict[str, str]:
         return {
@@ -1265,39 +1264,22 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
             "public_link": "",
         }
 
-    def test_github_com_install_rejected_without_flag(self) -> None:
-        view = InstallationConfigView()
-        request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
-        request.user = self.user
-        pipeline = MagicMock()
-        pipeline.organization = self.organization
-        response = view.dispatch(request, pipeline)
-
-        # Form re-renders with an error rather than calling pipeline.next_step()
-        assert pipeline.next_step.call_count == 0
-        # The response body contains the form error message
-        assert isinstance(response, HttpResponse)
-        assert b"github.com" in response.content
-        assert response.status_code == 200  # form re-rendered
-
-    def test_github_com_install_allowed_with_flag(self) -> None:
+    def test_github_com_install_allowed(self) -> None:
         view = InstallationConfigView()
         request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
         request.user = self.user
         pipeline = MagicMock()
         pipeline.organization = self.organization
 
-        with self.feature("organizations:github-enterprise-github-com-source"):
-            view.dispatch(request, pipeline)
+        view.dispatch(request, pipeline)
 
-        # State bound with host="github.com"; pipeline advanced
         pipeline.bind_state.assert_any_call(
             "installation_data",
             mock.ANY,
         )
         pipeline.next_step.assert_called_once()
 
-    def test_ghes_install_unaffected_by_flag(self) -> None:
+    def test_ghes_install_allowed(self) -> None:
         view = InstallationConfigView()
         request = RequestFactory().post(
             "/", data=self._make_post_data("https://github.example.org")
@@ -1306,7 +1288,6 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         pipeline = MagicMock()
         pipeline.organization = self.organization
 
-        # No flag enabled — GHES install should proceed
         view.dispatch(request, pipeline)
         pipeline.next_step.assert_called_once()
 
@@ -1330,21 +1311,6 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
             )
             == "https://example.com/app"
         )
-
-    def test_github_com_install_rejected_for_normalized_inputs(self) -> None:
-        # Any input that normalizes to "github.com" must hit the gate. Previously
-        # `urlparse("github.com").netloc` returned empty and let the bypass through,
-        # producing malformed OAuth URLs and a silent gate bypass.
-        view = InstallationConfigView()
-        for url_input in ("github.com", "GitHub.com", "https://GitHub.com", "github.com/"):
-            request = RequestFactory().post("/", data=self._make_post_data(url_input))
-            request.user = self.user
-            pipeline = MagicMock()
-            pipeline.organization = self.organization
-            response = view.dispatch(request, pipeline)
-            assert pipeline.next_step.call_count == 0, f"flag bypassed for input {url_input!r}"
-            assert isinstance(response, HttpResponse)
-            assert response.status_code == 200
 
 
 class BuildIntegrationGitHubComTest(TestCase):
@@ -1583,38 +1549,18 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
         ).exists()
 
     @responses.activate
-    def test_config_step_rejects_github_com_without_flag(self) -> None:
+    def test_config_step_allows_github_com(self) -> None:
         self._initialize_pipeline()
         resp = self._submit_config(url="https://github.com")
-        assert resp.status_code == 400
-        assert resp.data["status"] == "error"
-        assert "github.com" in resp.data["data"]["detail"]
-
-    @responses.activate
-    def test_config_step_allows_github_com_with_flag(self) -> None:
-        self._initialize_pipeline()
-        with self.feature("organizations:github-enterprise-github-com-source"):
-            resp = self._submit_config(url="https://github.com")
         assert resp.status_code == 200
         assert resp.data["status"] == "advance"
         assert resp.data["step"] == "app_install_redirect"
-
-    def test_config_step_rejects_mixed_case_github_com(self) -> None:
-        # The github.com flag gate must be case-insensitive. URL hostnames are
-        # case-insensitive in DNS, so `GitHub.COM` resolves identically and
-        # would bypass the gate if the comparison weren't normalized.
-        self._initialize_pipeline()
-        resp = self._submit_config(url="https://GitHub.COM")
-        assert resp.status_code == 400
-        assert resp.data["status"] == "error"
-        assert "github.com" in resp.data["data"]["detail"]
 
     def test_app_install_step_uses_apps_path_for_github_com(self) -> None:
         # github.com hosts the App install page at /apps/{name}, GHES at
         # /github-apps/{name}. Wrong URL → 404 → broken install flow.
         self._initialize_pipeline()
-        with self.feature("organizations:github-enterprise-github-com-source"):
-            self._submit_config(url="https://github.com")
+        self._submit_config(url="https://github.com")
         resp = self._advance_step({})
         assert resp.status_code == 200
         assert resp.data["data"]["appInstallUrl"] == "https://github.com/apps/sentry-app"
