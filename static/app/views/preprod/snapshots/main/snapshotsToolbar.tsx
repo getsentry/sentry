@@ -1,6 +1,6 @@
 import type React from 'react';
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -19,10 +19,10 @@ import type {DiffMode} from './imageDisplay/diffImageDisplay';
 
 const TRANSPARENT_COLOR = 'transparent';
 
-type ViewMode = 'single' | 'list';
-type SortBy = 'diff' | 'alpha';
+export type ViewMode = 'single' | 'list';
+export type SortBy = 'diff' | 'alpha';
 
-interface SnapshotsToolbarProps {
+interface ToolbarContainerProps {
   toggle: React.ReactNode;
   diffControls?: React.ReactNode;
   progressIndicator?: React.ReactNode;
@@ -30,20 +30,20 @@ interface SnapshotsToolbarProps {
   sortDropdown?: React.ReactNode;
 }
 
-export function SnapshotsToolbar({
+export function ToolbarContainer({
   toggle,
   sortDropdown,
   progressIndicator,
   diffControls,
   soloDiffToggle,
-}: SnapshotsToolbarProps) {
+}: ToolbarContainerProps) {
   return (
     <Fragment>
       <Flex
         align="center"
         justify="between"
         gap="md"
-        padding="md xl md 0"
+        padding={{xs: 'md xl', md: 'md xl md 0'}}
         background="primary"
         onClick={e => e.stopPropagation()}
       >
@@ -58,7 +58,7 @@ export function SnapshotsToolbar({
               {diffControls}
             </Flex>
           )}
-          {soloDiffToggle}
+          <Flex display={{'2xs': 'none', xs: 'none', sm: 'flex'}}>{soloDiffToggle}</Flex>
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />
@@ -81,6 +81,7 @@ export function SnapshotsToolbarWithControls({
     onModeChange: (mode: DiffMode) => void;
     onOverlayColorChange: (color: string) => void;
     overlayColor: string;
+    showSplit?: boolean;
   };
   progress?: {
     current: number;
@@ -108,7 +109,7 @@ export function SnapshotsToolbarWithControls({
   }
 
   return (
-    <SnapshotsToolbar
+    <ToolbarContainer
       toggle={<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />}
       sortDropdown={
         sort ? <SortDropdown value={sort.value} onChange={sort.onChange} /> : null
@@ -132,7 +133,11 @@ export function SnapshotsToolbarWithControls({
                 onChange={diff.onOverlayColorChange}
               />
             )}
-            <DiffModeToggle diffMode={diff.mode} onDiffModeChange={diff.onModeChange} />
+            <DiffModeToggle
+              diffMode={diff.mode}
+              onDiffModeChange={diff.onModeChange}
+              showSplit={diff.showSplit ?? true}
+            />
           </Fragment>
         ) : null
       }
@@ -141,7 +146,7 @@ export function SnapshotsToolbarWithControls({
   );
 }
 
-function SoloDiffToggle({
+export function SoloDiffToggle({
   isSoloView,
   onToggleSoloView,
 }: {
@@ -169,7 +174,7 @@ function SoloDiffToggle({
   );
 }
 
-function ViewModeToggle({
+export function ViewModeToggle({
   viewMode,
   onViewModeChange,
 }: {
@@ -199,7 +204,7 @@ function ViewModeToggle({
   );
 }
 
-function SortDropdown({
+export function SortDropdown({
   value,
   onChange,
 }: {
@@ -219,7 +224,7 @@ function SortDropdown({
   );
 }
 
-function ColorPickerButton({
+export function ColorPickerButton({
   color,
   onChange,
 }: {
@@ -275,21 +280,25 @@ function ColorPickerButton({
   );
 }
 
-function DiffModeToggle({
+export function DiffModeToggle({
   diffMode,
   onDiffModeChange,
+  showSplit,
 }: {
   diffMode: DiffMode;
   onDiffModeChange: (mode: DiffMode) => void;
+  showSplit: boolean;
 }) {
   return (
     <SegmentedControl size="xs" value={diffMode} onChange={onDiffModeChange}>
-      <SegmentedControl.Item
-        key="split"
-        icon={<IconPause />}
-        aria-label={t('Split')}
-        tooltip={t('Split')}
-      />
+      {showSplit ? (
+        <SegmentedControl.Item
+          key="split"
+          icon={<IconPause />}
+          aria-label={t('Split')}
+          tooltip={t('Split')}
+        />
+      ) : null}
       <SegmentedControl.Item
         key="wipe"
         icon={<IconInput />}
@@ -335,32 +344,39 @@ const ColorTrigger = styled('button')<{color: string}>`
   padding: 0;
   ${p =>
     p.color === TRANSPARENT_COLOR &&
-    `background-image: linear-gradient(
-      to top right,
-      transparent calc(50% - 2px),
-      ${p.theme.tokens.content.danger} calc(50% - 1px),
-      ${p.theme.tokens.content.danger} calc(50% + 1px),
-      transparent calc(50% + 2px)
-    );`}
+    css`
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-image: linear-gradient(
+        to top right,
+        transparent calc(50% - 2px),
+        ${p.theme.tokens.content.danger} calc(50% - 1px),
+        ${p.theme.tokens.content.danger} calc(50% + 1px),
+        transparent calc(50% + 2px)
+      );
+    `}
 
   &:hover {
     border-color: ${p => p.theme.tokens.border.accent};
   }
 `;
 
-const ProgressPill = styled('div')`
+export const ProgressPill = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
 `;
 
-const ProgressCounter = styled(Text)`
+export const ProgressCounter = styled(Text)`
   white-space: nowrap;
   font-family: ${p => p.theme.font.family.mono};
 `;
 
-const ToolbarProgressBar = styled(ProgressBar)`
+export const ToolbarProgressBar = styled(ProgressBar)`
   width: 50px;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: none;
+  }
 `;
 
 const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
@@ -376,11 +392,14 @@ const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
   outline-offset: 1px;
   ${p =>
     p.color === TRANSPARENT_COLOR &&
-    `background-image: linear-gradient(
-      to top right,
-      transparent calc(50% - 1.5px),
-      ${p.theme.tokens.content.danger} calc(50% - 0.5px),
-      ${p.theme.tokens.content.danger} calc(50% + 0.5px),
-      transparent calc(50% + 1.5px)
-    );`}
+    css`
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-image: linear-gradient(
+        to top right,
+        transparent calc(50% - 1.5px),
+        ${p.theme.tokens.content.danger} calc(50% - 0.5px),
+        ${p.theme.tokens.content.danger} calc(50% + 0.5px),
+        transparent calc(50% + 1.5px)
+      );
+    `}
 `;

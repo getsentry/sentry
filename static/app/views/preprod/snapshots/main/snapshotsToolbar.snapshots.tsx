@@ -3,41 +3,35 @@ import {ThemeProvider} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
-jest.mock('@sentry/scraps/badge', () => ({
-  Tag: ({children, ...props}: {children: React.ReactNode}) => (
-    <span {...props}>{children}</span>
-  ),
-}));
-
-jest.mock('@sentry/scraps/compactSelect', () => ({
-  CompactSelect: () => <select />,
-}));
-
-jest.mock('@sentry/scraps/segmentedControl', () => {
-  function MockSegmentedControl({children}: {children: React.ReactNode}) {
-    return <div>{children}</div>;
-  }
-  MockSegmentedControl.Item = function ({children}: {children?: React.ReactNode}) {
-    return <span>{children}</span>;
-  };
-  return {SegmentedControl: MockSegmentedControl};
-});
-
+// Tooltips portal to `document.body` on render, which the SSR snapshot
+// environment (no `document`) can't do. They're hover-only and never visible in
+// a static snapshot, so render the trigger directly.
 jest.mock('@sentry/scraps/tooltip', () => ({
   Tooltip: ({children}: {children: React.ReactNode}) => children,
 }));
 
-jest.mock('sentry/components/progressBar', () => ({
-  ProgressBar: () => <div />,
-}));
-
-jest.mock('sentry/icons', () => ({
-  IconExpand: () => <span>⊞</span>,
-  IconInput: () => <span>⊟</span>,
-  IconList: () => <span>☰</span>,
-  IconPause: () => <span>‖</span>,
-  IconStack: () => <span>⊞</span>,
-}));
+// CompactSelect's overlay control reads `document` during render to compute the
+// dropdown boundary, which the SSR environment can't provide. The dropdown menu
+// is never visible in a static snapshot anyway, so render only its trigger — the
+// real DropdownButton the closed select shows in prod.
+jest.mock('@sentry/scraps/compactSelect', () => {
+  const {DropdownButton} = jest.requireActual('sentry/components/dropdownButton');
+  return {
+    CompactSelect: ({
+      options,
+      value,
+      size,
+    }: {
+      options: Array<{label: React.ReactNode; value: unknown}>;
+      size?: string;
+      value?: unknown;
+    }) => (
+      <DropdownButton size={size}>
+        {options.find(opt => opt.value === value)?.label}
+      </DropdownButton>
+    ),
+  };
+});
 
 import {SnapshotsToolbarWithControls} from './snapshotsToolbar';
 
