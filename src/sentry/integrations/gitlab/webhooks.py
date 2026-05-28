@@ -333,64 +333,6 @@ class IssuesEventWebhook(GitlabWebhook):
         return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
-def _handle_merge_request_event(
-    *,
-    event: Mapping[str, Any],
-    organization: RpcOrganization,
-    repo: Repository,
-    integration: RpcIntegration | None = None,
-    **kwargs: Any,
-) -> None:
-    try:
-        number = event["object_attributes"]["iid"]
-        title = event["object_attributes"]["title"]
-        body = event["object_attributes"]["description"]
-        created_at = event["object_attributes"]["created_at"]
-        merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
-
-        last_commit = event["object_attributes"]["last_commit"]
-        author_email = None
-        author_name = None
-        if last_commit:
-            author_email = last_commit["author"]["email"]
-            author_name = last_commit["author"]["name"]
-    except KeyError as e:
-        logger.warning(
-            "gitlab.webhook.invalid-merge-data",
-            extra={
-                "integration_id": integration.id if integration else None,
-                "error": str(e),
-            },
-        )
-        return
-
-    if not author_email:
-        # No commit author to attribute the PR to. Stop this processor cleanly
-        # rather than raising, which _handle would catch and mislabel as an error.
-        return
-
-    author = CommitAuthor.objects.get_or_create(
-        organization_id=organization.id, email=author_email, defaults={"name": author_name}
-    )[0]
-
-    author.preload_users()
-    try:
-        PullRequest.objects.update_or_create(
-            organization_id=organization.id,
-            repository_id=repo.id,
-            key=number,
-            defaults={
-                "title": title,
-                "author": author,
-                "message": body,
-                "merge_commit_sha": merge_commit_sha,
-                "date_added": parse_date(created_at).astimezone(timezone.utc),
-            },
-        )
-    except IntegrityError:
-        pass
-
-
 class MergeEventWebhook(GitlabWebhook):
     """
     Handle Merge Request Hook
@@ -399,10 +341,7 @@ class MergeEventWebhook(GitlabWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = (
-        _handle_merge_request_event,
-        handle_merge_request_event,
-    )
+    WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_event,)
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
@@ -417,6 +356,55 @@ class MergeEventWebhook(GitlabWebhook):
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
+
+        try:
+            number = event["object_attributes"]["iid"]
+            title = event["object_attributes"]["title"]
+            body = event["object_attributes"]["description"]
+            created_at = event["object_attributes"]["created_at"]
+            merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
+
+            last_commit = event["object_attributes"]["last_commit"]
+            author_email = None
+            author_name = None
+            if last_commit:
+                author_email = last_commit["author"]["email"]
+                author_name = last_commit["author"]["name"]
+        except KeyError as e:
+            logger.warning(
+                "gitlab.webhook.invalid-merge-data",
+                extra={
+                    "integration_id": integration.id if integration else None,
+                    "error": str(e),
+                },
+            )
+            return
+
+        if not author_email:
+            # No commit author to attribute the PR to. Stop this processor cleanly
+            # rather than raising, which _handle would catch and mislabel as an error.
+            raise Http404()
+
+        author = CommitAuthor.objects.get_or_create(
+            organization_id=organization.id, email=author_email, defaults={"name": author_name}
+        )[0]
+
+        author.preload_users()
+        try:
+            PullRequest.objects.update_or_create(
+                organization_id=organization.id,
+                repository_id=repo.id,
+                key=number,
+                defaults={
+                    "title": title,
+                    "author": author,
+                    "message": body,
+                    "merge_commit_sha": merge_commit_sha,
+                    "date_added": parse_date(created_at).astimezone(timezone.utc),
+                },
+            )
+        except IntegrityError:
+            pass
 
         self._handle(
             integration=integration,
