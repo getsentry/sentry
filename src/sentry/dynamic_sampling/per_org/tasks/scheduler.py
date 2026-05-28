@@ -108,8 +108,8 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
-    org_volume = get_eap_organization_volume(config)
-    if org_volume is None:
+    org_volume_5m = get_eap_organization_volume(config)
+    if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
     if config.should_balance_projects:
