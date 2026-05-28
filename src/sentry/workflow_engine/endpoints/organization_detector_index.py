@@ -66,7 +66,10 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
 )
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.models.detector_group import OPEN_ISSUES_COUNT_CAP, DetectorGroup
+from sentry.workflow_engine.models.detector_group import DetectorGroup
+
+# Cap the count query used for sorting by open issues to avoid full scans.
+OPEN_ISSUES_COUNT_CAP = 5000
 
 detector_search_config = SearchConfig.create_from(
     default_config,
