@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -15,6 +15,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {Stepper} from 'sentry/views/onboarding/components/stepper';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -53,10 +54,12 @@ export function ScmCreateProject() {
   const navigate = useNavigate();
   const {step: stepParam} = useParams<{step?: string}>();
 
-  // Local state replaces OnboardingContext. The decoupled SCM components
-  // (VDY-72) accept this state via props, so per-step tickets (VDY-74/75/76)
-  // can wire them up without touching session storage.
-  const [state, setState] = useState<WizardState>({
+  // Session-storage backed so wizard state survives refresh and the
+  // back-nav-from-getting-started case after step 3 creates a project.
+  // Separate storage key from new-org onboarding's 'onboarding' key so the
+  // two flows do not collide. Cleared on successful project creation
+  // (VDY-76 wires that up).
+  const [state, setState] = useSessionStorage<WizardState>('project-creation-wizard', {
     createdProjectSlug: undefined,
     projectDetailsForm: undefined,
     selectedFeatures: undefined,
