@@ -730,7 +730,9 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     agent: AutomationCodingAgent
     integration_id: int
     stopping_point: str
+    automation_tuning: str
     scanner_automation: bool
+    auto_create_pr: bool
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
@@ -767,35 +769,24 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
     if "scanner_automation" in data:
         _set_or_clear("sentry:seer_scanner_automation", data["scanner_automation"], default=True)
 
-    if "stopping_point" not in data:
-        pass
-    elif data["stopping_point"] == "off":
-        # Disable automation and leave stopping point and handoff_auto_create_pr unchanged
-        # so that reenabling restores the prior state.
-        _set_or_clear(
-            "sentry:autofix_automation_tuning",
-            AutofixAutomationTuningSettings.OFF,
-            default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-        )
-    else:
-        # Enable automation and set the stopping point.
-        _set_or_clear(
-            "sentry:autofix_automation_tuning",
-            AutofixAutomationTuningSettings.MEDIUM,
-            default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-        )
+    if "stopping_point" in data:
         _set_or_clear(
             "sentry:seer_automated_run_stopping_point",
             data["stopping_point"],
             default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
         )
 
-        if data["stopping_point"] == AutofixStoppingPoint.OPEN_PR:
-            # Safe to set even if no external handoff is configured
-            # since we'll only read it if the other handoff options are all non-null.
-            options_to_set["sentry:seer_automation_handoff_auto_create_pr"] = True
-        else:
-            options_to_clear.append("sentry:seer_automation_handoff_auto_create_pr")
+    if "auto_create_pr" in data:
+        _set_or_clear(
+            "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], default=False
+        )
+
+    if "automation_tuning" in data:
+        _set_or_clear(
+            "sentry:autofix_automation_tuning",
+            data["automation_tuning"],
+            default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        )
 
     if not options_to_set and not options_to_clear:
         return
