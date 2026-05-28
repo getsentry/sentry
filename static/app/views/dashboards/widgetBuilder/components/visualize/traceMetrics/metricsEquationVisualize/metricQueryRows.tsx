@@ -191,6 +191,9 @@ export function MetricQueryRows({
   );
 
   function handleRowRemoved(removedLabel: string) {
+    if (removedLabel !== selectedLabel) {
+      return;
+    }
     const fallback = functionQueries.find(q => q.label !== removedLabel);
     if (fallback) {
       setSelectedLabel(fallback.label);

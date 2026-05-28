@@ -64,12 +64,6 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   const equationSnapshot = useRef<EquationModeSnapshot | null>(null);
   const wasEquationModeOnLeave = useRef(isEquationMode);
 
-  useEffect(() => {
-    if (state.dataset === WidgetType.TRACEMETRICS) {
-      wasEquationModeOnLeave.current = isEquationMode;
-    }
-  }, [isEquationMode, state.dataset]);
-
   const restoreSeriesState = useCallback(() => {
     if (seriesSnapshot.current) {
       const actionType = getTraceMetricAggregateActionType(state.displayType);
@@ -164,6 +158,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         restoreSeriesState();
       }
 
+      wasEquationModeOnLeave.current = nextIsEquation;
       setIsEquationMode(nextIsEquation);
     },
     [

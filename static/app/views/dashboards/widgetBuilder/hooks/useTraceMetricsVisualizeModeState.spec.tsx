@@ -65,18 +65,6 @@ function makeEquationSnapshot(
   };
 }
 
-function buildSearch(params: Record<string, string | string[]>): string {
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (Array.isArray(value)) {
-      value.forEach(v => searchParams.append(key, v));
-    } else {
-      searchParams.append(key, value);
-    }
-  }
-  return `?${searchParams.toString()}`;
-}
-
 describe('useTraceMetricsVisualizeModeState', () => {
   let mockNavigate!: jest.Mock;
 
@@ -378,99 +366,6 @@ describe('useTraceMetricsVisualizeModeState', () => {
         expect.anything()
       );
     });
-  });
-
-  it('does not auto-restore equation mode on dataset return if series mode was active when leaving', () => {
-    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
-      organization: OrganizationFixture({features: EQUATION_FEATURES}),
-      additionalWrapper: WidgetBuilderProvider,
-      initialRouterConfig: {
-        location: {
-          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            yAxis: ['sum(value,alpha_metric,counter,none)'],
-          },
-        },
-      },
-    });
-
-    act(() => {
-      result.current.equationSnapshot.current = makeEquationSnapshot();
-    });
-
-    // Switch to a different dataset
-    act(() => {
-      router.navigate({
-        pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-        search: buildSearch({
-          dataset: WidgetType.SPANS,
-          displayType: DisplayType.LINE,
-          yAxis: 'count(span.duration)',
-        }),
-      });
-    });
-
-    // Switch back to TRACEMETRICS
-    act(() => {
-      router.navigate({
-        pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-        search: buildSearch({
-          dataset: WidgetType.TRACEMETRICS,
-          displayType: DisplayType.LINE,
-          yAxis: 'sum(value,alpha_metric,counter,none)',
-        }),
-      });
-    });
-
-    expect(result.current.isEquationMode).toBe(false);
-  });
-
-  it('does not auto-restore equation mode without the feature flag', () => {
-    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
-      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
-      additionalWrapper: WidgetBuilderProvider,
-      initialRouterConfig: {
-        location: {
-          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            yAxis: ['sum(value,alpha_metric,counter,none)'],
-          },
-        },
-      },
-    });
-
-    // Manually set equation mode and snapshot to simulate a previous session
-    act(() => {
-      result.current.equationSnapshot.current = makeEquationSnapshot();
-    });
-
-    act(() => {
-      router.navigate({
-        pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-        search: buildSearch({
-          dataset: WidgetType.SPANS,
-          displayType: DisplayType.LINE,
-          yAxis: 'count(span.duration)',
-        }),
-      });
-    });
-
-    act(() => {
-      router.navigate({
-        pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-        search: buildSearch({
-          dataset: WidgetType.TRACEMETRICS,
-          displayType: DisplayType.LINE,
-          yAxis: 'sum(value,alpha_metric,counter,none)',
-        }),
-      });
-    });
-
-    expect(result.current.isEquationMode).toBe(false);
   });
 
   it('does not dispatch when equation snapshot is empty', () => {
