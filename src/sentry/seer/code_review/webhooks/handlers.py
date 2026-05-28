@@ -86,11 +86,6 @@ def handle_webhook_event(
     except Exception:
         logger.warning("github.webhook.code_review.failed_to_set_tags")
 
-    if github_event == GithubWebhookType.PULL_REQUEST and features.has(
-        "organizations:seer-code-review-scm-listener", organization
-    ):
-        return
-
     handler = EVENT_TYPE_TO_HANDLER[github_event]
 
     from ..utils import get_pr_author_id
