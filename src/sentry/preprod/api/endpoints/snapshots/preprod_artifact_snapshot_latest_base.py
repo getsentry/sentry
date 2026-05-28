@@ -23,6 +23,7 @@ from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
@@ -148,6 +149,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         qs = (
             PreprodArtifact.objects.filter(
                 project__organization_id=organization.id,
+                project__status=ObjectStatus.ACTIVE,
                 app_id=app_id,
                 preprodsnapshotmetrics__isnull=False,
             )
@@ -159,6 +161,9 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             .select_related("commit_comparison", "project", "preprodsnapshotmetrics")
         )
 
+        if not is_active_staff(request) and not request.access.has_global_access:
+            qs = qs.filter(project_id__in=request.access.accessible_project_ids)
+
         if project_id is not None:
             qs = qs.filter(project_id=project_id)
         if branch:
@@ -167,9 +172,6 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         artifact = qs.order_by("-date_added").first()
 
         if artifact is None:
-            return Response({"detail": "No snapshot found"}, status=404)
-
-        if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "No snapshot found"}, status=404)
 
         snapshot_metrics = artifact.preprodsnapshotmetrics

@@ -30,8 +30,8 @@ import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {
   formatExceptionsAsText,

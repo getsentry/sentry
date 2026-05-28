@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -14,7 +14,10 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import serializers
+from rest_framework.fields import BooleanField, CharField, URLField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -40,7 +43,8 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
@@ -257,6 +261,153 @@ class OAuthCallbackView:
                 )
 
 
+class InstallationConfigData(TypedDict):
+    url: str
+    consumer_key: str
+    private_key: str
+    verify_ssl: bool
+
+
+class InstallationConfigSerializer(CamelSnakeSerializer[InstallationConfigData]):
+    url = URLField(required=True)
+    consumer_key = CharField(required=True, max_length=200)
+    private_key = CharField(required=True)
+    verify_ssl = BooleanField(required=False, default=True)
+
+    def validate_private_key(self, value: str) -> str:
+        try:
+            load_pem_private_key(value.encode("utf-8"), None, default_backend())
+        except Exception:
+            raise serializers.ValidationError(
+                "Private key must be a valid SSH private key encoded in a PEM format."
+            )
+        return value
+
+
+class InstallationConfigApiStep:
+    """
+    Collect Bitbucket Server consumer credentials and verify them by fetching an
+    OAuth 1.0a request token. The token is stored on pipeline state so the next
+    step can build an authorize URL and exchange it for an access token.
+    """
+
+    step_name = "installation_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return InstallationConfigSerializer
+
+    def handle_post(
+        self,
+        validated_data: InstallationConfigData,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        validated_data["url"] = validated_data["url"].rstrip("/")
+
+        client = BitbucketServerSetupClient(
+            validated_data["url"],
+            validated_data["consumer_key"],
+            validated_data["private_key"],
+            validated_data["verify_ssl"],
+        )
+
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_LOGIN,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            BitbucketServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            try:
+                request_token = client.get_request_token()
+            except ApiError as error:
+                lifecycle.record_failure(str(error), extra={"url": validated_data["url"]})
+                return PipelineStepResult.error(
+                    f"Could not fetch a request token from Bitbucket. {error}"
+                )
+
+            if not request_token.get("oauth_token") or not request_token.get("oauth_token_secret"):
+                lifecycle.record_failure(
+                    "missing oauth_token", extra={"url": validated_data["url"]}
+                )
+                return PipelineStepResult.error("Missing oauth_token")
+
+        pipeline.bind_state("installation_data", validated_data)
+        pipeline.bind_state("request_token", request_token)
+        return PipelineStepResult.advance()
+
+
+class OAuthCallbackData(TypedDict):
+    oauth_token: str
+
+
+class OAuthCallbackSerializer(CamelSnakeSerializer[OAuthCallbackData]):
+    oauth_token = CharField(required=True)
+
+
+class OAuthStepData(TypedDict):
+    oauthUrl: str
+
+
+class OAuthApiStep:
+    """
+    Build the Bitbucket Server authorize URL from the previously-fetched request
+    token, then exchange the callback's oauth_token (which Bitbucket Server uses
+    as the verifier) for an access token.
+    """
+
+    step_name = "oauth_callback"
+
+    def _client(self, pipeline: IntegrationPipeline) -> BitbucketServerSetupClient:
+        installation = pipeline.fetch_state("installation_data")
+        if installation is None:
+            raise AssertionError("pipeline called out of order")
+        return BitbucketServerSetupClient(
+            installation["url"],
+            installation["consumer_key"],
+            installation["private_key"],
+            installation["verify_ssl"],
+        )
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> OAuthStepData:
+        request_token = pipeline.fetch_state("request_token")
+        if request_token is None:
+            raise AssertionError("pipeline called out of order")
+        return {"oauthUrl": self._client(pipeline).get_authorize_url(request_token)}
+
+    def get_serializer_cls(self) -> type:
+        return OAuthCallbackSerializer
+
+    def handle_post(
+        self,
+        validated_data: OAuthCallbackData,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        request_token = pipeline.fetch_state("request_token")
+        if request_token is None:
+            raise AssertionError("pipeline called out of order")
+
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_CALLBACK,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            BitbucketServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            try:
+                access_token = self._client(pipeline).get_access_token(
+                    request_token, validated_data["oauth_token"]
+                )
+            except ApiError as error:
+                lifecycle.record_failure(str(error))
+                return PipelineStepResult.error(
+                    f"Could not fetch an access token from Bitbucket. {error}"
+                )
+
+        pipeline.bind_state("access_token", access_token)
+        return PipelineStepResult.advance()
+
+
 class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     """
     IntegrationInstallation implementation for Bitbucket Server
@@ -394,6 +545,9 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [InstallationConfigApiStep(), OAuthApiStep()]
 
     def post_install(
         self,

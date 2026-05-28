@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
@@ -33,7 +33,7 @@ export function ValueType({
 }
 
 export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
 
   const fieldDefinition = getFieldDefinition(tag.key);
 
