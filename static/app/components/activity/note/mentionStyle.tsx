@@ -23,6 +23,8 @@ export function mentionStyle({theme, minHeight, inputStyle}: Options) {
   };
 
   return {
+    width: '100%',
+
     control: {
       backgroundColor: 'transparent',
       fontSize: theme.font.size.md,

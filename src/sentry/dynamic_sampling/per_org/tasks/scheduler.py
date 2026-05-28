@@ -13,6 +13,7 @@ from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
+    get_eap_transaction_volumes,
 )
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
@@ -107,13 +108,16 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
-    org_volume = get_eap_organization_volume(config)
-    if org_volume is None:
+    org_volume_5m = get_eap_organization_volume(config)
+    if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
     if config.should_balance_projects:
         project_volumes = get_eap_project_volumes(config)
         if not project_volumes:
             return DynamicSamplingStatus.NO_PROJECT_VOLUMES
+
+    if not get_eap_transaction_volumes(config):
+        return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 
     return None

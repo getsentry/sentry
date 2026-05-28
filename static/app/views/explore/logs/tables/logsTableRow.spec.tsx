@@ -62,6 +62,8 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
     [OurLogKnownFieldKey.SEVERITY]: 'info',
   });
+  const rowDataTimestamp =
+    Number(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000_000;
 
   // These are the detailed attributes of the row - only displayed when you click the row.
   const rowDetails = [
@@ -221,6 +223,10 @@ describe('logsTableRow', () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('hovering the row causes prefetching of the row details', async () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
@@ -250,7 +256,10 @@ describe('logsTableRow', () => {
       // Prefetching is triggered after the hover timeout
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
-    jest.useRealTimers();
+    expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      timestamp: Math.trunc(rowDataTimestamp),
+    });
+    expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
   });
 
   it('renders row details', async () => {
@@ -308,6 +317,10 @@ describe('logsTableRow', () => {
     await waitFor(() => {
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
+    expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      timestamp: Math.trunc(rowDataTimestamp),
+    });
+    expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
 
     // Even after clicking, useStacktraceLink should be called with enabled: true since the details have disableLazyLoad: true
     expect(stacktraceLinkMock).toHaveBeenCalledWith(

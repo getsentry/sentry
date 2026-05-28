@@ -17,7 +17,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
@@ -32,9 +31,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -205,9 +204,7 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper size={size}>
-          <NoteBody text={message} />
-        </NoteWrapper>
+        <NoteBody text={message} />
       ) : (
         <Text as="div" size={size}>
           {message}
@@ -519,11 +516,6 @@ const MoreActivityIcon = styled('div')`
   min-height: 22px;
   color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.primary};
-`;
-
-const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
-  ${textStyles}
-  font-size: ${p => (p.size === 'md' ? p.theme.font.size.md : p.theme.font.size.sm)};
 `;
 
 const ActivityInputFrame = styled('div')`

@@ -81,5 +81,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
         except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
 
+        if not request.access.has_project_access(artifact.project):
+            return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
+
         response_data = create_install_info_dict(artifact)
         return Response(response_data)

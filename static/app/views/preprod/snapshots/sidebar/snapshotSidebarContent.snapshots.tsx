@@ -70,10 +70,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'default'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -89,10 +90,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'active-group'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -107,10 +109,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'filtered'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -125,10 +128,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'no-results'}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

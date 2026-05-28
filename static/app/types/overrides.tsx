@@ -6,7 +6,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type {InstallationInfo} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
+import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
@@ -19,7 +19,7 @@ import type {
   useMaxPickableDays,
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSection';
 import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
