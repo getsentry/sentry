@@ -111,7 +111,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         file = File.objects.create(name="debug-file", type="project.dif")
         dif = ProjectDebugFile.objects.create(
             file=file,
-            debug_id="uuid",
+            debug_id="00000000-0000-0000-0000-000000000000",
             code_id="codeid",
             cpu_name="cpu",
             object_name="object",

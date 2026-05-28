@@ -138,6 +138,12 @@ class ProjectDebugFile(Model):
             models.Index(fields=("project_id", "debug_id")),
             models.Index(fields=("project_id", "code_id")),
         )
+        constraints = (
+            models.CheckConstraint(
+                condition=Q(debug_id__regex=r"^[A-Fa-f0-9-]+$"),
+                name="projectdebugfile_debug_id_valid_chars",
+            ),
+        )
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"
 

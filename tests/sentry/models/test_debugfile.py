@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, router, transaction
 from django.urls import reverse
 
 from sentry.models.debugfile import (
@@ -72,6 +73,13 @@ class DebugFileTest(TestCase):
 
         assert not ProjectDebugFile.objects.filter(id=dif2.id).exists()
         assert not File.objects.filter(id=file.id).exists()
+
+    def test_debug_id_valid_chars_constraint(self) -> None:
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(router.db_for_write(ProjectDebugFile)),
+        ):
+            self.create_dif_file(debug_id="not-a-debug-id")
 
     def test_find_dif_by_debug_id(self) -> None:
         debug_id1 = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
