@@ -173,11 +173,19 @@ class JiraIntegration(IssueSyncIntegration):
         client = self.get_client()
 
         try:
-            if features.has("organizations:jira-paginated-project-config", organization):
-                # Use the paginated endpoint to avoid fetching all projects at once,
-                # which can time out for large Jira instances. The settings page
-                # dropdown search (typeahead) handles finding projects beyond this
-                # initial page via JiraSearchEndpoint.
+            use_paginated = features.has(
+                "organizations:jira-paginated-project-config", organization
+            )
+            logger.info(
+                "jira.get-organization-config.projects",
+                extra={
+                    "org_id": self.organization_id,
+                    "org_slug": organization.slug,
+                    "integration_id": self.model.id,
+                    "paginated": use_paginated,
+                },
+            )
+            if use_paginated:
                 projects_response = client.get_projects_paginated(params={"maxResults": 50})
                 projects: list[JiraProjectMapping] = [
                     JiraProjectMapping(value=p["id"], label=p["name"])
@@ -398,8 +406,21 @@ class JiraIntegration(IssueSyncIntegration):
             self.org_integration = org_integration
 
     def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
-        project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
+        client = self.get_client()
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        if context and features.has(
+            "organizations:jira-paginated-project-config", context.organization
+        ):
+            project_ids = [pm.external_id for pm in project_mappings]
+            if not project_ids:
+                return []
+            response = client.get_projects_paginated(params={"id": project_ids})
+            active_ids = {p["id"] for p in response.get("values", [])}
+            return [pm for pm in project_mappings if pm.external_id in active_ids]
 
+        project_ids_set = {p["id"] for p in client.get_projects_list()}
         return [pm for pm in project_mappings if pm.external_id in project_ids_set]
 
     def get_config_data(self):
