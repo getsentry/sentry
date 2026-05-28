@@ -46,6 +46,8 @@ import {
 import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -65,7 +67,7 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   return validateTab(tab) ? tab : 'transactions';
 }
 
-export default function ProfilingContent() {
+function ProfilingContentInner() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -111,6 +113,15 @@ export default function ProfilingContent() {
   }, [selection, projects]);
 
   const tab = decodeTab(location.query.tab);
+
+  useLLMContext({
+    contextHint:
+      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples.',
+    currentTab: tab,
+    searchQuery: decodeScalar(location.query.query, ''),
+    sort: decodeScalar(location.query.sort, ''),
+    currentSelectedDateRange: selection.datetime,
+  });
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
     // make sure to reset the state of the tabs
@@ -445,3 +456,5 @@ const StyledPagination = styled(Pagination)`
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   margin-left: ${p => p.theme.space.xs};
 `;
+
+export default registerLLMContext('profiling-explorer', ProfilingContentInner);

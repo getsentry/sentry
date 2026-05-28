@@ -1,4 +1,5 @@
 import {createContext, Fragment, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -193,14 +194,14 @@ const Header = styled('header')<{
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   ${p =>
     p.height &&
-    `
-    --drawer-header-height: ${p.height};
-    height: var(--drawer-header-height);
-    box-sizing: border-box;
-    align-items: center;
-    box-shadow: none;
-    border-bottom: 1px solid ${p.theme.tokens.border.primary};
-  `}
+    css`
+      --drawer-header-height: ${p.height};
+      height: var(--drawer-header-height);
+      box-sizing: border-box;
+      align-items: center;
+      box-shadow: none;
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
+    `}
 `;
 
 export const DrawerBody = styled('aside')`

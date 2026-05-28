@@ -1,3 +1,4 @@
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
@@ -28,7 +29,8 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
 
   return (
     <Flex as="label" align="center" gap="md" marginBottom="0">
-      <Tooltip
+      <InfoText
+        variant="inherit"
         title={tct(
           'Manually specify the percentage of incoming traffic that should be stored for each project. [link:Read the docs]',
           {
@@ -37,10 +39,9 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
             ),
           }
         )}
-        showUnderline
       >
         {t('Advanced Mode')}
-      </Tooltip>
+      </InfoText>
       <Tooltip
         disabled={hasAccess}
         title={t('You do not have permission to change this setting.')}
