@@ -228,7 +228,7 @@ def _get_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
 def _build_payload(
     action: MergeRequestAction,
     event: Mapping[str, Any],
-    organization: Any,
+    organization: Organization,
     repo: Repository,
     target_commit_sha: str,
 ) -> dict[str, Any]:
@@ -262,7 +262,7 @@ def _schedule_task(
     action: MergeRequestAction,
     action_value: str,
     event: Mapping[str, Any],
-    organization: Any,
+    organization: Organization,
     repo: Repository,
     target_commit_sha: str,
 ) -> None:
