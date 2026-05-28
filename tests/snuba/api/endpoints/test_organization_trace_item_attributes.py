@@ -780,7 +780,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
             features={
                 "organizations:visibility-explore-view": True,
-                "organizations:performance-sentry-conventions-fields": True,
             },
         )
         assert response.status_code == 200, response.data

@@ -333,7 +333,6 @@ class ProjectTraceItemDetailsEndpointTest(
             item_id,
             features={
                 "organizations:discover-basic": True,
-                "organizations:performance-sentry-conventions-fields": True,
             },
         )
         assert trace_details_response.status_code == 200, trace_details_response.content
