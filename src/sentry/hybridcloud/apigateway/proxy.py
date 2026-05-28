@@ -5,7 +5,7 @@ Utilities related to proxying a request to a cell
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from http.cookiejar import Cookie
 from threading import local
 from typing import Any
@@ -78,14 +78,6 @@ def _get_connection() -> Session:
         session.cookies = _StatelessCookieJar()
         _connection.session = session
     return _connection.session
-
-
-def close_connection() -> None:
-    if not hasattr(_connection, "session"):
-        return
-
-    _connection.session.close()
-    del _connection.session
 
 
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
@@ -216,34 +208,26 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     else:
         data = BodyWithLength(request)
 
+    # When pooling is enabled, reuse the thread-local session to keep connections
+    # alive across requests; otherwise issue a one-off request.
+    requester: Callable[..., ExternalResponse] = (
+        _get_connection().request if use_pooling else external_request
+    )
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
-            if use_pooling:
-                resp = _get_connection().request(
-                    request.method,
-                    url=target_url,
-                    headers=header_dict,
-                    params=dict(query_params) if query_params is not None else None,
-                    data=data,
-                    stream=True,
-                    timeout=timeout,
-                    # By default, requests resolves redirects for every verb except HEAD.
-                    # Disable that to avoid misrepresenting the original sentry.io request.
-                    allow_redirects=False,
-                )
-            else:
-                resp = external_request(
-                    request.method,
-                    url=target_url,
-                    headers=header_dict,
-                    params=dict(query_params) if query_params is not None else None,
-                    data=data,
-                    stream=True,
-                    timeout=timeout,
-                    # By default, requests resolves redirects for every verb except HEAD.
-                    # Disable that to avoid misrepresenting the original sentry.io request.
-                    allow_redirects=False,
-                )
+            resp = requester(
+                request.method,
+                url=target_url,
+                headers=header_dict,
+                params=dict(query_params) if query_params is not None else None,
+                data=data,
+                stream=True,
+                timeout=timeout,
+                # By default, requests resolves redirects for every verb except HEAD.
+                # Disable that to avoid misrepresenting the original sentry.io request.
+                allow_redirects=False,
+            )
     except Timeout:
         metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
         if circuit_breaker is not None:
