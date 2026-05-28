@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {TabPanels} from '@sentry/scraps/tabs';
@@ -95,15 +96,15 @@ export const StickyTableRow = styled(SimpleTable.Row)<{
 }>`
   ${p =>
     p.sticky &&
-    `
-    top: 0px;
-    z-index: 1;
-    background: ${p.theme.tokens.background.primary};
-    position: sticky;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-right: -15px;
-    padding-right: calc(15px);
-  `}
+    css`
+      top: 0px;
+      z-index: 1;
+      background: ${p.theme.tokens.background.primary};
+      position: sticky;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      margin-right: -15px;
+      padding-right: calc(15px);
+    `}
 `;
 
 export const DetailsContent = styled(StyledPanel)`

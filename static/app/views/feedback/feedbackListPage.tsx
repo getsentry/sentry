@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -344,7 +345,11 @@ const Container = styled('div')<{area?: string}>`
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  ${p => p.area && `grid-area: ${p.area};`}
+  ${p =>
+    p.area &&
+    css`
+      grid-area: ${p.area};
+    `}
 `;
 
 const SetupContainer = styled('div')`
