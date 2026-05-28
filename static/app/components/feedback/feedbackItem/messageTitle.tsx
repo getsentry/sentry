@@ -44,6 +44,7 @@ export function MessageTitle({feedbackItem, eventData}: Props) {
         ) : null}
         <StyledTimeSince
           date={feedbackItem.firstSeen}
+          disabledAbsoluteTooltip={!eventData}
           tooltipBody={
             eventData ? (
               <FeedbackTimestampsTooltip feedbackItem={feedbackItem} />
