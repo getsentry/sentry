@@ -55,7 +55,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
+import type {TraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
@@ -281,17 +281,11 @@ export function parseAggregateFromValueKey(value: string) {
 
 interface VisualizeProps {
   error?: Record<string, any>;
-  isEquationMode?: boolean;
-  onSetEquationMode?: (isEquationMode: boolean) => void;
   setError?: (error: Record<string, any>) => void;
+  traceMetricsVisualizeMode?: TraceMetricsVisualizeModeState;
 }
 
-export function Visualize({
-  error,
-  setError,
-  isEquationMode,
-  onSetEquationMode,
-}: VisualizeProps) {
+export function Visualize({error, setError, traceMetricsVisualizeMode}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const theme = useTheme();
@@ -311,10 +305,12 @@ export function Visualize({
     state.dataset === WidgetType.TRACEMETRICS &&
     canUseMetricsEquationsInDashboards(organization);
 
-  const {handleModeToggle, equationSnapshot} = useTraceMetricsVisualizeModeState({
-    isEquationMode,
-    onSetEquationMode,
-  });
+  const {isEquationMode, handleModeToggle, equationSnapshot} =
+    traceMetricsVisualizeMode ?? {
+      isEquationMode: false,
+      handleModeToggle: () => {},
+      equationSnapshot: {current: null},
+    };
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {

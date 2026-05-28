@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {type RefObject, useCallback, useEffect, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {generateFieldAsString, type QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -11,6 +11,7 @@ import {
   getTraceMetricAggregateActionType,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
 
@@ -24,34 +25,48 @@ export interface EquationModeSnapshot {
   selectedLabel: string | undefined;
 }
 
-interface UseTraceMetricsVisualizeModeStateOptions {
-  isEquationMode?: boolean;
-  onSetEquationMode?: (isEquationMode: boolean) => void;
+export interface TraceMetricsVisualizeModeState {
+  equationSnapshot: RefObject<EquationModeSnapshot | null>;
+  handleModeToggle: (nextIsEquation: boolean) => void;
+  isEquationMode: boolean;
 }
 
 /**
- * Caches visualize state per mode (series vs equation) so toggling
- * between them, or switching datasets and back, can restores each
- * mode's prior configuration.
+ * Manages the series/equation mode toggle for trace-metric widgets.
+ *
+ * Owns the `isEquationMode` flag and caches each mode's visualize
+ * state so toggling between them, or switching datasets and back,
+ * restores the prior configuration.
  *
  * Series state is snapshotted from the builder state on toggle.
  * Equation state is kept in sync by MetricsEquationVisualize via
- * the returned equationSnapshot.
+ * the returned equationSnapshot ref.
  */
-export function useTraceMetricsVisualizeModeState({
-  isEquationMode,
-  onSetEquationMode,
-}: UseTraceMetricsVisualizeModeStateOptions) {
+export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeState {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
 
+  const hasEquations = canUseMetricsEquationsInDashboards(organization);
+
+  const [isEquationMode, setIsEquationMode] = useState(() => {
+    if (state.dataset !== WidgetType.TRACEMETRICS || !hasEquations) {
+      return false;
+    }
+    const aggregateSource = getTraceMetricAggregateSource(
+      state.displayType,
+      state.yAxis,
+      state.fields
+    );
+    return (aggregateSource ?? []).some(f => f.kind === FieldValueKind.EQUATION);
+  });
+
   const seriesSnapshot = useRef<SeriesModeSnapshot | null>(null);
   const equationSnapshot = useRef<EquationModeSnapshot | null>(null);
-  const wasEquationModeOnLeave = useRef(isEquationMode ?? false);
+  const wasEquationModeOnLeave = useRef(isEquationMode);
 
   useEffect(() => {
     if (state.dataset === WidgetType.TRACEMETRICS) {
-      wasEquationModeOnLeave.current = isEquationMode ?? false;
+      wasEquationModeOnLeave.current = isEquationMode;
     }
   }, [isEquationMode, state.dataset]);
 
@@ -102,18 +117,30 @@ export function useTraceMetricsVisualizeModeState({
   }, [state.displayType, state.yAxis, state.fields, dispatch]);
 
   // Auto-restore the previous visualize mode when the dataset returns
-  // to TRACEMETRICS. Only switches to equation mode if that was the
-  // active mode when the user left; otherwise stays in series mode.
+  // to TRACEMETRICS. Detects equation yAxis on return and restores the
+  // cached equation mode if the user was in equation mode when they left.
   useEffect(() => {
-    if (
-      state.dataset === WidgetType.TRACEMETRICS &&
-      canUseMetricsEquationsInDashboards(organization) &&
-      !isEquationMode &&
-      wasEquationModeOnLeave.current &&
-      equationSnapshot.current
-    ) {
+    if (state.dataset !== WidgetType.TRACEMETRICS || !hasEquations) {
+      if (isEquationMode) {
+        setIsEquationMode(false);
+      }
+      return;
+    }
+
+    const aggregateSource = getTraceMetricAggregateSource(
+      state.displayType,
+      state.yAxis,
+      state.fields
+    );
+    const hasEquationInYAxis = (aggregateSource ?? []).some(
+      f => f.kind === FieldValueKind.EQUATION
+    );
+
+    if (hasEquationInYAxis) {
+      setIsEquationMode(true);
+    } else if (wasEquationModeOnLeave.current && equationSnapshot.current) {
       restoreEquationState();
-      onSetEquationMode?.(true);
+      setIsEquationMode(true);
     }
     // Intentionally keyed on dataset only — we want this to fire
     // exactly when the user navigates back to TRACEMETRICS.
@@ -137,7 +164,7 @@ export function useTraceMetricsVisualizeModeState({
         restoreSeriesState();
       }
 
-      onSetEquationMode?.(nextIsEquation);
+      setIsEquationMode(nextIsEquation);
     },
     [
       state.displayType,
@@ -146,9 +173,8 @@ export function useTraceMetricsVisualizeModeState({
       state.query,
       restoreSeriesState,
       restoreEquationState,
-      onSetEquationMode,
     ]
   );
 
-  return {handleModeToggle, equationSnapshot};
+  return {isEquationMode, handleModeToggle, equationSnapshot};
 }
