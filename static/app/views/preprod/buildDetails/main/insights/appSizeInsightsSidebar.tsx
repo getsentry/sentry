@@ -84,7 +84,7 @@ export function AppSizeInsightsSidebar({
   return (
     <Fragment>
       <AnimatePresence>
-        {isOpen && <Backdrop key="backdrop" zIndex="drawer" onClick={onClose} />}
+        {isOpen && <Backdrop key="backdrop" onClick={onClose} />}
       </AnimatePresence>
       {isOpen && (
         <SlideOverPanel

@@ -766,7 +766,7 @@ function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayPro
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.modal} {...props.overlayProps}>
+      <PositionWrapper {...props.overlayProps}>
         <motion.div
           initial={isDesktop ? {opacity: 0, scale: 0.98} : undefined}
           animate={isDesktop ? {opacity: 1, scale: 1} : undefined}

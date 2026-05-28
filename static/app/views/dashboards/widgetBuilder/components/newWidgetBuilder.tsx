@@ -163,7 +163,7 @@ export function WidgetBuilderV2({
               }
             `}
           />
-          <Backdrop zIndex="widgetBuilderDrawer" />
+          <Backdrop />
           <WidgetBuilderProvider>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
               <ContainerWithoutSidebar

@@ -233,11 +233,7 @@ export function GlobalModal({onClose}: Props) {
     <Fragment>
       <AnimatePresence>
         {backdrop && visible && (
-          <Backdrop
-            key="backdrop"
-            zIndex="modal"
-            {...(typeof backdrop === 'object' ? backdrop : {})}
-          />
+          <Backdrop key="backdrop" {...(typeof backdrop === 'object' ? backdrop : {})} />
         )}
       </AnimatePresence>
       <ModalContainer

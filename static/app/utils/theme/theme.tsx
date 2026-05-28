@@ -188,38 +188,6 @@ type Colors = typeof lightColors;
 const commonTheme = {
   motion: generateMotion(),
 
-  // Try to keep these ordered plz
-  zIndex: {
-    // Generic z-index when you hope your component is isolated and
-    // does not need to battle others for z-index priority
-    initial: 1,
-    truncationFullValue: 10,
-
-    header: 1000,
-
-    // dashboard widget builder backdrop sits behind the sidebar
-    // because it renders on the right next to the sidebar
-    // @TODO(design-engineering): resolve this inconsistency
-    widgetBuilderDrawer: 1016,
-
-    sidebarPanel: 1019,
-    dropdown: 1020,
-    sidebar: 1020,
-
-    // Sentry user feedback modal
-    sentryErrorEmbed: 1090,
-
-    // If you change modal also update shared-components.less
-    // as the z-index for bootstrap modals lives there.
-    drawer: 9999,
-    modal: 10000,
-    toast: 10001,
-
-    // tooltips and hovercards can be inside modals sometimes.
-    hovercard: 10002,
-    tooltip: 10003,
-  },
-
   form: {
     md: {
       height: '36px',
