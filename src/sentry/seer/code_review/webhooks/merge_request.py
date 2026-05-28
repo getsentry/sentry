@@ -24,6 +24,7 @@ from sentry.seer.code_review.models import (
     SeerCodeReviewTrigger,
 )
 from sentry.utils import json
+from sentry.utils.redis import redis_clusters
 
 from ..metrics import (
     WebhookFilteredReason,
@@ -37,6 +38,29 @@ from ..utils import SeerEndpoint, _common_codegen_request_payload
 logger = logging.getLogger(__name__)
 
 GITLAB_WEBHOOK_EVENT = "merge_request"
+
+# GitLab redelivers webhooks (e.g. when our response times out), and the endpoint
+# dispatches the same payload once per installed organization. Either can enqueue
+# duplicate Seer review requests, so we skip a delivery already seen within this
+# window. The key is scoped per organization/repo to keep distinct installs isolated.
+WEBHOOK_SEEN_TTL_SECONDS = 20
+WEBHOOK_SEEN_KEY_PREFIX = "webhook:gitlab:merge_request:"
+
+
+def _is_duplicate_delivery(seen_key: str) -> bool:
+    """
+    Return True if this delivery was already processed within the TTL window.
+
+    On Redis errors we return False (process anyway) since processing twice is
+    preferable to never processing.
+    """
+    try:
+        cluster = redis_clusters.get("default")
+        is_first_time_seen = cluster.set(seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True)
+    except Exception:
+        logger.warning("gitlab.webhook.merge_request.mark_seen_failed")
+        return False
+    return not is_first_time_seen
 
 
 class MergeRequestAction(enum.StrEnum):
@@ -164,6 +188,14 @@ def handle_merge_request_event(
     last_commit = object_attributes.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
     if not target_commit_sha:
+        return
+
+    seen_key = (
+        f"{WEBHOOK_SEEN_KEY_PREFIX}{org.id}:{repo.id}:"
+        f"{object_attributes.get('iid')}:{action_value}:{target_commit_sha}"
+    )
+    if _is_duplicate_delivery(seen_key):
+        logger.warning("gitlab.webhook.merge_request.duplicate_delivery_skipped")
         return
 
     _schedule_task(

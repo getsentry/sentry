@@ -10,8 +10,12 @@ from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
+from sentry.seer.code_review.webhooks.merge_request import (
+    WEBHOOK_SEEN_KEY_PREFIX,
+    handle_merge_request_event,
+)
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils.redis import redis_clusters
 
 
 def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
@@ -423,3 +427,54 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         call_kwargs = self.mock_seer.call_args[1]
         payload = call_kwargs["payload"]
         assert payload["data"]["config"]["trigger_user"] == "root"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_duplicate_delivery_within_window_skipped(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_duplicate_delivery_after_ttl_processes_again(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        commit_sha = event["object_attributes"]["last_commit"]["id"]
+        iid = event["object_attributes"]["iid"]
+
+        with self.tasks():
+            self._call_handler(event)
+        assert self.mock_seer.call_count == 1
+
+        # Simulate TTL expiry so the same delivery can be processed again.
+        seen_key = (
+            f"{WEBHOOK_SEEN_KEY_PREFIX}{self.organization.id}:{self.repo.id}:"
+            f"{iid}:open:{commit_sha}"
+        )
+        redis_clusters.get("default").delete(seen_key)
+
+        with self.tasks():
+            self._call_handler(event)
+        assert self.mock_seer.call_count == 2
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_distinct_commits_are_not_deduped(self) -> None:
+        # Two new-commit pushes have different last_commit ids, so they are distinct
+        # operations and both must reach Seer despite sharing the same MR and action.
+        self._setup_code_review()
+        first = _make_event("update", oldrev="0" * 40)
+        second = _make_event("update", oldrev="0" * 40)
+        second["object_attributes"]["last_commit"] = {
+            **second["object_attributes"]["last_commit"],
+            "id": "f" * 40,
+        }
+
+        with self.tasks():
+            self._call_handler(first)
+            self._call_handler(second)
+
+        assert self.mock_seer.call_count == 2
