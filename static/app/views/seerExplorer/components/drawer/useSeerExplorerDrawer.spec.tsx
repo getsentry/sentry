@@ -147,6 +147,32 @@ describe('useSeerExplorerDrawer', () => {
       await waitFor(() => expect(queryDrawer()).not.toBeInTheDocument());
       expect(result.current.isOpen).toBe(false);
     });
+
+    it('calls onClose callback when closing', async () => {
+      const onClose = jest.fn();
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer({onClose}), {
+        organization: enabledOrg,
+      });
+
+      act(() => result.current.openSeerExplorerDrawer());
+      await findDrawer();
+
+      act(() => result.current.closeSeerExplorerDrawer());
+
+      await waitFor(() => expect(queryDrawer()).not.toBeInTheDocument());
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call onClose when drawer is already closed', () => {
+      const onClose = jest.fn();
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer({onClose}), {
+        organization: enabledOrg,
+      });
+
+      act(() => result.current.closeSeerExplorerDrawer());
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 
   describe('toggleSeerExplorerDrawer', () => {

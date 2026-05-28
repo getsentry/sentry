@@ -83,7 +83,7 @@ class TeamMembersEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.LIST_TEAM_MEMBERS,
     )
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team) -> Response[list[OrganizationMemberOnTeamResponse]]:
         """
         List all members on a team.
 

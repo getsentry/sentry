@@ -165,10 +165,6 @@ function buildRoutes(): RouteObject[] {
       component: errorHandler(OrganizationContainerRoute),
       children: [
         {
-          path: '/extensions/external-install/:integrationSlug/:installationId',
-          component: make(() => import('sentry/views/integrationOrganizationLink')),
-        },
-        {
           path: '/extensions/:integrationSlug/link/',
           component: make(() => import('sentry/views/integrationOrganizationLink')),
         },

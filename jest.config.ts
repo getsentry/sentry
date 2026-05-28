@@ -323,7 +323,15 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
   ],
   testMatch: testMatch || ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/tests/sentry/lang/javascript/',
+    // ESM-style helper scripts (e.g. scripts/genPlatformProductInfo.ts use
+    // `const __dirname = path.dirname(fileURLToPath(import.meta.url))`) that
+    // SWC's CJS transform redeclares — collides with Node's module wrapper.
+    // None of these are tests; keep them out of Jest's discovery entirely.
+    '<rootDir>/scripts/',
+  ],
+  modulePathIgnorePatterns: ['<rootDir>/scripts/'],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',
