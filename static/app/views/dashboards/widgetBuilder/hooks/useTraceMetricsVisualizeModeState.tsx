@@ -2,7 +2,6 @@ import {type RefObject, useCallback, useEffect, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {
-  EQUATION_PREFIX,
   explodeFieldString,
   generateFieldAsString,
   type QueryFieldValue,
@@ -20,7 +19,7 @@ import {
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
-import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 interface SeriesModeSnapshot {
   fields: QueryFieldValue[];
@@ -82,34 +81,31 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       return;
     }
 
-    // No series snapshot to return to, so we derive it from the equation state
-    const aggregateSource = getTraceMetricAggregateSource(
-      state.displayType,
-      state.yAxis,
-      state.fields
-    );
-    const equationField = aggregateSource?.find(f => f.kind === FieldValueKind.EQUATION);
-
+    // No series snapshot — derive from the equation snapshot which has
+    // the most up-to-date subcomponent queries.
+    const snapshot = equationSnapshot.current;
     let derivedFields: QueryFieldValue[] = [];
-    if (equationField?.kind === 'equation') {
-      const {metricQueries} = parseAggregateExpression(
-        `${EQUATION_PREFIX}${equationField.field}`
-      );
-      derivedFields = metricQueries
+
+    if (snapshot) {
+      const functionQueries = snapshot.queries.filter(q => {
+        const vis = q.queryParams.visualizes[0];
+        return vis && isVisualizeFunction(vis);
+      });
+
+      derivedFields = functionQueries
         .map(q => q.queryParams.visualizes[0]?.yAxis)
         .filter((yAxis): yAxis is string => !!yAxis)
         .map(yAxis => explodeFieldString(yAxis));
     }
 
     if (derivedFields.length === 0) {
-      // If nothing was derived, push the default field
       derivedFields = [getDatasetConfig(WidgetType.TRACEMETRICS).defaultField];
     }
 
     seriesSnapshot.current = {fields: derivedFields, query: []};
     const actionType = getTraceMetricAggregateActionType(state.displayType);
     dispatch({type: actionType, payload: derivedFields});
-  }, [state.displayType, state.yAxis, state.fields, dispatch]);
+  }, [state.displayType, dispatch]);
 
   const restoreEquationState = useCallback(() => {
     const snapshot = equationSnapshot.current;

@@ -13,7 +13,10 @@ import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWi
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 jest.mock('sentry/utils/useNavigate');
 const mockedUseNavigate = jest.mocked(useNavigate);
@@ -41,6 +44,20 @@ function makeQueryParams(yAxis: string, query = ''): ReadableQueryParams {
   });
 }
 
+function makeEquationQueryParams(yAxis: string): ReadableQueryParams {
+  return new ReadableQueryParams({
+    extrapolate: true,
+    mode: Mode.SAMPLES,
+    query: '',
+    cursor: '',
+    fields: ['id', 'timestamp'],
+    sortBys: [{field: 'timestamp', kind: 'desc'}],
+    aggregateCursor: '',
+    aggregateFields: [new VisualizeEquation(yAxis)],
+    aggregateSortBys: [{field: yAxis, kind: 'desc'}],
+  });
+}
+
 function makeEquationSnapshot(
   overrides?: Partial<EquationModeSnapshot>
 ): EquationModeSnapshot {
@@ -58,6 +75,13 @@ function makeEquationSnapshot(
         metric: {name: 'beta_metric', type: 'counter'},
         queryParams: makeQueryParams('avg(value,beta_metric,counter,none)'),
         label: 'B',
+      },
+      {
+        metric: {name: '', type: ''},
+        queryParams: makeEquationQueryParams(
+          'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)'
+        ),
+        label: 'ƒ1',
       },
     ],
     selectedLabel: 'A',
@@ -368,7 +392,107 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
-  it('derives series fields from equation subcomponents when no series snapshot exists', async () => {
+  it('derives series fields from equation snapshot subcomponents when no series snapshot exists', async () => {
+    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    expect(result.current.isEquationMode).toBe(true);
+
+    act(() => {
+      result.current.equationSnapshot.current = makeEquationSnapshot();
+    });
+
+    mockNavigate.mockClear();
+    act(() => {
+      result.current.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: serializeFields([
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+              },
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  it('pushes subcomponents even when the equation row is selected', async () => {
+    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    act(() => {
+      result.current.equationSnapshot.current = makeEquationSnapshot({
+        selectedLabel: 'ƒ1',
+      });
+    });
+
+    mockNavigate.mockClear();
+    act(() => {
+      result.current.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: serializeFields([
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+              },
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  it('falls back to default field when equation snapshot is empty', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -400,51 +524,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-              },
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
-      );
-    });
-  });
-
-  it('deduplicates subcomponents when deriving series from equation', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
-      organization: OrganizationFixture({features: EQUATION_FEATURES}),
-      additionalWrapper: WidgetBuilderProvider,
-      initialRouterConfig: {
-        location: {
-          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            yAxis: [
-              'equation|sum(value,alpha_metric,counter,none) + sum(value,alpha_metric,counter,none)',
-            ],
-          },
-        },
-      },
-    });
-
-    mockNavigate.mockClear();
-    act(() => {
-      result.current.handleModeToggle(false);
-    });
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+                function: ['sum', 'value', undefined, undefined],
               },
             ]),
           }),
