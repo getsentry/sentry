@@ -1,13 +1,12 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {FieldGroup} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {Confirm} from 'sentry/components/confirm';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -44,53 +43,56 @@ export function KeyRow({
   const isJsPlatform = platform.startsWith('javascript');
 
   return (
-    <Panel>
-      <PanelHeader hasButtons>
-        <Title disabled={!data.isActive}>
-          <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
-          {!data.isActive && (
-            <small>
-              {' \u2014  '}
-              {t('Disabled')}
-            </small>
-          )}
-        </Title>
-        <Controls>
-          <LinkButton to={editUrl} size="xs">
-            {t('Configure')}
-          </LinkButton>
-          <Confirm
-            disabled={!hasWriteAccess}
-            onConfirm={data.isActive ? handleDisable : handleEnable}
-            confirmText={data.isActive ? t('Disable Key') : t('Enable Key')}
-            message={
-              data.isActive
-                ? t('Are you sure you want to disable this key?')
-                : t('Are you sure you want to enable this key?')
-            }
-          >
-            <Button size="xs">{data.isActive ? t('Disable') : t('Enable')}</Button>
-          </Confirm>
-          <Confirm
-            disabled={!hasWriteAccess}
-            priority="danger"
-            onConfirm={() => onRemove(data)}
-            confirmText={t('Remove Key')}
-            message={t(
-              'Are you sure you want to remove this key? This action is irreversible.'
+    <FieldGroup
+      hasButtons
+      title={
+        <Fragment>
+          <Title disabled={!data.isActive}>
+            <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
+            {!data.isActive && (
+              <small>
+                {' \u2014  '}
+                {t('Disabled')}
+              </small>
             )}
-          >
-            <Button size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
-          </Confirm>
-        </Controls>
-      </PanelHeader>
-
-      <StyledClippedBox
-        clipHeight={300}
-        defaultClipped={!isJsPlatform}
-        btnText={t('Expand')}
-      >
-        <StyledPanelBody disabled={!data.isActive}>
+          </Title>
+          <Controls>
+            <LinkButton to={editUrl} size="xs">
+              {t('Configure')}
+            </LinkButton>
+            <Confirm
+              disabled={!hasWriteAccess}
+              onConfirm={data.isActive ? handleDisable : handleEnable}
+              confirmText={data.isActive ? t('Disable Key') : t('Enable Key')}
+              message={
+                data.isActive
+                  ? t('Are you sure you want to disable this key?')
+                  : t('Are you sure you want to enable this key?')
+              }
+            >
+              <Button size="xs">{data.isActive ? t('Disable') : t('Enable')}</Button>
+            </Confirm>
+            <Confirm
+              disabled={!hasWriteAccess}
+              priority="danger"
+              onConfirm={() => onRemove(data)}
+              confirmText={t('Remove Key')}
+              message={t(
+                'Are you sure you want to remove this key? This action is irreversible.'
+              )}
+            >
+              <Button size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
+            </Confirm>
+          </Controls>
+        </Fragment>
+      }
+    >
+      <DisabledContainer disabled={!data.isActive}>
+        <StyledClippedBox
+          clipHeight={300}
+          defaultClipped={!isJsPlatform}
+          btnText={t('Expand')}
+        >
           <ProjectKeyCredentials
             projectId={`${data.projectId}`}
             data={data}
@@ -108,9 +110,9 @@ export function KeyRow({
               params={params}
             />
           )}
-        </StyledPanelBody>
-      </StyledClippedBox>
-    </Panel>
+        </StyledClippedBox>
+      </DisabledContainer>
+    </FieldGroup>
   );
 }
 
@@ -139,6 +141,7 @@ const Controls = styled('div')`
   grid-auto-flow: column;
 `;
 
-const StyledPanelBody = styled(PanelBody)<{disabled: boolean}>`
+const DisabledContainer = styled('div')<{disabled: boolean}>`
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
+  padding: 0;
 `;
