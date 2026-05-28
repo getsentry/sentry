@@ -269,9 +269,9 @@ const AVG_FRAME_DELAY_WIDGET: PrebuiltWidget = {
   },
 };
 
-const PLAYBOOK_TEXT_WIDGET: PrebuiltWidget = {
-  id: 'playbook-text',
-  title: t('Playbook'),
+const ABOUT_THIS_PAGE_TEXT_WIDGET: PrebuiltWidget = {
+  id: 'about-this-page-text',
+  title: t('About this page'),
   description: `Top-level widgets show overall app health: average app start, TTID/TTFD, rendering, and crash-free session metrics.
 
 Tables show which screens contribute most to those metrics.
@@ -455,7 +455,7 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   widgets: [
     ...FIRST_ROW_WIDGETS,
     ...SECOND_ROW_WIDGETS,
-    PLAYBOOK_TEXT_WIDGET,
+    ABOUT_THIS_PAGE_TEXT_WIDGET,
     APP_START_TABLE,
     SCREEN_LOAD_TABLE,
     SCREEN_RENDERING_TABLE,
