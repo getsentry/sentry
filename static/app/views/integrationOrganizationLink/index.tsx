@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -13,13 +14,13 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
   getIntegrationFeatureGate,
@@ -27,7 +28,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -80,7 +80,7 @@ export default function IntegrationOrganizationLink() {
     data: organizations = [],
     isPending: isPendingOrganizations,
     error: organizationsError,
-  } = useApiQuery<Organization[]>([getApiUrl('/organizations/')], {staleTime: Infinity});
+  } = useQuery(apiOptions.as<Organization[]>()('/organizations/', {staleTime: Infinity}));
 
   const hasSelectedOrg = !!selectedOrgSlug;
   const organizationQuery = useQuery(
@@ -97,30 +97,29 @@ export default function IntegrationOrganizationLink() {
     }
   }, [hasSelectedOrg, organizationQuery.error]);
 
-  const isProviderQueryEnabled = hasSelectedOrg;
-  const providerQuery = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: selectedOrgSlug!},
-      }),
-      {query: {provider_key: integrationSlug}},
-    ],
-    {staleTime: Infinity, enabled: isProviderQueryEnabled}
+  const providerQuery = useQuery(
+    apiOptions.as<{providers: IntegrationProvider[]}>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
+      {
+        path: hasSelectedOrg ? {organizationIdOrSlug: selectedOrgSlug} : skipToken,
+        query: {provider_key: integrationSlug},
+        staleTime: Infinity,
+      }
+    )
   );
+
   const provider = providerQuery.data?.providers[0] ?? null;
+
   useEffect(() => {
     const hasEmptyProvider = !provider && !providerQuery.isPending;
-    if (isProviderQueryEnabled && (providerQuery.error || hasEmptyProvider)) {
+    if (hasSelectedOrg && (providerQuery.error || hasEmptyProvider)) {
       addErrorMessage(t('Failed to retrieve integration details'));
     }
-  }, [isProviderQueryEnabled, providerQuery.error, providerQuery.isPending, provider]);
+  }, [hasSelectedOrg, providerQuery.error, providerQuery.isPending, provider]);
 
   // These two queries are recomputed when an organization is selected
   const isPendingSelection =
-    (hasSelectedOrg && organizationQuery.isPending) ||
-    (isProviderQueryEnabled && providerQuery.isPending);
+    hasSelectedOrg && (organizationQuery.isPending || providerQuery.isPending);
 
   const selectOrganization = useCallback(
     (orgSlug: string) => {
@@ -149,11 +148,12 @@ export default function IntegrationOrganizationLink() {
     }
   }, [organizations, location.search, selectOrganization]);
 
-  const hasAccess = useMemo(() => {
-    return organization?.access.includes('org:integrations');
-  }, [organization]);
+  const hasAccess = organization?.access.includes('org:integrations');
 
-  // used with Github to redirect to the integration detail
+  const {startFlow} = useAddIntegration();
+
+  // Lands the user on the integration's settings page after a successful
+  // API-driven install. Used as `startFlow`'s `onInstall` callback.
   const onInstallWithInstallationId = useCallback(
     (data: Integration) => {
       const orgId = organization?.slug;
@@ -167,8 +167,11 @@ export default function IntegrationOrganizationLink() {
     [organization]
   );
 
-  // non-Github redirects to the extension view where the backend will finish the installation
-  const finishInstallation = useCallback(() => {
+  // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
+  // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
+  // the install server-side via the legacy pipeline. Used by every provider
+  // that hasn't been migrated to the API pipeline modal yet.
+  const finishLegacyInstallation = useCallback(() => {
     // add the selected org to the query parameters and then redirect back to configure
     const query = {orgSlug: selectedOrgSlug, ...location.query};
     trackExternalAnalytics({
@@ -184,6 +187,34 @@ export default function IntegrationOrganizationLink() {
     );
   }, [integrationSlug, location.query, organization, provider, selectedOrgSlug]);
 
+  const handleInstallClick = useCallback(() => {
+    if (!provider || !organization) {
+      return;
+    }
+
+    // GitHub is the only provider currently driven through the API pipeline
+    // modal from this view — users land here after installing the Sentry
+    // GitHub App from github.com, with the `installationId` in the URL.
+    if (provider.key === 'github' && installationId) {
+      startFlow({
+        provider,
+        organization,
+        onInstall: onInstallWithInstallationId,
+        urlParams: {installation_id: installationId},
+      });
+      return;
+    }
+
+    finishLegacyInstallation();
+  }, [
+    provider,
+    organization,
+    installationId,
+    startFlow,
+    onInstallWithInstallationId,
+    finishLegacyInstallation,
+  ]);
+
   const renderAddButton = useMemo(() => {
     if (!provider || !organization) {
       return null;
@@ -194,9 +225,9 @@ export default function IntegrationOrganizationLink() {
     const featuresComponents = features.map(f => ({
       featureGate: f.featureGate,
       description: (
-        <FeatureListItem
-          dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
-        />
+        <Text density="comfortable">
+          <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
+        </Text>
       ),
     }));
 
@@ -205,27 +236,20 @@ export default function IntegrationOrganizationLink() {
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled, disabledReason}) => (
-          <AddIntegrationButton
-            provider={provider}
-            organization={organization}
-            onInstall={onInstallWithInstallationId}
-            installationId={installationId}
-            hasAccess={hasAccess}
-            disabled={disabled}
-            disabledReason={disabledReason}
-            finishInstallation={finishInstallation}
-          />
+          <Flex direction="column" align="center" justify="center">
+            <Button
+              variant="primary"
+              disabled={!hasAccess || disabled}
+              onClick={handleInstallClick}
+            >
+              {t('Install %s', provider.name)}
+            </Button>
+            {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
+          </Flex>
         )}
       </IntegrationFeatures>
     );
-  }, [
-    installationId,
-    provider,
-    organization,
-    hasAccess,
-    onInstallWithInstallationId,
-    finishInstallation,
-  ]);
+  }, [provider, organization, hasAccess, handleInstallClick]);
 
   const renderBottom = useMemo(() => {
     const {FeatureList} = getIntegrationFeatureGate();
@@ -247,7 +271,7 @@ export default function IntegrationOrganizationLink() {
                   {organization: <strong>{organization.slug}</strong>}
                 )}
               </p>
-              <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+              <TextCopyInput>{generateOrgSlugUrl(selectedOrgSlug)}</TextCopyInput>
             </Alert>
           </Alert.Container>
         )}
@@ -328,64 +352,3 @@ export default function IntegrationOrganizationLink() {
     </NarrowLayout>
   );
 }
-
-function AddIntegrationButton({
-  provider,
-  organization,
-  onInstall,
-  installationId,
-  hasAccess,
-  disabled,
-  disabledReason,
-  finishInstallation,
-}: {
-  disabled: boolean;
-  disabledReason: React.ReactNode;
-  finishInstallation: () => void;
-  hasAccess: boolean | undefined;
-  onInstall: (data: Integration) => void;
-  organization: Organization;
-  provider: IntegrationProvider;
-  installationId?: string;
-}) {
-  const {startFlow} = useAddIntegration();
-
-  return (
-    <ButtonWrapper>
-      <Button
-        variant="primary"
-        disabled={!hasAccess || disabled}
-        onClick={() =>
-          installationId
-            ? startFlow({
-                provider,
-                organization,
-                onInstall,
-                urlParams: {installation_id: installationId},
-              })
-            : finishInstallation()
-        }
-      >
-        {t('Install %s', provider.name)}
-      </Button>
-      {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
-    </ButtonWrapper>
-  );
-}
-
-const InstallLink = styled('pre')`
-  margin-bottom: 0;
-  background: #fbe3e1;
-`;
-
-const FeatureListItem = styled('span')`
-  line-height: 24px;
-`;
-
-const ButtonWrapper = styled('div')`
-  margin-left: auto;
-  align-self: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
