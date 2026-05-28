@@ -92,6 +92,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: undefined,
+    timestamp,
     traceId,
   });
 
