@@ -1,6 +1,9 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {MCP_OVERVIEW_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -164,7 +167,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
-const OVERVIEW_TABLE = {
+const OVERVIEW_TABLE: PrebuiltWidget = {
   id: 'mcp-overview-table',
   title: t('MCP Overview'),
   displayType: DisplayType.TABLE,

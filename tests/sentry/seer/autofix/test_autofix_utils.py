@@ -1670,38 +1670,6 @@ class TestUpdateSeerProjectSettings(TestCase):
             project=self.project1, key="sentry:seer_automation_handoff_target"
         ).exists()
 
-    def test_bulk_updates_settings(self) -> None:
-        """The provided settings fields should be applied to every project."""
-        update_seer_project_settings(
-            [self.project1.id, self.project2.id],
-            {
-                "agent": AutomationCodingAgent.CURSOR,
-                "integration_id": 99,
-                "stopping_point": AutofixStoppingPoint.OPEN_PR,
-                "scanner_automation": False,
-            },
-        )
-
-        for project in [self.project1, self.project2]:
-            assert (
-                project.get_option("sentry:seer_automation_handoff_target")
-                == AutomationCodingAgent.CURSOR
-            )
-            assert (
-                project.get_option("sentry:seer_automation_handoff_point")
-                == AutofixHandoffPoint.ROOT_CAUSE
-            )
-            assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
-            assert (
-                project.get_option("sentry:seer_automated_run_stopping_point")
-                == AutofixStoppingPoint.OPEN_PR
-            )
-            assert project.get_option("sentry:seer_scanner_automation") is False
-
-    def test_empty_projects(self) -> None:
-        """Empty project list should be a no-op without errors."""
-        update_seer_project_settings([], {"scanner_automation": False})
-
     def test_agent_seer_clears_handoff_options(self) -> None:
         """Setting agent=seer should delete all handoff-related project options."""
         self.project1.update_option(
@@ -1740,8 +1708,7 @@ class TestUpdateSeerProjectSettings(TestCase):
         """Setting an external agent without integration_id should raise ValueError."""
         with pytest.raises(ValueError):
             update_seer_project_settings(
-                [self.project1.id],
-                {"agent": AutomationCodingAgent.CURSOR},
+                [self.project1.id], {"agent": AutomationCodingAgent.CURSOR}
             )
 
     def test_stopping_point_omitted_preserves_existing(self) -> None:
@@ -1766,6 +1733,38 @@ class TestUpdateSeerProjectSettings(TestCase):
             self.project1.get_option("sentry:autofix_automation_tuning")
             == AutofixAutomationTuningSettings.MEDIUM
         )
+
+    def test_bulk_updates_settings(self) -> None:
+        """The provided settings fields should be applied to every project."""
+        update_seer_project_settings(
+            [self.project1.id, self.project2.id],
+            {
+                "agent": AutomationCodingAgent.CURSOR,
+                "integration_id": 99,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR,
+                "scanner_automation": False,
+            },
+        )
+
+        for project in [self.project1, self.project2]:
+            assert (
+                project.get_option("sentry:seer_automation_handoff_target")
+                == AutomationCodingAgent.CURSOR
+            )
+            assert (
+                project.get_option("sentry:seer_automation_handoff_point")
+                == AutofixHandoffPoint.ROOT_CAUSE
+            )
+            assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
+            assert (
+                project.get_option("sentry:seer_automated_run_stopping_point")
+                == AutofixStoppingPoint.OPEN_PR
+            )
+            assert project.get_option("sentry:seer_scanner_automation") is False
+
+    def test_empty_projects(self) -> None:
+        """Empty project list should be a no-op without errors."""
+        update_seer_project_settings([], {"scanner_automation": False})
 
     def test_does_not_modify_excluded_projects(self) -> None:
         """Projects not included in the update list should be completely unaffected."""

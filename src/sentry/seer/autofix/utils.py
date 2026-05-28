@@ -749,25 +749,25 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
             options_to_set["sentry:seer_automation_handoff_integration_id"] = data["integration_id"]
 
     if "scanner_automation" in data:
-        _set_or_clear("sentry:seer_scanner_automation", data["scanner_automation"], True)
+        _set_or_clear("sentry:seer_scanner_automation", data["scanner_automation"], default=True)
 
     if "stopping_point" in data:
         _set_or_clear(
             "sentry:seer_automated_run_stopping_point",
             data["stopping_point"],
-            SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+            default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
         )
 
     if "auto_create_pr" in data:
         _set_or_clear(
-            "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], False
+            "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], default=False
         )
 
     if "automation_tuning" in data:
         _set_or_clear(
             "sentry:autofix_automation_tuning",
             data["automation_tuning"],
-            AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+            default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
         )
 
     if not options_to_set and not options_to_clear:

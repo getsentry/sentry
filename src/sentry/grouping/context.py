@@ -9,7 +9,7 @@ from sentry.options.rollout import in_rollout_group
 
 if TYPE_CHECKING:
     from sentry.grouping.strategies.base import StrategyConfiguration
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 
 class GroupingContext:
@@ -37,7 +37,7 @@ class GroupingContext:
         value_at_some_key = context["some_key"] # will be "original_value"
     """
 
-    def __init__(self, strategy_config: StrategyConfiguration, event: Event):
+    def __init__(self, strategy_config: StrategyConfiguration, event: BaseEvent):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
