@@ -14,10 +14,7 @@ type BreakpointName = keyof typeof BREAKPOINT_WIDTHS;
 
 type SnapshotViewport = BreakpointName | number | {width: number; height?: number};
 
-interface SnapshotOptions {
-  metadata?: SnapshotTestMetadata;
-  viewport?: SnapshotViewport;
-}
+type SnapshotTestInput = SnapshotTestMetadata & {viewport?: SnapshotViewport};
 
 interface SnapshotDetails {
   displayName: string;
@@ -79,23 +76,12 @@ function resolveViewport(input: SnapshotViewport): {
   return {width: input.width, height: input.height, label: name ?? `${input.width}w`};
 }
 
-function isSnapshotOptions(
-  options: SnapshotTestMetadata | SnapshotOptions | undefined
-): options is SnapshotOptions {
-  if (!options) {
-    return false;
-  }
-  return 'viewport' in options || 'metadata' in options;
-}
-
 function snapshotTest(
   name: string,
   renderFn: () => ReactElement,
-  options?: SnapshotTestMetadata | SnapshotOptions
+  metadata: SnapshotTestInput = {}
 ): void {
-  const {metadata = {}, viewport: viewportInput} = isSnapshotOptions(options)
-    ? options
-    : {metadata: options ?? ({} as SnapshotTestMetadata), viewport: undefined};
+  const {viewport: viewportInput, ...restMetadata} = metadata;
 
   const resolved = viewportInput ? resolveViewport(viewportInput) : undefined;
 
@@ -123,7 +109,7 @@ function snapshotTest(
       testFilePath: testPath,
       group: details.group,
       theme: details.theme,
-      metadata,
+      metadata: restMetadata,
       viewport: resolved ? {width: resolved.width, height: resolved.height} : undefined,
       viewportLabel: resolved?.label,
     });
@@ -134,11 +120,11 @@ snapshotTest.each = function snapshotEach<T>(table: T[]) {
   return (
     name: string,
     renderFn: (value: T) => ReactElement,
-    optionsFn?: (value: T) => SnapshotTestMetadata | SnapshotOptions
+    metadataFn?: (value: T) => SnapshotTestInput
   ) => {
     for (const value of table) {
       const testName = name.replace('%s', String(value));
-      snapshotTest(testName, () => renderFn(value), optionsFn?.(value));
+      snapshotTest(testName, () => renderFn(value), metadataFn?.(value));
     }
   };
 };
@@ -150,7 +136,7 @@ snapshotTest.breakpoints = function snapshotBreakpoints(
   metadata: SnapshotTestMetadata = {}
 ): void {
   for (const bp of breakpoints) {
-    snapshotTest(name, renderFn, {viewport: bp, metadata});
+    snapshotTest(name, renderFn, {...metadata, viewport: bp});
   }
 };
 
@@ -175,7 +161,7 @@ declare global {
         ) => (
           name: string,
           renderFn: (value: T) => ReactElement,
-          optionsFn?: (value: T) => SnapshotTestMetadata | SnapshotOptions
+          metadataFn?: (value: T) => SnapshotTestInput
         ) => void;
       };
     }
