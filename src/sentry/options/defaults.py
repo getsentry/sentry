@@ -753,11 +753,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Codecov Integration
-register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("codecov.base-url", default="https://api.codecov.io")
-register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)

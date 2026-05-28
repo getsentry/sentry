@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
-import responses
 from django.core import mail
 from django.db import router
 from django.utils import timezone
@@ -746,30 +745,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
-    @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
-        return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
-    )
-    @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
-    def test_various_options(self, mock_get_repositories: MagicMock) -> None:
+    @with_feature("organizations:dynamic-sampling-custom")
+    def test_various_options(self) -> None:
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
-        self.create_integration(
-            organization=self.organization, provider="github", external_id="extid"
-        )
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/github/testgit",
-            status=200,
-        )
 
         data = {
             "openMembership": False,
             "isEarlyAdopter": True,
-            "codecovAccess": True,
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "hideAiFeatures": True,
@@ -808,7 +793,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
-        assert org.flags.codecov_access
         assert org.flags.prevent_superuser_access
         assert org.flags.disable_member_invite
         assert not org.flags.allow_joinleave
@@ -842,7 +826,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
-        assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
         assert (
             "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
         )
@@ -886,27 +869,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:github_pr_bot") is False
         assert "sentry:github_nudge_invite" not in options
         assert "sentry:gitlab_pr_bot" not in options
-
-    @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
-        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
-    )
-    @with_feature("organizations:codecov-integration")
-    def test_setting_codecov_without_integration_forbidden(
-        self, mock_get_repositories: MagicMock
-    ) -> None:
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/github/testgit",
-            status=404,
-        )
-        data = {"codecovAccess": True}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
-
-    def test_setting_codecov_without_paid_plan_forbidden(self) -> None:
-        data = {"codecovAccess": True}
-        self.get_error_response(self.organization.slug, status_code=403, **data)
 
     def test_setting_duplicate_trusted_keys(self) -> None:
         """

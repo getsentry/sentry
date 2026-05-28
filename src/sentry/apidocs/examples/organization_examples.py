@@ -288,7 +288,6 @@ class OrganizationExamples:
                 "scrapeJavaScript": True,
                 "allowJoinRequests": True,
                 "relayPiiConfig": None,
-                "codecovAccess": False,
                 "hideAiFeatures": False,
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,

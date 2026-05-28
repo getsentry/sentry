@@ -668,7 +668,6 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     relayPiiConfig: str | None
     trustedRelays: list[TrustedRelaySerializerResponse]
     pendingAccessRequests: int
-    codecovAccess: bool
     hideAiFeatures: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
@@ -824,7 +823,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
             ),
             "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
-            "codecovAccess": bool(obj.flags.codecov_access),
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),

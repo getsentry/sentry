@@ -989,12 +989,6 @@ urlpatterns += [
         react_page_view,
         name="feedback-details",
     ),
-    # Prevent (Codecov features)
-    re_path(
-        r"^prevent/",
-        react_page_view,
-        name="prevent",
-    ),
     # Monitors
     re_path(
         r"^monitors/",

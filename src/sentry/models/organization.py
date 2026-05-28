@@ -194,7 +194,7 @@ class Organization(ReplicatedCellModel):
         # Require and enforce email verification for all members. (deprecated, not in use)
         require_email_verification: bool
 
-        # Enable codecov integration.
+        # Previously enabled the Codecov integration. (deprecated, not in use)
         codecov_access: bool
 
         # Disable org-members from creating new projects
