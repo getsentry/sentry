@@ -7,7 +7,7 @@ describe('SplitPanel', () => {
     it('renders both panels and a divider', () => {
       render(
         <SplitPanel orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div data-test-id="left-content">left</div>
           </SplitPanel.Panel>
           <SplitPanel.Divider />
@@ -25,7 +25,7 @@ describe('SplitPanel', () => {
     it('renders only the first panel when the second is omitted', () => {
       render(
         <SplitPanel orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div data-test-id="left-content">left</div>
           </SplitPanel.Panel>
         </SplitPanel>
@@ -33,12 +33,15 @@ describe('SplitPanel', () => {
 
       expect(screen.getByTestId('left-content')).toBeInTheDocument();
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+      expect(screen.getByTestId('left-content').parentElement).not.toHaveAttribute(
+        'data-sized'
+      );
     });
 
     it('preserves DOM identity of the sized panel when toggling the fill panel', () => {
       const {rerender} = render(
         <SplitPanel orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div data-test-id="left-content">left</div>
           </SplitPanel.Panel>
           <SplitPanel.Divider />
@@ -52,7 +55,7 @@ describe('SplitPanel', () => {
 
       rerender(
         <SplitPanel orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div data-test-id="left-content">left</div>
           </SplitPanel.Panel>
         </SplitPanel>
@@ -62,7 +65,7 @@ describe('SplitPanel', () => {
 
       rerender(
         <SplitPanel orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div data-test-id="left-content">left</div>
           </SplitPanel.Panel>
           <SplitPanel.Divider />
@@ -80,7 +83,7 @@ describe('SplitPanel', () => {
     it('renders both panels and a divider', () => {
       render(
         <SplitPanel orientation="vertical">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div data-test-id="top-content">top</div>
           </SplitPanel.Panel>
           <SplitPanel.Divider />
@@ -98,7 +101,7 @@ describe('SplitPanel', () => {
     it('renders only the first panel when the second is omitted', () => {
       render(
         <SplitPanel orientation="vertical">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div data-test-id="top-content">top</div>
           </SplitPanel.Panel>
         </SplitPanel>
@@ -106,6 +109,9 @@ describe('SplitPanel', () => {
 
       expect(screen.getByTestId('top-content')).toBeInTheDocument();
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+      expect(screen.getByTestId('top-content').parentElement).not.toHaveAttribute(
+        'data-sized'
+      );
     });
   });
 
@@ -113,7 +119,7 @@ describe('SplitPanel', () => {
     it('exposes separator role with orientation and value attributes', () => {
       render(
         <SplitPanel orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+          <SplitPanel.Panel defaultSize={30} minSize={10} maxSize={80}>
             <div>left</div>
           </SplitPanel.Panel>
           <SplitPanel.Divider />
@@ -124,10 +130,9 @@ describe('SplitPanel', () => {
       );
 
       const separator = screen.getByRole('separator');
-      // Horizontal split → vertical divider line
       expect(separator).toHaveAttribute('aria-orientation', 'vertical');
-      expect(separator).toHaveAttribute('aria-valuemin', '100');
-      expect(separator).toHaveAttribute('aria-valuemax', '600');
+      expect(separator).toHaveAttribute('aria-valuemin', '10');
+      expect(separator).toHaveAttribute('aria-valuemax', '80');
       expect(separator).toHaveAttribute('tabindex', '0');
     });
   });

@@ -29,8 +29,6 @@ const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;
 
-const DIVIDER_SIZE = 16;
-
 interface ReplayLayoutProps {
   isLoading: boolean;
   replayRecord: ReplayRecord | undefined;
@@ -125,20 +123,17 @@ function ReplayLayoutBody({
   const effectiveLayout = isFocusAreaCollapsed ? defaultLayout : layout;
   const isLeftRight = effectiveLayout === LayoutKey.SIDEBAR_LEFT;
 
-  const sizedPanel = isLeftRight ? (
-    <SplitPanel.Panel
-      defaultSize={width * 0.5}
-      minSize={MIN_SIDEBAR_WIDTH}
-      maxSize={width - MIN_CONTENT_WIDTH}
-    >
-      <PanelContainer>{video}</PanelContainer>
-    </SplitPanel.Panel>
-  ) : (
-    <SplitPanel.Panel
-      defaultSize={(height - DIVIDER_SIZE) * 0.5}
-      minSize={MIN_VIDEO_HEIGHT}
-      maxSize={height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT}
-    >
+  // Convert the pixel-based readability minimums into the percentage shape
+  // SplitPanel expects. Without measuring the container we can't preserve
+  // pixel guarantees, so we still depend on useDimensions here.
+  const axisSize = isLeftRight ? width : height;
+  const minPx = isLeftRight ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT;
+  const otherMinPx = isLeftRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT;
+  const minSize = axisSize > 0 ? (minPx / axisSize) * 100 : 0;
+  const maxSize = axisSize > 0 ? ((axisSize - otherMinPx) / axisSize) * 100 : 100;
+
+  const sizedPanel = (
+    <SplitPanel.Panel defaultSize={50} minSize={minSize} maxSize={maxSize}>
       <PanelContainer>{video}</PanelContainer>
     </SplitPanel.Panel>
   );
@@ -150,7 +145,6 @@ function ReplayLayoutBody({
           <ReplaySplitPanel
             layout={effectiveLayout}
             orientation={isLeftRight ? 'horizontal' : 'vertical'}
-            availableSize={isLeftRight ? width : height}
           >
             {sizedPanel}
             {!isFocusAreaCollapsed && (

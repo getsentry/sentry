@@ -18,20 +18,17 @@ import * as Storybook from 'sentry/stories';
 export const documentation = import('!!type-loader!@sentry/scraps/splitPanel');
 
 export function HorizontalSplitDemo() {
-  const CONTAINER_WIDTH = 600;
-  const [size, setSize] = useState(CONTAINER_WIDTH / 2);
-  const leftPct = (size / CONTAINER_WIDTH) * 100;
-  const rightPct = 100 - leftPct;
+  const [size, setSize] = useState(50);
   return (
     <Flex direction="column" gap="md">
       <Flex
         border="primary"
         radius="md"
         overflow="hidden"
-        style={{width: CONTAINER_WIDTH, height: 160}}
+        style={{width: 600, height: 160}}
       >
         <SplitPanel orientation="horizontal" onResize={setSize}>
-          <SplitPanel.Panel defaultSize={CONTAINER_WIDTH / 2} minSize={120}>
+          <SplitPanel.Panel defaultSize={50} minSize={20}>
             <Flex align="center" justify="center" flex="1" background="primary">
               <Text>Left</Text>
             </Flex>
@@ -45,27 +42,24 @@ export function HorizontalSplitDemo() {
         </SplitPanel>
       </Flex>
       <Text variant="muted">
-        Left: {leftPct.toFixed(1)}% | Right: {rightPct.toFixed(1)}%
+        Left: {size.toFixed(1)}% | Right: {(100 - size).toFixed(1)}%
       </Text>
     </Flex>
   );
 }
 
 export function VerticalSplitDemo() {
-  const CONTAINER_HEIGHT = 240;
-  const [size, setSize] = useState(CONTAINER_HEIGHT / 2);
-  const topPct = (size / CONTAINER_HEIGHT) * 100;
-  const bottomPct = 100 - topPct;
+  const [size, setSize] = useState(50);
   return (
     <Flex direction="column" gap="md">
       <Flex
         border="primary"
         radius="md"
         overflow="hidden"
-        style={{width: 600, height: CONTAINER_HEIGHT}}
+        style={{width: 600, height: 240}}
       >
         <SplitPanel orientation="vertical" onResize={setSize}>
-          <SplitPanel.Panel defaultSize={CONTAINER_HEIGHT / 2} minSize={60}>
+          <SplitPanel.Panel defaultSize={50} minSize={20}>
             <Flex align="center" justify="center" flex="1" background="primary">
               <Text>Top</Text>
             </Flex>
@@ -79,19 +73,19 @@ export function VerticalSplitDemo() {
         </SplitPanel>
       </Flex>
       <Text variant="muted">
-        Top: {topPct.toFixed(1)}% | Bottom: {bottomPct.toFixed(1)}%
+        Top: {size.toFixed(1)}% | Bottom: {(100 - size).toFixed(1)}%
       </Text>
     </Flex>
   );
 }
 
-`SplitPanel` is a composable two-pane layout with a draggable divider. The pane that declares `defaultSize` is the sized pane; the other fills the remaining space. The root self-measures, so callers don't need to thread the container width or height in.
+`SplitPanel` is a composable two-pane layout with a draggable divider. Sizes are expressed as **percentages** of the container. The pane that declares `defaultSize` is the sized pane; the other fills the remaining space. Flexbox distributes `(container − divider)` proportionally between the two panes, so a 50/50 split is always symmetric — the divider never "steals" pixels from a pane.
 
 ## Basic Usage
 
 ```tsx
 <SplitPanel orientation="horizontal">
-  <SplitPanel.Panel defaultSize={300} minSize={200} maxSize={600}>
+  <SplitPanel.Panel defaultSize={30} minSize={20} maxSize={80}>
     <LeftContent />
   </SplitPanel.Panel>
   <SplitPanel.Divider />
@@ -101,7 +95,7 @@ export function VerticalSplitDemo() {
 </SplitPanel>
 ```
 
-The composable shape makes the call site read top-to-bottom: first pane, divider, second pane. There's no `availableSize` prop — the root measures itself with `useDimensions`.
+`defaultSize`, `minSize`, and `maxSize` are all percentages in the range `[0, 100]`. The composable shape makes the call site read top-to-bottom: first pane, divider, second pane.
 
 ## Horizontal Split
 
@@ -113,7 +107,7 @@ The first pane is sized; the second fills.
 
 ```tsx
 <SplitPanel orientation="horizontal">
-  <SplitPanel.Panel defaultSize={300} minSize={120}>
+  <SplitPanel.Panel defaultSize={50} minSize={20}>
     <LeftContent />
   </SplitPanel.Panel>
   <SplitPanel.Divider />
@@ -133,7 +127,7 @@ Use `orientation="vertical"` to split top/bottom. The first pane is still the si
 
 ```tsx
 <SplitPanel orientation="vertical">
-  <SplitPanel.Panel defaultSize={120} minSize={60}>
+  <SplitPanel.Panel defaultSize={50} minSize={20}>
     <TopContent />
   </SplitPanel.Panel>
   <SplitPanel.Divider />
@@ -149,7 +143,7 @@ To collapse the fill pane, omit the `<SplitPanel.Divider>` and second `<SplitPan
 
 ```tsx
 <SplitPanel orientation="horizontal">
-  <SplitPanel.Panel defaultSize={300} minSize={200} maxSize={600}>
+  <SplitPanel.Panel defaultSize={30} minSize={20} maxSize={80}>
     <LeftContent />
   </SplitPanel.Panel>
   {!isCollapsed && (
@@ -171,11 +165,11 @@ To collapse the fill pane, omit the `<SplitPanel.Divider>` and second `<SplitPan
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 function ResizableLayout() {
-  const [storedSize, setStoredSize] = useLocalStorageState('my-feature.split-size', 300);
+  const [storedSize, setStoredSize] = useLocalStorageState('my-feature.split-size', 50);
 
   return (
     <SplitPanel orientation="horizontal" onResize={setStoredSize}>
-      <SplitPanel.Panel defaultSize={storedSize} minSize={200} maxSize={600}>
+      <SplitPanel.Panel defaultSize={storedSize} minSize={20} maxSize={80}>
         <LeftContent />
       </SplitPanel.Panel>
       <SplitPanel.Divider />
@@ -187,36 +181,9 @@ function ResizableLayout() {
 }
 ```
 
-## Custom Divider
-
-For most cases, use `<SplitPanel.Divider>` — a thin 1px line matching the rest of the app. If you need a different visual (e.g. a grab handle, a thicker bar, a colored line for a critical section), build your own divider with the `useSplitPanelDivider` hook. It returns the ARIA props, event handlers, and `isHeld` state needed to make any element behave like the divider.
-
-```tsx
-import styled from '@emotion/styled';
-import {useSplitPanelDivider} from '@sentry/scraps/splitPanel';
-
-function GrabHandleDivider() {
-  const {props, isHeld} = useSplitPanelDivider();
-  return (
-    <GrabHandle {...props} data-is-held={isHeld}>
-      <IconGrabbable size="sm" />
-    </GrabHandle>
-  );
-}
-
-const GrabHandle = styled('div')`
-  display: grid;
-  place-items: center;
-  width: ${p => p.theme.space.xl};
-  cursor: ew-resize;
-`;
-```
-
-Then drop your component in place of `<SplitPanel.Divider>` inside the `<SplitPanel>` children.
-
 ## Tracking Resize Events
 
-`onMouseDown` fires when the user starts dragging (receives the current size as a percentage). `onResize` fires as the size changes (receives the new size in pixels). Use these for analytics or to drive linked UI.
+`onMouseDown` fires when the user starts dragging (receives the current size as a percentage). `onResize` fires as the size changes (receives the new size as a percentage). Use these for analytics or to drive linked UI.
 
 ```tsx
 <SplitPanel
@@ -224,7 +191,7 @@ Then drop your component in place of `<SplitPanel.Divider>` inside the `<SplitPa
   onMouseDown={sizePct => trackStart(sizePct)}
   onResize={newSize => trackEnd(newSize)}
 >
-  <SplitPanel.Panel defaultSize={300} minSize={200} maxSize={600}>
+  <SplitPanel.Panel defaultSize={30} minSize={20} maxSize={80}>
     <LeftContent />
   </SplitPanel.Panel>
   <SplitPanel.Divider />

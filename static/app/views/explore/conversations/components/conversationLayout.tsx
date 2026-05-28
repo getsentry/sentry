@@ -10,9 +10,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
-const LEFT_PANEL_MIN = 400;
-const RIGHT_PANEL_MIN = 400;
-const DIVIDER_WIDTH = 1;
+const LEFT_PANEL_MIN_PX = 400;
+const RIGHT_PANEL_MIN_PX = 400;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 /**
@@ -32,22 +31,18 @@ export function ConversationSplitLayout({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
-  const maxLeft = Math.max(LEFT_PANEL_MIN, width - RIGHT_PANEL_MIN - DIVIDER_WIDTH);
-  const defaultLeft = Math.min(
-    maxLeft,
-    Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5)
-  );
+  // SplitPanel sizes are percentages, but the readability minimums for these
+  // content panes are pixel-based — so we still measure the container to
+  // translate.
+  const minSize = width > 0 ? (LEFT_PANEL_MIN_PX / width) * 100 : 0;
+  const maxSize = width > 0 ? ((width - RIGHT_PANEL_MIN_PX) / width) * 100 : 100;
 
-  const [storedSize, setStoredSize] = useLocalStorageState(sizeStorageKey, defaultLeft);
+  const [storedSize, setStoredSize] = useLocalStorageState(sizeStorageKey, 50);
 
   return (
     <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
       <SplitPanel orientation="horizontal" onResize={setStoredSize}>
-        <SplitPanel.Panel
-          defaultSize={storedSize}
-          minSize={LEFT_PANEL_MIN}
-          maxSize={maxLeft}
-        >
+        <SplitPanel.Panel defaultSize={storedSize} minSize={minSize} maxSize={maxSize}>
           {left}
         </SplitPanel.Panel>
         <SplitPanel.Divider />

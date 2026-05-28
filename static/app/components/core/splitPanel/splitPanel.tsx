@@ -4,21 +4,20 @@ import {
   isValidElement,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import styled from '@emotion/styled';
 
-import {useDimensions} from 'sentry/utils/useDimensions';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-
 type Orientation = 'horizontal' | 'vertical';
+type PanelRole = 'lone' | 'sized' | 'fill';
 
 type SplitPanelContextValue = {
   isHeld: boolean;
   isMaximized: boolean;
   isMinimized: boolean;
-  isReady: boolean;
   max: number;
   maximiseSize: () => void;
   min: number;
@@ -32,6 +31,7 @@ type SplitPanelContextValue = {
 };
 
 const SplitPanelContext = createContext<SplitPanelContextValue | null>(null);
+const PanelRoleContext = createContext<PanelRole>('lone');
 
 function useSplitPanelContext(component: string): SplitPanelContextValue {
   const ctx = useContext(SplitPanelContext);
@@ -51,32 +51,6 @@ export function useSplitPanel() {
   return {isMaximized, isMinimized, maximiseSize, minimiseSize, resetSize};
 }
 
-/**
- * Returns everything needed to render a custom divider element. Spread
- * `props` on the divider's root element to get ARIA, event handlers, and
- * `tabIndex`. Use `isHeld` and `orientation` for styling.
- */
-export function useSplitPanelDivider() {
-  const {isHeld, max, min, onDoubleClick, onKeyDown, onMouseDown, orientation, size} =
-    useSplitPanelContext('useSplitPanelDivider');
-  return {
-    isHeld,
-    orientation,
-    props: {
-      'aria-orientation':
-        orientation === 'horizontal' ? ('vertical' as const) : ('horizontal' as const),
-      'aria-valuemax': Number.isFinite(max) ? max : undefined,
-      'aria-valuemin': min,
-      'aria-valuenow': size,
-      onDoubleClick,
-      onKeyDown,
-      onMouseDown,
-      role: 'separator' as const,
-      tabIndex: 0,
-    },
-  };
-}
-
 export type SplitPanelProps = {
   /**
    * Exactly one `<SplitPanel.Panel>` followed by an optional
@@ -86,15 +60,15 @@ export type SplitPanelProps = {
   children: React.ReactNode;
   /**
    * Fires when the user starts dragging the divider. Receives the current
-   * size of the sized pane as a percentage of the container.
+   * size of the sized pane as a percentage (0-100).
    */
-  onMouseDown?: (sizePct: `${number}%`) => void;
+  onMouseDown?: (sizePct: number) => void;
   /**
-   * Fires as the user drags. Receives the new size in pixels. Wire this to
-   * your own persistence layer if you want to remember the size across
-   * reloads (e.g. `useLocalStorageState`).
+   * Fires as the user drags. Receives the new size as a percentage (0-100).
+   * Wire this to your own persistence layer if you want to remember the size
+   * across reloads (e.g. `useLocalStorageState`).
    */
-  onResize?: (newSize: number) => void;
+  onResize?: (sizePct: number) => void;
   /**
    * Layout direction. `horizontal` splits left/right; `vertical` splits
    * top/bottom.
@@ -105,46 +79,45 @@ export type SplitPanelProps = {
 export type SplitPanelPanelProps = {
   children: React.ReactNode;
   /**
-   * Initial size of this pane in pixels. The pane that declares `defaultSize`
-   * is the sized pane; the other fills the remaining space. Only one pane may
-   * be sized.
+   * Initial size of this pane as a percentage of the container (0-100). The
+   * pane that declares `defaultSize` is the sized pane; the other fills the
+   * remaining space. Only one pane may be sized.
    */
   defaultSize?: number;
   /**
-   * Maximum size in pixels the user may drag this pane to. Only meaningful on
-   * the sized pane.
+   * Maximum size as a percentage (0-100). Only meaningful on the sized pane.
+   * Defaults to 100.
    */
   maxSize?: number;
   /**
-   * Minimum size in pixels the user may drag this pane to. Only meaningful on
-   * the sized pane.
+   * Minimum size as a percentage (0-100). Only meaningful on the sized pane.
+   * Defaults to 0.
    */
   minSize?: number;
 };
 
 export type SplitPanelDividerProps = Record<string, never>;
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
 function Panel({children}: SplitPanelPanelProps) {
-  const {isReady, orientation, size} = useSplitPanelContext('SplitPanel.Panel');
-  const isSized = useIsSizedPanel();
+  const {orientation, size} = useSplitPanelContext('SplitPanel.Panel');
+  const role = useContext(PanelRoleContext);
+  // Both panes use flex-grow as a ratio; flexbox automatically distributes
+  // (container - divider) proportionally. A lone pane just fills.
+  const flexGrow = role === 'lone' ? 1 : role === 'sized' ? size : 100 - size;
 
   return (
     <PanelContainer
       data-orientation={orientation}
-      data-sized={isSized || undefined}
-      sizePx={isSized ? size : undefined}
-      // Hide the sized pane until we've measured the container. Avoids a
-      // pre-measurement layout flash where the pane briefly takes 0px.
-      style={isSized && !isReady ? {visibility: 'hidden'} : undefined}
+      data-sized={role === 'sized' || undefined}
+      style={{flexGrow}}
     >
       {children}
     </PanelContainer>
   );
-}
-
-const IsSizedPanelContext = createContext(false);
-function useIsSizedPanel() {
-  return useContext(IsSizedPanelContext);
 }
 
 function Divider() {
@@ -154,7 +127,7 @@ function Divider() {
   return (
     <DividerLine
       aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
-      aria-valuemax={Number.isFinite(max) ? max : undefined}
+      aria-valuemax={max}
       aria-valuemin={min}
       aria-valuenow={size}
       data-is-held={isHeld}
@@ -191,140 +164,173 @@ export function SplitPanel({
   onResize,
 }: SplitPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const dims = useDimensions({elementRef: containerRef});
-  const availableSize = orientation === 'horizontal' ? dims.width : dims.height;
 
   const sizedProps = useMemo(() => findSizedPanelProps(children), [children]);
   const min = sizedProps?.minSize ?? 0;
-  const explicitMax = sizedProps?.maxSize ?? Number.POSITIVE_INFINITY;
-  // Cap the sized pane at the container size so it can never overflow the
-  // parent. Matches Zag/Chakra's `maxSize = 100%` default. Until we've
-  // measured, fall back to the explicit max (or Infinity) so the hook can
-  // accept the initial size without clamping it to zero.
-  const max = availableSize > 0 ? Math.min(explicitMax, availableSize) : explicitMax;
-  const initialSize = sizedProps?.defaultSize ?? 0;
+  const max = sizedProps?.maxSize ?? 100;
+  const initialSize = clamp(sizedProps?.defaultSize ?? 50, min, max);
 
-  // useResizableDrawer only enforces `min`, not `max`, so its internal size can
-  // drift past `max` while the user keeps dragging. We clamp before forwarding
-  // to the consumer's `onResize` and snap the hook back when it drifts, so
-  // dragging in the opposite direction responds immediately.
-  const setSizeRef = useRef<(size: number, userEvent?: boolean) => void>(() => {});
-  const handleHookResize = useCallback(
+  const [size, setSize] = useState(initialSize);
+  const [isHeld, setIsHeld] = useState(false);
+
+  const updateSize = useCallback(
     (newSize: number) => {
-      const clamped = Math.min(Math.max(newSize, min), max);
-      if (clamped !== newSize) {
-        setSizeRef.current(clamped, true);
-        return;
-      }
-      onResize?.(newSize);
+      const clamped = clamp(newSize, min, max);
+      setSize(clamped);
+      onResize?.(clamped);
     },
-    [onResize, min, max]
+    [min, max, onResize]
   );
 
-  const {
-    isHeld,
-    onDoubleClick,
-    onMouseDown: onDragStart,
-    setSize,
-    size: containerSize,
-  } = useResizableDrawer({
-    direction: orientation === 'horizontal' ? 'left' : 'down',
-    initialSize,
-    min,
-    onResize: handleHookResize,
-  });
-  setSizeRef.current = setSize;
+  const draggingRef = useRef(false);
+  const rafIdRef = useRef<number | null>(null);
 
-  const clampedSize = Math.min(containerSize, max);
-  const sizePct = `${
-    availableSize > 0 ? (clampedSize / availableSize) * 100 : 0
-  }%` as const;
+  const handleMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (!draggingRef.current) {
+        return;
+      }
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      rafIdRef.current = requestAnimationFrame(() => {
+        const container = containerRef.current;
+        if (!container) {
+          return;
+        }
+        const rect = container.getBoundingClientRect();
+        const isHorizontal = orientation === 'horizontal';
+        const total = isHorizontal ? rect.width : rect.height;
+        if (total === 0) {
+          return;
+        }
+        const offset = isHorizontal
+          ? event.clientX - rect.left
+          : event.clientY - rect.top;
+        updateSize((offset / total) * 100);
+      });
+    },
+    [orientation, updateSize]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    draggingRef.current = false;
+    document.body.style.userSelect = '';
+    document.documentElement.style.cursor = '';
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    setIsHeld(false);
+  }, [handleMouseMove]);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      onMouseDown?.(sizePct);
-      onDragStart(event);
+      onMouseDown?.(size);
+      draggingRef.current = true;
+      setIsHeld(true);
+      document.body.style.userSelect = 'none';
+      document.documentElement.style.cursor =
+        orientation === 'horizontal' ? 'ew-resize' : 'ns-resize';
+      document.addEventListener('mousemove', handleMouseMove, {passive: true});
+      document.addEventListener('mouseup', handleMouseUp);
+      event.preventDefault();
     },
-    [onDragStart, sizePct, onMouseDown]
+    [orientation, onMouseDown, size, handleMouseMove, handleMouseUp]
   );
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
-      const step = event.shiftKey ? 50 : 10;
+      const step = event.shiftKey ? 5 : 1;
       const isHorizontal = orientation === 'horizontal';
       const decreaseKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
       const increaseKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
 
       if (event.key === decreaseKey) {
         event.preventDefault();
-        setSize(Math.max(min, containerSize - step), true);
+        updateSize(size - step);
       } else if (event.key === increaseKey) {
         event.preventDefault();
-        setSize(Math.min(max, containerSize + step), true);
+        updateSize(size + step);
       } else if (event.key === 'Home') {
         event.preventDefault();
-        setSize(min, true);
-      } else if (event.key === 'End' && Number.isFinite(max)) {
+        updateSize(min);
+      } else if (event.key === 'End') {
         event.preventDefault();
-        setSize(max, true);
+        updateSize(max);
       }
     },
-    [orientation, containerSize, min, max, setSize]
+    [orientation, size, min, max, updateSize]
   );
 
-  const isReady = availableSize > 0;
-  const isMaximized = containerSize >= max;
-  const isMinimized = containerSize <= min;
+  const handleDoubleClick = useCallback(() => {
+    updateSize(initialSize);
+  }, [initialSize, updateSize]);
+
+  const isMaximized = size >= max;
+  const isMinimized = size <= min;
 
   const contextValue = useMemo<SplitPanelContextValue>(
     () => ({
       isHeld,
       isMaximized,
       isMinimized,
-      isReady,
       max,
-      maximiseSize: () => setSize(max),
+      maximiseSize: () => updateSize(max),
       min,
-      minimiseSize: () => setSize(min),
-      onDoubleClick,
+      minimiseSize: () => updateSize(min),
+      onDoubleClick: handleDoubleClick,
       onKeyDown: handleKeyDown,
       onMouseDown: handleMouseDown,
       orientation,
-      resetSize: () => setSize(initialSize),
-      size: isReady ? clampedSize : 0,
+      resetSize: () => updateSize(initialSize),
+      size,
     }),
     [
-      clampedSize,
+      handleDoubleClick,
       handleKeyDown,
       handleMouseDown,
       initialSize,
       isHeld,
       isMaximized,
       isMinimized,
-      isReady,
       max,
       min,
-      onDoubleClick,
       orientation,
-      setSize,
+      size,
+      updateSize,
     ]
   );
 
-  // Tag each Panel child with whether it's the sized one. We can't read the
-  // tag inside Panel without an extra Context, so this drives IsSizedPanelContext.
+  let panelCount = 0;
+  Children.forEach(children, child => {
+    if (isValidElement(child) && child.type === Panel) {
+      panelCount++;
+    }
+  });
+
   let sizedPanelMarked = false;
   const wrappedChildren = Children.map(children, child => {
     if (isValidElement(child) && child.type === Panel) {
       const childProps = child.props as SplitPanelPanelProps;
-      const isThisPanelSized = !sizedPanelMarked && childProps.defaultSize !== undefined;
-      if (isThisPanelSized) {
+      let role: PanelRole;
+      if (panelCount < 2) {
+        role = 'lone';
+      } else if (!sizedPanelMarked && childProps.defaultSize !== undefined) {
+        role = 'sized';
         sizedPanelMarked = true;
+      } else {
+        role = 'fill';
       }
-      return (
-        <IsSizedPanelContext.Provider value={isThisPanelSized}>
-          {child}
-        </IsSizedPanelContext.Provider>
-      );
+      return <PanelRoleContext.Provider value={role}>{child}</PanelRoleContext.Provider>;
     }
     return child;
   });
@@ -370,17 +376,20 @@ const SplitPanelRoot = styled('div')`
   }
 `;
 
-const PanelContainer = styled('div')<{sizePx: number | undefined}>`
+const PanelContainer = styled('div')`
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  ${p => (p.sizePx === undefined ? 'flex: 1 1 0;' : `flex: 0 0 ${p.sizePx}px;`)}
+  flex-shrink: 1;
+  flex-basis: 0;
 `;
 
 const DividerLine = styled('div')`
   position: relative;
   flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: auto;
   user-select: none;
 
   /* Invisible wider hit area for dragging */

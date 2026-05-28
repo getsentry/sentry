@@ -11,19 +11,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 type Orientation = 'horizontal' | 'vertical';
 
 type Props = {
-  /**
-   * Measured size of the container along the split axis (width for
-   * horizontal, height for vertical). Used to log the end position as a
-   * percentage for analytics. The parent already measures the layout for
-   * its own grid, so threading it through avoids a second measurement.
-   */
-  availableSize: number;
   children: React.ReactNode;
   layout: LayoutKey;
   orientation: Orientation;
 };
 
-export function ReplaySplitPanel({availableSize, children, layout, orientation}: Props) {
+export function ReplaySplitPanel({children, layout, orientation}: Props) {
   const organization = useOrganization();
   const {setStartPosition, logEndPosition} = useSplitPanelTracking({
     slideDirection: orientation === 'horizontal' ? 'leftright' : 'updown',
@@ -37,18 +30,14 @@ export function ReplaySplitPanel({availableSize, children, layout, orientation}:
   });
 
   const handleResize = useMemo(
-    () =>
-      debounce(
-        (newSize: number) => logEndPosition(`${(newSize / availableSize) * 100}%`),
-        750
-      ),
-    [logEndPosition, availableSize]
+    () => debounce((sizePct: number) => logEndPosition(`${sizePct}%`), 750),
+    [logEndPosition]
   );
 
   return (
     <SplitPanel
       orientation={orientation}
-      onMouseDown={setStartPosition}
+      onMouseDown={sizePct => setStartPosition(`${sizePct}%`)}
       onResize={handleResize}
     >
       {children}
