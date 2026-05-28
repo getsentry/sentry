@@ -135,10 +135,12 @@ export function InvoiceComparison() {
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
         <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
         window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). All invoices for an org are summed on each side and a count is shown in
-        parentheses. Orgs missing on one side appear as <code>legacy_only</code> or{' '}
-        <code>platform_only</code>. Sorted by absolute % delta (relative to legacy),
-        largest first — rows with no legacy baseline sort to the top as ∞.
+        submit). Only orgs that have invoices on <strong>both</strong> sides in the window
+        appear in the table; one-sided orgs are excluded from rows but counted in the
+        summary above. All invoices for an org are summed on each side with a count shown
+        in parentheses. Sorted by absolute % delta (relative to legacy), largest first —
+        rows where the percentage is undefined (legacy=$0 with non-zero platform) sort to
+        the top as ∞.
       </p>
 
       <Panel>
