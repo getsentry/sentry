@@ -148,6 +148,19 @@ class DiscordOAuthApiSerializer(CamelSnakeSerializer):
     guild_id = CharField(required=True)
 
 
+class DiscordInitialDataSerializer(CamelSnakeSerializer):
+    """Initial pipeline data for App Directory-originated Discord installs.
+
+    When a user installs from Discord's App Directory, Discord initiates OAuth
+    and redirects back to Sentry with `code` and `guild_id`. The frontend
+    forwards them here so the pipeline can skip its own OAuth step.
+    """
+
+    code = CharField(required=False)
+    guild_id = CharField(required=False)
+    use_configure = CharField(required=False)
+
+
 class DiscordOAuthApiStep:
     """API-mode OAuth step for Discord integration setup.
 
@@ -170,7 +183,18 @@ class DiscordOAuthApiStep:
         self.scopes = scopes
         self.redirect_url = redirect_url
 
-    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, str]:
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        # App Directory installs arrive with OAuth already complete: code and
+        # guild_id are bound to state via initialData. Signal the frontend to
+        # advance immediately using those values instead of opening a popup.
+        if pipeline.fetch_state("use_configure"):
+            return {
+                "appDirectoryInstall": True,
+                "code": pipeline.fetch_state("code"),
+                "guildId": pipeline.fetch_state("guild_id"),
+                "state": pipeline.signature,
+            }
+
         params = urlencode(
             {
                 "client_id": self.client_id,
@@ -245,6 +269,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
             ),
         ]
 
+    def get_initial_data_serializer_cls(self) -> type[DiscordInitialDataSerializer]:
+        return DiscordInitialDataSerializer
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         guild_id = str(state.get("guild_id"))
 
@@ -258,11 +285,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        discord_config = state.get(IntegrationProviderSlug.DISCORD.value, {})
-        if isinstance(discord_config, dict):
-            use_configure = discord_config.get("use_configure") == "1"
-        else:
-            use_configure = False
+        # App Directory installs initiated OAuth with configure_url as the
+        # redirect_uri, so token exchange must echo it back.
+        use_configure = state.get("use_configure") == "1"
         url = self.configure_url if use_configure else self.setup_url
 
         auth_code = str(state.get("code"))

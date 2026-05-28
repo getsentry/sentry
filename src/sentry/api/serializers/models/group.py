@@ -142,6 +142,31 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     annotations: list[GroupAnnotation]
 
 
+class GroupDetailsResponseOptional(TypedDict, total=False):
+    # Included by default; removable via `?collapse=release|tags|stats`
+    firstRelease: dict[str, Any] | None
+    lastRelease: dict[str, Any] | None
+    tags: list[dict[str, Any]]
+    stats: dict[str, list[list[float]]]
+    # Opt-in via `?expand=...`
+    inbox: dict[str, Any] | None
+    owners: list[dict[str, Any]] | None
+    forecast: dict[str, Any]
+    integrationIssues: list[dict[str, Any]]
+    sentryAppIssues: list[dict[str, Any]]
+    latestEventHasAttachments: bool
+
+
+class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
+    activity: list[dict[str, Any]]
+    seenBy: list[dict[str, Any]]
+    pluginActions: list[Any]
+    pluginIssues: list[dict[str, Any]]
+    pluginContexts: list[dict[str, Any]]
+    userReportCount: int
+    participants: list[dict[str, Any]]
+
+
 class SeenStats(TypedDict):
     times_seen: int
     first_seen: datetime | None

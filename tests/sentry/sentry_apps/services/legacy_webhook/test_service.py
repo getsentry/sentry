@@ -170,6 +170,7 @@ class TestSendSentryAppWebhook(BaseWorkflowTest):
                 group_event=self.group_event,
                 sentry_app_slug=self.sentry_app.slug,
                 rule_label="My Rule",
+                organization=self.organization,
             )
 
         assert safe_urlopen.called
@@ -206,10 +207,14 @@ class TestSendSentryAppWebhook(BaseWorkflowTest):
                 group_event=self.group_event,
                 sentry_app_slug="nonexistent-app",
                 rule_label="My Rule",
+                organization=self.organization,
             )
 
         mock_logger.warning.assert_called_once_with(
             "webhook_action_handler.sentry_app_not_found",
-            extra={"sentry_app_slug": "nonexistent-app"},
+            extra={
+                "organization_id": self.organization.id,
+                "sentry_app_slug": "nonexistent-app",
+            },
         )
         mock_task.delay.assert_not_called()

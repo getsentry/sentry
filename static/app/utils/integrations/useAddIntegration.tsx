@@ -50,6 +50,7 @@ const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'cursor',
   'discord',
   'github',
+  'github_enterprise',
   'gitlab',
   'opsgenie',
   'pagerduty',

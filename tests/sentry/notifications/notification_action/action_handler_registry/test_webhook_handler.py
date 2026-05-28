@@ -9,6 +9,7 @@ from sentry.notifications.notification_action.action_handler_registry.webhook_ha
     WebhookActionHandler,
 )
 from sentry.plugins.base import plugins
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
@@ -78,8 +79,7 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         assert body["id"] == str(self.group.id)
 
     @responses.activate
-    @mock.patch("sentry.sentry_apps.services.legacy_webhook.tasks.logger")
-    def test_new_path_dry_run_logs_instead_of_sending(self, mock_logger: mock.MagicMock) -> None:
+    def test_new_path_dry_run_does_not_send(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
 
         with (
@@ -95,8 +95,6 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             WebhookActionHandler.execute(self.invocation)
 
         assert len(responses.calls) == 0
-        mock_logger.info.assert_called_once()
-        assert mock_logger.info.call_args[0][0] == "legacy_webhook.dry_run"
 
     @responses.activate
     def test_disable_old_without_new_path_fires_nothing(self) -> None:
@@ -174,6 +172,37 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         assert call_kwargs["sentry_app_slug"] == "my-app"
         assert "rule_label" in call_kwargs
         mock_legacy.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:legacy-webhook-new-path": True,
+            "organizations:legacy-webhook-disable-old-path": True,
+            "organizations:legacy-webhook-dry-run": True,
+        }
+    )
+    @mock.patch("sentry.sentry_apps.services.legacy_webhook.service.send_alert_webhook_v2")
+    def test_new_path_sentry_app_dry_run_does_not_send(
+        self, mock_send_alert: mock.MagicMock
+    ) -> None:
+        action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={"target_identifier": "my-app"},
+        )
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+        self.create_sentry_app(name="My App", organization=self.organization)
+        self.create_sentry_app_installation(
+            slug="my-app", organization=self.organization, user=self.user
+        )
+
+        WebhookActionHandler.execute(invocation)
+
+        mock_send_alert.delay.assert_not_called()
 
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook"
