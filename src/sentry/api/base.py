@@ -755,8 +755,8 @@ def cell_silo_endpoint(
     By default, if a request is received and the application is not in CELL
     mode 404s will be returned.
 
-    Optionally, a resolver class can be specified to allow a Control to dispatch
-    a request to the correct cell, if possible.
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
     """
     limiter = CellSiloEndpoint(internal=False, control_silo_resolver=control_silo_resolver)
     if decorated_obj is not None:
@@ -774,8 +774,8 @@ def internal_cell_silo_endpoint(
     Internal endpoints are not subject to URL pattern rules required
     for public endpoints in cells.
 
-    Optionally, a resolver class can be specified to allow a Control to dispatch
-    a request to the correct cell, if possible.
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
     """
     limiter = CellSiloEndpoint(internal=True, control_silo_resolver=control_silo_resolver)
     if decorated_obj is not None:

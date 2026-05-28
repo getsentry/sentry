@@ -3,13 +3,24 @@ from unittest import mock
 from urllib.parse import quote, urlencode
 from uuid import uuid4
 
+import pytest
+from django.test import override_settings
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.models.environment import Environment
+from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.apigateway import ApiGatewayTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import get_local_locality
+from sentry.utils import json
 
 
 class ErrorPageEmbedTest(TestCase):
@@ -267,3 +278,80 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             HTTP_ACCEPT="application/json",
         )
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+
+def _get_incr_calls(mock_metrics: mock.MagicMock) -> set[tuple[str, tuple[tuple[str, str], ...]]]:
+    return {
+        (args[0], tuple(sorted(kwargs["tags"].items())))
+        for args, kwargs in mock_metrics.incr.call_args_list
+    }
+
+
+@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
+class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
+    def _create_project_key_with_mapping(self) -> ProjectKey:
+        with outbox_runner():
+            project_key = self.create_project_key(self.project)
+
+        return project_key
+
+    @override_options({"apigateway.cell_resolver.enabled": True})
+    def test_proxy_error_embed_dsn(self) -> None:
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/api/embed/error-page/",
+            json_data={"proxy": True, "name": "error-embed"},
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            # no dsn
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get("/api/embed/error-page/")
+
+            # invalid dsn
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get("/api/embed/error-page/", data={"dsn": "lolnope"})
+
+            # invalid DSN that doesn't match our domain
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get(
+                    "/api/embed/error-page/", data={"dsn": "https://abc123@nope.com/123"}
+                )
+
+            # Older DSN with no region -> monolith region
+            resp = self.client.get(
+                "/api/embed/error-page/", data={"dsn": "https://abc123@testserver/123"}
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.sentry.io style hosts
+            resp = self.client.get(
+                "/api/embed/error-page/", data={"dsn": "https://abc123@o123.ingest.testserver/123"}
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.us.sentry.io style hosts
+            resp = self.client.get(
+                "/api/embed/error-page/",
+                data={"dsn": "https://abc123@o123.ingest.us.testserver/123"},
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.us.sentry.io style hosts with a garbage region
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get(
+                    "/api/embed/error-page/",
+                    data={"dsn": "https://abc123@o123.ingest.zz.testserver/123"},
+                )
+
+    @staticmethod
+    def _check_response(resp: Response, expected_name: str) -> None:
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            assert resp.status_code == 401
+            return
+        assert resp.status_code == 200
+        resp_json = json.loads(close_streaming_response(resp))
+        assert resp_json["proxy"] is True
+        assert resp_json["name"] == expected_name

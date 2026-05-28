@@ -10,6 +10,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.api.base import CellSiloEndpoint
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.cell import get_cell_by_name
@@ -40,7 +41,9 @@ def _get_view_cell_resolver(
 ) -> CellRequestResolver | None:
     view_class = getattr(view_func, "view_class", None)
     silo_limit = getattr(view_class, "silo_limit", None)
-    if silo_limit and isinstance(silo_limit, CellSiloView):
+    if silo_limit and (
+        isinstance(silo_limit, CellSiloView) or isinstance(silo_limit, CellSiloEndpoint)
+    ):
         return silo_limit.control_silo_resolver
     return None
 
