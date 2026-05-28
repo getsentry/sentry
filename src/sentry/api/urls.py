@@ -2825,7 +2825,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/reprocessable/$",
         EventReprocessableEndpoint.as_view(),
-        name="sentry-api-0-event-attachments",
+        name="sentry-api-0-event-reprocessable",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/attachments/(?P<attachment_id>[^/]+)/$",
