@@ -193,7 +193,7 @@ def publish_action_from_context(
             "publish_action_from_context called without ActionContext",
             extra={"action": action, "group_id": group_id},
         )
-        source = ActionSource.UNKNOWN
+        source: str = ActionSource.UNKNOWN
         actor_id = None
     else:
         source = ctx.source
