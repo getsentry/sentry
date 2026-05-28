@@ -61,4 +61,4 @@ def seer_activity_handler(group: Group, activity: Activity) -> None:
         detector_id=detector.id,
     )
     metrics.incr("workflow_engine.seer_activity_handler", tags={"activity_name": activity_name})
-    logging.info("workflow_engine.seer_activity_handler.success", extra=logging_ctx)
+    logger.info("workflow_engine.seer_activity_handler.success", extra=logging_ctx)
