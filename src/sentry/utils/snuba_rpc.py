@@ -358,20 +358,23 @@ def _make_rpc_request(
     thread_current_scope: sentry_sdk.Scope | None = None,
     debug: str | bool = False,
 ) -> BaseHTTPResponse:
-    logger_extra: dict[str, object] = {
-        "rpc_query": json.loads(MessageToJson(req)),  # type: ignore[arg-type]
-        "referrer": referrer,
-        "debug": debug is not False,
-    }
-    if isinstance(req, ProtobufMessage) and hasattr(req, "meta"):
-        logger_extra["organization_id"] = req.meta.organization_id
-        logger_extra["trace_item_type"] = req.meta.trace_item_type
-    if isinstance(debug, str):
-        logger_extra["debug_msg"] = debug
-    logger.info(
-        f"Running a {endpoint_name} RPC query",  # noqa: LOG011
-        extra=logger_extra,
-    )
+    try:
+        logger_extra: dict[str, object] = {
+            "rpc_query": json.loads(MessageToJson(req)),  # type: ignore[arg-type]
+            "referrer": referrer,
+            "debug": debug is not False,
+        }
+        if isinstance(req, ProtobufMessage) and hasattr(req, "meta"):
+            logger_extra["organization_id"] = req.meta.organization_id
+            logger_extra["trace_item_type"] = req.meta.trace_item_type
+        if isinstance(debug, str):
+            logger_extra["debug_msg"] = debug
+        logger.info(
+            f"Running a {endpoint_name} RPC query",  # noqa: LOG011
+            extra=logger_extra,
+        )
+    except Exception:
+        logger.exception("Failed to log RPC query")
 
     thread_isolation_scope = (
         sentry_sdk.get_isolation_scope()
