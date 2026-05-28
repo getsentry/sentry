@@ -21,8 +21,9 @@ from sentry.spans.buffer_types import (
     FlushCandidate,
     FlushedSegment,
     InsertedSubsegment,
-    LoadedSegmentData,
+    LoadedSegment,
     OutputSpan,
+    SegmentIngestMetadata,
     Span,
     Subsegment,
 )
@@ -2092,13 +2093,16 @@ def test_build_flushed_segments_adds_segment_metadata() -> None:
     segment_key = _segment_id(1, trace_id, segment_span_id)
     queue_key = buffer._get_queue_key(0)
     payload_key = _payload_key(1, trace_id, "1" * 32)
+    flush_candidate = FlushCandidate(0, queue_key, segment_key, 5)
 
     flushed_segments, num_has_root_spans, _ = buffer._build_flushed_segments(
-        [FlushCandidate(0, queue_key, segment_key, 5)],
-        LoadedSegmentData(
-            payloads={segment_key: [_payload(segment_span_id), _payload(child_span_id)]},
-            payload_keys={segment_key: [payload_key]},
-        ),
+        [
+            LoadedSegment(
+                flush_candidate,
+                [_payload(segment_span_id), _payload(child_span_id)],
+                [payload_key],
+            )
+        ],
         max_segments_per_shard=2,
         now=10,
     )
@@ -2159,7 +2163,7 @@ def test_load_payloads_from_keys_decompresses_payload_batches(
     assert decompress_latency_ms >= 0
 
 
-def test_load_segment_data_reads_payloads_from_distributed_keys(
+def test_load_segments_reads_payloads_from_distributed_keys(
     load_segment_buffer: SpansBuffer,
 ) -> None:
     buffer = load_segment_buffer
@@ -2179,16 +2183,23 @@ def test_load_segment_data_reads_payloads_from_distributed_keys(
     buffer.client.set(b"span-buf:ic:" + segment_key, 3)
     buffer.client.set(b"span-buf:ibc:" + segment_key, len(span_a) + len(span_b) + len(span_c))
 
-    loaded_segment_data, _, _ = buffer._load_segment_data([segment_key])
+    loaded_segments, _, _ = buffer._load_segments(
+        [FlushCandidate(0, buffer._get_queue_key(0), segment_key, 5)]
+    )
+    loaded_segment = loaded_segments[0]
 
-    assert set(loaded_segment_data.payloads[segment_key]) == {span_a, span_b, span_c}
-    assert set(loaded_segment_data.payload_keys[segment_key]) == {
+    assert set(loaded_segment.payloads) == {span_a, span_b, span_c}
+    assert set(loaded_segment.payload_keys) == {
         first_payload_key,
         second_payload_key,
     }
+    assert loaded_segment.ingest_metadata.ingested_count == 3
+    assert loaded_segment.ingest_metadata.ingested_byte_count == (
+        len(span_a) + len(span_b) + len(span_c)
+    )
 
 
-def test_load_segment_data_decompresses_payload_batches(
+def test_load_segments_decompresses_payload_batches(
     load_segment_buffer: SpansBuffer,
 ) -> None:
     buffer = load_segment_buffer
@@ -2204,30 +2215,33 @@ def test_load_segment_data_decompresses_payload_batches(
     buffer.client.sadd(payload_key, compressed)
     buffer.client.set(b"span-buf:ic:" + segment_key, 2)
 
-    loaded_segment_data, load_data_latency_ms, decompress_latency_ms = buffer._load_segment_data(
-        [segment_key]
+    loaded_segments, load_data_latency_ms, decompress_latency_ms = buffer._load_segments(
+        [FlushCandidate(0, buffer._get_queue_key(0), segment_key, 5)]
     )
+    loaded_segment = loaded_segments[0]
 
-    assert set(loaded_segment_data.payloads[segment_key]) == {span_a, span_b}
-    assert loaded_segment_data.payload_keys[segment_key] == [payload_key]
+    assert set(loaded_segment.payloads) == {span_a, span_b}
+    assert loaded_segment.payload_keys == [payload_key]
+    assert loaded_segment.ingest_metadata.ingested_count == 2
     assert load_data_latency_ms >= 0
     assert decompress_latency_ms >= 0
 
 
-def test_record_segment_loss_metrics_records_dropped_spans(
-    load_segment_buffer: SpansBuffer,
-) -> None:
-    buffer = load_segment_buffer
+def test_record_segment_loss_metrics_records_dropped_spans() -> None:
+    buffer = SpansBuffer(assigned_shards=[0])
     trace_id = "a" * 32
     segment_key = _segment_id(1, trace_id, "b" * 16)
-    salt = "1" * 32
-    payload_key = _payload_key(1, trace_id, salt)
+    payload_key = _payload_key(1, trace_id, "1" * 32)
     span_a = _payload("a" * 16)
-
-    buffer.client.sadd(buffer._get_payload_key_index(segment_key), salt)
-    buffer.client.sadd(payload_key, span_a)
-    buffer.client.set(b"span-buf:ic:" + segment_key, 3)
-    buffer.client.set(b"span-buf:ibc:" + segment_key, len(span_a))
+    loaded_segment = LoadedSegment(
+        FlushCandidate(0, buffer._get_queue_key(0), segment_key, 5),
+        payloads=[span_a],
+        payload_keys=[payload_key],
+        ingest_metadata=SegmentIngestMetadata(
+            ingested_count=3,
+            ingested_byte_count=len(span_a),
+        ),
+    )
 
     mock_project = mock.Mock(organization_id=100)
     with (
@@ -2235,16 +2249,17 @@ def test_record_segment_loss_metrics_records_dropped_spans(
         mock.patch("sentry.spans.buffer.track_outcome") as track_outcome,
     ):
         project_model.objects.get_from_cache.return_value = mock_project
-        loaded_segment_data, _, _ = buffer._load_segment_data([segment_key])
         buffer._record_segment_loss_metrics(
-            [segment_key],
-            {},
+            [loaded_segment],
             now=0,
-            payloads=loaded_segment_data.payloads,
         )
 
-    assert loaded_segment_data.payloads[segment_key] == [span_a]
-    assert loaded_segment_data.payload_keys[segment_key] == [payload_key]
+    assert loaded_segment.payloads == [span_a]
+    assert loaded_segment.payload_keys == [payload_key]
+    assert loaded_segment.ingest_metadata == SegmentIngestMetadata(
+        ingested_count=3,
+        ingested_byte_count=len(span_a),
+    )
     track_outcome.assert_called_once()
     outcome_kwargs = track_outcome.call_args.kwargs
     assert outcome_kwargs["org_id"] == 100
@@ -2274,25 +2289,30 @@ def test_record_segment_loss_metrics_records_dropped_spans(
     ],
 )
 def test_record_segment_loss_metrics_records_empty_expired_segments(
-    load_segment_buffer: SpansBuffer, deadline: int, now: int, expected_expired: bool
+    deadline: int, now: int, expected_expired: bool
 ) -> None:
-    buffer = load_segment_buffer
+    buffer = SpansBuffer(assigned_shards=[0])
     trace_id = "a" * 32
     segment_key = _segment_id(1, trace_id, "b" * 16)
-    queue_key = buffer._get_queue_key(0)
-    buffer.client.zadd(queue_key, {segment_key: deadline})
+    client = mock.Mock()
+    buffer.__dict__["client"] = client
+    loaded_segment = LoadedSegment(
+        FlushCandidate(0, buffer._get_queue_key(0), segment_key, deadline),
+        payloads=[],
+        payload_keys=[],
+    )
 
-    with mock.patch("sentry.spans.buffer.metrics.incr") as metrics_incr:
-        loaded_segment_data, _, _ = buffer._load_segment_data([segment_key])
+    with (
+        mock.patch.object(client, "zscore", return_value=deadline),
+        mock.patch("sentry.spans.buffer.metrics.incr") as metrics_incr,
+    ):
         buffer._record_segment_loss_metrics(
-            [segment_key],
-            {segment_key: queue_key},
+            [loaded_segment],
             now=now,
-            payloads=loaded_segment_data.payloads,
         )
 
-    assert loaded_segment_data.payloads[segment_key] == []
-    assert loaded_segment_data.payload_keys[segment_key] == []
+    assert loaded_segment.payloads == []
+    assert loaded_segment.payload_keys == []
     incr_names = [call.args[0] for call in metrics_incr.call_args_list]
     assert ("spans.buffer.segment_expired_before_flush" in incr_names) is expected_expired
     assert "spans.buffer.empty_segments" in incr_names

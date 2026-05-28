@@ -70,18 +70,18 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
   getHangProfileData,
   MetricKitHangProfileSection,
 } from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
-import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
-import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
+import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
+import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -411,7 +411,6 @@ export function GroupEventDetailsContent({
 }
 
 /**
- * This component is only necessary while the streamlined UI is not in place.
  * The FoldSection by default wraps its children with an ErrorBoundary, preventing content
  * from crashing the whole page if an error occurs, but EventDataSection does not do this.
  */

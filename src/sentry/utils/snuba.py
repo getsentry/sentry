@@ -387,6 +387,7 @@ class RateLimitExceeded(SnubaError):
         storage_key: str | None = None,
         quota_used: int | None = None,
         rejection_threshold: int | None = None,
+        throttle_threshold: int | None = None,
     ) -> None:
         super().__init__(message)
         self.policy = policy
@@ -394,6 +395,7 @@ class RateLimitExceeded(SnubaError):
         self.storage_key = storage_key
         self.quota_used = quota_used
         self.rejection_threshold = rejection_threshold
+        self.throttle_threshold = throttle_threshold
 
 
 class SchemaValidationError(QueryExecutionError):
@@ -810,7 +812,7 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
     kwargs = deepcopy(query_params.kwargs)
     query_params_conditions = deepcopy(query_params.conditions)
 
-    with timer("get_snuba_map"):
+    with metrics.timer("snuba.client.get_snuba_map"):
         forward, reverse = get_snuba_translators(
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
@@ -1351,8 +1353,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                                     quota_unit=policy_info["quota_unit"],
                                     storage_key=policy_info["storage_key"],
                                     quota_used=policy_info["quota_used"],
-                                    # We won't have rejection_threshold for throttled_by errors
                                     rejection_threshold=policy_info.get("rejection_threshold"),
+                                    throttle_threshold=policy_info.get("throttle_threshold"),
                                 )
                         except KeyError:
                             logger.warning(

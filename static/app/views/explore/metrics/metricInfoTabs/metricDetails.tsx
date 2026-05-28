@@ -78,6 +78,9 @@ export function MetricDetails({
     defined(dataRow[TraceMetricKnownFieldKey.ID]) &&
     defined(dataRow[TraceMetricKnownFieldKey.PROJECT_ID]) &&
     defined(dataRow[TraceMetricKnownFieldKey.TRACE]);
+  const timestamp = getTimeStampFromTableDateField(
+    dataRow[TraceMetricKnownFieldKey.TIMESTAMP]
+  );
 
   const {
     data: traceDetailsData,
@@ -87,13 +90,11 @@ export function MetricDetails({
     metricId: String(dataRow[TraceMetricKnownFieldKey.ID] ?? ''),
     projectId: String(dataRow[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? ''),
+    timestamp,
     enabled: enableQueries,
   });
 
   const traceSlug = String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? '');
-  const timestamp = getTimeStampFromTableDateField(
-    dataRow[TraceMetricKnownFieldKey.TIMESTAMP]
-  );
   const {
     data: traceMeta,
     isLoading: isTraceMetaLoading,
