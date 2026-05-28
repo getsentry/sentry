@@ -1,8 +1,11 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   PERCENTAGE_3XX,
   PERCENTAGE_4XX,
@@ -23,7 +26,7 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
-const DOMAIN_WIDGET: Widget = {
+const DOMAIN_WIDGET: PrebuiltWidget = {
   id: 'domain-widget',
   title: t('Domain'),
   displayType: DisplayType.DETAILS,
@@ -229,7 +232,7 @@ const CHART_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   2
 );
 
-const TRANSACTIONS_TABLE: Widget = {
+const TRANSACTIONS_TABLE: PrebuiltWidget = {
   id: 'transactions-table',
   title: t('Transactions Making Requests to This Domain'),
   displayType: DisplayType.TABLE,

@@ -35,7 +35,7 @@ from sentry.seer.autofix.introspection import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
-    read_preference_from_sentry_db,
+    get_automation_handoff,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import (
@@ -361,6 +361,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         reached_stopping_point=reached_stopping_point,
                     )
                 )
+                logger.info(
+                    "autofix.on_completion_hook.introspection",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_id": group.project_id,
+                        "group_id": group.id,
+                        "referrer": referrer.value,
+                        "step": current_step.value,
+                        "action": decision.action.value,
+                        "reason": decision.reason,
+                        "reached_stopping_point": reached_stopping_point,
+                    },
+                )
 
         if stopping_point is None or reached_stopping_point:
             # We've reached the stopping point
@@ -523,7 +536,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         ]:
             return None
 
-        return read_preference_from_sentry_db(group.project).automation_handoff
+        return get_automation_handoff(group.project.get_option)
 
     @classmethod
     def _clear_handoff_preference(

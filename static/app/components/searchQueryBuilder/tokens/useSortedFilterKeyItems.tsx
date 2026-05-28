@@ -198,7 +198,9 @@ export function useSortedFilterKeyItems({
 
   const flatKeys = useMemo(() => {
     const keys = Object.values(filterKeys);
-    if (!asyncKeys?.length) return keys;
+    if (!asyncKeys?.length) {
+      return keys;
+    }
 
     return [...keys, ...asyncKeys.filter(k => !staticKeyValues.has(k.key))];
   }, [filterKeys, asyncKeys, staticKeyValues]);
@@ -215,7 +217,9 @@ export function useSortedFilterKeyItems({
   // Merged lookup of static + async keys, used for validating search results.
   // Without this, async-only keys would be filtered out by the `filterKeys` check.
   const allKeysLookup = useMemo(() => {
-    if (!asyncKeys?.length) return filterKeys;
+    if (!asyncKeys?.length) {
+      return filterKeys;
+    }
 
     const merged = {...filterKeys};
     for (const tag of asyncKeys) {

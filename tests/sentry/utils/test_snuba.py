@@ -628,3 +628,43 @@ class SnubaQueryRateLimitTest(TestCase):
         assert (
             str(exc_info.value) == "Query on could not be run due to allocation policies, info: ..."
         )
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_rate_limit_error_handling_throttle_only(self, mock_snuba_query) -> None:
+        """
+        Test that policy metadata propagates when the 429 came from a throttle:
+        rejected_by is empty and throttled_by carries throttle_threshold, with no rejection_threshold
+        """
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 429
+        mock_response.data = json.dumps(
+            {
+                "error": {
+                    "message": "Query scanned more than the allocated amount of bytes",
+                },
+                "quota_allowance": {
+                    "summary": {
+                        "rejected_by": {},
+                        "throttled_by": {
+                            "policy": "BytesScannedRejectingPolicy",
+                            "quota_used": 1500000000000,
+                            "throttle_threshold": 1000000000000,
+                            "quota_unit": "bytes",
+                            "storage_key": "errors_ro",
+                        },
+                    }
+                },
+            }
+        ).encode()
+
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        with pytest.raises(RateLimitExceeded) as exc_info:
+            _bulk_snuba_query([self.snuba_request])
+
+        assert exc_info.value.policy == "BytesScannedRejectingPolicy"
+        assert exc_info.value.storage_key == "errors_ro"
+        assert exc_info.value.quota_used == 1500000000000
+        assert exc_info.value.quota_unit == "bytes"
+        assert exc_info.value.throttle_threshold == 1000000000000
+        assert exc_info.value.rejection_threshold is None

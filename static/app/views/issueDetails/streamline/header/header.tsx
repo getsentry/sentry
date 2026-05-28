@@ -124,7 +124,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
             >
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
-            {isAIDetectedIssue && <FeatureBadge type="beta" />}
+            {isAIDetectedIssue && <FeatureBadge type="new" />}
           </Title>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (

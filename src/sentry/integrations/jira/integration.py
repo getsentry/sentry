@@ -164,13 +164,30 @@ class JiraIntegration(IssueSyncIntegration):
     def get_organization_config(self) -> list[dict[str, Any]]:
         configuration: list[dict[str, Any]] = self._get_organization_config_default_values()
 
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
         client = self.get_client()
 
         try:
-            projects: list[JiraProjectMapping] = [
-                JiraProjectMapping(value=p["id"], label=p["name"])
-                for p in client.get_projects_list()
-            ]
+            if features.has("organizations:jira-paginated-project-config", organization):
+                # Use the paginated endpoint to avoid fetching all projects at once,
+                # which can time out for large Jira instances. The settings page
+                # dropdown search (typeahead) handles finding projects beyond this
+                # initial page via JiraSearchEndpoint.
+                projects_response = client.get_projects_paginated(params={"maxResults": 50})
+                projects: list[JiraProjectMapping] = [
+                    JiraProjectMapping(value=p["id"], label=p["name"])
+                    for p in projects_response.get("values", [])
+                ]
+            else:
+                projects = [
+                    JiraProjectMapping(value=p["id"], label=p["name"])
+                    for p in client.get_projects_list()
+                ]
             self._set_status_choices_in_organization_config(configuration, projects)
             configuration[0]["addDropdown"]["items"] = projects
         except ApiError:
@@ -178,12 +195,6 @@ class JiraIntegration(IssueSyncIntegration):
             configuration[0]["disabledReason"] = _(
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
-
-        context = organization_service.get_organization_by_id(
-            id=self.organization_id, include_projects=False, include_teams=False
-        )
-        assert context, "organizationcontext must exist to get org"
-        organization = context.organization
 
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
         if not has_issue_sync:

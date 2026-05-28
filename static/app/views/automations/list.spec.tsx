@@ -591,4 +591,17 @@ describe('AutomationsList', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('disables the create alert button without alerts:write permission', async () => {
+    const noWriteOrg = OrganizationFixture({
+      features: ['workflow-engine-ui'],
+      access: ['org:read', 'alerts:read'],
+    });
+
+    render(<AutomationsList />, {organization: noWriteOrg});
+    await screen.findByText('Automation 1');
+
+    const createButton = screen.getByRole('button', {name: 'Create Alert'});
+    expect(createButton).toHaveAttribute('aria-disabled', 'true');
+  });
 });

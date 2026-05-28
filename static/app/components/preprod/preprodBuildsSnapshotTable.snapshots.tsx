@@ -100,8 +100,7 @@ describe('PreprodBuildsSnapshotTable', () => {
     }
 
     it.snapshot('status-approved', () => renderTable(makeBuild()), {
-      theme: themeName,
-      state: 'status-approved',
+      tags: {area: 'snapshots'},
     });
 
     it.snapshot(
@@ -122,7 +121,7 @@ describe('PreprodBuildsSnapshotTable', () => {
             },
           })
         ),
-      {theme: themeName, state: 'status-needs-approval'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -143,7 +142,7 @@ describe('PreprodBuildsSnapshotTable', () => {
             },
           })
         ),
-      {theme: themeName, state: 'status-no-base-build'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -154,7 +153,7 @@ describe('PreprodBuildsSnapshotTable', () => {
             snapshot_comparison_info: undefined,
           })
         ),
-      {theme: themeName, state: 'status-no-comparison'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -175,7 +174,7 @@ describe('PreprodBuildsSnapshotTable', () => {
             },
           })
         ),
-      {theme: themeName, state: 'changes-no-changes'}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

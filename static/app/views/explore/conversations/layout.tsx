@@ -87,7 +87,10 @@ function ConversationsHeader() {
             crumbs={[
               {
                 label: CONVERSATIONS_SIDEBAR_LABEL,
-                to: conversationsBaseUrl,
+                to: {
+                  pathname: conversationsBaseUrl,
+                  query: {statsPeriod: '24h', start: undefined, end: undefined},
+                },
                 preservePageFilters: true,
               },
               {

@@ -697,7 +697,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         value = self.column_remapping.get(value, value)
 
         if self.use_default_tags:
-            if value in self.default_metric_tags:
+            if (
+                value in self.default_metric_tags
+                or self.builder_config.skip_field_validation_for_entity_subscription_deletion
+            ):
                 return self.resolve_metric_index(value)
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")

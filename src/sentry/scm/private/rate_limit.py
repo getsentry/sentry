@@ -130,6 +130,10 @@ class DynamicRateLimiter:
 
         return quota_used > referrer_capacity
 
+    def update_rate_limit_meta(self, capacity: int, consumed: int, next_window_start: int) -> None:
+        """Update the store with select rate-limit metadata."""
+        self.set_total_capacity(capacity)
+
     def set_total_capacity(self, capacity: int) -> None:
         """Set the service capacity if it does not match what already exists."""
         if capacity != self.recorded_capacity:
