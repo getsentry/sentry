@@ -1262,11 +1262,11 @@ export type ChunkType = {
 export type UserReport = {
   comments: string;
   dateCreated: string;
-  email: string;
+  email: string | null;
   event: {eventID: string; id: string};
   eventID: string;
   id: string;
-  name: string;
+  name: string | null;
   user: {
     avatarUrl: string | null;
     email: string | null;

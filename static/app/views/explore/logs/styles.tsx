@@ -46,11 +46,12 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
     ${p =>
       p.isClickable &&
-      `
-      &:active {
-        background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
-      }
-    `}
+      css`
+        &:active {
+          background-color: ${p.theme.tokens.interactive.transparent.neutral.background
+            .active};
+        }
+      `}
 
     &:not(:last-child) {
       border-bottom: 0;
@@ -64,28 +65,29 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
   ${p =>
     p.highlighted &&
-    `
-    &:not(thead > &) {
-      background-color: ${p.theme.tokens.background.transparent.warning.muted};
-      color: ${p.theme.tokens.content.danger};
-
-      &:hover {
+    css`
+      &:not(thead > &) {
         background-color: ${p.theme.tokens.background.transparent.warning.muted};
+        color: ${p.theme.tokens.content.danger};
+
+        &:hover {
+          background-color: ${p.theme.tokens.background.transparent.warning.muted};
+        }
       }
-    }
-  `}
+    `}
 
   ${p =>
     p.pinned &&
-    `
-    &:not(thead > &) {
-      background-color: ${p.theme.tokens.background.transparent.accent.muted};
+    css`
+      &:not(thead > &) {
+        background-color: ${p.theme.tokens.background.transparent.accent.muted};
 
-      &:hover {
-        background-color: ${p.theme.tokens.interactive.transparent.accent.selected.background.active};
+        &:hover {
+          background-color: ${p.theme.tokens.interactive.transparent.accent.selected
+            .background.active};
+        }
       }
-    }
-  `}
+    `}
 
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
@@ -170,10 +172,10 @@ export const LogTableBody = styled(TableBody)<{
       ? ''
       : p.disableBodyPadding
         ? ''
-        : `
-    padding-top: ${p.theme.space.md};
-    padding-bottom: ${p.theme.space.md};
-    `}
+        : css`
+            padding-top: ${p.theme.space.md};
+            padding-bottom: ${p.theme.space.md};
+          `}
   align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
