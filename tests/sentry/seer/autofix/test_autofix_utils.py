@@ -1039,19 +1039,9 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
-    def test_clears_handoff_options(self) -> None:
-        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
-        self.project.update_option(
-            "sentry:seer_automation_handoff_target", "cursor_background_agent"
-        )
-        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
-
-        clear_preference_automation_handoff(self.project)
-
-        self._assert_handoff_options_cleared()
-
-    def test_preserves_auto_create_pr(self) -> None:
+    def test_clears_all_four_handoff_options(self) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
@@ -1062,7 +1052,6 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         clear_preference_automation_handoff(self.project)
 
         self._assert_handoff_options_cleared()
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
     def test_preserves_unrelated_preference_fields(self) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
