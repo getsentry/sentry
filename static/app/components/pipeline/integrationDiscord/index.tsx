@@ -1,4 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
+
+import {Text} from '@sentry/scraps/text';
 
 import type {OAuthCallbackData} from 'sentry/components/pipeline/shared/oauthLoginStep';
 import {OAuthLoginStep} from 'sentry/components/pipeline/shared/oauthLoginStep';
@@ -10,12 +12,24 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 
+type DiscordOAuthStepData =
+  | {
+      appDirectoryInstall: true;
+      code: string;
+      guildId: string;
+      state: string;
+    }
+  | {
+      appDirectoryInstall?: false;
+      oauthUrl?: string;
+    };
+
 function DiscordOAuthLoginStep({
   stepData,
   advance,
   isAdvancing,
 }: PipelineStepProps<
-  {oauthUrl?: string},
+  DiscordOAuthStepData,
   {code: string; guildId: string; state: string}
 >) {
   const handleOAuthCallback = useCallback(
@@ -24,6 +38,26 @@ function DiscordOAuthLoginStep({
     },
     [advance]
   );
+
+  // App Directory installs arrive with OAuth already complete. The backend
+  // signals this by returning `appDirectoryInstall` in step data along with
+  // the values to advance with — no popup, no user interaction.
+  const hasAutoAdvanced = useRef(false);
+  useEffect(() => {
+    if (!stepData?.appDirectoryInstall || hasAutoAdvanced.current) {
+      return;
+    }
+    hasAutoAdvanced.current = true;
+    advance({
+      code: stepData.code,
+      guildId: stepData.guildId,
+      state: stepData.state,
+    });
+  }, [stepData, advance]);
+
+  if (stepData?.appDirectoryInstall) {
+    return <Text>{t('Finishing up Discord integration installation...')}</Text>;
+  }
 
   return (
     <OAuthLoginStep

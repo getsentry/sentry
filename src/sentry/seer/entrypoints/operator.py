@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -35,6 +35,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.registry import invoke_workflow_activity_handlers
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -563,8 +564,7 @@ def _create_seer_activity(
     if not activity_type:
         return
 
-    organization = group.project.organization
-    if not features.has("organizations:seer-activity-timeline", organization):
+    if not options.get("issues.record-seer-actions-as-activities"):
         return
 
     run_id = event_payload.get("run_id")
@@ -586,12 +586,13 @@ def _create_seer_activity(
         if pull_requests:
             activity_data["pull_requests"] = pull_requests
 
-    Activity.objects.create_group_activity(
+    activity = Activity.objects.create_group_activity(
         group,
         activity_type,
         data=activity_data if activity_data else None,
         send_notification=False,
     )
+    invoke_workflow_activity_handlers(group=group, activity=activity)
 
 
 @instrumented_task(

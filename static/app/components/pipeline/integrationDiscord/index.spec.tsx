@@ -94,4 +94,34 @@ describe('DiscordOAuthLoginStep', () => {
 
     expect(screen.getByRole('button', {name: 'Authorize Discord'})).toBeDisabled();
   });
+
+  it('auto-advances when stepData indicates an App Directory install', () => {
+    const advance = jest.fn();
+    render(
+      <DiscordOAuthLoginStep
+        {...makeStepProps({
+          stepData: {
+            appDirectoryInstall: true,
+            code: 'auth-code-456',
+            guildId: '9876543210',
+            state: 'pipeline-sig',
+          },
+          advance,
+        })}
+      />
+    );
+
+    expect(advance).toHaveBeenCalledWith({
+      code: 'auth-code-456',
+      guildId: '9876543210',
+      state: 'pipeline-sig',
+    });
+    expect(advance).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole('button', {name: 'Authorize Discord'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Finishing up Discord integration installation...')
+    ).toBeInTheDocument();
+  });
 });
