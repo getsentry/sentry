@@ -391,7 +391,6 @@ ignore_missing_imports = true
 module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.db.postgres.base",
-    "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
@@ -1276,7 +1275,6 @@ module = [
     "sentry.release_health.base",
     "sentry.release_health.eap_sessions_rollout",
     "sentry.release_health.metrics",
-    "sentry.release_health.metrics_sessions_v2",
     "sentry.release_health.tasks",
     "sentry.releases",
     "sentry.releases.endpoints.*",
