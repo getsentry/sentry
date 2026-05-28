@@ -17,7 +17,7 @@ import {
   useEventOpenPeriod,
   useOpenPeriods,
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/context';
 
 interface MetricIssueChartProps {
   event: Event | undefined;

@@ -591,15 +591,6 @@ class GHEInstallationConfigApiStep:
     ) -> PipelineStepResult:
         validated_data["url"] = urlparse(validated_data["url"]).netloc.lower()
 
-        if validated_data["url"] == "github.com" and not features.has(
-            "organizations:github-enterprise-github-com-source",
-            pipeline.organization,
-        ):
-            return PipelineStepResult.error(
-                "Installing on github.com is not enabled for your organization. "
-                "Contact Sentry support to request access."
-            )
-
         if not validated_data["public_link"]:
             validated_data["public_link"] = None
 
@@ -749,25 +740,8 @@ class InstallationConfigView:
                 parsed = urlparse(form_data["url"])
                 # Tolerate input without a scheme — `urlparse("github.com").netloc` is empty
                 # and the host lands in `path`. Without this, OAuth URLs become malformed
-                # (`https:///login/...`) and the github.com flag gate below is bypassed.
+                # (`https:///login/...`).
                 form_data["url"] = (parsed.netloc or parsed.path).strip("/").lower()
-
-                if form_data["url"] == "github.com" and not features.has(
-                    "organizations:github-enterprise-github-com-source",
-                    pipeline.organization,
-                ):
-                    form.add_error(
-                        "url",
-                        _(
-                            "Installing on github.com is not enabled for your organization. "
-                            "Contact Sentry support to request access."
-                        ),
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/github-enterprise-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
 
                 if not form_data["public_link"]:
                     form_data["public_link"] = None

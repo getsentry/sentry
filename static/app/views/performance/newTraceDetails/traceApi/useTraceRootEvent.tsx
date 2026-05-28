@@ -16,6 +16,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 
 type Params = {
   logs: OurLogsResponseItem[] | undefined;
+  timestamp: number | undefined;
   traceId: string;
   tree: TraceTree;
 };
@@ -27,6 +28,7 @@ export type TraceRootEventQueryResults =
 export function useTraceRootEvent({
   tree,
   logs,
+  timestamp,
   traceId,
 }: Params): TraceRootEventQueryResults {
   const rep = tree.findRepresentativeTraceNode({logs});
@@ -83,6 +85,7 @@ export function useTraceRootEvent({
     traceId,
     traceItemType: dataset,
     referrer: 'api.explore.log-item-details',
+    timestamp,
     enabled: enabledBase && isEAPQueryEnabled,
   });
 

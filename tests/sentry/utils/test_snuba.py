@@ -666,3 +666,5 @@ class SnubaQueryRateLimitTest(TestCase):
         assert exc_info.value.storage_key == "errors_ro"
         assert exc_info.value.quota_used == 1500000000000
         assert exc_info.value.quota_unit == "bytes"
+        assert exc_info.value.throttle_threshold == 1000000000000
+        assert exc_info.value.rejection_threshold is None

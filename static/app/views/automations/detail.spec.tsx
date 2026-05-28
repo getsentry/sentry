@@ -267,6 +267,29 @@ describe('AutomationDetail', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('disables action buttons without alerts:write permission', async () => {
+    const noWriteOrg = OrganizationFixture({
+      features: ['workflow-engine-ui'],
+      access: ['org:read', 'alerts:read'],
+    });
+
+    render(<AutomationDetail />, {
+      organization: noWriteOrg,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await screen.findByRole('heading', {name: 'Test Automation'});
+
+    expect(screen.getByRole('button', {name: 'Disable'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
   it('displays connected projects and monitors', async () => {
     const project = ProjectFixture({id: '10', slug: 'my-project', name: 'My Project'});
     ProjectsStore.loadInitialData([project]);
