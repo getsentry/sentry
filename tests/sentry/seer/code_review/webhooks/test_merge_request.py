@@ -148,6 +148,69 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         self.mock_seer.assert_not_called()
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_update_with_unrelated_changes_is_skipped(self) -> None:
+        # An "update" that only edits metadata (no new commit, no un-draft) must not
+        # trigger a review.
+        self._setup_code_review()
+        event = _make_event("update", changes={"title": {"previous": "a", "current": "b"}})
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_undraft_update_uses_review_request_endpoint(self) -> None:
+        # GitLab has no "ready_for_review" action; un-drafting arrives as an "update"
+        # whose changes flip draft -> false, and must be treated as ready-for-review.
+        self._setup_code_review()
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+        assert "oldrev" not in event["object_attributes"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(self) -> None:
+        self._setup_code_review()
+        event = _make_event(
+            "update", changes={"work_in_progress": {"previous": True, "current": False}}
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_undraft_update_trigger_is_ready_for_review(self) -> None:
+        self._setup_code_review()
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        assert payload["data"]["config"]["trigger"] == "on_ready_for_review"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_undraft_update_filtered_when_ready_trigger_disabled(self) -> None:
+        # An un-draft maps to ON_READY_FOR_REVIEW, so a repo that only enabled
+        # ON_NEW_COMMIT must not get a review for it.
+        self._setup_code_review(triggers=[CodeReviewTrigger.ON_NEW_COMMIT])
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_draft_mr(self) -> None:
         self._setup_code_review()
         event = _make_event("open", draft=True)

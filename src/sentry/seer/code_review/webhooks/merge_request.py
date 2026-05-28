@@ -5,27 +5,24 @@ https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request
 Known limitations
 -----------------
 
-1. Code review does not fire in production yet: GitLab contributors are never
-   seeded. ``handle_merge_request_event`` runs ``CodeReviewPreflightService``,
-   whose ``_check_billing`` looks up ``OrganizationContributors`` by
-   ``(organization_id, integration_id, external_identifier=str(author_id))`` and
-   returns ``ORG_CONTRIBUTOR_NOT_FOUND`` (before the beta exemption) when the row
-   is missing. GitHub creates that row via ``track_contributor_seat`` in
-   ``PullRequestEventWebhook._handle`` on PR creation; the GitLab merge-request
-   path (PR persistence inline in ``MergeEventWebhook.__call__``) does not, and
-   nothing else seeds GitLab contributors. Until contributor seeding is added,
-   every GitLab MR is filtered with ``ORG_CONTRIBUTOR_NOT_FOUND``. The handler
-   tests pass only because they seed the row manually.
+Code review does not fire in production yet: GitLab contributors are never seeded.
+``handle_merge_request_event`` runs ``CodeReviewPreflightService``, whose
+``_check_billing`` looks up ``OrganizationContributors`` by
+``(organization_id, integration_id, external_identifier=str(author_id))`` and
+returns ``ORG_CONTRIBUTOR_NOT_FOUND`` (before the beta exemption) when the row is
+missing. GitHub creates that row via ``track_contributor_seat`` in
+``PullRequestEventWebhook._handle`` on PR creation; the GitLab merge-request path
+(PR persistence inline in ``MergeEventWebhook.__call__``) does not, and nothing
+else seeds GitLab contributors. Until contributor seeding is added, every GitLab MR
+is filtered with ``ORG_CONTRIBUTOR_NOT_FOUND``. The handler tests pass only because
+they seed the row manually.
 
-2. Un-drafting an MR ("mark ready for review") does not trigger a review.
-   GitHub has a dedicated ``ready_for_review`` action mapped to
-   ``ON_READY_FOR_REVIEW``; GitLab has none. Marking a draft MR ready arrives as
-   ``action="update"`` with no new commits, so ``oldrev`` is absent and the event
-   is filtered as ``UNSUPPORTED_ACTION``. The initial draft ``open`` is skipped by
-   the draft check. As a result, an MR opened as a draft and later marked ready is
-   never reviewed unless a new commit is subsequently pushed. Fixing this requires
-   detecting the un-draft transition (``changes.draft`` / ``changes.work_in_progress``
-   flipping to ``false`` on ``update`` events).
+The code-review tests seed OrganizationContributors manually; consider a test that
+omits it to lock in the intended production behavior (related to Issue 1).
+
+GitLab has no dedicated "ready_for_review" action: un-drafting an MR arrives as an
+"update" whose ``changes`` flips draft/work_in_progress to false, which is treated
+as an ON_READY_FOR_REVIEW trigger (see ``_resolve_review_trigger``).
 """
 
 from __future__ import annotations
@@ -110,17 +107,50 @@ WHITELISTED_ACTIONS = {
     MergeRequestAction.UPDATE,
 }
 
-ACTIONS_REQUIRING_TRIGGER_CHECK: dict[MergeRequestAction, CodeReviewTrigger] = {
-    MergeRequestAction.OPEN: CodeReviewTrigger.ON_READY_FOR_REVIEW,
-    MergeRequestAction.UPDATE: CodeReviewTrigger.ON_NEW_COMMIT,
-}
-
 CLOSE_ACTIONS = {MergeRequestAction.CLOSE, MergeRequestAction.MERGE}
 
-SEER_TRIGGER_MAP: dict[MergeRequestAction, SeerCodeReviewTrigger] = {
-    MergeRequestAction.OPEN: SeerCodeReviewTrigger.ON_READY_FOR_REVIEW,
-    MergeRequestAction.UPDATE: SeerCodeReviewTrigger.ON_NEW_COMMIT,
+# Map the repo trigger that gated a review to the trigger value reported to Seer.
+CODE_REVIEW_TO_SEER_TRIGGER: dict[CodeReviewTrigger, SeerCodeReviewTrigger] = {
+    CodeReviewTrigger.ON_READY_FOR_REVIEW: SeerCodeReviewTrigger.ON_READY_FOR_REVIEW,
+    CodeReviewTrigger.ON_NEW_COMMIT: SeerCodeReviewTrigger.ON_NEW_COMMIT,
 }
+
+
+def _is_undraft_update(object_attributes: Mapping[str, Any]) -> bool:
+    """
+    True when an "update" event marks a draft MR ready for review.
+
+    GitLab has no dedicated "ready_for_review" action (unlike GitHub); un-drafting
+    arrives as an "update" whose ``changes`` shows draft/work_in_progress flipping
+    from true to false.
+    """
+    changes = object_attributes.get("changes") or {}
+    for field in ("draft", "work_in_progress"):
+        change = changes.get(field) or {}
+        if change.get("previous") is True and change.get("current") is False:
+            return True
+    return False
+
+
+def _resolve_review_trigger(
+    action: MergeRequestAction, object_attributes: Mapping[str, Any]
+) -> CodeReviewTrigger | None:
+    """
+    Map a non-close MR action to the repo trigger that gates a review, or None when
+    the event should not start one.
+
+    "open" is always a ready-for-review trigger. "update" is ambiguous because GitLab
+    fires it for any edit, so it triggers a review only when it brings new commits
+    (ON_NEW_COMMIT) or marks the MR ready for review (ON_READY_FOR_REVIEW).
+    """
+    if action == MergeRequestAction.OPEN:
+        return CodeReviewTrigger.ON_READY_FOR_REVIEW
+    if action == MergeRequestAction.UPDATE:
+        if _is_undraft_update(object_attributes):
+            return CodeReviewTrigger.ON_READY_FOR_REVIEW
+        if "oldrev" in object_attributes:
+            return CodeReviewTrigger.ON_NEW_COMMIT
+    return None
 
 
 def handle_merge_request_event(
@@ -156,14 +186,17 @@ def handle_merge_request_event(
         )
         return
 
-    # GitLab fires "update" for any MR edit (title, labels, assignee, etc.).
-    # oldrev is only present when the source branch received new commits, which
-    # is the equivalent of GitHub's "synchronize" event that ON_NEW_COMMIT models.
-    if action == MergeRequestAction.UPDATE and "oldrev" not in object_attributes:
-        record_webhook_filtered(
-            GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
-        )
-        return
+    # GitLab fires "update" for any MR edit (title, labels, assignee, etc.), so a
+    # non-close action only starts a review when it maps to a repo trigger: a new
+    # commit (ON_NEW_COMMIT) or the MR being opened / marked ready (ON_READY_FOR_REVIEW).
+    review_trigger: CodeReviewTrigger | None = None
+    if action not in CLOSE_ACTIONS:
+        review_trigger = _resolve_review_trigger(action, object_attributes)
+        if review_trigger is None:
+            record_webhook_filtered(
+                GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
+            )
+            return
 
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
@@ -185,10 +218,8 @@ def handle_merge_request_event(
 
     org_code_review_settings = preflight.settings
 
-    action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
-    if action_requires_trigger_permission is not None and (
-        org_code_review_settings is None
-        or action_requires_trigger_permission not in org_code_review_settings.triggers
+    if review_trigger is not None and (
+        org_code_review_settings is None or review_trigger not in org_code_review_settings.triggers
     ):
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
@@ -230,6 +261,7 @@ def handle_merge_request_event(
         organization=org,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        review_trigger=review_trigger,
     )
 
 
@@ -256,6 +288,7 @@ def _build_payload(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    review_trigger: CodeReviewTrigger | None,
 ) -> dict[str, Any]:
     is_close = action in CLOSE_ACTIONS
     payload = _common_codegen_request_payload(
@@ -271,7 +304,12 @@ def _build_payload(
 
     config = payload["data"]["config"]
     trigger_metadata = _get_trigger_metadata(event)
-    config["trigger"] = SEER_TRIGGER_MAP.get(action, SeerCodeReviewTrigger.UNKNOWN).value
+    seer_trigger = (
+        CODE_REVIEW_TO_SEER_TRIGGER[review_trigger]
+        if review_trigger is not None
+        else SeerCodeReviewTrigger.UNKNOWN
+    )
+    config["trigger"] = seer_trigger.value
     config["trigger_user"] = trigger_metadata["trigger_user"]
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
@@ -290,8 +328,9 @@ def _schedule_task(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
+    review_trigger: CodeReviewTrigger | None,
 ) -> None:
-    payload = _build_payload(action, event, organization, repo, target_commit_sha)
+    payload = _build_payload(action, event, organization, repo, target_commit_sha, review_trigger)
 
     # GitLab is not supported by the direct-PyGithub /v1/code_review/* endpoints;
     # it must use the scm-platform RPC counterparts at /v1/scm_code_review/*.
