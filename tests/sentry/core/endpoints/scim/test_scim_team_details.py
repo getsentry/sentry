@@ -384,7 +384,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
 
         # Exactly 5 core queries, none of which scale with member count
         assert len(core_queries) <= 5, (
-            f"Expected at most 4 core member queries, got {len(core_queries)}:\n"
+            f"Expected at most 5 core member queries, got {len(core_queries)}:\n"
             + "\n".join(f"  {i + 1}. {q[:120]}" for i, q in enumerate(core_queries))
         )
 
