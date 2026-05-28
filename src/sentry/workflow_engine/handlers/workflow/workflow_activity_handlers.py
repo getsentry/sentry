@@ -5,27 +5,41 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.registry import workflow_activity_registry
+from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 
 logger = logging.getLogger(__name__)
 
 SEER_WORKFLOW_ACTIVITIES = [
-    ActivityType.SEER_RCA_STARTED.value,
-    ActivityType.SEER_RCA_COMPLETED.value,
-    ActivityType.SEER_SOLUTION_STARTED.value,
-    ActivityType.SEER_SOLUTION_COMPLETED.value,
-    ActivityType.SEER_CODING_STARTED.value,
-    ActivityType.SEER_CODING_COMPLETED.value,
-    ActivityType.SEER_PR_CREATED.value,
+    ActivityType.SEER_RCA_STARTED,
+    ActivityType.SEER_RCA_COMPLETED,
+    ActivityType.SEER_SOLUTION_STARTED,
+    ActivityType.SEER_SOLUTION_COMPLETED,
+    ActivityType.SEER_CODING_STARTED,
+    ActivityType.SEER_CODING_COMPLETED,
+    ActivityType.SEER_PR_CREATED,
 ]
 
 
 @workflow_activity_registry.register("seer_activity")
 def seer_activity_handler(group: Group, activity: Activity) -> None:
-    from sentry.workflow_engine.models import Detector
-    from sentry.workflow_engine.tasks.workflows import process_workflow_activity
+    logging_ctx = {
+        "activity_type": activity.type,
+        "group_id": group.id,
+        "project_id": group.project_id,
+    }
 
-    if activity.type not in SEER_WORKFLOW_ACTIVITIES:
+    try:
+        activity_type = ActivityType(activity.type)
+    except ValueError:
+        logger.exception(
+            "workflow_engine.seer_activity_handler.invalid_activity_type", extra=logging_ctx
+        )
+        return
+    logging_ctx["activity_name"] = activity_type.name
+
+    if activity_type not in SEER_WORKFLOW_ACTIVITIES:
         return
 
     if not features.has(
@@ -34,24 +48,10 @@ def seer_activity_handler(group: Group, activity: Activity) -> None:
         return
 
     try:
-        activity_name = ActivityType(activity.type).name
-    except ValueError:
-        activity_name = "unknown"
-
-    logging_ctx = {
-        "activity_type": activity.type,
-        "activity_name": activity_name,
-        "group_id": group.id,
-        "project_id": group.project_id,
-    }
-
-    try:
         detector = Detector.get_issue_stream_detector_for_project(group.project_id)
     except Detector.DoesNotExist:
-        logger.error(
-            "workflow_engine.seer_activity_handler.missing_detector",
-            extra=logging_ctx,
-            exc_info=True,
+        logger.exception(
+            "workflow_engine.seer_activity_handler.missing_detector", extra=logging_ctx
         )
         return
 
@@ -60,5 +60,8 @@ def seer_activity_handler(group: Group, activity: Activity) -> None:
         group_id=group.id,
         detector_id=detector.id,
     )
-    metrics.incr("workflow_engine.seer_activity_handler", tags={"activity_name": activity_name})
-    logger.info("workflow_engine.seer_activity_handler.success", extra=logging_ctx)
+    metrics.incr(
+        "workflow_engine.seer_activity_handler.complete",
+        tags={"activity_name": activity_type.name},
+    )
+    logger.info("workflow_engine.seer_activity_handler.complete", extra=logging_ctx)

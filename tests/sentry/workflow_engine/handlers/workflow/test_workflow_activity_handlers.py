@@ -2,6 +2,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
     SEER_WORKFLOW_ACTIVITIES,
@@ -55,40 +56,49 @@ class SeerActivityHandlerTest(TestCase):
         )
         self.detector = self.create_detector(type=IssueStreamGroupType.slug, project=self.project)
 
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
     def test_feature_flag_disabled(self, mock_process_workflow_activity: MagicMock) -> None:
         seer_activity_handler(self.group, self.activity)
         mock_process_workflow_activity.delay.assert_not_called()
 
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity")
+    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
     def test_all_supported_activity_types_dispatch(
         self, mock_process_workflow_activity: MagicMock
     ) -> None:
-        with self.feature("organizations:workflow-engine-evaluate-seer-activities"):
-            for activity_type_value in SEER_WORKFLOW_ACTIVITIES:
-                mock_process_workflow_activity.reset_mock()
-                activity = self.create_group_activity(group=self.group, type=activity_type_value)
-                seer_activity_handler(self.group, activity)
-                assert mock_process_workflow_activity.delay.called, (
-                    f"Task not dispatched for {activity_type_value}"
-                )
-                mock_process_workflow_activity.delay.assert_called_once_with(
-                    activity_id=activity.id,
-                    group_id=self.group.id,
-                    detector_id=self.detector.id,
-                )
+        for activity_type in SEER_WORKFLOW_ACTIVITIES:
+            mock_process_workflow_activity.reset_mock()
+            activity = self.create_group_activity(group=self.group, type=activity_type.value)
+            seer_activity_handler(self.group, activity)
+            assert mock_process_workflow_activity.delay.called, (
+                f"Task not dispatched for {activity_type.value}"
+            )
+            mock_process_workflow_activity.delay.assert_called_once_with(
+                activity_id=activity.id,
+                group_id=self.group.id,
+                detector_id=self.detector.id,
+            )
 
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity")
+    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
     def test_skips_unsupported_activity_type(
         self, mock_process_workflow_activity: MagicMock
     ) -> None:
         activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
-        with self.feature("organizations:workflow-engine-evaluate-seer-activities"):
-            seer_activity_handler(self.group, activity)
+        seer_activity_handler(self.group, activity)
 
         mock_process_workflow_activity.delay.assert_not_called()
 
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity")
+    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
     @mock.patch(
         "sentry.workflow_engine.models.Detector.get_issue_stream_detector_for_project",
         side_effect=Exception("DoesNotExist"),
@@ -98,7 +108,6 @@ class SeerActivityHandlerTest(TestCase):
     ) -> None:
         mock_get_detector.side_effect = Detector.DoesNotExist
 
-        with self.feature("organizations:workflow-engine-evaluate-seer-activities"):
-            seer_activity_handler(self.group, self.activity)
+        seer_activity_handler(self.group, self.activity)
 
         mock_process_workflow_activity.delay.assert_not_called()
