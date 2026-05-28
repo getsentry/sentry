@@ -61,6 +61,11 @@ logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
+_valid_assemble_debug_id = re.compile(r"^[a-zA-Z0-9._-]+$")
+_invalid_assemble_debug_id_message = (
+    "Invalid debug_id: must contain only letters, numbers, '.', '_', or '-' and must not "
+    "contain '..', path separators, or null bytes."
+)
 
 
 def upload_from_request(request: Request, project: Project):
@@ -459,7 +464,14 @@ def parse_assemble_request_payload(body: bytes) -> AssembleRequestPayload:
     }
     payload_obj: object = orjson.loads(body)
     jsonschema.validate(payload_obj, schema)
-    return cast(AssembleRequestPayload, payload_obj)
+    payload = cast(AssembleRequestPayload, payload_obj)
+    for file in payload.values():
+        debug_id = file.get("debug_id")
+        if debug_id is not None and (
+            ".." in debug_id or _valid_assemble_debug_id.fullmatch(debug_id) is None
+        ):
+            raise jsonschema.ValidationError(_invalid_assemble_debug_id_message)
+    return payload
 
 
 def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]]:

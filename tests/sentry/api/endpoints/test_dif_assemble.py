@@ -1,6 +1,7 @@
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
@@ -62,6 +63,75 @@ class DifAssembleEndpoint(APITestCase):
         )
         assert response.status_code == 200, response.content
         assert response.data[checksum]["state"] == ChunkFileState.NOT_FOUND
+
+    @pytest.mark.parametrize(
+        "debug_id",
+        [
+            "df449af8-0dcd-4320-9943-ec192134d593",
+            "67E9247C814E392BA027DBDE6748FCBF",
+            "3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
+            "normal.id_123-ABC",
+        ],
+    )
+    def test_assemble_accepts_safe_debug_id(self, debug_id: str) -> None:
+        checksum = sha1(debug_id.encode()).hexdigest()
+
+        response = self.client.post(
+            self.url,
+            data={checksum: {"name": "dif", "debug_id": debug_id, "chunks": []}},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.NOT_FOUND
+
+    @pytest.mark.parametrize(
+        "debug_id",
+        [
+            "../victim_project_id/payload",
+            "foo/bar",
+            "foo/../../bar",
+            r"foo\bar",
+            r"..\foo",
+            "abc\x00def",
+        ],
+    )
+    def test_assemble_rejects_path_like_debug_id(self, debug_id: str) -> None:
+        checksum = sha1(debug_id.encode()).hexdigest()
+
+        response = self.client.post(
+            self.url,
+            data={checksum: {"name": "dif", "debug_id": debug_id, "chunks": []}},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Invalid debug_id" in response.data["error"]
+
+    @patch("sentry.tasks.assemble.assemble_dif")
+    def test_assemble_passes_safe_debug_id_unchanged(self, mock_assemble_dif: MagicMock) -> None:
+        content = b"debug file"
+        checksum = sha1(content).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(content), self.organization)
+        debug_id = "normal.id_123-ABC"
+
+        response = self.client.post(
+            self.url,
+            data={checksum: {"name": "dif", "debug_id": debug_id, "chunks": [blob.checksum]}},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.CREATED
+        mock_assemble_dif.apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "name": "dif",
+                "debug_id": debug_id,
+                "checksum": checksum,
+                "chunks": [blob.checksum],
+            }
+        )
 
     def test_assemble_check(self) -> None:
         content = b"foo bar"
