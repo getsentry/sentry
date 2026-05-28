@@ -168,7 +168,7 @@ export async function takeSnapshot({
       context: {test_file_path: relativePath},
       ...(viewport && {
         viewport_width: String(viewport.width),
-        ...(viewport.height != null ? {viewport_height: String(viewport.height)} : {}),
+        ...(viewport.height == null ? {} : {viewport_height: String(viewport.height)}),
       }),
     };
 
