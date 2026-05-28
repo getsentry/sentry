@@ -37,6 +37,7 @@ from sentry.seer.entrypoints.types import (
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 
 
@@ -582,6 +583,25 @@ class SeerOperatorTest(TestCase):
             activity.data["pull_requests"][0]["pull_request"]["pr_url"]
             == "https://github.com/owner/repo/pull/42"
         )
+
+    @with_feature("organizations:seer-activity-timeline")
+    @patch("sentry.seer.entrypoints.operator.invoke_workflow_activity_handlers")
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_invokes_workflow_activity_handlers(
+        self, _mock_has_access, mock_invoke
+    ):
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        mock_invoke.assert_called_once()
+        call_kwargs = mock_invoke.call_args[1]
+        assert call_kwargs["group"] == self.group
+        assert call_kwargs["activity"].type == ActivityType.SEER_RCA_STARTED.value
 
 
 class TestGetAutofixExplorerStatus(TestCase):
