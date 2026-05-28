@@ -8,6 +8,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -466,7 +467,7 @@ function Highlights({
   return (
     <Fragment>
       <HighlightsWrapper>
-        <Stack justify="center" align="center">
+        <Stack justify="center" align="center" gap="xs">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
               project={project ? project : {slug: node.projectSlug ?? ''}}
@@ -474,7 +475,9 @@ function Highlights({
               hideName
             />
           </Tooltip>
-          <VerticalLine />
+          <Flex flex="1">
+            <Separator orientation="vertical" />
+          </Flex>
         </Stack>
         <Stack justify="left" flex="1" height="100%" overflow="hidden">
           <HighlightOp>{node.op}</HighlightOp>
@@ -528,7 +531,8 @@ function Highlights({
           )}
         </Stack>
       </HighlightsWrapper>
-      <SectionDivider />
+      {/* margin (deprecated) kept for parity with surrounding margin-based sections in BodyContainer */}
+      <Separator orientation="horizontal" margin="md 0" border="muted" />
     </Fragment>
   );
 }
@@ -715,19 +719,6 @@ const StyledPanelHeader = styled(PanelHeader)`
   line-height: normal;
   text-transform: none;
   overflow: hidden;
-`;
-
-const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
-  margin: ${p => p.theme.space.md} 0;
-`;
-
-const VerticalLine = styled('div')`
-  width: 1px;
-  height: 100%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background-color: ${p => p.theme.tokens.border.primary};
-  margin-top: ${p => p.theme.space.xs};
 `;
 
 const HighlightsWrapper = styled('div')`

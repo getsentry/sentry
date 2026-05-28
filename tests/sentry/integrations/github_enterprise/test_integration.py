@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -7,20 +10,21 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import orjson
 import pytest
 import responses
-from django.http import HttpResponse
 from django.test import RequestFactory
+from django.urls import reverse
 
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import (
-    GitHubEnterpriseInstallationRedirect,
     GitHubEnterpriseIntegration,
     GitHubEnterpriseIntegrationProvider,
     InstallationConfigView,
     _api_base_url,
+    _get_app_install_url,
     get_user_info,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
@@ -28,7 +32,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -1245,8 +1249,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             )
 
 
-class InstallationConfigViewGitHubComFlagGateTest(TestCase):
-    """The form must reject github.com installs when the org lacks the feature flag."""
+class InstallationConfigViewGitHubComInstallTest(TestCase):
+    """The form must accept github.com and GHES installs and route correctly."""
 
     def _make_post_data(self, url: str) -> dict[str, str]:
         return {
@@ -1260,39 +1264,22 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
             "public_link": "",
         }
 
-    def test_github_com_install_rejected_without_flag(self) -> None:
-        view = InstallationConfigView()
-        request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
-        request.user = self.user
-        pipeline = MagicMock()
-        pipeline.organization = self.organization
-        response = view.dispatch(request, pipeline)
-
-        # Form re-renders with an error rather than calling pipeline.next_step()
-        assert pipeline.next_step.call_count == 0
-        # The response body contains the form error message
-        assert isinstance(response, HttpResponse)
-        assert b"github.com" in response.content
-        assert response.status_code == 200  # form re-rendered
-
-    def test_github_com_install_allowed_with_flag(self) -> None:
+    def test_github_com_install_allowed(self) -> None:
         view = InstallationConfigView()
         request = RequestFactory().post("/", data=self._make_post_data("https://github.com"))
         request.user = self.user
         pipeline = MagicMock()
         pipeline.organization = self.organization
 
-        with self.feature("organizations:github-enterprise-github-com-source"):
-            view.dispatch(request, pipeline)
+        view.dispatch(request, pipeline)
 
-        # State bound with host="github.com"; pipeline advanced
         pipeline.bind_state.assert_any_call(
             "installation_data",
             mock.ANY,
         )
         pipeline.next_step.assert_called_once()
 
-    def test_ghes_install_unaffected_by_flag(self) -> None:
+    def test_ghes_install_allowed(self) -> None:
         view = InstallationConfigView()
         request = RequestFactory().post(
             "/", data=self._make_post_data("https://github.example.org")
@@ -1301,46 +1288,29 @@ class InstallationConfigViewGitHubComFlagGateTest(TestCase):
         pipeline = MagicMock()
         pipeline.organization = self.organization
 
-        # No flag enabled — GHES install should proceed
         view.dispatch(request, pipeline)
         pipeline.next_step.assert_called_once()
 
     def test_app_install_redirect_uses_apps_path_for_github_com(self) -> None:
         # github.com hosts the App install page at /apps/{name}, not /github-apps/{name}
         # (which is the GHES convention). Wrong URL → 404 → broken install flow.
-        redirect = GitHubEnterpriseInstallationRedirect()
         assert (
-            redirect.get_app_url({"url": "github.com", "name": "my-app", "public_link": None})
+            _get_app_install_url({"url": "github.com", "name": "my-app", "public_link": None})
             == "https://github.com/apps/my-app"
         )
         assert (
-            redirect.get_app_url(
+            _get_app_install_url(
                 {"url": "github.example.org", "name": "my-app", "public_link": None}
             )
             == "https://github.example.org/github-apps/my-app"
         )
         # public_link, when set, takes precedence regardless of host
         assert (
-            redirect.get_app_url(
+            _get_app_install_url(
                 {"url": "github.com", "name": "my-app", "public_link": "https://example.com/app"}
             )
             == "https://example.com/app"
         )
-
-    def test_github_com_install_rejected_for_normalized_inputs(self) -> None:
-        # Any input that normalizes to "github.com" must hit the gate. Previously
-        # `urlparse("github.com").netloc` returned empty and let the bypass through,
-        # producing malformed OAuth URLs and a silent gate bypass.
-        view = InstallationConfigView()
-        for url_input in ("github.com", "GitHub.com", "https://GitHub.com", "github.com/"):
-            request = RequestFactory().post("/", data=self._make_post_data(url_input))
-            request.user = self.user
-            pipeline = MagicMock()
-            pipeline.organization = self.organization
-            response = view.dispatch(request, pipeline)
-            assert pipeline.next_step.call_count == 0, f"flag bypassed for input {url_input!r}"
-            assert isinstance(response, HttpResponse)
-            assert response.status_code == 200
 
 
 class BuildIntegrationGitHubComTest(TestCase):
@@ -1395,3 +1365,202 @@ class BuildIntegrationGitHubComTest(TestCase):
         assert result["idp_external_id"] == "github.com:99"
         assert result["metadata"]["domain_name"] == "github.com/acme"
         assert result["metadata"]["installation_id"] == 12345
+
+
+@control_silo_test
+class GitHubEnterpriseApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    ghe_host = "github.example.com"
+    ghe_url = f"https://{ghe_host}"
+    installation_id = "12345"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "github_enterprise"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _submit_config(self, **overrides: Any) -> Any:
+        data = {
+            "url": self.ghe_url,
+            "id": "1",
+            "name": "sentry-app",
+            "verifySsl": True,
+            "webhookSecret": "webhook-secret-123",
+            "privateKey": "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----",
+            "clientId": "client-id-abc",
+            "clientSecret": "client-secret-xyz",
+        }
+        data.update(overrides)
+        return self._advance_step(data)
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    def _stub_ghe_oauth(self) -> None:
+        responses.add(
+            responses.POST,
+            f"{self.ghe_url}/login/oauth/access_token",
+            json={
+                "access_token": "test-access-token",
+                "token_type": "bearer",
+            },
+        )
+
+    def _stub_ghe_user(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/user",
+            json={"id": 42, "login": "testuser"},
+        )
+
+    def _stub_ghe_installation(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/app/installations/{self.installation_id}",
+            json={
+                "id": int(self.installation_id),
+                "app_id": 1,
+                "account": {
+                    "login": "Test-Org",
+                    "avatar_url": f"{self.ghe_url}/avatar.png",
+                    "html_url": f"{self.ghe_url}/Test-Org",
+                    "type": "Organization",
+                },
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{self.ghe_url}/api/v3/user/installations",
+            json={
+                "installations": [
+                    {
+                        "id": int(self.installation_id),
+                        "app_id": 1,
+                        "account": {
+                            "login": "Test-Org",
+                            "avatar_url": f"{self.ghe_url}/avatar.png",
+                            "html_url": f"{self.ghe_url}/Test-Org",
+                            "type": "Organization",
+                        },
+                    }
+                ]
+            },
+        )
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "installation_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 3
+        assert resp.data["provider"] == "github_enterprise"
+
+    @responses.activate
+    def test_config_step_advance(self) -> None:
+        self._initialize_pipeline()
+        resp = self._submit_config()
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "app_install_redirect"
+        assert resp.data["stepIndex"] == 1
+        assert "appInstallUrl" in resp.data["data"]
+        assert "sentry-app" in resp.data["data"]["appInstallUrl"]
+
+    @responses.activate
+    def test_config_step_validation_missing_required_fields(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"url": self.ghe_url})
+        assert resp.status_code == 400
+        for field in ("id", "name", "webhookSecret", "privateKey", "clientId", "clientSecret"):
+            assert resp.data[field] == ["This field is required."]
+
+    @responses.activate
+    def test_app_install_step_no_installation_id(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "stay"
+        assert "appInstallUrl" in resp.data["data"]
+
+    @responses.activate
+    def test_app_install_step_with_installation_id(self) -> None:
+        self._initialize_pipeline()
+        self._submit_config()
+        resp = self._advance_step({"installationId": self.installation_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "oauth_login"
+        assert "oauthUrl" in resp.data["data"]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert self.ghe_host in oauth_url
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token"
+    )
+    def test_full_pipeline_flow(self, mock_jwt: MagicMock) -> None:
+        self._stub_ghe_oauth()
+        self._stub_ghe_user()
+        self._stub_ghe_installation()
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "installation_config"
+
+        resp = self._submit_config()
+        assert resp.data["step"] == "app_install_redirect"
+
+        resp = self._advance_step({"installationId": self.installation_id})
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="github_enterprise")
+        assert integration.metadata["installation_id"] == int(self.installation_id)
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @responses.activate
+    def test_config_step_allows_github_com(self) -> None:
+        self._initialize_pipeline()
+        resp = self._submit_config(url="https://github.com")
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "app_install_redirect"
+
+    def test_app_install_step_uses_apps_path_for_github_com(self) -> None:
+        # github.com hosts the App install page at /apps/{name}, GHES at
+        # /github-apps/{name}. Wrong URL → 404 → broken install flow.
+        self._initialize_pipeline()
+        self._submit_config(url="https://github.com")
+        resp = self._advance_step({})
+        assert resp.status_code == 200
+        assert resp.data["data"]["appInstallUrl"] == "https://github.com/apps/sentry-app"

@@ -3,7 +3,6 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-import base64
 import logging
 from datetime import UTC, datetime
 from io import BytesIO
@@ -25,8 +24,6 @@ from sentry.relocation.services.relocation_export.service import (
     CellRelocationExportService,
     ControlRelocationExportService,
 )
-from sentry.relocation.tasks.process import fulfill_cross_region_export_request, uploading_complete
-from sentry.relocation.tasks.transfer import process_relocation_transfer_control
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.utils.db import atomic_transaction
 
@@ -43,6 +40,8 @@ class DBBackedRelocationExportService(CellRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
+        from sentry.relocation.tasks.process import fulfill_cross_region_export_request
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -64,7 +63,7 @@ class DBBackedRelocationExportService(CellRelocationExportService):
                 requesting_region_name,
                 replying_region_name,
                 org_slug,
-                base64.b64encode(encrypt_with_public_key).decode("utf8"),
+                encrypt_with_public_key,
                 int(round(datetime.now(tz=UTC).timestamp())),
             ]
         )
@@ -81,6 +80,8 @@ class DBBackedRelocationExportService(CellRelocationExportService):
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         encrypted_contents: bytes | None = None,
     ) -> None:
+        from sentry.relocation.tasks.process import uploading_complete
+
         with atomic_transaction(
             using=(
                 router.db_for_write(Relocation),
@@ -141,6 +142,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
+        from sentry.relocation.tasks.transfer import process_relocation_transfer_control
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,
@@ -173,6 +176,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         encrypted_contents: bytes | None = None,
     ) -> None:
+        from sentry.relocation.tasks.transfer import process_relocation_transfer_control
+
         logger_data = {
             "uuid": relocation_uuid,
             "requesting_region_name": requesting_region_name,

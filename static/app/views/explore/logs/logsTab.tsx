@@ -16,7 +16,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -110,7 +110,7 @@ interface LogsSearchBarProps {
 }
 
 function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <LogsTabSeerComboBox />;
@@ -539,7 +539,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  expanded
                   booleanAttributes={booleanAttributes}
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
