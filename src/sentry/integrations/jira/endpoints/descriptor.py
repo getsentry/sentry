@@ -21,7 +21,7 @@ if settings.JIRA_USE_EMAIL_SCOPE:
 
 @control_silo_endpoint
 class JiraDescriptorEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

@@ -118,7 +118,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     @sudo_required
     def get(self, request: Request, user: User, interface_id: str) -> HttpResponse:

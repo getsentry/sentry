@@ -90,7 +90,10 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     )
 
     def post(self, request: Request, project: Project) -> Response:
-        serializer = ProjectSeerPreferencesSerializer(data=request.data)
+        serializer = ProjectSeerPreferencesSerializer(
+            data=request.data,
+            context={"organization": project.organization},
+        )
         serializer.is_valid(raise_exception=True)
 
         for repo_data in serializer.validated_data.get("repositories", []):

@@ -56,9 +56,9 @@ from sentry.seer.autofix.utils import (
     StoreCodingAgentStatesRequest,
     extract_api_error_message,
     get_autofix_state,
+    get_automation_handoff,
     get_coding_agent_prompt,
     make_store_coding_agent_states_request,
-    read_preference_from_sentry_db,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
@@ -243,9 +243,9 @@ def _launch_agents_for_repos(
     auto_create_pr = False
     try:
         project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
-        preference = read_preference_from_sentry_db(project)
-        if preference.automation_handoff:
-            auto_create_pr = preference.automation_handoff.auto_create_pr
+        handoff = get_automation_handoff(project.get_option)
+        if handoff:
+            auto_create_pr = handoff.auto_create_pr
     except Project.DoesNotExist:
         logger.exception(
             "coding_agent.project_not_found",
@@ -330,6 +330,7 @@ def _launch_agents_for_repos(
             repository=repo,
             branch_name=sanitize_branch_name(autofix_state.request.issue["title"]),
             auto_create_pr=auto_create_pr,
+            issue_short_id=short_id,
         )
 
         try:
@@ -437,7 +438,6 @@ def launch_coding_agents_for_run(
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
     user_id: int | None = None,
-    initiator: str | None = None,
     referrer: str | None = None,
 ) -> dict[str, list]:
     """
@@ -541,7 +541,6 @@ def launch_coding_agents_for_run(
             group_id=autofix_state.request.issue["id"],
             referrer=referrer,
             coding_agent=coding_agent_name,
-            initiator=initiator,
         )
     )
 

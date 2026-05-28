@@ -58,15 +58,18 @@ describe('OrganizationStats', () => {
     render(<OrganizationStats />, {
       organization: OrganizationFixture(),
     });
-    expect(await screen.findByText('Stats & Usage')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'A view of the usage data that Sentry has received across your entire organization.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders header state with tabs', async () => {
     render(<OrganizationStats />, {
       organization,
     });
-    expect(await screen.findByText('Stats & Usage')).toBeInTheDocument();
-    expect(screen.getByText('Usage')).toBeInTheDocument();
+    expect(await screen.findByText('Usage')).toBeInTheDocument();
     expect(screen.getByText('Issues')).toBeInTheDocument();
     expect(screen.getByText('Health')).toBeInTheDocument();
   });

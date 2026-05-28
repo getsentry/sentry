@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -19,6 +20,7 @@ import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -86,11 +88,20 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
 
 function ConversationsTableInner() {
+  const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
   const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+
+  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
+    trackAnalytics('conversations.table.paginate', {
+      organization,
+      direction: pageDelta > 0 ? 'next' : 'previous',
+    });
+    setCursor(cursor, path, query, pageDelta);
+  };
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -108,7 +119,11 @@ function ConversationsTableInner() {
           column.name
         )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'inputOutput' && <CellExpander />}
+        {column.key === 'inputOutput' && (
+          // Force the cell to take as much width as possible in the table
+          // layout, otherwise GridEditable will let the last column grow.
+          <Container width="100vw" />
+        )}
       </Flex>
     );
   }, []);
@@ -137,7 +152,7 @@ function ConversationsTableInner() {
           }}
         />
       </Container>
-      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={handlePaginate} />
     </Fragment>
   );
 }
@@ -220,15 +235,28 @@ const BodyCell = memo(function BodyCell({
   const navigate = useNavigate();
   const {selection} = usePageFilters();
 
-  const navigateToDetail = useCallback(() => {
-    navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
-  }, [navigate, organization.slug, dataRow, selection.projects]);
+  const detailUrl = getConversationDetailUrl(
+    organization.slug,
+    dataRow,
+    selection.projects
+  );
+
+  const navigateToDetail = (source: 'table_input' | 'table_output') => {
+    trackAnalytics('conversations.table.open', {organization, source});
+    navigate(detailUrl);
+  };
 
   switch (column.key) {
     case 'conversationId':
       return (
         <ConversationIdLink
-          to={getConversationDetailUrl(organization.slug, dataRow, selection.projects)}
+          to={detailUrl}
+          onClick={() =>
+            trackAnalytics('conversations.table.open', {
+              organization,
+              source: 'table_conversation_id',
+            })
+          }
         >
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
@@ -242,9 +270,9 @@ const BodyCell = memo(function BodyCell({
     case 'user': {
       if (!dataRow.user) {
         return (
-          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
-            <Text variant="muted">&mdash;</Text>
-          </Tooltip>
+          <InfoText variant="muted" title={<UserNotInstrumentedTooltip />}>
+            &mdash;
+          </InfoText>
         );
       }
       const displayName = getUserDisplayName(dataRow.user);
@@ -260,7 +288,7 @@ const BodyCell = memo(function BodyCell({
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <InputOutputRow type="button" onClick={navigateToDetail}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail('table_input')}>
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
@@ -270,7 +298,7 @@ const BodyCell = memo(function BodyCell({
               )}
             </Flex>
           </InputOutputRow>
-          <InputOutputRow type="button" onClick={navigateToDetail}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail('table_output')}>
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
@@ -337,14 +365,6 @@ const SingleLineMarkdown = styled('div')`
   * {
     display: inline;
   }
-`;
-
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
 `;
 
 const ConversationIdLink = styled(Link)`

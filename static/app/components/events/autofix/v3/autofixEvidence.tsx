@@ -281,7 +281,7 @@ function getCodeSearchEvidenceProps({
       return null;
     }
 
-    const hash =
+    const lines =
       start_line && end_line
         ? start_line === end_line
           ? `L${start_line}`
@@ -289,10 +289,20 @@ function getCodeSearchEvidenceProps({
         : undefined;
 
     return {
-      href: hash ? `${code_url}#${hash}` : code_url,
+      href: lines ? `${code_url}#${lines}` : code_url,
       icon: <IconFile />,
-      label: t('File: %s', truncateText(filename)),
-      tooltip: path,
+      label: t('File: %s%s', truncateText(filename), lines ? ` ${lines}` : ''),
+      tooltip: (
+        <Fragment>
+          {path}
+          {lines && (
+            <Fragment>
+              <br />
+              {lines}
+            </Fragment>
+          )}
+        </Fragment>
+      ),
     };
   }
 

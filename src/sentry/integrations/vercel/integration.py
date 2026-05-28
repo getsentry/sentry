@@ -301,71 +301,86 @@ class VercelIntegration(IntegrationInstallation):
     def update_organization_config(self, data):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
 
-        vercel_client = self.get_client()
-        config = self.org_integration.config
+        sentry_project_id: int | None = None
+        vercel_project_id: str | None = None
         try:
-            new_mappings = data["project_mappings"]
-        except KeyError:
-            raise ValidationError("Failed to update configuration.")
+            vercel_client = self.get_client()
+            config = self.org_integration.config
+            try:
+                new_mappings = data["project_mappings"]
+            except KeyError:
+                raise ValidationError("Failed to update configuration.")
 
-        old_mappings = config.get("project_mappings") or []
+            old_mappings = config.get("project_mappings") or []
 
-        sentry_projects = {proj.id: proj for proj in self.organization.projects}
+            sentry_projects = {proj.id: proj for proj in self.organization.projects}
 
-        for mapping in new_mappings:
-            # skip any mappings that already exist
-            if mapping in old_mappings:
-                continue
+            for mapping in new_mappings:
+                # skip any mappings that already exist
+                if mapping in old_mappings:
+                    continue
 
-            [sentry_project_id, vercel_project_id] = mapping
-            sentry_project = sentry_projects[sentry_project_id]
+                [sentry_project_id, vercel_project_id] = mapping
+                sentry_project = sentry_projects[sentry_project_id]
 
-            project_key = project_key_service.get_default_project_key(
-                organization_id=self.organization_id, project_id=sentry_project_id
-            )
-            if not project_key:
-                raise ValidationError(
-                    {"project_mappings": ["You must have an enabled DSN to continue!"]}
+                project_key = project_key_service.get_default_project_key(
+                    organization_id=self.organization_id, project_id=sentry_project_id
                 )
-
-            vercel_project = vercel_client.get_project(vercel_project_id)
-            sentry_auth_token = SentryAppInstallationToken.objects.get_token(
-                sentry_project.organization_id,
-                "vercel",
-            )
-
-            env_var_map = (
-                VercelEnvVarMapBuilder()
-                .with_organization(self.organization)
-                .with_project(sentry_project)
-                .with_project_key(project_key)
-                .with_auth_token(sentry_auth_token)
-                .with_framework(vercel_project.get("framework"))
-                .build()
-            )
-
-            for env_var, details in env_var_map.items():
-                # We are logging a message because we potentially have a weird bug where auth tokens disappear from vercel
-                if env_var == "SENTRY_AUTH_TOKEN" and details["value"] is None:
-                    sentry_sdk.capture_message(
-                        "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
+                if not project_key:
+                    raise ValidationError(
+                        {"project_mappings": ["You must have an enabled DSN to continue!"]}
                     )
 
-                self.create_env_var(
-                    vercel_client,
-                    vercel_project_id,
-                    env_var,
-                    details["value"],
-                    details["type"],
-                    details["target"],
+                vercel_project = vercel_client.get_project(vercel_project_id)
+                sentry_auth_token = SentryAppInstallationToken.objects.get_token(
+                    sentry_project.organization_id,
+                    "vercel",
                 )
-        config.update(data)
-        org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.org_integration.id,
-            config=config,
-        )
-        if org_integration is not None:
-            self.org_integration = org_integration
+
+                env_var_map = (
+                    VercelEnvVarMapBuilder()
+                    .with_organization(self.organization)
+                    .with_project(sentry_project)
+                    .with_project_key(project_key)
+                    .with_auth_token(sentry_auth_token)
+                    .with_framework(vercel_project.get("framework"))
+                    .build()
+                )
+
+                for env_var, details in env_var_map.items():
+                    # We are logging a message because we potentially have a weird bug where auth tokens disappear from vercel
+                    if env_var == "SENTRY_AUTH_TOKEN" and details["value"] is None:
+                        sentry_sdk.capture_message(
+                            "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
+                        )
+
+                    self.create_env_var(
+                        vercel_client,
+                        vercel_project_id,
+                        env_var,
+                        details["value"],
+                        details["type"],
+                        details["target"],
+                    )
+            config.update(data)
+            org_integration = integration_service.update_organization_integration(
+                org_integration_id=self.org_integration.id,
+                config=config,
+            )
+            if org_integration is not None:
+                self.org_integration = org_integration
+        except Exception as e:
+            logger.exception(
+                "vercel.link_sentry_project.failed",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "sentry_project_id": sentry_project_id,
+                    "vercel_project_id": vercel_project_id,
+                    "error_type": type(e).__name__,
+                },
+            )
+            raise
 
     def create_env_var(self, client, vercel_project_id, key, value, type, target):
         data = {

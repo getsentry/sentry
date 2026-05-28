@@ -5,8 +5,8 @@ import {Button} from '@sentry/scraps/button';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {Overrides} from 'sentry/types/overrides';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
@@ -80,9 +80,9 @@ const Container = styled('div')`
   align-items: center;
 `;
 
-type HookProps = Parameters<Hooks['feature-disabled:custom-inbound-filters']>[0];
+type OverrideProps = Parameters<Overrides['feature-disabled:custom-inbound-filters']>[0];
 
-export function DisabledCustomInboundFilters(props: HookProps) {
+export function DisabledCustomInboundFilters(props: OverrideProps) {
   if (typeof props.children === 'function') {
     return props.children({
       ...props,

@@ -15,10 +15,9 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import OrganizationAccessRequests from './organizationAccessRequests';
+import {OrganizationAccessRequests} from './organizationAccessRequests';
 import {OtherTeamsTable} from './otherTeamsTable';
 import {YourTeamsTable} from './yourTeamsTable';
 
@@ -38,7 +37,6 @@ export function OrganizationTeams({
   onRemoveAccessRequest,
 }: Props) {
   const [teamQuery, setTeamQuery] = useState('');
-  const hasPageFrame = useHasPageFrameFeature();
   const {initiallyLoaded} = useTeams({provideUserTeams: true});
   const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
 
@@ -82,7 +80,7 @@ export function OrganizationTeams({
   return (
     <div data-test-id="team-list">
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-      <SettingsPageHeader title={title} action={hasPageFrame ? undefined : action} />
+      <SettingsPageHeader title={title} />
 
       <OrganizationAccessRequests
         orgSlug={organization.slug}
@@ -101,7 +99,7 @@ export function OrganizationTeams({
               />
             )}
           </Container>
-          {hasPageFrame && action}
+          {action}
         </Flex>
       </SearchWrapper>
       <YourTeamsTable

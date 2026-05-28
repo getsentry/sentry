@@ -49,7 +49,31 @@ class GeneratedWidgetQuery(BaseModel):
     )
     aggregates: list[str] = Field(
         default=[],
-        description="Aggregate function expressions to compute. For chart widgets these are the Y-axis values; for table widgets they become data columns alongside columns[]. Valid aggregate function values vary by dataset type. Do not make up functions or use unsupported functions.",
+        description=(
+            "Aggregate function expressions to compute. For chart widgets these are the Y-axis "
+            "values; for table widgets they become data columns alongside columns[]. Valid "
+            "aggregate function values vary by dataset type. Do not make up functions or use "
+            "unsupported functions.\n\n"
+            "For the 'tracemetrics' widget_type, aggregates use a required 4-argument form: "
+            "`func(attribute, metric_name, metric_type, metric_unit)` where attribute must be "
+            "`value` (the numeric value of the metric; no other attributes are supported at this "
+            "time), metric_name is the metric's name as ingested, metric_type is one of "
+            "'counter', 'gauge', or 'distribution', and metric_unit is the metric's unit as "
+            "ingested (e.g. 'milliseconds', 'bytes'); use 'none' only when the metric has no "
+            "unit. Examples: `sum(value, my.app.requests, counter, none)`, "
+            "`avg(value, my.app.cpu, gauge, percent)`, "
+            "`p95(value, my.app.latency, distribution, milliseconds)`. "
+            "Each metric_type only accepts a specific set of aggregate functions, and using a "
+            "function outside that set will fail:\n"
+            "- counter: sum, per_second, per_minute.\n"
+            "- gauge: avg, min, max, per_second, per_minute.\n"
+            "- distribution: p50, p75, p90, p95, p99, avg, min, max, sum, count, per_second, "
+            "per_minute.\n"
+            "You MUST NOT guess metric_name, metric_type, or metric_unit; look them up first "
+            "using the available tools (e.g. by querying the tracemetrics dataset for distinct "
+            "`metric.name`, `metric.type`, and `metric.unit` values, or fetching trace-item "
+            "attributes)."
+        ),
     )
     columns: list[str] = Field(
         default=[],

@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -13,6 +14,7 @@ import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery'
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getMetricRuleDiscoverQuery} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -38,6 +40,7 @@ export function RelatedTransactions({
   filter,
   location,
 }: RelatedTransactionsProps) {
+  const navigate = useNavigate();
   const theme = useTheme();
   const eventView = getMetricRuleDiscoverQuery({
     rule,
@@ -58,7 +61,7 @@ export function RelatedTransactions({
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location, theme});
+    const rendered = fieldRenderer(dataRow, {navigate, organization, location, theme});
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -144,5 +147,10 @@ const HeaderCell = styled('div')<{align: Alignments}>`
   display: block;
   width: 100%;
   white-space: nowrap;
-  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+  ${(p: {align: Alignments}) =>
+    p.align
+      ? css`
+          text-align: ${p.align};
+        `
+      : ''}
 `;

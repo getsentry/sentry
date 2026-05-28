@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import React, {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -13,7 +13,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
+import {IconAdd, IconJson, IconPin, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -27,6 +27,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -63,6 +64,7 @@ import {
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   DetailsBody,
   DetailsContent,
@@ -76,6 +78,7 @@ import {
   LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
+  LogPinButton,
   StyledChevronButton,
   TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
@@ -115,6 +118,7 @@ type LogsRowProps = {
     openWithExpandedIds?: string[];
     replay?: ReplayEmbeddedTableOptions;
   };
+  expansionKey?: string;
   isExpanded?: boolean;
   logEnd?: string;
   logStart?: string;
@@ -204,6 +208,7 @@ export const LogRowContent = memo(function LogRowContent({
   isExpanded,
   onExpand,
   onCollapse,
+  expansionKey: expansionKeyProp,
   onExpandHeight,
   blockRowExpanding,
   onEmbeddedRowClick,
@@ -213,6 +218,7 @@ export const LogRowContent = memo(function LogRowContent({
   showExploreSimilarSpansLink,
 }: LogsRowProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const fields = useQueryParamsFields();
@@ -221,16 +227,19 @@ export const LogRowContent = memo(function LogRowContent({
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
-  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
+
+  const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
+  const expansionKey = expansionKeyProp ?? rowId;
+  const logsPinning = useLogsPinning();
+  const isPinned = logsPinning?.pinnedRows.has(rowId);
+
+  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(isPinned);
 
   // This only applies in embedded views where clicking doesn't expand row details.
   function onClick(event: SyntheticEvent) {
     if (onEmbeddedRowClick && event.nativeEvent instanceof MouseEvent) {
       event.preventDefault();
-      onEmbeddedRowClick(
-        String(dataRow[OurLogKnownFieldKey.ID]),
-        event as React.MouseEvent
-      );
+      onEmbeddedRowClick(rowId, event as React.MouseEvent);
       return;
     }
   }
@@ -265,9 +274,9 @@ export const LogRowContent = memo(function LogRowContent({
   function toggleExpanded() {
     if (onExpand) {
       if (isExpanded) {
-        onCollapse?.(String(dataRow[OurLogKnownFieldKey.ID]));
+        onCollapse?.(expansionKey);
       } else {
-        onExpand?.(String(dataRow[OurLogKnownFieldKey.ID]));
+        onExpand?.(expansionKey);
       }
     } else {
       setExpanded(e => !e);
@@ -277,7 +286,7 @@ export const LogRowContent = memo(function LogRowContent({
     }
 
     trackAnalytics('logs.table.row_expanded', {
-      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      log_id: rowId,
       page_source: analyticsPageSource,
       organization,
     });
@@ -285,12 +294,9 @@ export const LogRowContent = memo(function LogRowContent({
 
   useLayoutEffect(() => {
     if (measureRef.current && isExpanded) {
-      onExpandHeight?.(
-        String(dataRow[OurLogKnownFieldKey.ID]),
-        measureRef.current.clientHeight
-      );
+      onExpandHeight?.(expansionKey, measureRef.current.clientHeight);
     }
-  }, [isExpanded, onExpandHeight, dataRow]);
+  }, [expansionKey, isExpanded, onExpandHeight]);
 
   const addSearchFilter = useAddSearchFilter();
   const {copy} = useCopyToClipboard();
@@ -310,12 +316,16 @@ export const LogRowContent = memo(function LogRowContent({
   const prefetchTimeout = autorefreshEnabled
     ? DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH
     : DEFAULT_TRACE_ITEM_HOVER_TIMEOUT;
+  const logTimestampSeconds = isRegularLogResponseItem(dataRow)
+    ? getLogRowTimestampMillis(dataRow) / 1000
+    : null;
   const {hoverProps, traceItemsResult} = useFetchTraceItemDetailsOnHover({
-    traceItemId: String(dataRow[OurLogKnownFieldKey.ID]),
+    traceItemId: rowId,
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
+    timestamp: logTimestampSeconds,
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
@@ -327,6 +337,7 @@ export const LogRowContent = memo(function LogRowContent({
     logColors,
     useFullSeverityText: false,
     location,
+    navigate,
     organization,
     attributes: dataRow as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
@@ -386,14 +397,16 @@ export const LogRowContent = memo(function LogRowContent({
     <Fragment>
       <LogTableRow
         data-test-id="log-table-row"
-        data-row-highlighted={isPseudoRow}
+        highlighted={isPseudoRow}
+        pinned={isPinned}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
         onMouseEnter={e => {
           setShouldRenderHoverElements(true);
-          if (rowInteractProps.onMouseEnter) {
-            rowInteractProps.onMouseEnter(e);
-          }
+          rowInteractProps.onMouseEnter?.(e);
+        }}
+        onMouseLeave={e => {
+          rowInteractProps.onMouseLeave?.(e);
         }}
       >
         <LogsTableBodyFirstCell key="first">
@@ -421,20 +434,58 @@ export const LogRowContent = memo(function LogRowContent({
                 </TraceIconStyleWrapper>
               </Flex>
             ) : (
-              <React.Fragment>
+              <Fragment>
                 <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
                 {project ? (
                   <ProjectBadge project={project} avatarSize={12} hideName />
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
-        {fields?.map(field => {
+        {fields?.map((field, index) => {
+          const pin =
+            logsPinning && index === fields.length - 1 ? (
+              <LogPinButton
+                aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
+                icon={
+                  <IconPin isSolid={isPinned} variant={isPinned ? 'accent' : 'primary'} />
+                }
+                isPinned={isPinned}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  logsPinning.togglePinnedRow(rowId);
+                }}
+                size="xs"
+                variant="transparent"
+              />
+            ) : null;
+
+          const shouldRenderActions =
+            (showCellActions ?? !embedded) && shouldRenderHoverElements;
+
           const value = (dataRow as OurLogsResponseItem)[field];
 
+          const extraMenuItems =
+            field === OurLogKnownFieldKey.MESSAGE
+              ? getExploreSimilarSpansMenuItems({
+                  message: value,
+                  organization,
+                  selection,
+                  showExploreSimilarSpansLink,
+                })
+              : undefined;
+
           if (!defined(value)) {
-            return <LogTableBodyCell key={field} />;
+            return (
+              <LogTableBodyCell key={field}>
+                {shouldRenderActions ? (
+                  <Flex position="relative" height="100%" width="100%" justify="end">
+                    {pin}
+                  </Flex>
+                ) : null}
+              </LogTableBodyCell>
+            );
           }
 
           const renderedField = (
@@ -459,18 +510,6 @@ export const LogRowContent = memo(function LogRowContent({
             isSortable: true,
             type: FieldValueType.STRING,
           };
-
-          const shouldRenderActions =
-            (showCellActions ?? !embedded) && shouldRenderHoverElements;
-          const extraMenuItems =
-            field === OurLogKnownFieldKey.MESSAGE
-              ? getExploreSimilarSpansMenuItems({
-                  message: value,
-                  organization,
-                  selection,
-                  showExploreSimilarSpansLink,
-                })
-              : undefined;
 
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
@@ -519,6 +558,7 @@ export const LogRowContent = memo(function LogRowContent({
                   }}
                   allowActions={ALLOWED_CELL_ACTIONS}
                   extraMenuItems={extraMenuItems}
+                  pin={pin}
                   triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
@@ -557,6 +597,7 @@ function LogRowDetails({
   ref: React.RefObject<HTMLTableRowElement | null>;
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
@@ -578,6 +619,9 @@ function LogRowDetails({
     logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
+    timestamp: isRegularLogResponseItem(dataRow)
+      ? getLogRowTimestampMillis(dataRow) / 1000
+      : null,
     enabled: !missingLogId && !isPseudoRow,
   });
 
@@ -633,6 +677,7 @@ function LogRowDetails({
                       logColors,
                       wrapBody: true,
                       location,
+                      navigate,
                       organization,
                       caseSensitiveHighlighting: !caseInsensitivity,
                       projectSlug,
@@ -660,6 +705,7 @@ function LogRowDetails({
                     highlightTerms,
                     logColors,
                     location,
+                    navigate,
                     organization,
                     projectSlug,
                     attributes,

@@ -9,6 +9,7 @@ from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, Seer
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
     run_night_shift_for_org,
@@ -686,6 +687,8 @@ class TestRunNightShiftForOrgManualPath(TestCase):
         assert result == run_id
         run = SeerNightShiftRun.objects.get(id=run_id)
         assert run.organization_id == org.id
+        assert run.workflow_config is not None
+        assert run.workflow_config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE
         kwargs = mock_execute.call_args.kwargs
         assert kwargs["options"] == {
             "source": "manual",

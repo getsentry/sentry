@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectSeerPreferencesEndpointTest(APITestCase):
@@ -83,10 +84,12 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 204
 
         seer_repos = list(
-            SeerProjectRepository.objects.filter(project=self.project).select_related("repository")
+            SeerProjectRepository.objects.filter(
+                project_repository__project=self.project
+            ).select_related("project_repository__repository")
         )
         assert len(seer_repos) == 1
-        assert seer_repos[0].repository_id == self.repository.id
+        assert seer_repos[0].project_repository.repository_id == self.repository.id
         assert seer_repos[0].branch_name == "main"
         assert seer_repos[0].instructions == "test instructions"
 
@@ -107,7 +110,10 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         # Should fail with a 400 error for invalid request data
         assert response.status_code == 400
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     @patch(
         "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
@@ -145,7 +151,9 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         response = self.client.post(self.url, data=request_data)
 
         assert response.status_code == 204
-        seer_repos = list(SeerProjectRepository.objects.filter(project=self.project))
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(project_repository__project=self.project)
+        )
         assert len(seer_repos) == 1
         assert seer_repos[0].branch_name == ""
         assert seer_repos[0].instructions == ""
@@ -236,7 +244,10 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         # Should fail with a 400 error for invalid request data
         assert response.status_code == 400
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     @patch(
         "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
@@ -355,9 +366,11 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         response = self.client.post(self.url, data=request_data)
 
         assert response.status_code == 204
-        seer_repos = list(SeerProjectRepository.objects.filter(project=self.project))
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(project_repository__project=self.project)
+        )
         assert len(seer_repos) == 1
-        assert seer_repos[0].repository_id == repo.id
+        assert seer_repos[0].project_repository.repository_id == repo.id
 
     def test_post_rejects_repository_not_in_organization(self) -> None:
         """Test that POST fails when repository doesn't exist in the organization"""
@@ -378,7 +391,10 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     def test_post_rejects_repository_from_different_organization(self) -> None:
         """Test that POST fails when repository exists but belongs to a different organization"""
@@ -407,7 +423,10 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     def test_post_rejects_mismatched_organization_id_in_repository_data(self) -> None:
         """Test that POST fails when repository organization_id doesn't match project's org."""
@@ -430,7 +449,10 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     def test_post_rejects_mismatched_repo_name_or_owner(self) -> None:
         """Test that POST fails when repository name/owner don't match the database record."""
@@ -451,7 +473,10 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid repository"
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
 
     def test_post_rejects_unsupported_repo_provider(self) -> None:
         request_data = {
@@ -470,4 +495,75 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         response = self.client.post(self.url, data=request_data)
 
         assert response.status_code == 400
-        assert SeerProjectRepository.objects.filter(project=self.project).count() == 0
+        assert (
+            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
+            == 0
+        )
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_post_accepts_gitlab_repo_with_feature_flag(self) -> None:
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry-gitlab",
+            provider="integrations:gitlab",
+            external_id="789",
+            integration_id=456,
+        )
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "456",
+                    "provider": "integrations:gitlab",
+                    "owner": "getsentry",
+                    "name": "sentry-gitlab",
+                    "external_id": "789",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(
+                project_repository__project=self.project
+            ).select_related("project_repository__repository")
+        )
+        assert len(seer_repos) == 1
+        assert seer_repos[0].project_repository.repository_id == gitlab_repo.id
+
+    @with_feature("organizations:seer-gitlab-support")
+    def test_post_accepts_gitlab_bare_provider_with_feature_flag(self) -> None:
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry-gitlab",
+            provider="integrations:gitlab",
+            external_id="789",
+            integration_id=456,
+        )
+
+        request_data = {
+            "repositories": [
+                {
+                    "organization_id": self.org.id,
+                    "integration_id": "456",
+                    "provider": "gitlab",
+                    "owner": "getsentry",
+                    "name": "sentry-gitlab",
+                    "external_id": "789",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(
+                project_repository__project=self.project
+            ).select_related("project_repository__repository")
+        )
+        assert len(seer_repos) == 1
+        assert seer_repos[0].project_repository.repository_id == gitlab_repo.id

@@ -15,7 +15,7 @@ from sentry.users.services.user.service import user_service
 
 @control_silo_endpoint
 class UserOrganizationIntegrationsEndpoint(UserEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

@@ -3,9 +3,14 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -44,14 +49,10 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
-  const {
-    currentInputValueRef,
-    query,
-    committedQuery,
-    askSeerSuggestedQueryRef,
-    enableAISearch,
-    parseQuery,
-  } = useSearchQueryBuilder();
+  const {setRunId} = useAiQueryContext();
+  const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
@@ -72,10 +73,12 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     ?.join(' ')
     ?.trim();
 
-  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
-  } else if (queryDetails?.queryToUse) {
+  } else if (!inputValue && queryDetails?.queryToUse) {
     initialSeerQuery = queryDetails.queryToUse;
   }
 
@@ -177,8 +180,10 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery) => {
-      if (!result) return;
+    (result: AskSeerSearchQuery, runId?: number) => {
+      if (!result) {
+        return;
+      }
       const {
         query: queryToUse,
         sort,
@@ -278,6 +283,10 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.end = undefined;
       }
 
+      if (runId !== undefined) {
+        setRunId(runId);
+      }
+
       // Navigate with all params
       navigate(
         {...location, query: newQueryParams},
@@ -292,6 +301,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       onSearch,
       pageFilters.selection.datetime,
       organization,
+      setRunId,
     ]
   );
 

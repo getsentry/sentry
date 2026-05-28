@@ -181,7 +181,7 @@ export function TableView(props: TableViewProps) {
 
       if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
-        value = fieldRenderer(dataRow, {organization, location, theme});
+        value = fieldRenderer(dataRow, {navigate, organization, location, theme});
       }
 
       let target: any;
@@ -312,7 +312,7 @@ export function TableView(props: TableViewProps) {
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     const unit = tableData.meta.units?.[columnKey];
-    let cell = fieldRenderer(dataRow, {organization, location, unit, theme});
+    let cell = fieldRenderer(dataRow, {navigate, organization, location, unit, theme});
 
     const isTransactionsDataset =
       hasDatasetSelector(organization) &&

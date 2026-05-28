@@ -19,7 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface SeerDrawerProps {
   group: Group;
@@ -96,7 +96,7 @@ function useHandleCopyMarkdown({
       const markdown = getOrderedAutofixSections(aiAutofix.runState)
         .map(getAutofixArtifactFromSection)
         .filter(defined)
-        .map(artifactToMarkdown)
+        .map(artifact => artifactToMarkdown(artifact))
         .filter(defined)
         .join('\n\n');
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});

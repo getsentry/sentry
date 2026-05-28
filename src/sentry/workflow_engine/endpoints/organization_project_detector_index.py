@@ -37,7 +37,7 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationProjectDetectorPermission,)
 
     @extend_schema(

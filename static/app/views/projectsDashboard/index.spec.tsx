@@ -3,7 +3,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -11,8 +10,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as projectsActions from 'sentry/actionCreators/projects';
-import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import ProjectsDashboard from 'sentry/views/projectsDashboard';
@@ -52,19 +49,17 @@ describe('ProjectsDashboard', () => {
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    ProjectsStatsStore.reset();
     ProjectsStore.loadInitialData([]);
   });
 
   afterEach(() => {
     TeamStore.reset();
-    projectsActions._projectStatsToFetch.clear();
     MockApiClient.clearMockResponses();
   });
 
   describe('empty state', () => {
     it('renders with 1 project, with no first event', async () => {
-      const projects = [ProjectFixture({teams, firstEvent: null, stats: []})];
+      const projects = [ProjectFixture({teams, firstEvent: null})];
       ProjectsStore.loadInitialData(projects);
 
       const teamsWithOneProject = [TeamFixture({projects})];
@@ -80,7 +75,6 @@ describe('ProjectsDashboard', () => {
       expect(screen.getByText('My Teams')).toBeInTheDocument();
       expect(screen.getByText('Resources')).toBeInTheDocument();
       expect(await screen.findByTestId('badge-display-name')).toBeInTheDocument();
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
   });
 
@@ -93,7 +87,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
         ProjectFixture({
           id: '2',
@@ -101,7 +94,6 @@ describe('ProjectsDashboard', () => {
           teams: [teamA],
           isBookmarked: true,
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
 
@@ -111,7 +103,6 @@ describe('ProjectsDashboard', () => {
       render(<ProjectsDashboard />);
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
     it('renders only projects for my teams by default', async () => {
@@ -122,7 +113,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
 
@@ -134,7 +124,6 @@ describe('ProjectsDashboard', () => {
           teams: [],
           isBookmarked: true,
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ]);
       const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
@@ -155,7 +144,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
       teamA.projects = teamProjects;
@@ -166,7 +154,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project2',
           teams: [teamB],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
       teamB.projects = teamBProjects;
@@ -211,7 +198,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
       teamA.projects = teamAProjects;
@@ -223,7 +209,6 @@ describe('ProjectsDashboard', () => {
           name: 'project2',
           teams: [teamB],
           firstEvent: new Date().toISOString(),
-          stats: [],
           isMember: false,
         }),
       ];
@@ -264,7 +249,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
       teamA.projects = teamProjects;
@@ -276,7 +260,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project2',
           teams: [],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ]);
       const teamsWithTwoProjects = [
@@ -308,12 +291,10 @@ describe('ProjectsDashboard', () => {
           ProjectFixture({
             id: '1',
             slug: 'project1',
-            stats: [],
           }),
           ProjectFixture({
             id: '2',
             slug: 'project2',
-            stats: [],
           }),
         ],
       });
@@ -338,7 +319,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project1',
           teams: [teamC],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
         ProjectFixture({
           id: '2',
@@ -346,21 +326,18 @@ describe('ProjectsDashboard', () => {
           teams: [teamC],
           isBookmarked: true,
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
         ProjectFixture({
           id: '3',
           slug: 'project3',
           teams: [teamD],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
         ProjectFixture({
           id: '4',
           slug: 'project4',
           teams: [],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
 
@@ -396,7 +373,6 @@ describe('ProjectsDashboard', () => {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
         ProjectFixture({
           id: '2',
@@ -404,7 +380,6 @@ describe('ProjectsDashboard', () => {
           teams: [teamA],
           isBookmarked: true,
           firstEvent: new Date().toISOString(),
-          stats: [],
         }),
       ];
 
@@ -420,7 +395,6 @@ describe('ProjectsDashboard', () => {
       await waitFor(() => {
         expect(screen.queryByText('project1')).not.toBeInTheDocument();
       });
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
     it('renders bookmarked projects first in team list', async () => {
@@ -431,42 +405,36 @@ describe('ProjectsDashboard', () => {
           slug: 'm',
           teams: [teamA],
           isBookmarked: false,
-          stats: [],
         }),
         ProjectFixture({
           id: '12',
           slug: 'm-fave',
           teams: [teamA],
           isBookmarked: true,
-          stats: [],
         }),
         ProjectFixture({
           id: '13',
           slug: 'a-fave',
           teams: [teamA],
           isBookmarked: true,
-          stats: [],
         }),
         ProjectFixture({
           id: '14',
           slug: 'z-fave',
           teams: [teamA],
           isBookmarked: true,
-          stats: [],
         }),
         ProjectFixture({
           id: '15',
           slug: 'a',
           teams: [teamA],
           isBookmarked: false,
-          stats: [],
         }),
         ProjectFixture({
           id: '16',
           slug: 'z',
           teams: [teamA],
           isBookmarked: false,
-          stats: [],
         }),
       ];
 
@@ -476,15 +444,7 @@ describe('ProjectsDashboard', () => {
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
-        body: [
-          ProjectFixture({
-            teams,
-            stats: [
-              [1517281200, 2],
-              [1517310000, 1],
-            ],
-          }),
-        ],
+        body: [ProjectFixture({teams})],
       });
 
       render(<ProjectsDashboard />);
@@ -502,126 +462,6 @@ describe('ProjectsDashboard', () => {
       expect(within(projectName[3]!).getByText('a')).toBeInTheDocument();
       expect(within(projectName[4]!).getByText('m')).toBeInTheDocument();
       expect(within(projectName[5]!).getByText('z')).toBeInTheDocument();
-    });
-  });
-
-  describe('ProjectsStatsStore', () => {
-    const teamA = TeamFixture({slug: 'team1', isMember: true});
-    const projects = [
-      ProjectFixture({
-        id: '1',
-        slug: 'm',
-        teams,
-        isBookmarked: false,
-      }),
-      ProjectFixture({
-        id: '2',
-        slug: 'm-fave',
-        teams: [teamA],
-        isBookmarked: true,
-      }),
-      ProjectFixture({
-        id: '3',
-        slug: 'a-fave',
-        teams: [teamA],
-        isBookmarked: true,
-      }),
-      ProjectFixture({
-        id: '4',
-        slug: 'z-fave',
-        teams: [teamA],
-        isBookmarked: true,
-      }),
-      ProjectFixture({
-        id: '5',
-        slug: 'a',
-        teams: [teamA],
-        isBookmarked: false,
-      }),
-      ProjectFixture({
-        id: '6',
-        slug: 'z',
-        teams: [teamA],
-        isBookmarked: false,
-      }),
-    ];
-
-    beforeEach(() => {
-      const teamsWithStatTestProjects = [TeamFixture({projects})];
-      TeamStore.loadInitialData(teamsWithStatTestProjects);
-    });
-
-    it('uses ProjectsStatsStore to load stats', async () => {
-      ProjectsStore.loadInitialData(projects);
-
-      jest.useFakeTimers();
-      ProjectsStatsStore.onStatsLoadSuccess([
-        {...projects[0]!, stats: [[1517281200, 2]]},
-      ]);
-      const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
-      const mock = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/projects/`,
-        body: projects.map(project => ({
-          ...project,
-          stats: [
-            [1517281200, 2],
-            [1517310000, 1],
-          ],
-        })),
-      });
-
-      const {unmount} = render(<ProjectsDashboard />);
-
-      expect(loadStatsSpy).toHaveBeenCalledTimes(6);
-      expect(mock).not.toHaveBeenCalled();
-
-      const projectSummary = screen.getAllByTestId('summary-links');
-      // Has 5 Loading Cards because 1 project has been loaded in store already
-      expect(
-        within(projectSummary[0]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(
-        within(projectSummary[1]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(
-        within(projectSummary[2]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(
-        within(projectSummary[3]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-      expect(within(projectSummary[4]!).getByText('Errors: 2')).toBeInTheDocument();
-      expect(
-        within(projectSummary[5]!).getByTestId('loading-placeholder')
-      ).toBeInTheDocument();
-
-      // Advance timers so that batched request fires
-      act(() => jest.advanceTimersByTime(51));
-      expect(mock).toHaveBeenCalledTimes(1);
-      // query ids = 3, 2, 4 = bookmarked
-      // 1 - already loaded in store so shouldn't be in query
-      expect(mock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'id:3 id:2 id:4 id:5 id:6',
-          }),
-        })
-      );
-      jest.useRealTimers();
-
-      // All cards have loaded
-      await waitFor(() => {
-        expect(within(projectSummary[0]!).getByText('Errors: 3')).toBeInTheDocument();
-      });
-      expect(within(projectSummary[1]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[2]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[3]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[4]!).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[5]!).getByText('Errors: 3')).toBeInTheDocument();
-
-      // Resets store when it unmounts
-      unmount();
-      expect(ProjectsStatsStore.getAll()).toEqual({});
     });
   });
 });

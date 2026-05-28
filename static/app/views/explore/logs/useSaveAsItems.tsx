@@ -225,7 +225,7 @@ export function useSaveAsItems({
       key: 'add-to-dashboard',
       label: (
         <Feature
-          hookName="feature-disabled:dashboards-edit"
+          overrideName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
         >

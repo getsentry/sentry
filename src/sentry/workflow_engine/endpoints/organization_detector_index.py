@@ -21,6 +21,7 @@ from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, defau
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id_list
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -54,7 +55,6 @@ from sentry.workflow_engine.endpoints.utils.filters import (
     apply_filter,
     exclude_disallowed_metric_detectors,
 )
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id_list
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,

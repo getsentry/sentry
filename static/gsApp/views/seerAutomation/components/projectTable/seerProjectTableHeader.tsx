@@ -17,7 +17,6 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   useListItemCheckboxContext,
@@ -116,14 +115,12 @@ export function ProjectTableHeader({
     countSelected,
     isAllSelected,
     isAnySelected,
-    queryKeyRef,
+    endpointOptionsRef,
     selectAll,
     selectedIds,
   } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current
-    ? parseQueryKey(queryKeyRef.current).options
-    : undefined;
-  const rawQuery = queryOptions?.query?.query;
+  const endpointOptions = endpointOptionsRef.current;
+  const rawQuery = endpointOptions?.query?.query;
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const projectIds = useMemo(

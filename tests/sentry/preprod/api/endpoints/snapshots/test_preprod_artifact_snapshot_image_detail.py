@@ -147,7 +147,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head["height"] == 200
         assert head["diff_threshold"] == 0.01
         assert head["description"] == "An alert component"
-        assert head["tags"] == ["dark"]
+        assert head["tags"] == {"dark": "dark"}
         assert "image_url" in head
         assert (
             head["image_url"]

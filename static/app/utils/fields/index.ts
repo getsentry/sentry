@@ -2700,11 +2700,20 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
-  approval_status: {
-    desc: t('Approval status of the snapshot comparison'),
+  snapshot_status: {
+    desc: t('Status of the snapshot in the comparison pipeline'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    values: ['approved', 'auto_approved', 'requires_approval'],
+    values: [
+      'approved',
+      'auto_approved',
+      'base',
+      'failed',
+      'no_base',
+      'pending',
+      'processing',
+      'requires_approval',
+    ],
   },
 };
 

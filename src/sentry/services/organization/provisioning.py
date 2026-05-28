@@ -45,11 +45,21 @@ class OrganizationProvisioningService:
 
         return cell_name
 
-    def _control_based_provisioning(
+    def provision_organization_in_cell(
         self,
         provisioning_options: OrganizationProvisioningOptions,
         cell_name: str,
     ) -> RpcOrganization:
+        """
+        Creates a new Organization in the destination cell. If called from a
+        cell silo without a cell_name, the local cell name will be used.
+
+        :param provisioning_options: A provisioning payload containing all the necessary
+        data to fully provision an organization within the cell.
+
+        :param cell_name: The cell to provision the organization in
+        :return: RpcOrganization of the newly created org
+        """
         from sentry.hybridcloud.services.control_organization_provisioning import (
             RpcOrganizationSlugReservation,
             control_organization_provisioning_rpc_service,
@@ -62,34 +72,25 @@ class OrganizationProvisioningService:
         )
 
         rpc_org = organization_service.get(id=rpc_org_slug_reservation.organization_id)
-
         if rpc_org is None:
             raise OrganizationProvisioningException("Provisioned organization was not found")
 
         return rpc_org
 
-    def provision_organization_in_cell(
+    def change_organization_slug(
         self,
-        provisioning_options: OrganizationProvisioningOptions,
-        cell_name: str | None = None,
-    ) -> RpcOrganization:
+        organization_id: int,
+        slug: str,
+    ) -> None:
         """
-        Creates a new Organization in the destination cell. If called from a
-        cell silo without a cell_name, the local cell name will be used.
+        Updates an organization with the given slug if available.
 
-        :param provisioning_options: A provisioning payload containing all the necessary
-        data to fully provision an organization within the cell.
-
-        :param cell_name: The cell to provision the organization in
-        :return: RpcOrganization of the newly created org
+         This is currently database backed, but will be switched to be
+         RPC based in the near future.
+        :param organization_id: the ID of the organization whose slug to change
+        :param slug: The desired slug for the organization
+        :return:
         """
-
-        destination_cell_name = self._validate_or_default_cell(cell_name=cell_name)
-        return self._control_based_provisioning(
-            provisioning_options=provisioning_options, cell_name=destination_cell_name
-        )
-
-    def _control_based_slug_change(self, organization_id: int, slug: str) -> None:
         destination_cell_name = self._validate_or_default_cell(cell_name=None)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
@@ -111,23 +112,6 @@ class OrganizationProvisioningService:
             raise OrganizationProvisioningException(
                 "Organization not found despite slug change succeeding"
             )
-
-    def change_organization_slug(
-        self,
-        organization_id: int,
-        slug: str,
-    ) -> None:
-        """
-        Updates an organization with the given slug if available.
-
-         This is currently database backed, but will be switched to be
-         RPC based in the near future.
-        :param organization_id: the ID of the organization whose slug to change
-        :param slug: The desired slug for the organization
-        :return:
-        """
-
-        self._control_based_slug_change(organization_id=organization_id, slug=slug)
 
     def bulk_create_organization_slugs(self, slug_mapping: dict[int, str]) -> None:
         """
@@ -159,23 +143,24 @@ class OrganizationProvisioningService:
 organization_provisioning_service = OrganizationProvisioningService()
 
 
-def handle_organization_provisioning_outbox_payload(
-    *,
-    organization_id: int,
-    cell_name: str,
-    provisioning_payload: OrganizationProvisioningOptions,
+@receiver(process_control_outbox, sender=OutboxCategory.PROVISION_ORGANIZATION)
+def process_provision_organization_outbox(
+    object_identifier: int, cell_name: str, payload: Any, **kwds: Any
 ):
     """
-    CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
-    DO NOT USE THIS FOR LOCAL PROVISIONING.
+    Outbox handler for PROVISION_ORGANIZATION
 
-    Method for handling a provisioning payload
-    :param organization_id: The desired ID for the organization
-    :param cell_name: The cell to provision the organization in
-    :param provisioning_payload: The organization data used to provision the org
-    :return:
+    Commits the slug reservation to the control database, and then uses RPC
+    to create the organization in the target cell.
     """
+    try:
+        provisioning_payload = OrganizationProvisioningOptions.parse_obj(payload)
+    except ValidationError as e:
+        # The provisioning payload is likely malformed and cannot be processed.
+        capture_exception(e)
+        return
 
+    organization_id = object_identifier
     org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
         organization_id=organization_id, slug=provisioning_payload.provision_options.slug
     )
@@ -205,24 +190,6 @@ def handle_organization_provisioning_outbox_payload(
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             org_slug_reservation.delete()
         return
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.PROVISION_ORGANIZATION)
-def process_provision_organization_outbox(
-    object_identifier: int, cell_name: str, payload: Any, **kwds: Any
-):
-    try:
-        provision_payload = OrganizationProvisioningOptions.parse_obj(payload)
-    except ValidationError as e:
-        # The provisioning payload is likely malformed and cannot be processed.
-        capture_exception(e)
-        return
-
-    handle_organization_provisioning_outbox_payload(
-        organization_id=object_identifier,
-        cell_name=cell_name,
-        provisioning_payload=provision_payload,
-    )
 
 
 def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservation_id: int):

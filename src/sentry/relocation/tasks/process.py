@@ -63,7 +63,9 @@ from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
 )
-from sentry.relocation.tasks.transfer import process_relocation_transfer_region
+from sentry.relocation.services.relocation_export.service import (
+    control_relocation_export_service,
+)
 from sentry.relocation.utils import (
     TASK_TO_STEP,
     LoggingPrinter,
@@ -247,9 +249,6 @@ def uploading_start(uuid: str, replying_cell_name: str | None, org_slug: str | N
         with the `Relocation` that originally triggered `uploading_start`, and the next task in the
         sequence (`uploading_complete`) is scheduled.
     """
-    from sentry.relocation.services.relocation_export.service import (
-        control_relocation_export_service,
-    )
 
     uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
@@ -320,7 +319,7 @@ def fulfill_cross_region_export_request(
     requesting_cell_name: str,
     replying_cell_name: str,
     org_slug: str,
-    encrypt_with_public_key: str,
+    encrypt_with_public_key: bytes | str,
     # Unix timestamp, in seconds.
     scheduled_at: int,
 ) -> None:
@@ -333,7 +332,13 @@ def fulfill_cross_region_export_request(
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
-    encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
+    from sentry.relocation.tasks.transfer import process_relocation_transfer_region
+
+    # Handle both bytes (new) and base64 string (legacy)
+    if isinstance(encrypt_with_public_key, str):
+        encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
+    else:
+        encrypt_with_public_key_bytes = encrypt_with_public_key
 
     logger_data = {
         "uuid": uuid_str,
@@ -966,11 +971,11 @@ class NextTask:
     the task to be scheduled at some later point in the execution.
     """
 
-    task: Task
+    task: Task[..., Any]
     args: list[Any]
     countdown: int | None = None
 
-    def schedule(self):
+    def schedule(self) -> None:
         """
         Run the `.apply_async()` call defined by this future.
         """
@@ -1121,7 +1126,7 @@ def validating_start(uuid: str) -> None:
     ):
         cb_client = CloudBuildClient()
 
-        def camel_to_snake_keep_underscores(value):
+        def camel_to_snake_keep_underscores(value: str) -> str:
             match = re.search(r"(_++)$", value)
             converted = camel_to_snake_case(value)
             return converted + (match.group(0) if match else "")
@@ -1703,11 +1708,11 @@ def completed(uuid: str) -> None:
     processing_deadline_duration=FAST_TIME_LIMIT,
     silo_mode=SiloMode.CELL,
 )
-def noop():
+def noop() -> None:
     pass
 
 
-TASK_MAP: dict[OrderedTask, Task] = {
+TASK_MAP: dict[OrderedTask, Task[..., Any]] = {
     OrderedTask.NONE: noop,
     OrderedTask.UPLOADING_START: uploading_start,
     OrderedTask.UPLOADING_COMPLETE: uploading_complete,
@@ -1730,7 +1735,7 @@ TASK_MAP: dict[OrderedTask, Task] = {
 assert set(OrderedTask._member_map_.keys()) == {k.name for k in TASK_MAP.keys()}
 
 
-def get_first_task_for_step(target_step: Relocation.Step) -> Task | None:
+def get_first_task_for_step(target_step: Relocation.Step) -> Task[..., Any] | None:
     min_task: OrderedTask | None = None
     for ordered_task, step in TASK_TO_STEP.items():
         if step == target_step:

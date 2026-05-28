@@ -84,13 +84,18 @@ x-sentry-service-config:
         repo_name: chartcuterie
         branch: master
         repo_link: https://github.com/getsentry/chartcuterie.git
-    taskbroker:
+    taskbroker: &taskbroker
       description: Service used to process asynchronous tasks
       remote:
         repo_name: taskbroker
         branch: main
         repo_link: https://github.com/getsentry/taskbroker.git
         mode: containerized
+    # ingest-profiles runs taskbroker in passthrough mode (STREAM-1041). Ideally
+    # this would be a remote dependency like taskbroker, but devservices doesn't
+    # support passing custom environment variables to remote services (DI-1956).
+    ingest-profiles:
+      description: Kafka consumer for processing profiling data via taskbroker passthrough mode
     memcached:
       description: Memcached used for caching
     spotlight:
@@ -102,6 +107,13 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/objectstore.git
         mode: containerized
+    synapse:
+      description: Cell routing services (proxy + ingest-router)
+      remote:
+        repo_name: synapse
+        branch: main
+        repo_link: https://github.com/getsentry/synapse.git
+        mode: default
     #########################################################
     # Supervisor Programs
     #########################################################
@@ -118,6 +130,8 @@ x-sentry-service-config:
       description: Dedicated taskworker for eval Relay project config tasks
     taskworker-scheduler:
       description: Task scheduler that can spawn tasks based on their schedules
+    taskworker-ingest-profiles:
+      description: Taskworker for ingest-profiles passthrough broker
     # Kafka consumer services for event ingestion
     ingest-events:
       description: Kafka consumer for processing ingested events
@@ -127,8 +141,6 @@ x-sentry-service-config:
       description: Kafka consumer for processing ingested transactions
     ingest-monitors:
       description: Kafka consumer for processing monitor check-ins
-    ingest-profiles:
-      description: Kafka consumer for processing profiling data
     ingest-occurrences:
       description: Kafka consumer for processing issue occurrences
     ingest-feedback-events:
@@ -234,6 +246,7 @@ x-sentry-service-config:
         ingest-occurrences,
         taskbroker,
         taskworker,
+        taskworker-ingest-profiles,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
       ]
@@ -281,6 +294,7 @@ x-sentry-service-config:
         post-process-forwarder-errors,
       ]
     minimal: [postgres, snuba]
+    cell-routing: [postgres, snuba, relay, spotlight, objectstore, synapse]
     # The minimal set of services Symbolicator needs to run
     # Sentry integration tests.
     symbolicator-tests: [postgres, snuba, objectstore]
@@ -325,6 +339,7 @@ x-sentry-service-config:
         spotlight,
         taskbroker,
         taskworker,
+        taskworker-ingest-profiles,
         vroom,
       ]
     full:
@@ -359,6 +374,7 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
         taskbroker,
         taskworker,
+        taskworker-ingest-profiles,
         taskworker-scheduler,
       ]
 
@@ -377,6 +393,8 @@ x-programs:
     command: sentry run taskworker --namespace relay --concurrency 1 --processing-pool-name eval-relay
   taskworker-scheduler:
     command: sentry run taskworker-scheduler
+  taskworker-ingest-profiles:
+    command: sentry run taskworker --rpc-host localhost:50052 --namespace ingest.profiling.passthrough
   ingest-events:
     command: sentry run consumer ingest-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   ingest-attachments:
@@ -391,8 +409,6 @@ x-programs:
     command: sentry run consumer monitors-clock-tasks --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   monitors-incident-occurrences:
     command: sentry run consumer monitors-incident-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  ingest-profiles:
-    command: sentry run consumer ingest-profiles --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   ingest-occurrences:
     command: sentry run consumer ingest-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   process-spans:
@@ -475,6 +491,32 @@ services:
       - devservices
     labels:
       - orchestrator=devservices
+  # Taskbroker in passthrough mode for ingest-profiles topic (STREAM-1041).
+  # This is a local service rather than a remote dependency because devservices
+  # doesn't support passing custom environment variables to remote services (DI-1956).
+  ingest-profiles:
+    image: ghcr.io/getsentry/taskbroker:nightly
+    environment:
+      TASKBROKER_KAFKA_CLUSTER: 'kafka-kafka-1:9093'
+      TASKBROKER_KAFKA_TOPIC: 'profiles'
+      TASKBROKER_KAFKA_CONSUMER_GROUP: 'ingest-profiles'
+      TASKBROKER_CREATE_MISSING_TOPICS: 'true'
+      TASKBROKER_RAW_MODE: 'true'
+      TASKBROKER_RAW_NAMESPACE: 'ingest.profiling.passthrough'
+      TASKBROKER_RAW_APPLICATION: 'sentry'
+      TASKBROKER_RAW_TASKNAME: 'sentry.profiles.task.process_profile_from_kafka'
+      # TODO(STREAM-1041): Remove debug logging once passthrough mode is stable
+      TASKBROKER_LOG_FILTER: 'debug'
+    ports:
+      - '127.0.0.1:50052:50051'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    labels:
+      - orchestrator=devservices
+    restart: unless-stopped
+    platform: linux/amd64
 
 networks:
   devservices:
