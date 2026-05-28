@@ -26,9 +26,11 @@ from sentry.workflow_engine.models.workflow import Workflow
 
 logger = logging.getLogger(__name__)
 
-# TODO(api-write-scope-compat): Remove legacy org:write support for
+# System-created detectors (error, performance, issue-stream types) require org:write
+# because they are platform-managed and should not be editable by members with only alerts:write.
+# TODO(api-write-scope-compat): Remove legacy org:write support for user-created
 # detector edits once public detector clients have migrated to alerts:write.
-SYSTEM_CREATED_DETECTOR_EDIT_SCOPES = frozenset({"org:write", "alerts:write"})
+SYSTEM_CREATED_DETECTOR_EDIT_SCOPES = frozenset({"org:write"})
 USER_CREATED_DETECTOR_EDIT_SCOPES = frozenset({"org:write", "alerts:write"})
 
 
