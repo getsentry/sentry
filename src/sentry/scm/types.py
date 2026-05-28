@@ -52,7 +52,7 @@ class SubscriptionEvent(TypedDict):
     investigating the target integrations webhook.py file.
     """
 
-    sentry_meta: list["SubscriptionEventSentryMeta"]
+    sentry_meta: list["SubscriptionEventSentryMeta"] | None
     """
     If the event is opportunistically associated with internal Sentry metadata then that metadata
     is specified here. If this data is not present your process will need to derive it from the
@@ -72,12 +72,12 @@ class SubscriptionEventSentryMeta(TypedDict):
     installation has been explicitly queried.
     """
 
-    integration_id: int
+    integration_id: int | None
     """
     "Integration" model identifier.
     """
 
-    organization_id: int
+    organization_id: int | None
     """
     "Organization" model identifier.
     """
