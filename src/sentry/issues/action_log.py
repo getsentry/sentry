@@ -188,13 +188,21 @@ def publish_action_from_context(
 ) -> None:
     ctx = get_action_context()
     if ctx is None:
-        return
+        logger.error(
+            "publish_action_from_context called without ActionContext",
+            extra={"action": action, "group_id": group_id},
+        )
+        source = "unknown"
+        actor_id = None
+    else:
+        source = ctx.source
+        actor_id = ctx.actor_id
     publish_action(
         action=action,
-        source=ctx.source,
+        source=source,
         group_id=group_id,
         organization_id=organization_id,
         project_id=project_id,
-        actor_id=ctx.actor_id,
+        actor_id=actor_id,
         metadata=metadata,
     )
