@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import builtins
+from types import TracebackType
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -44,7 +46,7 @@ class _StorageRedis:
         self.values: dict[bytes, bytes] = {}
         self.zsets: dict[bytes, dict[bytes, float]] = {}
 
-    def pipeline(self, transaction: bool = False):
+    def pipeline(self, transaction: bool = False) -> _StoragePipeline:
         return _StoragePipeline(self)
 
     def sadd(self, key: bytes, *values: bytes | str) -> None:
@@ -62,7 +64,9 @@ class _StorageRedis:
     def smembers(self, key: bytes) -> builtins.set[bytes]:
         return self.sets.get(key, builtins.set())
 
-    def sscan(self, key: bytes, cursor: int = 0, count: int | None = None):
+    def sscan(
+        self, key: bytes, cursor: int = 0, count: int | None = None
+    ) -> tuple[int, list[bytes]]:
         values = sorted(self.sets.get(key, builtins.set()))
         page_size = count or len(values) or 1
         next_cursor = cursor + page_size
@@ -81,32 +85,37 @@ class _StorageRedis:
         start: int = 0,
         num: int | None = None,
         withscores: bool = False,
-    ):
-        values = [
+    ) -> list[bytes] | list[tuple[bytes, float]]:
+        values_with_scores = [
             (value, score)
             for value, score in self.zsets.get(key, {}).items()
             if min_score <= score <= max_score
         ]
-        values.sort(key=lambda item: item[1])
+        values_with_scores.sort(key=lambda item: item[1])
         if num is not None:
-            values = values[start : start + num]
+            values_with_scores = values_with_scores[start : start + num]
         else:
-            values = values[start:]
+            values_with_scores = values_with_scores[start:]
 
         if withscores:
-            return values
-        return [value for value, _ in values]
+            return values_with_scores
+        return [value for value, _ in values_with_scores]
 
 
 class _StoragePipeline:
     def __init__(self, client: _StorageRedis) -> None:
         self.client = client
-        self.commands: list[tuple[str, tuple[object, ...]]] = []
+        self.commands: list[tuple[str, tuple[Any, ...]]] = []
 
-    def __enter__(self):
+    def __enter__(self) -> _StoragePipeline:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         return None
 
     def smembers(self, key: bytes) -> None:
@@ -132,8 +141,8 @@ class _StoragePipeline:
     ) -> None:
         self.commands.append(("zrangebyscore", (key, min_score, max_score, start, num, withscores)))
 
-    def execute(self):
-        results = []
+    def execute(self) -> list[Any]:
+        results: list[Any] = []
         for command, args in self.commands:
             method = getattr(self.client, command)
             results.append(method(*args))
