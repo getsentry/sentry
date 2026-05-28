@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
-import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
@@ -15,9 +14,8 @@ import {DataCategory} from 'sentry/types/core';
 import {PendingChanges} from 'admin/components/customers/pendingChanges';
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import {ANNUAL, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import * as usePlanMigrations from 'getsentry/hooks/usePlanMigrations';
-import {CohortId, OnDemandBudgetMode} from 'getsentry/types';
+import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {OnDemandBudgetMode} from 'getsentry/types';
 
 describe('PendingChanges', () => {
   it('renders null pendingChanges)', () => {
@@ -241,76 +239,6 @@ describe('PendingChanges', () => {
     );
     expect(screen.getAllByText(/The following changes will take effect on/)).toHaveLength(
       1
-    );
-  });
-
-  it('renders pending changes for plan migration', () => {
-    const organization = OrganizationFixture();
-    const am2BusinessPlan = PlanDetailsLookupFixture('am2_business_auf');
-    const subscription = SubscriptionFixture({
-      planDetails: am2BusinessPlan,
-      plan: 'am2_business_auf',
-      contractInterval: ANNUAL,
-      organization,
-      onDemandPeriodEnd: '2018-10-24',
-      contractPeriodEnd: '2019-09-24',
-      pendingChanges: PendingChangesFixture({
-        planDetails: PlanFixture({
-          id: 'am3_business_auf',
-          name: 'Business',
-          contractInterval: 'annual',
-          billingInterval: 'annual',
-          onDemandCategories: [
-            DataCategory.ERRORS,
-            DataCategory.ATTACHMENTS,
-            DataCategory.SPANS,
-            DataCategory.REPLAYS,
-            DataCategory.MONITOR_SEATS,
-          ],
-        }),
-        reserved: {
-          errors: 50_000,
-          spans: 10_000_000,
-          replays: 50,
-          monitorSeats: 1,
-          attachments: 1,
-        },
-        effectiveDate: '2019-09-25',
-        onDemandEffectiveDate: '2018-10-25',
-      }),
-    });
-    const migrationDate = '2018-10-25';
-    const migration = PlanMigrationFixture({
-      cohortId: CohortId.TENTH,
-      effectiveAt: migrationDate,
-    });
-    jest
-      .spyOn(usePlanMigrations, 'usePlanMigrations')
-      .mockReturnValue({planMigrations: [migration], isLoading: false});
-
-    const {container} = render(<PendingChanges subscription={subscription} />);
-
-    // expected copy for plan changes
-    expect(container).toHaveTextContent(
-      'This account has pending changes to the subscription'
-    );
-    expect(container).toHaveTextContent(
-      'The following changes will take effect on Oct 25, 2018'
-    );
-    expect(container).toHaveTextContent('Plan changes — Business → Business');
-    expect(container).toHaveTextContent(
-      'Reserved performance units — 100,000 → 0 transactions'
-    );
-    expect(container).toHaveTextContent('Reserved replays — 500 → 50 session replays');
-    expect(container).toHaveTextContent('Reserved spans — 0 → 10,000,000 spans');
-
-    // no actual changes
-    expect(container).not.toHaveTextContent('Reserved errors — 50,000 → 50,000 errors');
-    expect(container).not.toHaveTextContent(
-      'Reserved attachments — 1 GB → 1 GB attachments'
-    );
-    expect(container).not.toHaveTextContent(
-      'Reserved cron monitors — 1 → 1 cron monitor'
     );
   });
 

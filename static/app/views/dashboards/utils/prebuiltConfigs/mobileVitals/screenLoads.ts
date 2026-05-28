@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   SCREEN_LOAD_CONDITION,
@@ -13,7 +13,7 @@ import {
 import {SCREEN_LOADS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
+const AVG_TTID_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-ttid-big-number',
   title: t('Average TTID'),
   description: '',
@@ -40,7 +40,7 @@ const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
+const AVG_TTFD_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-ttfd-big-number',
   title: t('Average TTFD'),
   description: '',
@@ -67,7 +67,7 @@ const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const TOTAL_COUNT_BIG_NUMBER_WIDGET: Widget = {
+const TOTAL_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'total-count-big-number',
   title: t('Total Count'),
   description: '',
@@ -94,7 +94,7 @@ const TOTAL_COUNT_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const AVG_TTID_LINE_WIDGET: Widget = {
+const AVG_TTID_LINE_WIDGET: PrebuiltWidget = {
   id: 'average-ttid-line',
   title: t('Average TTID'),
   description: '',
@@ -122,7 +122,7 @@ const AVG_TTID_LINE_WIDGET: Widget = {
   },
 };
 
-const AVG_TTFD_LINE_WIDGET: Widget = {
+const AVG_TTFD_LINE_WIDGET: PrebuiltWidget = {
   id: 'average-ttfd-line',
   title: t('Average TTFD'),
   description: '',
@@ -150,7 +150,7 @@ const AVG_TTFD_LINE_WIDGET: Widget = {
   },
 };
 
-const TOTAL_COUNT_LINE_WIDGET: Widget = {
+const TOTAL_COUNT_LINE_WIDGET: PrebuiltWidget = {
   id: 'total-count-line',
   title: t('Total Count'),
   description: '',
@@ -178,7 +178,7 @@ const TOTAL_COUNT_LINE_WIDGET: Widget = {
   },
 };
 
-const TTID_BAR_CHART_WIDGET: Widget = {
+const TTID_BAR_CHART_WIDGET: PrebuiltWidget = {
   id: 'ttid-device-class-bar',
   title: t('TTID by Device Class'),
   description: '',
@@ -206,7 +206,7 @@ const TTID_BAR_CHART_WIDGET: Widget = {
   },
 };
 
-const TTFD_BAR_CHART_WIDGET: Widget = {
+const TTFD_BAR_CHART_WIDGET: PrebuiltWidget = {
   id: 'ttfd-device-class-bar',
   title: t('TTFD by Device Class'),
   description: '',
@@ -234,7 +234,7 @@ const TTFD_BAR_CHART_WIDGET: Widget = {
   },
 };
 
-const SPAN_OPERATIONS_TABLE: Widget = {
+const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
   id: 'span-operations-table',
   title: t('Span Operations'),
   description: '',
@@ -283,19 +283,22 @@ const SPAN_OPERATIONS_TABLE: Widget = {
   },
 };
 
-const HEADER_ROW_WIDGETS: Widget[] = [
+const HEADER_ROW_WIDGETS: PrebuiltWidget[] = [
   AVG_TTID_BIG_NUMBER_WIDGET,
   AVG_TTFD_BIG_NUMBER_WIDGET,
   TOTAL_COUNT_BIG_NUMBER_WIDGET,
 ];
 
-const SECOND_ROW_WIDGETS: Widget[] = [
+const SECOND_ROW_WIDGETS: PrebuiltWidget[] = [
   AVG_TTID_LINE_WIDGET,
   AVG_TTFD_LINE_WIDGET,
   TOTAL_COUNT_LINE_WIDGET,
 ];
 
-const THIRD_ROW_WIDGETS: Widget[] = [TTID_BAR_CHART_WIDGET, TTFD_BAR_CHART_WIDGET];
+const THIRD_ROW_WIDGETS: PrebuiltWidget[] = [
+  TTID_BAR_CHART_WIDGET,
+  TTFD_BAR_CHART_WIDGET,
+];
 
 export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',

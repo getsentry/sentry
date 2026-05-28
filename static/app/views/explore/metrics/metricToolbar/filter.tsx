@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -52,7 +52,7 @@ function MetricsSearchBar({
   tracesItemSearchQueryBuilderProps,
   traceMetric,
 }: MetricsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <MetricsTabSeerComboBox traceMetric={traceMetric} />;
