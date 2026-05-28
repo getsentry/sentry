@@ -150,12 +150,7 @@ export function EventDetailsContent({
       )}
       {event.userReport && (
         <FoldSection title={t('User Feedback')} sectionKey={SectionKey.USER_FEEDBACK}>
-          <EventUserFeedback
-            report={event.userReport}
-            orgSlug={organization.slug}
-            issueId={group.id}
-            showEventLink={false}
-          />
+          <EventUserFeedback report={event.userReport} />
         </FoldSection>
       )}
       {(event.contexts?.metric_alert?.alert_rule_id ||

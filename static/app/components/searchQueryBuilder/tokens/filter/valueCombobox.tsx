@@ -17,7 +17,11 @@ import {
 } from 'sentry/components/searchBar/types';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
 import {
   SearchQueryBuilderCombobox,
@@ -360,7 +364,7 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
-  const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
+  const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilderConfig();
   const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
   const valueType = getFilterValueType(token, fieldDefinition);
@@ -516,7 +520,7 @@ function ItemCheckbox({
   value: string;
 }) {
   const {ctrlKeyPressed, selectedValueMap, token} = useValueComboboxContext();
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
   const selected = selectedValueMap.get(value) ?? false;
 
   return (
@@ -618,16 +622,16 @@ export function SearchQueryBuilderValueCombobox({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
+  const {dispatch} = useSearchQueryBuilderState();
   const {
     getFieldDefinition,
     getSuggestedFilterKey,
     filterKeys,
-    dispatch,
     searchSource,
     recentSearches,
     disallowWildcard,
-    wrapperRef: topLevelWrapperRef,
-  } = useSearchQueryBuilder();
+  } = useSearchQueryBuilderConfig();
+  const {wrapperRef: topLevelWrapperRef} = useSearchQueryBuilderLayout();
   const keyName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(keyName);
   const canSelectMultipleValues = tokenSupportsMultipleValues(

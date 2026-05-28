@@ -1,7 +1,7 @@
 import logging
 import random
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from sentry import options
 from sentry.options import register
@@ -18,6 +18,8 @@ from sentry.utils.types import Bool, Float, Sequence
 logger = logging.getLogger(__name__)
 
 TData = TypeVar("TData")
+
+SourceOfTruth = Literal["control", "experimental", "neither", "both"]
 
 
 class SafeRolloutComparator:
@@ -177,7 +179,7 @@ class SafeRolloutComparator:
         cls,
         *,
         callsite: str,
-        use_experimental_data: bool,
+        source_of_truth: SourceOfTruth,
         is_exact_match: bool,
         is_reasonable_match: bool | None,
         is_experimental_data_nullish: bool | None,
@@ -196,7 +198,7 @@ class SafeRolloutComparator:
             extra={
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
-                "source_of_truth": ("experimental" if use_experimental_data else "control"),
+                "source_of_truth": source_of_truth,
                 "exact_match": is_exact_match,
                 "reasonable_match": is_reasonable_match,
                 "is_null_result": is_experimental_data_nullish,
@@ -251,26 +253,31 @@ class SafeRolloutComparator:
         return use_experimental_data
 
     @classmethod
-    def check_and_choose(
+    def compare(
         cls,
         control_data: TData,
         experimental_data: TData,
         callsite: str,
+        source_of_truth: SourceOfTruth = "neither",
         is_experimental_data_nullish: bool | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
-    ) -> TData:
+    ) -> None:
         """
-        This function does two things:
-        - First, it compares control & experimental data and logs info to DataDog.
-        - Second, it determines which of the inputs should be returned & used downstream.
+        Compare control & experimental data, emit metrics, and log mismatches. Use this directly
+        (rather than `check_and_choose`) if you don't need help determining which data to use
+        downstream - e.g. if you won't be using either branch's data, or if you'll be using both.
 
         Inputs:
         * control_data: Some data from the control branch (e.g. dict[str, str])
         * experimental_data: Some data from the experimental branch (of same type as control)
         * callsite: A unique string identifying place that uses this class. Should be the same as
             what's passed to `should_check_experiment`.
+        * source_of_truth: Which branch's data the caller will actually use downstream. Defaults to
+            "neither" (the typical direct-call case). `check_and_choose` passes "control" or
+            "experimental" based on the use-experimental-data allowlist; callers using both branches
+            should pass "both".
         * is_experimental_data_nullish: Whether the result is a "null result" (e.g. empty array).
             This helps to determine whether a "match" is significant.
         * reasonable_match_comparator: Optional predicate for semantic correctness, returning True
@@ -281,16 +288,14 @@ class SafeRolloutComparator:
         * data_serializer: Optional serializer for control/experimental payloads in logs. Defaults
             to `_default_serialize_for_log`.
         """
-        use_experimental_data = cls.should_use_experimental_data(callsite)
         is_exact_match = control_data == experimental_data
         is_reasonable_match: bool | None = None
 
-        # Part 1: Compare results, log debug info, and emit metrics
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
             "exact_match": str(is_exact_match),
-            "source_of_truth": ("experimental" if use_experimental_data else "control"),
+            "source_of_truth": source_of_truth,
         }
 
         if is_experimental_data_nullish is not None:
@@ -317,7 +322,7 @@ class SafeRolloutComparator:
             try:
                 cls._maybe_log_mismatch(
                     callsite=callsite,
-                    use_experimental_data=use_experimental_data,
+                    source_of_truth=source_of_truth,
                     is_exact_match=is_exact_match,
                     is_reasonable_match=is_reasonable_match,
                     is_experimental_data_nullish=is_experimental_data_nullish,
@@ -332,12 +337,41 @@ class SafeRolloutComparator:
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
 
-        metrics.incr(
-            "SafeRolloutComparator.check_and_choose",
-            tags=tags,
-        )
+        # TODO: This shim is only used in `EAPOccurrencesComparator`. Once that's deleted, this
+        # check can go away and we can standardize on emitting just the `compare` metric.
+        if getattr(cls, "use_legacy_comparison_metric_name", None):
+            metrics.incr("SafeRolloutComparator.check_and_choose", tags=tags)
+        else:
+            metrics.incr("SafeRolloutComparator.compare", tags=tags)
 
-        # Part 2: determine which data to return
+    @classmethod
+    def check_and_choose(
+        cls,
+        control_data: TData,
+        experimental_data: TData,
+        callsite: str,
+        is_experimental_data_nullish: bool | None = None,
+        reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
+        debug_context: dict[str, Any] | None = None,
+        data_serializer: Callable[[TData], Any] | None = None,
+    ) -> TData:
+        """
+        Compare control & experimental data (via `compare`), then return whichever branch should be
+        used downstream based on the use-experimental-data allowlist.
+
+        See `compare` for parameter documentation.
+        """
+        use_experimental_data = cls.should_use_experimental_data(callsite)
+        cls.compare(
+            control_data=control_data,
+            experimental_data=experimental_data,
+            callsite=callsite,
+            source_of_truth="experimental" if use_experimental_data else "control",
+            is_experimental_data_nullish=is_experimental_data_nullish,
+            reasonable_match_comparator=reasonable_match_comparator,
+            debug_context=debug_context,
+            data_serializer=data_serializer,
+        )
         return experimental_data if use_experimental_data else control_data
 
     @classmethod
