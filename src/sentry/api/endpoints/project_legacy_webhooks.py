@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -20,7 +21,10 @@ class LegacyWebhookUrlsSerializer(serializers.Serializer[None]):
 
     def validate_urls(self, value: list[str]) -> list[str]:
         for url in value:
-            _url_validator(url)
+            try:
+                _url_validator(url)
+            except DjangoValidationError:
+                raise serializers.ValidationError("Invalid URL format.")
             if not is_valid_url(url):
                 raise serializers.ValidationError("Not a valid URL.")
         return value
