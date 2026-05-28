@@ -276,7 +276,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             update["integration_id"] = handoff.integration_id
             update["auto_create_pr"] = handoff.auto_create_pr
         else:
+            update["agent"] = AutomationCodingAgent.SEER
             update["auto_create_pr"] = stopping_point == AutofixStoppingPoint.OPEN_PR
+
         update_seer_project_settings([project.id], update)
         preferences_set += 1
 
