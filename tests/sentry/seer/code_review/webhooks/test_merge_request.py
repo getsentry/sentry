@@ -94,7 +94,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/code_review/review-request"
+        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_close_uses_pr_closed_endpoint(self) -> None:
@@ -106,7 +106,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_merge_uses_pr_closed_endpoint(self) -> None:
@@ -118,7 +118,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_update_uses_review_request_endpoint(self) -> None:
@@ -130,7 +130,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/code_review/review-request"
+        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_update_without_oldrev_is_skipped(self) -> None:

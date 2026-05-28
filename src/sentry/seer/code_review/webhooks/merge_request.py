@@ -238,11 +238,13 @@ def _schedule_task(
 ) -> None:
     payload = _build_payload(action, event, organization, repo, target_commit_sha)
 
+    # GitLab is not supported by the direct-PyGithub /v1/code_review/* endpoints;
+    # it must use the scm-platform RPC counterparts at /v1/scm_code_review/*.
     is_closed = action in CLOSE_ACTIONS
     seer_path = (
-        SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
+        SeerEndpoint.SCM_CODE_REVIEW_PR_CLOSED.value
         if is_closed
-        else SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
+        else SeerEndpoint.SCM_CODE_REVIEW_REVIEW_REQUEST.value
     )
 
     try:
