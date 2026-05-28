@@ -1064,7 +1064,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "organizations:workflow-engine-issue-alert-endpoints-post", project.organization
         ):
             try:
-                workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+                workflow = AlertRuleWorkflow.objects.get(
+                    rule_id=rule.id,
+                    workflow__organization=project.organization,
+                ).workflow
                 return Response(
                     serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
                     status=201,
