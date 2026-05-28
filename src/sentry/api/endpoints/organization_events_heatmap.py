@@ -25,16 +25,6 @@ MAX_BUCKETS = 1_000
 HEATMAP_DATASETS = {TraceMetrics}
 
 
-def _format_long_float(value: float) -> str:
-    # Python's default float-to-string uses scientific notation for very small
-    # values (e.g. 8.527e-06), which the search query parser does not support.
-    # Fixed-point with 20 decimal places produces a plain decimal string the parser can handle.
-    if "e" in str(value) or "E" in str(value):
-        return f"{value:.20f}".rstrip("0").rstrip(".")
-    else:
-        return str(value)
-
-
 class LimitTuple(NamedTuple):
     min_value: float
     max_value: float
@@ -92,6 +82,17 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             }
         }
     )
+
+    def _format_long_float(value: float) -> str:
+        """
+        Python's default float-to-string uses scientific notation for very small
+        values (e.g. 8.527e-06), which the search query parser does not support.
+        Fixed-point with 20 decimal places produces a plain decimal string the parser can handle.
+        """
+        if "e" in str(value) or "E" in str(value):
+            return f"{value:.20f}".rstrip("0").rstrip(".")
+        else:
+            return str(value)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -197,18 +198,18 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
 
                     if current_bucket == y_buckets - 1:
                         yAxes[lower_bound] = (
-                            f"{z_function}_if(`{yAxis}:>={_format_long_float(lower_bound)}`, {yAxis})"
+                            f"{z_function}_if(`{yAxis}:>={self._format_long_float(lower_bound)}`, {yAxis})"
                         )
                     else:
                         yAxes[lower_bound] = (
-                            f"{z_function}_if(`{yAxis}:>={_format_long_float(lower_bound)} AND {yAxis}:<{_format_long_float(upper_bound)}`, {yAxis})"
+                            f"{z_function}_if(`{yAxis}:>={self._format_long_float(lower_bound)} AND {yAxis}:<{self._format_long_float(upper_bound)}`, {yAxis})"
                         )
             else:
                 # if max == min, then just have 1 bucket
                 bucket_size = 0
                 y_buckets = 1
                 yAxes = {
-                    bucket_ranges.min_value: f"{z_function}_if(`{yAxis}:{_format_long_float(bucket_ranges.min_value)}`, {yAxis})"
+                    bucket_ranges.min_value: f"{z_function}_if(`{yAxis}:{self._format_long_float(bucket_ranges.min_value)}`, {yAxis})"
                 }
 
             result = dataset.run_timeseries_query(
