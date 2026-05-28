@@ -105,7 +105,7 @@ class RatelimitMiddleware:
     def process_view(
         self,
         request: HttpRequest,
-        view_func: Callable[..., HttpResponseBase],
+        view_func: EndpointFunction,
         view_args: list[Any],
         view_kwargs: dict[str, Any],
     ) -> HttpResponseBase | None:
@@ -146,7 +146,7 @@ class RatelimitMiddleware:
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
                 )
                 rate_limit_key = get_rate_limit_key(
-                    cast(EndpointFunction, view_func),
+                    view_func,
                     request,
                     rate_limit_group,
                     rate_limit_config,
