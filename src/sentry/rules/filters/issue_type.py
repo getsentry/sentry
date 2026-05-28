@@ -38,7 +38,7 @@ class IssueTypeForm(forms.Form):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.fields["value"].choices = list(get_type_choices().items())
+        self.fields["value"] = forms.ChoiceField(choices=list(get_type_choices().items()))
 
 
 class IssueTypeFilter(EventFilter):
