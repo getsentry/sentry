@@ -523,14 +523,17 @@ def _write_preferences_to_sentry_db(
         # (cache cannot be rolled back by the transaction).
         for project, pref in project_preferences:
             update = SeerProjectSettingsUpdate()
+
             if pref.automated_run_stopping_point is not None:
                 update["stopping_point"] = pref.automated_run_stopping_point
+
             if pref.automation_handoff is not None:
                 update["agent"] = AutomationCodingAgent(pref.automation_handoff.target)
                 update["integration_id"] = pref.automation_handoff.integration_id
                 update["auto_create_pr"] = pref.automation_handoff.auto_create_pr
             else:
                 update["agent"] = AutomationCodingAgent.SEER
+
             update_seer_project_settings([project.id], update)
 
 

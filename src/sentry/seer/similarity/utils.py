@@ -575,14 +575,15 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
 
     stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)
 
+    update = SeerProjectSettingsUpdate(stopping_point=stopping_point)
+    if automation_handoff is not None:
+        update["agent"] = AutomationCodingAgent(automation_handoff.target)
+        update["integration_id"] = automation_handoff.integration_id
+        update["auto_create_pr"] = automation_handoff.auto_create_pr
+    else:
+        update["auto_create_pr"] = stopping_point == AutofixStoppingPoint.OPEN_PR
+
     try:
-        update = SeerProjectSettingsUpdate(stopping_point=stopping_point)
-        if automation_handoff is not None:
-            update["agent"] = AutomationCodingAgent(automation_handoff.target)
-            update["integration_id"] = automation_handoff.integration_id
-            update["auto_create_pr"] = automation_handoff.auto_create_pr
-        else:
-            update["auto_create_pr"] = stopping_point == AutofixStoppingPoint.OPEN_PR
         update_seer_project_settings([project.id], update)
     except Exception as e:
         sentry_sdk.capture_exception(e)
