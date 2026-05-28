@@ -80,6 +80,8 @@ class SeerProjectSettingsResponse(TypedDict):
     agent: str
     integrationId: str | None
     stoppingPoint: str
+    autoCreatePr: bool | None
+    automationTuning: str
     scannerAutomation: bool
     reposCount: int
 
@@ -154,9 +156,11 @@ def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSe
         # No configured external handoff means use Seer agent.
         agent: str = "seer"
         integration_id: str | None = None
+        auto_create_pr: bool | None = None
     else:
         agent = handoff.target
         integration_id = str(handoff.integration_id)
+        auto_create_pr = handoff.auto_create_pr
 
     return SeerProjectSettingsResponse(
         projectId=str(project.id),
@@ -164,6 +168,8 @@ def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSe
         agent=agent,
         integrationId=integration_id,
         stoppingPoint=stopping_point,
+        autoCreatePr=auto_create_pr,
+        automationTuning=settings["automation_tuning"],
         scannerAutomation=settings["scanner_automation"],
         reposCount=settings["repos_count"],
     )
@@ -310,13 +316,14 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
 class ProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
     integration_id = serializers.IntegerField(required=False)
-    stopping_point = serializers.ChoiceField(choices=["off", *AutofixStoppingPoint], required=False)
+    stopping_point = serializers.ChoiceField(choices=[*AutofixStoppingPoint], required=False)
     scanner_automation = serializers.BooleanField(required=False)
+    automation_tuning = serializers.ChoiceField(
+        choices=[AutofixAutomationTuningSettings.OFF, AutofixAutomationTuningSettings.MEDIUM],
+        required=False,
+    )
 
     def validate_stopping_point(self, value: str) -> str:
-        if value == "off":
-            return value
-
         if value not in get_valid_automated_run_stopping_points(self.context["organization"]):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
@@ -346,9 +353,15 @@ class ProjectSettingsUpdateSerializer(CamelSnakeSerializer):
                     {"agent": "Must be an external coding agent when integrationId is provided."}
                 )
 
-        has_update = any(k in data for k in ("agent", "stopping_point", "scanner_automation"))
-        if not has_update:
+        if not any(
+            k in data
+            for k in ("agent", "stopping_point", "scanner_automation", "automation_tuning")
+        ):
             raise serializers.ValidationError("At least one update field must be provided.")
+
+        # Keep stopping point in sync with handoff auto_create_pr.
+        if "stopping_point" in data and "auto_create_pr" not in data:
+            data["auto_create_pr"] = data["stopping_point"] == AutofixStoppingPoint.OPEN_PR
 
         return data
 
