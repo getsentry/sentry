@@ -1629,9 +1629,9 @@ class TestUpdateSeerProjectSettings(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
 
     def test_agent_external_sets_handoff_options(self) -> None:
-        """Setting agent=cursor with integrationId should set handoff target, point, and integration ID."""
+        """Setting agent=cursor with integration_id should set handoff target, point, and integration ID."""
         update_seer_project_settings(
-            self.project, {"agent": AutomationCodingAgent.CURSOR, "integrationId": 99}
+            self.project, {"agent": AutomationCodingAgent.CURSOR, "integration_id": 99}
         )
 
         assert (
@@ -1645,31 +1645,31 @@ class TestUpdateSeerProjectSettings(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") == 99
 
     def test_agent_external_requires_integration_id(self) -> None:
-        """Setting an external agent without integrationId should raise ValueError."""
+        """Setting an external agent without integration_id should raise ValueError."""
         with pytest.raises(ValueError):
             update_seer_project_settings(self.project, {"agent": AutomationCodingAgent.CURSOR})
 
     def test_agent_external_with_open_pr_sets_auto_create_pr(self) -> None:
-        """External agent + stoppingPoint=open_pr should set auto_create_pr=True."""
+        """External agent + stopping_point=open_pr should set auto_create_pr=True."""
         update_seer_project_settings(
             self.project,
             {
                 "agent": AutomationCodingAgent.CURSOR,
-                "integrationId": 99,
-                "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
+                "integration_id": 99,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR,
             },
         )
 
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
     def test_agent_external_with_non_open_pr_does_not_set_auto_create_pr(self) -> None:
-        """External agent + stoppingPoint!=open_pr should not set auto_create_pr."""
+        """External agent + stopping_point!=open_pr should not set auto_create_pr."""
         update_seer_project_settings(
             self.project,
             {
                 "agent": AutomationCodingAgent.CURSOR,
-                "integrationId": 99,
-                "stoppingPoint": AutofixStoppingPoint.CODE_CHANGES,
+                "integration_id": 99,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES,
             },
         )
 
@@ -1683,7 +1683,7 @@ class TestUpdateSeerProjectSettings(TestCase):
         self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        update_seer_project_settings(self.project, {"stoppingPoint": "off"})
+        update_seer_project_settings(self.project, {"stopping_point": "off"})
 
         assert (
             self.project.get_option("sentry:autofix_automation_tuning")
@@ -1695,7 +1695,7 @@ class TestUpdateSeerProjectSettings(TestCase):
     def test_stopping_point_sets_tuning_medium_and_stores_value(self) -> None:
         """A non-off stoppingPoint should set tuning to MEDIUM and store the value."""
         update_seer_project_settings(
-            self.project, {"stoppingPoint": AutofixStoppingPoint.ROOT_CAUSE}
+            self.project, {"stopping_point": AutofixStoppingPoint.ROOT_CAUSE}
         )
 
         assert (
@@ -1715,7 +1715,7 @@ class TestUpdateSeerProjectSettings(TestCase):
         self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        update_seer_project_settings(self.project, {"scannerAutomation": False})
+        update_seer_project_settings(self.project, {"scanner_automation": False})
 
         assert (
             self.project.get_option("sentry:autofix_automation_tuning")
@@ -1725,7 +1725,7 @@ class TestUpdateSeerProjectSettings(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
     def test_stopping_point_non_open_pr_clears_auto_create_pr(self) -> None:
-        """Changing stoppingPoint away from open_pr should clear auto_create_pr."""
+        """Changing stopping_point away from open_pr should clear auto_create_pr."""
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
         self.project.update_option(
             "sentry:seer_automation_handoff_target",
@@ -1733,7 +1733,7 @@ class TestUpdateSeerProjectSettings(TestCase):
         )
 
         update_seer_project_settings(
-            self.project, {"stoppingPoint": AutofixStoppingPoint.CODE_CHANGES}
+            self.project, {"stopping_point": AutofixStoppingPoint.CODE_CHANGES}
         )
 
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
@@ -1743,13 +1743,13 @@ class TestUpdateSeerProjectSettings(TestCase):
 
     def test_stopping_point_open_pr_sets_auto_create_pr(self) -> None:
         """stoppingPoint=open_pr should set auto_create_pr, even if no handoff is configured."""
-        update_seer_project_settings(self.project, {"stoppingPoint": AutofixStoppingPoint.OPEN_PR})
+        update_seer_project_settings(self.project, {"stopping_point": AutofixStoppingPoint.OPEN_PR})
 
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
     def test_scanner_automation_false(self) -> None:
         """scannerAutomation=false should update the project option."""
-        update_seer_project_settings(self.project, {"scannerAutomation": False})
+        update_seer_project_settings(self.project, {"scanner_automation": False})
 
         assert self.project.get_option("sentry:seer_scanner_automation") is False
 
@@ -1760,7 +1760,7 @@ class TestUpdateSeerProjectSettings(TestCase):
             project=self.project, key="sentry:seer_scanner_automation"
         ).exists()
 
-        update_seer_project_settings(self.project, {"scannerAutomation": True})
+        update_seer_project_settings(self.project, {"scanner_automation": True})
 
         assert not ProjectOption.objects.filter(
             project=self.project, key="sentry:seer_scanner_automation"
@@ -1776,7 +1776,7 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
 
     def test_empty_projects(self) -> None:
         """Empty project list should be a no-op without errors."""
-        bulk_update_seer_project_settings([], {"scannerAutomation": False})
+        bulk_update_seer_project_settings([], {"scanner_automation": False})
 
     def test_sets_options(self) -> None:
         """All provided settings fields should be applied to every project."""
@@ -1784,9 +1784,9 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
             self.projects,
             {
                 "agent": AutomationCodingAgent.CURSOR,
-                "integrationId": 99,
-                "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
-                "scannerAutomation": False,
+                "integration_id": 99,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR,
+                "scanner_automation": False,
             },
         )
 
@@ -1835,7 +1835,7 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
         for project in self.projects:
             project.update_option("sentry:seer_scanner_automation", True)
 
-        bulk_update_seer_project_settings(self.projects, {"scannerAutomation": False})
+        bulk_update_seer_project_settings(self.projects, {"scanner_automation": False})
 
         for project in self.projects:
             assert project.get_option("sentry:seer_scanner_automation") is False
@@ -1853,7 +1853,7 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
 
         bulk_update_seer_project_settings(
             self.projects,
-            {"stoppingPoint": AutofixStoppingPoint(SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT)},
+            {"stopping_point": AutofixStoppingPoint(SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT)},
         )
 
         for project in self.projects:
@@ -1873,7 +1873,7 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
             )
             project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        bulk_update_seer_project_settings(self.projects, {"stoppingPoint": "off"})
+        bulk_update_seer_project_settings(self.projects, {"stopping_point": "off"})
 
         for project in self.projects:
             assert (
@@ -1895,7 +1895,7 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
 
         bulk_update_seer_project_settings(
             self.projects,
-            {"agent": AutomationCodingAgent.SEER, "scannerAutomation": False},
+            {"agent": AutomationCodingAgent.SEER, "scanner_automation": False},
         )
 
         for project in self.projects:
@@ -1915,7 +1915,7 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
             )
             project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        bulk_update_seer_project_settings(self.projects, {"scannerAutomation": False})
+        bulk_update_seer_project_settings(self.projects, {"scanner_automation": False})
 
         for project in self.projects:
             assert (

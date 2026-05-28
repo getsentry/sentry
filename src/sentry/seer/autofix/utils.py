@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
@@ -728,9 +728,9 @@ def bulk_read_preferences_from_sentry_db(
 
 class SeerProjectSettingsUpdate(TypedDict, total=False):
     agent: AutomationCodingAgent
-    integrationId: int
-    stoppingPoint: AutofixStoppingPoint | Literal["off"]
-    scannerAutomation: bool
+    integration_id: int
+    stopping_point: str
+    scanner_automation: bool
 
 
 def _get_seer_project_options_to_update(
@@ -756,19 +756,19 @@ def _get_seer_project_options_to_update(
                 "sentry:seer_automation_handoff_integration_id",
             ]
         else:
-            integration_id = data.get("integrationId")
+            integration_id = data.get("integration_id")
             if integration_id is None:
                 raise ValueError("integrationId is required for external coding agents")
             options_to_set["sentry:seer_automation_handoff_point"] = AutofixHandoffPoint.ROOT_CAUSE
             options_to_set["sentry:seer_automation_handoff_target"] = agent
             options_to_set["sentry:seer_automation_handoff_integration_id"] = integration_id
 
-    if "scannerAutomation" in data:
-        _set_or_clear("sentry:seer_scanner_automation", data["scannerAutomation"], default=True)
+    if "scanner_automation" in data:
+        _set_or_clear("sentry:seer_scanner_automation", data["scanner_automation"], default=True)
 
-    if "stoppingPoint" not in data:
+    if "stopping_point" not in data:
         return options_to_set, options_to_clear
-    elif data["stoppingPoint"] == "off":
+    elif data["stopping_point"] == "off":
         # Disable automation and leave stopping point and handoff_auto_create_pr unchanged
         # so that reenabling restores the prior state.
         _set_or_clear(
@@ -785,11 +785,11 @@ def _get_seer_project_options_to_update(
         )
         _set_or_clear(
             "sentry:seer_automated_run_stopping_point",
-            data["stoppingPoint"],
+            data["stopping_point"],
             default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
         )
 
-        if data["stoppingPoint"] == AutofixStoppingPoint.OPEN_PR:
+        if data["stopping_point"] == AutofixStoppingPoint.OPEN_PR:
             # Safe to set even if no external handoff is configured
             # since we'll only read it if the other handoff options are all non-null.
             options_to_set["sentry:seer_automation_handoff_auto_create_pr"] = True

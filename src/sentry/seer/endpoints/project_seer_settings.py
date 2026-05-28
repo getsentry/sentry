@@ -19,6 +19,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.event_search import QueryToken, SearchConfig, SearchFilter
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import (
     AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -307,22 +308,21 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     return queryset
 
 
-class ProjectSettingsUpdateSerializer(serializers.Serializer):
+class ProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
-    integrationId = serializers.IntegerField(required=False)
-    stoppingPoint = serializers.ChoiceField(choices=["off", *AutofixStoppingPoint], required=False)
-    scannerAutomation = serializers.BooleanField(required=False)
+    integration_id = serializers.IntegerField(required=False)
+    stopping_point = serializers.ChoiceField(choices=["off", *AutofixStoppingPoint], required=False)
+    scanner_automation = serializers.BooleanField(required=False)
 
-    def validate_stoppingPoint(self, value: str) -> str:
+    def validate_stopping_point(self, value: str) -> str:
         if value == "off":
             return value
 
-        organization = self.context["organization"]
-        if value not in get_valid_automated_run_stopping_points(organization):
+        if value not in get_valid_automated_run_stopping_points(self.context["organization"]):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
-    def validate_integrationId(self, value: int) -> int:
+    def validate_integration_id(self, value: int) -> int:
         organization = self.context["organization"]
         org_integrations = integration_service.get_organization_integrations(
             organization_id=organization.id, integration_id=value
@@ -332,12 +332,12 @@ class ProjectSettingsUpdateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        if "agent" in data and data["agent"] != "seer" and "integrationId" not in data:
+        if "agent" in data and data["agent"] != "seer" and "integration_id" not in data:
             raise serializers.ValidationError(
                 {"integrationId": "Required when agent is an external coding agent."}
             )
 
-        if "integrationId" in data:
+        if "integration_id" in data:
             if "agent" not in data:
                 raise serializers.ValidationError(
                     {"agent": "Required when integrationId is provided."}
@@ -347,7 +347,7 @@ class ProjectSettingsUpdateSerializer(serializers.Serializer):
                     {"agent": "Must be an external coding agent when integrationId is provided."}
                 )
 
-        has_update = any(k in data for k in ("agent", "stoppingPoint", "scannerAutomation"))
+        has_update = any(k in data for k in ("agent", "stopping_point", "scanner_automation"))
         if not has_update:
             raise serializers.ValidationError("At least one update field must be provided.")
 
@@ -373,20 +373,15 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        update_seer_project_settings(project, serializer.validated_data)
+        data = serializer.validated_data
+        update_seer_project_settings(project, data)
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={
-                "project_id": project.id,
-                "agent": serializer.validated_data.get("agent"),
-                "integration_id": serializer.validated_data.get("integrationId"),
-                "stopping_point": serializer.validated_data.get("stoppingPoint"),
-                "scanner_automation": serializer.validated_data.get("scannerAutomation"),
-            },
+            data={"project_id": project.id, **data},
         )
 
         return Response(serialize_project(project))
@@ -462,14 +457,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             organization=organization,
             target_object=organization.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={
-                "project_count": len(projects),
-                "project_ids": [p.id for p in projects],
-                "agent": data.get("agent"),
-                "integration_id": data.get("integrationId"),
-                "stopping_point": data.get("stoppingPoint"),
-                "scanner_automation": data.get("scannerAutomation"),
-            },
+            data={"project_count": len(projects), "project_ids": [p.id for p in projects], **data},
         )
 
         return Response(status=204)
