@@ -67,11 +67,6 @@ describe('Legacy Tier Checkout', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
@@ -194,11 +189,6 @@ describe('Default Tier Checkout', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,

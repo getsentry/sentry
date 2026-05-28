@@ -535,6 +535,7 @@ class UniversalImportExportService(ImportExportService):
                             # keep track of the new pk in the input map as well.
                             in_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             out_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
+                            item.normalize_before_relocation_export()
                             yield item
 
             def yield_objects():

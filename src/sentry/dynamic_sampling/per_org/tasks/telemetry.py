@@ -35,6 +35,7 @@ class DynamicSamplingStatus(StrEnum):
     NO_SUBSCRIPTION = "no_subscription"
     NO_ORG_VOLUME = "no_org_volume"
     NO_PROJECT_VOLUMES = "no_project_volumes"
+    NO_TRANSACTION_VOLUMES = "no_transaction_volumes"
     NOT_IN_ROLLOUT = "not_in_rollout"
     ORG_HAS_NO_DYNAMIC_SAMPLING = "org_has_no_dynamic_sampling"
     ORG_HAS_NO_PROJECTS = "org_has_no_projects"

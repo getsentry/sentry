@@ -681,9 +681,22 @@ class Project(Model):
                 .values_list("id", flat=True)
             )
 
-            Workflow.objects.filter(id__in=exclusive_workflow_ids).update(
-                organization_id=organization.id
+            # Update org and environment references for transferred workflows
+            workflows_with_env = dict(
+                Workflow.objects.filter(
+                    id__in=exclusive_workflow_ids, environment_id__isnull=False
+                ).values_list("id", "environment_id")
             )
+            for workflow_id, env_id in workflows_with_env.items():
+                Workflow.objects.filter(id=workflow_id).update(
+                    organization_id=organization.id,
+                    environment_id=Environment.get_or_create(
+                        self, name=environment_names.get(env_id)
+                    ).id,
+                )
+            Workflow.objects.filter(id__in=exclusive_workflow_ids).exclude(
+                id__in=workflows_with_env.keys()
+            ).update(organization_id=organization.id)
 
             # Update DataConditionGroups connected to the transferred workflows
             # These are linked via WorkflowDataConditionGroup with a unique constraint on condition_group

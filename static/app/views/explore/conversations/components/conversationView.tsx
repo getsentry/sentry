@@ -133,6 +133,7 @@ function ConversationView({
               flexShrink={0}
               align="center"
               gap="sm"
+              paddingRight="sm"
               borderBottom="primary"
               background="primary"
             >

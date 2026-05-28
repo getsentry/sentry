@@ -15,6 +15,7 @@ from sentry.dynamic_sampling.per_org.tasks.queries import (
     ProjectVolume,
     get_eap_organization_volume,
     get_eap_project_volumes,
+    get_eap_transaction_volumes,
     run_eap_spans_table_query_in_chunks,
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
@@ -75,10 +76,7 @@ class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert len(rows) == 2
-        assert {row["project.id"] for row in rows} == {
-            project.id,
-            other_project.id,
-        }
+        assert {row["project.id"] for row in rows} == {project.id, other_project.id}
 
 
 class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -170,12 +168,12 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
                 {
-                    "sentry.dsc.root_project": project.id,
+                    "sentry.dsc.project_id": project.id,
                     "count()": 2,
                     "count_sample()": 2,
                 },
                 {
-                    "sentry.dsc.root_project": other_project.id,
+                    "sentry.dsc.project_id": other_project.id,
                     "count()": 1,
                     "count_sample()": 1,
                 },
@@ -197,11 +195,11 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         ]
         assert query["query_string"] == DynamicSamplingQueryFilters.IS_SEGMENT
         assert query["selected_columns"] == [
-            DynamicSamplingQueryFields.ROOT_PROJECT,
+            DynamicSamplingQueryFields.DSC_PROJECT_ID,
             DynamicSamplingQueryFields.COUNT,
             DynamicSamplingQueryFields.COUNT_SAMPLE,
         ]
-        assert query["orderby"] == [DynamicSamplingQueryFields.ROOT_PROJECT]
+        assert query["orderby"] == [DynamicSamplingQueryFields.DSC_PROJECT_ID]
         assert query["referrer"] == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
 
     def test_get_eap_project_volumes_without_traffic(self) -> None:
@@ -226,7 +224,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
                 {
-                    "sentry.dsc.root_project": project.id,
+                    "sentry.dsc.project_id": project.id,
                 }
             ],
         ):
@@ -234,7 +232,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert project_volumes == [ProjectVolume(project_id=project.id, total=0, keep=0, drop=0)]
 
-    def test_get_eap_project_volumes_skips_rows_without_root_project(self) -> None:
+    def test_get_eap_project_volumes_skips_rows_without_dsc_project_id(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
 
@@ -242,12 +240,12 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "sentry.dynamic_sampling.per_org.tasks.queries.run_eap_spans_table_query_in_chunks",
             return_value=[
                 {
-                    "sentry.dsc.root_project": None,
+                    "sentry.dsc.project_id": None,
                     "count()": 3,
                     "count_sample()": 1,
                 },
                 {
-                    "sentry.dsc.root_project": project.id,
+                    "sentry.dsc.project_id": project.id,
                     "count()": 2,
                     "count_sample()": 1,
                 },
@@ -271,3 +269,268 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         assert project_volumes == []
         run_table_query.assert_called_once()
         assert run_table_query.call_args.kwargs["params"].projects == []
+
+
+class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
+    def get_config(self, organization: Organization) -> BaseDynamicSamplingConfiguration:
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+            return_value=1.0,
+        ):
+            return get_configuration(organization.id)
+
+    def test_get_eap_transaction_volumes(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        other_organization = self.create_organization()
+        other_organization_project = self.create_project(organization=other_organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                # owned by `project`, rooted at `project`
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                # owned by `other_project` but rooted at `project` — must count toward `project`
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(project.id),
+                        },
+                        "measurements": {"server_sample_rate": {"value": 0.5}},
+                    },
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+                # owned by `project`, rooted at `project`
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "product",
+                            "dsc.transaction": "product",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=2),
+                ),
+                # owned by `project` but rooted at `other_project` — must count toward `other_project`
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(other_project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=3),
+                ),
+                # non-segment span — excluded by is_transaction:true
+                self.create_span(
+                    {
+                        "is_segment": False,
+                        "sentry_tags": {
+                            "transaction": "ignored-span",
+                            "dsc.transaction": "ignored-span",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=4),
+                ),
+                # missing dsc.project_id — excluded by the root_project filter
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "no-root",
+                            "dsc.transaction": "no-root",
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=5),
+                ),
+                # missing dsc.transaction — excluded by the has:sentry.dsc.transaction filter
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "no-dsc-transaction",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=6),
+                ),
+                # other org — excluded by org scope on SnubaParams
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "other-org",
+                            "dsc.transaction": "other-org",
+                            "dsc.project_id": str(other_organization_project.id),
+                        },
+                    },
+                    organization=other_organization,
+                    project=other_organization_project,
+                    start_ts=timestamp,
+                ),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            time_interval=timedelta(hours=1),
+            order_by_volume="desc",
+        )
+
+        assert volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("checkout", 3), ("product", 1)],
+                "total_num_transactions": 4,
+                "total_num_classes": 2,
+            },
+            {
+                "org_id": organization.id,
+                "project_id": other_project.id,
+                "transaction_counts": [("checkout", 1)],
+                "total_num_transactions": 1,
+                "total_num_classes": 1,
+            },
+        ]
+
+    def test_get_eap_transaction_volumes_without_projects(self) -> None:
+        organization = self.create_organization()
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization), time_interval=timedelta(hours=1)
+        )
+
+        assert volumes == []
+
+    def test_get_eap_transaction_volumes_attributes_to_originating_project(self) -> None:
+        organization = self.create_organization()
+        originating_project = self.create_project(organization=organization)
+        downstream_project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                # Owned by `downstream_project` but originated in `originating_project`.
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(originating_project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=downstream_project,
+                    start_ts=timestamp,
+                ),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization), time_interval=timedelta(hours=1)
+        )
+
+        assert volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": originating_project.id,
+                "transaction_counts": [("checkout", 1)],
+                "total_num_transactions": 1,
+                "total_num_classes": 1,
+            }
+        ]
+
+    def test_get_eap_transaction_volumes_with_max_transactions_caps_total_rows(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        def segment(transaction, root_project_id, project, offset):
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": transaction,
+                        "dsc.transaction": transaction,
+                        "dsc.project_id": str(root_project_id),
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
+        self.store_spans(
+            [
+                # project/alpha → count = 3
+                segment("alpha", project.id, project, 0),
+                segment("alpha", project.id, project, 1),
+                segment("alpha", project.id, project, 2),
+                # other_project/beta → count = 2
+                segment("beta", other_project.id, other_project, 3),
+                segment("beta", other_project.id, other_project, 4),
+                # project/gamma → count = 1 (excluded by the global cap)
+                segment("gamma", project.id, project, 5),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            time_interval=timedelta(hours=1),
+            order_by_volume="desc",
+            max_transactions=2,
+        )
+
+        # Top 2 rows globally: project/alpha (3) and other_project/beta (2);
+        # project/gamma is excluded by the cap.
+        assert volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("alpha", 3)],
+                "total_num_transactions": 3,
+                "total_num_classes": 1,
+            },
+            {
+                "org_id": organization.id,
+                "project_id": other_project.id,
+                "transaction_counts": [("beta", 2)],
+                "total_num_transactions": 2,
+                "total_num_classes": 1,
+            },
+        ]
