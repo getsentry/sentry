@@ -65,9 +65,7 @@ function AlertRow({alert}: AlertRowProps) {
           ) : (
             <TimeSince
               date={dateStarted}
-              tooltipUnderlineColor={
-                isResolved ? 'success' : isWarning ? 'warning' : 'danger'
-              }
+              variant={isResolved ? 'success' : isWarning ? 'warning' : 'danger'}
             />
           )}
         </AlertDate>
