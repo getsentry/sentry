@@ -43,6 +43,7 @@ class ActionSource(StrEnum):
     GITHUB = "github"
     GITLAB = "gitlab"
     JIRA = "jira"
+    UNKNOWN = "unknown"
 
 
 def _get_mcp_application_id() -> int | None:
@@ -192,7 +193,7 @@ def publish_action_from_context(
             "publish_action_from_context called without ActionContext",
             extra={"action": action, "group_id": group_id},
         )
-        source = "unknown"
+        source = ActionSource.UNKNOWN
         actor_id = None
     else:
         source = ctx.source
