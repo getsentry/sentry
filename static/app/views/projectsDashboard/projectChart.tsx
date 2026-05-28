@@ -173,7 +173,7 @@ export function ProjectChart({
       splitLine: {
         show: false,
       },
-      zlevel: theme.zIndex.header,
+      zlevel: 1,
     })),
     axisPointer: {
       // Link each x-axis together.

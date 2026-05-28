@@ -19,7 +19,7 @@ const StickyFooterBase = styled('div', {
   box-shadow: none;
   justify-content: flex-end;
   gap: ${p => p.theme.space.lg};
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: 1;
 
   &[data-stuck] {
     /* TODO(design-engineering): Replace with a directional shadow token when one exists */

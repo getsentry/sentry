@@ -35,7 +35,7 @@ const FastForwardTooltip = styled(Tooltip)`
   color: ${p => p.theme.colors.white};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-top-right-radius: ${p => p.theme.radius.md};
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: 1;
 `;
 
 const StyledIconArrow = styled(IconArrow)`

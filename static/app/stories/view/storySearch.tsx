@@ -286,7 +286,7 @@ const StorySearchContainer = styled('div')`
   position: relative;
   width: 320px;
   flex-grow: 1;
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: 1;
   margin-left: -${p => p.theme.space.xl};
 `;
 

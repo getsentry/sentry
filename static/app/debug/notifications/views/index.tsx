@@ -88,7 +88,7 @@ const HeaderContainer = styled('header')`
   top: 0;
   left: 0;
   right: 0;
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: 1;
   background: ${p => p.theme.tokens.background.primary};
 `;
 

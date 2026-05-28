@@ -199,6 +199,6 @@ export const PlayerScrubber = styled(Scrubber)`
     top: 0;
     right: calc((var(--size) + (var(--borderWidth) * 2)) / 2 * -1);
     translate: 0 calc(-50% + var(--borderWidth));
-    z-index: ${p => p.theme.zIndex.initial};
+    z-index: 1;
   }
 `;

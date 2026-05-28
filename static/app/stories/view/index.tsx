@@ -222,7 +222,7 @@ function GlobalStoryStyles() {
     .messages-container {
       margin-top: 52px;
       margin-left: 256px;
-      z-index: ${theme.zIndex.header};
+      z-index: 1;
       background: ${theme.tokens.background.primary};
     }
   `;
@@ -250,7 +250,7 @@ const HeaderContainer = styled('header')`
   top: 0;
   left: 0;
   right: 0;
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: 1;
   background: ${p => p.theme.tokens.background.primary};
 `;
 

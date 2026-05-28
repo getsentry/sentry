@@ -189,5 +189,5 @@ const SetupWizard = styled('div')`
   padding: 40px 40px 20px;
   max-width: 1000px;
   margin: ${p => p.theme.space['2xl']};
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: 1;
 `;

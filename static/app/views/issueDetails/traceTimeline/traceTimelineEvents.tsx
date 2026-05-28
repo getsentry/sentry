@@ -213,7 +213,7 @@ const EventColumn = styled('div')`
   position: relative;
 
   &:hover {
-    z-index: ${p => p.theme.zIndex.initial};
+    z-index: 1;
   }
 `;
 

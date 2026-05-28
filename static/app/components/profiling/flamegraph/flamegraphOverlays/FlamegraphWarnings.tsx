@@ -106,6 +106,6 @@ const Overlay = styled('div')`
   grid: auto/50%;
   gap: ${p => p.theme.space.md};
   place-content: center;
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: 1;
   text-align: center;
 `;

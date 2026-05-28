@@ -147,7 +147,7 @@ export const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   position: sticky;
   top: 0;
-  z-index: ${p => p.theme.zIndex.header};
+  z-index: 1;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 `;
 

@@ -153,7 +153,7 @@ const PositionedList = styled('ul')`
 const Footer = styled('footer')`
   position: absolute;
   bottom: 0;
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: 1;
   display: flex;
   width: 100%;
   flex-grow: 1;
