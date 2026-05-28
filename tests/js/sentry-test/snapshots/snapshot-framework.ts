@@ -125,6 +125,7 @@ function snapshotTest(
       theme: details.theme,
       metadata,
       viewport: resolved ? {width: resolved.width, height: resolved.height} : undefined,
+      viewportLabel: resolved?.label,
     });
   });
 }

@@ -112,6 +112,7 @@ interface TakeSnapshotOptions {
   testFilePath: string;
   theme: string | undefined;
   viewport?: {width: number; height?: number};
+  viewportLabel?: string;
 }
 
 export async function takeSnapshot({
@@ -123,6 +124,7 @@ export async function takeSnapshot({
   theme,
   metadata,
   viewport,
+  viewportLabel,
 }: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
   const fullHTML = renderToHTML(element, viewport ? 'block' : 'inline-block');
@@ -159,6 +161,9 @@ export async function takeSnapshot({
     if (theme) {
       autoTags.theme = theme;
     }
+    if (viewportLabel) {
+      autoTags.viewport = viewportLabel;
+    }
     const tags = {...autoTags, ...metadata.tags};
 
     const meta: SnapshotImageMetadata = {
@@ -166,10 +171,6 @@ export async function takeSnapshot({
       group: metadata.group ?? group,
       tags: Object.keys(tags).length > 0 ? tags : undefined,
       context: {test_file_path: relativePath},
-      ...(viewport && {
-        viewport_width: String(viewport.width),
-        ...(viewport.height == null ? {} : {viewport_height: String(viewport.height)}),
-      }),
     };
 
     await Promise.all([
