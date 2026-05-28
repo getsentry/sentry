@@ -4,6 +4,7 @@ import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import type {EventOrGroupType, Level} from 'sentry/types/event';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
@@ -23,8 +24,9 @@ export function EventMessage({
   showUnhandled = false,
 }: Props) {
   const showEventLevel = level && eventTypeHasLogLevel(type);
+  const displayMessage = typeof message === 'string' ? stripAnsi(message) : message;
   const renderedMessage = message ? (
-    <Message>{message}</Message>
+    <Message>{displayMessage}</Message>
   ) : (
     <NoMessage>({t('No error message')})</NoMessage>
   );

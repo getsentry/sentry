@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {AnsiText} from 'sentry/components/ansiText';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
@@ -44,7 +45,11 @@ export function BreadcrumbItemContent({
 
   const defaultMessage = defined(bc.message) ? (
     <BreadcrumbText>
-      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
+      {meta?.message ? (
+        <StructuredData value={bc.message} meta={meta.message} {...structuredDataProps} />
+      ) : (
+        <AnsiText text={bc.message} />
+      )}
     </BreadcrumbText>
   ) : null;
 
@@ -201,12 +206,22 @@ function ExceptionCrumbContent({
 
   const hasValue = value !== null && value !== undefined && value !== '';
   const formattedValue = hasValue ? formatValue(value) : '';
+  let renderedValue: React.ReactNode = null;
+
+  if (hasValue) {
+    renderedValue = meta?.data?.value ? (
+      formattedValue
+    ) : (
+      <AnsiText text={formattedValue} />
+    );
+  }
 
   return (
     <Fragment>
       <BreadcrumbText>
         {type ? type : null}
-        {type && hasValue ? `: ${formattedValue}` : hasValue ? formattedValue : null}
+        {type && hasValue ? ': ' : null}
+        {renderedValue}
       </BreadcrumbText>
       {children}
       {Object.keys(otherData).length > 0 ? (
