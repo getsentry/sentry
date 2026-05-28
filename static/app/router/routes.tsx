@@ -1260,6 +1260,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/projectInstall/newProject')),
     },
     {
+      path: 'new/:step/',
+      component: make(() => import('sentry/views/projectInstall/newProject')),
+    },
+    {
       path: ':projectId/',
       component: make(() => import('sentry/views/projectDetail')),
     },
