@@ -7,6 +7,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -129,7 +130,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   }
 
   const timeQueryParams = defined(props.timestamp)
-    ? {timestamp: props.timestamp}
+    ? {timestamp: normalizeTimestampToSeconds(props.timestamp)}
     : normalizeDateTimeParams(selection.datetime);
 
   const queryParams: TraceItemDetailsQueryParams = {

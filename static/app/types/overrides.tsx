@@ -6,7 +6,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type {InstallationInfo} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
+import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
