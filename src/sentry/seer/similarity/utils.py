@@ -581,6 +581,7 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
         update["integration_id"] = automation_handoff.integration_id
         update["auto_create_pr"] = automation_handoff.auto_create_pr
     else:
+        update["agent"] = AutomationCodingAgent.SEER
         update["auto_create_pr"] = stopping_point == AutofixStoppingPoint.OPEN_PR
 
     try:
