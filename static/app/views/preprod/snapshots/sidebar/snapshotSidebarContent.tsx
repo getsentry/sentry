@@ -349,9 +349,14 @@ const TagFilterSection = memo(function TagFilterSection({
 }: {
   availableTags: Map<string, Map<string, number>>;
 }) {
-  const {activeTagFilters, onToggleTagFilter} = useTagFilters()!;
-  const hasActiveFilter = Object.keys(activeTagFilters).length > 0;
+  const tagFilters = useTagFilters();
   const sortedKeys = useMemo(() => [...availableTags.keys()].sort(), [availableTags]);
+
+  if (!tagFilters) {
+    return null;
+  }
+  const {activeTagFilters, onToggleTagFilter} = tagFilters;
+  const hasActiveFilter = Object.keys(activeTagFilters).length > 0;
 
   return (
     <Stack borderBottom="primary" onClick={e => e.stopPropagation()}>
