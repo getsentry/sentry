@@ -82,7 +82,7 @@ class SiloRouter:
         "sentry_dashboardtombstone": SiloMode.CELL,
         "sentry_dashboardwidgetsnapshot": SiloMode.CELL,
         "sentry_datasecrecywaiver": SiloMode.CELL,
-        "sentry_email": SiloMode.CELL,
+        "sentry_email": SiloMode.CONTROL,
         "sentry_incidentseen": SiloMode.CELL,
         "sentry_incidentsubscription": SiloMode.CELL,
         "sentry_incidenttrigger": SiloMode.CELL,
