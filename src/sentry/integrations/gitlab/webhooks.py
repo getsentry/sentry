@@ -365,7 +365,9 @@ def _handle_merge_request_event(
         return
 
     if not author_email:
-        raise Http404()
+        # No commit author to attribute the PR to. Stop this processor cleanly
+        # rather than raising, which _handle would catch and mislabel as an error.
+        return
 
     author = CommitAuthor.objects.get_or_create(
         organization_id=organization.id, email=author_email, defaults={"name": author_name}

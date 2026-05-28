@@ -342,6 +342,32 @@ class WebhookTest(GitLabTestCase):
 
         assert_success_metric(mock_record)
 
+    @patch("sentry.integrations.gitlab.webhooks.metrics.incr")
+    def test_merge_event_no_author_email_does_not_error(self, mock_incr: MagicMock) -> None:
+        # A repo exists (so the processor runs), but the MR has no commit author
+        # email. The PR processor must stop cleanly rather than raising, which
+        # _handle would otherwise catch and mislabel as a processor error.
+        self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        del payload["object_attributes"]["last_commit"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        assert 0 == PullRequest.objects.count()
+
+        error_metrics = [
+            c
+            for c in mock_incr.call_args_list
+            if c.args and c.args[0] == "gitlab.webhook.processor.error"
+        ]
+        assert error_metrics == []
+
     def test_merge_event_create_pull_request(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
