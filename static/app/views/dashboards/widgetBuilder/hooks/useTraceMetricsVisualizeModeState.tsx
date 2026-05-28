@@ -1,11 +1,7 @@
 import {type RefObject, useCallback, useEffect, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {
-  explodeFieldString,
-  generateFieldAsString,
-  type QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import {explodeFieldString, type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -105,6 +101,10 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     seriesSnapshot.current = {fields: derivedFields, query: []};
     const actionType = getTraceMetricAggregateActionType(state.displayType);
     dispatch({type: actionType, payload: derivedFields});
+    dispatch({
+      type: BuilderStateAction.SET_QUERY,
+      payload: [],
+    });
   }, [state.displayType, dispatch]);
 
   const restoreEquationState = useCallback(() => {
@@ -120,17 +120,9 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     }
     const yAxis = selected.queryParams.visualizes[0]?.yAxis;
     if (yAxis) {
-      const aggregateSource = getTraceMetricAggregateSource(
-        state.displayType,
-        state.yAxis,
-        state.fields
-      );
-      const currentAggregate = aggregateSource?.[0]
-        ? generateFieldAsString(aggregateSource[0])
-        : '';
       dispatchYAxisUpdate(
         yAxis,
-        currentAggregate,
+        '', // Force the dispatch to fire
         state.displayType,
         state.fields,
         dispatch
@@ -140,7 +132,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_QUERY,
       payload: [selected.queryParams.query],
     });
-  }, [state.displayType, state.yAxis, state.fields, dispatch]);
+  }, [state.displayType, state.fields, dispatch]);
 
   // Auto-restore the previous visualize mode when the dataset returns
   // to TRACEMETRICS. Detects equation yAxis on return and restores the
