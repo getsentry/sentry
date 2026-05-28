@@ -394,14 +394,16 @@ export default function SnapshotsPage() {
       const item = sidebarItems[i]!;
       const passesStatus =
         !hasStatusFilter || activeStatuses.has(item.type as DiffStatus);
-      const passesSearch =
-        !trimmedQuery ||
-        narrowItemBySearch(item, memberSearchKeys[i]!, trimmedQuery) !== null;
+      const images = itemImages(item);
+      const searchKeys = memberSearchKeys[i]!;
 
-      for (const img of itemImages(item)) {
+      for (let j = 0; j < images.length; j++) {
+        const img = images[j]!;
         if (!img.tags) {
           continue;
         }
+
+        const passesSearch = !trimmedQuery || searchKeys[j]!.includes(trimmedQuery);
 
         const passesTagFilters = activeTagKeys.every(filterKey => {
           const filterValue = activeTagFilters[filterKey];
