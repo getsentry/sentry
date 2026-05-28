@@ -7,7 +7,9 @@ from django.test.utils import CaptureQueriesContext
 from rest_framework.response import Response
 
 from sentry.models.group import Group
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import (
+    EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION,
+)
 from sentry.testutils.cases import OccurrenceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
@@ -25,7 +27,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
 
     def request_with_feature_flag(self, payload: dict) -> Response:
         with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
         ):
             response = self.do_request({**payload, "dataset": "occurrences"})
         assert response.status_code == 200, response.content
@@ -524,7 +526,7 @@ class OrganizationEventsOccurrencesArrayQueryTest(
             "organizations:trace-item-details-array-fields": True,
         }
         with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
         ):
             response = self.do_request({**payload, "dataset": "occurrences"}, features=features)
         assert response.status_code == 200, response.content
@@ -782,7 +784,7 @@ class OrganizationEventsOccurrencesArrayQueryTest(
         expected_http_url = expected[0]["http_url"]
 
         with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
         ):
             response = self.do_request(
                 {

@@ -100,11 +100,6 @@ describe('ReserveAdditionalVolume', () => {
     beforeEach(() => {
       SubscriptionStore.set(organization.slug, subscription);
       MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-        method: 'GET',
-        body: {},
-      });
-      MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'GET',
         body: {},
@@ -234,11 +229,6 @@ describe('ReserveAdditionalVolume', () => {
       subscription = SubscriptionFixture({organization});
       stepProps.subscription = subscription;
       SubscriptionStore.set(organization.slug, subscription);
-      MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-        method: 'GET',
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'GET',

@@ -216,15 +216,24 @@ mutationOptions={{
 
 Make sure the zod schema's types are compatible with (i.e., assignable to) the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
 
-**Don't pass generics to `useMutation` either.** Type the `mutationFn` payload, and let `fetchMutation<TReturn>` carry the return type. `useMutation<TData, TError, TVariables>` is not the codebase style.
+**NEVER pass call-site generics to `useMutation`, `mutationOptions`, or any TanStack Query function.** This applies to ALL generics — data, error, variables, AND context. Types must be inferred, not asserted. See the full rules in `static/AGENTS.md` under "TanStack Query Type Inference."
 
 ```tsx
-// ❌ Generics on useMutation
+// ❌ Generics on useMutation — NEVER do this
 const mutation = useMutation<CodeOwner, RequestError, [Payload]>({
   mutationFn: ([payload]) => fetchMutation({url, method: 'POST', data: payload}),
 });
 
-// ✅ Type the payload; fetchMutation<T> carries the return type
+// ❌ Generics on mutationOptions — NEVER do this either
+mutationOptions<unknown, RequestError, Variables, MyContext>({...})
+
+// ❌ Explicit context type — inferred from onMutate return
+type MyContext = {changeId: string};
+
+// ❌ RequestError as error generic — it's a type assertion in disguise
+// Other things can go wrong that would NOT yield a RequestError
+
+// ✅ Type the mutationFn payload; fetchMutation<T> carries the return type
 const mutation = useMutation({
   mutationFn: (payload: {codeMappingId: string; raw: string}) =>
     fetchMutation<CodeOwner>({
@@ -233,6 +242,18 @@ const mutation = useMutation({
       data: payload,
     }),
 });
+
+// ✅ Context is inferred from onMutate, error is Error by default
+mutationOptions({
+  mutationFn: (variables: MyVars) => fetchMutation<MyResponse>({...}),
+  onMutate: async () => {
+    return {changeId: uniqueId()};  // context type inferred from this
+  },
+  onError: (_error, _vars, context) => {
+    // context?.changeId is typed automatically
+    // _error is Error — use runtime narrowing for RequestError
+  },
+})
 ```
 
 ### mapFormErrors → `setFieldErrors`

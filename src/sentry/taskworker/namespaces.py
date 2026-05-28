@@ -87,6 +87,11 @@ ingest_profiling_tasks = app.taskregistry.create_namespace(
     app_feature="profiles",
 )
 
+ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
+    "ingest.profiling.passthrough",
+    app_feature="profiles",
+)
+
 ingest_transactions_tasks = app.taskregistry.create_namespace(
     "ingest.transactions",
     app_feature="transactions",
@@ -105,6 +110,31 @@ ingest_errors_tasks = app.taskregistry.create_namespace(
 ingest_errors_postprocess_tasks = app.taskregistry.create_namespace(
     "ingest.errors.postprocess",
     app_feature="errors",
+)
+
+snuba_events_subscriptions_raw_tasks = app.taskregistry.create_namespace(
+    "snuba.subscriptions.events.raw",
+    app_feature="errors",
+)
+
+snuba_transactions_subscriptions_raw_tasks = app.taskregistry.create_namespace(
+    "snuba.subscriptions.transactions.raw",
+    app_feature="transactions",
+)
+
+snuba_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
+    "snuba.subscriptions.metrics.raw",
+    app_feature="sessions",
+)
+
+snuba_generic_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
+    "snuba.subscriptions.generic_metrics.raw",
+    app_feature="transactions",
+)
+
+snuba_eap_subscriptions_raw_tasks = app.taskregistry.create_namespace(
+    "snuba.subscriptions.eap.raw",
+    app_feature="transactions",
 )
 
 issues_tasks = app.taskregistry.create_namespace(
