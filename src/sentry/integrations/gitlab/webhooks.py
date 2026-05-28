@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
-from typing import Any
+from typing import Any, Protocol
 
 import orjson
 from dateutil.parser import parse as parse_date
@@ -36,11 +36,24 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:gitlab"
 GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
+
+
+class WebhookProcessor(Protocol):
+    def __call__(
+        self,
+        *,
+        event: Mapping[str, Any],
+        organization: RpcOrganization,
+        repo: Repository,
+        integration: RpcIntegration | None = None,
+        **kwargs: Any,
+    ) -> None: ...
 
 
 def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
@@ -69,9 +82,45 @@ def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
 
 
 class GitlabWebhook(SCMWebhook, ABC):
+    EVENT_TYPE: IntegrationWebhookEventType
+    WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return self.EVENT_TYPE
+
     @property
     def provider(self) -> str:
         return IntegrationProviderSlug.GITLAB.value
+
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: RpcOrganization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
+        for processor in self.WEBHOOK_EVENT_PROCESSORS:
+            try:
+                processor(
+                    event=event,
+                    integration=integration,
+                    organization=organization,
+                    repo=repo,
+                    **kwargs,
+                )
+            except Exception as e:
+                logger.warning(
+                    "gitlab.webhook.processor.error",
+                    extra={"event_type": self.event_type.value, "error": str(e)},
+                )
+                metrics.incr(
+                    "gitlab.webhook.processor.error",
+                    tags={"event_type": self.event_type.value},
+                    sample_rate=1.0,
+                )
+                continue
 
     def get_repo(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
@@ -125,9 +174,7 @@ class IssuesEventWebhook(GitlabWebhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#issue-events
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.INBOUND_SYNC
+    EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (integration := kwargs.get("integration")):
@@ -285,6 +332,62 @@ class IssuesEventWebhook(GitlabWebhook):
         return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
+def _handle_merge_request_event(
+    *,
+    event: Mapping[str, Any],
+    organization: RpcOrganization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    try:
+        number = event["object_attributes"]["iid"]
+        title = event["object_attributes"]["title"]
+        body = event["object_attributes"]["description"]
+        created_at = event["object_attributes"]["created_at"]
+        merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
+
+        last_commit = event["object_attributes"]["last_commit"]
+        author_email = None
+        author_name = None
+        if last_commit:
+            author_email = last_commit["author"]["email"]
+            author_name = last_commit["author"]["name"]
+    except KeyError as e:
+        logger.warning(
+            "gitlab.webhook.invalid-merge-data",
+            extra={
+                "integration_id": integration.id if integration else None,
+                "error": str(e),
+            },
+        )
+        return
+
+    if not author_email:
+        raise Http404()
+
+    author = CommitAuthor.objects.get_or_create(
+        organization_id=organization.id, email=author_email, defaults={"name": author_name}
+    )[0]
+
+    author.preload_users()
+    try:
+        PullRequest.objects.update_or_create(
+            organization_id=organization.id,
+            repository_id=repo.id,
+            key=number,
+            defaults={
+                "title": title,
+                "author": author,
+                "message": body,
+                "merge_commit_sha": merge_commit_sha,
+                "date_added": parse_date(created_at).astimezone(timezone.utc),
+            },
+        )
+    except IntegrityError:
+        pass
+
+
 class MergeEventWebhook(GitlabWebhook):
     """
     Handle Merge Request Hook
@@ -292,9 +395,8 @@ class MergeEventWebhook(GitlabWebhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.MERGE_REQUEST
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
+    WEBHOOK_EVENT_PROCESSORS = (_handle_merge_request_event,)
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
@@ -310,51 +412,12 @@ class MergeEventWebhook(GitlabWebhook):
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
 
-        try:
-            number = event["object_attributes"]["iid"]
-            title = event["object_attributes"]["title"]
-            body = event["object_attributes"]["description"]
-            created_at = event["object_attributes"]["created_at"]
-            merge_commit_sha = event["object_attributes"]["merge_commit_sha"]
-
-            last_commit = event["object_attributes"]["last_commit"]
-            author_email = None
-            author_name = None
-            if last_commit:
-                author_email = last_commit["author"]["email"]
-                author_name = last_commit["author"]["name"]
-        except KeyError as e:
-            logger.warning(
-                "gitlab.webhook.invalid-merge-data",
-                extra={"integration_id": integration.id, "error": str(e)},
-            )
-            # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
-            return
-
-        if not author_email:
-            raise Http404()
-
-        author = CommitAuthor.objects.get_or_create(
-            organization_id=organization.id, email=author_email, defaults={"name": author_name}
-        )[0]
-
-        author.preload_users()
-        try:
-            PullRequest.objects.update_or_create(
-                organization_id=organization.id,
-                repository_id=repo.id,
-                key=number,
-                defaults={
-                    "title": title,
-                    "author": author,
-                    "message": body,
-                    "merge_commit_sha": merge_commit_sha,
-                    "date_added": parse_date(created_at).astimezone(timezone.utc),
-                },
-            )
-
-        except IntegrityError:
-            pass
+        self._handle(
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+        )
 
 
 class PushEventWebhook(GitlabWebhook):
@@ -364,9 +427,7 @@ class PushEventWebhook(GitlabWebhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PUSH
+    EVENT_TYPE = IntegrationWebhookEventType.PUSH
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
@@ -419,6 +480,13 @@ class PushEventWebhook(GitlabWebhook):
                     )
             except IntegrityError:
                 pass
+
+        self._handle(
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+        )
 
 
 @cell_silo_endpoint
