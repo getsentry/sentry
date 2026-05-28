@@ -42,9 +42,6 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
   const onCloseCallbackRef = useRef(options?.onClose);
   onCloseCallbackRef.current = options?.onClose;
 
-  // TODO: add effect that opens drawer and seeds run_id from URL, remove from current URL onClose
-  // (useSeerExplorer hook should no longer handle this)
-
   const onOpen = useCallback(() => {
     trackAnalytics('seer.explorer.global_panel.opened', {
       referrer: getPageReferrer(),
@@ -58,12 +55,11 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
   }, []);
 
   const closeSeerExplorerDrawer = useCallback(() => {
-    // Prevent closing the global drawer if another drawer (e.g. autofix) is open
     if (isDrawerOpenRef.current) {
-      onCloseCallbackRef.current?.();
       closeDrawer();
+      onClose();
     }
-  }, [closeDrawer]);
+  }, [closeDrawer, onClose]);
 
   const openSeerExplorerDrawer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {

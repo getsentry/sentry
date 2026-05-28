@@ -54,13 +54,6 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
     },
     unregister: id => {
       setEntries(prev => prev.filter(e => e.id !== id));
-      setPrefixes(prev => {
-        if (!(id in prev)) {
-          return prev;
-        }
-        const {[id]: _, ...rest} = prev;
-        return rest;
-      });
     },
   }));
 
