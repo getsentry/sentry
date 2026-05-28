@@ -1,10 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 
@@ -17,6 +18,15 @@ interface OtlpTabProps {
   tracesEndpoint: string;
 }
 
+const otlpSchema = z.object({
+  otlpEndpoint: z.string(),
+  logsEndpoint: z.string(),
+  logsHeaders: z.string(),
+  tracesEndpoint: z.string(),
+  tracesHeaders: z.string(),
+  collectorConfig: z.string(),
+});
+
 export function OtlpTab({
   logsEndpoint,
   tracesEndpoint,
@@ -25,7 +35,8 @@ export function OtlpTab({
   showOtlpTraces,
   integrationEndpoint,
 }: OtlpTabProps) {
-  // Build the OTEL collector config example
+  const headers = `x-sentry-auth=sentry sentry_key=${publicKey}`;
+
   const buildCollectorConfig = useMemo(() => {
     const lines = ['exporters:', '  otlphttp:'];
 
@@ -48,103 +59,146 @@ export function OtlpTab({
     return lines.join('\n');
   }, [showOtlpLogs, showOtlpTraces, logsEndpoint, tracesEndpoint, publicKey]);
 
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      otlpEndpoint: `${integrationEndpoint}otlp`,
+      logsEndpoint,
+      logsHeaders: headers,
+      tracesEndpoint,
+      tracesHeaders: headers,
+      collectorConfig: buildCollectorConfig,
+    },
+    validators: {onChange: otlpSchema},
+  });
+
   if (!showOtlpLogs && !showOtlpTraces) {
     return;
   }
 
   return (
-    <Fragment>
-      <FieldGroup
-        label={t('OTLP Endpoint')}
-        help={t('The base OTLP endpoint for your project.')}
-        inline={false}
-        flexibleControlStateSize
-      >
-        <TextCopyInput aria-label={t('OTLP Endpoint')}>
-          {`${integrationEndpoint}otlp`}
-        </TextCopyInput>
-      </FieldGroup>
-      {showOtlpLogs && (
-        <Fragment>
-          <FieldGroup
-            label={t('OTLP Logs Endpoint')}
-            help={tct(
-              "Set this URL as your OTLP exporter's log endpoint. [link:Learn more]",
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-logs" />
-                ),
-              }
-            )}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput aria-label={t('OTLP Logs Endpoint')}>
-              {logsEndpoint}
-            </TextCopyInput>
-          </FieldGroup>
+    <form.AppForm form={form}>
+      <FieldList>
+        <form.AppField name="otlpEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('OTLP Endpoint')}
+              hintText={t('The base OTLP endpoint for your project.')}
+            >
+              <TextCopyInput aria-label={t('OTLP Endpoint')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
 
-          <FieldGroup
-            label={t('OTLP Logs Endpoint Headers')}
-            help={t('Set these security headers when configuring your OTLP exporter.')}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput aria-label={t('OTLP Logs Endpoint Headers')}>
-              {`x-sentry-auth=sentry sentry_key=${publicKey}`}
-            </TextCopyInput>
-          </FieldGroup>
-        </Fragment>
-      )}
+        {showOtlpLogs && (
+          <Fragment>
+            <form.AppField name="logsEndpoint">
+              {field => (
+                <field.Layout.Stack
+                  label={t('OTLP Logs Endpoint')}
+                  hintText={tct(
+                    "Set this URL as your OTLP exporter's log endpoint. [link:Learn more]",
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-logs" />
+                      ),
+                    }
+                  )}
+                >
+                  <TextCopyInput aria-label={t('OTLP Logs Endpoint')}>
+                    {field.state.value}
+                  </TextCopyInput>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-      {showOtlpTraces && (
-        <Fragment>
-          <FieldGroup
-            label={t('OTLP Traces Endpoint')}
-            help={tct(
-              "Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]",
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-traces" />
-                ),
-              }
-            )}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput aria-label={t('OTLP Traces Endpoint')}>
-              {tracesEndpoint}
-            </TextCopyInput>
-          </FieldGroup>
-
-          <FieldGroup
-            label={t('OTLP Traces Endpoint Headers')}
-            help={t('Set these security headers when configuring your OTLP exporter.')}
-            inline={false}
-            flexibleControlStateSize
-          >
-            <TextCopyInput aria-label={t('OTLP Traces Endpoint Headers')}>
-              {`x-sentry-auth=sentry sentry_key=${publicKey}`}
-            </TextCopyInput>
-          </FieldGroup>
-        </Fragment>
-      )}
-
-      <FieldGroup
-        label={t('OpenTelemetry Collector Exporter Configuration')}
-        help={t(
-          'Use this example configuration in your OpenTelemetry Collector config file to export OTLP data to Sentry.'
+            <form.AppField name="logsHeaders">
+              {field => (
+                <field.Layout.Stack
+                  label={t('OTLP Logs Endpoint Headers')}
+                  hintText={t(
+                    'Set these security headers when configuring your OTLP exporter.'
+                  )}
+                >
+                  <TextCopyInput aria-label={t('OTLP Logs Endpoint Headers')}>
+                    {field.state.value}
+                  </TextCopyInput>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          </Fragment>
         )}
-        inline={false}
-        flexibleControlStateSize
-      >
-        <UnsetHeightCodeBlock language="yaml" filename="config.yaml" isRounded>
-          {buildCollectorConfig}
-        </UnsetHeightCodeBlock>
-      </FieldGroup>
-    </Fragment>
+
+        {showOtlpTraces && (
+          <Fragment>
+            <form.AppField name="tracesEndpoint">
+              {field => (
+                <field.Layout.Stack
+                  label={t('OTLP Traces Endpoint')}
+                  hintText={tct(
+                    "Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]",
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-traces" />
+                      ),
+                    }
+                  )}
+                >
+                  <TextCopyInput aria-label={t('OTLP Traces Endpoint')}>
+                    {field.state.value}
+                  </TextCopyInput>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+
+            <form.AppField name="tracesHeaders">
+              {field => (
+                <field.Layout.Stack
+                  label={t('OTLP Traces Endpoint Headers')}
+                  hintText={t(
+                    'Set these security headers when configuring your OTLP exporter.'
+                  )}
+                >
+                  <TextCopyInput aria-label={t('OTLP Traces Endpoint Headers')}>
+                    {field.state.value}
+                  </TextCopyInput>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          </Fragment>
+        )}
+
+        <form.AppField name="collectorConfig">
+          {field => (
+            <field.Layout.Stack
+              label={t('OpenTelemetry Collector Exporter Configuration')}
+              hintText={t(
+                'Use this example configuration in your OpenTelemetry Collector config file to export OTLP data to Sentry.'
+              )}
+            >
+              <UnsetHeightCodeBlock language="yaml" filename="config.yaml" isRounded>
+                {field.state.value}
+              </UnsetHeightCodeBlock>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </FieldList>
+    </form.AppForm>
   );
 }
+
+const FieldList = styled('div')`
+  > * {
+    padding: ${p => p.theme.space.xl};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;
 
 const UnsetHeightCodeBlock = styled(CodeBlock)`
   pre {
