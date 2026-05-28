@@ -27,7 +27,6 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {usePrevious} from 'sentry/utils/usePrevious';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -289,15 +288,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const [interval] = useChartInterval();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
-
-  const prevAutorefreshEnabled = usePrevious(autorefreshEnabled);
-
-  // Reset the query data when auto-refresh is disabled to avoid stale data when switching between modes
-  useEffect(() => {
-    if (prevAutorefreshEnabled && !autorefreshEnabled) {
-      queryClient.resetQueries({queryKey: tableData.queryKey});
-    }
-  }, [autorefreshEnabled, prevAutorefreshEnabled, queryClient, tableData.queryKey]);
 
   useEffect(() => {
     if (autorefreshEnabled) {
