@@ -22,12 +22,8 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
     expect(screen.queryByText('function - compute_checksum')).not.toBeInTheDocument();
     expect(screen.queryByText('sentry.javascript.nextjs')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('1. Find the custom span')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('2. Remove or replace the span')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('1. Find the custom span')).not.toBeInTheDocument();
+    expect(screen.queryByText('2. Remove or replace the span')).not.toBeInTheDocument();
   });
 
   it('renders manual instrumentation guidance only for manual spans', () => {
@@ -42,12 +38,8 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
     expect(screen.getByText('1. Find the custom span')).toBeInTheDocument();
     expect(screen.getByText('2. Remove or replace the span')).toBeInTheDocument();
-    expect(
-      screen.getByText(/delete the custom span line/)
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(
-      0
-    );
+    expect(screen.getByText(/delete the custom span line/)).toBeInTheDocument();
+    expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(0);
     expect(screen.queryByText('sentry.javascript.nextjs')).not.toBeInTheDocument();
     expect(screen.queryByText('ignoreSpans')).not.toBeInTheDocument();
     expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
@@ -74,9 +66,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
     expect(screen.getByText('before_send_transaction')).toBeInTheDocument();
     expect(screen.getAllByText(/event\["spans"\]/).length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/span.get\("op"\) == "function"/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
   });
 
   it('renders generic guidance when the SDK is unavailable', () => {
@@ -89,9 +79,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
       />
     );
 
-    expect(
-      screen.getByText(/Add an exact-match span filter/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Add an exact-match span filter/)).toBeInTheDocument();
     expect(screen.queryByText(/beforeSendTransaction/)).not.toBeInTheDocument();
   });
 

@@ -30,13 +30,10 @@ function AutomaticInstrumentationFix({
     return (
       <Stack gap="md">
         <Text>
-          {tct(
-            'Use [hook] to remove matching spans from [spans].',
-            {
-              hook: <InlineCode>before_send_transaction</InlineCode>,
-              spans: <InlineCode>event["spans"]</InlineCode>,
-            }
-          )}
+          {tct('Use [hook] to remove matching spans from [spans].', {
+            hook: <InlineCode>before_send_transaction</InlineCode>,
+            spans: <InlineCode>event["spans"]</InlineCode>,
+          })}
         </Text>
         <CodeBlock language="python">
           {getPythonSpanFilterSnippet(evidenceData)}
@@ -81,9 +78,7 @@ function ManualInstrumentationFix({
 }) {
   return (
     <Stack gap="md">
-      <Text>
-        {t('This appears to come from custom instrumentation in your code.')}
-      </Text>
+      <Text>{t('This appears to come from custom instrumentation in your code.')}</Text>
       <Stack gap="xs">
         <Heading as="h4">{t('1. Find the custom span')}</Heading>
         <Text>
