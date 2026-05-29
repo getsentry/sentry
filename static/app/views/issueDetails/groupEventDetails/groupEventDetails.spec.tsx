@@ -537,7 +537,7 @@ describe('groupEventDetails', () => {
       initialRouterConfig,
     });
 
-    expect(await screen.findByRole('region', {name: 'tags'})).toBeInTheDocument();
+    expect(await screen.findByRole('region', {name: 'Tags'})).toBeInTheDocument();
     const highlights = screen.getByRole('region', {name: 'Highlights'});
 
     expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
