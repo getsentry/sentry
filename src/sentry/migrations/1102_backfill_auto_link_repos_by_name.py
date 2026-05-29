@@ -10,6 +10,7 @@ Safe to re-run: uses get_or_create and skips already-linked pairs.
 """
 
 import logging
+from typing import Any
 
 from django.db import migrations
 from django.db.models import Exists, OuterRef
@@ -25,7 +26,7 @@ AUTO_NAME_MATCH = 3
 ACTIVE = 0
 
 
-def _get_dry_run(apps):
+def _get_dry_run(apps: Any) -> bool:
     Option = apps.get_model("sentry", "Option")
     try:
         opt = Option.objects.get(key="repository.auto-link-by-name-dry-run")
@@ -34,7 +35,7 @@ def _get_dry_run(apps):
         return True
 
 
-def _get_repo_name_candidates(repo_name):
+def _get_repo_name_candidates(repo_name: str) -> list[str]:
     parts = [slugify(part.strip()) for part in repo_name.split("/") if part.strip()]
     parts = [p for p in parts if p]
     if not parts:
@@ -45,7 +46,7 @@ def _get_repo_name_candidates(repo_name):
     return candidates
 
 
-def backfill_auto_link_repos(apps, schema_editor):
+def backfill_auto_link_repos(apps: Any, schema_editor: Any) -> None:
     Organization = apps.get_model("sentry", "Organization")
     Project = apps.get_model("sentry", "Project")
     Repository = apps.get_model("sentry", "Repository")
