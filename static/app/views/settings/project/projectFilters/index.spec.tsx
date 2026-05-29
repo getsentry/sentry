@@ -342,6 +342,39 @@ describe('ProjectFilters', () => {
     );
   });
 
+  it('shows inbound filters v2 tab between data filters and discarded issues', () => {
+    const organizationWithFlag = OrganizationFixture({
+      ...organization,
+      features: ['inbound-filters-v2'],
+    });
+    const projectWithDiscardGroups = ProjectFixture({
+      ...project,
+      features: ['discard-groups'],
+    });
+
+    render(<ProjectFilters />, {
+      organization: organizationWithFlag,
+      outletContext: {project: projectWithDiscardGroups},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organizationWithFlag.slug}/projects/${projectWithDiscardGroups.slug}/filters/inbound-filters/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
+      },
+    });
+
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual([
+      'Data Filters',
+      'Inbound Filters',
+      'Discarded Issues',
+    ]);
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Filter'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Action'})).toBeInTheDocument();
+    expect(screen.getByText('No inbound filters found')).toBeInTheDocument();
+  });
+
   it('disables configuration for non project:write users', async () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({access: []}),

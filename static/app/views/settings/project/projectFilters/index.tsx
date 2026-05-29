@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -20,12 +22,16 @@ export default function ProjectFilters() {
   const params = useParams<{filterType: string; projectId: string}>();
   const {projectId, filterType} = params;
   const {project} = useProjectSettingsOutlet();
+  const organization = useOrganization();
 
   if (!project) {
     return null;
   }
 
   const features = new Set(project.features);
+  const hasInboundFiltersV2 = organization.features.includes('inbound-filters-v2');
+  const hasDiscardGroups = features.has('discard-groups');
+  const showTabs = hasDiscardGroups || hasInboundFiltersV2;
 
   return (
     <Fragment>
@@ -42,7 +48,7 @@ export default function ProjectFilters() {
       <div>
         <ProjectFiltersChart project={project} />
 
-        {features.has('discard-groups') && (
+        {showTabs && (
           <TabsContainer>
             <Tabs value={filterType}>
               <TabList>
@@ -53,7 +59,19 @@ export default function ProjectFilters() {
                   {t('Data Filters')}
                 </TabList.Item>
                 <TabList.Item
+                  key="inbound-filters"
+                  hidden={!hasInboundFiltersV2}
+                  to={recreateRoute('inbound-filters/', {
+                    routes,
+                    params,
+                    stepBack: -1,
+                  })}
+                >
+                  {t('Inbound Filters')}
+                </TabList.Item>
+                <TabList.Item
                   key="discarded-groups"
+                  hidden={!hasDiscardGroups}
                   to={recreateRoute('discarded-groups/', {routes, params, stepBack: -1})}
                 >
                   {t('Discarded Issues')}
@@ -65,6 +83,8 @@ export default function ProjectFilters() {
 
         {filterType === 'discarded-groups' ? (
           <GroupTombstones project={project} />
+        ) : hasInboundFiltersV2 && filterType === 'inbound-filters' ? (
+          <InboundFiltersV2 />
         ) : (
           <ProjectFiltersSettings project={project} params={params} />
         )}
@@ -73,6 +93,23 @@ export default function ProjectFilters() {
   );
 }
 
+function InboundFiltersV2() {
+  return (
+    <InboundFiltersV2Table>
+      <SimpleTable.Header>
+        <SimpleTable.HeaderCell>{t('Filter')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+      </SimpleTable.Header>
+      <SimpleTable.Empty>{t('No inbound filters found')}</SimpleTable.Empty>
+    </InboundFiltersV2Table>
+  );
+}
+
 const TabsContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const InboundFiltersV2Table = styled(SimpleTable)`
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
 `;
