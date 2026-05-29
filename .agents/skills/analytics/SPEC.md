@@ -23,7 +23,6 @@ Out of scope:
 
 ## Users And Trigger Context
 
-- Primary users: designers, PMs, sales engineers working with agents to add tracking; frontend engineers adding analytics
 - Common user requests: "add analytics to this button", "track when users view this page", "what events exist for dashboards", "I need to track clicks on the new filter"
 - Should not trigger for: backend-only analytics, Sentry SDK instrumentation, performance monitoring, error tracking setup
 
