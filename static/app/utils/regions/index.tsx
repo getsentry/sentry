@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Region} from 'sentry/types/system';
 
@@ -36,7 +37,7 @@ export function getRegionDataFromOrganization(
 ): RegionData | undefined {
   const {regionUrl} = organization.links;
 
-  const regions = ConfigStore.get('regions') ?? [];
+  const regions = getRegions();
 
   const region = regions.find(value => {
     return value.url === regionUrl;
@@ -58,32 +59,53 @@ export function getRegions(): Region[] {
   return ConfigStore.get('regions') ?? [];
 }
 
-export function getRegionChoices(exclude: RegionData[] = []): Array<[string, string]> {
+/**
+ * Get a list of choice tuples with (url, display name)
+ */
+export function getRegionUrlOptions(
+  exclude: RegionData[] = [],
+  only: string[] = []
+): Array<SelectValue<string>> {
   const regions = getRegions();
   const excludedRegionNames = exclude.map(region => region.name);
 
   return regions
     .filter(region => {
-      return !excludedRegionNames.includes(region.name);
+      if (
+        excludedRegionNames.includes(region.name) ||
+        (only.length > 0 && !only.includes(region.name)) ||
+        CUSTOMER_HIDDEN_REGIONS.has(region.name)
+      ) {
+        return false;
+      }
+      return true;
     })
     .map(region => {
       const {url} = region;
-      return [
-        url,
-        `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
-      ];
+      return {
+        value: url,
+        label: `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
+      };
     });
 }
 
-export function getRegionNameChoices(): Array<[string, string]> {
+// TODO(cells) Rework/remove this once Region -> Locality config changes are completed.
+const CUSTOMER_HIDDEN_REGIONS = new Set(['us2']);
+
+/**
+ * Create a list of Choice tuples with (name, display name)
+ */
+export function getRegionNameOptions(): Array<SelectValue<string>> {
   const regions = getRegions();
 
-  return regions.map(region => {
-    return [
-      region.name,
-      `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
-    ];
-  });
+  return regions
+    .filter(region => !CUSTOMER_HIDDEN_REGIONS.has(region.name))
+    .map(region => {
+      return {
+        value: region.name,
+        label: `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
+      };
+    });
 }
 
 export function shouldDisplayRegions(): boolean {
