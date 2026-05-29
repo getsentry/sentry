@@ -1228,7 +1228,6 @@ export const TraceStylingWrapper = styled('div')`
       min-width: 18px;
       padding: 0 5px 0 5px;
       box-sizing: border-box;
-      border: 1px solid ${p => p.theme.colors.white};
       border-radius: ${p => p.theme.radius.lg};
       color: ${p => p.theme.colors.white};
       z-index: 1;
