@@ -145,8 +145,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         workflow_event_data = replace(event_data, workflow_env=self.environment)
 
         if group is None:
-            # Callers may pass the group in (e.g. when it's been fetched as a batch to avoid an
-            # N+1), but fall back to fetching it ourselves when it isn't provided.
+            # Callers may pass the group in (e.g. when it's been fetched as a batch to avoid an N+1),
+            # but fall back to fetching it ourselves when it isn't provided.
             try:
                 group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
             except DataConditionGroup.DoesNotExist:
