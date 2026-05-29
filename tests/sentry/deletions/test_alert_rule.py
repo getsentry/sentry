@@ -21,7 +21,9 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
+    Detector,
     IncidentGroupOpenPeriod,
+    Workflow,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -75,6 +77,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not GroupOpenPeriod.objects.filter(project=self.project, group=group)
         assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
+        # Detector and Workflow survive — they are now the primary entities.
+        assert Detector.objects.filter(id=detector.id).exists()
+        assert Workflow.objects.filter(id=workflow.id).exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
     @patch(
