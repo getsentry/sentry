@@ -44,6 +44,8 @@ function useSplitPanelContext(component: string): SplitPanelContextValue {
 /**
  * Imperative controls for the surrounding `<SplitPanel>`. Use from any
  * descendant to programmatically maximise, minimise, or reset the sized pane.
+ *
+ * @public design-system API; not yet consumed internally.
  */
 export function useSplitPanel() {
   const {isMaximized, isMinimized, maximiseSize, minimiseSize, resetSize} =
@@ -95,8 +97,6 @@ export type SplitPanelPanelProps = {
    */
   minSize?: number;
 };
-
-export type SplitPanelDividerProps = Record<string, never>;
 
 function Panel({children}: SplitPanelPanelProps) {
   const {isReady, orientation, size} = useSplitPanelContext('SplitPanel.Panel');
