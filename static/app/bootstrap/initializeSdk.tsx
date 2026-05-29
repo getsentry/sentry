@@ -10,7 +10,6 @@ import * as Sentry from '@sentry/react';
 
 import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
-import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -55,12 +54,8 @@ const IGNORED_BREADCRUMB_FETCH_HOSTS = [
   'reload.getsentry.net',
 ];
 
-// Ignore analytics in spans as well
-const IGNORED_SPANS_BY_DESCRIPTION = [
-  'amplitude.com',
-  'pendo.io',
-  'reload.getsentry.net',
-];
+// Ignore analytics in spans — used by the `ignoreSpans` SDK option
+const IGNORED_SPAN_DESCRIPTIONS = ['amplitude.com', 'pendo.io', 'reload.getsentry.net'];
 
 /**
  * Check if the message is from the console banner in `static/app/bootstrap/printConsoleBanner.ts`.
@@ -76,6 +71,7 @@ function isConsoleBannerMessage(message: string | undefined): boolean {
 const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 function getSentryIntegrations() {
   const integrations = [
+    Sentry.spanStreamingIntegration(),
     Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
@@ -144,28 +140,15 @@ export function initializeSdk(config: Config) {
       }
       return tracesSampleRate;
     },
-    beforeSendTransaction(event) {
-      addExtraMeasurements(event);
-      addUIElementTag(event);
+    ignoreSpans: IGNORED_SPAN_DESCRIPTIONS,
 
-      const filteredSpans = event.spans?.filter(span => {
-        return IGNORED_SPANS_BY_DESCRIPTION.every(
-          partialDesc => !span.description?.includes(partialDesc)
-        );
-      });
-
-      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
-      if (filteredSpans && filteredSpans?.length !== event.spans?.length) {
-        event.spans = filteredSpans;
-        const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
-        event.timestamp = newEndTimestamp;
+    beforeSendSpan: Sentry.withStreamedSpan(span => {
+      const op = span.attributes?.['sentry.op'];
+      if (span.name && (op === 'pageload' || op === 'navigation')) {
+        span.name = normalizeUrl(span.name, {forceCustomerDomain: true});
       }
-
-      if (event.transaction) {
-        event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
-      }
-      return event;
-    },
+      return span;
+    }),
 
     ignoreErrors: [
       /**
