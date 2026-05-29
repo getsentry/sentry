@@ -132,6 +132,9 @@ describe('IssueThreadStackTrace', () => {
     });
     ProjectsStore.loadInitialData([project]);
     localStorageWrapper.removeItem(storageKey);
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
   });
 
   it('renders thread controls and metadata from context', async () => {
@@ -197,6 +200,121 @@ describe('IssueThreadStackTrace', () => {
     expect(await screen.findByText('Worker.run')).toBeInTheDocument();
     expect(screen.getByTestId('thread-selector')).toHaveTextContent('Thread #8');
     expect(screen.queryByText('ViewController.causeCrash')).not.toBeInTheDocument();
+  });
+
+  it('keeps grouping frames visible in most relevant view', async () => {
+    const event = makeEvent([
+      makeThread({
+        crashed: true,
+        id: 7,
+        stacktrace: {
+          framesOmitted: null,
+          hasSystemFrames: true,
+          registers: null,
+          frames: [
+            EventStacktraceFrameFixture({
+              function: 'grouping_frame',
+              inApp: false,
+              instructionAddr: '0x100000100',
+              minGroupingLevel: 0,
+              package: '/usr/lib/system/libsystem.dylib',
+              platform: 'cocoa',
+            }),
+            EventStacktraceFrameFixture({
+              function: 'lead_frame',
+              inApp: false,
+              instructionAddr: '0x100000200',
+              package: '/usr/lib/system/libsystem.dylib',
+              platform: 'cocoa',
+            }),
+            EventStacktraceFrameFixture({
+              function: 'app_frame',
+              inApp: true,
+              instructionAddr: '0x100001000',
+              package: '/build/CrashyApp.app/CrashyApp',
+              platform: 'cocoa',
+            }),
+          ],
+        },
+      }),
+    ]);
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('grouping_frame')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('This frame is repeated in every event of this issue')
+    ).toBeInTheDocument();
+  });
+
+  it('passes native frame header metadata for active thread stack traces', async () => {
+    const event = makeEvent([makeThread({crashed: true, id: 7})]);
+    event._meta = {
+      entries: {
+        0: {
+          data: {
+            values: {
+              0: {
+                stacktrace: {
+                  frames: {
+                    1: {
+                      function: {
+                        '': {
+                          chunks: [
+                            {
+                              type: 'redaction',
+                              text: '<redacted>',
+                              rule_id: 'project:0',
+                              remark: 's',
+                            },
+                            {type: 'text', text: ''},
+                          ],
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    } as Event['_meta'];
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('<redacted>')).toBeInTheDocument();
+    expect(screen.queryByText('ViewController.causeCrash')).not.toBeInTheDocument();
+  });
+
+  it('copies the active native thread using raw stack trace formatting', async () => {
+    const event = makeEvent([
+      makeThread({
+        crashed: true,
+        id: 7,
+        rawStacktrace: makeStacktrace('raw_crash_symbol'),
+      }),
+    ]);
+
+    renderThreadStackTrace(event);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
+    expect(copiedText).toContain('Thread: main\n');
+    expect(copiedText).toContain('CrashyApp');
+    expect(copiedText).toContain('0x100001000');
+    expect(copiedText).toContain('raw_crash_symbol');
+    expect(copiedText).toContain('libsystem');
+    expect(copiedText).not.toContain('ViewController.causeCrash');
+    expect(copiedText).not.toContain('undefined');
+    expect(copiedText.indexOf('raw_crash_symbol')).toBeLessThan(
+      copiedText.indexOf('system_start')
+    );
   });
 
   it('uses the active thread id for raw downloads', async () => {

@@ -33,7 +33,13 @@ type Props = {
   projectSlug: Project['slug'];
 };
 
-export function IssueThreadStackTrace({data, event, projectSlug, group}: Props) {
+export function IssueThreadStackTrace({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+}: Props) {
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
     [data.values]
@@ -55,6 +61,7 @@ export function IssueThreadStackTrace({data, event, projectSlug, group}: Props) 
       <IssueThreadStackTraceProviders
         event={event}
         group={group}
+        groupingCurrentLevel={groupingCurrentLevel}
         hasMoreThanOneThread={hasMoreThanOneThread}
         projectSlug={projectSlug}
         threads={threads}

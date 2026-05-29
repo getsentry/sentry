@@ -20,9 +20,12 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 export function StackTraceProvider({
   children,
   collapseAll = false,
+  defaultExpandedFrameIndex,
+  emptySourceNotation = false,
   exceptionIndex,
   event,
   frameSourceMapDebuggerData,
+  groupingCurrentLevel,
   hasScmSourceContext,
   hideSourceMapDebugger,
   minifiedStacktrace,
@@ -47,15 +50,15 @@ export function StackTraceProvider({
   );
 
   const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
-    createInitialHiddenFrameToggleMap(frames, view === 'full')
+    createInitialHiddenFrameToggleMap(frames, view === 'full', groupingCurrentLevel)
   );
 
   const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
   const shouldIncludeSystemFrames = view === 'full';
 
   const frameCountMap = useMemo(
-    () => getFrameCountMap(frames, shouldIncludeSystemFrames),
-    [frames, shouldIncludeSystemFrames]
+    () => getFrameCountMap(frames, shouldIncludeSystemFrames, groupingCurrentLevel),
+    [frames, groupingCurrentLevel, shouldIncludeSystemFrames]
   );
 
   const allRows = useMemo(
@@ -67,8 +70,9 @@ export function StackTraceProvider({
         frameCountMap: {},
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
+        groupingCurrentLevel,
       }),
-    [frames, isNewestFirst, activeStacktrace.framesOmitted]
+    [frames, isNewestFirst, activeStacktrace.framesOmitted, groupingCurrentLevel]
   );
 
   const rows = useMemo(
@@ -80,6 +84,7 @@ export function StackTraceProvider({
         frameCountMap,
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
+        groupingCurrentLevel,
         maxDepth,
       }),
     [
@@ -90,6 +95,7 @@ export function StackTraceProvider({
       maxDepth,
       shouldIncludeSystemFrames,
       activeStacktrace.framesOmitted,
+      groupingCurrentLevel,
     ]
   );
 
@@ -108,9 +114,18 @@ export function StackTraceProvider({
           registers,
           platform,
           hasScmSourceContext,
+          emptySourceNotation:
+            emptySourceNotation && frames.length === 1 && row.frameIndex === 0,
         });
       }),
-    [rows, frames.length, activeStacktrace.registers, platform, hasScmSourceContext]
+    [
+      rows,
+      frames.length,
+      activeStacktrace.registers,
+      platform,
+      hasScmSourceContext,
+      emptySourceNotation,
+    ]
   );
 
   const toggleHiddenFrames = useCallback((frameIndex: number) => {
@@ -124,6 +139,8 @@ export function StackTraceProvider({
     () => ({
       allRows,
       collapseAll,
+      defaultExpandedFrameIndex,
+      emptySourceNotation,
       exceptionIndex,
       event,
       hasAnyExpandableFrames,
@@ -143,6 +160,8 @@ export function StackTraceProvider({
     [
       allRows,
       collapseAll,
+      defaultExpandedFrameIndex,
+      emptySourceNotation,
       exceptionIndex,
       event,
       frameSourceMapDebuggerData,

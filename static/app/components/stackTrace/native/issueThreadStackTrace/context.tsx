@@ -14,6 +14,7 @@ import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nati
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -28,6 +29,7 @@ import type {IssueThreadStackTraceStore} from './threadStore';
 interface IssueThreadStackTraceContextValue {
   event: Event;
   group: Group | undefined;
+  groupingCurrentLevel: Group['metadata']['current_level'];
   hasMoreThanOneThread: boolean;
   hasScmSourceContext: boolean;
   projectSlug: Project['slug'];
@@ -45,10 +47,57 @@ interface ActiveThreadContextValue {
   stacktrace: StacktraceType | undefined;
 }
 
+function getEntryIndex(event: Event, type: EntryType) {
+  return event.entries.findIndex(entry => entry.type === type);
+}
+
+function getActiveStacktraceMeta({
+  activeException,
+  activeThread,
+  event,
+}: {
+  activeException: ExceptionValue | undefined;
+  activeThread: Thread | undefined;
+  event: Event;
+}) {
+  if (activeException) {
+    const entryIndex = getEntryIndex(event, EntryType.EXCEPTION);
+    const exceptionEntry = event.entries[entryIndex];
+    const exceptionValues =
+      exceptionEntry?.type === EntryType.EXCEPTION
+        ? (exceptionEntry.data.values ?? [])
+        : [];
+    let exceptionIndex = exceptionValues.indexOf(activeException);
+
+    if (exceptionIndex === -1 && activeException.threadId !== null) {
+      exceptionIndex = exceptionValues.findIndex(
+        value => value.threadId === activeException.threadId
+      );
+    }
+    if (exceptionIndex === -1 && exceptionValues.length === 1) {
+      exceptionIndex = 0;
+    }
+
+    return event._meta?.entries?.[entryIndex]?.data?.values?.[exceptionIndex]?.stacktrace;
+  }
+
+  const entryIndex = getEntryIndex(event, EntryType.THREADS);
+  const threadsEntry = event.entries[entryIndex];
+  const threadIndex =
+    threadsEntry?.type === EntryType.THREADS
+      ? (threadsEntry.data.values ?? []).findIndex(
+          thread => thread.id === activeThread?.id
+        )
+      : -1;
+
+  return event._meta?.entries?.[entryIndex]?.data?.values?.[threadIndex]?.stacktrace;
+}
+
 interface IssueThreadStackTraceProvidersProps {
   children: ReactNode;
   event: Event;
   group: Group | undefined;
+  groupingCurrentLevel: Group['metadata']['current_level'];
   hasMoreThanOneThread: boolean;
   projectSlug: Project['slug'];
   threads: Thread[];
@@ -154,6 +203,7 @@ export function IssueThreadStackTraceProviders({
   children,
   event,
   group,
+  groupingCurrentLevel,
   hasMoreThanOneThread,
   projectSlug,
   threads,
@@ -170,6 +220,7 @@ export function IssueThreadStackTraceProviders({
     () => ({
       event,
       group,
+      groupingCurrentLevel,
       hasMoreThanOneThread,
       hasScmSourceContext,
       projectSlug,
@@ -179,6 +230,7 @@ export function IssueThreadStackTraceProviders({
     [
       event,
       group,
+      groupingCurrentLevel,
       hasMoreThanOneThread,
       hasScmSourceContext,
       projectSlug,
@@ -196,7 +248,8 @@ export function IssueThreadStackTraceProviders({
 
 function ActiveThreadProviders({children}: {children: ReactNode}) {
   const activeThread = useActiveThread();
-  const {event, hasScmSourceContext, storageKey} = useIssueThreadStackTraceContext();
+  const {event, groupingCurrentLevel, hasScmSourceContext, storageKey} =
+    useIssueThreadStackTraceContext();
   const [persistedOptions] = useNativeDisplayOptionsStorage(storageKey);
   const exception = useMemo(
     () => getThreadException(event, activeThread),
@@ -213,6 +266,10 @@ function ActiveThreadProviders({children}: {children: ReactNode}) {
   const {minifiedStacktrace, stacktrace} = useMemo(
     () => getActiveStacktrace({activeException, activeThread}),
     [activeException, activeThread]
+  );
+  const stacktraceMeta = useMemo(
+    () => getActiveStacktraceMeta({activeException, activeThread, event}),
+    [activeException, activeThread, event]
   );
   const platform = inferPlatform(event, activeThread);
   const hasMinifiedStacktrace =
@@ -263,7 +320,9 @@ function ActiveThreadProviders({children}: {children: ReactNode}) {
             event={event}
             stacktrace={stacktrace}
             minifiedStacktrace={minifiedStacktrace}
+            groupingCurrentLevel={groupingCurrentLevel}
             hasScmSourceContext={hasScmSourceContext}
+            meta={stacktraceMeta}
             platform={platform}
             displayOptionsStorageKey={storageKey}
           >

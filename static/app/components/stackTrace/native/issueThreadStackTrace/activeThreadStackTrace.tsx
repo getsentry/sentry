@@ -23,7 +23,8 @@ import {isNativePlatform} from 'sentry/utils/platform';
 import {useActiveThreadContext, useIssueThreadStackTraceContext} from './context';
 
 export function ActiveThreadStackTrace() {
-  const {event, hasScmSourceContext, projectSlug} = useIssueThreadStackTraceContext();
+  const {event, groupingCurrentLevel, hasScmSourceContext, projectSlug} =
+    useIssueThreadStackTraceContext();
   const {activeException, activeThread, platform, stacktrace} = useActiveThreadContext();
 
   if (!stacktrace) {
@@ -34,6 +35,7 @@ export function ActiveThreadStackTrace() {
     return (
       <StackTraceProvider
         event={event}
+        groupingCurrentLevel={groupingCurrentLevel}
         hasScmSourceContext={hasScmSourceContext}
         stacktrace={stacktrace}
         platform={platform}

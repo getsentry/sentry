@@ -31,6 +31,7 @@ export type FrameRow = {
   frame: Frame;
   frameIndex: number;
   isSubFrame: boolean;
+  isUsedForGrouping: boolean;
   kind: 'frame';
   timesRepeated: number;
   hiddenFrameCount?: number;
@@ -47,6 +48,8 @@ export type Row = FrameRow | OmittedFramesRow;
 
 export type StackTraceMeta = {
   frames?: Array<{
+    function?: Record<string, Record<any, any>>;
+    rawFunction?: Record<string, Record<any, any>>;
     vars?: Record<string, unknown>;
   }>;
   registers?: Record<string, unknown>;
@@ -58,10 +61,16 @@ export interface StackTraceProviderProps {
   stacktrace: StacktraceType;
   /** When true, all frames start collapsed regardless of their position. */
   collapseAll?: boolean;
+  /** Frame index to expand by default. Null means no default-expanded frame. */
+  defaultExpandedFrameIndex?: number | null;
+  /** Allows a single frame with no context/register details to be expanded. */
+  emptySourceNotation?: boolean;
   /** Optional exception index in the full exception values list. */
   exceptionIndex?: number;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
+  /** Current issue grouping level, used to keep grouping frames visible. */
+  groupingCurrentLevel?: number;
   /** Whether the SCM source context feature is enabled for this org. */
   hasScmSourceContext?: boolean;
   /** Hide the source maps debugger button entirely. */

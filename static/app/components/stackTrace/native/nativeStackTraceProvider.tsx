@@ -37,8 +37,15 @@ export function NativeStackTraceProvider({
   isHoverPreviewed = false,
   ...stackTraceProps
 }: NativeStackTraceProviderProps) {
-  const {event, stacktrace} = stackTraceProps;
-  const {hasMinifiedStacktrace, isMinified, view} = useStackTraceViewState();
+  const {event, minifiedStacktrace, stacktrace} = stackTraceProps;
+  const {hasMinifiedStacktrace, isMinified, isNewestFirst, view} =
+    useStackTraceViewState();
+  const activeStacktrace =
+    isMinified && minifiedStacktrace ? minifiedStacktrace : stacktrace;
+  const activeFrames = useMemo(
+    () => activeStacktrace.frames ?? [],
+    [activeStacktrace.frames]
+  );
   const [persistedOptions, setPersistedOptions] = useNativeDisplayOptionsStorage(
     displayOptionsStorageKey
   );
@@ -65,7 +72,6 @@ export function NativeStackTraceProvider({
     hasAbsoluteFilePaths,
     hasVerboseFunctionNames,
   } = useMemo(() => {
-    const frames = stacktrace.frames ?? [];
     const map = new Map<number, ImageWithCombinedStatus | null>();
     let maxLen = 0;
     let anyIcon = false;
@@ -73,8 +79,8 @@ export function NativeStackTraceProvider({
     let anyAbsPath = false;
     let anyVerbose = false;
 
-    for (let i = 0; i < frames.length; i++) {
-      const frame = frames[i]!;
+    for (let i = 0; i < activeFrames.length; i++) {
+      const frame = activeFrames[i]!;
       const image = findImageForAddress({
         event,
         addrMode: frame.addrMode,
@@ -123,7 +129,15 @@ export function NativeStackTraceProvider({
       hasAbsoluteFilePaths: anyAbsPath,
       hasVerboseFunctionNames: anyVerbose,
     };
-  }, [event, stacktrace.frames]);
+  }, [activeFrames, event]);
+
+  const defaultExpandedFrameIndex = useMemo(() => {
+    const inAppFrameIndex = isNewestFirst
+      ? activeFrames.findLastIndex(frame => frame.inApp)
+      : activeFrames.findIndex(frame => frame.inApp);
+
+    return inAppFrameIndex === -1 ? null : inAppFrameIndex;
+  }, [activeFrames, isNewestFirst]);
 
   const persistDisplayOptions = useCallback(
     (
@@ -196,7 +210,11 @@ export function NativeStackTraceProvider({
   );
 
   return (
-    <StackTraceProvider {...stackTraceProps}>
+    <StackTraceProvider
+      {...stackTraceProps}
+      defaultExpandedFrameIndex={defaultExpandedFrameIndex}
+      emptySourceNotation
+    >
       <NativeStackTraceContext.Provider value={value}>
         {children}
       </NativeStackTraceContext.Provider>

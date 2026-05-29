@@ -113,6 +113,31 @@ describe('stackTrace rows utils', () => {
     expect(rows[0]).toMatchObject({kind: 'frame', frameIndex: 1, timesRepeated: 1});
   });
 
+  it('keeps grouping frames visible in app-frame view', () => {
+    const frames = [
+      makeFrame({inApp: false, filename: 'grouping.py', minGroupingLevel: 0}),
+      makeFrame({inApp: false, filename: 'hidden.py'}),
+      makeFrame({inApp: true, filename: 'app.py'}),
+    ];
+
+    const rows = getRows({
+      frames,
+      includeSystemFrames: false,
+      hiddenFrameToggleMap: {},
+      frameCountMap: getFrameCountMap(frames, false, 0),
+      newestFirst: false,
+      framesOmitted: null,
+      groupingCurrentLevel: 0,
+    });
+
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({
+      kind: 'frame',
+      frameIndex: 0,
+      isUsedForGrouping: true,
+    });
+  });
+
   it('inserts omitted rows and respects maxDepth and newestFirst', () => {
     const frames = [
       makeFrame({inApp: true, filename: '0.py'}),

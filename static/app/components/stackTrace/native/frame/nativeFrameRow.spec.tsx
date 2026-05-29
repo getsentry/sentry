@@ -1,12 +1,20 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {
+  DebugMetaSearchProvider,
+  useDebugMetaSearch,
+} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import {ImageStatus} from 'sentry/types/debugImage';
 import {EntryType, EventOrGroupType, type Event, type Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {IssueDetailsContext, SectionKey} from 'sentry/views/issueDetails/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 
 function makeFrame(overrides: Partial<Frame>): Frame {
   return {
@@ -76,13 +84,58 @@ function makeImage(overrides: any = {}) {
   };
 }
 
-function renderFrames(stacktrace: StacktraceType, event: Event) {
+function renderFrames(
+  stacktrace: StacktraceType,
+  event: Event,
+  {
+    defaultIsNewestFirst = true,
+    meta,
+  }: {defaultIsNewestFirst?: boolean; meta?: StackTraceMeta} = {}
+) {
   return render(
-    <StackTraceViewStateProvider platform="cocoa">
-      <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
+    <StackTraceViewStateProvider
+      platform="cocoa"
+      defaultIsNewestFirst={defaultIsNewestFirst}
+    >
+      <NativeStackTraceProvider event={event} stacktrace={stacktrace} meta={meta}>
         <NativeStackTraceFrames />
       </NativeStackTraceProvider>
     </StackTraceViewStateProvider>
+  );
+}
+
+function DebugMetaSearchProbe() {
+  const {searchTerm} = useDebugMetaSearch();
+  return <div data-test-id="debug-meta-search-term">{searchTerm}</div>;
+}
+
+function renderFramesWithDebugMeta(stacktrace: StacktraceType, event: Event) {
+  return render(
+    <IssueDetailsContext
+      value={{
+        detectorDetails: {},
+        dispatch: jest.fn(),
+        eventCount: 0,
+        isSidebarOpen: true,
+        navScrollMargin: 0,
+        sectionData: {
+          [SectionKey.DEBUGMETA]: {
+            key: SectionKey.DEBUGMETA,
+            initialCollapse: true,
+          },
+        },
+      }}
+    >
+      <DebugMetaSearchProvider>
+        <StackTraceViewStateProvider platform="cocoa">
+          <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
+            <NativeStackTraceFrames />
+          </NativeStackTraceProvider>
+        </StackTraceViewStateProvider>
+        <DebugMetaSearchProbe />
+        <div id={SectionKey.DEBUGMETA} />
+      </DebugMetaSearchProvider>
+    </IssueDetailsContext>
   );
 }
 
@@ -190,6 +243,44 @@ describe('NativeFrameRow', () => {
 
     expect(screen.getByText('main')).toBeInTheDocument();
     expect(screen.getByText('libSystem.B')).toBeInTheDocument();
+  });
+
+  it('renders redaction metadata on native frame function names', () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: null,
+      frames: [
+        makeFrame({
+          function: 'secret_function',
+          instructionAddr: '0x100012abc',
+        }),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]), {
+      meta: {
+        frames: [
+          {
+            function: {
+              '': {
+                chunks: [
+                  {
+                    type: 'redaction',
+                    text: '<redacted>',
+                    rule_id: 'project:0',
+                    remark: 's',
+                  },
+                  {type: 'text', text: ''},
+                ],
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByText('<redacted>')).toBeInTheDocument();
+    expect(screen.queryByText('secret_function')).not.toBeInTheDocument();
   });
 
   it('drops the status column when no frame has a status icon', () => {
@@ -317,6 +408,37 @@ describe('NativeFrameRow', () => {
     expect(screen.getByText('hidden_three')).toBeInTheDocument();
   });
 
+  it('expands and filters images loaded when a frame address is clicked', async () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const collapseStorageKey = getFoldSectionKey(SectionKey.DEBUGMETA);
+    localStorageWrapper.setItem(collapseStorageKey, JSON.stringify(true));
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: null,
+      frames: [
+        makeFrame({
+          addrMode: 'rel:0',
+          instructionAddr: '0x100012abc',
+          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+        }),
+      ],
+    };
+
+    renderFramesWithDebugMeta(stacktrace, makeEvent(stacktrace, [makeImage()]));
+
+    await userEvent.click(screen.getByText('+0x12abc'));
+
+    expect(screen.getByTestId('debug-meta-search-term')).toHaveTextContent(
+      '11111111-1111-1111-1111-111111111111!0x100012abc'
+    );
+    expect(scrollIntoView).toHaveBeenCalledWith({block: 'start', behavior: 'smooth'});
+    await waitFor(() => {
+      expect(localStorageWrapper.getItem(collapseStorageKey)).toBe('false');
+    });
+  });
+
   it('auto-expands the last in-app frame', () => {
     const stacktrace: StacktraceType = {
       framesOmitted: null,
@@ -341,6 +463,64 @@ describe('NativeFrameRow', () => {
     expect(titles[0]).toHaveAttribute('aria-expanded', 'true');
     expect(titles[1]).toHaveAttribute('aria-expanded', 'false');
     expect(titles[2]).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('auto-expands the first in-app frame when oldest frames are shown first', () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: true,
+      registers: null,
+      frames: [
+        makeFrame({function: 'app_first', inApp: true, context: [[1, 'first source']]}),
+        makeFrame({
+          function: 'sys_middle',
+          inApp: false,
+          context: [[2, 'middle source']],
+        }),
+        makeFrame({function: 'app_last', inApp: true, context: [[3, 'last source']]}),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace), {defaultIsNewestFirst: false});
+
+    const titles = screen.getAllByTestId('native-stack-trace-frame-title');
+    expect(titles[0]).toHaveTextContent('app_first');
+    expect(titles[0]).toHaveAttribute('aria-expanded', 'true');
+    expect(titles[2]).toHaveTextContent('app_last');
+    expect(titles[2]).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('allows a single empty native frame to expand to the empty details message', async () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: {},
+      frames: [
+        makeFrame({
+          context: [],
+          filename: null,
+          function: null,
+          inApp: false,
+          instructionAddr: null,
+          package: null,
+          rawFunction: null,
+          vars: null,
+        }),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace));
+
+    const title = screen.getByTestId('native-stack-trace-frame-title');
+    expect(title).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      screen.queryByText('No additional details are available for this frame.')
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(title);
+
+    expect(title).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      screen.getByText('No additional details are available for this frame.')
+    ).toBeInTheDocument();
   });
 
   it('renders an in-app tag for in-app frames', () => {

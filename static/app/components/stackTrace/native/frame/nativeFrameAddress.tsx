@@ -43,6 +43,8 @@ function getAddressTooltip({
   if (foundByStackScanning) {
     return t('Found by stack scanning');
   }
+
+  return;
 }
 
 function getRelativeAddress({

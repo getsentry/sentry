@@ -5,20 +5,33 @@ import type {Frame} from 'sentry/types/event';
 function frameIsVisible(
   frame: Frame,
   nextFrame: Frame | undefined,
-  includeSystemFrames: boolean
+  includeSystemFrames: boolean,
+  groupingCurrentLevel?: number
 ) {
   return (
     includeSystemFrames ||
     frame.inApp ||
     nextFrame?.inApp ||
     // Include the last non-app frame to keep the call chain understandable.
-    (!frame.inApp && !nextFrame)
+    (!frame.inApp && !nextFrame) ||
+    isFrameUsedForGrouping(frame, groupingCurrentLevel)
   );
+}
+
+function isFrameUsedForGrouping(frame: Frame, groupingCurrentLevel?: number) {
+  const {minGroupingLevel} = frame;
+
+  if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
+    return false;
+  }
+
+  return minGroupingLevel <= groupingCurrentLevel;
 }
 
 export function createInitialHiddenFrameToggleMap(
   frames: Frame[],
-  includeSystemFrames: boolean
+  includeSystemFrames: boolean,
+  groupingCurrentLevel?: number
 ) {
   const indexMap: Record<number, boolean> = {};
 
@@ -27,7 +40,7 @@ export function createInitialHiddenFrameToggleMap(
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      frameIsVisible(frame, nextFrame, includeSystemFrames, groupingCurrentLevel) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -38,7 +51,11 @@ export function createInitialHiddenFrameToggleMap(
   return indexMap;
 }
 
-export function getFrameCountMap(frames: Frame[], includeSystemFrames: boolean) {
+export function getFrameCountMap(
+  frames: Frame[],
+  includeSystemFrames: boolean,
+  groupingCurrentLevel?: number
+) {
   let count = 0;
   const countMap: Record<number, number> = {};
 
@@ -47,7 +64,7 @@ export function getFrameCountMap(frames: Frame[], includeSystemFrames: boolean) 
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(frame, nextFrame, includeSystemFrames) &&
+      frameIsVisible(frame, nextFrame, includeSystemFrames, groupingCurrentLevel) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -109,6 +126,7 @@ export function getRows({
   frameCountMap,
   newestFirst,
   framesOmitted,
+  groupingCurrentLevel,
   maxDepth,
 }: {
   frameCountMap: Record<number, number>;
@@ -117,6 +135,7 @@ export function getRows({
   hiddenFrameToggleMap: Record<number, boolean>;
   includeSystemFrames: boolean;
   newestFirst: boolean;
+  groupingCurrentLevel?: number;
   maxDepth?: number;
 }): Row[] {
   const hiddenFrameIndices = getHiddenFrameIndices({
@@ -137,7 +156,8 @@ export function getRows({
       }
 
       if (
-        (frameIsVisible(frame, nextFrame, includeSystemFrames) && !repeatedFrame) ||
+        (frameIsVisible(frame, nextFrame, includeSystemFrames, groupingCurrentLevel) &&
+          !repeatedFrame) ||
         hiddenFrameIndices.has(frameIndex)
       ) {
         const row: FrameRow = {
@@ -146,6 +166,7 @@ export function getRows({
           frameIndex,
           nextFrame,
           timesRepeated: nRepeats,
+          isUsedForGrouping: isFrameUsedForGrouping(frame, groupingCurrentLevel),
           isSubFrame: hiddenFrameIndices.has(frameIndex),
           hiddenFrameCount: frameCountMap[frameIndex],
         };

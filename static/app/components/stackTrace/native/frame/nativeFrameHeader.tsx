@@ -5,8 +5,13 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getLeadHint, trimPackage} from 'sentry/components/events/interfaces/frame/utils';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
-import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from 'sentry/components/stackTrace/stackTraceContext';
+import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -15,6 +20,8 @@ import {NativeDefaultActions} from './actions/nativeDefaultActions';
 import {SymbolicatorStatusIcon} from './actions/symbolicatorStatusIcon';
 import {NativeFrameAddress} from './nativeFrameAddress';
 
+type FrameMeta = NonNullable<StackTraceMeta['frames']>[number];
+
 interface NativeFrameHeaderProps {
   /** Custom trailing actions; falls back to NativeDefaultActions. */
   actions?: React.ReactNode | ((props: {isHovering: boolean}) => React.ReactNode);
@@ -22,15 +29,35 @@ interface NativeFrameHeaderProps {
 
 function getFunctionLabel({
   frame,
+  frameMeta,
   verboseFunctionNames,
 }: {
   frame: ReturnType<typeof useStackTraceFrameContext>['frame'];
+  frameMeta: FrameMeta | undefined;
   verboseFunctionNames: boolean;
 }) {
   if (verboseFunctionNames && frame.rawFunction) {
-    return frame.rawFunction;
+    return {
+      value: frame.rawFunction,
+      meta: frameMeta?.rawFunction?.[''],
+    };
   }
-  return frame.function ?? frame.rawFunction ?? null;
+
+  if (frame.function) {
+    return {
+      value: frame.function,
+      meta: frameMeta?.function?.[''],
+    };
+  }
+
+  if (frame.rawFunction) {
+    return {
+      value: frame.rawFunction,
+      meta: frameMeta?.rawFunction?.[''],
+    };
+  }
+
+  return null;
 }
 
 export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
@@ -38,17 +65,20 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
     event,
     frame,
     frameContextId,
+    frameIndex,
     isExpandable,
     isExpanded,
     nextFrame,
     toggleExpansion,
   } = useStackTraceFrameContext();
+  const {meta} = useStackTraceContext();
   const {absoluteFilePaths, hasAnyStatusIcons, verboseFunctionNames} =
     useNativeStackTraceContext();
   const [isHovering, setIsHovering] = useState(false);
 
   const isDartAsync = isDartAsyncSuspension(frame);
-  const functionLabel = getFunctionLabel({frame, verboseFunctionNames});
+  const frameMeta = meta?.frames?.[frameIndex];
+  const functionLabel = getFunctionLabel({frame, frameMeta, verboseFunctionNames});
   const packageLabel = frame.package ? trimPackage(frame.package) : null;
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
 
@@ -121,7 +151,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
               title={frame.rawFunction ?? frame.symbol}
               disabled={!frame.rawFunction}
             >
-              <FunctionName>{functionLabel}</FunctionName>
+              <FunctionName value={functionLabel.value} meta={functionLabel.meta} />
             </Tooltip>
           ) : isDartAsync ? (
             t('Dart')
@@ -286,7 +316,7 @@ const FunctionCell = styled('div')`
   }
 `;
 
-const FunctionName = styled('span')`
+const FunctionName = styled(AnnotatedText)`
   min-width: 0;
   flex: 0 1 auto;
   word-break: break-all;

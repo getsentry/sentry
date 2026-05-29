@@ -77,6 +77,10 @@ export interface StackTraceContextValue {
   stacktrace: StacktraceType;
   /** Toggles hidden system frames adjacent to a visible row. */
   toggleHiddenFrames: (frameIndex: number) => void;
+  /** Frame index to expand by default. Null means no default-expanded frame. */
+  defaultExpandedFrameIndex?: number | null;
+  /** Allows a single frame with no context/register details to be expanded. */
+  emptySourceNotation?: boolean;
   /** Optional exception index in the full exception values list. */
   exceptionIndex?: number;
   /** Optional per-frame source map debugger resolution data. */
@@ -102,6 +106,8 @@ export interface StackTraceFrameContextValue {
   isExpandable: boolean;
   /** Whether source/register/context details are currently expanded. */
   isExpanded: boolean;
+  /** Whether this frame participates in the current issue grouping level. */
+  isUsedForGrouping: boolean;
   /** Effective platform used for frame render/utility logic. */
   platform: PlatformKey;
   /** Number of repeated frames collapsed into this row. */
