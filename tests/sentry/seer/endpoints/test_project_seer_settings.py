@@ -821,6 +821,37 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
             assert p.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
             assert p.get_option("sentry:seer_scanner_automation") is True
 
+    def test_put_legacy_updates_settings(self, mock_is_seat_based) -> None:
+        """Legacy: bulk update with granular tuning, auto_create_pr, and external agent."""
+        mock_is_seat_based.return_value = False
+        project2 = self.create_project(organization=self.organization)
+        integration = self.create_integration(
+            organization=self.organization, external_id="ext", provider="github"
+        )
+
+        response = self.client.put(
+            self.url,
+            data={
+                "automationTuning": "high",
+                "autoCreatePr": True,
+                "agent": "cursor_background_agent",
+                "integrationId": integration.id,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 204
+        for p in (self.project, project2):
+            assert (
+                p.get_option("sentry:autofix_automation_tuning")
+                == AutofixAutomationTuningSettings.HIGH
+            )
+            assert p.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+            assert (
+                p.get_option("sentry:seer_automation_handoff_target") == "cursor_background_agent"
+            )
+            assert p.get_option("sentry:seer_automation_handoff_integration_id") == integration.id
+
     def test_put_invalid_search_query_returns_400(self, mock_is_seat_based) -> None:
         """A malformed query value should return 400."""
         response = self.client.put(
