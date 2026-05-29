@@ -3,14 +3,18 @@ import {LinkButton} from '@sentry/scraps/button';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
+
+import {supportsAppleCrashReport} from './appleCrashReport';
 
 interface RawDownloadActionProps {
   eventId: string;
   organization: Organization;
   projectSlug: string;
+  platform?: PlatformKey;
   threadId?: number;
 }
 
@@ -22,13 +26,15 @@ interface RawDownloadActionProps {
 export function RawDownloadAction({
   eventId,
   organization,
+  platform: platformProp,
   projectSlug,
   threadId,
 }: RawDownloadActionProps) {
   const api = useApi();
-  const {view, isMinified, platform} = useStackTraceViewState();
+  const {view, isMinified, platform: viewStatePlatform} = useStackTraceViewState();
+  const platform = platformProp ?? viewStatePlatform;
 
-  if (view !== 'raw' || !platform || !isNativePlatform(platform)) {
+  if (view !== 'raw' || !supportsAppleCrashReport(platform)) {
     return null;
   }
 

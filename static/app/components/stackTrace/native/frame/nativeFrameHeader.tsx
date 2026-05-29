@@ -203,12 +203,12 @@ const HeaderGrid = styled('div')<{
   column-gap: ${p => p.theme.space.md};
   row-gap: ${p => p.theme.space.sm};
   padding: ${p =>
-    `${p.theme.space.sm} ${p.theme.space.md} ${p.theme.space.sm} ${
+    `${p.theme.space.xs} ${p.theme.space.md} ${p.theme.space.xs} ${
       p.hasStatusColumn
         ? p.theme.space.md
         : `calc(${p.theme.space.md} + 16px + ${p.theme.space.md})`
     }`};
-  min-height: 36px;
+  min-height: 32px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   background: ${p =>
     !p.isInAppFrame && p.isSubFrame

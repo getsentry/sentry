@@ -17,11 +17,11 @@ const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
 
 /**
  * Native flavor of the Display dropdown. Drop-in replacement for the generic
- * `DisplayOptions`: same View/Sort/Display sections, plus a Native section
- * with absolute-addresses / absolute-file-paths / verbose-function-names.
+ * `DisplayOptions`: same stack trace view and order controls, plus frame
+ * detail toggles for symbolication and native-specific frame fields.
  *
- * Options in the Native section auto-disable when no frame in the stack
- * would benefit from them.
+ * Native frame detail options auto-disable when no frame in the stack would
+ * benefit from them.
  */
 export function NativeDisplayOptions() {
   const {
@@ -156,14 +156,14 @@ export function NativeDisplayOptions() {
           ],
         },
         {
-          label: t('Sort'),
+          label: t('Order'),
           options: [
-            {label: t('Newest'), value: 'newest'},
-            {label: t('Oldest'), value: 'oldest'},
+            {label: t('Newest First'), value: 'newest'},
+            {label: t('Oldest First'), value: 'oldest'},
           ],
         },
         {
-          label: t('Display'),
+          label: t('Frame Details'),
           options: [
             {
               label: minifiedLabel,
@@ -171,11 +171,6 @@ export function NativeDisplayOptions() {
               disabled: !hasMinifiedStacktrace,
               tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
             },
-          ],
-        },
-        {
-          label: t('Native'),
-          options: [
             {
               label: t('Absolute Addresses'),
               value: NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES,

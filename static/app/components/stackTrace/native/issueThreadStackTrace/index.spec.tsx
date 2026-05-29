@@ -8,6 +8,7 @@ import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueTh
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
@@ -52,7 +53,7 @@ function makeThread(overrides: Partial<Thread>): Thread {
   };
 }
 
-function makeEvent(threads: Thread[]): Event {
+function makeEvent(threads: Thread[], platform: PlatformKey = 'cocoa'): Event {
   return {
     id: 'event-id',
     message: 'EXC_BAD_ACCESS',
@@ -100,7 +101,7 @@ function makeEvent(threads: Thread[]): Event {
     occurrence: null,
     resolvedWith: [],
     contexts: {},
-    platform: 'cocoa',
+    platform,
   } as Event;
 }
 
@@ -317,7 +318,7 @@ describe('IssueThreadStackTrace', () => {
     );
   });
 
-  it('uses the active thread id for raw downloads', async () => {
+  it('matches old raw thread logic for exception and non-exception threads', async () => {
     localStorageWrapper.setItem(storageKey, JSON.stringify(['raw-stack-trace']));
     const event = makeEvent([
       makeThread({crashed: true, id: 7}),
@@ -326,17 +327,37 @@ describe('IssueThreadStackTrace', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
       match: [MockApiClient.matchQuery({minified: 'false', thread_id: '7'})],
-      body: 'thread 7 crash report',
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
-      match: [MockApiClient.matchQuery({minified: 'false', thread_id: '8'})],
-      body: 'thread 8 crash report',
+      body: `OS Version: iOS 15.5 (21A559)
+Report Version: 104
+
+Application Specific Information:
+happyCustomer (Code: 1)
+
+Thread 7 Crashed:
+0   CrashyApp                        0x100001000 ViewController.causeCrash
+
+Thread 7 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000000000000
+
+Binary Images:
+0x100000000 - 0x10000ffff CrashyApp arm64
+
+EOF`,
     });
 
     renderThreadStackTrace(event);
 
-    expect(await screen.findByText('thread 7 crash report')).toBeInTheDocument();
+    // Matches old ExceptionContent raw behavior: exception-backed native threads
+    // render the full Apple crash report.
+    expect(await screen.findByText(/OS Version:/)).toBeInTheDocument();
+    expect(screen.getByText(/Application Specific Information:/)).toBeInTheDocument();
+    expect(await screen.findByText(/Thread 7 Crashed:/)).toBeInTheDocument();
+    expect(screen.getByText(/ViewController\.causeCrash/)).toBeInTheDocument();
+    expect(screen.getByText(/Binary Images:/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Thread 7 crashed with ARM Thread State/)
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('raw-stack-trace').tagName).toBe('PRE');
     expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
       '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=7&download=1'
@@ -344,11 +365,24 @@ describe('IssueThreadStackTrace', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
 
-    expect(await screen.findByText('thread 8 crash report')).toBeInTheDocument();
+    // Matches old StackTraceContent raw behavior: native threads without a
+    // matching exception render formatted stacktrace frames, not a .crash report.
+    expect(await screen.findByText(/Worker\.run/)).toBeInTheDocument();
+    expect(screen.queryByText(/Thread 8/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
       '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=8&download=1'
     );
+  });
+
+  it('falls back to formatted raw frames when apple crash reports are unsupported', async () => {
+    localStorageWrapper.setItem(storageKey, JSON.stringify(['raw-stack-trace']));
+    const event = makeEvent([makeThread({crashed: true, id: 7})], 'c');
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText(/ViewController\.causeCrash/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
   });
 
   it('renders stacktrace source links from issue frame actions', async () => {

@@ -30,4 +30,18 @@ describe('RawDownloadAction', () => {
       '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=true&thread_id=123&download=1'
     );
   });
+
+  it('does not render for native platforms without apple crash reports', () => {
+    render(
+      <StackTraceViewStateProvider defaultView="raw" platform="c">
+        <RawDownloadAction
+          eventId="event-id"
+          organization={organization}
+          projectSlug="project-slug"
+        />
+      </StackTraceViewStateProvider>
+    );
+
+    expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
+  });
 });

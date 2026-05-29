@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
+import {DEFAULT_STACK_TRACE_ROW_POLICY} from 'sentry/components/stackTrace/rowPolicy';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -25,15 +26,14 @@ export function StackTraceProvider({
   exceptionIndex,
   event,
   frameSourceMapDebuggerData,
-  groupingCurrentLevel,
   hasScmSourceContext,
-  hideDartAsyncSuspensionFrames,
   hideSourceMapDebugger,
   minifiedStacktrace,
   stacktrace,
   maxDepth,
   meta,
   platform: platformProp,
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY,
 }: StackTraceProviderProps) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
 
@@ -51,31 +51,15 @@ export function StackTraceProvider({
   );
 
   const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
-    createInitialHiddenFrameToggleMap(
-      frames,
-      view === 'full',
-      groupingCurrentLevel,
-      hideDartAsyncSuspensionFrames
-    )
+    createInitialHiddenFrameToggleMap(frames, view === 'full', rowPolicy)
   );
 
   const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
   const shouldIncludeSystemFrames = view === 'full';
 
   const frameCountMap = useMemo(
-    () =>
-      getFrameCountMap(
-        frames,
-        shouldIncludeSystemFrames,
-        groupingCurrentLevel,
-        hideDartAsyncSuspensionFrames
-      ),
-    [
-      frames,
-      groupingCurrentLevel,
-      hideDartAsyncSuspensionFrames,
-      shouldIncludeSystemFrames,
-    ]
+    () => getFrameCountMap(frames, shouldIncludeSystemFrames, rowPolicy),
+    [frames, rowPolicy, shouldIncludeSystemFrames]
   );
 
   const allRows = useMemo(
@@ -87,16 +71,9 @@ export function StackTraceProvider({
         frameCountMap: {},
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
-        groupingCurrentLevel,
-        hideDartAsyncSuspensionFrames,
+        rowPolicy,
       }),
-    [
-      frames,
-      isNewestFirst,
-      activeStacktrace.framesOmitted,
-      groupingCurrentLevel,
-      hideDartAsyncSuspensionFrames,
-    ]
+    [frames, isNewestFirst, activeStacktrace.framesOmitted, rowPolicy]
   );
 
   const rows = useMemo(
@@ -108,9 +85,8 @@ export function StackTraceProvider({
         frameCountMap,
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
-        groupingCurrentLevel,
-        hideDartAsyncSuspensionFrames,
         maxDepth,
+        rowPolicy,
       }),
     [
       frameCountMap,
@@ -120,8 +96,7 @@ export function StackTraceProvider({
       maxDepth,
       shouldIncludeSystemFrames,
       activeStacktrace.framesOmitted,
-      groupingCurrentLevel,
-      hideDartAsyncSuspensionFrames,
+      rowPolicy,
     ]
   );
 

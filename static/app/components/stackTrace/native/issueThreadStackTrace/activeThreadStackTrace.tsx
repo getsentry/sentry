@@ -1,6 +1,7 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
@@ -11,9 +12,11 @@ import {
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {IssueStackTraceFrameContext} from 'sentry/components/stackTrace/issueStackTrace/issueStackTraceFrameContext';
+import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
 import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
 import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native/nativeAppleCrashReportContent';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
+import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {t} from 'sentry/locale';
@@ -25,7 +28,12 @@ import {useActiveThreadContext, useIssueThreadStackTraceContext} from './context
 export function ActiveThreadStackTrace() {
   const {event, groupingCurrentLevel, hasScmSourceContext, projectSlug} =
     useIssueThreadStackTraceContext();
-  const {activeException, activeThread, platform, stacktrace} = useActiveThreadContext();
+  const {activeException, activeThread, exception, platform, stacktrace} =
+    useActiveThreadContext();
+  const rowPolicy = useMemo(
+    () => createStackTraceRowPolicy({groupingCurrentLevel}),
+    [groupingCurrentLevel]
+  );
 
   if (!stacktrace) {
     return <NoStackTrace>{t('No stack trace available')}</NoStackTrace>;
@@ -35,8 +43,8 @@ export function ActiveThreadStackTrace() {
     return (
       <StackTraceProvider
         event={event}
-        groupingCurrentLevel={groupingCurrentLevel}
         hasScmSourceContext={hasScmSourceContext}
+        rowPolicy={rowPolicy}
         stacktrace={stacktrace}
         platform={platform}
       >
@@ -55,11 +63,13 @@ export function ActiveThreadStackTrace() {
         frameActionsComponent={NativeIssueFrameActions}
         frameContextComponent={IssueStackTraceFrameContext}
         rawContent={
-          <NativeAppleCrashReportContent
-            eventId={event.id}
-            projectSlug={projectSlug}
-            threadId={activeThread?.id}
-          />
+          exception && supportsAppleCrashReport(event.platform) ? (
+            <NativeAppleCrashReportContent
+              eventId={event.id}
+              projectSlug={projectSlug}
+              threadId={activeThread?.id}
+            />
+          ) : undefined
         }
       />
     </Flex>
@@ -92,9 +102,9 @@ function ExceptionDetails({exception}: {exception: ExceptionValue | undefined}) 
 
   return (
     <Flex direction="column" gap="sm">
-      <div>
+      <Container>
         <ExceptionHeader type={exception.type} module={exception.module} />
-      </div>
+      </Container>
       <ExceptionDescription value={exception.value} mechanism={exception.mechanism} />
     </Flex>
   );

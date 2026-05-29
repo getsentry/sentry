@@ -1,4 +1,8 @@
 import {isRepeatedFrame} from 'sentry/components/events/interfaces/utils';
+import {
+  DEFAULT_STACK_TRACE_ROW_POLICY,
+  type StackTraceRowPolicy,
+} from 'sentry/components/stackTrace/rowPolicy';
 import type {FrameRow, OmittedFramesRow, Row} from 'sentry/components/stackTrace/types';
 import type {Frame} from 'sentry/types/event';
 
@@ -6,49 +10,19 @@ function frameIsVisible(
   frame: Frame,
   nextFrame: Frame | undefined,
   includeSystemFrames: boolean,
-  groupingCurrentLevel?: number,
-  hideDartAsyncSuspensionFrames?: boolean
+  rowPolicy: StackTraceRowPolicy
 ) {
-  if (
-    !includeSystemFrames &&
-    hideDartAsyncSuspensionFrames &&
-    isDartAsyncSuspensionFrame(frame)
-  ) {
-    return false;
-  }
-
-  return (
-    includeSystemFrames ||
-    frame.inApp ||
-    nextFrame?.inApp ||
-    // Include the last non-app frame to keep the call chain understandable.
-    (!frame.inApp && !nextFrame) ||
-    isFrameUsedForGrouping(frame, groupingCurrentLevel)
-  );
-}
-
-function isDartAsyncSuspensionFrame(frame: Frame) {
-  return (
-    frame.filename === '<asynchronous suspension>' ||
-    frame.absPath === '<asynchronous suspension>'
-  );
-}
-
-function isFrameUsedForGrouping(frame: Frame, groupingCurrentLevel?: number) {
-  const {minGroupingLevel} = frame;
-
-  if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
-    return false;
-  }
-
-  return minGroupingLevel <= groupingCurrentLevel;
+  return rowPolicy.isFrameVisible({
+    frame,
+    includeSystemFrames,
+    nextFrame,
+  });
 }
 
 export function createInitialHiddenFrameToggleMap(
   frames: Frame[],
   includeSystemFrames: boolean,
-  groupingCurrentLevel?: number,
-  hideDartAsyncSuspensionFrames?: boolean
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY
 ) {
   const indexMap: Record<number, boolean> = {};
 
@@ -57,13 +31,7 @@ export function createInitialHiddenFrameToggleMap(
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(
-        frame,
-        nextFrame,
-        includeSystemFrames,
-        groupingCurrentLevel,
-        hideDartAsyncSuspensionFrames
-      ) &&
+      frameIsVisible(frame, nextFrame, includeSystemFrames, rowPolicy) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -77,8 +45,7 @@ export function createInitialHiddenFrameToggleMap(
 export function getFrameCountMap(
   frames: Frame[],
   includeSystemFrames: boolean,
-  groupingCurrentLevel?: number,
-  hideDartAsyncSuspensionFrames?: boolean
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY
 ) {
   let count = 0;
   const countMap: Record<number, number> = {};
@@ -88,13 +55,7 @@ export function getFrameCountMap(
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(
-        frame,
-        nextFrame,
-        includeSystemFrames,
-        groupingCurrentLevel,
-        hideDartAsyncSuspensionFrames
-      ) &&
+      frameIsVisible(frame, nextFrame, includeSystemFrames, rowPolicy) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -156,9 +117,8 @@ export function getRows({
   frameCountMap,
   newestFirst,
   framesOmitted,
-  groupingCurrentLevel,
   maxDepth,
-  hideDartAsyncSuspensionFrames,
+  rowPolicy = DEFAULT_STACK_TRACE_ROW_POLICY,
 }: {
   frameCountMap: Record<number, number>;
   frames: Frame[];
@@ -166,9 +126,8 @@ export function getRows({
   hiddenFrameToggleMap: Record<number, boolean>;
   includeSystemFrames: boolean;
   newestFirst: boolean;
-  groupingCurrentLevel?: number;
-  hideDartAsyncSuspensionFrames?: boolean;
   maxDepth?: number;
+  rowPolicy?: StackTraceRowPolicy;
 }): Row[] {
   const hiddenFrameIndices = getHiddenFrameIndices({
     frames,
@@ -188,13 +147,7 @@ export function getRows({
       }
 
       if (
-        (frameIsVisible(
-          frame,
-          nextFrame,
-          includeSystemFrames,
-          groupingCurrentLevel,
-          hideDartAsyncSuspensionFrames
-        ) &&
+        (frameIsVisible(frame, nextFrame, includeSystemFrames, rowPolicy) &&
           !repeatedFrame) ||
         hiddenFrameIndices.has(frameIndex)
       ) {
@@ -204,7 +157,7 @@ export function getRows({
           frameIndex,
           nextFrame,
           timesRepeated: nRepeats,
-          isUsedForGrouping: isFrameUsedForGrouping(frame, groupingCurrentLevel),
+          isUsedForGrouping: rowPolicy.isFrameUsedForGrouping(frame),
           isSubFrame: hiddenFrameIndices.has(frameIndex),
           hiddenFrameCount: frameCountMap[frameIndex],
         };

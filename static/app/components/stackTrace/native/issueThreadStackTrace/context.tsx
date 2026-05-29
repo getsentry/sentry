@@ -1,29 +1,25 @@
 import {createContext, useContext, useEffect, useMemo, useSyncExternalStore} from 'react';
 import type {ReactNode} from 'react';
 
-import {getThreadException} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
-import {
-  inferPlatform,
-  isStacktraceNewestFirst,
-} from 'sentry/components/events/interfaces/utils';
 import {
   getNativeDisplayOptionDefaults,
   useNativeDisplayOptionsStorage,
 } from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
-import type {StackTraceView} from 'sentry/components/stackTrace/types';
-import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import type {Event, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
+import {
+  getActiveThreadStackTraceModel,
+  type ActiveThreadStackTraceModel,
+} from './activeThreadModel';
 import type {IssueThreadStackTraceStore} from './threadStore';
 
 interface IssueThreadStackTraceContextValue {
@@ -37,61 +33,10 @@ interface IssueThreadStackTraceContextValue {
   threads: Thread[];
 }
 
-interface ActiveThreadContextValue {
-  activeException: ExceptionValue | undefined;
-  activeThread: Thread | undefined;
-  exception: ReturnType<typeof getThreadException>;
-  hasMinifiedStacktrace: boolean;
-  minifiedStacktrace: StacktraceType | undefined;
-  platform: Event['platform'];
-  stacktrace: StacktraceType | undefined;
-}
-
-function getEntryIndex(event: Event, type: EntryType) {
-  return event.entries.findIndex(entry => entry.type === type);
-}
-
-function getActiveStacktraceMeta({
-  activeException,
-  activeThread,
-  event,
-}: {
-  activeException: ExceptionValue | undefined;
-  activeThread: Thread | undefined;
-  event: Event;
-}) {
-  if (activeException) {
-    const entryIndex = getEntryIndex(event, EntryType.EXCEPTION);
-    const exceptionEntry = event.entries[entryIndex];
-    const exceptionValues =
-      exceptionEntry?.type === EntryType.EXCEPTION
-        ? (exceptionEntry.data.values ?? [])
-        : [];
-    let exceptionIndex = exceptionValues.indexOf(activeException);
-
-    if (exceptionIndex === -1 && activeException.threadId !== null) {
-      exceptionIndex = exceptionValues.findIndex(
-        value => value.threadId === activeException.threadId
-      );
-    }
-    if (exceptionIndex === -1 && exceptionValues.length === 1) {
-      exceptionIndex = 0;
-    }
-
-    return event._meta?.entries?.[entryIndex]?.data?.values?.[exceptionIndex]?.stacktrace;
-  }
-
-  const entryIndex = getEntryIndex(event, EntryType.THREADS);
-  const threadsEntry = event.entries[entryIndex];
-  const threadIndex =
-    threadsEntry?.type === EntryType.THREADS
-      ? (threadsEntry.data.values ?? []).findIndex(
-          thread => thread.id === activeThread?.id
-        )
-      : -1;
-
-  return event._meta?.entries?.[entryIndex]?.data?.values?.[threadIndex]?.stacktrace;
-}
+type ActiveThreadContextValue = Omit<
+  ActiveThreadStackTraceModel,
+  'defaultIsNewestFirst' | 'defaultView' | 'stacktraceMeta'
+>;
 
 interface IssueThreadStackTraceProvidersProps {
   children: ReactNode;
@@ -108,49 +53,6 @@ const IssueThreadStackTraceContext =
 const IssueThreadStackTraceStoreContext =
   createContext<IssueThreadStackTraceStore | null>(null);
 const ActiveThreadContext = createContext<ActiveThreadContextValue | null>(null);
-
-function getDefaultView(
-  thread: Thread | undefined,
-  exception: ReturnType<typeof getThreadException>
-): StackTraceView {
-  if (exception) {
-    return exception.values.some(value => !!value.stacktrace?.hasSystemFrames)
-      ? 'app'
-      : 'full';
-  }
-
-  return thread?.stacktrace?.hasSystemFrames ? 'app' : 'full';
-}
-
-function getActiveExceptionValue({
-  activeThread,
-  exceptionValues,
-}: {
-  activeThread: Thread | undefined;
-  exceptionValues: ExceptionValue[];
-}): ExceptionValue | undefined {
-  return (
-    exceptionValues.find(value => value.threadId === activeThread?.id) ??
-    exceptionValues[0]
-  );
-}
-
-function getActiveStacktrace({
-  activeException,
-  activeThread,
-}: {
-  activeException: ExceptionValue | undefined;
-  activeThread: Thread | undefined;
-}): {
-  minifiedStacktrace: StacktraceType | undefined;
-  stacktrace: StacktraceType | undefined;
-} {
-  return {
-    stacktrace: activeException?.stacktrace ?? activeThread?.stacktrace ?? undefined,
-    minifiedStacktrace:
-      activeException?.rawStacktrace ?? activeThread?.rawStacktrace ?? undefined,
-  };
-}
 
 export function useIssueThreadStackTraceContext() {
   const context = useContext(IssueThreadStackTraceContext);
@@ -251,79 +153,51 @@ function ActiveThreadProviders({children}: {children: ReactNode}) {
   const {event, groupingCurrentLevel, hasScmSourceContext, storageKey} =
     useIssueThreadStackTraceContext();
   const [persistedOptions] = useNativeDisplayOptionsStorage(storageKey);
-  const exception = useMemo(
-    () => getThreadException(event, activeThread),
+  const model = useMemo(
+    () => getActiveThreadStackTraceModel({activeThread, event}),
     [event, activeThread]
   );
-  const activeException = useMemo(
-    () =>
-      getActiveExceptionValue({
-        activeThread,
-        exceptionValues: exception?.values ?? [],
-      }),
-    [activeThread, exception]
-  );
-  const {minifiedStacktrace, stacktrace} = useMemo(
-    () => getActiveStacktrace({activeException, activeThread}),
-    [activeException, activeThread]
-  );
-  const stacktraceMeta = useMemo(
-    () => getActiveStacktraceMeta({activeException, activeThread, event}),
-    [activeException, activeThread, event]
-  );
-  const platform = inferPlatform(event, activeThread);
-  const hasMinifiedStacktrace =
-    !!activeThread?.rawStacktrace ||
-    !!exception?.values.some(value => !!value.rawStacktrace);
   const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
-    defaultView: getDefaultView(activeThread, exception),
-    hasMinifiedStacktrace,
+    defaultView: model.defaultView,
+    hasMinifiedStacktrace: model.hasMinifiedStacktrace,
     persistedOptions,
   });
 
   const contextValue = useMemo<ActiveThreadContextValue>(
     () => ({
-      activeException,
-      activeThread,
-      exception,
-      hasMinifiedStacktrace,
-      minifiedStacktrace,
-      platform,
-      stacktrace,
+      activeException: model.activeException,
+      activeThread: model.activeThread,
+      exception: model.exception,
+      hasMinifiedStacktrace: model.hasMinifiedStacktrace,
+      minifiedStacktrace: model.minifiedStacktrace,
+      platform: model.platform,
+      stacktrace: model.stacktrace,
     }),
-    [
-      activeException,
-      activeThread,
-      exception,
-      hasMinifiedStacktrace,
-      minifiedStacktrace,
-      platform,
-      stacktrace,
-    ]
+    [model]
   );
 
   useEffect(() => {
-    setActiveThreadId(activeThread?.id);
-  }, [activeThread?.id]);
+    setActiveThreadId(model.activeThread?.id);
+  }, [model.activeThread?.id]);
 
   return (
     <ActiveThreadContext.Provider value={contextValue}>
       <StackTraceViewStateProvider
-        platform={platform}
-        hasMinifiedStacktrace={hasMinifiedStacktrace}
+        platform={model.platform}
+        hasMinifiedStacktrace={model.hasMinifiedStacktrace}
         defaultView={defaultView}
         defaultIsMinified={defaultIsMinified}
-        defaultIsNewestFirst={isStacktraceNewestFirst()}
+        defaultIsNewestFirst={model.defaultIsNewestFirst}
       >
-        {stacktrace && isNativePlatform(platform) ? (
+        {model.stacktrace && isNativePlatform(model.platform) ? (
           <NativeStackTraceProvider
             event={event}
-            stacktrace={stacktrace}
-            minifiedStacktrace={minifiedStacktrace}
+            stacktrace={model.stacktrace}
+            minifiedStacktrace={model.minifiedStacktrace}
             groupingCurrentLevel={groupingCurrentLevel}
             hasScmSourceContext={hasScmSourceContext}
-            meta={stacktraceMeta}
-            platform={platform}
+            meta={model.stacktraceMeta}
+            platform={model.platform}
             displayOptionsStorageKey={storageKey}
           >
             {children}

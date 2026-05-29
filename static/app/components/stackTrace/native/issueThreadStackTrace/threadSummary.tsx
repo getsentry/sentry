@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ThreadSelector} from 'sentry/components/events/interfaces/threads/threadSelector';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
@@ -62,10 +62,10 @@ export function ThreadSummary() {
   return (
     <Fragment>
       <Grid>
-        <div>
+        <Container>
           <ThreadHeading>{t('Threads')}</ThreadHeading>
           <ThreadControls />
-        </div>
+        </Container>
         <ThreadState />
       </Grid>
       <ThreadTags />
@@ -152,7 +152,7 @@ function ThreadTags() {
   }
 
   return (
-    <div>
+    <Container>
       <ThreadHeading>{t('Thread Tags')}</ThreadHeading>
       <Pills>
         <Pill name={t('id')} value={activeThread.id} />
@@ -163,16 +163,14 @@ function ThreadTags() {
           <Pill name={t('was active')} value={activeThread.current} />
         )}
         {activeThread.crashed !== undefined && (
-          <Pill name={t('errored')} className={activeThread.crashed ? 'false' : 'true'}>
-            {activeThread.crashed ? t('yes') : t('no')}
-          </Pill>
+          <Pill name={t('errored')} value={activeThread.crashed} />
         )}
         {threadStateDisplay !== undefined && (
           <Pill name={t('state')} value={threadStateDisplay} />
         )}
         {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
-    </div>
+    </Container>
   );
 }
 

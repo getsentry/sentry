@@ -1,26 +1,19 @@
 import {useCallback, useMemo, useState} from 'react';
 
-import {
-  findImageForAddress,
-  parseAddress,
-} from 'sentry/components/events/interfaces/utils';
+import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {
   StackTraceProviderProps,
   StackTraceView,
 } from 'sentry/components/stackTrace/types';
-import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 
-import {
-  getSymbolicatorStatus,
-  hasStatusIcon,
-} from './frame/actions/getSymbolicatorStatus';
 import {
   getNativeDisplayOptionDefaults,
   getNativeDisplayOptions,
   useNativeDisplayOptionsStorage,
 } from './nativeDisplayOptionsPersistence';
+import {analyzeNativeFrames} from './nativeFrameAnalysis';
 import {
   NativeStackTraceContext,
   type NativeStackTraceContextValue,
@@ -28,12 +21,14 @@ import {
 
 interface NativeStackTraceProviderProps extends StackTraceProviderProps {
   displayOptionsStorageKey?: string;
+  groupingCurrentLevel?: number;
   isHoverPreviewed?: boolean;
 }
 
 export function NativeStackTraceProvider({
   children,
   displayOptionsStorageKey,
+  groupingCurrentLevel,
   isHoverPreviewed = false,
   ...stackTraceProps
 }: NativeStackTraceProviderProps) {
@@ -71,65 +66,10 @@ export function NativeStackTraceProvider({
     hasAbsoluteAddresses,
     hasAbsoluteFilePaths,
     hasVerboseFunctionNames,
-  } = useMemo(() => {
-    const map = new Map<number, ImageWithCombinedStatus | null>();
-    let maxLen = 0;
-    let anyIcon = false;
-    let anyAddr = false;
-    let anyAbsPath = false;
-    let anyVerbose = false;
-
-    for (let i = 0; i < activeFrames.length; i++) {
-      const frame = activeFrames[i]!;
-      const image = findImageForAddress({
-        event,
-        addrMode: frame.addrMode,
-        address: frame.instructionAddr,
-      }) as ImageWithCombinedStatus | null;
-      map.set(i, image ?? null);
-
-      if (image?.image_addr && frame.instructionAddr) {
-        const relative = (
-          parseAddress(frame.instructionAddr) - parseAddress(image.image_addr)
-        ).toString(16);
-        if (relative.length > maxLen) {
-          maxLen = relative.length;
-        }
-      }
-
-      if (!anyIcon && hasStatusIcon(getSymbolicatorStatus(frame, image ?? null))) {
-        anyIcon = true;
-      }
-      if (!anyAddr && !!frame.instructionAddr) {
-        anyAddr = true;
-      }
-      if (
-        !anyAbsPath &&
-        !!frame.filename &&
-        !!frame.absPath &&
-        frame.filename !== frame.absPath
-      ) {
-        anyAbsPath = true;
-      }
-      if (
-        !anyVerbose &&
-        !!frame.function &&
-        !!frame.rawFunction &&
-        frame.function !== frame.rawFunction
-      ) {
-        anyVerbose = true;
-      }
-    }
-
-    return {
-      imageByFrameIndex: map,
-      maxLengthOfRelativeAddress: maxLen,
-      hasAnyStatusIcons: anyIcon,
-      hasAbsoluteAddresses: anyAddr,
-      hasAbsoluteFilePaths: anyAbsPath,
-      hasVerboseFunctionNames: anyVerbose,
-    };
-  }, [activeFrames, event]);
+  } = useMemo(
+    () => analyzeNativeFrames({event, frames: activeFrames}),
+    [activeFrames, event]
+  );
 
   const defaultExpandedFrameIndex = useMemo(() => {
     const inAppFrameIndex = isNewestFirst
@@ -138,6 +78,15 @@ export function NativeStackTraceProvider({
 
     return inAppFrameIndex === -1 ? null : inAppFrameIndex;
   }, [activeFrames, isNewestFirst]);
+
+  const rowPolicy = useMemo(
+    () =>
+      createStackTraceRowPolicy({
+        groupingCurrentLevel,
+        hideDartAsyncSuspensionFrames: true,
+      }),
+    [groupingCurrentLevel]
+  );
 
   const persistDisplayOptions = useCallback(
     (
@@ -214,7 +163,7 @@ export function NativeStackTraceProvider({
       {...stackTraceProps}
       defaultExpandedFrameIndex={defaultExpandedFrameIndex}
       emptySourceNotation
-      hideDartAsyncSuspensionFrames
+      rowPolicy={rowPolicy}
     >
       <NativeStackTraceContext.Provider value={value}>
         {children}

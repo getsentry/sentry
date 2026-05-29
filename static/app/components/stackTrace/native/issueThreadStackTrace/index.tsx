@@ -8,7 +8,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
 import {IssueThreadStackTraceActions} from './actions';
 import {
@@ -44,20 +43,26 @@ export function IssueThreadStackTrace({
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
     [data.values]
   );
-  const storeRef = useRef<IssueThreadStackTraceStore>(null);
-  if (!storeRef.current) {
-    storeRef.current = createIssueThreadStackTraceStore(event, threads);
+  const storeRef = useRef<{
+    eventId: Event['id'];
+    store: IssueThreadStackTraceStore;
+  }>(null);
+  if (storeRef.current?.eventId !== event.id) {
+    storeRef.current = {
+      eventId: event.id,
+      store: createIssueThreadStackTraceStore(event, threads),
+    };
   }
-  storeRef.current.sync(event, threads);
+  const store = storeRef.current.store;
+
+  useEffect(() => {
+    store.sync(event, threads);
+  }, [event, store, threads]);
 
   const hasMoreThanOneThread = threads.length > 1;
 
-  useEffect(() => {
-    setActiveThreadId(storeRef.current?.getActiveThread()?.id);
-  }, [event.id]);
-
   return (
-    <IssueThreadStackTraceStoreProvider store={storeRef.current}>
+    <IssueThreadStackTraceStoreProvider store={store}>
       <IssueThreadStackTraceProviders
         event={event}
         group={group}

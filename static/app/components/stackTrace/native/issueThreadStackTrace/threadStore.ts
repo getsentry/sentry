@@ -51,18 +51,25 @@ export function createIssueThreadStackTraceStore(
       return () => listeners.delete(listener);
     },
     sync(nextEvent, nextThreads) {
+      const previousActiveThread = activeThread;
       const previousActiveThreadId = activeThread?.id;
       threads = nextThreads;
 
       if (eventId !== nextEvent.id) {
         eventId = nextEvent.id;
         activeThread = threads.length ? findBestThread(threads) : undefined;
+        if (activeThread !== previousActiveThread) {
+          notify();
+        }
         return;
       }
 
       activeThread =
         threads.find(thread => thread.id === previousActiveThreadId) ??
         (threads.length ? findBestThread(threads) : undefined);
+      if (activeThread !== previousActiveThread) {
+        notify();
+      }
     },
   };
 }

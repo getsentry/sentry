@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import type {StackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -69,12 +70,8 @@ export interface StackTraceProviderProps {
   exceptionIndex?: number;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
-  /** Current issue grouping level, used to keep grouping frames visible. */
-  groupingCurrentLevel?: number;
   /** Whether the SCM source context feature is enabled for this org. */
   hasScmSourceContext?: boolean;
-  /** Hide Dart async suspension frames from the default app-only view. */
-  hideDartAsyncSuspensionFrames?: boolean;
   /** Hide the source maps debugger button entirely. */
   hideSourceMapDebugger?: boolean;
   /** Cap the number of frames rendered. Frames beyond this depth are omitted. */
@@ -88,4 +85,6 @@ export interface StackTraceProviderProps {
   minifiedStacktrace?: StacktraceType;
   /** Override the platform used for frame rendering logic. Defaults to the event/frame platform. */
   platform?: PlatformKey;
+  /** Row visibility and annotation policy for stacktrace-specific frame behavior. */
+  rowPolicy?: StackTraceRowPolicy;
 }

@@ -49,6 +49,7 @@ export function IssueThreadStackTraceActions() {
       <RawDownloadAction
         eventId={event.eventID}
         organization={organization}
+        platform={event.platform}
         projectSlug={projectSlug}
         threadId={activeThread?.id}
       />

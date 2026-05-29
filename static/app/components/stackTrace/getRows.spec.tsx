@@ -2,6 +2,7 @@ import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
 import type {Frame} from 'sentry/types/event';
 
 import {createInitialHiddenFrameToggleMap, getFrameCountMap, getRows} from './getRows';
+import {createStackTraceRowPolicy} from './rowPolicy';
 
 let frameSerial = 0;
 
@@ -124,10 +125,14 @@ describe('stackTrace rows utils', () => {
       frames,
       includeSystemFrames: false,
       hiddenFrameToggleMap: {},
-      frameCountMap: getFrameCountMap(frames, false, 0),
+      frameCountMap: getFrameCountMap(
+        frames,
+        false,
+        createStackTraceRowPolicy({groupingCurrentLevel: 0})
+      ),
       newestFirst: false,
       framesOmitted: null,
-      groupingCurrentLevel: 0,
+      rowPolicy: createStackTraceRowPolicy({groupingCurrentLevel: 0}),
     });
 
     expect(rows).toHaveLength(3);
@@ -152,10 +157,14 @@ describe('stackTrace rows utils', () => {
       frames,
       includeSystemFrames: false,
       hiddenFrameToggleMap: {},
-      frameCountMap: getFrameCountMap(frames, false, undefined, true),
+      frameCountMap: getFrameCountMap(
+        frames,
+        false,
+        createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true})
+      ),
       newestFirst: false,
       framesOmitted: null,
-      hideDartAsyncSuspensionFrames: true,
+      rowPolicy: createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true}),
     });
 
     expect(appRows).toHaveLength(1);
@@ -165,10 +174,14 @@ describe('stackTrace rows utils', () => {
       frames,
       includeSystemFrames: true,
       hiddenFrameToggleMap: {},
-      frameCountMap: getFrameCountMap(frames, true, undefined, true),
+      frameCountMap: getFrameCountMap(
+        frames,
+        true,
+        createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true})
+      ),
       newestFirst: false,
       framesOmitted: null,
-      hideDartAsyncSuspensionFrames: true,
+      rowPolicy: createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true}),
     });
 
     expect(fullRows).toHaveLength(2);
