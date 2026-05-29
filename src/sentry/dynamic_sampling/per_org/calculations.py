@@ -120,21 +120,29 @@ def run_transaction_balancing(
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
     sample_rates = _project_sample_rates(config)
-    return {
-        project_data["project_id"]: TransactionsRebalancingModel().run(
+    result: dict[int, tuple[list[RebalancedItem], float]] = {}
+    for project_data in transaction_volumes:
+        project_id = project_data["project_id"]
+        sample_rate = sample_rates.get(project_id)
+        if sample_rate is None:
+            sentry_sdk.capture_message(
+                "Sample rate of project not found when trying to adjust the sample rates of "
+                "its transactions"
+            )
+            continue
+        result[project_id] = TransactionsRebalancingModel().run(
             TransactionsRebalancingInput(
                 classes=[
                     RebalancedItem(id=transaction_name, count=count)
                     for transaction_name, count in project_data["transaction_counts"]
                 ],
-                sample_rate=cast(float, sample_rates[project_data["project_id"]]),
+                sample_rate=sample_rate,
                 total_num_classes=project_data.get("total_num_classes"),
                 total=project_data.get("total_num_transactions"),
                 intensity=intensity,
             )
         )
-        for project_data in transaction_volumes
-    }
+    return result
 
 
 def _project_sample_rates(
