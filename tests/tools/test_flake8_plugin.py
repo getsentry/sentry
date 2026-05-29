@@ -393,3 +393,97 @@ def test_S015_current_or_future_year() -> None:
         )
         == []
     )
+
+
+def test_S019_non_2xx_status_kwarg() -> None:
+    src = """\
+from rest_framework.response import Response
+
+def view():
+    return Response({"detail": "bad"}, status=400)
+"""
+    out = _run(src)
+    assert len(out) == 1
+    assert "S019" in out[0]
+    assert "t.py:4:11" in out[0]
+
+
+def test_S019_status_constant() -> None:
+    src = """\
+from rest_framework import status
+from rest_framework.response import Response
+
+def view():
+    return Response({"detail": "not found"}, status=status.HTTP_404_NOT_FOUND)
+"""
+    out = _run(src)
+    assert len(out) == 1
+    assert "S019" in out[0]
+
+
+def test_S019_positional_status() -> None:
+    src = """\
+from rest_framework.response import Response
+
+def view():
+    return Response({"detail": "boom"}, 500)
+"""
+    out = _run(src)
+    assert len(out) == 1
+    assert "S019" in out[0]
+
+
+def test_S019_body_less_non_2xx() -> None:
+    """Body-less `Response(status=404)` is also flagged — it should `raise NotFound()`."""
+    src = """\
+from rest_framework.response import Response
+
+def view():
+    return Response(status=404)
+"""
+    out = _run(src)
+    assert len(out) == 1
+    assert "S019" in out[0]
+
+
+def test_S019_2xx_status_not_flagged() -> None:
+    src = """\
+from rest_framework.response import Response
+
+def view():
+    return Response({"x": 1}, status=200)
+"""
+    assert _run(src) == []
+
+
+def test_S019_default_status_not_flagged() -> None:
+    """`Response(body)` with no explicit status defaults to 200 — not flagged."""
+    src = """\
+from rest_framework.response import Response
+
+def view():
+    return Response({"x": 1})
+"""
+    assert _run(src) == []
+
+
+def test_S019_dynamic_status_not_flagged() -> None:
+    """When status isn't a static literal, we can't tell — don't flag."""
+    src = """\
+from rest_framework.response import Response
+
+def view(code):
+    return Response({"detail": "..."}, status=code)
+"""
+    assert _run(src) == []
+
+
+def test_S019_skipped_in_tests() -> None:
+    """Tests legitimately mock non-2xx responses — don't flag them."""
+    src = """\
+from rest_framework.response import Response
+
+def test_view():
+    return Response({"detail": "..."}, status=400)
+"""
+    assert _run(src, filename="tests/sentry/api/test_thing.py") == []

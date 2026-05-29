@@ -55,6 +55,42 @@ S018_msg = (
 S018_fqn = "django.core.cache.backends.memcached.PyMemcacheCache"  # noqa: S018
 S018_module = "django.core.cache.backends.memcached"
 
+S019_msg = (
+    "S019 Use `raise <APIException subclass>(...)` instead of `Response(...)` with a "
+    "non-2xx status code. See `sentry.api.exceptions` (BadRequest, ResourceDoesNotExist, "
+    "ConflictError, …) or `rest_framework.exceptions` (ValidationError, NotFound, "
+    "PermissionDenied, Throttled, …). The wire response shape is identical."
+)
+
+
+def _resolve_response_status(call: ast.Call) -> int | None:
+    """Return the int status code from a `Response(...)` call, or None if it
+    can't be statically resolved.
+
+    Recognized forms for the status argument:
+        Response(..., status=400)               → 400
+        Response(..., status=status.HTTP_400_*) → 400
+        Response(<body>, 400)                   → 400 (positional)
+        Response(<body>, status.HTTP_400_*)     → 400 (positional via constant)
+    """
+    candidate: ast.expr | None = None
+    for kw in call.keywords:
+        if kw.arg == "status":
+            candidate = kw.value
+            break
+    if candidate is None and len(call.args) >= 2:
+        candidate = call.args[1]
+    if candidate is None:
+        return None
+    if isinstance(candidate, ast.Constant) and isinstance(candidate.value, int):
+        return candidate.value
+    if isinstance(candidate, ast.Attribute):
+        # status.HTTP_400_BAD_REQUEST → 400
+        attr = candidate.attr
+        if attr.startswith("HTTP_") and len(attr) >= 8 and attr[5:8].isdigit():
+            return int(attr[5:8])
+    return None
+
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
@@ -284,6 +320,15 @@ class SentryVisitor(ast.NodeVisitor):
                 y = _wall_clock_year_from_datetime_call(node.args[0])
                 if y is not None and y >= self._s015_year:
                     self.errors.append((node.lineno, node.col_offset, self._s015_msg))
+        # S019: Response(..., status=<non-2xx>) should be `raise APIException(...)`.
+        if (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "Response"
+            and not _is_tests_path(self.filename)
+        ):
+            status = _resolve_response_status(node)
+            if status is not None and not (200 <= status < 300):
+                self.errors.append((node.lineno, node.col_offset, S019_msg))
         if (
             # override_settings(...)
             (isinstance(node.func, ast.Name) and node.func.id == "override_settings")
