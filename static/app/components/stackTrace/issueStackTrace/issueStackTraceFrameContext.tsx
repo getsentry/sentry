@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import {useSourceContext} from 'sentry/components/events/interfaces/frame/useSourceContext';
-import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {
   hasContextSource,
   hasPotentialSourceContext,
@@ -11,21 +10,8 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {
-  CodecovStatusCode,
-  type Coverage,
-  type LineCoverage,
-} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-function getLineCoverage(
-  lines: Array<[number, string | null]>,
-  lineCoverage: LineCoverage[]
-): Array<Coverage | undefined> {
-  const coverageByLine = new Map<number, Coverage>(lineCoverage);
-  return lines.map(([lineNo]) => coverageByLine.get(lineNo));
-}
 
 export function IssueStackTraceFrameContext() {
   const {event, frame, isExpanded} = useStackTraceFrameContext();
@@ -58,30 +44,9 @@ export function IssueStackTraceFrameContext() {
   }, [sourceContextData]);
 
   const effectiveContext = hasEmbeddedContext ? frame.context : scmContext;
-  const contextLines = isExpanded ? (effectiveContext ?? []) : [];
-
-  const {data: coverageData, isPending: isLoadingCoverage} = useStacktraceCoverage(
-    {
-      event,
-      frame,
-      orgSlug: organization.slug,
-      projectSlug: project?.slug,
-    },
-    {
-      enabled: isExpanded && defined(project) && !!organization.codecovAccess,
-    }
-  );
-
-  const sourceLineCoverage =
-    !isLoadingCoverage &&
-    coverageData?.status === CodecovStatusCode.COVERAGE_EXISTS &&
-    coverageData.lineCoverage
-      ? getLineCoverage(contextLines, coverageData.lineCoverage)
-      : [];
 
   return (
     <FrameContent
-      sourceLineCoverage={sourceLineCoverage}
       effectiveContext={effectiveContext}
       isLoadingSourceContext={shouldFetchSourceContext && isLoadingSourceContext}
     />

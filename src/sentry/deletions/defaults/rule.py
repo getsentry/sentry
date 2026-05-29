@@ -35,7 +35,15 @@ class RuleDeletionTask(ModelDeletionTask[Rule]):
         )
         if workflow_ids:
             model_relations.append(ModelRelation(AlertRuleWorkflow, {"rule_id": instance.id}))
-            model_relations.append(ModelRelation(Workflow, {"id__in": workflow_ids}))
+            model_relations.append(
+                ModelRelation(
+                    Workflow,
+                    {
+                        "id__in": workflow_ids,
+                        "organization_id": instance.project.organization_id,
+                    },
+                )
+            )
         else:
             logger.info(
                 "No AlertRuleWorkflow found for rule, skipping", extra={"rule_id": instance.id}

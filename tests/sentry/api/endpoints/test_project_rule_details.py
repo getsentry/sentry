@@ -20,7 +20,7 @@ from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
@@ -228,17 +228,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
 
-    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
-    def test_workflow_engine_serializer_dual_written_rule(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["id"] == str(self.rule.id)
-        assert response.data["environment"] is None
-        assert response.data["conditions"][0]["name"]
-
-    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
-    def test_workflow_engine_serializer_single_written_rule(self) -> None:
+    def test_single_written_rule(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=200
         )
@@ -247,26 +237,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["name"]
         assert response.data["filters"][0]["name"]
 
-    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
-    def test_workflow_engine_granular_flag_dual_written_rule(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["id"] == str(self.rule.id)
-        assert response.data["environment"] is None
-        assert response.data["conditions"][0]["name"]
-
-    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
-    def test_workflow_engine_granular_flag_single_written_rule(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=200
-        )
-        assert response.data["id"] == str(self.fake_workflow_id)
-        assert response.data["environment"] is None
-        assert response.data["conditions"][0]["name"]
-        assert response.data["filters"][0]["name"]
-
-    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
     def test_deleted_dual_written_rule_returns_404(self) -> None:
         rule = self.create_project_rule(self.project)
         # DELETE schedules deletion but we intentionally do NOT run it
@@ -278,260 +248,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
-
-    def test_with_environment(self) -> None:
-        self.rule.update(environment_id=self.environment.id)
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["id"] == str(self.rule.id)
-        assert response.data["environment"] == self.environment.name
-        assert response.data["status"] == "active"
-
-    def test_with_filters(self) -> None:
-        conditions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
-            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
-        ]
-        actions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
-        ]
-        data = {
-            "conditions": conditions,
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-        self.rule.update(data=data)
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["id"] == str(self.rule.id)
-
-        # ensure that conditions and filters are split up correctly
-        assert len(response.data["conditions"]) == 1
-        assert response.data["conditions"][0]["id"] == conditions[0]["id"]
-        assert len(response.data["filters"]) == 1
-        assert response.data["filters"][0]["id"] == conditions[1]["id"]
-
-    def test_with_assigned_to_team_filter(self) -> None:
-        conditions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
-            {
-                "targetType": "Team",
-                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
-                "targetIdentifier": self.team.id,
-            },
-        ]
-        actions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
-        ]
-        data = {
-            "conditions": conditions,
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-        self.rule.update(data=data)
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["id"] == str(self.rule.id)
-        assert (
-            response.data["filters"][0]["name"]
-            == f"The issue is assigned to team #{self.team.slug}"
-        )
-
-    def test_with_assigned_to_user_filter(self) -> None:
-        conditions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
-            {
-                "targetType": "Member",
-                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
-                "targetIdentifier": self.user.id,
-            },
-        ]
-        actions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
-        ]
-        data = {
-            "conditions": conditions,
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-        self.rule.update(data=data)
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["id"] == str(self.rule.id)
-        assert (
-            response.data["filters"][0]["name"] == f"The issue is assigned to {self.user.username}"
-        )
-
-    @responses.activate
-    def test_with_snooze_rule(self) -> None:
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.rule)
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-
-        assert response.data["snooze"]
-        assert response.data["snoozeCreatedBy"] == "You"
-        assert not response.data["snoozeForEveryone"]
-
-    @responses.activate
-    def test_with_snooze_rule_everyone(self) -> None:
-        user2 = self.create_user("user2@example.com")
-        self.snooze_rule(owner_id=user2.id, rule=self.rule)
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-
-        assert response.data["snooze"]
-        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
-        assert response.data["snoozeForEveryone"]
-
-    @responses.activate
-    def test_with_sentryapp_action(self) -> None:
-        conditions = [
-            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
-            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
-        ]
-        actions = [
-            {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
-                "settings": [
-                    {"name": "title", "value": "An alert"},
-                    {"summary": "Something happened here..."},
-                    {"name": "points", "value": "3"},
-                    {"name": "assignee", "value": "Nisanthan"},
-                ],
-            }
-        ]
-        data = {
-            "conditions": conditions,
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-        self.rule.update(data=data)
-        responses.add(
-            responses.GET,
-            "https://example.com/sentry/members",
-            json=[
-                {"value": "bob", "label": "Bob"},
-                {"value": "jess", "label": "Jess"},
-            ],
-            status=200,
-        )
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        # Request to external service made
-        assert len(responses.calls) == 1
-
-        assert response.status_code == 200
-        assert "errors" not in response.data
-        assert "actions" in response.data
-
-        # Check that the sentryapp action contains choices from the integration host
-        action = response.data["actions"][0]
-        assert (
-            action["id"]
-            == "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
-        )
-        assert action["formFields"]["optional_fields"][-1]
-        assert "select" == action["formFields"]["optional_fields"][-1]["type"]
-        assert "sentry/members" in action["formFields"]["optional_fields"][-1]["uri"]
-        assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
-
-    @responses.activate
-    def test_with_unresponsive_sentryapp(self) -> None:
-        conditions = [
-            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
-            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
-        ]
-
-        actions = [
-            {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
-                "settings": [
-                    {"name": "title", "value": "An alert"},
-                    {"summary": "Something happened here..."},
-                    {"name": "points", "value": "3"},
-                    {"name": "assignee", "value": "Nisanthan"},
-                ],
-            }
-        ]
-        data = {
-            "conditions": conditions,
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-        self.rule.update(data=data)
-
-        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert len(responses.calls) == 1
-
-        assert response.status_code == 200
-        # Returns errors while fetching
-        assert len(response.data["errors"]) == 1
-        assert self.sentry_app.name in response.data["errors"][0]["detail"]
-
-        # Disables the SentryApp
-        assert (
-            response.data["actions"][0]["sentryAppInstallationUuid"]
-            == self.sentry_app_installation.uuid
-        )
-        assert response.data["actions"][0]["disabled"] is True
-
-    @responses.activate
-    def test_with_deleted_sentry_app(self) -> None:
-        actions = [
-            {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "sentryAppInstallationUuid": "123-uuid-does-not-exist",
-                "settings": [
-                    {"name": "title", "value": "An alert"},
-                    {"summary": "Something happened here..."},
-                    {"name": "points", "value": "3"},
-                    {"name": "assignee", "value": "Nisanthan"},
-                ],
-            }
-        ]
-        data = {
-            "conditions": [],
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-        self.rule.update(data=data)
-
-        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        # Action with deleted SentryApp is removed
-        assert response.data["actions"] == []
 
     @freeze_time()
     def test_last_triggered(self) -> None:
@@ -546,124 +262,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )
         assert response.data["lastTriggered"] == datetime.now(UTC)
-
-    @responses.activate
-    def test_with_jira_action_error(self) -> None:
-        conditions = [
-            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
-            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
-        ]
-        actions = [
-            {
-                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                "integration": self.jira_integration.id,
-                "customfield_epic_link": "EPIC-3",
-                "customfield_severity": "Medium",
-                "dynamic_form_fields": [
-                    {
-                        "choices": [
-                            ["EPIC-1", "Citizen Knope"],
-                            ["EPIC-2", "The Comeback Kid"],
-                            ["EPIC-3", {"key": None, "ref": None, "props": {}, "_owner": None}],
-                        ],
-                        "label": "Epic Link",
-                        "name": "customfield_epic_link",
-                        "required": False,
-                        "type": "select",
-                        "url": f"/extensions/jira/search/{self.organization.slug}/{self.jira_integration.id}/",
-                    },
-                    {
-                        "choices": [
-                            ["Very High", "Very High"],
-                            ["High", "High"],
-                            ["Medium", "Medium"],
-                            ["Low", "Low"],
-                        ],
-                        "label": "Severity",
-                        "name": "customfield_severity",
-                        "required": True,
-                        "type": "select",
-                    },
-                ],
-            }
-        ]
-        data = {
-            "conditions": conditions,
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-
-        self.rule.update(data=data)
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        # Expect that the choices get filtered to match the API: Array<string, string>
-        assert response.data["actions"][0].get("dynamic_form_fields")[0].get("choices") == [
-            ["EPIC-1", "Citizen Knope"],
-            ["EPIC-2", "The Comeback Kid"],
-        ]
-
-    @responses.activate
-    def test_with_jira_server_action_error(self) -> None:
-        conditions = [
-            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
-            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
-        ]
-        actions = [
-            {
-                "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-                "integration": self.jira_server_integration.id,
-                "customfield_epic_link": "EPIC-3",
-                "customfield_severity": "Medium",
-                "dynamic_form_fields": [
-                    {
-                        "choices": [
-                            ["EPIC-1", "Citizen Knope"],
-                            ["EPIC-2", "The Comeback Kid"],
-                            ["EPIC-3", {"key": None, "ref": None, "props": {}, "_owner": None}],
-                        ],
-                        "label": "Epic Link",
-                        "name": "customfield_epic_link",
-                        "required": False,
-                        "type": "select",
-                        "url": f"/extensions/jira/search/{self.organization.slug}/{self.jira_server_integration.id}/",
-                    },
-                    {
-                        "choices": [
-                            ["Very High", "Very High"],
-                            ["High", "High"],
-                            ["Medium", "Medium"],
-                            ["Low", "Low"],
-                        ],
-                        "label": "Severity",
-                        "name": "customfield_severity",
-                        "required": True,
-                        "type": "select",
-                    },
-                ],
-            }
-        ]
-        data = {
-            "conditions": conditions,
-            "actions": actions,
-            "filter_match": "all",
-            "action_match": "all",
-            "frequency": 30,
-        }
-
-        self.rule.update(data=data)
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        # Expect that the choices get filtered to match the API: Array<string, string>
-        assert response.data["actions"][0].get("dynamic_form_fields")[0].get("choices") == [
-            ["EPIC-1", "Citizen Knope"],
-            ["EPIC-2", "The Comeback Kid"],
-        ]
 
 
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
@@ -1759,6 +1357,37 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
+    @patch("sentry.signals.alert_rule_edited.send_robust")
+    def test_cross_org_arw_falls_back_to_legacy_serializer(self, send_robust: MagicMock) -> None:
+        other_org = self.create_organization(owner=self.user)
+        cross_org_workflow = self.create_workflow(organization=other_org)
+
+        arw = AlertRuleWorkflow.objects.get(rule_id=self.rule.id)
+        arw.update(workflow=cross_org_workflow)
+
+        payload = {
+            "name": "updated rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": [
+                {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}
+            ],
+        }
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.rule.id,
+                status_code=200,
+                **payload,
+            )
+
+        assert response.data["id"] == str(self.rule.id)
+        cross_org_workflow.refresh_from_db()
+        assert cross_org_workflow.name != "updated rule"
+
 
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
@@ -1773,7 +1402,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()
 
-    @with_feature("organizations:workflow-engine-issue-alert-endpoints-delete")
     def test_single_written_workflow_passed(self) -> None:
         self.get_success_response(
             self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=202
@@ -1785,43 +1413,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
         assert not DataConditionGroup.objects.filter(id=self.workflow_triggers.id).exists()
         assert not Action.objects.filter(id=self.action.id).exists()
-
-    @with_feature("organizations:workflow-engine-rule-serializers")
-    def test_dual_delete_workflow_engine_flag_enabled(self) -> None:
-        rule = self.create_project_rule(
-            self.project,
-            condition_data=[
-                {
-                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                    "name": "A new issue is created",
-                },
-                {
-                    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
-                    "name": "The event occurs",
-                },
-            ],
-        )
-
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        workflow = alert_rule_workflow.workflow
-        when_dcg = workflow.when_condition_group
-        assert when_dcg
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-
-        self.get_success_response(
-            self.organization.slug, rule.project.slug, rule.id, status_code=202
-        )
-
-        with self.tasks():
-            run_scheduled_deletions()
-
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
-        assert not Workflow.objects.filter(id=workflow.id).exists()
-        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
-        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
-        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
-        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
-        assert not Rule.objects.filter(id=rule.id).exists()
 
     def test_dual_delete_workflow_engine(self) -> None:
         rule = self.create_project_rule(
@@ -1857,6 +1448,30 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
         assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
         assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+        assert not Rule.objects.filter(id=rule.id).exists()
+
+    def test_delete_does_not_cascade_to_cross_org_rule(self) -> None:
+        rule = self.create_project_rule(self.project)
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = arw.workflow
+
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
+        other_rule = self.create_project_rule(other_project)
+
+        arw.update(rule_id=other_rule.id)
+
+        fake_workflow_id = get_fake_id_from_object_id(workflow.id)
+        self.get_success_response(
+            self.organization.slug, self.project.slug, fake_workflow_id, status_code=202
+        )
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        other_rule.refresh_from_db()
+        assert other_rule.status == ObjectStatus.ACTIVE
 
 
 class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):

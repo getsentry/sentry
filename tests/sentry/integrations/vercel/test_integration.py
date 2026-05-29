@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs
 
 import orjson
@@ -459,6 +460,40 @@ class VercelIntegrationTest(IntegrationTestCase):
             dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
         with pytest.raises(ValidationError):
             installation.update_organization_config(data)
+
+    @responses.activate
+    def test_update_organization_config_logs_on_failure(self) -> None:
+        """Test that a log is emitted when linking a Sentry project fails."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        project_id = self.project.id
+        org = self.organization
+        data = {"project_mappings": [[project_id, self.project_id]]}
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation = integration.get_installation(org.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+            dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
+
+        with (
+            mock.patch("sentry.integrations.vercel.integration.logger") as mock_logger,
+            pytest.raises(ValidationError),
+        ):
+            installation.update_organization_config(data)
+
+        mock_logger.exception.assert_called_once_with(
+            "vercel.link_sentry_project.failed",
+            extra={
+                "organization_id": org.id,
+                "integration_id": integration.id,
+                "sentry_project_id": project_id,
+                "vercel_project_id": self.project_id,
+                "error_type": "ValidationError",
+            },
+        )
 
     @responses.activate
     def test_get_dynamic_display_information(self) -> None:

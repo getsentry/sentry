@@ -3,8 +3,8 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -13,6 +13,7 @@ import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
 } from 'sentry/components/replays/replayAccess';
+import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -35,6 +36,7 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
+import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
 import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
@@ -42,9 +44,11 @@ import {ReplayOnboardingPanel} from 'sentry/views/explore/replays/list/replayOnb
 import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-const ReplayListPageHeaderHook = HookOrDefault({
-  hookName: 'component:replay-list-page-header',
+const ReplayListPageHeaderHook = OverrideOrDefault({
+  overrideName: 'component:replay-list-page-header',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
@@ -93,7 +97,27 @@ function ReplaysHeader() {
   );
 }
 
-export default function ReplaysListContainer() {
+function useReplayListLLMContextData({
+  showDeadRageClickCards,
+  widgetIsOpen,
+}: {
+  showDeadRageClickCards: boolean;
+  widgetIsOpen: boolean;
+}) {
+  const searchQuery = useQueryParamsSearch().formatString();
+  const pageFilters = usePageFilters();
+  const {sortType} = useReplayTableSort();
+  useLLMContext({
+    contextHint:
+      'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details.',
+    searchQuery,
+    sort: `${sortType.kind === 'desc' ? '-' : ''}${sortType.field}`,
+    currentSelectedDateRange: pageFilters.selection.datetime,
+    deadRageClickWidgetsVisible: showDeadRageClickCards && widgetIsOpen,
+  });
+}
+
+function ReplaysListBody() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
@@ -121,6 +145,8 @@ export default function ReplaysListContainer() {
   );
   const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
 
+  useReplayListLLMContextData({showDeadRageClickCards, widgetIsOpen});
+
   useRouteAnalyticsParams({
     hasSessionReplay,
     hasSentReplays: hasSentReplays.hasSentOneReplay,
@@ -128,42 +154,52 @@ export default function ReplaysListContainer() {
   });
 
   return (
+    <Stack flex={1}>
+      <ReplaysHeader />
+      <PageFiltersContainer>
+        <ExploreBodySearch>
+          <Layout.Main width="full">
+            <ReplayListControls
+              onToggleWidgets={toggleWidgets}
+              showDeadRageClickCards={showDeadRageClickCards}
+              widgetIsOpen={widgetIsOpen}
+            />
+          </Layout.Main>
+        </ExploreBodySearch>
+        <ExploreBodyContent>
+          <ExploreContentSection gap="xl">
+            <ReplayListPageHeaderHook />
+            {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+              <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                <ReplayIndexContainer
+                  showDeadRageClickCards={showDeadRageClickCards}
+                  widgetIsOpen={widgetIsOpen}
+                />
+              </ReplayAccess>
+            ) : (
+              <ReplayOnboardingPanel />
+            )}
+          </ExploreContentSection>
+        </ExploreBodyContent>
+      </PageFiltersContainer>
+    </Stack>
+  );
+}
+
+function ReplaysListContainer() {
+  const organization = useOrganization();
+
+  return (
     <AnalyticsArea name="list">
       <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <ReplayQueryParamsProvider>
-            <Stack flex={1}>
-              <ReplaysHeader />
-              <PageFiltersContainer>
-                <ExploreBodySearch>
-                  <Layout.Main width="full">
-                    <ReplayListControls
-                      onToggleWidgets={toggleWidgets}
-                      showDeadRageClickCards={showDeadRageClickCards}
-                      widgetIsOpen={widgetIsOpen}
-                    />
-                  </Layout.Main>
-                </ExploreBodySearch>
-                <ExploreBodyContent>
-                  <ExploreContentSection gap="xl">
-                    <ReplayListPageHeaderHook />
-                    {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                      <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
-                        <ReplayIndexContainer
-                          showDeadRageClickCards={showDeadRageClickCards}
-                          widgetIsOpen={widgetIsOpen}
-                        />
-                      </ReplayAccess>
-                    ) : (
-                      <ReplayOnboardingPanel />
-                    )}
-                  </ExploreContentSection>
-                </ExploreBodyContent>
-              </PageFiltersContainer>
-            </Stack>
+            <ReplaysListBody />
           </ReplayQueryParamsProvider>
         </ReplayPreferencesContextProvider>
       </SentryDocumentTitle>
     </AnalyticsArea>
   );
 }
+
+export default registerLLMContext('replays-list', ReplaysListContainer);

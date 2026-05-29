@@ -192,6 +192,7 @@ export function ReleasesDrawerTable({
         <CellWrapper>
           {renderer(dataRow, {
             location,
+            navigate,
             organization,
             unit: meta.units[column.key],
             theme,
@@ -199,7 +200,7 @@ export function ReleasesDrawerTable({
         </CellWrapper>
       );
     },
-    [organization, location, onMouseOutRelease, onMouseOverRelease, theme]
+    [organization, location, navigate, onMouseOutRelease, onMouseOverRelease, theme]
   );
 
   const tableEmptyMessage = (

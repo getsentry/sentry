@@ -197,7 +197,11 @@ export function InviteMissingMembersModal({
     });
   };
 
-  const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
+  const overrideRenderer: InviteModalRenderFunc = ({
+    sendInvites,
+    canSend,
+    headerInfo,
+  }) => (
     <Fragment>
       <h4>{t('Invite Your Dev Team')}</h4>
       {headerInfo}
@@ -313,7 +317,7 @@ export function InviteMissingMembersModal({
       willInvite
       onSendInvites={sendMemberInvites}
     >
-      {hookRenderer}
+      {overrideRenderer}
     </InviteModalHook>
   );
 }

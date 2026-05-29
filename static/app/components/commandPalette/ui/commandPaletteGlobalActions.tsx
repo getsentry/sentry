@@ -16,12 +16,13 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import Hook from 'sentry/components/hook';
+import {Override} from 'sentry/components/override';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
+import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {
   IconAdd,
   IconAllProjects,
@@ -56,7 +57,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
-import type {AvatarProject} from 'sentry/types/project';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -282,7 +283,9 @@ export function GlobalCommandPaletteActions() {
     })
       .flatMap(section =>
         section.items.filter(navItem => {
-          if (navItem.show === undefined) return true;
+          if (navItem.show === undefined) {
+            return true;
+          }
           return typeof navItem.show === 'function'
             ? navItem.show({...context, ...section})
             : navItem.show;
@@ -310,8 +313,9 @@ export function GlobalCommandPaletteActions() {
           />
           {Object.values(ISSUE_TAXONOMY_CONFIG)
             .filter(
-              ({featureFlag}) =>
-                !featureFlag || organization.features.includes(featureFlag)
+              ({featureFlags}) =>
+                !featureFlags ||
+                featureFlags.some(feature => organization.features.includes(feature))
             )
             .map(config => (
               <CMDKAction
@@ -332,14 +336,12 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          {organization.features.includes('autofix-on-explorer') && (
-            <CMDKAction display={{label: t('Autofix')}}>
-              <CMDKAction
-                display={{label: t('Recently Run')}}
-                to={`${prefix}/issues/autofix/recent/`}
-              />
-            </CMDKAction>
-          )}
+          <CMDKAction display={{label: t('Autofix')}}>
+            <CMDKAction
+              display={{label: t('Recently Run')}}
+              to={`${prefix}/issues/autofix/recent/`}
+            />
+          </CMDKAction>
         </CMDKAction>
 
         <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
@@ -363,7 +365,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
-              to={`${prefix}/explore/profiling/`}
+              to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
@@ -544,7 +546,7 @@ export function GlobalCommandPaletteActions() {
                 to={item.path}
               />
             ))}
-          <Hook name="cmdk:global-settings-actions" />
+          <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
 
         <CMDKAction
@@ -890,6 +892,39 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction
+        display={{label: t('Projects'), icon: <IconAllProjects />}}
+        prompt={t('Search for a project...')}
+        limit={4}
+        resource={query => {
+          return cmdkQueryOptions({
+            ...apiOptions.as<Project[]>()(
+              '/organizations/$organizationIdOrSlug/projects/',
+              {
+                path: {organizationIdOrSlug: organization.slug},
+                query: {query},
+                staleTime: 30_000,
+              }
+            ),
+            enabled: query.length >= 1,
+            select: data =>
+              data.json.map(project => ({
+                display: {
+                  label: project.slug,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                },
+                keywords: [project.name, project.slug],
+                to: makeProjectsPathname({
+                  path: `/${project.slug}/`,
+                  organization,
+                }),
+              })),
+          });
+        }}
+      >
+        {data => data.map((item, i) => renderAsyncResult(item, i))}
+      </CMDKAction>
+
+      <CMDKAction
         display={{label: t('Open Project'), icon: <IconAllProjects />}}
         keywords={[
           t('project'),
@@ -1019,6 +1054,34 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
       </CMDKAction>
+
+      {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
+        <CMDKAction
+          display={{label: t('Open in Production'), icon: <IconOpen />}}
+          keywords={['production', 'prod', 'live']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.sentry.io${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
+
+      {NODE_ENV === 'production' && user.isStaff && (
+        <CMDKAction
+          display={{label: t('Open in Development'), icon: <IconOpen />}}
+          keywords={['development', 'dev', 'dev-ui', 'localhost', 'local']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.dev.getsentry.net:7999${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
     </CommandPaletteSlot>
   );
 }

@@ -16,8 +16,6 @@ const ROW_COUNT_VALUES = [
   ROW_COUNT_VALUE_DEFAULT,
   ROW_COUNT_VALUE_SYNC_LIMIT,
   10_000,
-  50_000,
-  100_000,
 ];
 
 export function generateLogExportRowCountOptions(estimatedRowCount: number) {

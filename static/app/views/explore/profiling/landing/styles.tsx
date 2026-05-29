@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -5,7 +6,11 @@ import {Panel} from 'sentry/components/panels/panel';
 import {defined} from 'sentry/utils';
 
 export const WidgetContainer = styled(Panel)<{height?: string}>`
-  ${p => defined(p.height) && `height: ${p.height};`}
+  ${p =>
+    defined(p.height) &&
+    css`
+      height: ${p.height};
+    `}
   display: flex;
   flex-direction: column;
   padding-top: ${p => p.theme.space.xl};

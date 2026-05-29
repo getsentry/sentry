@@ -126,7 +126,7 @@ def build_query_params_from_request(
             query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
-    sentry_sdk.set_tag("search.sort", query)
+    sentry_sdk.set_tag("search.sort", query_kwargs["sort_by"])
     if projects:
         sentry_sdk.set_tag("search.projects", len(projects) if len(projects) <= 5 else ">5")
     if environments:
@@ -175,11 +175,16 @@ def get_by_short_id(
     is_short_id_lookup: str,
     query: str,
 ) -> Group | None:
-    if is_short_id_lookup == "1" and looks_like_short_id(query):
-        try:
-            return Group.objects.by_qualified_short_id(organization_id, query)
-        except Group.DoesNotExist:
-            pass
+    if is_short_id_lookup != "1":
+        return None
+    # A short id token anywhere in the query is treated as a direct hit,
+    # so it composes with filters.
+    for token in query.split():
+        if looks_like_short_id(token):
+            try:
+                return Group.objects.by_qualified_short_id(organization_id, token)
+            except Group.DoesNotExist:
+                continue
     return None
 
 

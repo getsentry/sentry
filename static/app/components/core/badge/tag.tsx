@@ -115,6 +115,7 @@ const Text = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  min-width: 0;
 
   /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
   display: flex;

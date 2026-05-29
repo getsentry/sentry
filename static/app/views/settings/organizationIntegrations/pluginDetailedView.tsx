@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
@@ -25,14 +26,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {
   INSTALLED,
   NOT_INSTALLED,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {PluginDeprecationAlert} from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
@@ -59,9 +58,10 @@ function PluginDetailedView() {
   const {openModal} = useModal();
 
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
-  const {activeTab, setActiveTab} = useIntegrationTabs<IntegrationTab>({
-    initialTab: 'overview',
-  });
+  const [activeTab, setActiveTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
+  );
 
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -369,4 +369,4 @@ const AddButton = styled(Button)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-export default withOrganization(PluginDetailedView);
+export default PluginDetailedView;

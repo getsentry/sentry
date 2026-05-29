@@ -52,6 +52,7 @@ from sentry.types.cell import (
 )
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.pagination_factory import PaginatorLike
 
 logger = logging.getLogger(__name__)
@@ -137,7 +138,7 @@ class OrganizationIndexEndpoint(Endpoint):
         },
         examples=UserExamples.LIST_ORGANIZATIONS,
     )
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response[list[OrganizationSummarySerializerResponse]]:
         """
         Return a list of organizations available to the authenticated session in a region.
         This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
@@ -148,6 +149,8 @@ class OrganizationIndexEndpoint(Endpoint):
         return self._get_from_cell(request)
 
     def _get_from_cell(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
         queryset = Organization.objects.distinct()
@@ -246,6 +249,8 @@ class OrganizationIndexEndpoint(Endpoint):
         )
 
     def _get_from_control(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
         if owner_only:
@@ -391,6 +396,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 {"detail": "You are attempting to create too many organizations too quickly."},
                 status=429,
             )
+
+        metrics.incr(
+            "api.organization_index.post",
+            tags={"silo": SiloMode.get_current_mode().name.lower()},
+            sample_rate=1.0,
+        )
 
         serializer = OrganizationPostSerializer(data=request.data, context={"request": request})
 

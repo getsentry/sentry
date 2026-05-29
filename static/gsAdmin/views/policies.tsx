@@ -8,7 +8,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {AddPolicyModal} from 'admin/components/policies/addPolicyModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="policy">

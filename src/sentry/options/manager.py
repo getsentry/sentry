@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from collections.abc import Iterable, Sequence
 from enum import Enum
@@ -9,6 +10,7 @@ from typing import Any as TAny
 
 from django.conf import settings
 
+from sentry.silo.base import SiloMode
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, Type, type_from_value
@@ -181,6 +183,7 @@ class OptionsManager:
     def __init__(self, store: OptionsStore):
         self.store = store
         self.registry: dict[str, Key] = {}
+        self._seen: set[str] = set()
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -281,6 +284,15 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
+    def _record_seen(self, key: str) -> None:
+        """Emit one log line per key per process lifetime so reads can be
+        audited in GCP. Logs before adding to _seen so a logging failure
+        doesn't permanently suppress the event. In debug mode, mark keys as
+        seen without logging to keep local tooling output clean."""
+        if not settings.DEBUG:
+            logger.info("option.seen", extra={"option_key": key})
+        self._seen.add(key)
+
     def get(self, key: str, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
@@ -292,45 +304,65 @@ class OptionsManager:
         """
         # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
         # values change. This case is unlikely, but good to cover our bases.
-        opt = self.lookup_key(key)
+        from sentry.utils import metrics
 
-        # First check if the option should exist on disk, and if it actually
-        # has a value set, let's use that one instead without even attempting
-        # to fetch from network storage.
-        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
-            try:
-                result = settings.SENTRY_OPTIONS[key]
-            except KeyError:
-                pass
-            else:
+        sentry_env = os.environ.get("CUSTOMER_ID", settings.SENTRY_LOCAL_CELL) or "unknown"
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            sentry_env = SiloMode.CONTROL.name
+
+        with metrics.timer(
+            "options.store.get",
+            tags={"key": key, "region": sentry_env},
+            sample_rate=0.01,
+        ) as tags:
+            opt = self.lookup_key(key)
+            if key not in self._seen:
+                try:
+                    self._record_seen(key)
+                except Exception:
+                    # Tracking is best-effort. Never let it affect option reads.
+                    pass
+
+            # First check if the option should exist on disk, and if it actually
+            # has a value set, let's use that one instead without even attempting
+            # to fetch from network storage.
+            if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
+                try:
+                    result = settings.SENTRY_OPTIONS[key]
+                except KeyError:
+                    pass
+                else:
+                    if result is not None:
+                        tags["source"] = "disk"
+                        record_option(key, result)
+                        return result
+
+            if not (opt.flags & FLAG_NOSTORE):
+                result = self.store.get(opt, silent=silent)
                 if result is not None:
+                    tags["source"] = "store"
                     record_option(key, result)
                     return result
 
-        if not (opt.flags & FLAG_NOSTORE):
-            result = self.store.get(opt, silent=silent)
-            if result is not None:
-                record_option(key, result)
-                return result
-
-        # Some values we don't want to allow them to be configured through
-        # config files and should only exist in the datastore
-        if opt.has_any_flag({FLAG_STOREONLY}):
-            optval = opt.default()
-        else:
-            try:
-                # default to the hardcoded local configuration for this key
-                optval = settings.SENTRY_OPTIONS[key]
-            except KeyError:
+            # Some values we don't want to allow them to be configured through
+            # config files and should only exist in the datastore
+            if opt.has_any_flag({FLAG_STOREONLY}):
+                optval = opt.default()
+            else:
                 try:
-                    optval = settings.SENTRY_DEFAULT_OPTIONS[key]
+                    # default to the hardcoded local configuration for this key
+                    optval = settings.SENTRY_OPTIONS[key]
                 except KeyError:
-                    optval = opt.default()
-        # options already present in store are cached by store
-        # caching here to avoid database queries
-        self.store.set_cache(opt, optval)
-        record_option(key, optval)
-        return optval
+                    try:
+                        optval = settings.SENTRY_DEFAULT_OPTIONS[key]
+                    except KeyError:
+                        optval = opt.default()
+            # options already present in store are cached by store
+            # caching here to avoid database queries
+            self.store.set_cache(opt, optval)
+            tags["source"] = "default"
+            record_option(key, optval)
+            return optval
 
     def delete(self, key: str):
         """

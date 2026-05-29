@@ -628,7 +628,7 @@ def build_repo_definition_from_project_repo(
     )
 
 
-def build_automation_handoff(
+def get_automation_handoff(
     get_option: Callable[[str], Any],
 ) -> SeerAutomationHandoffConfiguration | None:
     """Build a SeerAutomationHandoffConfiguration from option key/value pairs, or None if incomplete."""
@@ -668,7 +668,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
         project_id=project.id,
         repositories=repo_definitions,
         automated_run_stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
-        automation_handoff=build_automation_handoff(project.get_option),
+        automation_handoff=get_automation_handoff(project.get_option),
         autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
@@ -719,7 +719,7 @@ def bulk_read_preferences_from_sentry_db(
             automated_run_stopping_point=_get_project_option(
                 "sentry:seer_automated_run_stopping_point"
             ),
-            automation_handoff=build_automation_handoff(_get_project_option),
+            automation_handoff=get_automation_handoff(_get_project_option),
             autofix_automation_tuning=_get_project_option("sentry:autofix_automation_tuning"),
         )
 
@@ -733,72 +733,208 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     scannerAutomation: bool
 
 
-def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpdate) -> None:
-    """Apply high-level Seer settings to a project. Only update a setting if it's present in data."""
+def _get_seer_project_options_to_update(
+    data: SeerProjectSettingsUpdate,
+) -> tuple[dict[str, Any], list[str]]:
+    """Return (options_to_set, options_to_clear) for the given Seer project settings update.
+    Clear the option if it's the default; otherwise, set it."""
+    options_to_set: dict[str, Any] = {}
+    options_to_clear: list[str] = []
 
-    def _set_if_not_default(key: str, value: Any, default: Any) -> None:
-        """If we're trying to set a default, delete the option. Otherwise, set it."""
+    def _set_or_clear(key: str, value: Any, default: Any) -> None:
         if value == default:
-            project.delete_option(key)
+            options_to_clear.append(key)
         else:
-            project.update_option(key, value)
+            options_to_set[key] = value
+
+    if "agent" in data:
+        agent = data["agent"]
+        if agent == AutomationCodingAgent.SEER:
+            options_to_clear += [
+                "sentry:seer_automation_handoff_point",
+                "sentry:seer_automation_handoff_target",
+                "sentry:seer_automation_handoff_integration_id",
+            ]
+        else:
+            integration_id = data.get("integrationId")
+            if integration_id is None:
+                raise ValueError("integrationId is required for external coding agents")
+            options_to_set["sentry:seer_automation_handoff_point"] = AutofixHandoffPoint.ROOT_CAUSE
+            options_to_set["sentry:seer_automation_handoff_target"] = agent
+            options_to_set["sentry:seer_automation_handoff_integration_id"] = integration_id
+
+    if "scannerAutomation" in data:
+        _set_or_clear("sentry:seer_scanner_automation", data["scannerAutomation"], default=True)
+
+    if "stoppingPoint" not in data:
+        return options_to_set, options_to_clear
+    elif data["stoppingPoint"] == "off":
+        # Disable automation and leave stopping point and handoff_auto_create_pr unchanged
+        # so that reenabling restores the prior state.
+        _set_or_clear(
+            "sentry:autofix_automation_tuning",
+            AutofixAutomationTuningSettings.OFF,
+            default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        )
+    else:
+        # Enable automation and set the stopping point.
+        _set_or_clear(
+            "sentry:autofix_automation_tuning",
+            AutofixAutomationTuningSettings.MEDIUM,
+            default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+        )
+        _set_or_clear(
+            "sentry:seer_automated_run_stopping_point",
+            data["stoppingPoint"],
+            default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+        )
+
+        if data["stoppingPoint"] == AutofixStoppingPoint.OPEN_PR:
+            # Safe to set even if no external handoff is configured
+            # since we'll only read it if the other handoff options are all non-null.
+            options_to_set["sentry:seer_automation_handoff_auto_create_pr"] = True
+        else:
+            options_to_clear.append("sentry:seer_automation_handoff_auto_create_pr")
+    return options_to_set, options_to_clear
+
+
+def update_seer_project_settings(project: Project, data: SeerProjectSettingsUpdate) -> None:
+    """Apply high-level Seer settings to a single project."""
+    options_to_set, options_to_delete = _get_seer_project_options_to_update(data)
 
     with transaction.atomic(using=router.db_for_write(ProjectOption)):
-        list(Project.objects.select_for_update().filter(id=project.id))
+        # Lock project rows to serialize concurrent writes.
+        Project.objects.select_for_update().filter(id=project.id).first()
 
-        stopping_point: str | None = data.get("stoppingPoint")
+        for key in options_to_delete:
+            project.delete_option(key)
+        for key, value in options_to_set.items():
+            project.update_option(key, value)
 
-        if "agent" in data:
-            agent: str = data["agent"]
-            if agent == AutomationCodingAgent.SEER:
-                project.delete_option("sentry:seer_automation_handoff_point")
-                project.delete_option("sentry:seer_automation_handoff_target")
-                project.delete_option("sentry:seer_automation_handoff_integration_id")
-            else:
-                integration_id = data.get("integrationId")
-                if integration_id is None:
-                    raise ValueError("integrationId is required for external coding agents")
 
-                project.update_option(
-                    "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
-                )
-                project.update_option("sentry:seer_automation_handoff_target", agent)
-                project.update_option(
-                    "sentry:seer_automation_handoff_integration_id", integration_id
-                )
+def bulk_update_seer_project_settings(
+    projects: list[Project], data: SeerProjectSettingsUpdate
+) -> None:
+    """Apply high-level Seer settings to multiple projects in bulk."""
+    if not projects:
+        return
 
-        if stopping_point is not None:
-            if stopping_point == "off":
-                # Turn off tuning and leave stopping point and handoff_auto_create_pr unchanged
-                # so that reenabling restores the prior state.
-                _set_if_not_default(
-                    "sentry:autofix_automation_tuning",
-                    AutofixAutomationTuningSettings.OFF,
-                    default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-                )
-            else:
-                _set_if_not_default(
-                    "sentry:autofix_automation_tuning",
-                    AutofixAutomationTuningSettings.MEDIUM,
-                    default=AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-                )
-                _set_if_not_default(
-                    "sentry:seer_automated_run_stopping_point",
-                    stopping_point,
-                    default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-                )
+    options_to_set, options_to_delete = _get_seer_project_options_to_update(data)
+    if not options_to_set and not options_to_delete:
+        return
 
-                if stopping_point == AutofixStoppingPoint.OPEN_PR:
-                    # Safe to set even if no external handoff is configured
-                    # since we'll only read it if the other handoff options are all non-null.
-                    project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-                else:
-                    project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+    project_ids = [p.id for p in projects]
 
-        if "scannerAutomation" in data:
-            _set_if_not_default(
-                "sentry:seer_scanner_automation", data["scannerAutomation"], default=True
+    with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        # Lock project rows to serialize concurrent writes.
+        list(Project.objects.select_for_update().filter(id__in=project_ids).order_by("id"))
+
+        if options_to_delete:
+            # Use _raw_delete to skip per-row post_delete signals that each trigger reload_cache.
+            # For efficiency, we reload once per project after the transaction instead.
+            ProjectOption.objects.filter(
+                project_id__in=project_ids, key__in=options_to_delete
+            )._raw_delete(using=router.db_for_write(ProjectOption))
+
+        if options_to_set:
+            ProjectOption.objects.bulk_create(
+                [
+                    ProjectOption(project_id=pid, key=key, value=value)
+                    for pid in project_ids
+                    for key, value in options_to_set.items()
+                ],
+                update_conflicts=True,
+                unique_fields=["project_id", "key"],
+                update_fields=["value"],
             )
+
+    # Manually reload each project's cache, since _raw_delete and bulk_create
+    # bypass the cache reloading in update_option and delete_option.
+    for project_id in project_ids:
+        ProjectOption.objects.reload_cache(project_id, "projectoption.bulk_set_value")
+
+
+class BranchOverrideData(TypedDict):
+    tag_name: str
+    tag_value: str
+    branch_name: str
+
+
+class ProjectRepoCreateData(TypedDict):
+    repository_id: int
+    branch_name: NotRequired[str | None]
+    instructions: NotRequired[str | None]
+    branch_overrides: NotRequired[list[BranchOverrideData]]
+
+
+def replace_all_branch_overrides(
+    seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
+) -> None:
+    """Replace all branch overrides for the given Seer project repo."""
+    SeerProjectRepositoryBranchOverride.objects.filter(
+        seer_project_repository=seer_project_repo
+    ).delete()
+    if branch_overrides:
+        SeerProjectRepositoryBranchOverride.objects.bulk_create(
+            [
+                SeerProjectRepositoryBranchOverride(
+                    seer_project_repository=seer_project_repo,
+                    tag_name=override["tag_name"],
+                    tag_value=override["tag_value"],
+                    branch_name=override["branch_name"],
+                )
+                for override in branch_overrides
+            ]
+        )
+
+
+def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
+    """Upsert Seer project repos."""
+    result_ids = []
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        for data in repos_data:
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository_id=data["repository_id"],
+                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+            )
+            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
+                project_repository=project_repo,
+                defaults={
+                    "branch_name": data.get("branch_name"),
+                    "instructions": data.get("instructions"),
+                },
+            )
+            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+            result_ids.append(seer_project_repo.id)
+
+    return result_ids
+
+
+def replace_all_seer_project_repos(
+    project: Project, repos_data: list[ProjectRepoCreateData]
+) -> None:
+    """Replace all active Seer repos for the given project."""
+    with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).delete()
+
+        for data in repos_data:
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository_id=data["repository_id"],
+                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+            )
+            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
+                project_repository=project_repo,
+                defaults={
+                    "branch_name": data.get("branch_name"),
+                    "instructions": data.get("instructions"),
+                },
+            )
+            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:

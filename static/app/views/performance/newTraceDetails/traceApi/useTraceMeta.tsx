@@ -71,37 +71,85 @@ type MetaArg = TraceMeta | EAPTraceMeta | null | undefined;
 type ResponseMetaArg = ResponseTraceMeta | ResponseEAPTraceMeta | null | undefined;
 
 function isEAPTraceMeta(meta: MetaArg): meta is EAPTraceMeta {
-  if (!meta) return false;
+  if (!meta) {
+    return false;
+  }
   return 'uptimeCount' in meta && !('transactions' in meta);
 }
 
 function isResponseEAPTraceMeta(meta: ResponseMetaArg): meta is ResponseEAPTraceMeta {
-  if (!meta) return false;
+  if (!meta) {
+    return false;
+  }
   return 'spansCount' in meta;
 }
 
 export function getTraceMetaErrorCount(meta: MetaArg) {
-  if (!meta) return;
+  if (!meta) {
+    return;
+  }
   return isEAPTraceMeta(meta) ? meta.errorsCount : meta.errors;
 }
 
 export function getTraceMetaPerformanceIssueCount(meta: MetaArg) {
-  if (!meta) return;
+  if (!meta) {
+    return;
+  }
   return isEAPTraceMeta(meta) ? meta.performanceIssuesCount : meta.performance_issues;
 }
 
 export function getTraceMetaSpanCount(meta: MetaArg) {
-  if (!meta) return;
+  if (!meta) {
+    return;
+  }
   return isEAPTraceMeta(meta) ? meta.spansCount : meta.span_count;
 }
 
+export function getTraceMetaMetricsCount(meta: MetaArg) {
+  if (!meta) {
+    return;
+  }
+  return isEAPTraceMeta(meta) ? meta.metricsCount : undefined;
+}
+
 export function getTraceMetaLogsCount(meta: MetaArg) {
-  if (!meta) return;
+  if (!meta) {
+    return;
+  }
   return isEAPTraceMeta(meta) ? meta.logsCount : undefined;
 }
 
+export function getTraceMetaTransactionCount(meta: MetaArg) {
+  if (!meta) {
+    return;
+  }
+  return isEAPTraceMeta(meta) ? undefined : meta.transactions;
+}
+
+export function getTraceMetaUptimeCount(meta: MetaArg) {
+  if (!meta) {
+    return;
+  }
+  return isEAPTraceMeta(meta) ? meta.uptimeCount : undefined;
+}
+
+export function getTraceMetaAiSpanCount(meta: MetaArg) {
+  if (!meta) {
+    return;
+  }
+  if (!isEAPTraceMeta(meta)) {
+    return;
+  }
+
+  return Object.entries(meta.spansCountMap).reduce((count, [op, opCount]) => {
+    return op.startsWith('gen_ai') ? count + opCount : count;
+  }, 0);
+}
+
 export function getTraceMetaTransactionChildCountMap(meta: MetaArg) {
-  if (!meta) return;
+  if (!meta) {
+    return;
+  }
   return isEAPTraceMeta(meta)
     ? meta.transactionChildCountMap
     : meta.transaction_child_count_map;
