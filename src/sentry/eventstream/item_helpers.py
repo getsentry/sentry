@@ -347,7 +347,9 @@ def _extract_exception(
 ) -> Mapping[str, int | list[str | int | bool | None]]:
     out: dict[str, int | list[Any]] = {}
 
-    exceptions = event_data.get("exception", {}).get("values", [])
+    exceptions = [
+        exc for exc in event_data.get("exception", {}).get("values", []) if exc is not None
+    ]
     # So, logically, each exception here is basically a mapping of data.
     # Most notable in that mapping is frames, which is itself a mapping of frame data.
     # NOW! EAP currently doesn't support mappings. So what we do here is instead build
@@ -371,8 +373,6 @@ def _extract_exception(
     frame_linenos = []
     frame_stack_levels = []
     for stack_level, stack in enumerate(exceptions):
-        if stack is None:
-            continue
         stack_types.append(stack.get("type"))
         stack_values.append(stack.get("value"))
         stack_mechanism_types.append(get_path(stack, "mechanism", "type"))
