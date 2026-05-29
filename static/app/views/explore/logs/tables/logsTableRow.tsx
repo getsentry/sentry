@@ -326,12 +326,10 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const traceId = String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? '');
-
   const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
     traceItemId: rowId,
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-    traceId,
+    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     timestamp: logTimestampSeconds,
@@ -477,12 +475,12 @@ export const LogRowContent = memo(function LogRowContent({
 
           const extraMenuItems =
             field === OurLogKnownFieldKey.MESSAGE
-              ? (getExploreSimilarSpansMenuItems({
+              ? getExploreSimilarSpansMenuItems({
                   message: value,
                   organization,
                   selection,
                   showExploreSimilarSpansLink,
-                }) ?? [])
+                })
               : undefined;
 
           if (!defined(value)) {
@@ -742,6 +740,7 @@ function LogRowDetails({
         >
           <LogRowDetailsActions
             fullLogDataResult={fullLogDataResult}
+            projectSlug={projectSlug}
             tableDataRow={dataRow}
           />
         </LogDetailTableActionsCell>
@@ -787,18 +786,17 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
 
 function LogRowDetailsActions({
   fullLogDataResult,
+  projectSlug,
   tableDataRow,
 }: {
   fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
+  projectSlug: string;
   tableDataRow: LogTableRowItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
   const user = useUser();
-  const project = useProjectFromId({
-    project_id: String(tableDataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
-  });
   const showFilterButtons = !isFrozen;
 
   const {copy} = useCopyToClipboard();
@@ -807,7 +805,7 @@ function LogRowDetailsActions({
   const json = useMemo(() => ourlogToJson(data), [data]);
   let logDebugEndpoint: string | undefined;
 
-  if (user.isSuperuser && project?.slug && isRegularLogResponseItem(tableDataRow)) {
+  if (user.isSuperuser && projectSlug && isRegularLogResponseItem(tableDataRow)) {
     const logId = String(tableDataRow[OurLogKnownFieldKey.ID] ?? '');
     const traceId = String(tableDataRow[OurLogKnownFieldKey.TRACE_ID] ?? '');
 
@@ -819,7 +817,7 @@ function LogRowDetailsActions({
         timestamp: String(Math.trunc(getLogRowTimestampMillis(tableDataRow) / 1000)),
       });
 
-      logDebugEndpoint = `/api/0/projects/${organization.slug}/${project.slug}/trace-items/${logId}/?${query}`;
+      logDebugEndpoint = `/api/0/projects/${organization.slug}/${projectSlug}/trace-items/${logId}/?${query}`;
     }
   }
 
