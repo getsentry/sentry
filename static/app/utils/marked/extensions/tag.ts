@@ -73,13 +73,18 @@ function mergeValue(
 }
 
 function findTagStart(src: string): number | undefined {
-  const idx = src.search(TAG_START_RE);
-  if (idx === -1) {
-    return undefined;
-  }
-  const rest = src.slice(idx);
-  if (BLOCK_RE.test(rest) || SELF_CLOSING_RE.test(rest)) {
-    return idx;
+  let offset = 0;
+  while (offset < src.length) {
+    const idx = src.slice(offset).search(TAG_START_RE);
+    if (idx === -1) {
+      return undefined;
+    }
+    const absIdx = offset + idx;
+    const rest = src.slice(absIdx);
+    if (BLOCK_RE.test(rest) || SELF_CLOSING_RE.test(rest)) {
+      return absIdx;
+    }
+    offset = absIdx + 2;
   }
   return undefined;
 }

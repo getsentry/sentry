@@ -257,5 +257,11 @@ describe('marked tag extension', () => {
       const tag = findTag('Use {% for item in list %} for loops');
       expect(tag).toBeUndefined();
     });
+
+    it('skips non-tag patterns to find a valid tag later in the input', () => {
+      const tag = findTag('{% for item in list %}\n\n{% ref type="issue" id="X-1" /%}');
+      expect(tag).toBeDefined();
+      expect(tag?.name).toBe('ref');
+    });
   });
 });
