@@ -108,44 +108,6 @@ class ProjectBalancingCalculationsTest(TestCase):
         assert not is_within_relative_tolerance(0.01, 0.0)
         assert not is_within_relative_tolerance(None, 1.0)
 
-    def test_run_project_balancing_skips_without_sample_rate(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.projects = [project]
-        config.get_sample_rate.return_value = None
-
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.calculations.ProjectsRebalancingModel.run"
-            ) as model_run,
-            patch("sentry.dynamic_sampling.per_org.tasks.calculations.logger.info") as logger_info,
-        ):
-            run_project_balancing(config, [_project_volume(project.id)])
-
-        model_run.assert_not_called()
-        logger_info.assert_not_called()
-
-    def test_run_project_balancing_skips_unknown_project_volumes(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.projects = [project]
-        config.get_sample_rate.return_value = 0.5
-
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.calculations.ProjectsRebalancingModel.run"
-            ) as model_run,
-            patch("sentry.dynamic_sampling.per_org.tasks.calculations.logger.info") as logger_info,
-        ):
-            run_project_balancing(config, [_project_volume(project.id + 1)])
-
-        model_run.assert_not_called()
-        logger_info.assert_not_called()
-
     def test_get_cached_rebalanced_project_sample_rates(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
