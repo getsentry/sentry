@@ -6,9 +6,9 @@ import {t, tn} from 'sentry/locale';
 import type {EntryThreads, Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
 import {IssueThreadStackTraceActions} from './actions';
 import {

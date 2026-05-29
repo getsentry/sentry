@@ -21,7 +21,7 @@ import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
 import type {IssueThreadStackTraceStore} from './threadStore';
 

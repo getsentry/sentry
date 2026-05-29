@@ -23,6 +23,8 @@ interface NativeStackTraceFramesProps {
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
   /** Replace the default expanded frame context. */
   frameContextComponent?: ComponentType;
+  /** Replace the fallback formatted raw stack trace. */
+  rawContent?: React.ReactNode;
 }
 
 function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
@@ -40,11 +42,16 @@ export function NativeStackTraceFrames({
   borderless = false,
   frameActionsComponent: FrameActionsComponent,
   frameContextComponent: FrameContextComponent = FrameContent,
+  rawContent,
 }: NativeStackTraceFramesProps) {
   const {rows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();
 
   if (view === 'raw') {
+    if (rawContent) {
+      return rawContent;
+    }
+
     return (
       <Container
         border={borderless ? undefined : 'primary'}

@@ -33,8 +33,8 @@ import {
 } from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
 import {NativeDisplayOptions} from './nativeDisplayOptions';

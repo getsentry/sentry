@@ -205,9 +205,20 @@ describe('IssueThreadStackTrace', () => {
       makeThread({crashed: true, id: 7}),
       makeThread({id: 8, name: 'worker', stacktrace: makeStacktrace('Worker.run')}),
     ]);
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
+      match: [MockApiClient.matchQuery({minified: 'false', thread_id: '7'})],
+      body: 'thread 7 crash report',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
+      match: [MockApiClient.matchQuery({minified: 'false', thread_id: '8'})],
+      body: 'thread 8 crash report',
+    });
 
     renderThreadStackTrace(event);
 
+    expect(await screen.findByText('thread 7 crash report')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
       '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=7&download=1'
@@ -215,6 +226,7 @@ describe('IssueThreadStackTrace', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
 
+    expect(await screen.findByText('thread 8 crash report')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
       '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=8&download=1'

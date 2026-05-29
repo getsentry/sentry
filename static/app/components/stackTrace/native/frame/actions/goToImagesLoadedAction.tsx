@@ -1,18 +1,20 @@
+import {useOptionalDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
-import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey} from 'sentry/views/issueDetails/context';
 
 export function useGoToImagesLoaded() {
   const {frame, frameIndex} = useStackTraceFrameContext();
   const {imageByFrameIndex, isHoverPreviewed} = useNativeStackTraceContext();
+  const debugMetaSearch = useOptionalDebugMetaSearch();
   const image = imageByFrameIndex.get(frameIndex) ?? null;
 
   const isClickable =
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
-    !isHoverPreviewed;
+    !isHoverPreviewed &&
+    !!debugMetaSearch;
 
   return {
     isClickable,
@@ -27,7 +29,7 @@ export function useGoToImagesLoaded() {
         ? `${image.debug_id}!${frame.instructionAddr}`
         : frame.instructionAddr;
 
-      DebugMetaStore.updateFilter(searchTerm);
+      debugMetaSearch?.setSearchTerm(searchTerm);
 
       document
         .getElementById(SectionKey.DEBUGMETA)
