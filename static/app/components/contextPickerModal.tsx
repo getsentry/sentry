@@ -125,7 +125,7 @@ function ContextPickerContent({
         selectedOrgSlug && needProject
           ? {organizationIdOrSlug: selectedOrgSlug}
           : skipToken,
-      query: {collapse: ['latestDeploys', 'unusedFeatures']},
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: Infinity,
     })
   );

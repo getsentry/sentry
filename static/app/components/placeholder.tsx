@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {SpaceSize} from 'sentry/utils/theme';
@@ -37,10 +38,18 @@ export const Placeholder = styled(
   border-radius: ${p => p.theme.radius.md};
   background-color: ${p =>
     p.error ? p.theme.colors.red100 : p.theme.tokens.background.tertiary};
-  ${p => !!p.error && `color: ${p.theme.colors.red200};`}
+  ${p =>
+    !!p.error &&
+    css`
+      color: ${p.theme.colors.red200};
+    `}
   width: ${p => p.width ?? '100%'};
   height: ${p => p.height ?? '60px'};
   ${({shape = 'rect'}) => (shape === 'circle' ? 'border-radius: 100%;' : '')}
   ${({bottomGutter, theme}) =>
-    bottomGutter ? `margin-bottom: ${theme.space[bottomGutter]};` : ''}
+    bottomGutter
+      ? css`
+          margin-bottom: ${theme.space[bottomGutter]};
+        `
+      : ''}
 `;

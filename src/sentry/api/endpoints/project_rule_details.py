@@ -334,7 +334,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 "organizations:workflow-engine-issue-alert-endpoints-put", project.organization
             ):
                 try:
-                    workflow = AlertRuleWorkflow.objects.get(rule_id=updated_rule.id).workflow
+                    workflow = AlertRuleWorkflow.objects.get(
+                        rule_id=updated_rule.id,
+                        workflow__organization=project.organization,
+                    ).workflow
                     return Response(
                         serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
                     )
@@ -390,7 +393,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             transaction_id=scheduled.id,
         )
         try:
-            ard = AlertRuleWorkflow.objects.get(workflow_id=rule.id)
+            ard = AlertRuleWorkflow.objects.get(
+                workflow_id=rule.id,
+                workflow__organization=project.organization,
+            )
             legacy_rule = Rule.objects.get(id=ard.rule_id, project=project)
 
             report_used_legacy_models()

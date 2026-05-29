@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -526,7 +527,11 @@ const FrameBar = styled('div')<{withoutBorders?: boolean}>`
   width: 100%;
   position: relative;
   background-color: ${p => p.theme.tokens.background.tertiary};
-  ${p => !p.withoutBorders && `border-top: 1px solid ${p.theme.tokens.border.primary};`}
+  ${p =>
+    !p.withoutBorders &&
+    css`
+      border-top: 1px solid ${p.theme.tokens.border.primary};
+    `}
   flex: 1 1 100%;
 `;
 
