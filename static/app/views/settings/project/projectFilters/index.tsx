@@ -97,12 +97,12 @@ function InboundFiltersV2() {
   return (
     <InboundFiltersV2Table>
       <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Active')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Conditions')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Edited')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell divider={false}>{t('Conditions')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell divider={false}>{t('Created')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       <SimpleTable.Empty>{t('No inbound filters found')}</SimpleTable.Empty>
     </InboundFiltersV2Table>
