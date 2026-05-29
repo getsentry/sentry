@@ -23,18 +23,11 @@ def run_project_balancing(
     config: BaseDynamicSamplingConfiguration, project_volumes: list[ProjectVolume]
 ) -> list[RebalancedItem] | None:
     sample_rate = config.get_sample_rate()
-    if sample_rate is None:
-        return None
-
     counts_by_project = {project.id: 0 for project in config.projects}
     for project_volume in project_volumes:
         if project_volume.project_id in counts_by_project:
             counts_by_project[project_volume.project_id] = project_volume.total
-
-    if not any(counts_by_project.values()):
-        return None
-
-    rebalanced_projects = ProjectsRebalancingModel().run(
+    return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[
                 RebalancedItem(id=project_id, count=count)
@@ -43,7 +36,6 @@ def run_project_balancing(
             sample_rate=sample_rate,
         )
     )
-    return rebalanced_projects
 
 
 def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
