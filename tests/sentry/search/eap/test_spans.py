@@ -4,6 +4,9 @@ from unittest import mock
 
 import pytest
 from sentry_conventions.attributes import ATTRIBUTE_METADATA, ATTRIBUTE_NAMES
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -44,7 +47,7 @@ from sentry.search.eap.spans.attributes import (
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import QueryContext, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
@@ -451,6 +454,23 @@ class SearchResolverQueryTest(TestCase):
                 ]
             )
         )
+
+    def test_query_context_collects_terms(self) -> None:
+        query_context = QueryContext()
+
+        self.resolver.resolve_query(
+            "(span.description:foo OR span.op:bar) count():>1 avg(measurements.lcp):>3000",
+            query_context=query_context,
+        )
+
+        assert [term.key.name for term in query_context.where_terms] == [
+            "span.description",
+            "span.op",
+        ]
+        assert [term.key.name for term in query_context.having_terms] == [
+            "count()",
+            "avg(measurements.lcp)",
+        ]
 
     def test_empty_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("")
@@ -982,6 +1002,44 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
             label="count(span.duration)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_count_if_accepts_symbolic_operator_argument(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            'count_if(span.duration, ">", 100)'
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+                    op=ComparisonFilter.OP_GREATER_THAN,
+                    value=AttributeValue(val_double=100),
+                )
+            ),
+            label='count_if(span.duration, ">", 100)',
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_count_if_accepts_literal_operator_argument(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "count_if(span.duration, greater, 100)"
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+                    op=ComparisonFilter.OP_GREATER_THAN,
+                    value=AttributeValue(val_double=100),
+                )
+            ),
+            label="count_if(span.duration, greater, 100)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None

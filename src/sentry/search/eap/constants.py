@@ -6,6 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SAMPLING_MODES
@@ -54,6 +55,16 @@ LITERAL_OPERATOR_MAP = {
     "lessOrEquals": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
 }
 IN_OPERATORS = ["IN", "NOT IN"]
+
+
+def resolve_comparison_operator(operator: str) -> ComparisonFilter.Op.ValueType:
+    comparison_operator = LITERAL_OPERATOR_MAP.get(operator)
+    if comparison_operator is None:
+        comparison_operator = OPERATOR_MAP.get(operator)
+    if comparison_operator is None:
+        raise InvalidSearchQuery(f"Invalid operator {operator}")
+    return comparison_operator
+
 
 AGGREGATION_OPERATOR_MAP = {
     "=": AggregationComparisonFilter.OP_EQUALS,

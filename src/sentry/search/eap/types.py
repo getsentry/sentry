@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.search.events.types import EventsResponse
 
 if TYPE_CHECKING:
+    from sentry.api.event_search import AggregateFilter, SearchFilter
     from sentry.search.eap.resolver import SearchResolver
 
 
@@ -51,6 +52,18 @@ class SearchResolverConfig:
         equations: list[str] | None,
     ) -> TraceItemFilter | None:
         return None
+
+
+@dataclass
+class QueryContext:
+    where_terms: list["SearchFilter"] = field(default_factory=list)
+    having_terms: list["AggregateFilter"] = field(default_factory=list)
+
+    def add_where_term(self, term: "SearchFilter") -> None:
+        self.where_terms.append(term)
+
+    def add_having_term(self, term: "AggregateFilter") -> None:
+        self.having_terms.append(term)
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {

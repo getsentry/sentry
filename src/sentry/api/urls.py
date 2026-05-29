@@ -71,6 +71,9 @@ from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndp
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
+from sentry.api.endpoints.trace_item_attributes import (
+    OrganizationTraceItemQueryValidatorEndpoint,
+)
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
@@ -1772,6 +1775,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/validate/$",
         OrganizationTraceItemAttributeValidateEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes-validate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/validator/$",
+        OrganizationTraceItemQueryValidatorEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attributes-validator",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/values/$",

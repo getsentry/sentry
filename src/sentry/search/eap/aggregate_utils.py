@@ -8,10 +8,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedArguments,
 )
+from sentry.search.eap.constants import resolve_comparison_operator
 from sentry.search.eap.normalizer import unquote_literal
 
 
@@ -120,7 +120,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
         trace_filter = TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=key,
-                op=constants.LITERAL_OPERATOR_MAP[operator],
+                op=resolve_comparison_operator(operator),
                 value=attr_value,
             )
         )

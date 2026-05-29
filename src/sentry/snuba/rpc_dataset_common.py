@@ -1,6 +1,7 @@
 import logging
 import math
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -43,12 +44,26 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.api import event_search
+from sentry.api.event_search import AggregateFilter, SearchFilter, SearchKey, SearchValue
+from sentry.api.utils import handle_query_errors
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
-from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.attribute_validation import _check_attributes_exist, serialize_type
+from sentry.search.eap.columns import (
+    AttributeArgumentDefinition,
+    ColumnDefinitions,
+    FunctionDefinition,
+    ResolvedAttribute,
+    ResolvedColumn,
+    ValueArgumentDefinition,
+)
+from sentry.search.eap.constants import (
+    DOUBLE,
+    MAX_ROLLUP_POINTS,
+    VALID_GRANULARITIES,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import and_trace_item_filters, anyvalue_to_python
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
@@ -57,15 +72,93 @@ from sentry.search.eap.types import (
     AdditionalQueries,
     ConfidenceData,
     EAPResponse,
+    QueryContext,
     SearchResolverConfig,
+    SupportedTraceItemType,
 )
-from sentry.search.events.fields import get_function_alias, is_function
+from sentry.search.events.fields import get_function_alias, is_function, parse_arguments
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
+from sentry.snuba.referrer import Referrer
 from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+
+
+def _get_function_definition(
+    function_name: str, definitions: ColumnDefinitions
+) -> FunctionDefinition:
+    if function_name in definitions.aggregates:
+        return definitions.aggregates[function_name]
+    if function_name in definitions.formulas:
+        return definitions.formulas[function_name]
+    raise InvalidSearchQuery(f"Unknown function {function_name}")
+
+
+def _extract_keys_from_terms(
+    terms: Sequence[event_search.QueryToken], definitions: ColumnDefinitions
+) -> list[str]:
+    keys: list[str] = []
+    for term in terms:
+        if isinstance(term, event_search.SearchFilter):
+            keys.append(term.key.name)
+        elif isinstance(term, event_search.AggregateFilter):
+            keys.extend(_extract_function_keys(term, definitions))
+        elif isinstance(term, event_search.ParenExpression):
+            keys.extend(_extract_keys_from_terms(term.children, definitions))
+    return keys
+
+
+def _extract_function_keys(
+    aggregate_filter: AggregateFilter, definitions: ColumnDefinitions
+) -> list[str]:
+    match = is_function(aggregate_filter.key.name)
+    if match is None:
+        return []
+
+    function_name = match.group("function")
+    arguments = parse_arguments(match.group("function"), match.group("columns"))
+    keys: list[str] = []
+    function_definition = _get_function_definition(function_name, definitions)
+
+    missing_args = len(function_definition.arguments) - len(arguments)
+    argument_index = 0
+
+    for argument_definition in function_definition.arguments:
+        if argument_definition.ignored:
+            continue
+
+        if missing_args > 0 and argument_definition.default_arg is not None:
+            missing_args -= 1
+            continue
+
+        if argument_index >= len(arguments):
+            break
+
+        argument = arguments[argument_index]
+        argument_index += 1
+
+        if isinstance(argument_definition, AttributeArgumentDefinition):
+            keys.append(argument)
+        elif (
+            isinstance(argument_definition, ValueArgumentDefinition)
+            and argument_definition.argument_types is not None
+            and "query" in argument_definition.argument_types
+        ):
+            nested_query = (
+                argument[1:-1] if argument.startswith("`") and argument.endswith("`") else argument
+            )
+            nested_terms = event_search.parse_search_query(
+                nested_query,
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    wildcard_free_text=True,
+                ),
+            )
+            keys.extend(_extract_keys_from_terms(nested_terms, definitions))
+
+    return keys
 
 
 @dataclass
@@ -126,6 +219,82 @@ class RPCBase:
             config=config,
             definitions=cls.DEFINITIONS,
         )
+
+    @classmethod
+    def validate_query(
+        cls,
+        query_string: str,
+        snuba_params: SnubaParams,
+        item_type: SupportedTraceItemType,
+        definitions: ColumnDefinitions,
+        referrer: Referrer,
+    ) -> tuple[dict[str, dict[str, Any]], QueryContext]:
+        """Validate query keys and return their inferred types.
+
+        Raises `InvalidSearchQuery` and `IncompatibleMetricsQuery` when
+        `resolve_query()` rejects the query for the selected dataset.
+        """
+
+        resolver = SearchResolver(
+            params=snuba_params,
+            config=SearchResolverConfig(),
+            definitions=definitions,
+        )
+        query_context = QueryContext()
+        resolver.resolve_query(query_string, query_context=query_context)
+
+        key_results: dict[str, dict[str, Any]] = {}
+        unknown_attrs: list[tuple[str, ResolvedAttribute]] = []
+
+        all_keys = {where_term.key.name for where_term in query_context.where_terms}
+        for having_term in query_context.having_terms:
+            all_keys.update(_extract_function_keys(having_term, definitions))
+
+        for key_name in all_keys:
+            try:
+                resolved, _context = resolver.resolve_attribute(key_name)
+                if key_name in definitions.contexts or key_name in definitions.columns:
+                    key_results[key_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    unknown_attrs.append((key_name, resolved))
+            except InvalidSearchQuery as e:
+                key_results[key_name] = {
+                    "valid": False,
+                    "error": str(e),
+                }
+
+        if unknown_attrs:
+            attrs_by_type: dict[AttributeKey.Type.ValueType, set[str]] = {}
+            for _, resolved in unknown_attrs:
+                attrs_by_type.setdefault(resolved.proto_type, set()).add(resolved.internal_name)
+
+            with handle_query_errors():
+                existing = _check_attributes_exist(
+                    resolver,
+                    item_type,
+                    {
+                        attr_type: sorted(attribute_names)
+                        for attr_type, attribute_names in attrs_by_type.items()
+                    },
+                    referrer=referrer,
+                )
+
+            for key_name, resolved in unknown_attrs:
+                if (resolved.proto_type, resolved.internal_name) in existing:
+                    key_results[key_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    key_results[key_name] = {
+                        "valid": False,
+                        "error": f"Unknown attribute: {key_name}",
+                    }
+
+        return key_results, query_context
 
     @classmethod
     def categorize_column(
