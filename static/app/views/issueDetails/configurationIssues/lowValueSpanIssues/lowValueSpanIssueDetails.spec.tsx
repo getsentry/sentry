@@ -13,9 +13,10 @@ describe('LowValueSpanIssueDetails', () => {
         event={EventFixture({
           occurrence: {
             evidenceData: {
-              op: 'function',
-              description: 'compute_checksum',
-              count: 1234,
+              span_op: 'function',
+              span_description: 'compute_checksum',
+              span_count: 1234,
+              extrapolated_count: 60_000,
               value_score: 0.15,
               avg_duration_ms: 0.4,
               estimated_cost_usd: 12.34,
@@ -32,6 +33,7 @@ describe('LowValueSpanIssueDetails', () => {
     expect(screen.getByText('Problem')).toBeInTheDocument();
     expect(screen.getByText('Troubleshooting')).toBeInTheDocument();
     expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(0);
+    expect(screen.getByText('60,000')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
     expect(screen.queryByText('Value score')).not.toBeInTheDocument();
     expect(screen.queryByText('15%')).not.toBeInTheDocument();
