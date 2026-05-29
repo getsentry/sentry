@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from typing import Any
+from collections.abc import Callable, Iterable, Iterator, Sequence
+from typing import Any, cast
 
 import psycopg2
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
 from django.db.backends.postgresql.operations import DatabaseOperations
 
@@ -79,50 +80,52 @@ class CursorWrapper:
     from cursors, such as auto reconnects and lazy time zone evaluation.
     """
 
-    def __init__(self, db, cursor):
+    def __init__(self, db: DatabaseWrapper, cursor: Any) -> None:
         self.db = db
         self.cursor = cursor
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self.cursor, attr)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         return iter(self.cursor)
 
     @auto_reconnect_cursor
-    def execute(self, sql, params=None):
+    def execute(self, sql: str, params: Sequence[object] | dict[str, object] | None = None) -> Any:
         if params is not None:
             return self.cursor.execute(sql, params)
         return self.cursor.execute(sql)
 
     @auto_reconnect_cursor
-    def executemany(self, sql, paramlist=()):
+    def executemany(
+        self, sql: str, paramlist: Iterable[Sequence[object] | dict[str, object]] = ()
+    ) -> Any:
         return self.cursor.executemany(sql, paramlist)
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
-    SchemaEditorClass = DatabaseSchemaEditorProxy
+    SchemaEditorClass = cast(type[BaseDatabaseSchemaEditor], DatabaseSchemaEditorProxy)
     queries_limit = 15000
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, settings_dict: dict[str, Any], alias: str = "default") -> None:
+        super().__init__(settings_dict=settings_dict, alias=alias)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
 
     @auto_reconnect_connection
-    def _cursor(self, *args, **kwargs):
-        return super()._cursor()
+    def _cursor(self, name: str | None = None) -> Any:
+        return getattr(super(), "_cursor")(name=name)
 
     # We're overriding this internal method that's present in Django 1.11+, because
     # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
     # with our CursorWrapper. We need to be passing our wrapped cursor to their wrapped cursor,
     # not the other way around since then we'll lose things like __enter__ due to the way this
     # wrapper is working (getattr on self.cursor).
-    def _prepare_cursor(self, cursor):
-        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))
+    def _prepare_cursor(self, cursor: Any) -> Any:
+        cursor = getattr(super(), "_prepare_cursor")(CursorWrapper(self, cursor))
         return cursor
 
-    def close(self, reconnect=False):
+    def close(self, reconnect: bool = False) -> None:
         """
         This ensures we don't error if the connection has already been closed.
         """
