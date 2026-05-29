@@ -58,7 +58,9 @@ export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boo
 
   const [tabParam, setTabParam] = useQueryState(
     't_main',
-    tabKeyParser.withDefault(defaultTab).withOptions({clearOnDefault: false})
+    tabKeyParser
+      .withDefault(defaultTab)
+      .withOptions({clearOnDefault: false, shallow: true})
   );
 
   return {
