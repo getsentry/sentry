@@ -138,6 +138,43 @@ describe('stackTrace rows utils', () => {
     });
   });
 
+  it('hides Dart async suspension frames in app-frame view when requested', () => {
+    const frames = [
+      makeFrame({
+        filename: '<asynchronous suspension>',
+        absPath: '<asynchronous suspension>',
+        inApp: false,
+      }),
+      makeFrame({inApp: true, filename: 'app.dart'}),
+    ];
+
+    const appRows = getRows({
+      frames,
+      includeSystemFrames: false,
+      hiddenFrameToggleMap: {},
+      frameCountMap: getFrameCountMap(frames, false, undefined, true),
+      newestFirst: false,
+      framesOmitted: null,
+      hideDartAsyncSuspensionFrames: true,
+    });
+
+    expect(appRows).toHaveLength(1);
+    expect(appRows[0]).toMatchObject({kind: 'frame', frameIndex: 1});
+
+    const fullRows = getRows({
+      frames,
+      includeSystemFrames: true,
+      hiddenFrameToggleMap: {},
+      frameCountMap: getFrameCountMap(frames, true, undefined, true),
+      newestFirst: false,
+      framesOmitted: null,
+      hideDartAsyncSuspensionFrames: true,
+    });
+
+    expect(fullRows).toHaveLength(2);
+    expect(fullRows[0]).toMatchObject({kind: 'frame', frameIndex: 0});
+  });
+
   it('inserts omitted rows and respects maxDepth and newestFirst', () => {
     const frames = [
       makeFrame({inApp: true, filename: '0.py'}),

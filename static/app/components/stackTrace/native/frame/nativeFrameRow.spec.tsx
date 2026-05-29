@@ -8,7 +8,7 @@ import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
-import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
+import type {StackTraceMeta, StackTraceView} from 'sentry/components/stackTrace/types';
 import {ImageStatus} from 'sentry/types/debugImage';
 import {EntryType, EventOrGroupType, type Event, type Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -88,13 +88,19 @@ function renderFrames(
   stacktrace: StacktraceType,
   event: Event,
   {
+    defaultView = 'app',
     defaultIsNewestFirst = true,
     meta,
-  }: {defaultIsNewestFirst?: boolean; meta?: StackTraceMeta} = {}
+  }: {
+    defaultIsNewestFirst?: boolean;
+    defaultView?: StackTraceView;
+    meta?: StackTraceMeta;
+  } = {}
 ) {
   return render(
     <StackTraceViewStateProvider
       platform="cocoa"
+      defaultView={defaultView}
       defaultIsNewestFirst={defaultIsNewestFirst}
     >
       <NativeStackTraceProvider event={event} stacktrace={stacktrace} meta={meta}>
@@ -353,12 +359,36 @@ describe('NativeFrameRow', () => {
         }),
       ],
     };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+    renderFrames(stacktrace, makeEvent(stacktrace), {defaultView: 'full'});
 
     expect(screen.getByText('Dart')).toBeInTheDocument();
     expect(screen.getByText('Dart async')).toBeInTheDocument();
     // Dart frames are treated as symbolicated, no error icon.
     expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
+  });
+
+  it('hides Dart async suspension frames in app-only view', () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: true,
+      registers: null,
+      frames: [
+        makeFrame({
+          filename: '<asynchronous suspension>',
+          absPath: '<asynchronous suspension>',
+          function: null,
+          inApp: false,
+          package: null,
+          instructionAddr: '0xdeadbeef',
+        }),
+        makeFrame({function: 'app_main', inApp: true}),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace));
+
+    expect(screen.getByText('app_main')).toBeInTheDocument();
+    expect(screen.queryByText('Dart async')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dart')).not.toBeInTheDocument();
   });
 
   it('shows a warning icon when symbolicatorStatus is MISSING_SYMBOL', () => {

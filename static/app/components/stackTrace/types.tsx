@@ -73,6 +73,8 @@ export interface StackTraceProviderProps {
   groupingCurrentLevel?: number;
   /** Whether the SCM source context feature is enabled for this org. */
   hasScmSourceContext?: boolean;
+  /** Hide Dart async suspension frames from the default app-only view. */
+  hideDartAsyncSuspensionFrames?: boolean;
   /** Hide the source maps debugger button entirely. */
   hideSourceMapDebugger?: boolean;
   /** Cap the number of frames rendered. Frames beyond this depth are omitted. */

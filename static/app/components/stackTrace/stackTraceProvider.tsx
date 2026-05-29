@@ -27,6 +27,7 @@ export function StackTraceProvider({
   frameSourceMapDebuggerData,
   groupingCurrentLevel,
   hasScmSourceContext,
+  hideDartAsyncSuspensionFrames,
   hideSourceMapDebugger,
   minifiedStacktrace,
   stacktrace,
@@ -50,15 +51,31 @@ export function StackTraceProvider({
   );
 
   const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
-    createInitialHiddenFrameToggleMap(frames, view === 'full', groupingCurrentLevel)
+    createInitialHiddenFrameToggleMap(
+      frames,
+      view === 'full',
+      groupingCurrentLevel,
+      hideDartAsyncSuspensionFrames
+    )
   );
 
   const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
   const shouldIncludeSystemFrames = view === 'full';
 
   const frameCountMap = useMemo(
-    () => getFrameCountMap(frames, shouldIncludeSystemFrames, groupingCurrentLevel),
-    [frames, groupingCurrentLevel, shouldIncludeSystemFrames]
+    () =>
+      getFrameCountMap(
+        frames,
+        shouldIncludeSystemFrames,
+        groupingCurrentLevel,
+        hideDartAsyncSuspensionFrames
+      ),
+    [
+      frames,
+      groupingCurrentLevel,
+      hideDartAsyncSuspensionFrames,
+      shouldIncludeSystemFrames,
+    ]
   );
 
   const allRows = useMemo(
@@ -71,8 +88,15 @@ export function StackTraceProvider({
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
         groupingCurrentLevel,
+        hideDartAsyncSuspensionFrames,
       }),
-    [frames, isNewestFirst, activeStacktrace.framesOmitted, groupingCurrentLevel]
+    [
+      frames,
+      isNewestFirst,
+      activeStacktrace.framesOmitted,
+      groupingCurrentLevel,
+      hideDartAsyncSuspensionFrames,
+    ]
   );
 
   const rows = useMemo(
@@ -85,6 +109,7 @@ export function StackTraceProvider({
         newestFirst: isNewestFirst,
         framesOmitted: activeStacktrace.framesOmitted,
         groupingCurrentLevel,
+        hideDartAsyncSuspensionFrames,
         maxDepth,
       }),
     [
@@ -96,6 +121,7 @@ export function StackTraceProvider({
       shouldIncludeSystemFrames,
       activeStacktrace.framesOmitted,
       groupingCurrentLevel,
+      hideDartAsyncSuspensionFrames,
     ]
   );
 

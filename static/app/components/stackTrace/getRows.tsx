@@ -6,8 +6,17 @@ function frameIsVisible(
   frame: Frame,
   nextFrame: Frame | undefined,
   includeSystemFrames: boolean,
-  groupingCurrentLevel?: number
+  groupingCurrentLevel?: number,
+  hideDartAsyncSuspensionFrames?: boolean
 ) {
+  if (
+    !includeSystemFrames &&
+    hideDartAsyncSuspensionFrames &&
+    isDartAsyncSuspensionFrame(frame)
+  ) {
+    return false;
+  }
+
   return (
     includeSystemFrames ||
     frame.inApp ||
@@ -15,6 +24,13 @@ function frameIsVisible(
     // Include the last non-app frame to keep the call chain understandable.
     (!frame.inApp && !nextFrame) ||
     isFrameUsedForGrouping(frame, groupingCurrentLevel)
+  );
+}
+
+function isDartAsyncSuspensionFrame(frame: Frame) {
+  return (
+    frame.filename === '<asynchronous suspension>' ||
+    frame.absPath === '<asynchronous suspension>'
   );
 }
 
@@ -31,7 +47,8 @@ function isFrameUsedForGrouping(frame: Frame, groupingCurrentLevel?: number) {
 export function createInitialHiddenFrameToggleMap(
   frames: Frame[],
   includeSystemFrames: boolean,
-  groupingCurrentLevel?: number
+  groupingCurrentLevel?: number,
+  hideDartAsyncSuspensionFrames?: boolean
 ) {
   const indexMap: Record<number, boolean> = {};
 
@@ -40,7 +57,13 @@ export function createInitialHiddenFrameToggleMap(
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(frame, nextFrame, includeSystemFrames, groupingCurrentLevel) &&
+      frameIsVisible(
+        frame,
+        nextFrame,
+        includeSystemFrames,
+        groupingCurrentLevel,
+        hideDartAsyncSuspensionFrames
+      ) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -54,7 +77,8 @@ export function createInitialHiddenFrameToggleMap(
 export function getFrameCountMap(
   frames: Frame[],
   includeSystemFrames: boolean,
-  groupingCurrentLevel?: number
+  groupingCurrentLevel?: number,
+  hideDartAsyncSuspensionFrames?: boolean
 ) {
   let count = 0;
   const countMap: Record<number, number> = {};
@@ -64,7 +88,13 @@ export function getFrameCountMap(
     const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
     if (
-      frameIsVisible(frame, nextFrame, includeSystemFrames, groupingCurrentLevel) &&
+      frameIsVisible(
+        frame,
+        nextFrame,
+        includeSystemFrames,
+        groupingCurrentLevel,
+        hideDartAsyncSuspensionFrames
+      ) &&
       !repeatedFrame &&
       !frame.inApp
     ) {
@@ -128,6 +158,7 @@ export function getRows({
   framesOmitted,
   groupingCurrentLevel,
   maxDepth,
+  hideDartAsyncSuspensionFrames,
 }: {
   frameCountMap: Record<number, number>;
   frames: Frame[];
@@ -136,6 +167,7 @@ export function getRows({
   includeSystemFrames: boolean;
   newestFirst: boolean;
   groupingCurrentLevel?: number;
+  hideDartAsyncSuspensionFrames?: boolean;
   maxDepth?: number;
 }): Row[] {
   const hiddenFrameIndices = getHiddenFrameIndices({
@@ -156,7 +188,13 @@ export function getRows({
       }
 
       if (
-        (frameIsVisible(frame, nextFrame, includeSystemFrames, groupingCurrentLevel) &&
+        (frameIsVisible(
+          frame,
+          nextFrame,
+          includeSystemFrames,
+          groupingCurrentLevel,
+          hideDartAsyncSuspensionFrames
+        ) &&
           !repeatedFrame) ||
         hiddenFrameIndices.has(frameIndex)
       ) {

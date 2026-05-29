@@ -214,6 +214,7 @@ export function NativeStackTraceProvider({
       {...stackTraceProps}
       defaultExpandedFrameIndex={defaultExpandedFrameIndex}
       emptySourceNotation
+      hideDartAsyncSuspensionFrames
     >
       <NativeStackTraceContext.Provider value={value}>
         {children}
