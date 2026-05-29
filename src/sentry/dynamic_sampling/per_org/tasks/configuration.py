@@ -99,6 +99,14 @@ class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
 
 class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
+    """
+    This configuration is used for organizations for which sample rates are computed based on the volume sent.
+    It currently applies to AM2 organizations.
+    It consists of the following components:
+    - The sample rate is either based on the reserved volume or the ingested volume, which are then used as input to the quotas API to get the sample rate.
+    - Projects are rebalanced
+    """
+
     sample_rate: TargetSampleRate
 
     def __init__(self, organization: Organization) -> None:
@@ -123,6 +131,10 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         return self.sample_rate
 
     def _get_sliding_window_sample_rate(self) -> TargetSampleRate:
+        """
+        The sliding window sample rate uses the ingested segment volume to compute the sample rate by extrapolating
+        the volume of the current month and then using the quotas API to get the sample rate for that volume.
+        """
         if not self.projects:
             return None
 
@@ -141,6 +153,14 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
 
 class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):
+    """
+    This configuration is used for organizations for which sample rates are computed based on the target sample rate option.
+    It currently applies to AM3 organizations with custom dynamic sampling enabled and sampling mode set to organization.
+    It consists of the following components:
+    - The sample rate is based on the target sample rate option that can be set by the user at the organzation level. There is no volume-based sample rate computation.
+    - Projects are rebalanced
+    """
+
     sample_rate: TargetSampleRate
 
     def __init__(self, organization: Organization) -> None:
@@ -161,6 +181,14 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
 
 
 class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration):
+    """
+    This configuration is used for organizations for which sample rates are computed based on the target sample rate option.
+    It currently applies to AM3 organizations with custom dynamic sampling enabled and sampling mode set to project.
+    It consists of the following components:
+    - The sample rate is based on the target sample rate option that can be set by the user at the project level. There is no volume-based sample rate computation.
+    - Projects are not rebalanced
+    """
+
     project_target_sample_rates: ProjectTargetSampleRates
     should_balance_projects: bool = False
 
