@@ -3,7 +3,8 @@ import {useMutation} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Alert} from '@sentry/scraps/alert';
+import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -12,10 +13,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -161,7 +158,7 @@ export function KeyRateLimitsForm({
 
   const disabledAlert = ({features}: {features: string[]}) => (
     <FeatureDisabled
-      alert={PanelAlert}
+      alert={Alert}
       features={features}
       featureName={t('Key Rate Limits')}
     />
@@ -181,101 +178,96 @@ export function KeyRateLimitsForm({
         {({hasFeature, features, renderDisabled}) => {
           const fieldDisabled = disabled || !hasFeature;
           return (
-            <Panel>
-              <PanelHeader>{t('Rate Limits')}</PanelHeader>
-
-              <PanelBody>
-                <PanelAlert variant="info">
-                  {t(
-                    `Rate limits provide a flexible way to manage your error
-                      volume. If you have a noisy project or environment you
-                      can configure a rate limit for this key to reduce the
-                      number of errors processed. To manage your transaction
-                      volume, we recommend adjusting your sample rate in your
-                      SDK configuration.`
-                  )}
-                </PanelAlert>
-                {!hasFeature &&
-                  typeof renderDisabled === 'function' &&
-                  renderDisabled({
-                    organization,
-                    project,
-                    features,
-                    hasFeature,
-                    children: null,
-                  })}
-                <form.AppField name="rateLimit">
-                  {field => {
-                    const value = field.state.value;
-                    const window = value?.window;
-                    const saveIfChanged = () => {
-                      if (hasRateLimitChanged(field.state.value)) {
-                        void form.handleSubmit();
-                      }
-                    };
-                    return (
-                      <field.Layout.Row
-                        label={t('Rate Limit')}
-                        hintText={t(
-                          'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
-                        )}
-                        padding="xl"
-                      >
-                        <Grid columns="100px max-content 1fr" align="center" gap="xl">
-                          <Input
-                            type="number"
-                            name="rateLimit.count"
-                            min={0}
-                            value={value?.count ?? ''}
-                            placeholder={t('Count')}
-                            disabled={fieldDisabled}
-                            onChange={event =>
-                              field.handleChange({
-                                count: Number(event.target.value),
-                                window: value?.window ?? 0,
-                              })
+            <FieldGroup title={t('Rate Limits')}>
+              <Alert variant="info" system>
+                {t(
+                  `Rate limits provide a flexible way to manage your error
+                    volume. If you have a noisy project or environment you
+                    can configure a rate limit for this key to reduce the
+                    number of errors processed. To manage your transaction
+                    volume, we recommend adjusting your sample rate in your
+                    SDK configuration.`
+                )}
+              </Alert>
+              {!hasFeature &&
+                typeof renderDisabled === 'function' &&
+                renderDisabled({
+                  organization,
+                  project,
+                  features,
+                  hasFeature,
+                  children: null,
+                })}
+              <form.AppField name="rateLimit">
+                {field => {
+                  const value = field.state.value;
+                  const window = value?.window;
+                  const saveIfChanged = () => {
+                    if (hasRateLimitChanged(field.state.value)) {
+                      void form.handleSubmit();
+                    }
+                  };
+                  return (
+                    <field.Layout.Row
+                      label={t('Rate Limit')}
+                      hintText={t(
+                        'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
+                      )}
+                    >
+                      <Grid columns="100px max-content 1fr" align="center" gap="xl">
+                        <Input
+                          type="number"
+                          name="rateLimit.count"
+                          min={0}
+                          value={value?.count ?? ''}
+                          placeholder={t('Count')}
+                          disabled={fieldDisabled}
+                          onChange={event =>
+                            field.handleChange({
+                              count: Number(event.target.value),
+                              window: value?.window ?? 0,
+                            })
+                          }
+                          onBlur={saveIfChanged}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              saveIfChanged();
                             }
-                            onBlur={saveIfChanged}
-                            onKeyDown={event => {
-                              if (event.key === 'Enter') {
-                                event.preventDefault();
-                                saveIfChanged();
+                          }}
+                        />
+                        <Text size="sm" align="center">
+                          {t('event(s) in')}
+                        </Text>
+                        <RangeSlider
+                          name="rateLimit.window"
+                          allowedValues={getAllowedRateLimitValues(window)}
+                          value={window ?? ''}
+                          placeholder={t('Window')}
+                          formatLabel={rangeValue => {
+                            if (typeof rangeValue === 'number') {
+                              if (rangeValue === 0) {
+                                return t('None');
                               }
-                            }}
-                          />
-                          <Text size="sm" align="center">
-                            {t('event(s) in')}
-                          </Text>
-                          <RangeSlider
-                            name="rateLimit.window"
-                            allowedValues={getAllowedRateLimitValues(window)}
-                            value={window ?? ''}
-                            placeholder={t('Window')}
-                            formatLabel={rangeValue => {
-                              if (typeof rangeValue === 'number') {
-                                if (rangeValue === 0) {
-                                  return t('None');
-                                }
-                                return getExactDuration(rangeValue);
-                              }
-                              return;
-                            }}
-                            disabled={fieldDisabled}
-                            onChange={rangeValue =>
-                              field.handleChange({
-                                count: value?.count ?? 0,
-                                window: Number(rangeValue),
-                              })
+                              return getExactDuration(rangeValue);
                             }
-                            onChangeEnd={saveIfChanged}
-                          />
-                        </Grid>
-                      </field.Layout.Row>
-                    );
-                  }}
-                </form.AppField>
-              </PanelBody>
-            </Panel>
+                            return;
+                          }}
+                          disabled={fieldDisabled}
+                          onChange={rangeValue =>
+                            field.handleChange({
+                              count: value?.count ?? 0,
+                              window: Number(rangeValue),
+                            })
+                          }
+                          onChangeEnd={saveIfChanged}
+                        />
+                      </Grid>
+                    </field.Layout.Row>
+                  );
+                }}
+              </form.AppField>
+            </FieldGroup>
           );
         }}
       </Feature>
