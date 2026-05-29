@@ -36,3 +36,13 @@ if (globalThis.window === undefined) {
 
   globalThis.localStorage = localStorageShim as unknown as Storage;
 }
+
+// CompactSelect (and other core components) call `CSS.escape` during render to
+// build option keys. The node SSR environment has no `CSS` global, so provide a
+// minimal shim. The keys we render are simple identifiers, so escaping just the
+// characters that matter for CSS selectors is sufficient.
+if ((globalThis as any).CSS === undefined) {
+  (globalThis as any).CSS = {
+    escape: (value: string) => String(value).replace(/[^\w-]/g, '\\$&'),
+  };
+}
