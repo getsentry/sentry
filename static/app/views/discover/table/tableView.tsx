@@ -727,12 +727,12 @@ function getIssueEventTarget(
   dataRow: IssueEventDataRow,
   organization: Organization
 ): LocationDescriptorObject {
-  return {
+  return normalizeUrl({
     pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/`,
     query: {
       referrer: 'discover-events-table',
     },
-  };
+  });
 }
 
 function getProjectEventRedirectTarget(
