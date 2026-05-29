@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {
   ExceptionDescription,
@@ -59,6 +60,11 @@ export function ActiveThreadStackTrace() {
   return (
     <Flex direction="column" gap="lg">
       <ExceptionDetails exception={activeException} />
+      {activeException?.stacktrace ? (
+        <ErrorBoundary customComponent={null}>
+          <StacktraceBanners event={event} stacktrace={activeException.stacktrace} />
+        </ErrorBoundary>
+      ) : null}
       <NativeStackTraceFrames
         frameActionsComponent={NativeIssueFrameActions}
         frameContextComponent={IssueStackTraceFrameContext}

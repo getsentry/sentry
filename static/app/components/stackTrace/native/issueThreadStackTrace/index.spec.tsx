@@ -131,6 +131,10 @@ describe('IssueThreadStackTrace', () => {
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {dismissed_ts: undefined, snoozed_ts: undefined},
+    });
     ProjectsStore.loadInitialData([project]);
     localStorageWrapper.removeItem(storageKey);
     Object.assign(navigator, {
@@ -178,6 +182,24 @@ describe('IssueThreadStackTrace', () => {
     expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
     expect(screen.getByText('Attempted to dereference null pointer')).toBeInTheDocument();
     expect(screen.getByText('ViewController.causeCrash')).toBeInTheDocument();
+  });
+
+  it('renders git provider banner for exception-backed native threads', async () => {
+    const event = makeEvent([makeThread({crashed: true, id: 7})]);
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('Connect with Git Providers')).toBeInTheDocument();
+  });
+
+  it('does not render git provider banner for thread-only native stack traces', async () => {
+    const event = makeEvent([makeThread({crashed: true, id: 7})]);
+    event.entries = event.entries.filter(entry => entry.type !== EntryType.EXCEPTION);
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('ViewController.causeCrash')).toBeInTheDocument();
+    expect(screen.queryByText('Connect with Git Providers')).not.toBeInTheDocument();
   });
 
   it('changes the active thread without prop plumbing', async () => {
