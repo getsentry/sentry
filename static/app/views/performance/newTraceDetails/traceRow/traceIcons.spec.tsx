@@ -1,0 +1,92 @@
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import {
+  makeEAPError,
+  makeEAPOccurrence,
+  makeEAPSpan,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceIssueIcons} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+
+const manager = {
+  computeRelativeLeftPositionFromOrigin: (
+    timestamp: number,
+    nodeSpace: [number, number]
+  ) => (timestamp - nodeSpace[0]) / nodeSpace[1],
+} as unknown as VirtualizedViewManager;
+
+function renderIcons(node: BaseNode, nodeSpace: [number, number] = [0, 10_000]) {
+  return render(
+    <TraceIssueIcons
+      node={node}
+      node_space={nodeSpace}
+      errors={node.errors}
+      occurrences={node.occurrences}
+      manager={manager}
+    />
+  );
+}
+
+describe('TraceIssueIcons', () => {
+  it('summarizes child-derived issues into one icon', () => {
+    const childErrorA = makeEAPError({event_id: 'child-error-a', issue_id: 1});
+    const childErrorB = makeEAPError({event_id: 'child-error-b', issue_id: 2});
+    const childOccurrence = makeEAPOccurrence({
+      event_id: 'child-occurrence',
+      issue_id: 3,
+    });
+    const node = {
+      value: makeEAPSpan({errors: [], occurrences: []}),
+      errors: new Set([childErrorA, childErrorB]),
+      occurrences: new Set([childOccurrence]),
+    } as unknown as BaseNode;
+
+    renderIcons(node);
+
+    expect(screen.getAllByTestId('trace-issue-icon')).toHaveLength(1);
+    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('3');
+  });
+
+  it('preserves direct issue icons and adds one child-derived issue icon', () => {
+    const directErrorA = makeEAPError({event_id: 'direct-error-a', issue_id: 1});
+    const directErrorB = makeEAPError({event_id: 'direct-error-b', issue_id: 2});
+    const childErrorA = makeEAPError({event_id: 'child-error-a', issue_id: 3});
+    const childErrorB = makeEAPError({event_id: 'child-error-b', issue_id: 4});
+    const node = {
+      value: makeEAPSpan({errors: [directErrorA, directErrorB], occurrences: []}),
+      errors: new Set([directErrorA, directErrorB, childErrorA, childErrorB]),
+      occurrences: new Set(),
+    } as unknown as BaseNode;
+
+    renderIcons(node);
+
+    expect(screen.getAllByTestId('trace-issue-icon')).toHaveLength(3);
+    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('2');
+  });
+
+  it('renders the child-derived issue pill for a narrow span duration', () => {
+    const childErrorA = makeEAPError({
+      event_id: 'child-error-a',
+      issue_id: 1,
+      start_timestamp: 1.0005,
+    });
+    const childErrorB = makeEAPError({
+      event_id: 'child-error-b',
+      issue_id: 2,
+      start_timestamp: 1.0005,
+    });
+    const node = {
+      value: makeEAPSpan({errors: [], occurrences: []}),
+      errors: new Set([childErrorA, childErrorB]),
+      occurrences: new Set(),
+    } as unknown as BaseNode;
+
+    renderIcons(node, [1000, 1]);
+
+    const issueIcon = screen.getByTestId('trace-issue-icon');
+    expect(issueIcon).toHaveClass('TraceIconGroup');
+    expect(issueIcon).toHaveStyle({left: '50%'});
+    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('2');
+  });
+});

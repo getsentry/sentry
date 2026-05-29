@@ -688,7 +688,7 @@ function VerticalTimestampIndicators({
  * emotion's css parsing logic as it is very slow and will cause
  * the scrolling to flicker.
  */
-const TraceStylingWrapper = styled('div')`
+export const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
@@ -1215,6 +1215,69 @@ const TraceStylingWrapper = styled('div')`
           transform: translateY(-1px);
         }
       }
+    }
+
+    .TraceIconGroup {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 18px;
+      min-width: 18px;
+      padding: 0 5px 0 5px;
+      box-sizing: border-box;
+      border: 1px solid ${p => p.theme.colors.white};
+      border-radius: ${p => p.theme.radius.lg};
+      color: ${p => p.theme.colors.white};
+      z-index: 1;
+
+      &.info {
+        background-color: var(--info);
+      }
+      &.warning {
+        background-color: var(--warning);
+      }
+      &.debug {
+        background-color: var(--debug);
+      }
+      &.error,
+      &.fatal {
+        background-color: var(--error);
+      }
+      &.occurrence {
+        background-color: var(--occurrence);
+      }
+      &.default {
+        background-color: var(--default);
+      }
+      &.unknown {
+        background-color: var(--unknown);
+      }
+
+      .TraceIconGlyph {
+        flex: 0 0 auto;
+        width: 12px;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      svg {
+        width: 12px;
+        height: 12px;
+        fill: currentColor;
+      }
+    }
+
+    .TraceIconCount {
+      min-width: 8px;
+      font-size: ${p => p.theme.font.size.xs};
+      line-height: 18px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
     }
 
     .TracePatternContainer {
