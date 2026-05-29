@@ -8,6 +8,7 @@ import {
   defaultFormOptions,
   FieldGroup,
   FormSearch,
+  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -21,6 +22,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -65,7 +67,11 @@ function FingerprintRulesForm({
           formApi.reset(value);
           addSuccessMessage(saveMessage);
         })
-        .catch(() => {
+        .catch((error: unknown) => {
+          // Surface API validation errors (e.g. invalid rule syntax) inline.
+          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+            return;
+          }
           addErrorMessage(t('Unable to save changes.'));
         }),
   });
@@ -165,7 +171,11 @@ function StackTraceRulesForm({
           formApi.reset(value);
           addSuccessMessage(saveMessage);
         })
-        .catch(() => {
+        .catch((error: unknown) => {
+          // Surface API validation errors (e.g. invalid rule syntax) inline.
+          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+            return;
+          }
           addErrorMessage(t('Unable to save changes.'));
         }),
   });

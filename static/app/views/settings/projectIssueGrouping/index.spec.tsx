@@ -1,5 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import ProjectIssueGrouping from 'sentry/views/settings/projectIssueGrouping';
@@ -44,5 +50,45 @@ describe('projectIssueGrouping', () => {
     expect(
       screen.getByRole('textbox', {name: /Derived Grouping Enhancements/})
     ).toBeDisabled();
+  });
+
+  it('saves fingerprint rules via the Save button', async () => {
+    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
+    const updateMock = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      body: {...project, fingerprintingRules: 'error.type:Foo -> bar'},
+      match: [MockApiClient.matchData({fingerprintingRules: 'error.type:Foo -> bar'})],
+    });
+
+    render(<ProjectIssueGrouping />, {organization, outletContext: {project}});
+
+    const input = await screen.findByRole('textbox', {name: 'Fingerprint Rules'});
+    await userEvent.type(input, 'error.type:Foo -> bar');
+    await userEvent.click(
+      within(input.closest('form')!).getByRole('button', {name: 'Save'})
+    );
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalled());
+  });
+
+  it('surfaces API validation errors inline', async () => {
+    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'PUT',
+      statusCode: 400,
+      body: {fingerprintingRules: ['Invalid fingerprint rule']},
+    });
+
+    render(<ProjectIssueGrouping />, {organization, outletContext: {project}});
+
+    const input = await screen.findByRole('textbox', {name: 'Fingerprint Rules'});
+    await userEvent.type(input, 'this is not a valid rule');
+    await userEvent.click(
+      within(input.closest('form')!).getByRole('button', {name: 'Save'})
+    );
+
+    expect(await screen.findByText('Invalid fingerprint rule')).toBeInTheDocument();
   });
 });
