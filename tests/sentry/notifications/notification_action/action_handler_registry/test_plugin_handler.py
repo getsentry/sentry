@@ -91,7 +91,7 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.plugin_handler.execute_via_group_type_registry"
     )
-    def test_non_group_event_skips_new_path_but_old_path_still_runs(
+    def test_non_group_event_skips_both_paths(
         self, mock_old_path: mock.MagicMock, mock_new_path: mock.MagicMock
     ) -> None:
         activity = Activity.objects.create(
@@ -111,8 +111,8 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
 
         PluginActionHandler.execute(invocation)
 
+        mock_old_path.assert_not_called()
         mock_new_path.assert_not_called()
-        mock_old_path.assert_called_once_with(invocation)
 
     @responses.activate
     @with_feature("organizations:legacy-webhook-new-path")

@@ -42,6 +42,9 @@ class PluginActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
+        if not isinstance(invocation.event_data.event, GroupEvent):
+            return
+
         organization = invocation.detector.project.organization
         new_path = features.has("organizations:legacy-webhook-new-path", organization)
 
@@ -53,5 +56,11 @@ class PluginActionHandler(ActionHandler):
                 extra={"invocation": invocation},
             )
 
-        if new_path and isinstance(invocation.event_data.event, GroupEvent):
-            send_legacy_webhooks_for_invocation(invocation)
+        if new_path:
+            try:
+                send_legacy_webhooks_for_invocation(invocation)
+            except Exception:
+                logger.exception(
+                    "plugin_action_handler.new_path_error",
+                    extra={"invocation": invocation},
+                )
