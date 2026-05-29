@@ -1,8 +1,11 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   DASHBOARD_TITLE,
   FRONTEND_SDK_NAMES,
@@ -188,7 +191,7 @@ const TABLE_FIELDS = [
   'performance_score(measurements.score.total)',
 ];
 
-const TRANSACTIONS_TABLE: Widget = {
+const TRANSACTIONS_TABLE: PrebuiltWidget = {
   id: 'frontend-overview-table',
   title: t('Transactions'),
   displayType: DisplayType.TABLE,

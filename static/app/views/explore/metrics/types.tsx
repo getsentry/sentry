@@ -120,6 +120,15 @@ export enum VirtualTableSampleColumnKey {
 
 export type SampleTableColumnKey = TraceMetricFieldKey | VirtualTableSampleColumnKey;
 
+export type MetricsSamplesTableSource = 'metricsPage' | 'traceWaterfall' | 'issueDetails';
+
+export const DEFAULT_METRICS_SAMPLES_TABLE_SOURCE: MetricsSamplesTableSource =
+  'metricsPage';
+
+export function isEmbeddedMetricsSamplesTableSource(source: MetricsSamplesTableSource) {
+  return source !== 'metricsPage';
+}
+
 export const SORTABLE_SAMPLE_COLUMNS = new Set<SampleTableColumnKey>([
   TraceMetricKnownFieldKey.METRIC_VALUE,
   TraceMetricKnownFieldKey.TIMESTAMP,

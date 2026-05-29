@@ -95,6 +95,7 @@ function SpanEvidenceTraceViewImpl({
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: undefined,
+    timestamp,
     traceId,
   });
 

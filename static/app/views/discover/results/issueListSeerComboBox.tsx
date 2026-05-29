@@ -6,7 +6,11 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -46,14 +50,9 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
-  const {
-    currentInputValueRef,
-    query,
-    committedQuery,
-    askSeerSuggestedQueryRef,
-    enableAISearch,
-    parseQuery,
-  } = useSearchQueryBuilder();
+  const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {
