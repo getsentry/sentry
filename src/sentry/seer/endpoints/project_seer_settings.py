@@ -408,8 +408,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             else LegacyProjectSettingsUpdateSerializer
         )
         serializer = serializer_cls(
-            data=request.data,
-            context={"organization": project.organization},
+            data=request.data, context={"organization": project.organization}
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -478,10 +477,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             if is_seer_seat_based_tier_enabled(organization)
             else LegacyBulkProjectSettingsUpdateSerializer
         )
-        serializer = serializer_cls(
-            data=request.data,
-            context={"organization": organization},
-        )
+        serializer = serializer_cls(data=request.data, context={"organization": organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
