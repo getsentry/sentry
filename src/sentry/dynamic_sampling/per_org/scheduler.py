@@ -8,14 +8,14 @@ from django.db.models import F
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
-from sentry.dynamic_sampling.per_org.tasks.configuration import get_configuration
-from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
-from sentry.dynamic_sampling.per_org.tasks.queries import (
+from sentry.dynamic_sampling.per_org.configuration import get_configuration
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
+from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
 )
-from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+from sentry.dynamic_sampling.per_org.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     DynamicSamplingStatus,
     emit_status,

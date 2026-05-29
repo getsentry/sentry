@@ -4,15 +4,15 @@ from unittest.mock import Mock, patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
-from sentry.dynamic_sampling.per_org.tasks.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.tasks.scheduler import (
+from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.scheduler import (
     BUCKET_COUNT,
     BUCKET_CURSOR_KEY,
     _next_bucket_index,
     run_calculations_per_org_task,
     schedule_per_org_calculations,
 )
-from sentry.dynamic_sampling.per_org.tasks.telemetry import DynamicSamplingStatus
+from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -135,15 +135,15 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
                 return_value=None,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes"
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes"
             ) as get_project_volumes,
         ):
             result = run_calculations_per_org_task(org.id)
@@ -161,19 +161,19 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=[(1, 100, 25, 75)],
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
                     {
                         "org_id": org.id,
@@ -201,19 +201,19 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=[],
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes"
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes"
             ) as get_transaction_volumes,
         ):
             result = run_calculations_per_org_task(org.id)
@@ -232,19 +232,19 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=[(1, 100, 25, 75)],
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[],
             ) as get_transaction_volumes,
         ):
@@ -267,17 +267,17 @@ class SchedulePerOrgCalculationsTest(TestCase):
         with (
             self.feature("organizations:dynamic-sampling-custom"),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate"
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
                     {
                         "org_id": org.id,
@@ -307,18 +307,18 @@ class SchedulePerOrgCalculationsTest(TestCase):
         with (
             self.feature("organizations:dynamic-sampling-custom"),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate"
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=[(1, 100, 25, 75)],
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
                     {
                         "org_id": org.id,
@@ -347,13 +347,13 @@ class SchedulePerOrgCalculationsTest(TestCase):
         with (
             self.feature("organizations:dynamic-sampling-custom"),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate"
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes"
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes"
             ) as get_project_volumes,
         ):
             result = run_calculations_per_org_task(org.id)
@@ -371,19 +371,19 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_project_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=[(1, 100, 25, 75)],
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
                     {
                         "org_id": org.id,
@@ -409,11 +409,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=None,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
             ) as get_volume,
         ):
             result = run_calculations_per_org_task(org.id)
@@ -428,11 +428,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
             ) as get_volume,
         ):
             result = run_calculations_per_org_task(org.id)
@@ -446,11 +446,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 side_effect=ObjectDoesNotExist,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
             ) as get_volume,
         ):
             result = run_calculations_per_org_task(org.id)
@@ -461,7 +461,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_missing_org(self) -> None:
         with patch(
-            "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_organization_volume"
+            "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
         ) as get_volume:
             result = run_calculations_per_org_task(99999999)
 
