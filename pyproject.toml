@@ -390,7 +390,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.endpoints.organization_releases",
-    "sentry.db.postgres.base",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
