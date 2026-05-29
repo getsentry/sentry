@@ -252,10 +252,8 @@ def _clone_workflow_to_organization(
     )
 
     def clone_condition_group(
-        condition_group: DataConditionGroup | None,
-    ) -> DataConditionGroup | None:
-        if condition_group is None:
-            return None
+        condition_group: DataConditionGroup,
+    ) -> DataConditionGroup:
         new_group = DataConditionGroup.objects.create(
             organization_id=organization.id,
             logic_type=condition_group.logic_type,
@@ -283,12 +281,17 @@ def _clone_workflow_to_organization(
             DataConditionGroupAction.objects.create(condition_group=new_group, action=new_action)
         return new_group
 
+    when_condition_group = workflow.when_condition_group
     clone = Workflow.objects.create(
         organization_id=organization.id,
         name=workflow.name,
         enabled=workflow.enabled,
         config=workflow.config,
-        when_condition_group=clone_condition_group(workflow.when_condition_group),
+        when_condition_group=(
+            clone_condition_group(when_condition_group)
+            if when_condition_group is not None
+            else None
+        ),
         environment_id=environment_id,
     )
     for workflow_dcg in WorkflowDataConditionGroup.objects.filter(workflow=workflow):
