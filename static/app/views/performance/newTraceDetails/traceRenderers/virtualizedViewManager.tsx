@@ -18,6 +18,11 @@ import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRend
 import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
+const TRACE_ICON_WIDTH = 18;
+const TRACE_ICON_GROUP_GLYPH_WIDTH = 12;
+const TRACE_ICON_GROUP_GAP = 2;
+const TRACE_ICON_GROUP_HORIZONTAL_PADDING = 10;
+const TRACE_ICON_GROUP_COUNT_MIN_WIDTH = 8;
 
 function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
@@ -1174,13 +1179,14 @@ export class VirtualizedViewManager {
   ): [number, number] {
     const TEXT_PADDING = 3;
 
-    const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
       span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
     const text_width_ceil = Math.ceil(text_width);
 
-    const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
+    const timestamps = getIconTimestamps(node, span_space, this.span_to_px[0], value =>
+      this.text_measurer.measure(value)
+    );
     const text_left = Math.min(span_space[0], timestamps[0]!);
     const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
 
@@ -1730,7 +1736,8 @@ export class VirtualizedViewManager {
 function getIconTimestamps(
   node: BaseNode,
   span_space: [number, number],
-  icon_width: number
+  px_to_config_space: number,
+  measureText: (text: string) => number
 ) {
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
@@ -1739,42 +1746,191 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const occurrence of node.occurrences) {
-    // Occurences render icons at the start timestamp
-    const start_timestamp =
-      'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
-    if (typeof start_timestamp === 'number') {
-      min_icon_timestamp = Math.min(
-        min_icon_timestamp,
-        start_timestamp * 1e3 - icon_width
-      );
-      max_icon_timestamp = Math.max(
-        max_icon_timestamp,
-        start_timestamp * 1e3 + icon_width
-      );
-    }
+  let max_icon_width = TRACE_ICON_WIDTH;
+
+  for (const {issue, childIssueCount} of getRenderableTraceIssues(
+    node,
+    node.errors,
+    node.occurrences
+  )) {
+    const icon_width = childIssueCount
+      ? getTraceIconGroupWidth(childIssueCount, measureText)
+      : TRACE_ICON_WIDTH;
+    const icon_width_config_space = (icon_width * px_to_config_space) / 2;
+    const timestamp = getTraceIssueTimestamp(issue, span_space);
+
+    min_icon_timestamp = Math.min(
+      min_icon_timestamp,
+      timestamp - icon_width_config_space
+    );
+    max_icon_timestamp = Math.max(
+      max_icon_timestamp,
+      timestamp + icon_width_config_space
+    );
+    max_icon_width = Math.max(max_icon_width, icon_width);
   }
 
-  for (const err of node.errors) {
-    const timestamp = 'start_timestamp' in err ? err.start_timestamp : err.timestamp;
-    if (typeof timestamp === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
-    }
-  }
+  const max_icon_width_config_space = (max_icon_width * px_to_config_space) / 2;
 
   min_icon_timestamp = clamp(
     min_icon_timestamp,
-    span_space[0] - icon_width,
-    span_space[0] + span_space[1] + icon_width
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
   );
   max_icon_timestamp = clamp(
     max_icon_timestamp,
-    span_space[0] - icon_width,
-    span_space[0] + span_space[1] + icon_width
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
   );
 
   return [min_icon_timestamp, max_icon_timestamp];
+}
+
+interface RenderableTraceIssue {
+  issue: TraceTree.TraceIssue;
+  childIssueCount?: number;
+}
+
+function getRenderableTraceIssues(
+  node: BaseNode,
+  errors: BaseNode['errors'],
+  occurrences: BaseNode['occurrences']
+): RenderableTraceIssue[] {
+  const directErrors = getDirectErrors(node);
+  const directOccurrences = getDirectOccurrences(node);
+  const childIssues: TraceTree.TraceIssue[] = [];
+  const issues: RenderableTraceIssue[] = [];
+
+  for (const error of errors) {
+    if (directErrors.has(error)) {
+      issues.push({issue: error});
+    } else {
+      childIssues.push(error);
+    }
+  }
+
+  for (const occurrence of occurrences) {
+    if (directOccurrences.has(occurrence)) {
+      issues.push({issue: occurrence});
+    } else {
+      childIssues.push(occurrence);
+    }
+  }
+
+  const childRepresentative = getMostSevereTraceIssue(childIssues);
+  if (childRepresentative) {
+    issues.push({issue: childRepresentative, childIssueCount: childIssues.length});
+  }
+
+  return issues;
+}
+
+function getDirectErrors(node: BaseNode): Set<TraceTree.TraceErrorIssue> {
+  const errors = new Set<TraceTree.TraceErrorIssue>();
+
+  if (node.value && 'errors' in node.value && Array.isArray(node.value.errors)) {
+    node.value.errors.forEach(error => errors.add(error));
+  }
+
+  return errors;
+}
+
+function getDirectOccurrences(node: BaseNode): Set<TraceTree.TraceOccurrence> {
+  const occurrences = new Set<TraceTree.TraceOccurrence>();
+
+  if (
+    node.value &&
+    'occurrences' in node.value &&
+    Array.isArray(node.value.occurrences)
+  ) {
+    node.value.occurrences.forEach(occurrence => occurrences.add(occurrence));
+  }
+
+  if (
+    node.value &&
+    'performance_issues' in node.value &&
+    Array.isArray(node.value.performance_issues)
+  ) {
+    node.value.performance_issues.forEach(occurrence => occurrences.add(occurrence));
+  }
+
+  return occurrences;
+}
+
+function getMostSevereTraceIssue(
+  issues: TraceTree.TraceIssue[]
+): TraceTree.TraceIssue | null {
+  return issues.reduce<TraceTree.TraceIssue | null>((mostSevere, issue) => {
+    if (!mostSevere) {
+      return issue;
+    }
+
+    const severityDiff =
+      getTraceIssueSeverityRank(issue) - getTraceIssueSeverityRank(mostSevere);
+
+    if (severityDiff > 0) {
+      return issue;
+    }
+
+    if (
+      severityDiff === 0 &&
+      getTraceIssueTimestamp(issue, [0, 0]) < getTraceIssueTimestamp(mostSevere, [0, 0])
+    ) {
+      return issue;
+    }
+
+    return mostSevere;
+  }, null);
+}
+
+function getTraceIssueSeverityRank(issue: TraceTree.TraceIssue): number {
+  switch (issue.level) {
+    case 'fatal':
+      return 5;
+    case 'error':
+      return 4;
+    case 'warning':
+      return 3;
+    case 'info':
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+function getTraceIssueTimestamp(
+  issue: TraceTree.TraceIssue,
+  nodeSpace: [number, number]
+): number {
+  if ('timestamp' in issue && typeof issue.timestamp === 'number') {
+    return issue.timestamp * 1e3;
+  }
+
+  let startTimestamp: number | undefined;
+  if ('start_timestamp' in issue) {
+    startTimestamp = issue.start_timestamp;
+  } else if ('start' in issue) {
+    startTimestamp = issue.start;
+  }
+
+  return typeof startTimestamp === 'number' ? startTimestamp * 1e3 : nodeSpace[0];
+}
+
+function getTraceIconGroupWidth(
+  childIssueCount: number,
+  measureText: (text: string) => number
+) {
+  const count_width = Math.max(
+    TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
+    Math.ceil(measureText(String(childIssueCount)))
+  );
+
+  return (
+    TRACE_ICON_GROUP_HORIZONTAL_PADDING +
+    TRACE_ICON_GROUP_GLYPH_WIDTH +
+    TRACE_ICON_GROUP_GAP +
+    count_width
+  );
 }
 
 /**
