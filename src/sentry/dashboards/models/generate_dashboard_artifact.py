@@ -40,6 +40,13 @@ Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
 FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count", "http_error_count_percent"}
 
+# Per-display-type maximum limit values enforced by the Sentry API.
+_LIMIT_MAX_BY_DISPLAY_TYPE: dict[str, int] = {
+    "bar": 25,
+    "table": 20,
+}
+_DEFAULT_LIMIT_MAX = 10
+
 
 class GeneratedWidgetQuery(BaseModel):
     name: str = ""
@@ -227,6 +234,23 @@ class GeneratedWidget(BaseModel):
         if is_text and widget_type is not None:
             raise ValueError("widget_type is not allowed for text widgets")
 
+        queries = values.get("queries") or []
+        if not is_text and not queries:
+            raise ValueError("Non-text widgets must have at least one query")
+
+        return values
+
+    @root_validator
+    def check_limit_by_display_type(cls, values: dict[str, Any]) -> dict[str, Any]:
+        display_type = values.get("display_type")
+        limit = values.get("limit")
+        if display_type is None or limit is None or display_type == "text":
+            return values
+        max_limit = _LIMIT_MAX_BY_DISPLAY_TYPE.get(display_type, _DEFAULT_LIMIT_MAX)
+        if limit > max_limit:
+            raise ValueError(
+                f"limit={limit} exceeds the maximum of {max_limit} for display_type '{display_type}'"
+            )
         return values
 
     @root_validator
