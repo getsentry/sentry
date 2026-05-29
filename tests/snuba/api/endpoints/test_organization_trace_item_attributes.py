@@ -898,9 +898,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 2
+        assert len(keys) == 4
         assert "transaction.op" in keys
         assert "span.op" in keys
+        # These two are unrelated, but happen to match.
+        assert "db.operation" in keys
+        assert "db.operation.name" in keys
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "sentry.op"})
         assert response.status_code == 200, response.content
