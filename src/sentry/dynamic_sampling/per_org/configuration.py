@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
@@ -65,6 +66,12 @@ class BaseDynamicSamplingConfiguration(ABC):
     def get_sample_rate(self) -> TargetSampleRate:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_project_sample_rates(
+        self, rebalanced_projects: list[RebalancedItem] | None
+    ) -> dict[int, float | None]:
+        raise NotImplementedError
+
     @property
     def is_span_based(self) -> bool:
         return self.measure == SamplingMeasure.SPANS
@@ -96,6 +103,11 @@ class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
     def get_sample_rate(self) -> TargetSampleRate:
         return None
+
+    def get_project_sample_rates(
+        self, rebalanced_projects: list[RebalancedItem] | None
+    ) -> dict[int, float | None]:
+        return {}
 
 
 class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
@@ -131,6 +143,11 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
+
+    def get_project_sample_rates(
+        self, rebalanced_projects: list[RebalancedItem] | None
+    ) -> dict[int, float | None]:
+        return _rebalanced_project_sample_rates(self, rebalanced_projects)
 
     def _get_sliding_window_sample_rate(self) -> TargetSampleRate:
         """
@@ -181,6 +198,11 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     def get_sample_rate(self) -> TargetSampleRate:
         return self.sample_rate
 
+    def get_project_sample_rates(
+        self, rebalanced_projects: list[RebalancedItem] | None
+    ) -> dict[int, float | None]:
+        return _rebalanced_project_sample_rates(self, rebalanced_projects)
+
 
 class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration):
     """
@@ -209,6 +231,11 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
     def get_sample_rate(self) -> TargetSampleRate:
         return None
 
+    def get_project_sample_rates(
+        self, rebalanced_projects: list[RebalancedItem] | None
+    ) -> dict[int, float | None]:
+        return dict(self.project_target_sample_rates)
+
     def _get_project_target_sample_rates(self) -> ProjectTargetSampleRates:
         project_sample_rates = ProjectOption.objects.get_value_bulk(
             self.projects, "sentry:target_sample_rate"
@@ -219,3 +246,13 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
             for project, sample_rate in project_sample_rates.items()
         }
         return sample_rates
+
+
+def _rebalanced_project_sample_rates(
+    config: BaseDynamicSamplingConfiguration,
+    rebalanced_projects: list[RebalancedItem] | None,
+) -> dict[int, float | None]:
+    if rebalanced_projects is not None:
+        return {int(item.id): item.new_sample_rate for item in rebalanced_projects}
+    org_sample_rate = config.get_sample_rate()
+    return {project.id: org_sample_rate for project in config.projects}

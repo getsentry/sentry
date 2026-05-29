@@ -7,7 +7,6 @@ import pytest
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
-from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
@@ -16,9 +15,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
     is_within_relative_tolerance,
     run_project_balancing,
     run_transaction_balancing,
-)
-from sentry.dynamic_sampling.per_org.configuration import (
-    CustomDynamicSamplingProjectConfiguration,
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -149,14 +145,13 @@ class TransactionBalancingCalculationsTest(TestCase):
         super().setUp()
         self.redis = get_redis_client_for_ds()
 
-    def test_run_transaction_balancing_uses_rebalanced_project_rates(self) -> None:
+    def test_run_transaction_balancing_uses_config_provided_rates(self) -> None:
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
         config = Mock()
         config.organization = org
-        config.projects = [project_a, project_b]
-        config.get_sample_rate.return_value = 0.5
+        config.get_project_sample_rates.return_value = {project_a.id: 0.2, project_b.id: 0.8}
         rebalanced_projects = [
             RebalancedItem(id=project_a.id, count=100, new_sample_rate=0.2),
             RebalancedItem(id=project_b.id, count=50, new_sample_rate=0.8),
@@ -175,54 +170,23 @@ class TransactionBalancingCalculationsTest(TestCase):
                 rebalanced_projects,
             )
 
+        config.get_project_sample_rates.assert_called_once_with(rebalanced_projects)
         sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
         assert sample_rates == [0.2, 0.8]
 
-    def test_run_transaction_balancing_falls_back_to_org_sample_rate(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.projects = [project]
-        config.get_sample_rate.return_value = 0.5
-        rebalanced = (
-            [RebalancedItem(id="checkout", count=10, new_sample_rate=0.4)],
-            0.5,
-        )
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-            return_value=rebalanced,
-        ) as model_run:
-            result = run_transaction_balancing(
-                config,
-                [_project_transactions(org.id, project.id, [("checkout", 10.0)])],
-                None,
-            )
-
-        model_run.assert_called_once()
-        model_input = model_run.call_args.args[-1]
-        assert isinstance(model_input, TransactionsRebalancingInput)
-        assert model_input.sample_rate == 0.5
-        assert model_input.classes == [RebalancedItem(id="checkout", count=10.0)]
-        assert model_input.total == 10.0
-        assert model_input.total_num_classes == 1
-        assert result == {project.id: rebalanced}
-
-    def test_run_transaction_balancing_uses_project_target_rates_in_project_mode(self) -> None:
+    def test_run_transaction_balancing_skips_projects_without_sample_rate(self) -> None:
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
-        config = Mock(spec=CustomDynamicSamplingProjectConfiguration)
+        config = Mock()
         config.organization = org
-        config.projects = [project_a, project_b]
-        config.project_target_sample_rates = {project_a.id: 0.2, project_b.id: 0.8}
+        config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: None}
 
         with patch(
             "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
             side_effect=lambda model_input: ([], model_input.sample_rate),
         ) as model_run:
-            run_transaction_balancing(
+            result = run_transaction_balancing(
                 config,
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
@@ -232,7 +196,8 @@ class TransactionBalancingCalculationsTest(TestCase):
             )
 
         sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
-        assert sample_rates == [0.2, 0.8]
+        assert sample_rates == [0.5]
+        assert set(result.keys()) == {project_a.id}
 
     def test_get_cached_rebalanced_transaction_sample_rates(self) -> None:
         org = self.create_organization()

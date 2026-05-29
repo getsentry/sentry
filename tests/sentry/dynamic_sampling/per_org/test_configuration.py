@@ -338,3 +338,80 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                     measure_case.expected_measure == SamplingMeasure.SEGMENTS
                 )
                 assert configuration.sample_rate == 1.0
+
+
+class GetProjectSampleRatesTest(TestCase):
+    def test_no_dynamic_sampling_returns_empty(self) -> None:
+        configuration = NoDynamicSamplingConfiguration()
+
+        assert configuration.get_project_sample_rates(None) == {}
+
+    def test_project_mode_returns_target_sample_rates(self) -> None:
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+        project_a.update_option("sentry:target_sample_rate", 0.2)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
+        assert configuration.get_project_sample_rates(None) == {
+            project_a.id: 0.2,
+            project_b.id: None,
+        }
+
+    def test_org_mode_uses_rebalanced_project_rates(self) -> None:
+        from sentry.dynamic_sampling.models.common import RebalancedItem
+
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
+        org.update_option("sentry:target_sample_rate", 0.5)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
+        rebalanced = [
+            RebalancedItem(id=project_a.id, count=100, new_sample_rate=0.3),
+            RebalancedItem(id=project_b.id, count=20, new_sample_rate=0.9),
+        ]
+        assert configuration.get_project_sample_rates(rebalanced) == {
+            project_a.id: 0.3,
+            project_b.id: 0.9,
+        }
+
+    def test_org_mode_falls_back_to_org_sample_rate(self) -> None:
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
+        org.update_option("sentry:target_sample_rate", 0.5)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
+        assert configuration.get_project_sample_rates(None) == {
+            project_a.id: 0.5,
+            project_b.id: 0.5,
+        }
+
+    def test_automatic_mode_uses_rebalanced_project_rates(self) -> None:
+        from sentry.dynamic_sampling.models.common import RebalancedItem
+
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+            return_value=0.5,
+        ):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        rebalanced = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.4)]
+        assert configuration.get_project_sample_rates(rebalanced) == {project.id: 0.4}

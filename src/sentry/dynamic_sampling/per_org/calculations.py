@@ -17,10 +17,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.configuration import (
-    BaseDynamicSamplingConfiguration,
-    CustomDynamicSamplingProjectConfiguration,
-)
+from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
@@ -120,7 +117,7 @@ def run_transaction_balancing(
     rebalanced_projects: list[RebalancedItem] | None,
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
-    sample_rates = _project_sample_rates(config, rebalanced_projects)
+    sample_rates = config.get_project_sample_rates(rebalanced_projects)
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     for project_data in transaction_volumes:
         project_id = project_data["project_id"]
@@ -144,18 +141,6 @@ def run_transaction_balancing(
             )
         )
     return result
-
-
-def _project_sample_rates(
-    config: BaseDynamicSamplingConfiguration,
-    rebalanced_projects: list[RebalancedItem] | None,
-) -> dict[int, float | None]:
-    if isinstance(config, CustomDynamicSamplingProjectConfiguration):
-        return dict(config.project_target_sample_rates)
-    if rebalanced_projects is not None:
-        return {int(item.id): item.new_sample_rate for item in rebalanced_projects}
-    org_sample_rate = config.get_sample_rate()
-    return {project.id: org_sample_rate for project in config.projects}
 
 
 def get_cached_rebalanced_transaction_sample_rates(
