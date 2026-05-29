@@ -13,6 +13,10 @@ message EffectiveGrant {
   repeated string line_item_uids = 3;
   // Usable amount after counter-grant collapse; always > 0.
   int64 effective_amount = 4;
+  // The grant's own active window, inclusive on both ends. These are the
+  // grant's stored dates, not clipped to the query window: the grant applies
+  // only to usage on days within [start_date, end_date], so a grant ending
+  // mid-window stops covering usage after end_date.
   sentry_protos.billing.v1.Date start_date = 5;
   sentry_protos.billing.v1.Date end_date = 6;
 }
