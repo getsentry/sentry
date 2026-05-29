@@ -8,6 +8,7 @@ from datetime import timezone
 from typing import Any, Protocol
 
 import orjson
+import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpRequest, HttpResponse
@@ -118,10 +119,7 @@ class GitlabWebhook(SCMWebhook, ABC):
                     **kwargs,
                 )
             except Exception as e:
-                logger.warning(
-                    "gitlab.webhook.processor.error",
-                    extra={"event_type": self.event_type.value, "error": str(e)},
-                )
+                sentry_sdk.capture_exception(e)
                 metrics.incr(
                     "gitlab.webhook.processor.error",
                     tags={"event_type": self.event_type.value},
