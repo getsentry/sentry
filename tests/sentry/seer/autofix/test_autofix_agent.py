@@ -1087,5 +1087,5 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        expected = f"Fixes {self.group.qualified_short_id}\nFixes PROJ-123"
+        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
         assert body["payload"]["pr_description_suffix"] == expected
