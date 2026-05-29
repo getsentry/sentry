@@ -37,7 +37,12 @@ function getFunctionLabel({
   frameMeta: FrameMeta | undefined;
   verboseFunctionNames: boolean;
 }) {
-  if (verboseFunctionNames && frame.rawFunction) {
+  const functionNameHiddenDetails =
+    defined(frame.rawFunction) &&
+    defined(frame.function) &&
+    frame.function !== frame.rawFunction;
+
+  if (verboseFunctionNames && functionNameHiddenDetails && frame.rawFunction) {
     return {
       value: frame.rawFunction,
       meta: frameMeta?.rawFunction?.[''],
@@ -48,13 +53,6 @@ function getFunctionLabel({
     return {
       value: frame.function,
       meta: frameMeta?.function?.[''],
-    };
-  }
-
-  if (frame.rawFunction) {
-    return {
-      value: frame.rawFunction,
-      meta: frameMeta?.rawFunction?.[''],
     };
   }
 

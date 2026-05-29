@@ -5,6 +5,7 @@ import {
   useDebugMetaSearch,
 } from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import {NATIVE_DISPLAY_OPTION} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
@@ -90,11 +91,13 @@ function renderFrames(
   {
     defaultView = 'app',
     defaultIsNewestFirst = true,
+    displayOptionsStorageKey,
     groupingCurrentLevel,
     meta,
   }: {
     defaultIsNewestFirst?: boolean;
     defaultView?: StackTraceView;
+    displayOptionsStorageKey?: string;
     groupingCurrentLevel?: number;
     meta?: StackTraceMeta;
   } = {}
@@ -108,6 +111,7 @@ function renderFrames(
       <NativeStackTraceProvider
         event={event}
         stacktrace={stacktrace}
+        displayOptionsStorageKey={displayOptionsStorageKey}
         groupingCurrentLevel={groupingCurrentLevel}
         meta={meta}
       >
@@ -314,6 +318,38 @@ describe('NativeFrameRow', () => {
     expect(
       screen.getByLabelText('This frame is repeated in every event of this issue')
     ).toBeInTheDocument();
+  });
+
+  it('only renders verbose raw functions when they differ from the function name', () => {
+    const storageKey = 'native-frame-row-verbose-functions';
+    localStorageWrapper.setItem(
+      storageKey,
+      JSON.stringify([NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES])
+    );
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: null,
+      frames: [
+        makeFrame({
+          function: 'demangled_symbol',
+          inApp: true,
+          rawFunction: '_mangled_symbol',
+        }),
+        makeFrame({
+          function: null,
+          inApp: true,
+          rawFunction: 'raw_only_symbol',
+        }),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace), {
+      displayOptionsStorageKey: storageKey,
+    });
+
+    expect(screen.getByText('_mangled_symbol')).toBeInTheDocument();
+    expect(screen.queryByText('demangled_symbol')).not.toBeInTheDocument();
+    expect(screen.queryByText('raw_only_symbol')).not.toBeInTheDocument();
   });
 
   it('drops the status column when no frame has a status icon', () => {
