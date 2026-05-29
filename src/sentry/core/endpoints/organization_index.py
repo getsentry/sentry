@@ -92,6 +92,9 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             locality = get_locality_by_name(value)
         except CellResolutionError:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
+        if "request" in self.context and self.context["request"].user.is_staff:
+            # Staff users are allowed to create orgs in hidden cells/localities.
+            return value
         if locality.category != RegionCategory.MULTI_TENANT or not locality.visible:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
         return value

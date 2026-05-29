@@ -300,6 +300,70 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             owners = [owner.id for owner in org.get_owners()]
             assert [self.user.id] == owners
 
+    def test_staff_user_override_cell_visiblity(self) -> None:
+        cells = [
+            Cell(
+                name="ja",
+                snowflake_id=3,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.2",
+                visible=False,
+            ),
+            Cell(
+                name="acme",
+                snowflake_id=4,
+                category=RegionCategory.SINGLE_TENANT,
+                address="10.0.0.4",
+                visible=True,
+            ),
+        ]
+
+        localities = [
+            Locality(
+                name="ja",
+                cells=frozenset(["ja"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="ja",
+                visible=False,
+            ),
+            Locality(
+                name="acme",
+                cells=frozenset(["acme"]),
+                category=RegionCategory.SINGLE_TENANT,
+                new_org_cell="acme",
+                visible=True,
+            ),
+        ]
+        with get_test_env_directory().swap_state(cells, localities):
+            user = self.create_user("regular@example.com", is_staff=False)
+            staff = self.create_user("staff@example.com", is_staff=True)
+
+            data = {"name": "Sentry ja", "slug": "sentry-ja", "dataStorageLocation": "ja"}
+
+            self.login_as(user)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400
+
+            self.login_as(staff)
+            resp = self.get_success_response(**data)
+            assert resp.status_code == 201, "Staff should be able to create orgs in hidden locales"
+
+            data = {"name": "Acme co", "slug": "acme-co", "dataStorageLocation": "acme"}
+
+            self.login_as(user)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400
+
+            self.login_as(staff)
+            resp = self.get_success_response(**data)
+            assert resp.status_code == 201, (
+                "Staff should be able to create orgs in hidden st locales"
+            )
+
+            data = {"name": "Denied co", "slug": "denied", "dataStorageLocation": "moon"}
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400, "Staff cannot create orgs in invalid locales"
+
     @override_options(
         {
             "provision_organization.override.rate": 1.0,
