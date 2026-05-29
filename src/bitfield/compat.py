@@ -2,8 +2,8 @@ __all__ = ("bitand", "bitor")
 
 
 def bitand(a, b):
-    return a.bitand(b)
+    return a & b
 
 
 def bitor(a, b):
-    return a.bitor(b)
+    return a | b
