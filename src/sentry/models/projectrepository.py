@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -53,7 +55,7 @@ class ProjectRepository(DefaultFieldsModel):
         default=ProjectRepositorySource.MANUAL,
     )
 
-    objects: ProjectRepositoryManager = ProjectRepositoryManager()
+    objects: ClassVar[ProjectRepositoryManager] = ProjectRepositoryManager()
 
     class Meta:
         app_label = "sentry"
