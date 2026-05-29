@@ -5,7 +5,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -14,7 +14,14 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconAdd, IconJson, IconPin, IconSubtract, IconWarning} from 'sentry/icons';
+import {
+  IconAdd,
+  IconJson,
+  IconPin,
+  IconSubtract,
+  IconTerminal,
+  IconWarning,
+} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -220,7 +227,6 @@ export const LogRowContent = memo(function LogRowContent({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const user = useUser();
   const {selection} = usePageFilters();
   const fields = useQueryParamsFields();
   const projects = useProjects();
@@ -321,25 +327,6 @@ export const LogRowContent = memo(function LogRowContent({
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
   const traceId = String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? '');
-  let logDebugEndpointMenuItem: MenuItemProps | undefined;
-
-  if (user.isSuperuser && !isPseudoRow && projectSlug && rowId && traceId) {
-    const query = new URLSearchParams({
-      item_type: TraceItemDataset.LOGS,
-      trace_id: traceId,
-      debug: 'true',
-    });
-
-    if (defined(logTimestampSeconds)) {
-      query.set('timestamp', String(Math.trunc(logTimestampSeconds)));
-    }
-
-    logDebugEndpointMenuItem = {
-      key: 'log-debug-endpoint',
-      label: t('Log JSON'),
-      externalHref: `/api/0/projects/${organization.slug}/${projectSlug}/trace-items/${rowId}/?${query}`,
-    };
-  }
 
   const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
     traceItemId: rowId,
@@ -496,11 +483,7 @@ export const LogRowContent = memo(function LogRowContent({
                   selection,
                   showExploreSimilarSpansLink,
                 }) ?? [])
-              : [];
-
-          if (logDebugEndpointMenuItem) {
-            extraMenuItems.push(logDebugEndpointMenuItem);
-          }
+              : undefined;
 
           if (!defined(value)) {
             return (
@@ -812,12 +795,33 @@ function LogRowDetailsActions({
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
+  const user = useUser();
+  const project = useProjectFromId({
+    project_id: String(tableDataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
+  });
   const showFilterButtons = !isFrozen;
 
   const {copy} = useCopyToClipboard();
 
   // Memoize in case we are attempting to copy large JSON objects.
   const json = useMemo(() => ourlogToJson(data), [data]);
+  let logDebugEndpoint: string | undefined;
+
+  if (user.isSuperuser && project?.slug && isRegularLogResponseItem(tableDataRow)) {
+    const logId = String(tableDataRow[OurLogKnownFieldKey.ID] ?? '');
+    const traceId = String(tableDataRow[OurLogKnownFieldKey.TRACE_ID] ?? '');
+
+    if (logId && traceId) {
+      const query = new URLSearchParams({
+        item_type: TraceItemDataset.LOGS,
+        trace_id: traceId,
+        debug: 'true',
+        timestamp: String(Math.trunc(getLogRowTimestampMillis(tableDataRow) / 1000)),
+      });
+
+      logDebugEndpoint = `/api/0/projects/${organization.slug}/${project.slug}/trace-items/${logId}/?${query}`;
+    }
+  }
 
   const betterCopyToClipboard = () => {
     if (!json) {
@@ -851,6 +855,16 @@ function LogRowDetailsActions({
         >
           {t('Copy as JSON')}
         </Button>
+        {logDebugEndpoint ? (
+          <LinkButton
+            variant="transparent"
+            size="sm"
+            href={logDebugEndpoint}
+            icon={<IconTerminal />}
+          >
+            {t('Debug JSON')}
+          </LinkButton>
+        ) : null}
       </LogDetailTableActionsButtonBar>
     </Fragment>
   );
