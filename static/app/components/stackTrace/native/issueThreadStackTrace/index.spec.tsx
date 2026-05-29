@@ -340,6 +340,34 @@ describe('IssueThreadStackTrace', () => {
     );
   });
 
+  it('copies the active exception stack trace for exception-backed native threads', async () => {
+    const event = makeEvent([
+      makeThread({
+        crashed: true,
+        id: 7,
+        stacktrace: makeStacktrace('Thread.onlyFrame'),
+      }),
+    ]);
+    const exceptionEntry = event.entries.find(
+      entry => entry.type === EntryType.EXCEPTION
+    );
+    if (exceptionEntry?.type !== EntryType.EXCEPTION) {
+      throw new Error('Expected exception entry');
+    }
+    exceptionEntry.data.values![0]!.stacktrace = makeStacktrace('Exception.visibleFrame');
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('Exception.visibleFrame')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
+    expect(copiedText).toContain('Exception.visibleFrame');
+    expect(copiedText).not.toContain('Thread.onlyFrame');
+  });
+
   it('matches old raw thread logic for exception and non-exception threads', async () => {
     localStorageWrapper.setItem(storageKey, JSON.stringify(['raw-stack-trace']));
     const event = makeEvent([

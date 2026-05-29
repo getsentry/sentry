@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -10,51 +9,22 @@ import {
   ExceptionDescription,
   ExceptionHeader,
 } from 'sentry/components/stackTrace/exceptionHeader';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {IssueStackTraceFrameContext} from 'sentry/components/stackTrace/issueStackTrace/issueStackTraceFrameContext';
 import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
 import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
 import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native/nativeAppleCrashReportContent';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
-import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {t} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
-import {isNativePlatform} from 'sentry/utils/platform';
 
-import {useActiveThreadContext, useIssueThreadStackTraceContext} from './context';
+import {useIssueThreadStackTraceContext} from './context';
 
 export function ActiveThreadStackTrace() {
-  const {event, groupingCurrentLevel, hasScmSourceContext, projectSlug} =
-    useIssueThreadStackTraceContext();
-  const {activeException, activeThread, exception, platform, stacktrace} =
-    useActiveThreadContext();
-  const rowPolicy = useMemo(
-    () => createStackTraceRowPolicy({groupingCurrentLevel}),
-    [groupingCurrentLevel]
-  );
+  const {activeThreadModel, event, projectSlug} = useIssueThreadStackTraceContext();
+  const {activeException, activeThread, exception, stacktrace} = activeThreadModel;
 
   if (!stacktrace) {
     return <NoStackTrace>{t('No stack trace available')}</NoStackTrace>;
-  }
-
-  if (!isNativePlatform(platform)) {
-    return (
-      <StackTraceProvider
-        event={event}
-        hasScmSourceContext={hasScmSourceContext}
-        rowPolicy={rowPolicy}
-        stacktrace={stacktrace}
-        platform={platform}
-      >
-        <StackTraceFrames
-          frameContextComponent={FrameContent}
-          frameActionsComponent={IssueFrameActions}
-        />
-      </StackTraceProvider>
-    );
   }
 
   return (

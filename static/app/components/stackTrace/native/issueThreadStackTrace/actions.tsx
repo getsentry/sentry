@@ -5,22 +5,19 @@ import {displayRawContent} from 'sentry/components/events/interfaces/crashConten
 import {NativeDisplayOptions} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
 import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
-import {isNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {useActiveThreadContext, useIssueThreadStackTraceContext} from './context';
+import {useIssueThreadStackTraceContext} from './context';
 
 export function IssueThreadStackTraceActions() {
   const organization = useOrganization();
-  const {event, projectSlug} = useIssueThreadStackTraceContext();
-  const {activeThread, platform, stacktrace} = useActiveThreadContext();
+  const {activeThreadModel, event, projectSlug} = useIssueThreadStackTraceContext();
+  const {activeThread, minifiedStacktrace, platform, stacktrace} = activeThreadModel;
   const {isMinified} = useStackTraceViewState();
 
   const copyItems = CopyAsDropdown.makeDefaultCopyAsOptions({
     text: () => {
-      const stacktraceData = isMinified
-        ? (activeThread?.rawStacktrace ?? activeThread?.stacktrace)
-        : activeThread?.stacktrace;
+      const stacktraceData = isMinified ? (minifiedStacktrace ?? stacktrace) : stacktrace;
 
       if (!stacktraceData) {
         return '';
@@ -53,7 +50,7 @@ export function IssueThreadStackTraceActions() {
         projectSlug={projectSlug}
         threadId={activeThread?.id}
       />
-      {stacktrace && isNativePlatform(platform) ? <NativeDisplayOptions /> : null}
+      {stacktrace ? <NativeDisplayOptions /> : null}
       <CopyAsDropdown size="xs" items={copyItems} />
     </Flex>
   );

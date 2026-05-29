@@ -26,11 +26,7 @@ import {
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-import {
-  useActiveThread,
-  useActiveThreadContext,
-  useIssueThreadStackTraceContext,
-} from './context';
+import {useActiveThread, useIssueThreadStackTraceContext} from './context';
 
 function ThreadStateIcon({state}: {state: ThreadStates | undefined}) {
   if (state === null || state === undefined) {
@@ -74,9 +70,8 @@ export function ThreadSummary() {
 
 function ThreadControls() {
   const activeThread = useActiveThread();
-  const {changeThread, event, setActiveThread, threads} =
+  const {activeThreadModel, changeThread, event, setActiveThread, threads} =
     useIssueThreadStackTraceContext();
-  const {exception} = useActiveThreadContext();
 
   if (!activeThread) {
     return null;
@@ -105,7 +100,7 @@ function ThreadControls() {
         activeThread={activeThread}
         event={event}
         onChange={setActiveThread}
-        exception={exception}
+        exception={activeThreadModel.exception}
       />
     </Flex>
   );

@@ -19,7 +19,6 @@ import type {Event, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {isNativePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {setActiveThreadId as setCopyIssueDetailsActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
@@ -31,6 +30,7 @@ import {
 
 interface IssueThreadStackTraceContextValue {
   activeThread: Thread | undefined;
+  activeThreadModel: ActiveThreadStackTraceModel;
   changeThread: (direction: 'previous' | 'next') => void;
   event: Event;
   group: Group | undefined;
@@ -42,11 +42,6 @@ interface IssueThreadStackTraceContextValue {
   storageKey: string;
   threads: Thread[];
 }
-
-type ActiveThreadContextValue = Omit<
-  ActiveThreadStackTraceModel,
-  'defaultIsNewestFirst' | 'defaultView' | 'stacktraceMeta'
->;
 
 interface IssueThreadStackTraceProvidersProps {
   children: ReactNode;
@@ -60,7 +55,6 @@ interface IssueThreadStackTraceProvidersProps {
 
 const IssueThreadStackTraceContext =
   createContext<IssueThreadStackTraceContextValue | null>(null);
-const ActiveThreadContext = createContext<ActiveThreadContextValue | null>(null);
 
 export function useIssueThreadStackTraceContext() {
   const context = useContext(IssueThreadStackTraceContext);
@@ -74,14 +68,6 @@ export function useIssueThreadStackTraceContext() {
 
 export function useActiveThread() {
   return useIssueThreadStackTraceContext().activeThread;
-}
-
-export function useActiveThreadContext() {
-  const context = useContext(ActiveThreadContext);
-  if (!context) {
-    throw new Error('useActiveThreadContext must be used within ActiveThreadProviders');
-  }
-  return context;
 }
 
 export function IssueThreadStackTraceProviders({
@@ -100,32 +86,41 @@ export function IssueThreadStackTraceProviders({
     {enabled: defined(projectSlug)}
   );
   const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
-  const [activeThreadId, setActiveThreadId] = useState(() => findBestThread(threads)?.id);
-  const activeThread = useMemo(
-    () => threads.find(thread => thread.id === activeThreadId) ?? findBestThread(threads),
-    [activeThreadId, threads]
+  const [selectedThreadId, setSelectedThreadId] = useState(
+    () => findBestThread(threads)?.id
   );
-
-  useEffect(() => {
-    setActiveThreadId(currentId =>
-      threads.some(thread => thread.id === currentId)
-        ? currentId
-        : findBestThread(threads)?.id
-    );
-  }, [threads]);
+  const activeThread = useMemo(
+    () =>
+      threads.find(thread => thread.id === selectedThreadId) ?? findBestThread(threads),
+    [selectedThreadId, threads]
+  );
+  const activeThreadModel = useMemo(
+    () => getActiveThreadStackTraceModel({activeThread, event}),
+    [activeThread, event]
+  );
+  const [persistedOptions] = useNativeDisplayOptionsStorage(storageKey);
+  const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
+    defaultView: activeThreadModel.defaultView,
+    hasMinifiedStacktrace: activeThreadModel.hasMinifiedStacktrace,
+    persistedOptions,
+  });
 
   const setActiveThread = useCallback((thread: Thread | undefined) => {
-    setActiveThreadId(thread?.id);
+    setSelectedThreadId(thread?.id);
   }, []);
 
   const changeThread = useCallback(
     (direction: 'previous' | 'next') => {
-      setActiveThreadId(currentId => {
+      setSelectedThreadId(currentId => {
         if (!threads.length) {
           return;
         }
 
-        const currentIndex = threads.findIndex(thread => thread.id === currentId);
+        const selectedThread =
+          threads.find(thread => thread.id === currentId) ?? findBestThread(threads);
+        const currentIndex = threads.findIndex(
+          thread => thread.id === selectedThread?.id
+        );
         let nextIndex =
           direction === 'previous'
             ? (currentIndex === -1 ? 0 : currentIndex) - 1
@@ -142,9 +137,14 @@ export function IssueThreadStackTraceProviders({
     [threads]
   );
 
+  useEffect(() => {
+    setCopyIssueDetailsActiveThreadId(activeThreadModel.activeThread?.id);
+  }, [activeThreadModel.activeThread?.id]);
+
   const contextValue = useMemo<IssueThreadStackTraceContextValue>(
     () => ({
       activeThread,
+      activeThreadModel,
       changeThread,
       event,
       group,
@@ -158,6 +158,7 @@ export function IssueThreadStackTraceProviders({
     }),
     [
       activeThread,
+      activeThreadModel,
       changeThread,
       event,
       group,
@@ -173,60 +174,22 @@ export function IssueThreadStackTraceProviders({
 
   return (
     <IssueThreadStackTraceContext.Provider value={contextValue}>
-      <ActiveThreadProviders>{children}</ActiveThreadProviders>
-    </IssueThreadStackTraceContext.Provider>
-  );
-}
-
-function ActiveThreadProviders({children}: {children: ReactNode}) {
-  const {activeThread, event, groupingCurrentLevel, hasScmSourceContext, storageKey} =
-    useIssueThreadStackTraceContext();
-  const [persistedOptions] = useNativeDisplayOptionsStorage(storageKey);
-  const model = useMemo(
-    () => getActiveThreadStackTraceModel({activeThread, event}),
-    [event, activeThread]
-  );
-  const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
-    defaultView: model.defaultView,
-    hasMinifiedStacktrace: model.hasMinifiedStacktrace,
-    persistedOptions,
-  });
-
-  const contextValue = useMemo<ActiveThreadContextValue>(
-    () => ({
-      activeException: model.activeException,
-      activeThread: model.activeThread,
-      exception: model.exception,
-      hasMinifiedStacktrace: model.hasMinifiedStacktrace,
-      minifiedStacktrace: model.minifiedStacktrace,
-      platform: model.platform,
-      stacktrace: model.stacktrace,
-    }),
-    [model]
-  );
-
-  useEffect(() => {
-    setCopyIssueDetailsActiveThreadId(model.activeThread?.id);
-  }, [model.activeThread?.id]);
-
-  return (
-    <ActiveThreadContext.Provider value={contextValue}>
       <StackTraceViewStateProvider
-        platform={model.platform}
-        hasMinifiedStacktrace={model.hasMinifiedStacktrace}
+        platform={activeThreadModel.platform}
+        hasMinifiedStacktrace={activeThreadModel.hasMinifiedStacktrace}
         defaultView={defaultView}
         defaultIsMinified={defaultIsMinified}
-        defaultIsNewestFirst={model.defaultIsNewestFirst}
+        defaultIsNewestFirst={activeThreadModel.defaultIsNewestFirst}
       >
-        {model.stacktrace && isNativePlatform(model.platform) ? (
+        {activeThreadModel.stacktrace ? (
           <NativeStackTraceProvider
             event={event}
-            stacktrace={model.stacktrace}
-            minifiedStacktrace={model.minifiedStacktrace}
+            stacktrace={activeThreadModel.stacktrace}
+            minifiedStacktrace={activeThreadModel.minifiedStacktrace}
             groupingCurrentLevel={groupingCurrentLevel}
             hasScmSourceContext={hasScmSourceContext}
-            meta={model.stacktraceMeta}
-            platform={model.platform}
+            meta={activeThreadModel.stacktraceMeta}
+            platform={activeThreadModel.platform}
             displayOptionsStorageKey={storageKey}
           >
             {children}
@@ -235,6 +198,6 @@ function ActiveThreadProviders({children}: {children: ReactNode}) {
           children
         )}
       </StackTraceViewStateProvider>
-    </ActiveThreadContext.Provider>
+    </IssueThreadStackTraceContext.Provider>
   );
 }
