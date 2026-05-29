@@ -18,6 +18,7 @@ const AUTH_TYPE_CHOICES = [
 
 interface InstallationConfigAdvanceData {
   authType: string;
+  charset: string;
   p4port: string;
   password: string;
   user: string;
@@ -35,6 +36,7 @@ const installationConfigSchema = z
     client: z.string(),
     sslFingerprint: z.string(),
     webUrl: z.string(),
+    unicodeServer: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (data.p4port.startsWith('ssl:') && !data.sslFingerprint) {
@@ -62,6 +64,7 @@ function PerforceInstallationConfigStep({
       client: '',
       sslFingerprint: '',
       webUrl: '',
+      unicodeServer: false,
     },
     validators: {onDynamic: installationConfigSchema},
     onSubmit: ({value}) => {
@@ -73,6 +76,9 @@ function PerforceInstallationConfigStep({
         client: value.client || undefined,
         sslFingerprint: value.sslFingerprint || undefined,
         webUrl: value.webUrl || undefined,
+        // Backend stores charset as a string enum (Charset.NONE / Charset.UTF8)
+        // so it can grow to other encodings without an API contract change.
+        charset: value.unicodeServer ? 'utf8' : 'none',
       });
     },
   });
@@ -130,6 +136,18 @@ function PerforceInstallationConfigStep({
             </field.Layout.Stack>
           )}
         </form.AppField>
+        <form.AppField name="unicodeServer">
+          {field => (
+            <field.Layout.Stack
+              label={t('Unicode Server (UTF-8)')}
+              hintText={t(
+                'Enable this if your Perforce server was initialized in Unicode mode (p4d -xi). Unicode servers reject clients that do not declare a charset on connect.'
+              )}
+            >
+              <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
         <form.AppField name="password">
           {field => (
             <field.Layout.Stack label={t('Password / Ticket')} required>
@@ -176,8 +194,8 @@ function PerforceInstallationConfigStep({
           )}
         </form.AppField>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing || isInitializing}>
-            {isAdvancing ? t('Connecting...') : t('Connect')}
+          <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
+            {t('Connect')}
           </form.SubmitButton>
         </Flex>
       </Stack>

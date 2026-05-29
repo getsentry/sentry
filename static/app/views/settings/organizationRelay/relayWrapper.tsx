@@ -4,7 +4,6 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -21,7 +20,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -41,8 +39,7 @@ export function RelayWrapper() {
 
   const organization = useOrganization();
   const api = useApi();
-  const [relays, setRelays] = useState(organization.trustedRelays);
-  const hasPageFrame = useHasPageFrameFeature();
+  const [relays, setRelays] = useState(organization.trustedRelays ?? []);
 
   const disabled = !organization.access.includes('org:write');
 
@@ -55,7 +52,7 @@ export function RelayWrapper() {
         orgSlug={organization.slug}
         onSubmitSuccess={response => {
           addSuccessMessage(t('Successfully added Relay public key'));
-          setRelays(response.trustedRelays);
+          setRelays(response.trustedRelays ?? []);
         }}
       />
     ));
@@ -67,7 +64,7 @@ export function RelayWrapper() {
         title: disabled ? t('You do not have permission to register keys') : undefined,
       }}
       variant="primary"
-      size={hasPageFrame ? 'md' : 'sm'}
+      size="md"
       icon={<IconAdd />}
       onClick={handleOpenAddDialog}
       disabled={disabled}
@@ -80,25 +77,11 @@ export function RelayWrapper() {
     <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
       <SettingsPageHeader
         title={t('Relay')}
-        subtitle={
-          hasPageFrame ? (
-            <Flex justify="between" align="center" gap="md">
-              <span>
-                {tct(
-                  'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-                  {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-                )}
-              </span>
-              {registerKeyAction}
-            </Flex>
-          ) : (
-            tct(
-              'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-              {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-            )
-          )
-        }
-        action={hasPageFrame ? undefined : registerKeyAction}
+        action={registerKeyAction}
+        subtitle={tct(
+          'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+          {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+        )}
       />
       <OrganizationPermissionAlert />
       {organization.features.includes('ingest-through-trusted-relays-only') && (
@@ -209,7 +192,7 @@ function RelayUsageList({
         relay={editRelay}
         onSubmitSuccess={response => {
           addSuccessMessage(t('Successfully updated Relay public key'));
-          onRelaysChange(response.trustedRelays);
+          onRelaysChange(response.trustedRelays ?? []);
         }}
       />
     ));
@@ -226,7 +209,7 @@ function RelayUsageList({
         data: {trustedRelays},
       });
       addSuccessMessage(t('Successfully deleted Relay public key'));
-      onRelaysChange(response.trustedRelays);
+      onRelaysChange(response.trustedRelays ?? []);
     } catch {
       addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
     }

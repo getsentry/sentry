@@ -45,6 +45,7 @@ const statusCounts: Record<DiffStatus, number> = {
   [DiffStatus.REMOVED]: 0,
   [DiffStatus.RENAMED]: 0,
   [DiffStatus.UNCHANGED]: 2,
+  [DiffStatus.SKIPPED]: 0,
 };
 
 describe('SnapshotSidebarContent', () => {
@@ -72,7 +73,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'default'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -91,7 +92,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'active-group'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -109,7 +110,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'filtered'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -127,7 +128,7 @@ describe('SnapshotSidebarContent', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'no-results'}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

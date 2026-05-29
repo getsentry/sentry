@@ -24,6 +24,7 @@ import {isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   Table,
@@ -115,6 +116,7 @@ export function SuspectFunctionsTable({
 }: SuspectFunctionsTableProps) {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   const flamegraphQuery = useAggregateFlamegraphQuery({
@@ -214,6 +216,7 @@ export function SuspectFunctionsTable({
 
   const baggage: RenderFunctionBaggage = {
     location,
+    navigate,
     organization,
     theme,
     unit: 'nanosecond',

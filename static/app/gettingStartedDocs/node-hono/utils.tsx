@@ -19,7 +19,7 @@ export const platformOptions = {
         value: Runtime.CLOUDFLARE,
       },
       {
-        label: t('Node.js'),
+        label: t('Node'),
         value: Runtime.NODE,
       },
       {

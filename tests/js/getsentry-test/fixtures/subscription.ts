@@ -76,6 +76,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     customPricePcss: null,
     hasDismissedForcedTrialNotice: false,
     hasDismissedTrialEndingNotice: false,
+    hasMigratedToBillingPlatform: false,
     hasOverageNotificationsDisabled: false,
     hasRestrictedIntegration: false,
     hadCustomDynamicSampling: false,

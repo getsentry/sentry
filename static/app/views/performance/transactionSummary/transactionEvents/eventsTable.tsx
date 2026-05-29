@@ -209,6 +209,7 @@ export function EventsTable({
       const rendered = fieldRenderer(dataRow, {
         organization,
         location,
+        navigate,
         eventView,
         theme,
         projectSlug,
@@ -362,6 +363,7 @@ export function EventsTable({
     [
       organization,
       location,
+      navigate,
       eventView,
       theme,
       projectSlug,

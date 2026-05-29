@@ -104,7 +104,10 @@ export function SegmentedControl<Value extends string>({
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const collection = useCollection(props as any, collectionFactory);
+  const collection = useCollection(
+    props as Parameters<typeof useCollection>[0],
+    collectionFactory
+  );
   const ariaProps = {
     ...props,
     value,
@@ -135,6 +138,7 @@ export function SegmentedControl<Value extends string>({
             nextKey={option.nextKey}
             prevKey={option.prevKey}
             value={String(option.key)}
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             isDisabled={option.props.disabled || disabled}
             state={state}
             size={size}

@@ -16,7 +16,9 @@ export function transformPerformanceScoreBreakdownSeries(
       : `performance_score(measurements.score.${webVital})`;
     const series = multiSeries[key];
 
-    if (!series?.data) return false;
+    if (!series?.data) {
+      return false;
+    }
 
     return series.data.some(([_timestamp, values]) =>
       values.some(v => (v.count || 0) > 0)

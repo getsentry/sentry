@@ -26,7 +26,7 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey} from 'sentry/views/issueDetails/context';
 
 import {Context} from './context';
 import {DefaultTitle} from './defaultTitle';

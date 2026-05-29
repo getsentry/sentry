@@ -94,7 +94,9 @@ export function WidgetBuilderV2({
   const navigationElementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (navigationElementRef.current) return;
+    if (navigationElementRef.current) {
+      return;
+    }
 
     const navigationElement = document.querySelector(
       'nav[aria-label="Primary Navigation"]'
