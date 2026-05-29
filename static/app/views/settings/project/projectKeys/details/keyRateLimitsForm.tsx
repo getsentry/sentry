@@ -1,13 +1,10 @@
-import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
-import {Slider} from '@sentry/scraps/slider';
-import {Text} from '@sentry/scraps/text';
+import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
@@ -22,23 +19,19 @@ const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
 ];
 
-const rateLimitSchema = z.object({
-  rateLimit: z
-    .object({
-      count: z.number().int().min(0),
-      window: z.number().int().min(0),
-    })
-    .nullable()
-    .refine(value => !(value && value.window > 0 && value.count <= 0), {
-      message: 'Count is required when a time window is set',
-    })
-    .transform(value => {
-      if (!value || value.count === 0 || value.window === 0) {
-        return null;
-      }
-      return value;
-    }),
-});
+const rateLimitSchema = z
+  .object({
+    count: z.number().int().min(0).nullable(),
+    window: z.number().int().min(0),
+  })
+  .refine(value => !((value.count ?? 0) > 0 && value.window === 0), {
+    message: t('A time window is required when a count is set'),
+    path: ['window'],
+  })
+  .refine(value => !(value.window > 0 && (value.count === null || value.count === 0)), {
+    message: t('Count is required when a time window is set'),
+    path: ['count'],
+  });
 
 interface KeyRateLimitsFormProps {
   data: ProjectKey;
@@ -77,6 +70,35 @@ export function KeyRateLimitsForm({
 
     return PREDEFINED_RATE_LIMIT_VALUES;
   }
+
+  const mutation = useMutation({
+    mutationFn: (submitData: {rateLimit: ProjectKey['rateLimit']}) =>
+      fetchMutation<ProjectKey>({
+        url: endpoint,
+        method: 'PUT',
+        data: submitData,
+      }),
+    onSuccess: responseData => {
+      updateData(responseData);
+      form.reset();
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      count: data.rateLimit?.count ?? null,
+      window: data.rateLimit?.window ?? 0,
+    },
+    validators: {onDynamic: rateLimitSchema},
+    onSubmit: ({value}) => {
+      const rateLimit =
+        (value.count === null || value.count === 0) && value.window === 0
+          ? null
+          : {count: value.count ?? 0, window: value.window};
+      return mutation.mutateAsync({rateLimit}).catch(() => {});
+    },
+  });
 
   const disabledAlert = ({features}: {features: string[]}) => (
     <FeatureDisabled
@@ -119,93 +141,58 @@ export function KeyRateLimitsForm({
                 hasFeature,
                 children: null,
               })}
-            <AutoSaveForm
-              name="rateLimit"
-              schema={rateLimitSchema}
-              initialValue={data.rateLimit}
-              mutationOptions={{
-                mutationFn: (submitData: {rateLimit: ProjectKey['rateLimit']}) =>
-                  fetchMutation<ProjectKey>({
-                    url: endpoint,
-                    method: 'PUT',
-                    data: submitData,
-                  }),
-                onSuccess: updateData,
-              }}
-            >
-              {field => {
-                const value = field.state.value;
-                const window = value?.window;
-                const allowedValues = getAllowedRateLimitValues(window);
-                const windowIndex = Math.max(0, allowedValues.indexOf(window ?? 0));
-                const windowLabel =
-                  !window || window === 0 ? t('None') : getExactDuration(window);
-                return (
+            <form.AppForm form={form}>
+              <form.AppField name="count">
+                {field => (
                   <field.Layout.Row
-                    label={t('Rate Limit')}
+                    label={t('Count')}
                     hintText={t(
-                      'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
+                      'The maximum number of errors to accept in the time window.'
                     )}
                   >
-                    <field.Base<HTMLInputElement> disabled={fieldDisabled}>
-                      {(baseProps, {indicator}) => (
-                        <Fragment>
-                          <Grid
-                            columns="100px max-content 1fr max-content"
-                            align="center"
-                            gap="xl"
-                            flexGrow={1}
-                          >
-                            <Input
-                              {...baseProps}
-                              type="number"
-                              min={0}
-                              value={value?.count ?? ''}
-                              placeholder={t('Count')}
-                              onChange={event =>
-                                field.handleChange({
-                                  count: Number(event.target.value),
-                                  window: value?.window ?? 0,
-                                })
-                              }
-                              onBlur={() => {
-                                baseProps.onBlur();
-                              }}
-                            />
-                            <Text size="sm" align="center">
-                              {t('event(s) in')}
-                            </Text>
-                            <Slider
-                              min={0}
-                              max={allowedValues.length - 1}
-                              step={1}
-                              value={windowIndex}
-                              formatOptions="hidden"
-                              disabled={fieldDisabled || baseProps.disabled}
-                              aria-valuetext={windowLabel}
-                              aria-label={t('Rate limit window')}
-                              onChange={index =>
-                                field.handleChange({
-                                  count: value?.count ?? 0,
-                                  window: allowedValues[index] ?? 0,
-                                })
-                              }
-                              onChangeEnd={() => {
-                                field.handleBlur();
-                              }}
-                            />
-                            <Text size="sm" variant="muted">
-                              {windowLabel}
-                            </Text>
-                          </Grid>
-                          {indicator}
-                        </Fragment>
-                      )}
-                    </field.Base>
+                    <field.Number
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={fieldDisabled}
+                      min={0}
+                    />
                   </field.Layout.Row>
-                );
-              }}
-            </AutoSaveForm>
+                )}
+              </form.AppField>
+              <form.AppField name="window">
+                {field => {
+                  const windowValue = field.state.value;
+                  const allowedValues = getAllowedRateLimitValues(windowValue);
+                  const windowIndex = Math.max(0, allowedValues.indexOf(windowValue));
+                  const windowLabel =
+                    windowValue === 0 ? t('None') : getExactDuration(windowValue);
+                  return (
+                    <field.Layout.Row
+                      label={t('Time Window')}
+                      hintText={`${t('The time period in which the rate limit is applied.')} ${t('Current: %s', windowLabel)}`}
+                    >
+                      <field.Range
+                        value={windowIndex}
+                        onChange={index => field.handleChange(allowedValues[index] ?? 0)}
+                        min={0}
+                        max={allowedValues.length - 1}
+                        step={1}
+                        formatOptions="hidden"
+                        disabled={fieldDisabled}
+                        aria-valuetext={windowLabel}
+                        aria-label={t('Time window')}
+                      />
+                    </field.Layout.Row>
+                  );
+                }}
+              </form.AppField>
+              <Flex gap="sm" justify="end">
+                <form.ResetButton disabled={fieldDisabled}>{t('Reset')}</form.ResetButton>
+                <form.SubmitButton disabled={fieldDisabled}>
+                  {t('Save')}
+                </form.SubmitButton>
+              </Flex>
+            </form.AppForm>
           </FieldGroup>
         );
       }}

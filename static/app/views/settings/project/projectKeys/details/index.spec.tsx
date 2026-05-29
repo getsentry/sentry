@@ -168,12 +168,14 @@ describe('ProjectKeyDetails', () => {
 
     renderProjectKeyDetails();
 
-    const countInput = await screen.findByPlaceholderText('Count');
+    const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
 
-    // Change count to a different value (not zero, since zero is blocked by validation when window > 0)
+    // Change count to a different value
     await userEvent.clear(countInput);
     await userEvent.type(countInput, '10');
-    await userEvent.tab();
+
+    // Click Save to submit the form
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledTimes(1);
@@ -186,10 +188,9 @@ describe('ProjectKeyDetails', () => {
       })
     );
 
-    // After API responds, focusing and blurring without changes should not resubmit
-    await userEvent.click(countInput);
-    await userEvent.tab();
-
-    expect(putMock).toHaveBeenCalledTimes(1);
+    // After API responds with null, the form resets — Reset should be disabled (pristine)
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
+    });
   });
 });

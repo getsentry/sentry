@@ -36,17 +36,18 @@ describe('KeyRateLimitsForm', () => {
     return {putMock, updateData};
   }
 
-  it('sends a PUT request when the count is changed and blurred', async () => {
+  it('submits when save is clicked with valid count and window', async () => {
     const keyWithRateLimit: ProjectKey = {
       ...baseKey,
       rateLimit: {count: 5, window: 60},
     };
     const {putMock} = renderForm(keyWithRateLimit);
 
-    const countInput = await screen.findByPlaceholderText('Count');
+    const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
     await userEvent.clear(countInput);
     await userEvent.type(countInput, '10');
-    await userEvent.tab();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
@@ -58,51 +59,85 @@ describe('KeyRateLimitsForm', () => {
     });
   });
 
-  it('does not submit when count is cleared while window is set', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
-    const {putMock} = renderForm(keyWithRateLimit);
+  it('does not submit when only count is set and window is none', async () => {
+    const {putMock} = renderForm(baseKey);
 
-    const countInput = await screen.findByPlaceholderText('Count');
-    await userEvent.clear(countInput);
-    await userEvent.tab();
+    const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
+    await userEvent.type(countInput, '5');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('does not send a request when value has not changed', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
-    const {putMock} = renderForm(keyWithRateLimit);
+  it('does not submit when only window is set and count is empty', async () => {
+    const {putMock} = renderForm(baseKey);
 
-    const countInput = await screen.findByPlaceholderText('Count');
-    await userEvent.click(countInput);
-    await userEvent.tab();
+    const slider = screen.getByRole('slider');
+    act(() => {
+      slider.focus();
+    });
+    await userEvent.keyboard('{ArrowRight}');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(putMock).not.toHaveBeenCalled();
   });
 
-  it('shows a save indicator after successful save', async () => {
+  it('submits null when both count and window are cleared', async () => {
     const keyWithRateLimit: ProjectKey = {
       ...baseKey,
       rateLimit: {count: 5, window: 60},
     };
     const {putMock} = renderForm(keyWithRateLimit);
 
-    const countInput = await screen.findByPlaceholderText('Count');
+    const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
     await userEvent.clear(countInput);
-    await userEvent.type(countInput, '10');
-    await userEvent.tab();
+
+    const slider = screen.getByRole('slider');
+    act(() => {
+      slider.focus();
+    });
+    await userEvent.keyboard('{Home}');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
-      expect(putMock).toHaveBeenCalled();
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${org.slug}/${project.slug}/keys/${baseKey.id}/`,
+        expect.objectContaining({
+          data: {rateLimit: null},
+        })
+      );
     });
+  });
 
-    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
+  it('resets form to initial values when reset is clicked', async () => {
+    const keyWithRateLimit: ProjectKey = {
+      ...baseKey,
+      rateLimit: {count: 5, window: 60},
+    };
+    renderForm(keyWithRateLimit);
+
+    const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
+    await userEvent.clear(countInput);
+    await userEvent.type(countInput, '99');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+
+    expect(countInput).toHaveValue(5);
+  });
+
+  it('disables reset button when form has not changed', async () => {
+    const keyWithRateLimit: ProjectKey = {
+      ...baseKey,
+      rateLimit: {count: 5, window: 60},
+    };
+    renderForm(keyWithRateLimit);
+
+    await screen.findByRole('spinbutton', {name: 'Count'});
+
+    expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
   });
 
   it('calls updateData on successful save', async () => {
@@ -112,10 +147,11 @@ describe('KeyRateLimitsForm', () => {
     };
     const {putMock, updateData} = renderForm(keyWithRateLimit);
 
-    const countInput = await screen.findByPlaceholderText('Count');
+    const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
     await userEvent.clear(countInput);
     await userEvent.type(countInput, '10');
-    await userEvent.tab();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalled();
@@ -124,18 +160,6 @@ describe('KeyRateLimitsForm', () => {
     await waitFor(() => {
       expect(updateData).toHaveBeenCalled();
     });
-  });
-
-  it('does not submit when count is 0 and slider is moved', async () => {
-    const {putMock} = renderForm(baseKey);
-
-    const slider = screen.getByRole('slider');
-    act(() => {
-      slider.focus();
-    });
-    await userEvent.keyboard('{ArrowRight}');
-
-    expect(putMock).not.toHaveBeenCalled();
   });
 
   it('submits when slider is moved and count is set', async () => {
@@ -150,6 +174,8 @@ describe('KeyRateLimitsForm', () => {
       slider.focus();
     });
     await userEvent.keyboard('{ArrowRight}');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
