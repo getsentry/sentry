@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
@@ -85,24 +86,23 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     <Access access={['project:write']} project={project}>
       {({hasAccess}) => (
         <Fragment>
-          <FieldGroup
-            help={tct(
-              'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                    {t(' What does the script provide?')}
-                  </ExternalLink>
-                ),
-              }
-            )}
-            inline={false}
-            flexibleControlStateSize
-          >
+          <Stack gap="lg">
+            <Text variant="muted" size="sm">
+              {tct(
+                'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
+                      {t(' What does the script provide?')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            </Text>
             <TextCopyInput aria-label={t('Loader Script')}>
               {`<script src="${loaderLink}" crossorigin="anonymous"></script>`}
             </TextCopyInput>
-          </FieldGroup>
+          </Stack>
 
           <AutoSaveForm
             name="browserSdkVersion"
