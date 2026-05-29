@@ -533,7 +533,7 @@ def _update_attribute_definitions_with_deprecations(
         if (
             deprecation is None
             or deprecation.replacement is None
-            or deprecation.status != DeprecationStatus.BACKFILL
+            or deprecation.status not in (DeprecationStatus.BACKFILL, DeprecationStatus.NORMALIZE)
         ):
             continue
 
