@@ -28,6 +28,8 @@ interface NativeFrameHeaderProps {
   actions?: React.ReactNode | ((props: {isHovering: boolean}) => React.ReactNode);
 }
 
+const NATIVE_FRAME_COMPACT_BREAKPOINT = '650px';
+
 function getFunctionLabel({
   frame,
   frameMeta,
@@ -224,7 +226,7 @@ const HeaderGrid = styled('div')<{
     background: ${p => p.theme.tokens.background.tertiary};
   }
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-template-columns: ${p =>
       p.hasStatusColumn
         ? '16px minmax(0, 72px) minmax(0, 1fr) auto'
@@ -243,7 +245,7 @@ const StatusCell = styled('div')`
   align-items: center;
   justify-content: center;
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-area: status;
   }
 `;
@@ -257,7 +259,7 @@ const PackageCell = styled('div')`
   overflow: hidden;
   line-height: 1.4;
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-area: package;
     flex-direction: row;
     align-items: baseline;
@@ -274,7 +276,7 @@ const LeadHint = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     display: inline;
     flex: 0 0 auto;
     max-width: none;
@@ -290,7 +292,7 @@ const PackageLabel = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     display: inline-block;
     flex: 1 1 auto;
   }
@@ -302,7 +304,7 @@ const AddressCell = styled('div')`
   min-width: 0;
   line-height: 1.4;
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-area: address;
     justify-self: start;
     max-width: 72px;
@@ -319,7 +321,7 @@ const FunctionCell = styled('div')`
   min-width: 0;
   word-break: break-all;
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-area: function;
   }
 `;
@@ -343,7 +345,7 @@ const ActionsCell = styled('div')`
   min-width: 168px;
   margin-left: auto;
 
-  @container native-frame-header (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-area: actions;
     min-width: 0;
   }
