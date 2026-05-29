@@ -147,7 +147,8 @@ export function KeySettings({
 
             <KeyRateLimitsForm
               organization={organization}
-              params={params}
+              keyId={params.keyId}
+              projectId={params.projectId}
               data={data}
               disabled={!hasAccess}
               project={project}
