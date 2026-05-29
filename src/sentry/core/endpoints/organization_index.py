@@ -253,7 +253,10 @@ class OrganizationIndexEndpoint(Endpoint):
 
         owner_only = request.GET.get("owner") in ("1", "true")
 
-        # This is used when closing an account.
+        # owner=1 (used by the account-close flow) means "orgs I own", which is
+        # defined by the user's membership rows. A userless token (org auth token
+        # or DSN) passes the permission check but can never satisfy it, so reject
+        # it instead of falling through to the token-scoped, wrong-shaped listing.
         if owner_only and request.user.is_authenticated:
             return self._get_owned_from_control(request)
 
