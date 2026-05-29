@@ -519,7 +519,7 @@ def _write_preferences_to_sentry_db(
                     )
             SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
 
-        # Write ProjectOptions last so cache updates only happen after all DB writes succeed
+        # Write ProjectOptions last so cache updates happen after repo DB writes succeed
         # (cache cannot be rolled back by the transaction).
         for project, pref in project_preferences:
             update = SeerProjectSettingsUpdate()
