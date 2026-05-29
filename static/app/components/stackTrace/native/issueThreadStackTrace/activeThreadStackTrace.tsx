@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
@@ -24,7 +23,7 @@ export function ActiveThreadStackTrace() {
   const {activeException, activeThread, exception, stacktrace} = activeThreadModel;
 
   if (!stacktrace) {
-    return <NoStackTrace>{t('No stack trace available')}</NoStackTrace>;
+    return <Text variant="muted">{t('No stack trace available')}</Text>;
   }
 
   return (
@@ -85,7 +84,3 @@ function ExceptionDetails({exception}: {exception: ExceptionValue | undefined}) 
     </Flex>
   );
 }
-
-const NoStackTrace = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

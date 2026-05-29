@@ -2,20 +2,17 @@ import {
   findImageForAddress,
   parseAddress,
 } from 'sentry/components/events/interfaces/utils';
-import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
+import type {Image} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 
-import {
-  getSymbolicatorStatus,
-  hasStatusIcon,
-} from './frame/actions/getSymbolicatorStatus';
+import {getSymbolicatorStatus} from './frame/actions/getSymbolicatorStatus';
 
 export interface NativeFrameAnalysis {
   hasAbsoluteAddresses: boolean;
   hasAbsoluteFilePaths: boolean;
   hasAnyStatusIcons: boolean;
   hasVerboseFunctionNames: boolean;
-  imageByFrameIndex: Map<number, ImageWithCombinedStatus | null>;
+  imageByFrameIndex: Map<number, Image | null>;
   maxLengthOfRelativeAddress: number;
 }
 
@@ -26,7 +23,7 @@ export function analyzeNativeFrames({
   event: Event;
   frames: Frame[];
 }): NativeFrameAnalysis {
-  const imageByFrameIndex = new Map<number, ImageWithCombinedStatus | null>();
+  const imageByFrameIndex = new Map<number, Image | null>();
   let maxLengthOfRelativeAddress = 0;
   let hasAnyStatusIcons = false;
   let hasAbsoluteAddresses = false;
@@ -39,7 +36,7 @@ export function analyzeNativeFrames({
       event,
       addrMode: frame.addrMode,
       address: frame.instructionAddr,
-    }) as ImageWithCombinedStatus | null;
+    });
     imageByFrameIndex.set(i, image ?? null);
 
     if (image?.image_addr && frame.instructionAddr) {
@@ -50,7 +47,7 @@ export function analyzeNativeFrames({
     }
 
     hasAnyStatusIcons =
-      hasAnyStatusIcons || hasStatusIcon(getSymbolicatorStatus(frame, image ?? null));
+      hasAnyStatusIcons || getSymbolicatorStatus(frame, image ?? null) !== null;
     hasAbsoluteAddresses = hasAbsoluteAddresses || !!frame.instructionAddr;
     hasAbsoluteFilePaths =
       hasAbsoluteFilePaths ||

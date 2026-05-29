@@ -1,7 +1,7 @@
 import {createContext, useContext} from 'react';
 
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
-import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
+import type {Image} from 'sentry/types/debugImage';
 
 interface NativeDisplayOptionState {
   absoluteAddresses: boolean;
@@ -49,7 +49,7 @@ export interface NativeStackTraceContextValue {
    * Resolved once at the provider level so each frame row doesn't repeat the
    * `findImageForAddress` scan over the debug-meta entry.
    */
-  imageByFrameIndex: Map<number, ImageWithCombinedStatus | null>;
+  imageByFrameIndex: Map<number, Image | null>;
   /**
    * Whether this stack trace is being rendered inside a hovercard preview;
    * frame rows use this to lengthen tooltip delays and disable navigation.

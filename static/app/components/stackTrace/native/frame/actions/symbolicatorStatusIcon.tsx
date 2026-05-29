@@ -4,9 +4,37 @@ import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/na
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconWarning} from 'sentry/icons/iconWarning';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
-import {getSymbolicatorStatus} from './getSymbolicatorStatus';
+import {
+  getSymbolicatorStatus,
+  type SymbolicatorIconStatus,
+} from './getSymbolicatorStatus';
+
+function getStatusIconConfig(status: NonNullable<SymbolicatorIconStatus>): {
+  Icon: React.ComponentType<SVGIconProps>;
+  testId: string;
+  title: string;
+  variant: SVGIconProps['variant'];
+} {
+  switch (status) {
+    case 'error':
+      return {
+        Icon: IconFileBroken,
+        testId: 'symbolication-error-icon',
+        title: t('This frame has missing debug files and could not be symbolicated'),
+        variant: 'danger',
+      };
+    case 'warning':
+      return {
+        Icon: IconWarning,
+        testId: 'symbolication-warning-icon',
+        title: t('This frame has an unknown problem and could not be symbolicated'),
+        variant: 'warning',
+      };
+  }
+}
 
 export function SymbolicatorStatusIcon() {
   const {frame, frameIndex} = useStackTraceFrameContext();
@@ -14,35 +42,15 @@ export function SymbolicatorStatusIcon() {
   const image = imageByFrameIndex.get(frameIndex) ?? null;
   const status = getSymbolicatorStatus(frame, image);
 
-  if (status === 'error') {
-    return (
-      <Tooltip
-        title={t('This frame has missing debug files and could not be symbolicated')}
-        skipWrapper
-      >
-        <IconFileBroken
-          size="sm"
-          variant="danger"
-          data-test-id="symbolication-error-icon"
-        />
-      </Tooltip>
-    );
+  if (status === null) {
+    return null;
   }
 
-  if (status === 'warning') {
-    return (
-      <Tooltip
-        title={t('This frame has an unknown problem and could not be symbolicated')}
-        skipWrapper
-      >
-        <IconWarning
-          size="sm"
-          variant="warning"
-          data-test-id="symbolication-warning-icon"
-        />
-      </Tooltip>
-    );
-  }
+  const {Icon, testId, title, variant} = getStatusIconConfig(status);
 
-  return null;
+  return (
+    <Tooltip title={title} skipWrapper>
+      <Icon size="sm" variant={variant} data-test-id={testId} />
+    </Tooltip>
+  );
 }
