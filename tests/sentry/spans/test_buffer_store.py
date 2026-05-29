@@ -9,7 +9,7 @@ import zstandard
 
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_store import SpansBufferStore
-from sentry.spans.buffer_types import FlushCandidate
+from sentry.spans.buffer_types import FlushCandidate, FlushedSegment, OutputSpan
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -210,3 +210,40 @@ def test_load_segments_decompresses_payload_batches(
     assert loaded_segment.ingest_metadata.ingested_count == 2
     assert load_data_latency_ms >= 0
     assert decompress_latency_ms >= 0
+
+
+def test_cleanup_flushed_segments_removes_segment_data(storage: SpansBufferStore) -> None:
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
+    payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, "1" * 32)
+    queue_key = storage.get_queue_key(0)
+    redirect_map_key = f"span-buf:ssr:{{{_TEST_PROJECT_ID}:{_TEST_TRACE_ID}}}".encode("ascii")
+    span_id = "b" * 16
+
+    storage.client.set(b"span-buf:hrs:" + segment_key, b"1")
+    storage.client.set(b"span-buf:ic:" + segment_key, 1)
+    storage.client.set(b"span-buf:ibc:" + segment_key, 10)
+    storage.client.hset(redirect_map_key, span_id, b"redirected")
+    storage.client.sadd(storage.get_payload_key_index(segment_key), "1" * 32)
+    storage.client.sadd(payload_key, _payload(span_id))
+    storage.client.set(storage.get_flush_lock_key(segment_key), b"1")
+    storage.client.zadd(queue_key, {segment_key: 10})
+
+    storage.cleanup_flushed_segments(
+        {
+            segment_key: FlushedSegment(
+                queue_key=queue_key,
+                spans=[OutputSpan(payload={"span_id": span_id})],
+                project_id=_TEST_PROJECT_ID,
+                payload_keys=[payload_key],
+            )
+        }
+    )
+
+    assert storage.client.get(b"span-buf:hrs:" + segment_key) is None
+    assert storage.client.get(b"span-buf:ic:" + segment_key) is None
+    assert storage.client.get(b"span-buf:ibc:" + segment_key) is None
+    assert storage.client.hget(redirect_map_key, span_id) is None
+    assert not storage.client.exists(storage.get_payload_key_index(segment_key))
+    assert not storage.client.exists(payload_key)
+    assert storage.client.get(storage.get_flush_lock_key(segment_key)) is None
+    assert storage.client.zscore(queue_key, segment_key) is None

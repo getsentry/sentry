@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import time
 from collections.abc import Callable, Mapping, Sequence
 
@@ -9,6 +10,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry import options
 from sentry.spans.buffer_types import (
     FlushCandidate,
+    FlushedSegment,
     InsertedSubsegment,
     LoadedSegment,
     QueueKey,
@@ -404,3 +406,44 @@ class SpansBufferStore:
         """
         deadline_score = self.client.zscore(loaded_segment.queue_key, loaded_segment.segment_key)
         return int(deadline_score) if deadline_score is not None else None
+
+    def cleanup_flushed_segments(
+        self,
+        flushed_segments: Mapping[SegmentKey, FlushedSegment],
+    ) -> None:
+        """
+        Remove Redis data for segments that were successfully produced to Kafka.
+        """
+        queue_removals: dict[QueueKey, list[SegmentKey]] = {}
+        with self.client.pipeline(transaction=False) as p:
+            for segment_key, flushed_segment in flushed_segments.items():
+                p.delete(b"span-buf:hrs:" + segment_key)
+                p.delete(b"span-buf:ic:" + segment_key)
+                p.delete(b"span-buf:ibc:" + segment_key)
+                queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
+
+                project_id, trace_id, _ = parse_segment_key(segment_key)
+                redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
+
+                for span_batch in itertools.batched(flushed_segment.spans, 100):
+                    span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                    p.hdel(redirect_map_key, *span_ids)
+
+                if flushed_segment.payload_keys:
+                    p.delete(self.get_payload_key_index(segment_key))
+                    for payload_key in flushed_segment.payload_keys:
+                        p.unlink(payload_key)
+
+                # A segment can be queued in more than one shard when spans from the
+                # same segment land in different Kafka partitions. Releasing the lock
+                # here lets a contending flusher later acquire it and remove those stale
+                # queue entries instead of blocking on ZRANGEBYSCORE until lock TTL expires.
+                # Since the segment metadata and payload keys have already been deleted
+                # above, a stale queue entry cannot produce the segment again.
+                p.delete(self.get_flush_lock_key(segment_key))
+
+            for queue_key, keys in queue_removals.items():
+                for key_batch in itertools.batched(keys, 100):
+                    p.zrem(queue_key, *key_batch)
+
+            p.execute()
