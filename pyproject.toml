@@ -111,7 +111,7 @@ dependencies = [
   "statsd>=3.3.0",
   "structlog>=22.1.0",
   "symbolic>=12.14.1",
-  "taskbroker-client>=0.16.0,<1",
+  "taskbroker-client>=0.17.0",
   "tiktoken>=0.8.0",
   "tokenizers>=0.22.0",
   "tldextract>=5.1.2",
@@ -394,7 +394,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.endpoints.organization_releases",
-    "sentry.db.postgres.base",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",

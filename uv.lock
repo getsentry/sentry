@@ -917,6 +917,18 @@ wheels = [
 ]
 
 [[package]]
+name = "grpcio-health-checking"
+version = "1.67.1"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/grpcio_health_checking-1.67.1-py3-none-any.whl", hash = "sha256:93753da5062152660aef2286c9b261e07dd87124a65e4dc9fbd47d1ce966b39d" },
+]
+
+[[package]]
 name = "grpcio-status"
 version = "1.67.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2442,7 +2454,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=12.14.1" },
-    { name = "taskbroker-client", specifier = ">=0.16.0,<1" },
+    { name = "taskbroker-client", specifier = ">=0.17.0" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2836,12 +2848,13 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.16.0"
+version = "0.17.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "cronsim", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "grpcio-health-checking", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "msgpack", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "orjson", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2853,7 +2866,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.16.0-py3-none-any.whl", hash = "sha256:10322e6bb51a70a77ba18498d38f1b751aab4f862983381d4d218ac3b4a6d54c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.17.0-py3-none-any.whl", hash = "sha256:a52f5ff5914a50dbea50f07777a3c46080b467e04c7ec06895e7d3dceea16dc3" },
 ]
 
 [[package]]
