@@ -49,7 +49,10 @@ def get_triggering_rule_name(invocation: ActionInvocation) -> str:
     ).first()
     if alert_rule_workflow:
         try:
-            label = Rule.objects.get(id=alert_rule_workflow.rule_id).label
+            label = Rule.objects.get(
+                id=alert_rule_workflow.rule_id,
+                project__organization_id=workflow.organization_id,
+            ).label
         except Rule.DoesNotExist:
             logger.exception(
                 "Rule not found when querying for AlertRuleWorkflow",

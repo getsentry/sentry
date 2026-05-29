@@ -5,7 +5,7 @@ import {isMac} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {FocusableElement, Node} from '@react-types/shared';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
@@ -94,7 +94,7 @@ export function useQueryBuilderGridItem(
   state: ListState<ParseResultToken>,
   ref: RefObject<FocusableElement | null>
 ) {
-  const {wrapperRef} = useSearchQueryBuilder();
+  const {wrapperRef} = useSearchQueryBuilderLayout();
   const {rowProps, gridCellProps} = useGridListItem({node: item}, state, ref);
   const {selectInDirection} = useKeyboardSelection();
 

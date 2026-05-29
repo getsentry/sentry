@@ -812,7 +812,7 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
     kwargs = deepcopy(query_params.kwargs)
     query_params_conditions = deepcopy(query_params.conditions)
 
-    with timer("get_snuba_map"):
+    with metrics.timer("snuba.client.get_snuba_map"):
         forward, reverse = get_snuba_translators(
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )

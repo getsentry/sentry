@@ -342,9 +342,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     name: 'alertsMemberWrite',
     formId: 'organization-settings-form',
     route: '/settings/organization/',
-    label: t('Let Members Create and Edit Alerts'),
+    label: t('Let Members Create and Edit Monitors and Alerts'),
     hintText: t(
-      'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+      'Allow members to create, edit, and delete monitors and alert rules by granting them the `alerts:write` scope.'
     ),
   },
   'organization-settings-form.attachmentsRole': {

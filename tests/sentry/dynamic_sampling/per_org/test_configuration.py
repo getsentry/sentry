@@ -132,15 +132,22 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
     def test_subscription_backed_org_without_sample_rate_is_disabled(self) -> None:
         org = self.create_organization()
+        self.create_project(organization=org)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=None,
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+            ) as get_volume,
         ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, NoDynamicSamplingConfiguration)
         assert not configuration.is_enabled
+        get_volume.assert_not_called()
         with pytest.raises(AttributeError):
             getattr(configuration, "measure")
         with pytest.raises(AttributeError):

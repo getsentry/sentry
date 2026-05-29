@@ -1260,6 +1260,65 @@ class JiraIntegrationTest(APITestCase):
         }
 
     @responses.activate
+    def test_get_config_data_filters_via_paginated_endpoint_with_flag(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="67890",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"values": [{"id": "12345", "name": "Active Project"}]},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_config_data()
+
+        assert config["sync_status_forward"] == {
+            "12345": {"on_resolve": "done", "on_unresolve": "in_progress"},
+        }
+        assert len(responses.calls) == 1
+        assert "rest/api/2/project/search" in responses.calls[0].request.url
+        assert "id=12345" in responses.calls[0].request.url
+        assert "id=67890" in responses.calls[0].request.url
+
+    @responses.activate
     def test_get_config_data_issue_keys(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
