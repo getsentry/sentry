@@ -65,14 +65,13 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
             return Response({"detail": str(e)}, status=400)
 
         response_data: list[dict[str, object]] = []
-        seen_attributes: set[tuple[str, str | None]] = set()
+        seen_attributes: set[str] = set()
 
         def append_result(key: str, valid: bool, attribute_type: str | None) -> None:
-            dedupe_key = (key, attribute_type)
-            if dedupe_key in seen_attributes:
+            if key in seen_attributes:
                 return
 
-            seen_attributes.add(dedupe_key)
+            seen_attributes.add(key)
             response_data.append(
                 {
                     "key": key,
@@ -91,20 +90,12 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
 
         for af in query_context.having_terms:
             func_keys = _extract_function_keys(af)
-            if not func_keys:
-                continue
-
-            all_valid = True
             for key in func_keys:
                 result = key_results.get(key, {"valid": False, "error": "Unknown attribute"})
-                if not result["valid"]:
-                    all_valid = False
-
-            primary_result = key_results.get(func_keys[0], {})
-            append_result(
-                func_keys[0],
-                all_valid,
-                primary_result.get("type") if all_valid else None,
-            )
+                append_result(
+                    key,
+                    result["valid"],
+                    result.get("type") if result["valid"] else None,
+                )
 
         return Response({"attributes": response_data})
