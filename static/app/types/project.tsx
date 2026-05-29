@@ -122,6 +122,9 @@ export interface DetailedProject extends ProjectSummary {
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
+  derivedGroupingEnhancements?: string;
+  fingerprintingRules?: string;
+  groupingEnhancements?: string;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
     context: Record<string, string[]>;

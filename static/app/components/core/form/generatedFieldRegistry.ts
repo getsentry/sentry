@@ -260,6 +260,29 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
     ),
   },
+  'project-issue-grouping.fingerprintingRules': {
+    name: 'fingerprintingRules',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Fingerprint Rules'),
+    hintText: '',
+  },
+  'project-issue-grouping.groupingEnhancements': {
+    name: 'groupingEnhancements',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Stack Trace Rules'),
+    hintText: '',
+  },
+  'project-issue-grouping.derivedGroupingEnhancements': {
+    name: 'derivedGroupingEnhancements',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Derived Grouping Enhancements'),
+    hintText: t(
+      'These rules are automatically derived for some languages for organizations that have the GitHub integration. These rules are not editable but they can be negated by adding you own rules in the Stack Trace Rules section.'
+    ),
+  },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',
     formId: 'project-replays',
