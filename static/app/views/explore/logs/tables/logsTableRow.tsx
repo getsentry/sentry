@@ -30,6 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {
   Actions,
   ActionTriggerType,
@@ -219,6 +220,7 @@ export const LogRowContent = memo(function LogRowContent({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const user = useUser();
   const {selection} = usePageFilters();
   const fields = useQueryParamsFields();
   const projects = useProjects();
@@ -318,10 +320,31 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
+  const traceId = String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? '');
+  let logDebugEndpointMenuItem: MenuItemProps | undefined;
+
+  if (user.isSuperuser && !isPseudoRow && projectSlug && rowId && traceId) {
+    const query = new URLSearchParams({
+      item_type: TraceItemDataset.LOGS,
+      trace_id: traceId,
+      debug: 'true',
+    });
+
+    if (defined(logTimestampSeconds)) {
+      query.set('timestamp', String(Math.trunc(logTimestampSeconds)));
+    }
+
+    logDebugEndpointMenuItem = {
+      key: 'log-debug-endpoint',
+      label: t('Log JSON'),
+      externalHref: `/api/0/projects/${organization.slug}/${projectSlug}/trace-items/${rowId}/?${query}`,
+    };
+  }
+
   const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
     traceItemId: rowId,
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+    traceId,
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     timestamp: logTimestampSeconds,
@@ -467,13 +490,17 @@ export const LogRowContent = memo(function LogRowContent({
 
           const extraMenuItems =
             field === OurLogKnownFieldKey.MESSAGE
-              ? getExploreSimilarSpansMenuItems({
+              ? (getExploreSimilarSpansMenuItems({
                   message: value,
                   organization,
                   selection,
                   showExploreSimilarSpansLink,
-                })
-              : undefined;
+                }) ?? [])
+              : [];
+
+          if (logDebugEndpointMenuItem) {
+            extraMenuItems.push(logDebugEndpointMenuItem);
+          }
 
           if (!defined(value)) {
             return (
