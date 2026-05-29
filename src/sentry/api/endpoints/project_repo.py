@@ -36,10 +36,10 @@ class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
         return value
 
     def create(self, validated_data: dict[str, Any]) -> ProjectRepository:
-        project_repo, created = ProjectRepository.objects.get_or_create(
-            project=self.project,
+        project_repo, created = ProjectRepository.objects.get_or_create_with_source(
+            project_id=self.project.id,
             repository_id=validated_data["repositoryId"],
-            defaults={"source": ProjectRepositorySource.SCM_ONBOARDING},
+            source=ProjectRepositorySource.SCM_ONBOARDING,
         )
         self._created = created
         return project_repo
