@@ -30,13 +30,10 @@ function AutomaticInstrumentationFix({
     return (
       <Stack gap="md">
         <Text>
-          {tct(
-            'For Python automatic instrumentation, use [hook] to remove matching spans from [spans].',
-            {
-              hook: <InlineCode>before_send_transaction</InlineCode>,
-              spans: <InlineCode>event["spans"]</InlineCode>,
-            }
-          )}
+          {tct('Use [hook] to remove matching spans from [spans].', {
+            hook: <InlineCode>before_send_transaction</InlineCode>,
+            spans: <InlineCode>event["spans"]</InlineCode>,
+          })}
         </Text>
         <CodeBlock language="python">
           {getPythonSpanFilterSnippet(evidenceData)}
@@ -50,7 +47,7 @@ function AutomaticInstrumentationFix({
       <Stack gap="md">
         <Text>
           {tct(
-            'For JavaScript automatic instrumentation, use [ignoreSpans] to drop this exact span before it is sent. Use [beforeSendSpan] only if you need to transform span data instead of dropping it.',
+            'Use [ignoreSpans] to drop this exact span. Use [beforeSendSpan] only when you need to change span data.',
             {
               beforeSendSpan: <InlineCode>beforeSendSpan</InlineCode>,
               ignoreSpans: <InlineCode>ignoreSpans</InlineCode>,
@@ -67,57 +64,75 @@ function AutomaticInstrumentationFix({
   return (
     <Text>
       {tct(
-        'Check your SDK tracing options and add an exact-match filter for [span]. Filter only this operation and description so useful spans with similar names keep flowing.',
+        'Add an exact-match span filter for [span]. Match both operation and description so similar useful spans still get sent.',
         {span: <SpanCode>{getSpanLabel(evidenceData)}</SpanCode>}
       )}
     </Text>
   );
 }
 
-export function TroubleshootingSection({evidenceData}: TroubleshootingSectionProps) {
+function ManualInstrumentationFix({
+  evidenceData,
+}: {
+  evidenceData: LowValueSpanEvidenceData;
+}) {
   return (
-    <Stack gap="lg" padding="lg">
-      <Heading as="h3">{t('Troubleshooting')}</Heading>
+    <Stack gap="md">
+      <Text>{t('This appears to come from custom instrumentation in your code.')}</Text>
+      <Stack gap="xs">
+        <Heading as="h4">{t('1. Find the custom span')}</Heading>
+        <Text>
+          {tct('Search your codebase for [span].', {
+            span: <SpanCode>{getSpanLabel(evidenceData)}</SpanCode>,
+          })}
+        </Text>
+      </Stack>
+      <Stack gap="xs">
+        <Heading as="h4">{t('2. Remove or replace the span')}</Heading>
+        <Text>
+          {t(
+            'If this span is not useful for debugging, delete the custom span line or replace it with a more meaningful span.'
+          )}
+        </Text>
+      </Stack>
+    </Stack>
+  );
+}
+
+function AutomaticInstrumentationTroubleshooting({
+  evidenceData,
+}: {
+  evidenceData: LowValueSpanEvidenceData;
+}) {
+  return (
+    <Stack gap="md">
       <Text>
         {t(
-          'Start by confirming whether this span is created by custom code or by SDK automatic instrumentation. Then remove it at the source or filter the exact span before it is sent.'
+          'This appears to come from SDK automatic instrumentation. Filter the exact operation and description before the span is sent.'
         )}
       </Text>
-      <Stack gap="md">
-        <Stack gap="xs">
-          <Heading as="h4">{t('1. Find where the span is created')}</Heading>
-          <Text>
-            {tct('Search for code or SDK configuration that creates [span].', {
-              span: <SpanCode>{getSpanLabel(evidenceData)}</SpanCode>,
-            })}
-          </Text>
-          {evidenceData.sdkName && (
-            <Text>
-              {tct('The latest evidence points to the [sdk] SDK.', {
-                sdk: <InlineCode>{evidenceData.sdkName}</InlineCode>,
-              })}
-            </Text>
-          )}
-        </Stack>
-        <Stack gap="xs">
-          <Heading as="h4">{t('2. Remove custom instrumentation when possible')}</Heading>
-          <Text>
-            {t(
-              'If this span is manually instrumented and does not describe work you need for debugging, delete the custom span creation line or replace it with a more meaningful span.'
-            )}
-          </Text>
-        </Stack>
-        <Stack gap="xs">
-          <Heading as="h4">{t('3. Filter automatic instrumentation exactly')}</Heading>
-          <AutomaticInstrumentationFix evidenceData={evidenceData} />
-        </Stack>
-      </Stack>
+      <AutomaticInstrumentationFix evidenceData={evidenceData} />
       <Flex align="center" gap="xs">
         <IconDocs size="xs" />
         <ExternalLink href={getSpanFilteringDocsUrl(evidenceData)}>
           {t('Read the SDK filtering docs')}
         </ExternalLink>
       </Flex>
+    </Stack>
+  );
+}
+
+export function TroubleshootingSection({evidenceData}: TroubleshootingSectionProps) {
+  const isManualInstrumentation = evidenceData.spanOrigin === 'manual';
+
+  return (
+    <Stack gap="lg" padding="lg">
+      <Heading as="h3">{t('Troubleshooting')}</Heading>
+      {isManualInstrumentation ? (
+        <ManualInstrumentationFix evidenceData={evidenceData} />
+      ) : (
+        <AutomaticInstrumentationTroubleshooting evidenceData={evidenceData} />
+      )}
     </Stack>
   );
 }

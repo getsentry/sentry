@@ -2,11 +2,13 @@ import type {EventOccurrence} from 'sentry/types/event';
 
 export interface LowValueSpanEvidenceData {
   avgDurationMs: number | null;
-  count: number | null;
   description: string | null;
   estimatedCostUsd: number | null;
+  extrapolatedCount: number | null;
   op: string | null;
   sdkName: string | null;
+  spanCount: number | null;
+  spanOrigin: string | null;
 }
 
 function getStringValue(value: unknown): string | null {
@@ -21,11 +23,13 @@ export function getLowValueSpanEvidenceData(
   evidenceData: EventOccurrence['evidenceData'] | null | undefined
 ): LowValueSpanEvidenceData {
   return {
-    op: getStringValue(evidenceData?.op),
-    description: getStringValue(evidenceData?.description),
-    count: getNumberValue(evidenceData?.count),
+    op: getStringValue(evidenceData?.span_op),
+    description: getStringValue(evidenceData?.span_description),
+    spanCount: getNumberValue(evidenceData?.span_count),
+    extrapolatedCount: getNumberValue(evidenceData?.extrapolated_count),
     avgDurationMs: getNumberValue(evidenceData?.avg_duration_ms),
     estimatedCostUsd: getNumberValue(evidenceData?.estimated_cost_usd),
     sdkName: getStringValue(evidenceData?.sdk_name),
+    spanOrigin: getStringValue(evidenceData?.span_origin),
   };
 }

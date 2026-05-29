@@ -875,7 +875,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
-    "sentry.dynamic_sampling.per_org.tasks.scheduler",
+    "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",

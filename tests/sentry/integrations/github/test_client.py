@@ -24,6 +24,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.scm.private.rate_limit import DynamicRateLimiter
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
@@ -104,6 +105,59 @@ class GitHubApiClientTest(TestCase):
     def test_get_rate_limit_non_existent_resource(self) -> None:
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
+
+    @responses.activate
+    def test_internal_rate_limiter_ignores_get_rate_limit(self) -> None:
+        """
+        The /rate_limit resource does not count against GitHub's primary rate limit, so the
+        internal rate limiter must neither consult its quota nor record capacity from the
+        (unrelated) headers on its response.
+        """
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            json={
+                "resources": {
+                    "core": {"limit": 5000, "remaining": 4999, "reset": 1372700873, "used": 1},
+                },
+            },
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(DynamicRateLimiter, "is_rate_limited") as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_rate_limit()
+
+        mock_is_rate_limited.assert_not_called()
+        mock_set_capacity.assert_not_called()
+
+    @responses.activate
+    def test_internal_rate_limiter_applies_to_other_endpoints(self) -> None:
+        """
+        Requests to resources other than /rate_limit must still flow through the internal rate
+        limiter so quota is tracked and capacity is recorded.
+        """
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        mock_is_rate_limited.assert_called_once()
+        mock_set_capacity.assert_called_once_with(capacity=5000)
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

@@ -8,7 +8,7 @@ from typing import TypeVar
 
 import sentry_sdk
 
-from sentry.dynamic_sampling.per_org.tasks.gate import (
+from sentry.dynamic_sampling.per_org.gate import (
     is_killswitch_engaged,
     is_rollout_enabled,
     metrics_sample_rate,
