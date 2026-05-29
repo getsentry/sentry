@@ -482,23 +482,16 @@ class SeerAgentClient:
         result = response.json()
 
         try:
-            self._maybe_trigger_explorer_index_for_new_run(
-                result.get("has_explorer_index"),
-                result.get("has_org_project_context"),
+            _trigger_explorer_indexes_if_needed(
+                self.organization.id,
+                has_explorer_index=result.get("has_explorer_index"),
+                has_org_project_context=result.get("has_org_project_context"),
             )
+
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
         return result["run_id"]
-
-    def _maybe_trigger_explorer_index_for_new_run(
-        self,
-        has_explorer_index: bool | None,
-        has_org_project_context: bool | None,
-    ) -> None:
-        _trigger_explorer_indexes_if_needed(
-            self.organization.id, has_explorer_index, has_org_project_context
-        )
 
     def continue_run(
         self,
