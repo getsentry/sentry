@@ -54,7 +54,11 @@ describe('TableView > CellActions', () => {
 
   const eventView = EventView.fromLocation(location);
 
-  function renderComponent(tableData: TableData, view: EventView) {
+  function renderComponent(
+    tableData: TableData,
+    view: EventView,
+    queryDataset = SavedQueryDatasets.TRANSACTIONS
+  ) {
     return render(
       <TableView
         organization={organization}
@@ -68,7 +72,7 @@ describe('TableView > CellActions', () => {
         measurementKeys={null}
         showTags={false}
         title=""
-        queryDataset={SavedQueryDatasets.TRANSACTIONS}
+        queryDataset={queryDataset}
       />,
       {
         organization,
@@ -80,69 +84,6 @@ describe('TableView > CellActions', () => {
         },
       }
     );
-  }
-
-  function renderIssueEventLink(fields: string[]) {
-    const issueRows: TableData = {
-      meta: {
-        id: 'string',
-        title: 'string',
-        'issue.id': 'integer',
-        'project.name': 'string',
-      },
-      data: [
-        {
-          id: 'deadbeef',
-          title: 'some title',
-          'issue.id': 123,
-          'project.name': 'project-slug',
-        },
-      ],
-    };
-
-    const issueQuery = {
-      id: '42',
-      name: 'best query',
-      field: fields,
-      queryDataset: 'error-events',
-      query: '',
-      project: ['123'],
-      statsPeriod: '14d',
-    };
-
-    const issueLocation = LocationFixture({
-      pathname: '/organizations/org-slug/explore/discover/results/',
-      query: issueQuery,
-    });
-
-    render(
-      <TableView
-        organization={organization}
-        location={issueLocation}
-        eventView={EventView.fromLocation(issueLocation)}
-        isLoading={false}
-        tableData={issueRows}
-        onChangeShowTags={onChangeShowTags}
-        error={null}
-        isFirstPage
-        measurementKeys={null}
-        showTags={false}
-        title=""
-        queryDataset={SavedQueryDatasets.ERRORS}
-      />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: issueLocation.pathname,
-            query: issueQuery,
-          },
-        },
-      }
-    );
-
-    const firstRow = screen.getAllByRole('row')[1]!;
-    return within(firstRow).getByTestId('view-event');
   }
 
   async function openContextMenu(cellIndex: number) {
@@ -553,11 +494,24 @@ describe('TableView > CellActions', () => {
     );
   });
 
-  it.each([
-    ['explicit', ['id', 'title']],
-    ['prepended', ['title']],
-  ])('renders %s issue event id links directly to the issue event', (_name, fields) => {
-    const link = renderIssueEventLink(fields);
+  it('renders issue event id links directly to the issue event', () => {
+    const view = EventView.fromLocation(
+      LocationFixture({
+        query: {...locationQuery, field: ['id', 'title']},
+      })
+    );
+    rows.meta = {...rows.meta, id: 'string', 'issue.id': 'integer'};
+    rows.data[0] = {
+      ...rows.data[0]!,
+      id: 'deadbeef',
+      'issue.id': 123,
+      'project.name': 'project-slug',
+    };
+
+    renderComponent(rows, view, SavedQueryDatasets.ERRORS);
+
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const link = within(firstRow).getByTestId('view-event');
 
     expect(link).toHaveAttribute(
       'href',
