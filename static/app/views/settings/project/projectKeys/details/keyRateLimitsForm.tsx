@@ -4,7 +4,8 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -126,27 +127,28 @@ export function KeyRateLimitsForm({
       {({hasFeature, features, renderDisabled}) => {
         const fieldDisabled = disabled || !hasFeature;
         return (
-          <FieldGroup title={t('Rate Limits')}>
-            <Alert variant="info" system>
-              {t(
-                `Rate limits provide a flexible way to manage your error
+          <form.AppForm form={form}>
+            <FieldGroup title={t('Rate Limits')}>
+              <Alert variant="info" system>
+                {t(
+                  `Rate limits provide a flexible way to manage your error
                     volume. If you have a noisy project or environment you
                     can configure a rate limit for this key to reduce the
                     number of errors processed. To manage your transaction
                     volume, we recommend adjusting your sample rate in your
                     SDK configuration.`
-              )}
-            </Alert>
-            {!hasFeature &&
-              typeof renderDisabled === 'function' &&
-              renderDisabled({
-                organization,
-                project,
-                features,
-                hasFeature,
-                children: null,
-              })}
-            <form.AppForm form={form}>
+                )}
+              </Alert>
+              {!hasFeature &&
+                typeof renderDisabled === 'function' &&
+                renderDisabled({
+                  organization,
+                  project,
+                  features,
+                  hasFeature,
+                  children: null,
+                })}
+
               <form.AppField name="count">
                 {field => (
                   <field.Layout.Row
@@ -174,19 +176,26 @@ export function KeyRateLimitsForm({
                   return (
                     <field.Layout.Row
                       label={t('Time Window')}
-                      hintText={`${t('The time period in which the rate limit is applied.')} ${t('Current: %s', windowLabel)}`}
+                      hintText={t('The time period in which the rate limit is applied.')}
                     >
-                      <field.Range
-                        value={windowIndex}
-                        onChange={index => field.handleChange(allowedValues[index] ?? 0)}
-                        min={0}
-                        max={allowedValues.length - 1}
-                        step={1}
-                        formatOptions="hidden"
-                        disabled={fieldDisabled}
-                        aria-valuetext={windowLabel}
-                        aria-label={t('Time window')}
-                      />
+                      <Stack>
+                        <Text variant="muted" bold>
+                          {windowLabel}
+                        </Text>
+                        <field.Range
+                          value={windowIndex}
+                          onChange={index =>
+                            field.handleChange(allowedValues[index] ?? 0)
+                          }
+                          min={0}
+                          max={allowedValues.length - 1}
+                          step={1}
+                          formatOptions="hidden"
+                          disabled={fieldDisabled}
+                          aria-valuetext={windowLabel}
+                          aria-label={t('Time window')}
+                        />
+                      </Stack>
                     </field.Layout.Row>
                   );
                 }}
@@ -197,8 +206,8 @@ export function KeyRateLimitsForm({
                   {t('Save')}
                 </form.SubmitButton>
               </Flex>
-            </form.AppForm>
-          </FieldGroup>
+            </FieldGroup>
+          </form.AppForm>
         );
       }}
     </Feature>
