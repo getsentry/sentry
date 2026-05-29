@@ -170,7 +170,9 @@ describe('ProjectKeyDetails', () => {
 
     const countInput = await screen.findByPlaceholderText('Count');
 
+    // Change count to a different value (not zero, since zero is blocked by validation when window > 0)
     await userEvent.clear(countInput);
+    await userEvent.type(countInput, '10');
     await userEvent.tab();
 
     await waitFor(() => {
@@ -180,14 +182,11 @@ describe('ProjectKeyDetails', () => {
     expect(putMock).toHaveBeenLastCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
-        data: {rateLimit: null},
+        data: {rateLimit: {count: 10, window: 60}},
       })
     );
 
-    await waitFor(() => {
-      expect((countInput as HTMLInputElement).value).toBe('');
-    });
-
+    // After API responds, focusing and blurring without changes should not resubmit
     await userEvent.click(countInput);
     await userEvent.tab();
 
