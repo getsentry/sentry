@@ -6,6 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
@@ -79,8 +80,12 @@ export function KeyRateLimitsForm({
         data: submitData,
       }),
     onSuccess: responseData => {
+      addSuccessMessage(t('Successfully saved rate limit.'));
       updateData(responseData);
       form.reset();
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to save rate limit.'));
     },
   });
 
