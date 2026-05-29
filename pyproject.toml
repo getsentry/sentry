@@ -40,6 +40,9 @@ dependencies = [
   "google-cloud-storage>=2.18.0",
   "google-cloud-storage-transfer>=1.17.0",
   "google-crc32c>=1.6.0",
+  # Linear-time regex engine (RE2). Used for client-supplied snapshot image-name
+  # patterns: no catastrophic backtracking (ReDoS-safe), no backreferences/lookaround.
+  "google-re2>=1.1.20251105",
   "googleapis-common-protos>=1.63.2",
   "granian[pname,reload,uvloop]>=2.7",
   "grpc-google-iam-v1>=0.13.1",
@@ -96,7 +99,7 @@ dependencies = [
   "sentry-protos>=0.17.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.27",
-  "sentry-scm==0.16.0",
+  "sentry-scm==0.20.0",
   "sentry-sdk[http2]>=2.59.0",
   "sentry-usage-accountant>=0.0.10",
   # remove once there are no unmarked transitive dependencies on setuptools
@@ -376,6 +379,7 @@ module = [
   "pymemcache.*",
   "P4",
   "rb.*",
+  "re2.*",
   "statsd.*",
   "tokenizers.*",
   "u2flib_server.model.*",

@@ -263,7 +263,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/events/'
   | '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/'
   | '/organizations/$organizationIdOrSlug/events/anomalies/'
-  | '/organizations/$organizationIdOrSlug/experimental/projects/'
   | '/organizations/$organizationIdOrSlug/explore/saved/'
   | '/organizations/$organizationIdOrSlug/explore/saved/$id/'
   | '/organizations/$organizationIdOrSlug/explore/saved/$id/starred/'

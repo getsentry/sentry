@@ -48,13 +48,16 @@ class CodeReviewErrorType(StrEnum):
 
 
 def _build_webhook_tags(
-    github_event: GithubWebhookType, github_event_action: str
+    github_event: GithubWebhookType | str, github_event_action: str
 ) -> dict[str, str]:
-    return {"github_event": github_event.value, "github_event_action": github_event_action}
+    event_value = (
+        github_event.value if isinstance(github_event, GithubWebhookType) else github_event
+    )
+    return {"github_event": event_value, "github_event_action": github_event_action}
 
 
 def record_webhook_received(
-    github_event: GithubWebhookType,
+    github_event: GithubWebhookType | str,
     github_event_action: str,
 ) -> None:
     """
@@ -63,7 +66,7 @@ def record_webhook_received(
     This is the entry point metric for the processing funnel.
 
     Args:
-        github_event: The GitHub webhook event type (e.g., check_run, issue_comment)
+        github_event: The webhook event type (e.g., check_run, issue_comment, merge_request)
         github_event_action: The webhook action (e.g., created, rerequested, synchronize)
     """
     metrics.incr(
@@ -74,7 +77,7 @@ def record_webhook_received(
 
 
 def record_webhook_filtered(
-    github_event: GithubWebhookType,
+    github_event: GithubWebhookType | str,
     github_event_action: str,
     reason: CodeReviewFilteredReason,
 ) -> None:
@@ -85,7 +88,7 @@ def record_webhook_filtered(
     not enabled, not a review command, wrong action type).
 
     Args:
-        github_event: The GitHub webhook event type
+        github_event: The webhook event type
         github_event_action: The webhook action (e.g., created, rerequested, synchronize)
         reason: Why the webhook was filtered
     """
@@ -97,7 +100,7 @@ def record_webhook_filtered(
 
 
 def record_webhook_enqueued(
-    github_event: GithubWebhookType,
+    github_event: GithubWebhookType | str,
     github_event_action: str,
 ) -> None:
     """
@@ -107,7 +110,7 @@ def record_webhook_enqueued(
     was created to process it.
 
     Args:
-        github_event: The GitHub webhook event type
+        github_event: The webhook event type
         github_event_action: The webhook action (e.g., created, rerequested, synchronize)
     """
     metrics.incr(
@@ -118,7 +121,7 @@ def record_webhook_enqueued(
 
 
 def record_webhook_handler_error(
-    github_event: GithubWebhookType,
+    github_event: GithubWebhookType | str,
     github_event_action: str,
     error_type: CodeReviewErrorType,
 ) -> None:
@@ -126,7 +129,7 @@ def record_webhook_handler_error(
     Record an error in the webhook handler stage.
 
     Args:
-        github_event: The GitHub webhook event type
+        github_event: The webhook event type
         github_event_action: The webhook action (e.g., created, rerequested, synchronize)
         error_type: Specific error identifier from CodeReviewErrorType enum
     """
