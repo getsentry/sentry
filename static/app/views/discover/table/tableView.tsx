@@ -664,30 +664,77 @@ export function TableView(props: TableViewProps) {
   );
 }
 
+type EventTargetOptions = {
+  dataRow: TableDataRow;
+  eventView: EventView;
+  isTransactionsDataset: boolean;
+  location: Location;
+  organization: Organization;
+};
+
+type TraceEventDataRow = TableDataRow & {
+  timestamp: string | number;
+  trace: string;
+};
+
+type IssueEventDataRow = TableDataRow & {
+  'issue.id': string | number;
+};
+
 function getEventTarget({
   dataRow,
   eventView,
   isTransactionsDataset,
   location,
   organization,
-}: {
-  dataRow: TableDataRow;
-  eventView: EventView;
-  isTransactionsDataset: boolean;
-  location: Location;
-  organization: Organization;
-}): LocationDescriptorObject {
+}: EventTargetOptions): LocationDescriptorObject {
   if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
-    return getIssueEventTarget(dataRow, organization, location);
+    if (isIssueEventDataRow(dataRow)) {
+      return getIssueEventTarget(dataRow, organization);
+    }
+
+    return getProjectEventRedirectTarget(dataRow, organization, location);
   }
 
-  const traceSlug = dataRow.trace;
-  if (typeof traceSlug !== 'string' || !traceSlug) {
-    throw new Error('Transaction event should always have a trace associated with it.');
+  if (!isTraceEventDataRow(dataRow)) {
+    return getProjectEventRedirectTarget(dataRow, organization, location);
   }
 
+  return getTraceEventTarget(dataRow, organization, location, eventView);
+}
+
+function isIssueEventDataRow(dataRow: TableDataRow): dataRow is IssueEventDataRow {
+  return dataRow['issue.id'] !== undefined && dataRow['issue.id'] !== null;
+}
+
+function isTraceEventDataRow(dataRow: TableDataRow): dataRow is TraceEventDataRow {
+  return (
+    typeof dataRow.trace === 'string' &&
+    dataRow.trace !== '' &&
+    dataRow.timestamp !== undefined
+  );
+}
+
+function getIssueEventTarget(
+  dataRow: IssueEventDataRow,
+  organization: Organization
+): LocationDescriptorObject {
+  return {
+    pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/`,
+    query: {
+      referrer: 'discover-events-table',
+    },
+  };
+}
+
+function getTraceEventTarget(
+  dataRow: TraceEventDataRow,
+  organization: Organization,
+  location: Location,
+  eventView: EventView
+): LocationDescriptorObject {
   return generateLinkToEventInTraceView({
-    traceSlug,
+    traceSlug: dataRow.trace,
     eventId: dataRow.id,
     timestamp: dataRow.timestamp,
     organization,
@@ -697,22 +744,11 @@ function getEventTarget({
   });
 }
 
-function getIssueEventTarget(
+function getProjectEventRedirectTarget(
   dataRow: TableDataRow,
   organization: Organization,
   location: Location
 ): LocationDescriptorObject {
-  const issueId = dataRow['issue.id'];
-
-  if (issueId !== undefined && issueId !== null) {
-    return {
-      pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
-      query: {
-        referrer: 'discover-events-table',
-      },
-    };
-  }
-
   const project = dataRow.project || dataRow['project.name'];
 
   return {
