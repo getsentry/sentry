@@ -654,7 +654,7 @@ def build_pr_description_suffix(group: Group) -> str | None:
 
     for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
         if external_issue.service_type == "linear":
-            is_valid = bool(re.match(r"^[A-Z]+#\d+$", external_issue.display_name))
+            is_valid = bool(re.match(r"^[A-Z0-9]+#\d+$", external_issue.display_name))
             if not is_valid:
                 logger.warning(
                     "autofix.linear.unknown-id",
