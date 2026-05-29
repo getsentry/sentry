@@ -19,12 +19,12 @@ PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 logger = logging.getLogger(__name__)
 
 
-def run_project_balancing_comparison(
+def run_project_balancing(
     config: BaseDynamicSamplingConfiguration, project_volumes: list[ProjectVolume]
-) -> None:
+) -> list[RebalancedItem] | None:
     sample_rate = config.get_sample_rate()
     if sample_rate is None:
-        return
+        return None
 
     counts_by_project = {project.id: 0 for project in config.projects}
     for project_volume in project_volumes:
@@ -32,7 +32,7 @@ def run_project_balancing_comparison(
             counts_by_project[project_volume.project_id] = project_volume.total
 
     if not any(counts_by_project.values()):
-        return
+        return None
 
     rebalanced_projects = ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
@@ -43,8 +43,7 @@ def run_project_balancing_comparison(
             sample_rate=sample_rate,
         )
     )
-    cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
-    compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
+    return rebalanced_projects
 
 
 def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:

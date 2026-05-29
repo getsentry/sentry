@@ -7,9 +7,10 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.tasks.calculations import (
+    compare_rebalanced_projects_with_cache,
     get_cached_rebalanced_project_sample_rates,
     is_within_relative_tolerance,
-    run_project_balancing_comparison,
+    run_project_balancing,
 )
 from sentry.dynamic_sampling.per_org.tasks.queries import ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -28,7 +29,7 @@ class ProjectBalancingCalculationsTest(TestCase):
         super().setUp()
         self.redis = get_redis_client_for_ds()
 
-    def test_run_project_balancing_logs_cache_comparison(self) -> None:
+    def test_run_project_balancing_returns_rebalanced_projects(self) -> None:
         org = self.create_organization()
         project_with_volume = self.create_project(organization=org)
         project_without_volume = self.create_project(organization=org)
@@ -40,23 +41,12 @@ class ProjectBalancingCalculationsTest(TestCase):
             RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
             RebalancedItem(id=project_without_volume.id, count=0, new_sample_rate=1.0),
         ]
-        cached_sample_rates = {
-            project_with_volume.id: 0.2,
-            project_without_volume.id: 0.96,
-        }
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.calculations.ProjectsRebalancingModel.run",
-                return_value=rebalanced_projects,
-            ) as model_run,
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.calculations.get_cached_rebalanced_project_sample_rates",
-                return_value=cached_sample_rates,
-            ),
-            patch("sentry.dynamic_sampling.per_org.tasks.calculations.logger.info") as logger_info,
-        ):
-            run_project_balancing_comparison(config, [_project_volume(project_with_volume.id)])
+        with patch(
+            "sentry.dynamic_sampling.per_org.tasks.calculations.ProjectsRebalancingModel.run",
+            return_value=rebalanced_projects,
+        ) as model_run:
+            result = run_project_balancing(config, [_project_volume(project_with_volume.id)])
 
         model_run.assert_called_once()
         model_input = model_run.call_args.args[-1]
@@ -66,6 +56,26 @@ class ProjectBalancingCalculationsTest(TestCase):
             RebalancedItem(id=project_with_volume.id, count=100),
             RebalancedItem(id=project_without_volume.id, count=0),
         ]
+        assert result == rebalanced_projects
+
+    def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:
+        org = self.create_organization()
+        project_with_volume = self.create_project(organization=org)
+        project_without_volume = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        rebalanced_projects = [
+            RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
+            RebalancedItem(id=project_without_volume.id, count=0, new_sample_rate=1.0),
+        ]
+        cached_sample_rates = {
+            project_with_volume.id: 0.2,
+            project_without_volume.id: 0.96,
+        }
+
+        with patch("sentry.dynamic_sampling.per_org.tasks.calculations.logger.info") as logger_info:
+            compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
+
         assert [call.args for call in logger_info.call_args_list] == [
             ("dynamic_sampling.per_org.project_balancing_comparison",),
             ("dynamic_sampling.per_org.project_balancing_comparison",),
@@ -112,7 +122,7 @@ class ProjectBalancingCalculationsTest(TestCase):
             ) as model_run,
             patch("sentry.dynamic_sampling.per_org.tasks.calculations.logger.info") as logger_info,
         ):
-            run_project_balancing_comparison(config, [_project_volume(project.id)])
+            run_project_balancing(config, [_project_volume(project.id)])
 
         model_run.assert_not_called()
         logger_info.assert_not_called()
@@ -131,7 +141,7 @@ class ProjectBalancingCalculationsTest(TestCase):
             ) as model_run,
             patch("sentry.dynamic_sampling.per_org.tasks.calculations.logger.info") as logger_info,
         ):
-            run_project_balancing_comparison(config, [_project_volume(project.id + 1)])
+            run_project_balancing(config, [_project_volume(project.id + 1)])
 
         model_run.assert_not_called()
         logger_info.assert_not_called()

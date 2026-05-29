@@ -179,7 +179,8 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=project_volumes,
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing_comparison"
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing",
+                return_value=None,
             ) as project_balancing,
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
@@ -226,7 +227,8 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes"
             ) as get_transaction_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing_comparison"
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing",
+                return_value=None,
             ) as project_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
@@ -259,7 +261,8 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=project_volumes,
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing_comparison"
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing",
+                return_value=None,
             ) as project_balancing,
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
@@ -338,7 +341,8 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=project_volumes,
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing_comparison"
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing",
+                return_value=None,
             ) as project_balancing,
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
@@ -408,7 +412,8 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=project_volumes,
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing_comparison"
+                "sentry.dynamic_sampling.per_org.tasks.scheduler.run_project_balancing",
+                return_value=None,
             ) as project_balancing,
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.scheduler.get_eap_transaction_volumes",
