@@ -6,11 +6,11 @@ import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
+import {Slider} from '@sentry/scraps/slider';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
@@ -136,6 +136,10 @@ export function KeyRateLimitsForm({
               {field => {
                 const value = field.state.value;
                 const window = value?.window;
+                const allowedValues = getAllowedRateLimitValues(window);
+                const windowIndex = Math.max(0, allowedValues.indexOf(window ?? 0));
+                const windowLabel =
+                  !window || window === 0 ? t('None') : getExactDuration(window);
                 return (
                   <field.Layout.Row
                     label={t('Rate Limit')}
@@ -147,7 +151,7 @@ export function KeyRateLimitsForm({
                       {(baseProps, {indicator}) => (
                         <Fragment>
                           <Grid
-                            columns="100px max-content 1fr"
+                            columns="100px max-content 1fr max-content"
                             align="center"
                             gap="xl"
                             flexGrow={1}
@@ -171,31 +175,28 @@ export function KeyRateLimitsForm({
                             <Text size="sm" align="center">
                               {t('event(s) in')}
                             </Text>
-                            <RangeSlider
-                              name="rateLimit.window"
-                              allowedValues={getAllowedRateLimitValues(window)}
-                              value={window ?? ''}
-                              placeholder={t('Window')}
-                              formatLabel={rangeValue => {
-                                if (typeof rangeValue === 'number') {
-                                  if (rangeValue === 0) {
-                                    return t('None');
-                                  }
-                                  return getExactDuration(rangeValue);
-                                }
-                                return;
-                              }}
+                            <Slider
+                              min={0}
+                              max={allowedValues.length - 1}
+                              step={1}
+                              value={windowIndex}
+                              formatOptions="hidden"
                               disabled={fieldDisabled || baseProps.disabled}
-                              onChange={rangeValue =>
+                              aria-valuetext={windowLabel}
+                              aria-label={t('Rate limit window')}
+                              onChange={index =>
                                 field.handleChange({
                                   count: value?.count ?? 0,
-                                  window: Number(rangeValue),
+                                  window: allowedValues[index] ?? 0,
                                 })
                               }
                               onChangeEnd={() => {
                                 field.handleBlur();
                               }}
                             />
+                            <Text size="sm" variant="muted">
+                              {windowLabel}
+                            </Text>
                           </Grid>
                           {indicator}
                         </Fragment>
