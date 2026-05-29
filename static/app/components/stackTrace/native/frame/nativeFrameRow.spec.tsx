@@ -436,6 +436,11 @@ describe('NativeFrameRow', () => {
     expect(screen.getByText('hidden_one')).toBeInTheDocument();
     expect(screen.getByText('hidden_two')).toBeInTheDocument();
     expect(screen.getByText('hidden_three')).toBeInTheDocument();
+    expect(
+      screen
+        .getByText('hidden_one')
+        .closest('[data-test-id="native-stack-trace-frame-title"]')
+    ).toHaveAttribute('data-sub-frame', 'true');
   });
 
   it('shows native lead hints only in app-only view', () => {

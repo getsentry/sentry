@@ -106,6 +106,8 @@ export interface StackTraceFrameContextValue {
   isExpandable: boolean;
   /** Whether source/register/context details are currently expanded. */
   isExpanded: boolean;
+  /** Whether this row is currently revealed from a hidden system-frame range. */
+  isSubFrame: boolean;
   /** Whether this frame participates in the current issue grouping level. */
   isUsedForGrouping: boolean;
   /** Effective platform used for frame render/utility logic. */

@@ -69,6 +69,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
     frameIndex,
     isExpandable,
     isExpanded,
+    isSubFrame,
     nextFrame,
     toggleExpansion,
   } = useStackTraceFrameContext();
@@ -94,8 +95,10 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
     <HeaderContainer>
       <HeaderGrid
         data-test-id="native-stack-trace-frame-title"
+        data-sub-frame={isSubFrame ? true : undefined}
         isExpandable={isExpandable}
         isInAppFrame={frame.inApp}
+        isSubFrame={isSubFrame}
         hasStatusColumn={hasAnyStatusIcons}
         aria-expanded={isExpandable ? isExpanded : undefined}
         aria-controls={isExpandable ? frameContextId : undefined}
@@ -191,6 +194,7 @@ const HeaderGrid = styled('div')<{
   hasStatusColumn: boolean;
   isExpandable: boolean;
   isInAppFrame: boolean;
+  isSubFrame: boolean;
 }>`
   display: grid;
   grid-template-columns: ${p =>
@@ -208,7 +212,10 @@ const HeaderGrid = styled('div')<{
     }`};
   min-height: 36px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
-  background: ${p => p.theme.tokens.background.secondary};
+  background: ${p =>
+    !p.isInAppFrame && p.isSubFrame
+      ? p.theme.colors.surface200
+      : p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p =>
     p.isInAppFrame ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
