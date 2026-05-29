@@ -1272,10 +1272,22 @@ export const TraceStylingWrapper = styled('div')`
     }
 
     .TraceIconGroupStart {
+      transform-origin: left center;
       transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
     }
 
     .TraceIconGroupEnd {
+      transform-origin: right center;
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconStart {
+      transform-origin: left center;
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconEnd {
+      transform-origin: right center;
       transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
     }
 

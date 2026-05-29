@@ -7,6 +7,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
+const TRACE_ICON_WIDTH = 18;
 const TRACE_ICON_GROUP_GLYPH_WIDTH = 12;
 const TRACE_ICON_GROUP_GAP = 2;
 const TRACE_ICON_GROUP_HORIZONTAL_PADDING = 10;
@@ -37,20 +38,19 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
         const className = getTraceIssueSeverityClassName(issue);
 
         if (childIssueCount) {
-          const edge = getTraceIconGroupEdge(
+          const clampedTimestamp = clamp(
             timestamp,
-            props.node_space!,
-            props.manager.computeConfigSpaceForPixels(
-              getTraceIconGroupApproximateWidth(childIssueCount)
-            )
+            props.node_space![0],
+            props.node_space![0] + props.node_space![1]
           );
-          const clampedTimestamp = getTraceIconGroupAnchorTimestamp(
-            timestamp,
-            props.node_space!,
+          const width = getTraceIconGroupApproximateWidth(childIssueCount);
+          const edge = props.manager.computeTraceIconEdge(clampedTimestamp, width);
+          const anchorTimestamp = props.manager.computeTraceIconAnchorTimestamp(
+            clampedTimestamp,
             edge
           );
           const left = props.manager.computeRelativeLeftPositionFromOrigin(
-            clampedTimestamp,
+            anchorTimestamp,
             props.node_space!
           );
 
@@ -58,7 +58,10 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
             <div
               key={i}
               data-test-id="trace-issue-icon"
-              className={`TraceIconGroup ${className} ${getTraceIconGroupEdgeClassName(edge)}`}
+              className={`TraceIconGroup ${className} ${getTraceIconEdgeClassName(
+                edge,
+                'TraceIconGroup'
+              )}`}
               style={{left: left * 100 + '%'}}
             >
               <span className="TraceIconGlyph">
@@ -76,8 +79,16 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
           props.node_space![0],
           props.node_space![0] + props.node_space![1]
         );
-        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+        const edge = props.manager.computeTraceIconEdge(
           clampedTimestamp,
+          TRACE_ICON_WIDTH
+        );
+        const anchorTimestamp = props.manager.computeTraceIconAnchorTimestamp(
+          clampedTimestamp,
+          edge
+        );
+        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+          anchorTimestamp,
           props.node_space!
         );
 
@@ -85,7 +96,10 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
           <div
             key={i}
             data-test-id="trace-issue-icon"
-            className={`TraceIcon ${className}`}
+            className={`TraceIcon ${className} ${getTraceIconEdgeClassName(
+              edge,
+              'TraceIcon'
+            )}`}
             style={{left: left * 100 + '%'}}
           >
             <TraceIcons.Icon event={issue} />
@@ -226,48 +240,16 @@ function getTraceIssueTimestamp(
   return typeof startTimestamp === 'number' ? startTimestamp * 1e3 : nodeSpace[0];
 }
 
-function getTraceIconGroupEdge(
-  timestamp: number,
-  nodeSpace: [number, number],
-  iconWidthConfigSpace: number
-): 'start' | 'end' | null {
-  const clampedTimestamp = clamp(timestamp, nodeSpace[0], nodeSpace[0] + nodeSpace[1]);
-  const halfIconWidthConfigSpace = iconWidthConfigSpace / 2;
-
-  if (clampedTimestamp - halfIconWidthConfigSpace <= nodeSpace[0]) {
-    return 'start';
-  }
-
-  if (clampedTimestamp + halfIconWidthConfigSpace >= nodeSpace[0] + nodeSpace[1]) {
-    return 'end';
-  }
-
-  return null;
-}
-
-function getTraceIconGroupAnchorTimestamp(
-  timestamp: number,
-  nodeSpace: [number, number],
-  edge: 'start' | 'end' | null
-): number {
+function getTraceIconEdgeClassName(
+  edge: 'start' | 'end' | null,
+  baseClassName: 'TraceIcon' | 'TraceIconGroup'
+): string {
   if (edge === 'start') {
-    return nodeSpace[0];
+    return `${baseClassName}Start`;
   }
 
   if (edge === 'end') {
-    return nodeSpace[0] + nodeSpace[1];
-  }
-
-  return clamp(timestamp, nodeSpace[0], nodeSpace[0] + nodeSpace[1]);
-}
-
-function getTraceIconGroupEdgeClassName(edge: 'start' | 'end' | null): string {
-  if (edge === 'start') {
-    return 'TraceIconGroupStart';
-  }
-
-  if (edge === 'end') {
-    return 'TraceIconGroupEnd';
+    return `${baseClassName}End`;
   }
 
   return '';
