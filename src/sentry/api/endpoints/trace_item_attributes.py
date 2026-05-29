@@ -89,7 +89,7 @@ class OrganizationTraceItemQueryValidatorEndpoint(OrganizationTraceItemAttribute
             )
 
         for af in query_context.having_terms:
-            func_keys = _extract_function_keys(af)
+            func_keys = _extract_function_keys(af, definitions)
             for key in func_keys:
                 result = key_results.get(key, {"valid": False, "error": "Unknown attribute"})
                 append_result(

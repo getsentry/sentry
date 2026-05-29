@@ -170,6 +170,48 @@ class OrganizationTraceItemQueryValidatorEndpointTest(APITestCase, BaseSpansTest
             "attributes": [{"key": "span.duration", "valid": True, "type": "number"}]
         }
 
+    def test_formula_with_literal_args(self):
+        response = self.do_request(
+            query={
+                "itemType": "spans",
+                "query": "avg_compare(span.self_time, release, foo, bar):>0",
+            },
+        )
+        assert response.status_code == 200
+        assert response.data == {
+            "attributes": [
+                {"key": "span.self_time", "valid": True, "type": "number"},
+                {"key": "release", "valid": True, "type": "string"},
+            ]
+        }
+
+    def test_formula_with_boolean_literal_arg(self):
+        response = self.do_request(
+            query={
+                "itemType": "spans",
+                "query": "failure_rate_if(is_transaction, equals, true):>0",
+            },
+        )
+        assert response.status_code == 200
+        assert response.data == {
+            "attributes": [{"key": "is_transaction", "valid": True, "type": "boolean"}]
+        }
+
+    def test_trace_metric_function_with_nested_filter_arg(self):
+        response = self.do_request(
+            query={
+                "itemType": "tracemetrics",
+                "query": "count_if(`release:abcdef`,value,request_duration,distribution,none):>0",
+            },
+        )
+        assert response.status_code == 200
+        assert response.data == {
+            "attributes": [
+                {"key": "release", "valid": True, "type": "string"},
+                {"key": "value", "valid": True, "type": "number"},
+            ]
+        }
+
     def test_no_arg_function(self):
         response = self.do_request(
             query={"itemType": "spans", "query": "count():>5"},
