@@ -193,7 +193,6 @@ export function TableView(props: TableViewProps) {
             isTransactionsDataset,
             location,
             organization,
-            projects,
           })}
         >
           {value}
@@ -309,7 +308,6 @@ export function TableView(props: TableViewProps) {
             isTransactionsDataset,
             location,
             organization,
-            projects,
           })}
         >
           {cell}
@@ -672,17 +670,15 @@ function getEventTarget({
   isTransactionsDataset,
   location,
   organization,
-  projects,
 }: {
   dataRow: TableDataRow;
   eventView: EventView;
   isTransactionsDataset: boolean;
   location: Location;
   organization: Organization;
-  projects: Project[];
 }): LocationDescriptorObject {
   if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
-    return getIssueEventTarget(dataRow, organization, location, projects);
+    return getIssueEventTarget(dataRow, organization, location);
   }
 
   const traceSlug = dataRow.trace;
@@ -704,22 +700,20 @@ function getEventTarget({
 function getIssueEventTarget(
   dataRow: TableDataRow,
   organization: Organization,
-  location: Location,
-  projects: Project[]
+  location: Location
 ): LocationDescriptorObject {
   const issueId = dataRow['issue.id'];
-  const project = dataRow.project || dataRow['project.name'];
-  const projectId = projects.find(({slug}) => slug === project)?.id;
 
   if (issueId !== undefined && issueId !== null) {
     return {
       pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
       query: {
-        project: projectId,
         referrer: 'discover-events-table',
       },
     };
   }
+
+  const project = dataRow.project || dataRow['project.name'];
 
   return {
     // Redirects to the issue group event page via ProjectEventRedirect
