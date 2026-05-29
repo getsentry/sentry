@@ -4,7 +4,7 @@ import {Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {MarkedToken} from 'sentry/utils/marked/marked';
+import type {ExtendedToken} from 'sentry/utils/marked/marked';
 import {MarkedLexer} from 'sentry/utils/marked/marked';
 
 import {Token} from './token';
@@ -42,6 +42,13 @@ export type MarkdownComponents = Partial<{
     WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
   >;
   TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
+  Tag: ComponentType<
+    WithDefault<{
+      level: 'block' | 'inline';
+      name: string;
+      value: Record<string, unknown>;
+    }>
+  >;
   TaskList: ComponentType<WithDefault<{children: ReactNode}>>;
   TaskListItem: ComponentType<WithDefault<{checked: boolean; children: ReactNode}>>;
   Text: ComponentType<WithDefault<{children: string}>>;
@@ -66,7 +73,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
       tokens.map((token, i) => (
         <Token
           key={isStreaming ? `${i}:${token.raw.length}` : i}
-          token={token as MarkedToken}
+          token={token as ExtendedToken}
           components={components}
         />
       )),
