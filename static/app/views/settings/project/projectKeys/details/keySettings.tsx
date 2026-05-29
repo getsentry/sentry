@@ -179,8 +179,6 @@ export function KeySettings({
               <ProjectKeyCredentials
                 projectId={`${data.projectId}`}
                 data={data}
-                showOtlpTraces
-                showOtlpLogs
                 showPublicKey
                 showSecretKey
                 showProjectId

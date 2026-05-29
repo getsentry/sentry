@@ -19,11 +19,7 @@ import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/v
 type Props = {
   data: ProjectKey;
   projectId: string;
-  showDsn?: boolean;
-  showDsnPublic?: boolean;
   showMinidump?: boolean;
-  showOtlpLogs?: boolean;
-  showOtlpTraces?: boolean;
   showProjectId?: boolean;
   showPublicKey?: boolean;
   showSecretKey?: boolean;
@@ -235,14 +231,10 @@ function CredentialsTab({
 export function ProjectKeyCredentials({
   data,
   projectId,
-  showDsn = true,
-  showDsnPublic = true,
   showMinidump = true,
   showProjectId = false,
   showPublicKey = false,
   showSecretKey = false,
-  showOtlpTraces = false,
-  showOtlpLogs = false,
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
@@ -258,7 +250,7 @@ export function ProjectKeyCredentials({
       {
         key: 'otlp',
         label: t('OpenTelemetry (OTLP)'),
-        visible: showOtlpTraces || showOtlpLogs,
+        visible: true,
       },
       {
         key: 'security',
@@ -283,8 +275,6 @@ export function ProjectKeyCredentials({
     ];
     return tabs.filter(tab => tab.visible);
   }, [
-    showOtlpTraces,
-    showOtlpLogs,
     showSecurityEndpoint,
     showMinidump,
     showUnreal,
@@ -330,8 +320,6 @@ export function ProjectKeyCredentials({
             logsEndpoint={data.dsn.otlp_logs}
             tracesEndpoint={data.dsn.otlp_traces}
             publicKey={data.public}
-            showOtlpLogs={showOtlpLogs}
-            showOtlpTraces={showOtlpTraces}
           />
         );
       case 'security':
@@ -356,7 +344,6 @@ export function ProjectKeyCredentials({
           <VercelTab
             integrationEndpoint={data.dsn.integration}
             publicKey={data.public}
-            showOtlpTraces={showOtlpTraces}
             tracesEndpoint={data.dsn.otlp_traces}
           />
         );
@@ -369,63 +356,46 @@ export function ProjectKeyCredentials({
     <Fragment>
       <FieldList>
         <dsnForm.AppForm form={dsnForm}>
-          {showDsnPublic && (
-            <dsnForm.AppField name="dsn">
-              {field => (
-                <field.Layout.Stack
-                  label={t('DSN')}
-                  hintText={tct(
-                    'The DSN tells the SDK where to send the events to. [link]',
-                    {
-                      link: showDsn ? (
-                        <Link
-                          to={{
-                            query: {
-                              ...location.query,
-                              showDeprecated: showDeprecatedDsn ? undefined : 'true',
-                            },
-                          }}
-                        >
-                          {showDeprecatedDsn
-                            ? t('Hide deprecated DSN')
-                            : t('Show deprecated DSN')}
-                        </Link>
-                      ) : null,
-                    }
-                  )}
-                >
-                  <TextCopyInput aria-label={t('DSN URL')}>
-                    {field.state.value}
-                  </TextCopyInput>
-                  {showDeprecatedDsn && (
-                    <Flex direction="column" gap="sm" paddingTop="2xs">
-                      <Text size="sm" variant="muted">
-                        {t(
-                          'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
-                        )}
-                      </Text>
-                      <TextCopyInput>{data.dsn.secret}</TextCopyInput>
-                    </Flex>
-                  )}
-                </field.Layout.Stack>
-              )}
-            </dsnForm.AppField>
-          )}
-
-          {!showDsnPublic && showDsn && (
-            <dsnForm.AppField name="dsnDeprecated">
-              {field => (
-                <field.Layout.Stack
-                  label={t('DSN (Deprecated)')}
-                  hintText={t(
-                    'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
-                  )}
-                >
-                  <TextCopyInput>{field.state.value}</TextCopyInput>
-                </field.Layout.Stack>
-              )}
-            </dsnForm.AppField>
-          )}
+          <dsnForm.AppField name="dsn">
+            {field => (
+              <field.Layout.Stack
+                label={t('DSN')}
+                hintText={tct(
+                  'The DSN tells the SDK where to send the events to. [link]',
+                  {
+                    link: (
+                      <Link
+                        to={{
+                          query: {
+                            ...location.query,
+                            showDeprecated: showDeprecatedDsn ? undefined : 'true',
+                          },
+                        }}
+                      >
+                        {showDeprecatedDsn
+                          ? t('Hide deprecated DSN')
+                          : t('Show deprecated DSN')}
+                      </Link>
+                    ),
+                  }
+                )}
+              >
+                <TextCopyInput aria-label={t('DSN URL')}>
+                  {field.state.value}
+                </TextCopyInput>
+                {showDeprecatedDsn && (
+                  <Flex direction="column" gap="sm" paddingTop="2xs">
+                    <Text size="sm" variant="muted">
+                      {t(
+                        'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                      )}
+                    </Text>
+                    <TextCopyInput>{data.dsn.secret}</TextCopyInput>
+                  </Flex>
+                )}
+              </field.Layout.Stack>
+            )}
+          </dsnForm.AppField>
 
           {data.useCase && (
             <dsnForm.AppField name="useCase">

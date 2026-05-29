@@ -96,8 +96,6 @@ export function KeyRow({
           <ProjectKeyCredentials
             projectId={`${data.projectId}`}
             data={data}
-            showOtlpTraces
-            showOtlpLogs
             showMinidump={!isJsPlatform}
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}

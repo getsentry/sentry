@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
@@ -11,7 +10,6 @@ import {t, tct} from 'sentry/locale';
 interface VercelTabProps {
   integrationEndpoint: string;
   publicKey: string;
-  showOtlpTraces: boolean;
   tracesEndpoint: string;
 }
 
@@ -25,7 +23,6 @@ const vercelSchema = z.object({
 export function VercelTab({
   integrationEndpoint,
   publicKey,
-  showOtlpTraces,
   tracesEndpoint,
 }: VercelTabProps) {
   const headers = `x-sentry-auth: sentry sentry_key=${publicKey}`;
@@ -79,46 +76,40 @@ export function VercelTab({
           )}
         </form.AppField>
 
-        {showOtlpTraces && (
-          <Fragment>
-            <form.AppField name="traceDrainEndpoint">
-              {field => (
-                <field.Layout.Stack
-                  label={t('Vercel Trace Drain Endpoint')}
-                  hintText={tct(
-                    'Set this URL as your Vercel Trace Drain Endpoint (OTLP format). [link:Learn more]',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/#trace-drains" />
-                      ),
-                    }
-                  )}
-                >
-                  <TextCopyInput aria-label={t('Vercel Trace Drain Endpoint')}>
-                    {field.state.value}
-                  </TextCopyInput>
-                </field.Layout.Stack>
+        <form.AppField name="traceDrainEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('Vercel Trace Drain Endpoint')}
+              hintText={tct(
+                'Set this URL as your Vercel Trace Drain Endpoint (OTLP format). [link:Learn more]',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/#trace-drains" />
+                  ),
+                }
               )}
-            </form.AppField>
+            >
+              <TextCopyInput aria-label={t('Vercel Trace Drain Endpoint')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
 
-            <form.AppField name="traceDrainHeaders">
-              {field => (
-                <field.Layout.Stack
-                  label={t('Vercel Trace Drain Authentication Headers')}
-                  hintText={t(
-                    'Set these security headers when configuring your Vercel Trace Drain.'
-                  )}
-                >
-                  <TextCopyInput
-                    aria-label={t('Vercel Trace Drain Authentication Header')}
-                  >
-                    {field.state.value}
-                  </TextCopyInput>
-                </field.Layout.Stack>
+        <form.AppField name="traceDrainHeaders">
+          {field => (
+            <field.Layout.Stack
+              label={t('Vercel Trace Drain Authentication Headers')}
+              hintText={t(
+                'Set these security headers when configuring your Vercel Trace Drain.'
               )}
-            </form.AppField>
-          </Fragment>
-        )}
+            >
+              <TextCopyInput aria-label={t('Vercel Trace Drain Authentication Header')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
       </FieldList>
     </form.AppForm>
   );
