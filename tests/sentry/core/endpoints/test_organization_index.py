@@ -344,9 +344,13 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             resp = self.get_error_response(**data)
             assert resp.status_code == 400
 
-            self.login_as(staff)
+            self.login_as(staff, staff=False)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400, "Staff require an active staff session"
+
+            self.login_as(staff, staff=True)
             resp = self.get_success_response(**data)
-            assert resp.status_code == 201, "Staff should be able to create orgs in hidden locales"
+            assert resp.status_code == 201, "Staff can be create orgs in hidden locales"
 
             data = {"name": "Acme co", "slug": "acme-co", "dataStorageLocation": "acme"}
 
@@ -355,6 +359,12 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             assert resp.status_code == 400
 
             self.login_as(staff)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400, (
+                "Staff require an active staff session to create orgs in st locales"
+            )
+
+            self.login_as(staff, staff=True)
             resp = self.get_success_response(**data)
             assert resp.status_code == 201, (
                 "Staff should be able to create orgs in hidden st locales"

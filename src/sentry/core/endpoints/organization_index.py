@@ -25,6 +25,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.demo_mode.utils import is_demo_user
@@ -92,7 +93,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             locality = get_locality_by_name(value)
         except CellResolutionError:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
-        if "request" in self.context and self.context["request"].user.is_staff:
+        if "request" in self.context and is_active_staff(self.context["request"]):
             # Staff users are allowed to create orgs in hidden cells/localities.
             return value
         if locality.category != RegionCategory.MULTI_TENANT or not locality.visible:
