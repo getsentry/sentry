@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
 
+import {CompactSelect as mockCompactSelect} from 'sentry-test/snapshots/mocks/compactSelect';
+
 import {Tag} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
@@ -9,35 +11,7 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 
-// Tooltips portal to `document.body` on render, which the SSR snapshot
-// environment (no `document`) can't do. They're hover-only and never visible in
-// a static snapshot, so render the trigger directly.
-jest.mock('@sentry/scraps/tooltip', () => ({
-  Tooltip: ({children}: {children: React.ReactNode}) => children,
-}));
-
-// CompactSelect's overlay control reads `document` during render to compute the
-// dropdown boundary, which the SSR environment can't provide. The dropdown menu
-// is never visible in a static snapshot anyway, so render only its trigger — the
-// real DropdownButton the closed select shows in prod.
-jest.mock('@sentry/scraps/compactSelect', () => {
-  const {DropdownButton} = jest.requireActual('sentry/components/dropdownButton');
-  return {
-    CompactSelect: ({
-      options,
-      value,
-      size,
-    }: {
-      options: Array<{label: React.ReactNode; value: unknown}>;
-      size?: string;
-      value?: unknown;
-    }) => (
-      <DropdownButton size={size}>
-        {options.find(opt => opt.value === value)?.label}
-      </DropdownButton>
-    ),
-  };
-});
+jest.mock('@sentry/scraps/compactSelect', () => ({CompactSelect: mockCompactSelect}));
 
 import {
   ColorPickerButton,
@@ -142,11 +116,12 @@ const noop = () => {};
 
 describe('SnapshotsToolbar', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {
-    it.snapshot(
+    it.snapshot.breakpoints(
+      ['xs', 'sm', 'md'],
       'all controls',
       () => (
         <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: 960}}>
+          <div style={{width: '100%'}}>
             <SnapshotsToolbarWithControls
               viewMode="list"
               onViewModeChange={noop}
@@ -163,7 +138,7 @@ describe('SnapshotsToolbar', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {state: 'all-controls', area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -181,7 +156,7 @@ describe('SnapshotsToolbar', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {state: 'no-diff-controls', area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -198,7 +173,7 @@ describe('SnapshotsToolbar', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {state: 'solo-base', area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -210,7 +185,7 @@ describe('SnapshotsToolbar', () => {
           </div>
         </ThemeProvider>
       ),
-      {tags: {state: 'minimal', area: 'snapshots'}}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

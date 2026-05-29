@@ -1184,6 +1184,7 @@ export default typescript.config([
           type: 'test-sentry',
           pattern: [
             'static/app/**/*.spec.{ts,js,tsx,jsx}',
+            'static/app/**/*.snapshots.tsx',
             'tests/js/sentry-test/**/*.*',
             'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
           ],
