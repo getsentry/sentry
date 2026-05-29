@@ -275,15 +275,16 @@ def test_push_payloads_writes_payloads() -> None:
         _span("b" * 16, parent_span_id),
     ]
 
-    trees, subsegment_batches = buffer._push_payloads(
-        spans,
-        redis_ttl=3600,
-        max_spans_per_evalsha=0,
-        pipeline_batch_size=0,
-    )
+    with override_options({"spans.buffer.compression.level": -1}):
+        trees, subsegment_batches = buffer._push_payloads(
+            spans,
+            redis_ttl=3600,
+            max_spans_per_evalsha=0,
+            pipeline_batch_size=0,
+        )
 
     subsegment = subsegment_batches[0][0]
-    payload_key = buffer._get_payload_key(project_and_trace, subsegment.salt)
+    payload_key = buffer.store.get_payload_key(project_and_trace, subsegment.salt)
     sadd_args = pipeline.sadd.call_args.args
     assert list(trees) == [(project_and_trace, parent_span_id)]
     assert subsegment.spans == spans
@@ -482,14 +483,14 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
         root_timeout=10,
     )
 
-    queue_key = buffer._get_queue_key(3)
+    queue_key = buffer.store.get_queue_key(3)
     pipeline.zadd.assert_called_once_with(queue_key, {result.segment_key: 110})
     pipeline.expire.assert_called_once_with(queue_key, 3600)
     zrem_args = pipeline.zrem.call_args.args
     assert zrem_args[0] == queue_key
     assert set(zrem_args[1:]) == {
-        buffer._get_span_key(project_and_trace, first_span.span_id),
-        buffer._get_span_key(project_and_trace, second_span.span_id),
+        buffer.store.get_span_key(project_and_trace, first_span.span_id),
+        buffer.store.get_span_key(project_and_trace, second_span.span_id),
     }
     pipeline.execute.assert_called_once_with()
     client.zscore.assert_not_called()
@@ -1447,7 +1448,7 @@ def test_kafka_slice_id(buffer: SpansBuffer) -> None:
     with override_options(DEFAULT_OPTIONS):
         buffer = SpansBuffer(assigned_shards=list(range(1)), slice_id=2)
 
-        queue_key = buffer._get_queue_key(0)
+        queue_key = buffer.store.get_queue_key(0)
         assert queue_key == b"span-buf:q:2-0"
 
         spans = [
@@ -1695,7 +1696,7 @@ def test_flush_lock_released_after_done_flush(buffer: SpansBuffer) -> None:
     with override_options({"spans.buffer.flusher.flush-lock-ttl": 60}):
         rv = buffer.flush_segments(now=11)
         segment_key = next(iter(rv))
-        lock_key = buffer._get_flush_lock_key(segment_key)
+        lock_key = buffer.store.get_flush_lock_key(segment_key)
         assert buffer.client.exists(lock_key) == 1
 
         buffer.done_flush_segments(rv)
@@ -1899,7 +1900,7 @@ def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
         assert len(rv[segment_key].spans) == 2
 
         # Step 3: Simulate lock expiration by deleting it
-        buffer.client.delete(buffer._get_flush_lock_key(segment_key))
+        buffer.client.delete(buffer.store.get_flush_lock_key(segment_key))
 
         # Step 4: New spans arrive while "producing to Kafka"
         # Lock is gone, so they MERGE into segment (not detach)
@@ -1941,7 +1942,7 @@ def test_build_flushed_segments_adds_segment_metadata() -> None:
     segment_span_id = "b" * 16
     child_span_id = "c" * 16
     segment_key = _segment_id(1, trace_id, segment_span_id)
-    queue_key = buffer._get_queue_key(0)
+    queue_key = buffer.store.get_queue_key(0)
     payload_key = _payload_key(1, trace_id, "1" * 32)
     flush_candidate = FlushCandidate(0, queue_key, segment_key, 5)
 
@@ -1978,7 +1979,7 @@ def test_record_segment_loss_metrics_records_dropped_spans() -> None:
     payload_key = _payload_key(1, trace_id, "1" * 32)
     span_a = _payload("a" * 16)
     loaded_segment = LoadedSegment(
-        FlushCandidate(0, buffer._get_queue_key(0), segment_key, 5),
+        FlushCandidate(0, buffer.store.get_queue_key(0), segment_key, 5),
         payloads=[span_a],
         payload_keys=[payload_key],
         ingest_metadata=SegmentIngestMetadata(
@@ -2039,7 +2040,7 @@ def test_record_segment_loss_metrics_records_empty_expired_segments(
     trace_id = "a" * 32
     segment_key = _segment_id(1, trace_id, "b" * 16)
     loaded_segment = LoadedSegment(
-        FlushCandidate(0, buffer._get_queue_key(0), segment_key, deadline),
+        FlushCandidate(0, buffer.store.get_queue_key(0), segment_key, deadline),
         payloads=[],
         payload_keys=[],
     )

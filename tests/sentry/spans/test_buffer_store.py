@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import builtins
-from types import TracebackType
-from typing import Any
+from collections.abc import Generator
 from unittest import mock
 
 import orjson
+import pytest
 import zstandard
 
+from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_store import SpansBufferStore
 from sentry.spans.buffer_types import (
     EvalshaResult,
@@ -18,6 +18,14 @@ from sentry.spans.buffer_types import (
 )
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
+
+pytestmark = [pytest.mark.django_db]
+
+# Keep these tests in their own Redis keyspace. CI runs test files in parallel,
+# so broad cleanup like flushdb() can erase state from test_buffer.py.
+_TEST_PROJECT_ID = 999_001
+_TEST_TRACE_ID = "f" * 32
+_TEST_SLICE_ID = 999_001
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
@@ -32,12 +40,6 @@ def _payload(span_id: str) -> bytes:
     return orjson.dumps({"span_id": span_id})
 
 
-def _as_redis_bytes(value: bytes | str | int) -> bytes:
-    if isinstance(value, bytes):
-        return value
-    return str(value).encode("ascii")
-
-
 def _decompress_payload(raw_data: bytes) -> list[bytes]:
     if not raw_data.startswith(b"\x28\xb5\x2f\xfd"):
         return [raw_data]
@@ -46,146 +48,23 @@ def _decompress_payload(raw_data: bytes) -> list[bytes]:
     return decompressed_buffer.split(b"\x00")
 
 
-class _StorageRedis:
-    def __init__(self) -> None:
-        self.sets: dict[bytes, builtins.set[bytes]] = {}
-        self.values: dict[bytes, bytes] = {}
-        self.zsets: dict[bytes, dict[bytes, float]] = {}
-
-    def pipeline(self, transaction: bool = False) -> _StoragePipeline:
-        return _StoragePipeline(self)
-
-    def sadd(self, key: bytes, *values: bytes | str) -> None:
-        self.sets.setdefault(key, builtins.set()).update(_as_redis_bytes(value) for value in values)
-
-    def set(self, key: bytes, value: bytes | int, ex: int | None = None, nx: bool = False) -> bool:
-        if nx and key in self.values:
-            return False
-        self.values[key] = _as_redis_bytes(value)
-        return True
-
-    def zadd(self, key: bytes, mapping: dict[bytes, int]) -> None:
-        self.zsets.setdefault(key, {}).update(mapping)
-
-    def zrem(self, key: bytes, *values: bytes) -> None:
-        for value in values:
-            self.zsets.get(key, {}).pop(value, None)
-
-    def zscore(self, key: bytes, value: bytes) -> float | None:
-        return self.zsets.get(key, {}).get(value)
-
-    def expire(self, key: bytes, ttl: int) -> None:
-        return None
-
-    def smembers(self, key: bytes) -> builtins.set[bytes]:
-        return self.sets.get(key, builtins.set())
-
-    def sscan(
-        self, key: bytes, cursor: int = 0, count: int | None = None
-    ) -> tuple[int, list[bytes]]:
-        values = sorted(self.sets.get(key, builtins.set()))
-        page_size = count or len(values) or 1
-        next_cursor = cursor + page_size
-        if next_cursor >= len(values):
-            return 0, values[cursor:]
-        return next_cursor, values[cursor:next_cursor]
-
-    def get(self, key: bytes) -> bytes | None:
-        return self.values.get(key)
-
-    def zrangebyscore(
-        self,
-        key: bytes,
-        min_score: int,
-        max_score: int,
-        start: int = 0,
-        num: int | None = None,
-        withscores: bool = False,
-    ) -> list[bytes] | list[tuple[bytes, float]]:
-        values_with_scores = [
-            (value, score)
-            for value, score in self.zsets.get(key, {}).items()
-            if min_score <= score <= max_score
-        ]
-        values_with_scores.sort(key=lambda item: item[1])
-        if num is not None:
-            values_with_scores = values_with_scores[start : start + num]
-        else:
-            values_with_scores = values_with_scores[start:]
-
-        if withscores:
-            return values_with_scores
-        return [value for value, _ in values_with_scores]
+@pytest.fixture
+def storage() -> Generator[SpansBufferStore]:
+    buffer = SpansBuffer(
+        assigned_shards=[0],
+        slice_id=_TEST_SLICE_ID,
+    )
+    yield buffer.store
+    keys = buffer.client.keys(f"*{_TEST_PROJECT_ID}:{_TEST_TRACE_ID}*")
+    keys.extend(buffer.store.get_queue_key(shard) for shard in (0, 3))
+    buffer.client.delete(*keys)
 
 
-class _StoragePipeline:
-    def __init__(self, client: _StorageRedis) -> None:
-        self.client = client
-        self.commands: list[tuple[str, tuple[Any, ...]]] = []
-
-    def __enter__(self) -> _StoragePipeline:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        return None
-
-    def smembers(self, key: bytes) -> None:
-        self.commands.append(("smembers", (key,)))
-
-    def sscan(self, key: bytes, cursor: int = 0, count: int | None = None) -> None:
-        self.commands.append(("sscan", (key, cursor, count)))
-
-    def get(self, key: bytes) -> None:
-        self.commands.append(("get", (key,)))
-
-    def set(self, key: bytes, value: bytes | int, ex: int | None = None, nx: bool = False) -> None:
-        self.commands.append(("set", (key, value, ex, nx)))
-
-    def zadd(self, key: bytes, mapping: dict[bytes, int]) -> None:
-        self.commands.append(("zadd", (key, mapping)))
-
-    def zrem(self, key: bytes, *values: bytes) -> None:
-        self.commands.append(("zrem", (key, *values)))
-
-    def expire(self, key: bytes, ttl: int) -> None:
-        self.commands.append(("expire", (key, ttl)))
-
-    def zrangebyscore(
-        self,
-        key: bytes,
-        min_score: int,
-        max_score: int,
-        start: int = 0,
-        num: int | None = None,
-        withscores: bool = False,
-    ) -> None:
-        self.commands.append(("zrangebyscore", (key, min_score, max_score, start, num, withscores)))
-
-    def execute(self) -> list[Any]:
-        results: list[Any] = []
-        for command, args in self.commands:
-            method = getattr(self.client, command)
-            results.append(method(*args))
-        self.commands = []
-        return results
-
-
-def _storage() -> tuple[SpansBufferStore, _StorageRedis]:
-    client = _StorageRedis()
-    return SpansBufferStore(client, assigned_shards=[0]), client
-
-
-def test_load_flush_candidates_reads_ready_segments() -> None:
-    storage, client = _storage()
+def test_load_flush_candidates_reads_ready_segments(storage: SpansBufferStore) -> None:
     queue_key = storage.get_queue_key(0)
-    ready_segment_key = _segment_id(1, "a" * 32, "b" * 16)
-    later_segment_key = _segment_id(1, "a" * 32, "c" * 16)
-    client.zadd(queue_key, {ready_segment_key: 5, later_segment_key: 15})
+    ready_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
+    later_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "c" * 16)
+    storage.client.zadd(queue_key, {ready_segment_key: 5, later_segment_key: 15})
 
     flush_candidates, load_ids_latency_ms = storage.load_flush_candidates(
         cutoff=10,
@@ -196,13 +75,12 @@ def test_load_flush_candidates_reads_ready_segments() -> None:
     assert load_ids_latency_ms >= 0
 
 
-def test_acquire_flush_locks_keeps_locked_candidates() -> None:
-    storage, client = _storage()
-    first_segment_key = _segment_id(1, "a" * 32, "b" * 16)
-    second_segment_key = _segment_id(1, "a" * 32, "c" * 16)
+def test_acquire_flush_locks_keeps_locked_candidates(storage: SpansBufferStore) -> None:
+    first_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
+    second_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "c" * 16)
     first_candidate = FlushCandidate(0, storage.get_queue_key(0), first_segment_key, 5)
     second_candidate = FlushCandidate(0, storage.get_queue_key(0), second_segment_key, 10)
-    client.set(storage.get_flush_lock_key(first_segment_key), b"1")
+    storage.client.set(storage.get_flush_lock_key(first_segment_key), b"1")
 
     with (
         override_options({"spans.buffer.flusher.flush-lock-ttl": 60}),
@@ -217,18 +95,19 @@ def test_acquire_flush_locks_keeps_locked_candidates() -> None:
     )
 
 
-def test_acquire_flush_locks_returns_all_candidates_when_disabled() -> None:
-    storage, _ = _storage()
+def test_acquire_flush_locks_returns_all_candidates_when_disabled(
+    storage: SpansBufferStore,
+) -> None:
     first_candidate = FlushCandidate(
         0,
         storage.get_queue_key(0),
-        _segment_id(1, "a" * 32, "b" * 16),
+        _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16),
         5,
     )
     second_candidate = FlushCandidate(
         0,
         storage.get_queue_key(0),
-        _segment_id(1, "a" * 32, "c" * 16),
+        _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "c" * 16),
         10,
     )
 
@@ -238,27 +117,27 @@ def test_acquire_flush_locks_returns_all_candidates_when_disabled() -> None:
     assert flush_candidates == [first_candidate, second_candidate]
 
 
-def test_update_queue_writes_deadlines_and_removes_stale_span_keys() -> None:
-    storage, client = _storage()
-    trace_id = "a" * 32
-    project_and_trace = f"1:{trace_id}"
+def test_update_queue_writes_deadlines_and_removes_stale_span_keys(
+    storage: SpansBufferStore,
+) -> None:
+    project_and_trace = f"{_TEST_PROJECT_ID}:{_TEST_TRACE_ID}"
     parent_span_id = "f" * 16
     queue_key = storage.get_queue_key(3)
     first_span = Span(
-        trace_id=trace_id,
+        trace_id=_TEST_TRACE_ID,
         span_id="1" * 16,
         parent_span_id=parent_span_id,
         segment_id=None,
-        project_id=1,
+        project_id=_TEST_PROJECT_ID,
         payload=_payload("1" * 16),
         partition=3,
     )
     second_span = Span(
-        trace_id=trace_id,
+        trace_id=_TEST_TRACE_ID,
         span_id="2" * 16,
         parent_span_id=parent_span_id,
         segment_id=None,
-        project_id=1,
+        project_id=_TEST_PROJECT_ID,
         payload=_payload("2" * 16),
         partition=3,
     )
@@ -268,7 +147,7 @@ def test_update_queue_writes_deadlines_and_removes_stale_span_keys() -> None:
         salt="salted",
         spans=[first_span],
     )
-    segment_key = _segment_id(1, trace_id, parent_span_id)
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, parent_span_id)
     result = EvalshaResult(
         segment_key=segment_key,
         has_root_span=True,
@@ -278,12 +157,14 @@ def test_update_queue_writes_deadlines_and_removes_stale_span_keys() -> None:
     )
     debug_trace_logger = mock.Mock()
     debug_trace_logger._should_log_trace.return_value = True
-    client.zadd(
+    first_span_key = storage.get_span_key(project_and_trace, first_span.span_id)
+    second_span_key = storage.get_span_key(project_and_trace, second_span.span_id)
+    storage.client.zadd(
         queue_key,
         {
             segment_key: 80,
-            storage.get_span_key(project_and_trace, first_span.span_id): 90,
-            storage.get_span_key(project_and_trace, second_span.span_id): 95,
+            first_span_key: 90,
+            second_span_key: 95,
         },
     )
 
@@ -297,7 +178,9 @@ def test_update_queue_writes_deadlines_and_removes_stale_span_keys() -> None:
         get_debug_trace_logger=lambda: debug_trace_logger,
     )
 
-    assert client.zsets[queue_key] == {segment_key: 110}
+    assert storage.client.zscore(queue_key, segment_key) == 110
+    assert storage.client.zscore(queue_key, first_span_key) is None
+    assert storage.client.zscore(queue_key, second_span_key) is None
     debug_trace_logger.log_deadline_update.assert_called_once_with(
         segment_key=segment_key,
         project_and_trace=project_and_trace,
@@ -308,18 +191,16 @@ def test_update_queue_writes_deadlines_and_removes_stale_span_keys() -> None:
     )
 
 
-def test_update_queue_uses_timeout_for_non_root_segments() -> None:
-    storage, client = _storage()
-    trace_id = "a" * 32
-    project_and_trace = f"1:{trace_id}"
+def test_update_queue_uses_timeout_for_non_root_segments(storage: SpansBufferStore) -> None:
+    project_and_trace = f"{_TEST_PROJECT_ID}:{_TEST_TRACE_ID}"
     parent_span_id = "f" * 16
     queue_key = storage.get_queue_key(3)
     span = Span(
-        trace_id=trace_id,
+        trace_id=_TEST_TRACE_ID,
         span_id="1" * 16,
         parent_span_id=parent_span_id,
         segment_id=None,
-        project_id=1,
+        project_id=_TEST_PROJECT_ID,
         payload=_payload("1" * 16),
         partition=3,
     )
@@ -329,7 +210,7 @@ def test_update_queue_uses_timeout_for_non_root_segments() -> None:
         salt="salted",
         spans=[span],
     )
-    segment_key = _segment_id(1, trace_id, parent_span_id)
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, parent_span_id)
     result = EvalshaResult(
         segment_key=segment_key,
         has_root_span=False,
@@ -351,22 +232,22 @@ def test_update_queue_uses_timeout_for_non_root_segments() -> None:
     )
 
     # Without a root span the deadline uses `timeout` (60), not `root_timeout` (10).
-    assert client.zsets[queue_key] == {segment_key: 160}
+    assert storage.client.zscore(queue_key, segment_key) == 160
 
 
-def test_update_queue_keeps_child_span_keys_for_detached_segments() -> None:
-    storage, client = _storage()
-    trace_id = "a" * 32
-    project_and_trace = f"1:{trace_id}"
+def test_update_queue_keeps_child_span_keys_for_detached_segments(
+    storage: SpansBufferStore,
+) -> None:
+    project_and_trace = f"{_TEST_PROJECT_ID}:{_TEST_TRACE_ID}"
     parent_span_id = "f" * 16
     salt = "salted"
     queue_key = storage.get_queue_key(3)
     span = Span(
-        trace_id=trace_id,
+        trace_id=_TEST_TRACE_ID,
         span_id="1" * 16,
         parent_span_id=parent_span_id,
         segment_id=None,
-        project_id=1,
+        project_id=_TEST_PROJECT_ID,
         payload=_payload("1" * 16),
         partition=3,
     )
@@ -378,7 +259,7 @@ def test_update_queue_keeps_child_span_keys_for_detached_segments() -> None:
     )
     # A detached segment's key ends with the subsegment salt; its child span keys
     # must be left in the queue rather than removed.
-    detached_segment_key = f"span-buf:s:{{1:{trace_id}:{salt}}}:{salt}".encode("ascii")
+    detached_segment_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, salt)
     result = EvalshaResult(
         segment_key=detached_segment_key,
         has_root_span=False,
@@ -389,7 +270,7 @@ def test_update_queue_keeps_child_span_keys_for_detached_segments() -> None:
     debug_trace_logger = mock.Mock()
     debug_trace_logger._should_log_trace.return_value = False
     span_key = storage.get_span_key(project_and_trace, span.span_id)
-    client.zadd(queue_key, {span_key: 90})
+    storage.client.zadd(queue_key, {span_key: 90})
 
     storage.update_queue(
         {subsegment.key: [span]},
@@ -401,18 +282,17 @@ def test_update_queue_keeps_child_span_keys_for_detached_segments() -> None:
         get_debug_trace_logger=lambda: debug_trace_logger,
     )
 
-    assert client.zsets[queue_key] == {span_key: 90, detached_segment_key: 160}
+    assert storage.client.zscore(queue_key, span_key) == 90
+    assert storage.client.zscore(queue_key, detached_segment_key) == 160
 
 
-def test_load_payload_keys_from_distributed_keys() -> None:
-    storage, client = _storage()
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
+def test_load_payload_keys_from_distributed_keys(storage: SpansBufferStore) -> None:
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
     first_salt = "1" * 32
     second_salt = "2" * 32
-    first_payload_key = _payload_key(1, trace_id, first_salt)
-    second_payload_key = _payload_key(1, trace_id, second_salt)
-    client.sadd(storage.get_payload_key_index(segment_key), first_salt, second_salt)
+    first_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, first_salt)
+    second_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, second_salt)
+    storage.client.sadd(storage.get_payload_key_index(segment_key), first_salt, second_salt)
 
     payload_keys = storage.load_payload_keys([segment_key])
 
@@ -422,15 +302,15 @@ def test_load_payload_keys_from_distributed_keys() -> None:
     }
 
 
-def test_load_payloads_from_keys_decompresses_payload_batches() -> None:
-    storage, client = _storage()
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
-    payload_key = _payload_key(1, trace_id, "1" * 32)
+def test_load_payloads_from_keys_decompresses_payload_batches(
+    storage: SpansBufferStore,
+) -> None:
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
+    payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, "1" * 32)
     span_a = _payload("a" * 16)
     span_b = _payload("b" * 16)
     compressed = zstandard.ZstdCompressor(level=0).compress(b"\x00".join([span_a, span_b]))
-    client.sadd(payload_key, compressed)
+    storage.client.sadd(payload_key, compressed)
 
     payloads, decompress_latency_ms = storage.load_payloads_from_keys(
         [segment_key],
@@ -443,23 +323,23 @@ def test_load_payloads_from_keys_decompresses_payload_batches() -> None:
     assert decompress_latency_ms >= 0
 
 
-def test_load_segments_reads_payloads_from_distributed_keys() -> None:
-    storage, client = _storage()
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
+def test_load_segments_reads_payloads_from_distributed_keys(
+    storage: SpansBufferStore,
+) -> None:
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
     first_salt = "1" * 32
     second_salt = "2" * 32
-    first_payload_key = _payload_key(1, trace_id, first_salt)
-    second_payload_key = _payload_key(1, trace_id, second_salt)
+    first_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, first_salt)
+    second_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, second_salt)
     span_a = _payload("a" * 16)
     span_b = _payload("b" * 16)
     span_c = _payload("c" * 16)
 
-    client.sadd(storage.get_payload_key_index(segment_key), first_salt, second_salt)
-    client.sadd(first_payload_key, span_a, span_b)
-    client.sadd(second_payload_key, span_c)
-    client.set(b"span-buf:ic:" + segment_key, 3)
-    client.set(b"span-buf:ibc:" + segment_key, len(span_a) + len(span_b) + len(span_c))
+    storage.client.sadd(storage.get_payload_key_index(segment_key), first_salt, second_salt)
+    storage.client.sadd(first_payload_key, span_a, span_b)
+    storage.client.sadd(second_payload_key, span_c)
+    storage.client.set(b"span-buf:ic:" + segment_key, 3)
+    storage.client.set(b"span-buf:ibc:" + segment_key, len(span_a) + len(span_b) + len(span_c))
 
     with override_options({"spans.buffer.segment-page-size": 1}):
         loaded_segments, _, _ = storage.load_segments(
@@ -479,19 +359,19 @@ def test_load_segments_reads_payloads_from_distributed_keys() -> None:
     )
 
 
-def test_load_segments_decompresses_payload_batches() -> None:
-    storage, client = _storage()
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
+def test_load_segments_decompresses_payload_batches(
+    storage: SpansBufferStore,
+) -> None:
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
     salt = "1" * 32
-    payload_key = _payload_key(1, trace_id, salt)
+    payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, salt)
     span_a = _payload("a" * 16)
     span_b = _payload("b" * 16)
     compressed = zstandard.ZstdCompressor(level=0).compress(b"\x00".join([span_a, span_b]))
 
-    client.sadd(storage.get_payload_key_index(segment_key), salt)
-    client.sadd(payload_key, compressed)
-    client.set(b"span-buf:ic:" + segment_key, 2)
+    storage.client.sadd(storage.get_payload_key_index(segment_key), salt)
+    storage.client.sadd(payload_key, compressed)
+    storage.client.set(b"span-buf:ic:" + segment_key, 2)
 
     with override_options({"spans.buffer.segment-page-size": 1}):
         loaded_segments, load_data_latency_ms, decompress_latency_ms = storage.load_segments(

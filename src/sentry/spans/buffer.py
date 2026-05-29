@@ -135,7 +135,6 @@ from sentry.spans.buffer_types import (
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import (
-    PayloadKey,
     SegmentKey,
     parse_segment_key,
     segment_key_to_span_id,
@@ -162,8 +161,6 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.any_shard_at_limit = False
-        self._current_compression_level = None
-        self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
         self._buffer_logger = BufferLogger()
         self._flusher_logger = FlusherLogger()
@@ -181,18 +178,6 @@ class SpansBuffer:
     def __reduce__(self):
         return (SpansBuffer, (self.assigned_shards, self.slice_id))
 
-    def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
-        return self.store.get_span_key(project_and_trace, span_id)
-
-    def _get_payload_key(self, project_and_trace: str, span_id: str) -> PayloadKey:
-        return self.store.get_payload_key(project_and_trace, span_id)
-
-    def _get_payload_key_index(self, segment_key: SegmentKey) -> bytes:
-        return self.store.get_payload_key_index(segment_key)
-
-    def _get_flush_lock_key(self, segment_key: SegmentKey) -> bytes:
-        return self.store.get_flush_lock_key(segment_key)
-
     def _get_debug_trace_logger(self) -> DebugTraceLogger:
         if self._debug_trace_logger is None:
             self._debug_trace_logger = DebugTraceLogger(self.client)
@@ -205,14 +190,6 @@ class SpansBuffer:
         :param now: The current time to be used for setting expiration/flush
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
-
-        compression_level = options.get("spans.buffer.compression.level")
-        if compression_level != self._current_compression_level:
-            self._current_compression_level = compression_level
-            if compression_level == -1:
-                self._zstd_compressor = None
-            else:
-                self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
 
         redis_ttl = options.get("spans.buffer.redis-ttl")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
@@ -306,7 +283,6 @@ class SpansBuffer:
             self.store.store_payloads(
                 subsegment_batches,
                 redis_ttl=redis_ttl,
-                prepare_payloads=self._prepare_payloads,
             )
 
         return trees, subsegment_batches
@@ -383,9 +359,6 @@ class SpansBuffer:
             get_debug_trace_logger=self._get_debug_trace_logger,
         )
 
-    def _get_queue_key(self, shard: int) -> bytes:
-        return self.store.get_queue_key(shard)
-
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
         Groups partial trees of spans by their top-most parent span ID in the
@@ -421,28 +394,6 @@ class SpansBuffer:
 
         return trees
 
-    def _prepare_payloads(self, spans: list[Span]) -> set[str | bytes]:
-        """
-        Prepare span payloads for storage. Returns a set of payload bytes.
-        """
-        if self._zstd_compressor is None:
-            return {span.payload for span in spans}
-
-        combined = b"\x00".join(span.payload for span in spans)
-        original_size = len(combined)
-
-        with metrics.timer("spans.buffer.compression.cpu_time"):
-            compressed = self._zstd_compressor.compress(combined)
-
-        compressed_size = len(compressed)
-
-        compression_ratio = compressed_size / original_size if original_size > 0 else 0
-        metrics.timing("spans.buffer.compression.original_size", original_size)
-        metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
-        metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
-
-        return {compressed}
-
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
         # Check for zstd magic header (0xFD2FB528 in little-endian) --
         # backwards compat with code that did not write compressed payloads.
@@ -457,7 +408,7 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.get_stored_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
-                    key = self._get_queue_key(shard)
+                    key = self.store.get_queue_key(shard)
                     p.zcard(key)
 
                 result = p.execute()
@@ -683,7 +634,7 @@ class SpansBuffer:
                         p.hdel(redirect_map_key, *span_ids)
 
                     if flushed_segment.payload_keys:
-                        mk_key = self._get_payload_key_index(segment_key)
+                        mk_key = self.store.get_payload_key_index(segment_key)
                         p.delete(mk_key)
                         for payload_key in flushed_segment.payload_keys:
                             p.unlink(payload_key)
@@ -694,7 +645,7 @@ class SpansBuffer:
                     # queue entries instead of blocking on ZRANGEBYSCORE until lock TTL expires.
                     # Since the segment metadata and payload keys have already been deleted
                     # above, a stale queue entry cannot produce the segment again.
-                    p.delete(self._get_flush_lock_key(segment_key))
+                    p.delete(self.store.get_flush_lock_key(segment_key))
 
                 for queue_key, keys in queue_removals.items():
                     for key_batch in itertools.batched(keys, 100):

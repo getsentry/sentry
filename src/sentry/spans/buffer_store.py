@@ -4,6 +4,7 @@ import time
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 
+import zstandard
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
@@ -23,7 +24,6 @@ from sentry.utils import metrics, redis
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 type RedisClient = RedisCluster[bytes] | StrictRedis[bytes]
-type PreparePayloads = Callable[[list[Span]], set[str | bytes]]
 type DecompressPayload = Callable[[bytes], list[bytes]]
 type GetDebugTraceLogger = Callable[[], Any]
 
@@ -46,21 +46,38 @@ class SpansBufferStore:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
+        self._current_compression_level: int | None = None
+        self._zstd_compressor: zstandard.ZstdCompressor | None = None
 
     def get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
+        """
+        Build the Redis key for the temporary set containing a span payload.
+        """
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     def get_payload_key(self, project_and_trace: str, span_id: str) -> PayloadKey:
+        """
+        Build the Redis key for payload bytes stored for a subsegment.
+        """
         return f"span-buf:s:{{{project_and_trace}:{span_id}}}:{span_id}".encode("ascii")
 
     def get_payload_key_index(self, segment_key: SegmentKey) -> bytes:
+        """
+        Build the Redis key for the set that indexes payload keys by segment.
+        """
         project_id, trace_id, span_id = parse_segment_key(segment_key)
         return b"span-buf:mk:{%s:%s}:%s" % (project_id, trace_id, span_id)
 
     def get_flush_lock_key(self, segment_key: SegmentKey) -> bytes:
+        """
+        Build the Redis key used to lock a segment while it is being flushed.
+        """
         return b"span-buf:fl:" + segment_key
 
     def get_queue_key(self, shard: int) -> QueueKey:
+        """
+        Build the Redis sorted-set key for a queue shard.
+        """
         if self.slice_id is not None:
             return f"span-buf:q:{self.slice_id}-{shard}".encode("ascii")
         else:
@@ -80,12 +97,16 @@ class SpansBufferStore:
         batches: Sequence[Sequence[Subsegment]],
         *,
         redis_ttl: int,
-        prepare_payloads: PreparePayloads,
     ) -> None:
+        """
+        Store subsegment payload bytes in Redis sets keyed by subsegment salt.
+        """
+        compression_level = options.get("spans.buffer.compression.level")
+
         for batch in batches:
             with self.client.pipeline(transaction=False) as p:
                 for subsegment in batch:
-                    set_members = prepare_payloads(subsegment.spans)
+                    set_members = self._prepare_payloads(subsegment.spans, compression_level)
                     payload_key = self.get_payload_key(
                         subsegment.project_and_trace,
                         subsegment.salt,
@@ -95,6 +116,32 @@ class SpansBufferStore:
 
                 p.execute()
 
+    def _prepare_payloads(self, spans: list[Span], compression_level: int) -> set[str | bytes]:
+        if compression_level != self._current_compression_level:
+            self._current_compression_level = compression_level
+            if compression_level == -1:
+                self._zstd_compressor = None
+            else:
+                self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
+
+        if self._zstd_compressor is None:
+            return {span.payload for span in spans}
+
+        combined = b"\x00".join(span.payload for span in spans)
+        original_size = len(combined)
+
+        with metrics.timer("spans.buffer.compression.cpu_time"):
+            compressed = self._zstd_compressor.compress(combined)
+
+        compressed_size = len(compressed)
+
+        compression_ratio = compressed_size / original_size if original_size > 0 else 0
+        metrics.timing("spans.buffer.compression.original_size", original_size)
+        metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
+        metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
+
+        return {compressed}
+
     def insert_subsegments(
         self,
         batches: Sequence[Sequence[Subsegment]],
@@ -103,6 +150,9 @@ class SpansBufferStore:
         max_segment_bytes: int,
         flush_lock_ttl: int,
     ) -> list[InsertedSubsegment]:
+        """
+        Run the add-buffer Lua script and pair each result with its input subsegment.
+        """
         check_flush_lock = "true" if flush_lock_ttl > 0 else "false"
 
         # Workaround to make `evalsha` work in pipelines. We ensure the script
@@ -111,59 +161,33 @@ class SpansBufferStore:
 
         inserted_subsegments: list[InsertedSubsegment] = []
         for batch in batches:
+            with self.client.pipeline(transaction=False) as p:
+                for subsegment in batch:
+                    p.execute_command(
+                        "EVALSHA",
+                        add_buffer_sha,
+                        1,
+                        subsegment.project_and_trace,
+                        len(subsegment.spans),
+                        subsegment.parent_span_id,
+                        "true" if subsegment.has_segment_span else "false",
+                        redis_ttl,
+                        subsegment.byte_count,
+                        max_segment_bytes,
+                        subsegment.salt,
+                        check_flush_lock,
+                        *subsegment.span_ids,
+                    )
+
+                redis_results = p.execute()
+
+            assert len(batch) == len(redis_results)
             inserted_subsegments.extend(
-                self._insert_subsegment_batch(
-                    batch,
-                    add_buffer_sha=add_buffer_sha,
-                    redis_ttl=redis_ttl,
-                    max_segment_bytes=max_segment_bytes,
-                    check_flush_lock=check_flush_lock,
-                )
+                InsertedSubsegment.from_redis_result(subsegment, redis_result)
+                for subsegment, redis_result in zip(batch, redis_results)
             )
 
         return inserted_subsegments
-
-    def _insert_subsegment_batch(
-        self,
-        batch: Sequence[Subsegment],
-        *,
-        add_buffer_sha: str,
-        redis_ttl: int,
-        max_segment_bytes: int,
-        check_flush_lock: str,
-    ) -> list[InsertedSubsegment]:
-        with self.client.pipeline(transaction=False) as p:
-            for subsegment in batch:
-                p.execute_command(
-                    "EVALSHA",
-                    add_buffer_sha,
-                    1,
-                    subsegment.project_and_trace,
-                    len(subsegment.spans),
-                    subsegment.parent_span_id,
-                    "true" if subsegment.has_segment_span else "false",
-                    redis_ttl,
-                    subsegment.byte_count,
-                    max_segment_bytes,
-                    subsegment.salt,
-                    check_flush_lock,
-                    *subsegment.span_ids,
-                )
-
-            redis_results = p.execute()
-
-        return self._inserted_subsegments_from_results(batch, redis_results)
-
-    def _inserted_subsegments_from_results(
-        self,
-        subsegments: Sequence[Subsegment],
-        redis_results: Sequence[Any],
-    ) -> list[InsertedSubsegment]:
-        assert len(subsegments) == len(redis_results)
-        return [
-            InsertedSubsegment.from_redis_result(subsegment, redis_result)
-            for subsegment, redis_result in zip(subsegments, redis_results)
-        ]
 
     def update_queue(
         self,
@@ -271,7 +295,9 @@ class SpansBufferStore:
         max_segments_per_shard: int,
     ) -> tuple[list[FlushCandidate], int]:
         """
-        Read ready segment keys from the assigned queue shards.
+        Read queued segments whose deadline is at or before the cutoff.
+
+        Returns flush candidates paired with the total Redis read latency.
         """
         queue_keys = []
 
@@ -288,24 +314,14 @@ class SpansBufferStore:
                 redis_results = p.execute()
         load_ids_latency_ms = int((time.monotonic() - ids_start) * 1000)
 
-        return (
-            self._flush_candidates_from_results(queue_keys, redis_results),
-            load_ids_latency_ms,
-        )
-
-    def _flush_candidates_from_results(
-        self,
-        queue_keys: Sequence[QueueKey],
-        redis_results: Sequence[Any],
-    ) -> list[FlushCandidate]:
         flush_candidates: list[FlushCandidate] = []
         for shard, queue_key, keys_with_scores in zip(
             self.assigned_shards, queue_keys, redis_results
         ):
-            for segment_key, score in keys_with_scores:
-                flush_candidates.append(FlushCandidate(shard, queue_key, segment_key, score))
+            for result in keys_with_scores:
+                flush_candidates.append(FlushCandidate.from_redis_result(shard, queue_key, result))
 
-        return flush_candidates
+        return flush_candidates, load_ids_latency_ms
 
     def load_segments(
         self,
@@ -314,7 +330,10 @@ class SpansBufferStore:
         decompress_payload: DecompressPayload,
     ) -> tuple[list[LoadedSegment], int, int]:
         """
-        Load payload keys, span payload bytes, and persisted metadata for flush candidates.
+        Load payload keys, span payload bytes, and ingest metadata for candidates.
+
+        Returns loaded segments plus total load latency and payload
+        decompression latency, both in milliseconds.
         """
         data_start = time.monotonic()
         segment_keys = [candidate.segment_key for candidate in flush_candidates]
@@ -371,6 +390,9 @@ class SpansBufferStore:
     def load_segment_ingest_metadata(
         self, segment_keys: Sequence[SegmentKey]
     ) -> dict[SegmentKey, SegmentIngestMetadata]:
+        """
+        Load ingest-time counts stored alongside each segment.
+        """
         ingest_metadata = {key: SegmentIngestMetadata() for key in segment_keys}
 
         with self.client.pipeline(transaction=False) as p:
@@ -381,7 +403,7 @@ class SpansBufferStore:
             redis_results = p.execute()
 
         for i, key in enumerate(segment_keys):
-            ingest_metadata[key] = SegmentIngestMetadata.from_redis_results(
+            ingest_metadata[key] = SegmentIngestMetadata.from_redis_result(
                 redis_results[i * 2],
                 redis_results[i * 2 + 1],
             )
@@ -439,5 +461,8 @@ class SpansBufferStore:
         return payloads, int(decompress_latency_ms)
 
     def get_current_queue_deadline(self, loaded_segment: LoadedSegment) -> int | None:
+        """
+        Read the current queue deadline for a loaded segment, if it is still queued.
+        """
         deadline_score = self.client.zscore(loaded_segment.queue_key, loaded_segment.segment_key)
         return int(deadline_score) if deadline_score is not None else None
