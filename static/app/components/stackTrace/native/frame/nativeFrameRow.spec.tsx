@@ -90,10 +90,12 @@ function renderFrames(
   {
     defaultView = 'app',
     defaultIsNewestFirst = true,
+    groupingCurrentLevel,
     meta,
   }: {
     defaultIsNewestFirst?: boolean;
     defaultView?: StackTraceView;
+    groupingCurrentLevel?: number;
     meta?: StackTraceMeta;
   } = {}
 ) {
@@ -103,7 +105,12 @@ function renderFrames(
       defaultView={defaultView}
       defaultIsNewestFirst={defaultIsNewestFirst}
     >
-      <NativeStackTraceProvider event={event} stacktrace={stacktrace} meta={meta}>
+      <NativeStackTraceProvider
+        event={event}
+        stacktrace={stacktrace}
+        groupingCurrentLevel={groupingCurrentLevel}
+        meta={meta}
+      >
         <NativeStackTraceFrames />
       </NativeStackTraceProvider>
     </StackTraceViewStateProvider>
@@ -287,6 +294,26 @@ describe('NativeFrameRow', () => {
 
     expect(screen.getByText('<redacted>')).toBeInTheDocument();
     expect(screen.queryByText('secret_function')).not.toBeInTheDocument();
+  });
+
+  it('renders grouping markers in default native frame actions', () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: null,
+      frames: [
+        makeFrame({
+          function: 'grouping_frame',
+          inApp: false,
+          minGroupingLevel: 0,
+        }),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace), {groupingCurrentLevel: 0});
+
+    expect(
+      screen.getByLabelText('This frame is repeated in every event of this issue')
+    ).toBeInTheDocument();
   });
 
   it('drops the status column when no frame has a status icon', () => {
