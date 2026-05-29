@@ -8,6 +8,11 @@ from django.db.models import F
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
+from sentry.dynamic_sampling.per_org.calculations import (
+    compare_rebalanced_projects_with_cache,
+    get_cached_rebalanced_project_sample_rates,
+    run_project_balancing,
+)
 from sentry.dynamic_sampling.per_org.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import (
@@ -116,6 +121,9 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         project_volumes = get_eap_project_volumes(config)
         if not project_volumes:
             return DynamicSamplingStatus.NO_PROJECT_VOLUMES
+        rebalanced_projects = run_project_balancing(config, project_volumes)
+        cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
+        compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
 
     if not get_eap_transaction_volumes(config):
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
