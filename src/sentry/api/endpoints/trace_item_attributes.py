@@ -1,3 +1,5 @@
+from typing import Never
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,7 +19,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, _extract_function_keys
 
 
-class OrganizationTraceItemQueryValidatorSerializer(serializers.Serializer):
+class OrganizationTraceItemQueryValidatorSerializer(serializers.Serializer[Never]):
     itemType = serializers.ChoiceField(
         [e.value for e in SupportedTraceItemType], required=True, source="item_type"
     )
