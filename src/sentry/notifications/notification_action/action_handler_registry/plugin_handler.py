@@ -44,16 +44,14 @@ class PluginActionHandler(ActionHandler):
     def execute(invocation: ActionInvocation) -> None:
         organization = invocation.detector.project.organization
         new_path = features.has("organizations:legacy-webhook-new-path", organization)
-        disable_old = features.has("organizations:legacy-webhook-disable-old-path", organization)
 
-        if not disable_old:
-            try:
-                execute_via_group_type_registry(invocation)
-            except Exception:
-                logger.exception(
-                    "plugin_action_handler.old_path_error",
-                    extra={"invocation": invocation},
-                )
+        try:
+            execute_via_group_type_registry(invocation)
+        except Exception:
+            logger.exception(
+                "plugin_action_handler.old_path_error",
+                extra={"invocation": invocation},
+            )
 
         if new_path and isinstance(invocation.event_data.event, GroupEvent):
             send_legacy_webhooks_for_invocation(invocation)
