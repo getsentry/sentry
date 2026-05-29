@@ -176,7 +176,7 @@ function TimelineItem({
           )}
         </Flex>
       }
-      timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
+      timestamp={<Timestamp date={item.dateCreated} />}
       marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
@@ -368,7 +368,9 @@ export function ActivitySection({
     },
   };
 
-  const showSeerActivities = organization.features.includes('seer-activity-timeline');
+  const showSeerActivities = organization.features.includes(
+    'display-seer-actions-as-issue-activities'
+  );
   const visibleActivities = showSeerActivities
     ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));

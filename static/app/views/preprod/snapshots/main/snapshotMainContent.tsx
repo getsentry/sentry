@@ -269,6 +269,7 @@ export function SnapshotMainContent({
           diffPercent: currentPair.diff,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
@@ -322,6 +323,7 @@ export function SnapshotMainContent({
           status: DiffStatus.RENAMED,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
+
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,

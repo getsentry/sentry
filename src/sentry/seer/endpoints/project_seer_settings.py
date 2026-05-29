@@ -340,17 +340,17 @@ class ProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     def validate(self, data):
         if "agent" in data and data["agent"] != "seer" and "integration_id" not in data:
             raise serializers.ValidationError(
-                {"integrationId": "Required when agent is an external coding agent."}
+                {"integration_id": "Required when agent is an external coding agent."}
             )
 
         if "integration_id" in data:
             if "agent" not in data:
                 raise serializers.ValidationError(
-                    {"agent": "Required when integrationId is provided."}
+                    {"agent": "Required when integration_id is provided."}
                 )
             elif data["agent"] == "seer":
                 raise serializers.ValidationError(
-                    {"agent": "Must be an external coding agent when integrationId is provided."}
+                    {"agent": "Must be an external coding agent when integration_id is provided."}
                 )
 
         if not any(

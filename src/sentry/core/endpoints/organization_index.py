@@ -138,7 +138,7 @@ class OrganizationIndexEndpoint(Endpoint):
         },
         examples=UserExamples.LIST_ORGANIZATIONS,
     )
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response[list[OrganizationSummarySerializerResponse]]:
         """
         Return a list of organizations available to the authenticated session in a region.
         This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.

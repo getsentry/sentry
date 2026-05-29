@@ -133,7 +133,11 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               >
                 <Container padding="md">
                   <MessageText size="sm" align="left">
-                    <AIContentRenderer text={message.content} inline />
+                    <AIContentRenderer
+                      text={message.content}
+                      inline
+                      autoCollapseLimit={10}
+                    />
                   </MessageText>
                 </Container>
               </StyledClippedBox>

@@ -693,6 +693,7 @@ def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
 class GitHubIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.GITHUB.value
     name = "GitHub"
+    can_add_externally = True
     metadata = metadata
     integration_cls: type[IntegrationInstallation] = GitHubIntegration
     features = frozenset(
