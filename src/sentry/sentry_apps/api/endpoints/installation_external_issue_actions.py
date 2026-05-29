@@ -59,7 +59,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
             return self.respond_rpc_sentry_app_error(result.error)
 
         if not result.external_issue:
-            return Response({"detail": "Failed to create external issue"}, status=500)
+            return Response({"detail": "Failed to create external issue"}, status=502)
 
         return Response(
             serialize(objects=result.external_issue, serializer=PlatformExternalIssueSerializer())

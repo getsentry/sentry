@@ -116,15 +116,35 @@ class IssueLinkRequester:
                 )
             except RequestException as e:
                 extras["error_message"] = str(e)
+                # Extract the HTTP status code and body from the external service response
+                external_status_code = None
+                external_response_body = None
+                if hasattr(e, "response") and e.response is not None:
+                    external_status_code = e.response.status_code
+                    extras["external_status_code"] = external_status_code
+                    try:
+                        external_response_body = e.response.text
+                        extras["external_response_body"] = external_response_body
+                    except Exception:
+                        pass
+
                 lifecycle.record_halt(
                     halt_reason=e,
                     extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
                 )
 
+                error_message = (
+                    f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue"
+                )
+                if external_status_code is not None:
+                    error_message += f": received {external_status_code} from external service"
+                    if external_response_body:
+                        error_message += f" - {external_response_body}"
+
                 raise SentryAppIntegratorError(
-                    message=f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue",
+                    message=error_message,
                     webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
-                    status_code=500,
+                    status_code=502,
                 )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e, extra={**extras})
