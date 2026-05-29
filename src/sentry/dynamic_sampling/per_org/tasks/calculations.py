@@ -43,8 +43,6 @@ def run_project_balancing_comparison(
             sample_rate=sample_rate,
         )
     )
-    if rebalanced_projects is None:
-        return
     cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
     compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
 
