@@ -712,7 +712,9 @@ function getEventTarget({
 }
 
 function isIssueEventDataRow(dataRow: TableDataRow): dataRow is IssueEventDataRow {
-  return dataRow['issue.id'] !== undefined && dataRow['issue.id'] !== null;
+  const issueId = dataRow['issue.id'];
+  // Discover coalesces missing issue IDs to 0, so treat 0 as no issue.
+  return issueId !== undefined && issueId !== null && issueId !== 0 && issueId !== '0';
 }
 
 function isTraceEventDataRow(dataRow: TableDataRow): dataRow is TraceEventDataRow {
