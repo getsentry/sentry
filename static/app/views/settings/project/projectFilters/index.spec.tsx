@@ -369,9 +369,16 @@ describe('ProjectFilters', () => {
       'Discarded Issues',
     ]);
     expect(screen.getByRole('table')).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Filter'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Action'})).toBeInTheDocument();
+    for (const column of [
+      'Active',
+      'Name',
+      'Conditions',
+      'Created',
+      'Edited',
+      'Action',
+    ]) {
+      expect(screen.getByRole('columnheader', {name: column})).toBeInTheDocument();
+    }
     expect(screen.getByText('No inbound filters found')).toBeInTheDocument();
   });
 

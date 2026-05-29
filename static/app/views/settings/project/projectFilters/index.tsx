@@ -97,8 +97,11 @@ function InboundFiltersV2() {
   return (
     <InboundFiltersV2Table>
       <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Filter')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Active')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Conditions')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Edited')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       <SimpleTable.Empty>{t('No inbound filters found')}</SimpleTable.Empty>
@@ -111,5 +114,7 @@ const TabsContainer = styled('div')`
 `;
 
 const InboundFiltersV2Table = styled(SimpleTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  grid-template-columns:
+    max-content minmax(0, 1fr) minmax(0, 2fr) max-content max-content
+    max-content;
 `;
