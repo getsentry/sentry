@@ -6,7 +6,6 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {useNavigate} from 'sentry/utils/useNavigate';
 
 type DiscardIssueVariables = {
@@ -15,22 +14,13 @@ type DiscardIssueVariables = {
   projectId: string;
 };
 
-type DiscardIssueContext = {
-  changeId: string;
-};
-
 export function discardIssueMutationOptions({
   navigate,
 }: {
   navigate: ReturnType<typeof useNavigate>;
 }) {
-  return mutationOptions<
-    unknown,
-    RequestError,
-    DiscardIssueVariables,
-    DiscardIssueContext
-  >({
-    mutationFn: variables =>
+  return mutationOptions({
+    mutationFn: (variables: DiscardIssueVariables) =>
       fetchMutation({
         method: 'PUT',
         url: `/issues/${variables.groupId}/`,
