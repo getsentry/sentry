@@ -1,6 +1,6 @@
 import type {Frame} from 'sentry/types/event';
 
-export interface StackTraceFrameVisibilityContext {
+interface StackTraceFrameVisibilityContext {
   frame: Frame;
   includeSystemFrames: boolean;
   nextFrame: Frame | undefined;

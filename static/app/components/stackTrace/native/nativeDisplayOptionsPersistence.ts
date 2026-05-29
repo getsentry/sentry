@@ -9,7 +9,7 @@ export const NATIVE_DISPLAY_OPTION = {
   VERBOSE_FUNCTION_NAMES: 'verbose-function-names',
 } as const;
 
-export type NativePersistedDisplayOption =
+type NativePersistedDisplayOption =
   (typeof NATIVE_DISPLAY_OPTION)[keyof typeof NATIVE_DISPLAY_OPTION];
 
 const NO_PERSIST_KEY = '__no_persist_native_stacktrace_display__';

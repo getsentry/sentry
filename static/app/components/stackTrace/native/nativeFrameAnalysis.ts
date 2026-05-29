@@ -7,7 +7,7 @@ import type {Event, Frame} from 'sentry/types/event';
 
 import {getSymbolicatorStatus} from './frame/actions/getSymbolicatorStatus';
 
-export interface NativeFrameAnalysis {
+interface NativeFrameAnalysis {
   hasAbsoluteAddresses: boolean;
   hasAbsoluteFilePaths: boolean;
   hasAnyStatusIcons: boolean;
