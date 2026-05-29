@@ -2,20 +2,31 @@ from __future__ import annotations
 
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
     compare_rebalanced_projects_with_cache,
+    compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
+    get_cached_rebalanced_transaction_sample_rates,
     is_within_relative_tolerance,
     run_project_balancing,
+    run_transaction_balancing,
+)
+from sentry.dynamic_sampling.per_org.configuration import (
+    CustomDynamicSamplingProjectConfiguration,
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
+    generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.testutils.cases import TestCase
 
@@ -117,3 +128,178 @@ class ProjectBalancingCalculationsTest(TestCase):
         self.redis.hset(cache_key, str(project.id), "0.25")
 
         assert get_cached_rebalanced_project_sample_rates(org.id) == {project.id: 0.25}
+
+
+def _project_transactions(
+    org_id: int,
+    project_id: int,
+    transaction_counts: list[tuple[str, float]],
+) -> dict:
+    return {
+        "org_id": org_id,
+        "project_id": project_id,
+        "transaction_counts": transaction_counts,
+        "total_num_transactions": sum(count for _, count in transaction_counts),
+        "total_num_classes": len(transaction_counts),
+    }
+
+
+class TransactionBalancingCalculationsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.redis = get_redis_client_for_ds()
+
+    def test_run_transaction_balancing_uses_org_sample_rate(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.projects = [project]
+        config.get_sample_rate.return_value = 0.5
+        rebalanced = (
+            [RebalancedItem(id="checkout", count=10, new_sample_rate=0.4)],
+            0.5,
+        )
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+            return_value=rebalanced,
+        ) as model_run:
+            result = run_transaction_balancing(
+                config,
+                [_project_transactions(org.id, project.id, [("checkout", 10.0)])],
+            )
+
+        model_run.assert_called_once()
+        model_input = model_run.call_args.args[-1]
+        assert isinstance(model_input, TransactionsRebalancingInput)
+        assert model_input.sample_rate == 0.5
+        assert model_input.classes == [RebalancedItem(id="checkout", count=10.0)]
+        assert model_input.total == 10.0
+        assert model_input.total_num_classes == 1
+        assert result == {project.id: rebalanced}
+
+    def test_run_transaction_balancing_uses_project_target_rates_in_project_mode(self) -> None:
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        config = Mock(spec=CustomDynamicSamplingProjectConfiguration)
+        config.organization = org
+        config.projects = [project_a, project_b]
+        config.project_target_sample_rates = {project_a.id: 0.2, project_b.id: 0.8}
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+            side_effect=lambda model_input: ([], model_input.sample_rate),
+        ) as model_run:
+            run_transaction_balancing(
+                config,
+                [
+                    _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
+                    _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
+                ],
+            )
+
+        sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
+        assert sample_rates == [0.2, 0.8]
+
+    def test_get_cached_rebalanced_transaction_sample_rates(self) -> None:
+        org = self.create_organization()
+        project_hit = self.create_project(organization=org)
+        project_miss = self.create_project(organization=org)
+        cache_key = generate_boost_low_volume_transactions_cache_key(
+            org_id=org.id, proj_id=project_hit.id
+        )
+        self.redis.delete(cache_key)
+        self.addCleanup(self.redis.delete, cache_key)
+        self.redis.set(cache_key, orjson.dumps([{"checkout": 0.3}, 0.5]).decode())
+
+        result = get_cached_rebalanced_transaction_sample_rates(
+            org.id, [project_hit.id, project_miss.id]
+        )
+
+        assert result == {
+            project_hit.id: ({"checkout": 0.3}, 0.5),
+            project_miss.id: None,
+        }
+
+    def test_compare_rebalanced_transactions_with_cache_logs_per_transaction(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        rebalanced_transactions = {
+            project.id: (
+                [
+                    RebalancedItem(id="checkout", count=100, new_sample_rate=0.25),
+                    RebalancedItem(id="cart", count=50, new_sample_rate=0.96),
+                ],
+                0.5,
+            ),
+        }
+        cached_sample_rates = {
+            project.id: ({"checkout": 0.2, "cart": 1.0}, 0.45),
+        }
+
+        with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
+            compare_rebalanced_transactions_with_cache(
+                config, rebalanced_transactions, cached_sample_rates
+            )
+
+        messages = [call.args[0] for call in logger_info.call_args_list]
+        assert messages == [
+            "dynamic_sampling.per_org.transaction_balancing_implicit_comparison",
+            "dynamic_sampling.per_org.transaction_balancing_comparison",
+            "dynamic_sampling.per_org.transaction_balancing_comparison",
+        ]
+        extras = [call.kwargs["extra"] for call in logger_info.call_args_list]
+        assert extras == [
+            {
+                "org_id": org.id,
+                "project_id": project.id,
+                "generic_metrics_implicit_rate": 0.45,
+                "eap_implicit_rate": 0.5,
+                "relative_deviation": pytest.approx(0.1),
+                "is_equal": False,
+            },
+            {
+                "org_id": org.id,
+                "project_id": project.id,
+                "transaction": "checkout",
+                "generic_metrics_sample_rate": 0.2,
+                "eap_sample_rate": 0.25,
+                "relative_deviation": pytest.approx(0.2),
+                "is_equal": False,
+            },
+            {
+                "org_id": org.id,
+                "project_id": project.id,
+                "transaction": "cart",
+                "generic_metrics_sample_rate": 1.0,
+                "eap_sample_rate": 0.96,
+                "relative_deviation": pytest.approx(0.04166666666666674),
+                "is_equal": True,
+            },
+        ]
+
+    def test_compare_rebalanced_transactions_with_cache_handles_cache_miss(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        rebalanced_transactions = {
+            project.id: ([RebalancedItem(id="checkout", count=10, new_sample_rate=0.5)], 0.5),
+        }
+
+        with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
+            compare_rebalanced_transactions_with_cache(
+                config, rebalanced_transactions, {project.id: None}
+            )
+
+        extras = [call.kwargs["extra"] for call in logger_info.call_args_list]
+        assert extras[0]["generic_metrics_implicit_rate"] is None
+        assert extras[0]["relative_deviation"] is None
+        assert extras[0]["is_equal"] is False
+        assert extras[1]["generic_metrics_sample_rate"] is None
+        assert extras[1]["relative_deviation"] is None
+        assert extras[1]["is_equal"] is False
