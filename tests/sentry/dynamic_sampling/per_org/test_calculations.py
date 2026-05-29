@@ -68,7 +68,7 @@ class ProjectBalancingCalculationsTest(TestCase):
             RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
             RebalancedItem(id=project_without_volume.id, count=0, new_sample_rate=1.0),
         ]
-        cached_sample_rates = {
+        cached_sample_rates: dict[int, float | None] = {
             project_with_volume.id: 0.2,
             project_without_volume.id: 0.96,
         }

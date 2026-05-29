@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import (
@@ -21,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 def run_project_balancing(
     config: BaseDynamicSamplingConfiguration, project_volumes: list[ProjectVolume]
-) -> list[RebalancedItem] | None:
-    sample_rate = config.get_sample_rate()
+) -> list[RebalancedItem]:
+    sample_rate = cast(float, config.get_sample_rate())
     counts_by_project = {project.id: 0 for project in config.projects}
     for project_volume in project_volumes:
         if project_volume.project_id in counts_by_project:
