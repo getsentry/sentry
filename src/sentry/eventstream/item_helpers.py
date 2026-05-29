@@ -348,7 +348,7 @@ def _extract_exception(
     out: dict[str, int | list[Any]] = {}
 
     exceptions = [
-        exc for exc in event_data.get("exception", {}).get("values", []) if exc is not None
+        exc for exc in event_data.get("exception", {}).get("values", []) or [] if exc is not None
     ]
     # So, logically, each exception here is basically a mapping of data.
     # Most notable in that mapping is frames, which is itself a mapping of frame data.
