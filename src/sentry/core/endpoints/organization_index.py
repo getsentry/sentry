@@ -6,6 +6,7 @@ from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -255,9 +256,11 @@ class OrganizationIndexEndpoint(Endpoint):
 
         # owner=1 (used by the account-close flow) means "orgs I own", which is
         # defined by the user's membership. A userless token (org auth token or
-        # DSN) has no membership to resolve, so the is_authenticated guard lets it
-        # fall through to the general token-scoped listing below.
-        if owner_only and request.user.is_authenticated:
+        # DSN) passes the permission check but has no membership to resolve, so
+        # reject it rather than falling through to the general token-scoped listing.
+        if owner_only:
+            if not request.user.is_authenticated:
+                raise PermissionDenied
             return self._get_owned_from_control(request)
 
         queryset = OrganizationMapping.objects.distinct()
