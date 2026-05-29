@@ -442,6 +442,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 selected_columns=["transaction", "count_unique(test)"],
             )
 
+    def test_non_default_tag_in_query_raises(self) -> None:
+        with pytest.raises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                query="http.url:https://example.com",
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=["count()"],
+            )
+
+    def test_non_default_tag_in_query_skipped_for_subscription_deletion(self) -> None:
+        indexer.record(
+            use_case_id=UseCaseID.TRANSACTIONS,
+            org_id=self.organization.id,
+            string="http.url",
+        )
+        MetricsQueryBuilder(
+            self.params,
+            query="http.url:https://example.com",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["count()"],
+            config=QueryBuilderConfig(
+                skip_field_validation_for_entity_subscription_deletion=True,
+            ),
+        )
+
     def test_project_filter(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
