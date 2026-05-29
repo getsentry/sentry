@@ -23,9 +23,9 @@ export function getLowValueSpanEvidenceData(
   evidenceData: EventOccurrence['evidenceData'] | null | undefined
 ): LowValueSpanEvidenceData {
   return {
-    op: getStringValue(evidenceData?.op ?? evidenceData?.span_op),
-    description: getStringValue(evidenceData?.description ?? evidenceData?.span_description),
-    spanCount: getNumberValue(evidenceData?.span_count ?? evidenceData?.count),
+    op: getStringValue(evidenceData?.span_op),
+    description: getStringValue(evidenceData?.span_description),
+    spanCount: getNumberValue(evidenceData?.span_count),
     extrapolatedCount: getNumberValue(evidenceData?.extrapolated_count),
     avgDurationMs: getNumberValue(evidenceData?.avg_duration_ms),
     estimatedCostUsd: getNumberValue(evidenceData?.estimated_cost_usd),

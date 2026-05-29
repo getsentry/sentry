@@ -41,12 +41,15 @@ describe('LowValueSpanIssueDetails', () => {
     expect(screen.queryByText('Impact')).not.toBeInTheDocument();
   });
 
-  it('only reads the backend evidence field names', () => {
+  it('only reads the new backend evidence field names', () => {
     render(
       <LowValueSpanIssueDetails
         event={EventFixture({
           occurrence: {
             evidenceData: {
+              op: 'function',
+              description: 'compute_checksum',
+              count: 1234,
               spanOp: 'function',
               spanDescription: 'compute_checksum',
               seenCount: 1234,
