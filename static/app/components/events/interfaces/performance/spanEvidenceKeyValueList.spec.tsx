@@ -32,6 +32,14 @@ describe('SpanEvidenceKeyValueList', () => {
     });
 
     parentSpan.addChild({
+      startTimestamp: 0.005,
+      endTimestamp: 0.01,
+      op: 'db',
+      description: 'SELECT * FROM authors WHERE id = %s',
+      problemSpan: ProblemSpan.CAUSE,
+    });
+
+    parentSpan.addChild({
       startTimestamp: 0.01,
       endTimestamp: 2.1,
       op: 'db',
@@ -69,15 +77,40 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
-      expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
-      );
+      expect(screen.getAllByRole('button', {name: 'View Full Trace'})).toEqual([
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+          ),
+        }),
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+          ),
+        }),
+      ]);
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.parent-span')
       ).toHaveTextContent('http.server');
+      expect(screen.getByRole('cell', {name: 'Preceding Span'})).toBeInTheDocument();
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'Repeating DB Queries (2)'
+      );
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        /SELECT \*\s+FROM books/
+      );
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'Preceding Span'
+      );
+      expect(screen.getByRole('button', {name: 'Show preceding span'})).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+      expect(
+        screen.getByTestId('span-evidence-trace-stack.transaction')
+      ).toHaveTextContent('/');
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
@@ -143,15 +176,29 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
-      expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
-      );
+      expect(screen.getAllByRole('button', {name: 'View Full Trace'})).toEqual([
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+          ),
+        }),
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+          ),
+        }),
+      ]);
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.parent-span')
       ).toHaveTextContent('http.server');
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'Repeating DB Queries (2)'
+      );
+      expect(
+        screen.getByTestId('span-evidence-trace-stack.transaction')
+      ).toHaveTextContent('/');
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
@@ -225,15 +272,29 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
-      expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
-      );
+      expect(screen.getAllByRole('button', {name: 'View Full Trace'})).toEqual([
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+          ),
+        }),
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+          ),
+        }),
+      ]);
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.parent-span')
       ).toHaveTextContent('http.server');
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'Repeating DB Queries (2)'
+      );
+      expect(
+        screen.getByTestId('span-evidence-trace-stack.transaction')
+      ).toHaveTextContent('/');
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
@@ -475,6 +536,10 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('/user/*/book/?book_id=*');
+      expect(screen.getByRole('cell', {name: 'Trace Path'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.trace-path')
+      ).toHaveTextContent('/ → pageload → Repeating API Calls (2)');
 
       expect(screen.getByRole('cell', {name: 'Query Parameters'})).toBeInTheDocument();
 
@@ -594,31 +659,28 @@ describe('SpanEvidenceKeyValueList', () => {
     const parentSpan = new MockSpan({
       startTimestamp: 0,
       endTimestamp: 200,
-      op: 'pageload',
+      op: 'function',
+      description: 'LinkCatalog',
       problemSpan: ProblemSpan.PARENT,
     });
 
     parentSpan.addChild({
+      startTimestamp: 1,
+      endTimestamp: 300,
+      op: 'function',
+      description: 'LinkCatalogStore',
+    });
+
+    parentSpan.children[0]!.addChild({
       startTimestamp: 10,
       endTimestamp: 10100,
       op: 'db',
       description: 'SELECT pokemon FROM pokedex',
       problemSpan: ProblemSpan.OFFENDER,
     });
-    parentSpan.children[0]!.span.data = {
-      'code.filepath': '/app/pokedex/queries.py',
-      'code.function': 'fetchPokemon',
-      'code.lineno': 42,
-    };
-
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
-        body: [],
-      });
-
       render(
         <SpanEvidenceKeyValueList
           event={builder.getEventFixture()}
@@ -641,29 +703,45 @@ describe('SpanEvidenceKeyValueList', () => {
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
-      expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=10100'
+      expect(screen.getAllByRole('button', {name: 'View Full Trace'})).toEqual([
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=10100'
+          ),
+        }),
+        expect.objectContaining({
+          href: expect.stringContaining(
+            '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=10100'
+          ),
+        }),
+      ]);
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'Transaction/'
+      );
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'FunctionLinkCatalog'
+      );
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'FunctionLinkCatalogStore'
+      );
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        'Slow DB Query'
+      );
+      expect(screen.getByRole('button', {name: 'Hide slow DB query'})).toHaveAttribute(
+        'aria-expanded',
+        'true'
       );
 
-      expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
-      ).toHaveTextContent('SELECT pokemon FROM pokedex');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
-      ).toHaveTextContent('/app/pokedex/queries.py in fetchPokemon at line 42');
+      expect(screen.getByTestId('span-evidence-trace-stack-example')).toHaveTextContent(
+        /SELECT pokemon\s+FROM pokedex/
+      );
+      expect(screen.queryByRole('cell', {name: 'Slow DB Query'})).not.toBeInTheDocument();
       expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
-
-      expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
+      expect(screen.queryByRole('cell', {name: 'Trace Path'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'More Samples'})).not.toBeInTheDocument();
     });
 
-    it('renders span-specific missing query source copy', () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
-        body: [],
-      });
-
+    it('renders without query source copy when code location is missing', () => {
       const builderWithoutCodeLocation = new TransactionEventBuilder(
         'a1',
         '/',
@@ -700,13 +778,10 @@ describe('SpanEvidenceKeyValueList', () => {
         }
       );
 
-      const slowDbQuery = screen.getByTestId(
-        'span-evidence-key-value-list.slow-db-query'
-      );
+      const slowDbQuery = screen.getByTestId('span-evidence-trace-stack-example');
 
-      expect(slowDbQuery).toHaveTextContent(
-        'Query source is not available for this span.'
-      );
+      expect(slowDbQuery).toHaveTextContent(/SELECT pokemon\s+FROM pokedex/);
+      expect(slowDbQuery).not.toHaveTextContent('Query source is not available');
       expect(slowDbQuery).not.toHaveTextContent('selected date range');
     });
   });
@@ -760,6 +835,10 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
       ).toHaveTextContent('resource.script - https://example.com/resource.js');
+      expect(screen.getByRole('cell', {name: 'Trace Path'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.trace-path')
+      ).toHaveTextContent('/ → Slow Resource Span');
 
       expect(screen.getByRole('cell', {name: 'FCP Delay'})).toBeInTheDocument();
       expect(
@@ -824,6 +903,10 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
       ).toHaveTextContent('resource.script - https://example.com/resource.js');
+      expect(screen.getByRole('cell', {name: 'Trace Path'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.trace-path')
+      ).toHaveTextContent('/ → Slow Resource Span');
 
       expect(screen.getByRole('cell', {name: 'Asset Size'})).toBeInTheDocument();
       expect(
@@ -926,6 +1009,10 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.large-http-payload-span')
       ).toHaveTextContent('http.client - https://example.com/api/users');
+      expect(screen.getByRole('cell', {name: 'Trace Path'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.trace-path')
+      ).toHaveTextContent('/ → Large HTTP Payload Span');
 
       expect(screen.getByRole('cell', {name: 'Payload Size'})).toBeInTheDocument();
       expect(
