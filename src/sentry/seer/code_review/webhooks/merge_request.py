@@ -35,6 +35,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -176,6 +177,9 @@ def handle_merge_request_event(
 ) -> None:
     """Handle GitLab merge request webhook events for code review."""
     if integration is None:
+        return
+
+    if not features.has("organizations:seer-code-review-gitlab", organization):
         return
 
     object_attributes = event.get("object_attributes", {})
