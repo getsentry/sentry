@@ -187,6 +187,7 @@ class TestIssueLinkRequester(TestCase):
                 action=IssueRequestActionType("create"),
             ).run()
 
+        assert exception_info.value.status_code == 500
         assert exception_info.value.webhook_context == {
             "error_type": FAILURE_REASON_BASE.format(
                 SentryAppExternalRequestHaltReason.BAD_RESPONSE
@@ -207,6 +208,56 @@ class TestIssueLinkRequester(TestCase):
 
         # SLO assertions
         # We recieved back a 500 response from 3p
+        assert_many_halt_metrics(mock_record, [HTTPError(), HTTPError()])
+
+        # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_400_response(self, mock_record: MagicMock) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            body="Bad Request",
+            status=400,
+        )
+
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            IssueLinkRequester(
+                install=self.install,
+                group=self.group,
+                uri="/link-issue",
+                fields={},
+                user=self.rpc_user,
+                action=IssueRequestActionType("create"),
+            ).run()
+
+        assert exception_info.value.status_code == 400
+        assert exception_info.value.webhook_context == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestHaltReason.BAD_RESPONSE
+            ),
+            "uri": "/link-issue",
+            "installation_uuid": self.install.uuid,
+            "sentry_app_slug": self.sentry_app.slug,
+            "project_slug": self.group.project.slug,
+            "group_id": self.group.id,
+            "error_message": "400 Client Error: Bad Request for url: https://example.com/link-issue",
+        }
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 400
+        assert requests[0]["event_type"] == "external_issue.created"
+
+        # SLO assertions
         assert_many_halt_metrics(mock_record, [HTTPError(), HTTPError()])
 
         # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (halt)
