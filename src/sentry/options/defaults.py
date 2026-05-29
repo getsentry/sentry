@@ -2488,6 +2488,12 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "hybridcloud.apigateway.use_pooling.rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Webhook processing controls
 register(
@@ -4203,4 +4209,13 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_NOSTORE,
+)
+
+# Allows the recording of Seer actions as issue activities
+# https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
+register(
+    "issues.record-seer-actions-as-activities",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

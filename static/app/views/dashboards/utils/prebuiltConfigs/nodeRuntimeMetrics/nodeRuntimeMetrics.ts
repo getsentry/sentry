@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nodeRuntimeMetrics/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/traceMetricField';
@@ -198,7 +201,11 @@ const CORRELATION_WIDGETS = spaceWidgetsEquallyOnRow(
   3
 );
 
-const WIDGETS: Widget[] = [...KPI_WIDGETS, ...MEMORY_WIDGETS, ...CORRELATION_WIDGETS];
+const WIDGETS: PrebuiltWidget[] = [
+  ...KPI_WIDGETS,
+  ...MEMORY_WIDGETS,
+  ...CORRELATION_WIDGETS,
+];
 
 export const NODE_RUNTIME_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',

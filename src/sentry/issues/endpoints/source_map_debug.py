@@ -52,7 +52,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, event_id: str
+    ) -> Response[SourceMapProcessingResponse]:
         """
         Return a list of source map errors for a given event.
         """

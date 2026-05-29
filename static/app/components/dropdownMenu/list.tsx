@@ -1,5 +1,6 @@
 import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -272,7 +273,11 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   overflow-x: hidden;
   overflow-y: auto;
 
-  ${p => p.hasTitle && `padding-top: calc(${p.theme.space.xs} + 1px);`}
+  ${p =>
+    p.hasTitle &&
+    css`
+      padding-top: calc(${p.theme.space.xs} + 1px);
+    `}
 
   &:focus {
     outline: none;

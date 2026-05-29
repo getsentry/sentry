@@ -7,6 +7,7 @@
 
 export type KnownGetsentryApiUrls =
   | '/_admin/cells/$region/admin-invoices/$invoiceId/'
+  | '/_admin/cells/$region/invoice-comparison/'
   | '/audit-logs/'
   | '/beacons/'
   | '/beacons/$beaconId/'

@@ -1210,6 +1210,50 @@ def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
     assert replacement_attr.replacement is None
 
 
+def test_deprecated_attribute_replacement_does_not_shadow_existing_internal_name() -> None:
+    attribute_definitions = {
+        "environment": ResolvedAttribute(
+            public_alias="environment",
+            internal_name="sentry.environment",
+            search_type="string",
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "resource.deployment.environment",
+                "type": "string",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "sentry.environment",
+                },
+            },
+            {
+                "key": "resource.deployment.environment.name",
+                "type": "string",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "sentry.environment",
+                },
+            },
+        ],
+    )
+
+    assert "sentry.environment" not in attribute_definitions
+    assert attribute_definitions["environment"].public_alias == "environment"
+    assert attribute_definitions["environment"].internal_name == "sentry.environment"
+
+    assert (
+        attribute_definitions["resource.deployment.environment"].replacement == "sentry.environment"
+    )
+    assert (
+        attribute_definitions["resource.deployment.environment.name"].replacement
+        == "sentry.environment"
+    )
+
+
 def test_deprecated_attribute_normalizes_supported_convention_attribute_types() -> None:
     attribute_definitions: dict[str, ResolvedAttribute] = {}
 

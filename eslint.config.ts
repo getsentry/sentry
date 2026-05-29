@@ -458,6 +458,7 @@ export default typescript.config([
       '@sentry/no-flag-comments': 'error',
       '@sentry/no-query-data-type-parameters': 'error',
       '@sentry/no-static-translations': 'error',
+      '@sentry/no-raw-css-in-styled': 'error',
       '@sentry/no-styled-shortcut': 'error',
       '@sentry/no-unnecessary-use-callback': 'error',
     },

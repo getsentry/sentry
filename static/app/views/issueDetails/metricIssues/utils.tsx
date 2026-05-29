@@ -10,7 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
-import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
 export function useMetricIssueAlertId({groupId}: {groupId: string}): string | undefined {
