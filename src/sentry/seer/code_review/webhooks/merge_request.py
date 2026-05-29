@@ -140,11 +140,21 @@ def _resolve_review_trigger(
     Map a non-close MR action to the repo trigger that gates a review, or None when
     the event should not start one.
 
-    "open" is always a ready-for-review trigger. "update" is ambiguous because GitLab
-    fires it for any edit, so it triggers a review only when it brings new commits
-    (ON_NEW_COMMIT) or marks the MR ready for review (ON_READY_FOR_REVIEW).
+    "open" is a ready-for-review trigger unless the MR is opened as a draft. "update"
+    is ambiguous because GitLab fires it for any edit, so it triggers a review only
+    when it brings new commits (ON_NEW_COMMIT) or marks the MR ready for review
+    (ON_READY_FOR_REVIEW).
     """
     if action == MergeRequestAction.OPEN:
+        # An MR opened as a draft is not ready for review. GitLab sets
+        # object_attributes.draft (legacy: work_in_progress) from the "Draft:"
+        # title prefix; un-drafting later arrives as an "update" (_is_undraft_update).
+        object_attributes = event.get("object_attributes") or {}
+        if (
+            object_attributes.get("draft") is True
+            or object_attributes.get("work_in_progress") is True
+        ):
+            return None
         return CodeReviewTrigger.ON_READY_FOR_REVIEW
     if action == MergeRequestAction.UPDATE:
         # GitLab puts "changes" at the top level of the payload, while "oldrev"
