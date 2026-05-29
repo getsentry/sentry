@@ -30,6 +30,7 @@ from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.seer.agent.client import _trigger_explorer_indexes_if_needed
 from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
 from sentry.seer.autofix.utils import make_autofix_start_request
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -278,6 +279,19 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     run.seer_run_state_id = run_id
     run.mirror_status = SeerRunMirrorStatus.LIVE
     run.save(update_fields=["seer_run_state_id", "mirror_status"])
+
+    if run_type == SeerRunType.EXPLORER:
+        try:
+            _trigger_explorer_indexes_if_needed(
+                run.organization_id,
+                data.get("has_explorer_index"),
+                data.get("has_org_project_context"),
+            )
+        except Exception:
+            logger.exception(
+                "seer_run_create.explorer_index_trigger_failed",
+                extra={"run_id": run.id},
+            )
 
 
 def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:

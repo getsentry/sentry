@@ -57,6 +57,47 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+def _trigger_explorer_indexes_if_needed(
+    organization_id: int,
+    has_explorer_index: bool | None,
+    has_org_project_context: bool | None,
+) -> None:
+    """Trigger explorer indexing for the org if Seer reports missing indexes."""
+    if options.get("seer.explorer_index.killswitch.enable"):
+        logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
+        return
+
+    logger.info(
+        "Maybe trigger explorer index tasks",
+        extra={
+            "organization_id": organization_id,
+            "has_explorer_index": has_explorer_index,
+            "has_org_project_context": has_org_project_context,
+        },
+    )
+    if has_explorer_index is False:
+        projects = list(
+            Project.objects.filter(
+                organization_id=organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
+        )
+
+        projects_batch = [(p.id, organization_id) for p in projects if p.flags.has_transactions]
+
+        if projects_batch:
+            for _ in dispatch_explorer_index_projects(iter(projects_batch), django_timezone.now()):
+                pass
+
+    if has_org_project_context is False:
+        logger.info(
+            "Dispatching context engine index tasks",
+            extra={"organization_id": organization_id},
+        )
+        index_org_project_knowledge.apply_async(args=[organization_id])
+        build_service_map.apply_async(args=[organization_id])
+
+
 def _has_context_engine(
     organization: Organization, user: User | RpcUser | AnonymousUser | None
 ) -> bool:
@@ -455,44 +496,9 @@ class SeerAgentClient:
         has_explorer_index: bool | None,
         has_org_project_context: bool | None,
     ) -> None:
-        """Trigger explorer indexing for the org if Seer reports missing indexes."""
-        if options.get("seer.explorer_index.killswitch.enable"):
-            logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
-            return
-
-        logger.info(
-            "Maybe trigger explorer index tasks",
-            extra={
-                "organization_id": self.organization.id,
-                "has_explorer_index": has_explorer_index,
-                "has_org_project_context": has_org_project_context,
-            },
+        _trigger_explorer_indexes_if_needed(
+            self.organization.id, has_explorer_index, has_org_project_context
         )
-        if has_explorer_index is False:
-            projects = list(
-                Project.objects.filter(
-                    organization_id=self.organization.id,
-                    status=ObjectStatus.ACTIVE,
-                )
-            )
-
-            projects_batch = [
-                (p.id, self.organization.id) for p in projects if p.flags.has_transactions
-            ]
-
-            if projects_batch:
-                for _ in dispatch_explorer_index_projects(
-                    iter(projects_batch), django_timezone.now()
-                ):
-                    pass
-
-        if has_org_project_context is False:
-            logger.info(
-                "Dispatching context engine index tasks",
-                extra={"organization_id": self.organization.id},
-            )
-            index_org_project_knowledge.apply_async(args=[self.organization.id])
-            build_service_map.apply_async(args=[self.organization.id])
 
     def continue_run(
         self,
