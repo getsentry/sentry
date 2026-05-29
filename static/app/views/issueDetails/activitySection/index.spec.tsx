@@ -174,6 +174,32 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
   });
 
+  it('renders note markdown', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: '**Bold Note** and [docs](https://docs.sentry.io/)'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />);
+
+    expect(await screen.findByTestId('activity-note-body')).toContainElement(
+      screen.getByText('Bold Note').closest('strong')
+    );
+    expect(screen.getByRole('link', {name: 'docs'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/'
+    );
+  });
+
   it('renders activity actor markers', async () => {
     const activityGroup = GroupFixture({
       id: '1338',

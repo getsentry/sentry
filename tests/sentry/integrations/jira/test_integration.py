@@ -1260,6 +1260,65 @@ class JiraIntegrationTest(APITestCase):
         }
 
     @responses.activate
+    def test_get_config_data_filters_via_paginated_endpoint_with_flag(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="67890",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"values": [{"id": "12345", "name": "Active Project"}]},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_config_data()
+
+        assert config["sync_status_forward"] == {
+            "12345": {"on_resolve": "done", "on_unresolve": "in_progress"},
+        }
+        assert len(responses.calls) == 1
+        assert "rest/api/2/project/search" in responses.calls[0].request.url
+        assert "id=12345" in responses.calls[0].request.url
+        assert "id=67890" in responses.calls[0].request.url
+
+    @responses.activate
     def test_get_config_data_issue_keys(self) -> None:
         integration = self.create_provider_integration(
             provider="jira",
@@ -1296,6 +1355,112 @@ class JiraIntegrationTest(APITestCase):
             installation.get_config_data().get("issues_ignored_fields")
             == "hello world, goodnight, moon"
         )
+
+    @responses.activate
+    def test_get_organization_config_uses_projects_list_without_flag(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[{"id": "10000", "name": "Project A"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+        ]
+        assert any(
+            "rest/api/2/project" in call.request.url and "search" not in call.request.url
+            for call in responses.calls
+        )
+
+    @responses.activate
+    def test_get_organization_config_uses_paginated_endpoint_with_flag(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        assert any("rest/api/2/project/search" in call.request.url for call in responses.calls)
+
+    @responses.activate
+    def test_get_organization_config_paginated_api_error_disables_config(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"errorMessages": ["Something went wrong"]},
+            status=500,
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["disabled"] is True
+        assert "Unable to communicate" in config[0]["disabledReason"]
 
     def test_error_fields_from_json_issue_not_found(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")

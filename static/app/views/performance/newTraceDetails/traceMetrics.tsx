@@ -110,7 +110,7 @@ function MetricsSectionContent() {
         onSearch={query => setMetricsQuery(query)}
       />
       <TableContainer>
-        <MetricsSamplesTable embedded />
+        <MetricsSamplesTable source="traceWaterfall" />
       </TableContainer>
     </Fragment>
   );

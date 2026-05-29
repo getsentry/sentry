@@ -117,6 +117,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-consent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM-generated title and description for external issue details
     manager.add("organizations:external-issues-ai-generate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:inbound-filters-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable increased issue_owners rate limit for auto-assignment
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Starfish: extract metrics from the spans
@@ -138,6 +139,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary: log full Jira Cloud `issue.updated` webhook payloads so we can design project-change link rewriting.
     manager.add("organizations:jira-issue-updated-payload-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Use the paginated project endpoint in Jira org config to avoid timeouts on large instances.
+    manager.add("organizations:jira-paginated-project-config", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable inviting billing members to organizations at the member limit.
     manager.add("organizations:invite-billing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable inviting members to organizations.
@@ -177,6 +180,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-scm-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding project details A/B test
     manager.add("organizations:onboarding-scm-project-details-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Experiment: SCM-first project creation wizard A/B test (project creation flow, not new-org onboarding)
+    manager.add("organizations:onboarding-scm-project-creation-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -191,8 +196,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-ai-and-mcp-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable all registered prebuilt dashboards to be synced to the database
     manager.add("organizations:dashboards-sync-all-registered-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable sentry convention fields
-    manager.add("organizations:performance-sentry-conventions-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Suggestions for Web Vitals Module
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
@@ -285,8 +288,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-wizard", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Seer issues view
     manager.add("organizations:seer-issue-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Autofix to use Seer Agent instead of legacy Celery pipeline
-    manager.add("organizations:autofix-on-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Workflows in Slack (released, kept until overrides are removed)
@@ -307,7 +308,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:search-query-attribute-validation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder raw search replacement
     manager.add("organizations:search-query-builder-raw-search-replacement", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:seer-agent-pr-consolidation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disables the enableSeerCoding setting, preventing orgs from changing code generation behavior
     manager.add("organizations:seer-disable-coding-setting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitLab as a supported SCM provider for Seer
@@ -341,8 +341,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-query-date-range-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Make Insights overview pages use EAP instead of transactions (because eap is not on AM1)
     manager.add("organizations:insights-modules-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable access to insights metrics alerts
-    manager.add("organizations:insights-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable data browsing heat map widget
     manager.add("organizations:data-browsing-heat-map-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable public RPC endpoint for local seer development

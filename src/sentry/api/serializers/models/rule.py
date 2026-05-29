@@ -229,10 +229,12 @@ class RuleSerializer(Serializer):
             last_triggered_lookup: dict[int, datetime] = {}
             if item_list:
                 rule_ids = [rule.id for rule in item_list]
+                org_ids = {rule.project.organization_id for rule in item_list}
                 workflow_rule_lookup = dict(
-                    AlertRuleWorkflow.objects.filter(rule_id__in=rule_ids).values_list(
-                        "workflow_id", "rule_id"
-                    )
+                    AlertRuleWorkflow.objects.filter(
+                        rule_id__in=rule_ids,
+                        workflow__organization_id__in=org_ids,
+                    ).values_list("workflow_id", "rule_id")
                 )
 
                 workflow_fire_dates = get_last_fired_dates(list(workflow_rule_lookup.keys()))

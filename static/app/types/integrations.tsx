@@ -553,19 +553,7 @@ export type AppOrProviderOrPlugin =
   | PluginWithProjectList
   | DocIntegration;
 
-/**
- * Webhooks and servicehooks
- */
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
-
-export type ServiceHook = {
-  dateCreated: string;
-  events: string[];
-  id: string;
-  secret: string;
-  status: string;
-  url: string;
-};
 
 /**
  * Codeowners and repository path mappings.

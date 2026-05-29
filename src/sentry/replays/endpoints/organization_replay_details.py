@@ -243,7 +243,9 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_DETAILS,
     )
-    def get(self, request: Request, organization: Organization, replay_id: str) -> Response:
+    def get(
+        self, request: Request, organization: Organization, replay_id: str
+    ) -> Response[GetReplayResponse]:
         """
         Return details on an individual replay.
         """

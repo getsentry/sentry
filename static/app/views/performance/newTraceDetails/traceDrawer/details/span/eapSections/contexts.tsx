@@ -4,8 +4,8 @@ import {KeyValueData} from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   AdditionalData,

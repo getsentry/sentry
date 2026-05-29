@@ -40,30 +40,6 @@
     }
   },
   {
-    "model": "sentry.email",
-    "pk": 1,
-    "fields": {
-      "email": "admin@example.com",
-      "date_added": "2023-06-22T22:59:55.531Z"
-    }
-  },
-  {
-    "model": "sentry.email",
-    "pk": 2,
-    "fields": {
-      "email": "member@example.com",
-      "date_added": "2023-06-22T22:59:56.531Z"
-    }
-  },
-  {
-    "model": "sentry.email",
-    "pk": 3,
-    "fields": {
-      "email": "superadmin@example.com",
-      "date_added": "2023-06-22T22:59:57.531Z"
-    }
-  },
-  {
     "model": "sentry.organization",
     "pk": 1,
     "fields": {

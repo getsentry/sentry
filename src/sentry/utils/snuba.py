@@ -386,6 +386,7 @@ class RateLimitExceeded(SnubaError):
         storage_key: str | None = None,
         quota_used: int | None = None,
         rejection_threshold: int | None = None,
+        throttle_threshold: int | None = None,
     ) -> None:
         super().__init__(message)
         self.policy = policy
@@ -393,6 +394,7 @@ class RateLimitExceeded(SnubaError):
         self.storage_key = storage_key
         self.quota_used = quota_used
         self.rejection_threshold = rejection_threshold
+        self.throttle_threshold = throttle_threshold
 
 
 class SchemaValidationError(QueryExecutionError):
@@ -1341,7 +1343,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                                     quota_unit=policy_info["quota_unit"],
                                     storage_key=policy_info["storage_key"],
                                     quota_used=policy_info["quota_used"],
-                                    rejection_threshold=policy_info["rejection_threshold"],
+                                    rejection_threshold=policy_info.get("rejection_threshold"),
+                                    throttle_threshold=policy_info.get("throttle_threshold"),
                                 )
                         except KeyError:
                             logger.warning(
