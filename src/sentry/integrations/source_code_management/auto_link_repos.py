@@ -75,7 +75,7 @@ def auto_link_repos_by_name(
     ).exclude(Exists(ProjectRepository.objects.filter(repository_id=OuterRef("id"))))
 
     unlinked_projects_by_slug: dict[str, tuple[int, str]] = {}
-    for project_id, slug in (
+    for p_id, slug in (
         Project.objects.filter(
             organization_id=organization.id,
             status=ObjectStatus.ACTIVE,
@@ -83,15 +83,15 @@ def auto_link_repos_by_name(
         .exclude(Exists(ProjectRepository.objects.filter(project_id=OuterRef("id"))))
         .values_list("id", "slug")
     ):
-        unlinked_projects_by_slug[slug] = (project_id, slug)
+        unlinked_projects_by_slug[slug] = (p_id, slug)
 
     if not unlinked_projects_by_slug:
         return 0
 
     created = 0
     for repo in repos:
-        project_id = None
-        project_slug = None
+        project_id: int | None = None
+        project_slug: str | None = None
         for candidate in get_repo_name_candidates(repo.name):
             if candidate in unlinked_projects_by_slug:
                 project_id, project_slug = unlinked_projects_by_slug.pop(candidate)
