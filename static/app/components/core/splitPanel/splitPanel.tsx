@@ -51,32 +51,6 @@ export function useSplitPanel() {
   return {isMaximized, isMinimized, maximiseSize, minimiseSize, resetSize};
 }
 
-/**
- * Returns everything needed to render a custom divider element. Spread
- * `props` on the divider's root element to get ARIA, event handlers, and
- * `tabIndex`. Use `isHeld` and `orientation` for styling.
- */
-export function useSplitPanelDivider() {
-  const {isHeld, max, min, onDoubleClick, onKeyDown, onMouseDown, orientation, size} =
-    useSplitPanelContext('useSplitPanelDivider');
-  return {
-    isHeld,
-    orientation,
-    props: {
-      'aria-orientation':
-        orientation === 'horizontal' ? ('vertical' as const) : ('horizontal' as const),
-      'aria-valuemax': Number.isFinite(max) ? max : undefined,
-      'aria-valuemin': min,
-      'aria-valuenow': size,
-      onDoubleClick,
-      onKeyDown,
-      onMouseDown,
-      role: 'separator' as const,
-      tabIndex: 0,
-    },
-  };
-}
-
 export type SplitPanelProps = {
   /**
    * Exactly one `<SplitPanel.Panel>` followed by an optional
@@ -310,13 +284,24 @@ export function SplitPanel({
     ]
   );
 
+  // Count Panel children so a lone Panel fills the container regardless of
+  // its sizing props. Lets a consumer collapse the second panel (drop the
+  // divider + second `<SplitPanel.Panel>`) and have the first expand to fill.
+  let panelCount = 0;
+  Children.forEach(children, child => {
+    if (isValidElement(child) && child.type === Panel) {
+      panelCount++;
+    }
+  });
+
   // Tag each Panel child with whether it's the sized one. We can't read the
   // tag inside Panel without an extra Context, so this drives IsSizedPanelContext.
   let sizedPanelMarked = false;
   const wrappedChildren = Children.map(children, child => {
     if (isValidElement(child) && child.type === Panel) {
       const childProps = child.props as SplitPanelPanelProps;
-      const isThisPanelSized = !sizedPanelMarked && childProps.defaultSize !== undefined;
+      const isThisPanelSized =
+        panelCount > 1 && !sizedPanelMarked && childProps.defaultSize !== undefined;
       if (isThisPanelSized) {
         sizedPanelMarked = true;
       }
@@ -364,8 +349,14 @@ const SplitPanelRoot = styled('div')`
   /*
    * Disable iframe pointer events while dragging so the divider doesn't lose
    * the cursor when crossing an embedded iframe (e.g. the Replay player).
+   *
+   * The triple-& is deliberate: it raises specificity so this reliably beats
+   * consumer rules that re-enable iframe pointer events with !important -- e.g.
+   * the Replay player's [data-inspectable] .replayer-wrapper iframe rule, which
+   * otherwise ties on specificity and wins by injection order, making the drag
+   * intermittently stick when the cursor crosses the video.
    */
-  &&.disable-iframe-pointer iframe {
+  &&&.disable-iframe-pointer iframe {
     pointer-events: none !important;
   }
 `;

@@ -33,6 +33,10 @@ describe('SplitPanel', () => {
 
       expect(screen.getByTestId('left-content')).toBeInTheDocument();
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+      // A lone panel must fill the container, not stay at its defaultSize.
+      expect(screen.getByTestId('left-content').parentElement).not.toHaveAttribute(
+        'data-sized'
+      );
     });
 
     it('preserves DOM identity of the sized panel when toggling the fill panel', () => {
@@ -106,6 +110,10 @@ describe('SplitPanel', () => {
 
       expect(screen.getByTestId('top-content')).toBeInTheDocument();
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+      // A lone panel must fill the container, not stay at its defaultSize.
+      expect(screen.getByTestId('top-content').parentElement).not.toHaveAttribute(
+        'data-sized'
+      );
     });
   });
 

@@ -187,33 +187,6 @@ function ResizableLayout() {
 }
 ```
 
-## Custom Divider
-
-For most cases, use `<SplitPanel.Divider>` — a thin 1px line matching the rest of the app. If you need a different visual (e.g. a grab handle, a thicker bar, a colored line for a critical section), build your own divider with the `useSplitPanelDivider` hook. It returns the ARIA props, event handlers, and `isHeld` state needed to make any element behave like the divider.
-
-```tsx
-import styled from '@emotion/styled';
-import {useSplitPanelDivider} from '@sentry/scraps/splitPanel';
-
-function GrabHandleDivider() {
-  const {props, isHeld} = useSplitPanelDivider();
-  return (
-    <GrabHandle {...props} data-is-held={isHeld}>
-      <IconGrabbable size="sm" />
-    </GrabHandle>
-  );
-}
-
-const GrabHandle = styled('div')`
-  display: grid;
-  place-items: center;
-  width: ${p => p.theme.space.xl};
-  cursor: ew-resize;
-`;
-```
-
-Then drop your component in place of `<SplitPanel.Divider>` inside the `<SplitPanel>` children.
-
 ## Tracking Resize Events
 
 `onMouseDown` fires when the user starts dragging (receives the current size as a percentage). `onResize` fires as the size changes (receives the new size in pixels). Use these for analytics or to drive linked UI.

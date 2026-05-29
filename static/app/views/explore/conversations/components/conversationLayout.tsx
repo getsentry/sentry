@@ -32,6 +32,37 @@ export function ConversationSplitLayout({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
+  return (
+    <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
+      {width > 0 ? (
+        <ConversationSplitInner
+          width={width}
+          left={left}
+          right={right}
+          sizeStorageKey={sizeStorageKey}
+        />
+      ) : null}
+    </Flex>
+  );
+}
+
+/**
+ * Holds the persisted size. Only mounted once the container width has been
+ * measured so `defaultLeft` (the 50% default) is computed from the real width
+ * rather than 0 — otherwise `useLocalStorageState` would freeze the initial
+ * size at the minimum.
+ */
+function ConversationSplitInner({
+  width,
+  left,
+  right,
+  sizeStorageKey,
+}: {
+  left: React.ReactNode;
+  right: React.ReactNode;
+  sizeStorageKey: string;
+  width: number;
+}) {
   const maxLeft = Math.max(LEFT_PANEL_MIN, width - RIGHT_PANEL_MIN - DIVIDER_WIDTH);
   const defaultLeft = Math.min(
     maxLeft,
@@ -41,19 +72,17 @@ export function ConversationSplitLayout({
   const [storedSize, setStoredSize] = useLocalStorageState(sizeStorageKey, defaultLeft);
 
   return (
-    <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
-      <SplitPanel orientation="horizontal" onResize={setStoredSize}>
-        <SplitPanel.Panel
-          defaultSize={storedSize}
-          minSize={LEFT_PANEL_MIN}
-          maxSize={maxLeft}
-        >
-          {left}
-        </SplitPanel.Panel>
-        <SplitPanel.Divider />
-        <SplitPanel.Panel>{right}</SplitPanel.Panel>
-      </SplitPanel>
-    </Flex>
+    <SplitPanel orientation="horizontal" onResize={setStoredSize}>
+      <SplitPanel.Panel
+        defaultSize={storedSize}
+        minSize={LEFT_PANEL_MIN}
+        maxSize={maxLeft}
+      >
+        {left}
+      </SplitPanel.Panel>
+      <SplitPanel.Divider />
+      <SplitPanel.Panel>{right}</SplitPanel.Panel>
+    </SplitPanel>
   );
 }
 

@@ -1,7 +1,7 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
@@ -125,13 +125,18 @@ function ReplayLayoutBody({
   const effectiveLayout = isFocusAreaCollapsed ? defaultLayout : layout;
   const isLeftRight = effectiveLayout === LayoutKey.SIDEBAR_LEFT;
 
+  // Spacing lives around the divider, not on the panels: each pane is padded
+  // only on the edge facing the divider, so the panels stay flush with the
+  // outer edges of the layout.
   const sizedPanel = isLeftRight ? (
     <SplitPanel.Panel
       defaultSize={width * 0.5}
       minSize={MIN_SIDEBAR_WIDTH}
       maxSize={width - MIN_CONTENT_WIDTH}
     >
-      <PanelContainer>{video}</PanelContainer>
+      <Flex direction="column" flex="1" minHeight="0" minWidth="0" paddingRight="md">
+        <PanelContainer>{video}</PanelContainer>
+      </Flex>
     </SplitPanel.Panel>
   ) : (
     <SplitPanel.Panel
@@ -139,7 +144,9 @@ function ReplayLayoutBody({
       minSize={MIN_VIDEO_HEIGHT}
       maxSize={height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT}
     >
-      <PanelContainer>{video}</PanelContainer>
+      <Flex direction="column" flex="1" minHeight="0" minWidth="0" paddingBottom="md">
+        <PanelContainer>{video}</PanelContainer>
+      </Flex>
     </SplitPanel.Panel>
   );
 
@@ -153,11 +160,26 @@ function ReplayLayoutBody({
             availableSize={isLeftRight ? width : height}
           >
             {sizedPanel}
+            {/*
+              Divider and second panel are passed as flat siblings (not wrapped
+              in a Fragment): the core SplitPanel counts panels via
+              React.Children, which does not descend into Fragments. Wrapping
+              them would hide the second panel and leave the sized pane unsized.
+            */}
+            {!isFocusAreaCollapsed && <SplitPanel.Divider />}
             {!isFocusAreaCollapsed && (
-              <Fragment>
-                <SplitPanel.Divider />
-                <SplitPanel.Panel>{focusArea}</SplitPanel.Panel>
-              </Fragment>
+              <SplitPanel.Panel>
+                <Flex
+                  direction="column"
+                  flex="1"
+                  minHeight="0"
+                  minWidth="0"
+                  paddingLeft={isLeftRight ? 'md' : undefined}
+                  paddingTop={isLeftRight ? undefined : 'md'}
+                >
+                  {focusArea}
+                </Flex>
+              </SplitPanel.Panel>
             )}
           </ReplaySplitPanel>
         ) : null}
@@ -207,8 +229,4 @@ const PanelContainer = styled('div')`
   position: relative;
   display: flex;
   flex-grow: 1;
-
-  &.disable-iframe-pointer iframe {
-    pointer-events: none !important;
-  }
 `;
