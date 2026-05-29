@@ -1,8 +1,6 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from sentry.issues.action_log import (
     ActionContext,
     ActionType,
@@ -159,16 +157,20 @@ class TestPublishAction(TestCase):
 
 
 class TestPublishActionFromContext(TestCase):
-    def test_raises_in_test_environment_without_context(self) -> None:
-        with pytest.raises(RuntimeError, match="publish_action_from_context called without"):
-            from sentry.issues.action_log import publish_action_from_context
+    def test_logs_error_and_uses_unknown_without_context(self) -> None:
+        from sentry.issues.action_log import publish_action_from_context
 
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action_from_context(
                 action=ActionType.RESOLVE,
                 group_id=1,
                 organization_id=2,
                 project_id=3,
             )
+        error_records = [r for r in logs.records if r.levelname == "ERROR"]
+        assert any("without ActionContext" in r.message for r in error_records)
+        info_record = [r for r in logs.records if r.message == "issue.action_log"][0]
+        assert info_record.__dict__["source"] == "unknown"
 
 
 PUBLISH_UPDATE = "sentry.api.helpers.group_index.update.publish_action"

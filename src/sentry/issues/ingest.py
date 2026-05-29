@@ -336,7 +336,7 @@ def save_issue_from_occurrence(
             and group.priority != issue_kwargs["priority"]
             and group.priority_locked_at is None
         ):
-            with action_context_scope(source=ActionSource.SYSTEM):
+            with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
                 update_priority(
                     group=group,
                     priority=PriorityLevel(issue_kwargs["priority"]),

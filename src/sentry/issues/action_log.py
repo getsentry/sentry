@@ -197,12 +197,6 @@ def publish_action_from_context(
 ) -> None:
     ctx = get_action_context()
     if ctx is None:
-        from sentry.utils.env import in_test_environment
-
-        if in_test_environment():
-            raise RuntimeError(
-                f"publish_action_from_context called without ActionContext for {action}"
-            )
         logger.error(
             "publish_action_from_context called without ActionContext",
             extra={"action": action, "group_id": group_id},
