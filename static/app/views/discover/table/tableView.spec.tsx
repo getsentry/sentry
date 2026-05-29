@@ -82,6 +82,69 @@ describe('TableView > CellActions', () => {
     );
   }
 
+  function renderIssueEventLink(fields: string[]) {
+    const issueRows: TableData = {
+      meta: {
+        id: 'string',
+        title: 'string',
+        'issue.id': 'integer',
+        'project.name': 'string',
+      },
+      data: [
+        {
+          id: 'deadbeef',
+          title: 'some title',
+          'issue.id': 123,
+          'project.name': 'project-slug',
+        },
+      ],
+    };
+
+    const issueQuery = {
+      id: '42',
+      name: 'best query',
+      field: fields,
+      queryDataset: 'error-events',
+      query: '',
+      project: ['123'],
+      statsPeriod: '14d',
+    };
+
+    const issueLocation = LocationFixture({
+      pathname: '/organizations/org-slug/explore/discover/results/',
+      query: issueQuery,
+    });
+
+    render(
+      <TableView
+        organization={organization}
+        location={issueLocation}
+        eventView={EventView.fromLocation(issueLocation)}
+        isLoading={false}
+        tableData={issueRows}
+        onChangeShowTags={onChangeShowTags}
+        error={null}
+        isFirstPage
+        measurementKeys={null}
+        showTags={false}
+        title=""
+        queryDataset={SavedQueryDatasets.ERRORS}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: issueLocation.pathname,
+            query: issueQuery,
+          },
+        },
+      }
+    );
+
+    const firstRow = screen.getAllByRole('row')[1]!;
+    return within(firstRow).getByTestId('view-event');
+  }
+
   async function openContextMenu(cellIndex: number) {
     const firstRow = screen.getAllByRole('row')[1]!;
     const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex]!;
@@ -487,6 +550,18 @@ describe('TableView > CellActions', () => {
           '/organizations/org-slug/explore/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
+    );
+  });
+
+  it.each([
+    ['explicit', ['id', 'title']],
+    ['prepended', ['title']],
+  ])('renders %s issue event id links directly to the issue event', (_name, fields) => {
+    const link = renderIssueEventLink(fields);
+
+    expect(link).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/123/events/deadbeef/?project=123&referrer=discover-events-table'
     );
   });
 
