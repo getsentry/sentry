@@ -106,7 +106,6 @@ from sentry.core.endpoints.organization_member_team_details import (
 from sentry.core.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
-    OrganizationProjectsExperimentalCompatEndpoint,
 )
 from sentry.core.endpoints.organization_request_project_creation import (
     OrganizationRequestProjectCreation,
@@ -2213,12 +2212,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
-    ),
-    # TODO: remove once frontend PR lands (ref/onboarding-project-creation-url)
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/experimental/projects/$",
-        OrganizationProjectsExperimentalCompatEndpoint.as_view(),
-        name="sentry-api-0-organization-projects-experimental-compat",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/projects-count/$",
