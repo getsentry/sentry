@@ -507,10 +507,8 @@ function EAPSpanNodeDetailsContent({
     // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
     attributesMap.observed_timestamp_nanos &&
     // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
-    // web vital attributes (only present on v1 spans) are undefined.
-    !attributesMap.lcp &&
-    !attributesMap.cls &&
-    !attributesMap.inp;
+    // report_event only sent on v1 spans attribute is undefined
+    !attributesMap.report_event;
 
   return (
     <TraceDrawerComponents.DetailContainer>
