@@ -4,6 +4,7 @@ import logging
 from types import SimpleNamespace
 from typing import Any
 
+import sentry_sdk
 from pydantic import ValidationError
 
 from sentry.api.serializers.rest_framework import DashboardSerializer
@@ -168,7 +169,12 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
             )
 
             if cls._within_retry_budget(state, organization, run_id):
-                cls._request_fix(organization, run_id, _format_serializer_errors(serializer_errors))
+                try:
+                    formatted_errors = _format_serializer_errors(serializer_errors)
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+                    formatted_errors = str(serializer_errors)
+                cls._request_fix(organization, run_id, formatted_errors)
             return
 
         logger.info(
