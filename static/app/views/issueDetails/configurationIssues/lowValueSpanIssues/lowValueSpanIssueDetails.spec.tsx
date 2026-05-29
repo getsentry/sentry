@@ -32,7 +32,9 @@ describe('LowValueSpanIssueDetails', () => {
 
     expect(screen.getByText('Problem')).toBeInTheDocument();
     expect(screen.getByText('Troubleshooting')).toBeInTheDocument();
-    expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(
+      0
+    );
     expect(screen.getByText('60,000')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
     expect(screen.queryByText('Value score')).not.toBeInTheDocument();

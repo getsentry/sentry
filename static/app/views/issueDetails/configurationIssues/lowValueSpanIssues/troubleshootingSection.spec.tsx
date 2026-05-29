@@ -45,7 +45,9 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(
       screen.getByText(/delete the custom span line/)
     ).toBeInTheDocument();
-    expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(
+      0
+    );
     expect(screen.queryByText('sentry.javascript.nextjs')).not.toBeInTheDocument();
     expect(screen.queryByText('ignoreSpans')).not.toBeInTheDocument();
     expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
@@ -72,7 +74,9 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
     expect(screen.getByText('before_send_transaction')).toBeInTheDocument();
     expect(screen.getAllByText(/event\["spans"\]/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/span.get\("op"\) == "function"/)
+    ).toBeInTheDocument();
   });
 
   it('renders generic guidance when the SDK is unavailable', () => {
