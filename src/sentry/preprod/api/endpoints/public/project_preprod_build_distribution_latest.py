@@ -124,7 +124,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         self,
         request: Request,
         project: Project,
-    ) -> Response:
+    ) -> Response[LatestInstallableBuildResponseDict]:
         """
         Get the latest installable build for a project.
 

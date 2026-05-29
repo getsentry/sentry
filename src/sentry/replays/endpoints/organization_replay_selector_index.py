@@ -108,7 +108,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
         },
         examples=ReplayExamples.GET_SELECTORS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[ReplaySelectorResponse]:
         """Return a list of selectors for a given organization."""
         self.check_replay_access(request, organization)
 

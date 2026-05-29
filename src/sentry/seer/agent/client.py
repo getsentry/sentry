@@ -460,7 +460,15 @@ class SeerAgentClient:
             logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
 
-        if has_explorer_index is not None and not has_explorer_index:
+        logger.info(
+            "Maybe trigger explorer index tasks",
+            extra={
+                "organization_id": self.organization.id,
+                "has_explorer_index": has_explorer_index,
+                "has_org_project_context": has_org_project_context,
+            },
+        )
+        if has_explorer_index is False:
             projects = list(
                 Project.objects.filter(
                     organization_id=self.organization.id,
@@ -478,11 +486,11 @@ class SeerAgentClient:
                 ):
                     pass
 
-        if (
-            has_org_project_context is not None
-            and not has_org_project_context
-            and options.get("explorer.context_engine_indexing.enable")
-        ):
+        if has_org_project_context is False:
+            logger.info(
+                "Dispatching context engine index tasks",
+                extra={"organization_id": self.organization.id},
+            )
             index_org_project_knowledge.apply_async(args=[self.organization.id])
             build_service_map.apply_async(args=[self.organization.id])
 

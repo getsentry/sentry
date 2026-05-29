@@ -38,7 +38,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
-from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -164,20 +163,10 @@ class JiraIntegration(IssueSyncIntegration):
     def get_organization_config(self) -> list[dict[str, Any]]:
         configuration: list[dict[str, Any]] = self._get_organization_config_default_values()
 
-        context = organization_service.get_organization_by_id(
-            id=self.organization_id, include_projects=False, include_teams=False
-        )
-        assert context, "organizationcontext must exist to get org"
-        organization = context.organization
-
         client = self.get_client()
 
         try:
-            if features.has("organizations:jira-paginated-project-config", organization):
-                # Use the paginated endpoint to avoid fetching all projects at once,
-                # which can time out for large Jira instances. The settings page
-                # dropdown search (typeahead) handles finding projects beyond this
-                # initial page via JiraSearchEndpoint.
+            if features.has("organizations:jira-paginated-project-config", self.organization):
                 projects_response = client.get_projects_paginated(params={"maxResults": 50})
                 projects: list[JiraProjectMapping] = [
                     JiraProjectMapping(value=p["id"], label=p["name"])
@@ -196,7 +185,7 @@ class JiraIntegration(IssueSyncIntegration):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+        has_issue_sync = features.has("organizations:integrations-issue-sync", self.organization)
         if not has_issue_sync:
             for field in configuration:
                 field["disabled"] = True
@@ -398,8 +387,18 @@ class JiraIntegration(IssueSyncIntegration):
             self.org_integration = org_integration
 
     def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
-        project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
+        client = self.get_client()
+        if features.has("organizations:jira-paginated-project-config", self.organization):
+            project_ids = [pm.external_id for pm in project_mappings]
+            if not project_ids:
+                return []
+            response = client.get_projects_paginated(
+                params={"id": project_ids, "maxResults": len(project_ids)}
+            )
+            active_ids = {p["id"] for p in response.get("values", [])}
+            return [pm for pm in project_mappings if pm.external_id in active_ids]
 
+        project_ids_set = {p["id"] for p in client.get_projects_list()}
         return [pm for pm in project_mappings if pm.external_id in project_ids_set]
 
     def get_config_data(self):

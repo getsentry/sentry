@@ -14,6 +14,11 @@ const staticConfigurationIssueDetails = {
   },
 };
 
+const lowValueSpanConfigurationIssueDetails = {
+  ...staticConfigurationIssueDetails,
+  autofix: true,
+};
+
 export const configurationIssuesConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
@@ -65,5 +70,5 @@ export const configurationIssuesConfig: IssueCategoryConfigMapping = {
     groupingInfo: {enabled: false},
   },
   [IssueType.SOURCEMAP_CONFIGURATION]: staticConfigurationIssueDetails,
-  [IssueType.LOW_VALUE_SPAN_CONFIGURATION]: staticConfigurationIssueDetails,
+  [IssueType.LOW_VALUE_SPAN_CONFIGURATION]: lowValueSpanConfigurationIssueDetails,
 };
