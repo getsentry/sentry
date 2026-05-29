@@ -1059,3 +1059,33 @@ class TestTriggerPushChanges(TestCase):
 
         body = mock_post.call_args[0][0]
         assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_includes_linear_issue(self, mock_post):
+        mock_post.return_value = MagicMock(status=200)
+        self.create_platform_external_issue(
+            group=self.group,
+            service_type="linear",
+            display_name="PROJ#123",
+            web_url="https://linear.app/proj/issue/PROJ-123",
+        )
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature("organizations:gen-ai-features"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        expected = f"Fixes {self.group.qualified_short_id}\nFixes PROJ-123"
+        assert body["payload"]["pr_description_suffix"] == expected
