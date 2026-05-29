@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from typing import cast
 
 import orjson
+import sentry_sdk
 
 from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
@@ -158,7 +159,12 @@ def get_cached_rebalanced_transaction_sample_rates(
         if serialized is None:
             result[project_id] = None
             continue
-        named_rates, implicit_rate = orjson.loads(serialized)
+        try:
+            named_rates, implicit_rate = orjson.loads(serialized)
+        except (TypeError, ValueError) as e:
+            sentry_sdk.capture_exception(e)
+            result[project_id] = None
+            continue
         result[project_id] = (named_rates, float(implicit_rate))
     return result
 
