@@ -700,7 +700,15 @@ function getEventTarget({
     return getProjectEventRedirectTarget(dataRow, organization, location);
   }
 
-  return getTraceEventTarget(dataRow, organization, location, eventView);
+  return generateLinkToEventInTraceView({
+    traceSlug: dataRow.trace,
+    eventId: dataRow.id,
+    timestamp: dataRow.timestamp,
+    organization,
+    location,
+    eventView,
+    source: TraceViewSources.DISCOVER,
+  });
 }
 
 function isIssueEventDataRow(dataRow: TableDataRow): dataRow is IssueEventDataRow {
@@ -725,23 +733,6 @@ function getIssueEventTarget(
       referrer: 'discover-events-table',
     },
   };
-}
-
-function getTraceEventTarget(
-  dataRow: TraceEventDataRow,
-  organization: Organization,
-  location: Location,
-  eventView: EventView
-): LocationDescriptorObject {
-  return generateLinkToEventInTraceView({
-    traceSlug: dataRow.trace,
-    eventId: dataRow.id,
-    timestamp: dataRow.timestamp,
-    organization,
-    location,
-    eventView,
-    source: TraceViewSources.DISCOVER,
-  });
 }
 
 function getProjectEventRedirectTarget(
