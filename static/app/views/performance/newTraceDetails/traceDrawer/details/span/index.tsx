@@ -28,7 +28,6 @@ import {
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
-  type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
@@ -459,14 +458,20 @@ function EAPSpanNodeDetailsContent({
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;
+
+  const attributesMap = attributes.reduce<Record<string, string | number | boolean>>(
+    (acc, attribute) => {
+      acc[attribute.name] = attribute.value;
+      return acc;
+    },
+    {}
+  );
+
   const links = traceItemData.links;
   const isTransaction = node.value.is_transaction && !!eventTransaction;
 
-  const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
-    attribute => attribute.name === 'thread.id'
-  );
-  const threadId =
-    typeof threadIdAttribute?.value === 'string' ? threadIdAttribute.value : undefined;
+  const threadIdAttribute = attributesMap['thread.id'];
+  const threadId = typeof threadIdAttribute === 'string' ? threadIdAttribute : undefined;
 
   const span = useMemo(() => {
     return {
@@ -497,9 +502,15 @@ function EAPSpanNodeDetailsContent({
     }
   }, [hasProfileDetails, hasLogDetails, organization]);
 
-  // The presence of this attribute indicates that the EAP span was sent as a v2 span
-  // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
-  const isSdkSentV2Span = attributes.some(a => a.name === 'observed_timestamp_nanos');
+  const isSdkSentV2Span =
+    // The presence of this attribute indicates that the EAP span was sent as a v2 span
+    // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
+    attributesMap.observed_timestamp_nanos &&
+    // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
+    // web vital attributes (only present on v1 spans) are undefined.
+    !attributesMap.lcp &&
+    !attributesMap.cls &&
+    !attributesMap.inp;
 
   return (
     <TraceDrawerComponents.DetailContainer>
