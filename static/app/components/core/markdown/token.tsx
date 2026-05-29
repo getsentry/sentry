@@ -292,7 +292,8 @@ export function Token({
           Default={DefaultTag}
           name={token.name}
           level={token.level}
-          value={token.value}
+          attrs={token.attrs}
+          data={token.data}
         />
       );
     }

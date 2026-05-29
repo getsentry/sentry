@@ -1,11 +1,12 @@
 import type {TokenizerExtension, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
 
 export interface TagToken {
+  attrs: Record<string, string>;
+  data: unknown;
   level: 'block' | 'inline';
   name: string;
   raw: string;
   type: 'tag';
-  value: Record<string, unknown>;
 }
 
 const TAG_START_RE = /\{%\s+[\w-]/;
@@ -54,22 +55,15 @@ function parseAttrs(raw: string): Record<string, string> {
   return attrs;
 }
 
-function mergeValue(
-  attrs: Record<string, string>,
-  body: string
-): Record<string, unknown> {
-  const value: Record<string, unknown> = {...attrs};
-  if (body) {
-    try {
-      const parsed = JSON.parse(body);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        Object.assign(value, parsed);
-      }
-    } catch {
-      // Body isn't valid JSON — attrs only
-    }
+function parseBody(body: string): unknown {
+  if (!body) {
+    return undefined;
   }
-  return value;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return undefined;
+  }
 }
 
 function findTagStart(src: string): number | undefined {
@@ -98,7 +92,8 @@ function tokenize(src: string, level: 'block' | 'inline'): Tokens.Generic | unde
       raw,
       level,
       name,
-      value: mergeValue(parseAttrs(attrStr), body),
+      attrs: parseAttrs(attrStr),
+      data: parseBody(body),
     };
   }
   match = SELF_CLOSING_RE.exec(src);
@@ -109,7 +104,8 @@ function tokenize(src: string, level: 'block' | 'inline'): Tokens.Generic | unde
       raw,
       level,
       name,
-      value: parseAttrs(attrStr),
+      attrs: parseAttrs(attrStr),
+      data: undefined,
     };
   }
   return undefined;

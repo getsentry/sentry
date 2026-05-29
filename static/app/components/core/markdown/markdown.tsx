@@ -44,9 +44,10 @@ export type MarkdownComponents = Partial<{
   TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
   Tag: ComponentType<
     WithDefault<{
+      attrs: Record<string, string>;
+      data: unknown;
       level: 'block' | 'inline';
       name: string;
-      value: Record<string, unknown>;
     }>
   >;
   TaskList: ComponentType<WithDefault<{children: ReactNode}>>;

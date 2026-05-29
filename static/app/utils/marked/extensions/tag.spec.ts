@@ -43,27 +43,28 @@ describe('marked tag extension', () => {
       expect(tag).toBeDefined();
       expect(tag?.name).toBe('ref');
       expect(tag?.level).toBe('block');
-      expect(tag?.value).toEqual({type: 'issue', id: 'PROJ-123'});
+      expect(tag?.attrs).toEqual({type: 'issue', id: 'PROJ-123'});
+      expect(tag?.data).toBeUndefined();
     });
 
     it('parses a self-closing tag with no attributes', () => {
       const tag = findTag('{% divider /%}');
       expect(tag).toBeDefined();
       expect(tag?.name).toBe('divider');
-      expect(tag?.value).toEqual({});
+      expect(tag?.attrs).toEqual({});
     });
 
     it('parses tag names with hyphens', () => {
       const tag = findTag('{% root-cause type="analysis" /%}');
       expect(tag).toBeDefined();
       expect(tag?.name).toBe('root-cause');
-      expect(tag?.value).toEqual({type: 'analysis'});
+      expect(tag?.attrs).toEqual({type: 'analysis'});
     });
 
     it('parses attribute names with hyphens', () => {
       const tag = findTag('{% ref data-type="issue" /%}');
       expect(tag).toBeDefined();
-      expect(tag?.value).toEqual({'data-type': 'issue'});
+      expect(tag?.attrs).toEqual({'data-type': 'issue'});
     });
   });
 
@@ -75,18 +76,15 @@ describe('marked tag extension', () => {
       expect(tag).toBeDefined();
       expect(tag?.name).toBe('ref');
       expect(tag?.level).toBe('block');
-      expect(tag?.value).toEqual({
-        type: 'issue',
-        id: 'PROJ-ABC',
-        title: 'NullPointerException',
-      });
+      expect(tag?.attrs).toEqual({type: 'issue', id: 'PROJ-ABC'});
+      expect(tag?.data).toEqual({title: 'NullPointerException'});
     });
 
-    it('merges JSON body fields over attrs', () => {
+    it('keeps attrs and data separate', () => {
       const tag = findTag('{% ref type="issue" %}{"type":"event","count":42}{% /ref %}');
       expect(tag).toBeDefined();
-      expect(tag?.value.type).toBe('event');
-      expect(tag?.value.count).toBe(42);
+      expect(tag?.attrs).toEqual({type: 'issue'});
+      expect(tag?.data).toEqual({type: 'event', count: 42});
     });
 
     it('parses a block tag with multi-line JSON body', () => {
@@ -95,8 +93,8 @@ describe('marked tag extension', () => {
       const tag = findTag(`{% artifact type="root-cause" %}${body}{% /artifact %}`);
       expect(tag).toBeDefined();
       expect(tag?.name).toBe('artifact');
-      expect(tag?.value).toEqual({
-        type: 'root-cause',
+      expect(tag?.attrs).toEqual({type: 'root-cause'});
+      expect(tag?.data).toEqual({
         one_line_description: 'Race condition',
         count: 5,
         object: {a: [0, 1, 2]},
@@ -106,13 +104,15 @@ describe('marked tag extension', () => {
     it('handles invalid JSON body gracefully', () => {
       const tag = findTag('{% ref type="issue" %}not valid json{% /ref %}');
       expect(tag).toBeDefined();
-      expect(tag?.value).toEqual({type: 'issue'});
+      expect(tag?.attrs).toEqual({type: 'issue'});
+      expect(tag?.data).toBeUndefined();
     });
 
-    it('ignores non-object JSON body', () => {
+    it('parses non-object JSON body', () => {
       const tag = findTag('{% ref type="issue" %}[1,2,3]{% /ref %}');
       expect(tag).toBeDefined();
-      expect(tag?.value).toEqual({type: 'issue'});
+      expect(tag?.attrs).toEqual({type: 'issue'});
+      expect(tag?.data).toEqual([1, 2, 3]);
     });
 
     it('requires matching closing tag name', () => {
@@ -131,7 +131,7 @@ describe('marked tag extension', () => {
       expect(tag).toBeDefined();
       expect(tag?.level).toBe('inline');
       expect(tag?.name).toBe('ref');
-      expect(tag?.value).toEqual({type: 'issue', id: 'PROJ-123'});
+      expect(tag?.attrs).toEqual({type: 'issue', id: 'PROJ-123'});
     });
 
     it('parses a block tag within text as inline', () => {
@@ -145,7 +145,8 @@ describe('marked tag extension', () => {
       expect(tag).toBeDefined();
       expect(tag?.level).toBe('inline');
       expect(tag?.name).toBe('chart');
-      expect(tag?.value).toEqual({type: 'line', series: [1, 2]});
+      expect(tag?.attrs).toEqual({type: 'line'});
+      expect(tag?.data).toEqual({series: [1, 2]});
     });
   });
 
@@ -174,36 +175,37 @@ describe('marked tag extension', () => {
       );
       expect(tag).toBeDefined();
       expect(tag?.name).toBe('dashboard-preview');
-      expect(tag?.value).toEqual({layout: 'grid', widgets: ['a', 'b']});
+      expect(tag?.attrs).toEqual({layout: 'grid'});
+      expect(tag?.data).toEqual({widgets: ['a', 'b']});
     });
   });
 
   describe('JSON body parsing', () => {
     it('parses string values', () => {
       const tag = findTag('{% note %}{"text":"hello world"}{% /note %}');
-      expect(tag?.value).toEqual({text: 'hello world'});
+      expect(tag?.data).toEqual({text: 'hello world'});
     });
 
     it('parses numeric values', () => {
       const tag = findTag('{% metric %}{"value":3.14,"count":0}{% /metric %}');
-      expect(tag?.value).toEqual({value: 3.14, count: 0});
+      expect(tag?.data).toEqual({value: 3.14, count: 0});
     });
 
     it('parses boolean values', () => {
       const tag = findTag('{% flag %}{"enabled":true,"deprecated":false}{% /flag %}');
-      expect(tag?.value).toEqual({enabled: true, deprecated: false});
+      expect(tag?.data).toEqual({enabled: true, deprecated: false});
     });
 
     it('parses null values', () => {
       const tag = findTag('{% ref %}{"assignee":null}{% /ref %}');
-      expect(tag?.value).toEqual({assignee: null});
+      expect(tag?.data).toEqual({assignee: null});
     });
 
     it('parses nested objects', () => {
       const tag = findTag(
         '{% ref %}{"meta":{"priority":"high","tags":{"env":"prod"}}}{% /ref %}'
       );
-      expect(tag?.value).toEqual({
+      expect(tag?.data).toEqual({
         meta: {priority: 'high', tags: {env: 'prod'}},
       });
     });
@@ -212,29 +214,38 @@ describe('marked tag extension', () => {
       const tag = findTag(
         '{% artifact %}{"steps":[{"title":"Fix"},{"title":"Test"}]}{% /artifact %}'
       );
-      expect(tag?.value).toEqual({
+      expect(tag?.data).toEqual({
         steps: [{title: 'Fix'}, {title: 'Test'}],
       });
     });
 
     it('parses empty object body', () => {
       const tag = findTag('{% ref %}{}{% /ref %}');
-      expect(tag?.value).toEqual({});
+      expect(tag?.data).toEqual({});
     });
 
-    it('ignores top-level string body', () => {
+    it('parses top-level string body', () => {
       const tag = findTag('{% ref type="issue" %}"just a string"{% /ref %}');
-      expect(tag?.value).toEqual({type: 'issue'});
+      expect(tag?.attrs).toEqual({type: 'issue'});
+      expect(tag?.data).toBe('just a string');
     });
 
-    it('ignores top-level number body', () => {
+    it('parses top-level number body', () => {
       const tag = findTag('{% ref type="issue" %}42{% /ref %}');
-      expect(tag?.value).toEqual({type: 'issue'});
+      expect(tag?.attrs).toEqual({type: 'issue'});
+      expect(tag?.data).toBe(42);
     });
 
-    it('ignores top-level null body', () => {
+    it('parses top-level null body', () => {
       const tag = findTag('{% ref type="issue" %}null{% /ref %}');
-      expect(tag?.value).toEqual({type: 'issue'});
+      expect(tag?.attrs).toEqual({type: 'issue'});
+      expect(tag?.data).toBeNull();
+    });
+
+    it('parses top-level array body', () => {
+      const tag = findTag('{% ref type="issue" %}[1,2,3]{% /ref %}');
+      expect(tag?.attrs).toEqual({type: 'issue'});
+      expect(tag?.data).toEqual([1, 2, 3]);
     });
   });
 

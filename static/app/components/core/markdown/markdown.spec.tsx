@@ -359,12 +359,12 @@ describe('Markdown', () => {
       expect(container).toHaveTextContent('');
     });
 
-    it('renders custom Tag component with value', () => {
+    it('renders custom Tag component with attrs', () => {
       render(
         <Markdown
           raw='{% ref type="issue" id="PROJ-123" /%}'
           components={{
-            Tag: ({value}) => <output role="log">{JSON.stringify(value)}</output>,
+            Tag: ({attrs}) => <output role="log">{JSON.stringify(attrs)}</output>,
           }}
         />
       );
@@ -373,17 +373,19 @@ describe('Markdown', () => {
       );
     });
 
-    it('passes merged value for block tags with JSON body', () => {
+    it('passes separate attrs and data for block tags', () => {
       render(
         <Markdown
           raw='{% artifact type="root-cause" %}{"description":"Race condition"}{% /artifact %}'
           components={{
-            Tag: ({value}) => <output role="log">{JSON.stringify(value)}</output>,
+            Tag: ({attrs, data}) => (
+              <output role="log">{JSON.stringify({attrs, data})}</output>
+            ),
           }}
         />
       );
       expect(screen.getByRole('log')).toHaveTextContent(
-        '{"type":"root-cause","description":"Race condition"}'
+        '{"attrs":{"type":"root-cause"},"data":{"description":"Race condition"}}'
       );
     });
 

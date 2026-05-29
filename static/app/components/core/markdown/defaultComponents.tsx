@@ -209,9 +209,10 @@ export const DefaultTableCell = styled('td')<{align?: Align}>`
 `;
 
 export function DefaultTag(_props: {
+  attrs: Record<string, string>;
+  data: unknown;
   level: 'block' | 'inline';
   name: string;
-  value: Record<string, unknown>;
 }) {
   return null;
 }
