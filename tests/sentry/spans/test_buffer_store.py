@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from unittest import mock
 
 import orjson
@@ -13,6 +14,12 @@ from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
 pytestmark = [pytest.mark.django_db]
+
+# Keep these tests in their own Redis keyspace. CI runs test files in parallel,
+# so broad cleanup like flushdb() can erase state from test_buffer.py.
+_TEST_PROJECT_ID = 999_001
+_TEST_TRACE_ID = "f" * 32
+_TEST_SLICE_ID = 999_001
 
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
@@ -36,17 +43,21 @@ def _decompress_payload(raw_data: bytes) -> list[bytes]:
 
 
 @pytest.fixture
-def storage() -> SpansBufferStore:
-    buffer = SpansBuffer(assigned_shards=[0])
-    buffer.client.flushdb()
+def storage() -> Generator[SpansBufferStore]:
+    buffer = SpansBuffer(
+        assigned_shards=[0],
+        slice_id=_TEST_SLICE_ID,
+    )
     yield buffer.store
-    buffer.client.flushdb()
+    keys = buffer.client.keys(f"*{_TEST_PROJECT_ID}:{_TEST_TRACE_ID}*")
+    keys.append(buffer.store.get_queue_key(0))
+    buffer.client.delete(*keys)
 
 
 def test_load_flush_candidates_reads_ready_segments(storage: SpansBufferStore) -> None:
     queue_key = storage.get_queue_key(0)
-    ready_segment_key = _segment_id(1, "a" * 32, "b" * 16)
-    later_segment_key = _segment_id(1, "a" * 32, "c" * 16)
+    ready_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
+    later_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "c" * 16)
     storage.client.zadd(queue_key, {ready_segment_key: 5, later_segment_key: 15})
 
     flush_candidates, load_ids_latency_ms = storage.load_flush_candidates(
@@ -59,8 +70,8 @@ def test_load_flush_candidates_reads_ready_segments(storage: SpansBufferStore) -
 
 
 def test_acquire_flush_locks_keeps_locked_candidates(storage: SpansBufferStore) -> None:
-    first_segment_key = _segment_id(1, "a" * 32, "b" * 16)
-    second_segment_key = _segment_id(1, "a" * 32, "c" * 16)
+    first_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
+    second_segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "c" * 16)
     first_candidate = FlushCandidate(0, storage.get_queue_key(0), first_segment_key, 5)
     second_candidate = FlushCandidate(0, storage.get_queue_key(0), second_segment_key, 10)
     storage.client.set(storage.get_flush_lock_key(first_segment_key), b"1")
@@ -84,13 +95,13 @@ def test_acquire_flush_locks_returns_all_candidates_when_disabled(
     first_candidate = FlushCandidate(
         0,
         storage.get_queue_key(0),
-        _segment_id(1, "a" * 32, "b" * 16),
+        _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16),
         5,
     )
     second_candidate = FlushCandidate(
         0,
         storage.get_queue_key(0),
-        _segment_id(1, "a" * 32, "c" * 16),
+        _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "c" * 16),
         10,
     )
 
@@ -101,12 +112,11 @@ def test_acquire_flush_locks_returns_all_candidates_when_disabled(
 
 
 def test_load_payload_keys_from_distributed_keys(storage: SpansBufferStore) -> None:
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
     first_salt = "1" * 32
     second_salt = "2" * 32
-    first_payload_key = _payload_key(1, trace_id, first_salt)
-    second_payload_key = _payload_key(1, trace_id, second_salt)
+    first_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, first_salt)
+    second_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, second_salt)
     storage.client.sadd(storage.get_payload_key_index(segment_key), first_salt, second_salt)
 
     payload_keys = storage.load_payload_keys([segment_key])
@@ -120,9 +130,8 @@ def test_load_payload_keys_from_distributed_keys(storage: SpansBufferStore) -> N
 def test_load_payloads_from_keys_decompresses_payload_batches(
     storage: SpansBufferStore,
 ) -> None:
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
-    payload_key = _payload_key(1, trace_id, "1" * 32)
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
+    payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, "1" * 32)
     span_a = _payload("a" * 16)
     span_b = _payload("b" * 16)
     compressed = zstandard.ZstdCompressor(level=0).compress(b"\x00".join([span_a, span_b]))
@@ -139,13 +148,14 @@ def test_load_payloads_from_keys_decompresses_payload_batches(
     assert decompress_latency_ms >= 0
 
 
-def test_load_segments_reads_payloads_from_distributed_keys(storage: SpansBufferStore) -> None:
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
+def test_load_segments_reads_payloads_from_distributed_keys(
+    storage: SpansBufferStore,
+) -> None:
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
     first_salt = "1" * 32
     second_salt = "2" * 32
-    first_payload_key = _payload_key(1, trace_id, first_salt)
-    second_payload_key = _payload_key(1, trace_id, second_salt)
+    first_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, first_salt)
+    second_payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, second_salt)
     span_a = _payload("a" * 16)
     span_b = _payload("b" * 16)
     span_c = _payload("c" * 16)
@@ -174,11 +184,12 @@ def test_load_segments_reads_payloads_from_distributed_keys(storage: SpansBuffer
     )
 
 
-def test_load_segments_decompresses_payload_batches(storage: SpansBufferStore) -> None:
-    trace_id = "a" * 32
-    segment_key = _segment_id(1, trace_id, "b" * 16)
+def test_load_segments_decompresses_payload_batches(
+    storage: SpansBufferStore,
+) -> None:
+    segment_key = _segment_id(_TEST_PROJECT_ID, _TEST_TRACE_ID, "b" * 16)
     salt = "1" * 32
-    payload_key = _payload_key(1, trace_id, salt)
+    payload_key = _payload_key(_TEST_PROJECT_ID, _TEST_TRACE_ID, salt)
     span_a = _payload("a" * 16)
     span_b = _payload("b" * 16)
     compressed = zstandard.ZstdCompressor(level=0).compress(b"\x00".join([span_a, span_b]))

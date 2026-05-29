@@ -256,8 +256,8 @@ class SpansBufferStore:
         for shard, queue_key, keys_with_scores in zip(
             self.assigned_shards, queue_keys, redis_results
         ):
-            for segment_key, score in keys_with_scores:
-                flush_candidates.append(FlushCandidate(shard, queue_key, segment_key, score))
+            for result in keys_with_scores:
+                flush_candidates.append(FlushCandidate.from_redis_result(shard, queue_key, result))
 
         return flush_candidates, load_ids_latency_ms
 
@@ -341,7 +341,7 @@ class SpansBufferStore:
             redis_results = p.execute()
 
         for i, key in enumerate(segment_keys):
-            ingest_metadata[key] = SegmentIngestMetadata.from_redis_results(
+            ingest_metadata[key] = SegmentIngestMetadata.from_redis_result(
                 redis_results[i * 2],
                 redis_results[i * 2 + 1],
             )
