@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package sentry_protos.billing.v1.services.engagement.v1;
 
-// Why a Grant exists. Kept in its own file so values can grow without
-// touching grant.proto review surface.
+// How a Grant was created.
 enum GrantSource {
   GRANT_SOURCE_UNSPECIFIED = 0;
 
