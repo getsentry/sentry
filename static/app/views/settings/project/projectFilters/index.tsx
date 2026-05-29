@@ -67,7 +67,7 @@ export default function ProjectFilters() {
                     stepBack: -1,
                   })}
                 >
-                  {t('Inbound Filters')}
+                  {t('Custom Filters')}
                 </TabList.Item>
                 <TabList.Item
                   key="discarded-groups"

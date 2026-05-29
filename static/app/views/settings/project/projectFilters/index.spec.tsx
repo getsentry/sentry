@@ -365,7 +365,7 @@ describe('ProjectFilters', () => {
 
     expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual([
       'Data Filters',
-      'Inbound Filters',
+      'Custom Filters',
       'Discarded Issues',
     ]);
     expect(screen.getByRole('table')).toBeInTheDocument();
