@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,10 +15,6 @@ import {
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
@@ -157,45 +154,37 @@ export function KeySettings({
               updateData={updateData}
             />
 
-            <Panel>
-              <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
-              <PanelBody>
-                <PanelAlert variant="info">
-                  {t(
-                    'Note that it can take a few minutes until changed options are live.'
-                  )}
-                </PanelAlert>
+            <FieldGroup title={t('JavaScript Loader Script')}>
+              <Alert variant="info" system>
+                {t('Note that it can take a few minutes until changed options are live.')}
+              </Alert>
 
-                <LoaderSettings
-                  orgSlug={organization.slug}
-                  keyId={params.keyId}
-                  project={project}
-                  data={data}
-                  updateData={updateData}
-                />
-              </PanelBody>
-            </Panel>
+              <LoaderSettings
+                orgSlug={organization.slug}
+                keyId={params.keyId}
+                project={project}
+                data={data}
+                updateData={updateData}
+              />
+            </FieldGroup>
 
-            <Panel>
-              <PanelHeader>{t('Credentials')}</PanelHeader>
-              <PanelBody>
-                <PanelAlert variant="info">
-                  {t(
-                    'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
-                  )}
-                </PanelAlert>
+            <FieldGroup title={t('Credentials')}>
+              <Alert variant="info" system>
+                {t(
+                  'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
+                )}
+              </Alert>
 
-                <ProjectKeyCredentials
-                  projectId={`${data.projectId}`}
-                  data={data}
-                  showOtlpTraces
-                  showOtlpLogs
-                  showPublicKey
-                  showSecretKey
-                  showProjectId
-                />
-              </PanelBody>
-            </Panel>
+              <ProjectKeyCredentials
+                projectId={`${data.projectId}`}
+                data={data}
+                showOtlpTraces
+                showOtlpLogs
+                showPublicKey
+                showSecretKey
+                showProjectId
+              />
+            </FieldGroup>
           </Fragment>
         )}
       </Access>
