@@ -17,7 +17,6 @@ import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -194,6 +193,7 @@ export function TableView(props: TableViewProps) {
             isTransactionsDataset,
             location,
             organization,
+            projects,
           })}
         >
           {value}
@@ -309,6 +309,7 @@ export function TableView(props: TableViewProps) {
             isTransactionsDataset,
             location,
             organization,
+            projects,
           })}
         >
           {cell}
@@ -346,10 +347,11 @@ export function TableView(props: TableViewProps) {
         dataRow['max(timestamp)'] ?? dataRow.timestamp
       );
       const dateSelection = eventView.normalizeDateSelection(location);
-      if (dataRow.trace) {
+      const traceSlug = dataRow.trace;
+      if (typeof traceSlug === 'string' && traceSlug) {
         const target = getTraceDetailsUrl({
           organization,
-          traceSlug: String(dataRow.trace),
+          traceSlug,
           dateSelection,
           timestamp,
           location,
@@ -670,23 +672,26 @@ function getEventTarget({
   isTransactionsDataset,
   location,
   organization,
+  projects,
 }: {
   dataRow: TableDataRow;
   eventView: EventView;
   isTransactionsDataset: boolean;
   location: Location;
   organization: Organization;
+  projects: Project[];
 }): LocationDescriptorObject {
   if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
-    return getIssueEventTarget(dataRow, organization, location);
+    return getIssueEventTarget(dataRow, organization, location, projects);
   }
 
-  if (!dataRow.trace) {
+  const traceSlug = dataRow.trace;
+  if (typeof traceSlug !== 'string' || !traceSlug) {
     throw new Error('Transaction event should always have a trace associated with it.');
   }
 
   return generateLinkToEventInTraceView({
-    traceSlug: String(dataRow.trace),
+    traceSlug,
     eventId: dataRow.id,
     timestamp: dataRow.timestamp,
     organization,
@@ -699,21 +704,22 @@ function getEventTarget({
 function getIssueEventTarget(
   dataRow: TableDataRow,
   organization: Organization,
-  location: Location
+  location: Location,
+  projects: Project[]
 ): LocationDescriptorObject {
   const issueId = dataRow['issue.id'];
+  const project = dataRow.project || dataRow['project.name'];
+  const projectId = projects.find(({slug}) => slug === project)?.id;
 
-  if (defined(issueId)) {
+  if (issueId !== undefined && issueId !== null) {
     return {
       pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
       query: {
-        project: location.query.project,
+        project: projectId,
         referrer: 'discover-events-table',
       },
     };
   }
-
-  const project = dataRow.project || dataRow['project.name'];
 
   return {
     // Redirects to the issue group event page via ProjectEventRedirect
