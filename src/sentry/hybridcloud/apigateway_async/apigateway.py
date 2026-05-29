@@ -41,9 +41,7 @@ def _get_view_cell_resolver(
 ) -> CellRequestResolver | None:
     view_class = getattr(view_func, "view_class", None)
     silo_limit = getattr(view_class, "silo_limit", None)
-    if silo_limit and (
-        isinstance(silo_limit, CellSiloView) or isinstance(silo_limit, CellSiloEndpoint)
-    ):
+    if isinstance(silo_limit, (CellSiloView, CellSiloEndpoint)):
         return silo_limit.cell_resolver
     return None
 
