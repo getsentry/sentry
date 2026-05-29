@@ -46,6 +46,7 @@ export interface AddIntegrationParams {
 const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'aws_lambda',
   'bitbucket',
+  'bitbucket_server',
   'claude_code',
   'cursor',
   'discord',
