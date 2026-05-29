@@ -706,8 +706,9 @@ def _get_incr_calls(mock_metrics: mock.MagicMock) -> set[tuple[str, tuple[tuple[
     }
 
 
-@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
-class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
+@control_silo_test(cells=[ApiGatewayTestCase.CELL])
+@override_settings(JS_SDK_LOADER_SDK_VERSION="0.5.2")
+class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
     def _create_project_key_with_mapping(self) -> ProjectKey:
         with outbox_runner():
             project_key = self.create_project_key(self.project)
@@ -723,8 +724,7 @@ class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
             json_data={"proxy": True, "public_key": project_key.public_key},
         )
         with (
-            override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)),
-            override_settings(ROOT_URLCONF="sentry.web.urls"),
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
             mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.js")
@@ -745,8 +745,7 @@ class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
             json_data={"proxy": True},
         )
         with (
-            override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)),
-            override_settings(ROOT_URLCONF="sentry.web.urls"),
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
             mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.min.js")
@@ -767,8 +766,7 @@ class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
             json_data={"proxy": True, "fallback": True},
         )
         with (
-            override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)),
-            override_settings(ROOT_URLCONF="sentry.web.urls"),
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
             mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{unmapped_key}.js")
@@ -795,8 +793,7 @@ class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
             json_data={"proxy": True, "fallback": True},
         )
         with (
-            override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)),
-            override_settings(ROOT_URLCONF="sentry.web.urls"),
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
             mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get("/js-sdk-loader/nonexistent_key.js")

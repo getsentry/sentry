@@ -287,7 +287,7 @@ def _get_incr_calls(mock_metrics: mock.MagicMock) -> set[tuple[str, tuple[tuple[
     }
 
 
-@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
+@control_silo_test(cells=[ApiGatewayTestCase.CELL])
 class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
     def _create_project_key_with_mapping(self) -> ProjectKey:
         with outbox_runner():
@@ -302,7 +302,7 @@ class ErrorEmbedControlResolverTest(ApiGatewayTestCase):
             f"{self.CELL.address}/api/embed/error-page/",
             json_data={"proxy": True, "name": "error-embed"},
         )
-        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+        with override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"):
             # no dsn
             with pytest.raises(SiloLimit.AvailabilityError):
                 self.client.get("/api/embed/error-page/")
