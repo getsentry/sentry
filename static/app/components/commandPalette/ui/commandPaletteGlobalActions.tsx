@@ -345,7 +345,11 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
 
         <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
-          <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
+          <CMDKAction
+            display={{label: t('Traces')}}
+            keywords={[t('spans'), t('trace explorer')]}
+            to={`${prefix}/explore/traces/`}
+          />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
           )}
@@ -365,17 +369,20 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
+              keywords={[t('profiling')]}
               to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
             <CMDKAction
               display={{label: t('Replays')}}
+              keywords={[t('rum'), t('session replay')]}
               to={`${prefix}/explore/replays/`}
             />
           )}
           <CMDKAction
             display={{label: t('Releases')}}
+            keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
           {organization.features.includes('gen-ai-conversations') && (
@@ -529,6 +536,7 @@ export function GlobalCommandPaletteActions() {
             )}
             <CMDKAction
               display={{label: t('Alerts')}}
+              keywords={[t('alert rules'), t('issue alert')]}
               to={`${prefix}/monitors/alerts/`}
             />
           </CMDKAction>
@@ -766,7 +774,7 @@ export function GlobalCommandPaletteActions() {
         />
         <CMDKAction
           display={{label: t('Create Alert'), icon: <IconAdd />}}
-          keywords={[t('add alert')]}
+          keywords={[t('add alert'), t('alert rules'), t('issue alert')]}
           to={`${prefix}/issues/alerts/wizard/`}
         />
         <CMDKAction
@@ -787,7 +795,10 @@ export function GlobalCommandPaletteActions() {
         />
       </CMDKAction>
 
-      <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
+      <CMDKAction
+        display={{label: t('DSN')}}
+        keywords={[t('client keys'), t('sentry dsn')]}
+      >
         <CMDKAction
           display={{
             label: t('Reverse DSN lookup'),

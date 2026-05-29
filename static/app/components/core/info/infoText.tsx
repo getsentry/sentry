@@ -4,18 +4,17 @@ import type {DistributedOmit} from 'type-fest';
 import {Text, type TextProps} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div'> = DistributedOmit<
-  TextProps<T>,
-  'title' | 'variant'
-> & {
-  title: React.ReactNode;
-  variant?: TooltipProps['underlineColor'] | 'inherit';
-} & Pick<TooltipProps, 'position'>;
+export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
+  DistributedOmit<TextProps<T>, 'title' | 'variant'> & {
+    title: React.ReactNode;
+    variant?: TooltipProps['underlineColor'] | 'inherit';
+  } & Pick<TooltipProps, 'position' | 'maxWidth'>;
 
-export function InfoText<T extends 'span' | 'p' | 'label' | 'div' = 'span'>({
+export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'span'>({
   title,
   children,
   position,
+  maxWidth,
   ...textProps
 }: InfoTextProps<T>) {
   if (!title) {
@@ -25,6 +24,7 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' = 'span'>({
     <Tooltip
       title={title}
       position={position}
+      maxWidth={maxWidth}
       skipWrapper
       isHoverable
       showUnderline

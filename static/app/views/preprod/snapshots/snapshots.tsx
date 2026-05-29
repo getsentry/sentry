@@ -49,6 +49,8 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {TagFilterProvider} from './tagFilterContext';
+import {narrowItemByTags} from './tagFiltering';
 
 function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
@@ -76,6 +78,13 @@ function itemVariantCount(item: SidebarItem): number {
   return item.type === 'changed' || item.type === 'renamed'
     ? item.pairs.length
     : item.images.length;
+}
+
+function itemImages(item: SidebarItem): SnapshotImage[] {
+  if (item.type === 'changed' || item.type === 'renamed') {
+    return item.pairs.map(p => p.head_image);
+  }
+  return item.images;
 }
 
 function snapshotKeyAt(item: SidebarItem, variantIdx: number): string | null {
@@ -202,6 +211,8 @@ export default function SnapshotsPage() {
       .withOptions(pushHistory)
   );
   const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
+  const [activeTagFilters, setActiveTagFilters] = useState<Record<string, string>>({});
+  const hasActiveTagFilter = Object.keys(activeTagFilters).length > 0;
 
   const availableStatuses = useMemo(
     () =>
@@ -331,6 +342,23 @@ export default function SnapshotsPage() {
       }));
   }, [data, comparisonType]);
 
+  const handleToggleTagFilter = useCallback((key: string, value: string) => {
+    setActiveTagFilters(prev => {
+      const result = {...prev};
+      if (prev[key] === value) {
+        delete result[key];
+      } else {
+        result[key] = value;
+      }
+      return result;
+    });
+  }, []);
+
+  const tagFilterContextValue = useMemo(
+    () => ({activeTagFilters, onToggleTagFilter: handleToggleTagFilter}),
+    [activeTagFilters, handleToggleTagFilter]
+  );
+
   // Pre-computed lowercase text per image/pair for fast substring search filtering
   const memberSearchKeys = useMemo(
     () => sidebarItems.map(buildMemberSearchKeys),
@@ -356,11 +384,80 @@ export default function SnapshotsPage() {
     return result;
   }, [sidebarItems, memberSearchKeys, searchQuery]);
 
+  const availableTags = useMemo(() => {
+    const hasStatusFilter = activeStatuses.size > 0 && comparisonType === 'diff';
+    const activeTagKeys = Object.keys(activeTagFilters);
+    const trimmedQuery = searchQuery.trim().toLowerCase();
+    const tagMap = new Map<string, Map<string, number>>();
+
+    for (let i = 0; i < sidebarItems.length; i++) {
+      const item = sidebarItems[i]!;
+      const passesStatus =
+        !hasStatusFilter || activeStatuses.has(item.type as DiffStatus);
+      const images = itemImages(item);
+      const searchKeys = memberSearchKeys[i]!;
+
+      for (let j = 0; j < images.length; j++) {
+        const img = images[j]!;
+        if (!img.tags) {
+          continue;
+        }
+
+        const passesSearch = !trimmedQuery || searchKeys[j]!.includes(trimmedQuery);
+
+        const passesTagFilters = activeTagKeys.every(filterKey => {
+          const filterValue = activeTagFilters[filterKey];
+          if (filterValue === undefined) {
+            return true;
+          }
+          return img.tags?.[filterKey] === filterValue;
+        });
+
+        const counted = passesStatus && passesSearch && passesTagFilters;
+
+        for (const [k, v] of Object.entries(img.tags)) {
+          let values = tagMap.get(k);
+          if (!values) {
+            values = new Map<string, number>();
+            tagMap.set(k, values);
+          }
+          if (counted) {
+            values.set(v, (values.get(v) ?? 0) + 1);
+          } else if (!values.has(v)) {
+            values.set(v, 0);
+          }
+        }
+      }
+    }
+    return tagMap;
+  }, [
+    sidebarItems,
+    memberSearchKeys,
+    searchQuery,
+    activeStatuses,
+    comparisonType,
+    activeTagFilters,
+  ]);
+
+  const tagFilteredItems = useMemo(() => {
+    if (!hasActiveTagFilter) {
+      return searchFilteredItems;
+    }
+    const result: SidebarItem[] = [];
+    for (const item of searchFilteredItems) {
+      const narrowed = narrowItemByTags(item, activeTagFilters);
+      if (narrowed) {
+        result.push(narrowed);
+      }
+    }
+    return result;
+  }, [searchFilteredItems, hasActiveTagFilter, activeTagFilters]);
+
   const filteredItems = useMemo(() => {
     const hasStatusFilter = activeStatuses.size > 0 && comparisonType === 'diff';
     const base = hasStatusFilter
-      ? searchFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
-      : searchFilteredItems;
+      ? tagFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
+      : tagFilteredItems;
 
     return [...base].sort((a, b) => {
       const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
@@ -375,7 +472,7 @@ export default function SnapshotsPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [searchFilteredItems, activeStatuses, sortBy, comparisonType]);
+  }, [tagFilteredItems, activeStatuses, sortBy, comparisonType]);
 
   const sidebarSections = useMemo<SidebarSection[]>(() => {
     function toGroup(item: SidebarItem) {
@@ -430,13 +527,13 @@ export default function SnapshotsPage() {
       [DiffStatus.UNCHANGED]: 0,
       [DiffStatus.SKIPPED]: 0,
     };
-    for (const item of searchFilteredItems) {
+    for (const item of tagFilteredItems) {
       if (item.type in counts) {
         counts[item.type as DiffStatus] += itemVariantCount(item);
       }
     }
     return counts;
-  }, [searchFilteredItems, comparisonType]);
+  }, [tagFilteredItems, comparisonType]);
 
   const listViewRef = useRef<SnapshotListViewHandle>(null);
   const [visibleItemKey, setVisibleItemKey] = useState<string | null>(null);
@@ -667,69 +764,72 @@ export default function SnapshotsPage() {
   };
 
   const snapshotContent = (
-    <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
-      <Flex
-        flexShrink={0}
-        overflow="auto"
-        borderRight="primary"
-        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
-        maxWidth={{sm: '300px', md: 'none'}}
-        style={{
-          width: sidebarWidth,
-          height: hasPageFrameFeature
-            ? 'calc(100dvh - var(--top-bar-height, 53px))'
-            : 'calc(100vh - 205px)',
-        }}
-      >
-        <SnapshotSidebarContent
-          sections={sidebarSections}
-          activeItemKey={activeItemKey}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSelectItem={handleSelectItem}
-          statusCounts={statusCounts}
-          activeStatuses={activeStatuses}
-          onToggleStatus={handleToggleStatus}
-        />
+    <TagFilterProvider value={tagFilterContextValue}>
+      <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
+        <Flex
+          flexShrink={0}
+          overflow="auto"
+          borderRight="primary"
+          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+          maxWidth={{sm: '300px', md: 'none'}}
+          style={{
+            width: sidebarWidth,
+            height: hasPageFrameFeature
+              ? 'calc(100dvh - var(--top-bar-height, 53px))'
+              : 'calc(100vh - 205px)',
+          }}
+        >
+          <SnapshotSidebarContent
+            sections={sidebarSections}
+            activeItemKey={activeItemKey}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectItem={handleSelectItem}
+            statusCounts={statusCounts}
+            activeStatuses={activeStatuses}
+            onToggleStatus={handleToggleStatus}
+            availableTags={availableTags}
+          />
+        </Flex>
+        <DragHandle
+          data-is-held={isHeld}
+          onMouseDown={onMouseDown}
+          onDoubleClick={onDoubleClick}
+        >
+          <IconGrabbable size="sm" />
+        </DragHandle>
+        <Flex flex="1" minWidth={0} overflow="hidden">
+          <SnapshotMainContent
+            selectedItem={singleViewItem}
+            variantIndex={singleViewVariantIndex}
+            imageBaseUrl={imageBaseUrl}
+            listViewRef={listViewRef}
+            diffImageBaseUrl={diffImageBaseUrl}
+            overlayColor={overlayColor}
+            onOverlayColorChange={setOverlayColor}
+            diffMode={effectiveDiffMode}
+            onDiffModeChange={setDiffMode}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            listItems={listItems}
+            hasDiffComparison={hasDiffComparison}
+            isSoloView={isSoloView}
+            onToggleSoloView={handleToggleView}
+            comparisonType={comparisonType}
+            headBranch={data?.vcs_info?.head_ref}
+            selectedSnapshotKey={selectedSnapshotKey}
+            onSelectSnapshot={setSelectedSnapshotKey}
+            onVisibleGroupChange={setVisibleItemKey}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            onNavigateSingleView={navigateSingleView}
+            canNavigatePrev={singleViewNav.canPrev}
+            canNavigateNext={singleViewNav.canNext}
+            navButtonRefs={navButtonRefs}
+          />
+        </Flex>
       </Flex>
-      <DragHandle
-        data-is-held={isHeld}
-        onMouseDown={onMouseDown}
-        onDoubleClick={onDoubleClick}
-      >
-        <IconGrabbable size="sm" />
-      </DragHandle>
-      <Flex flex="1" minWidth={0} overflow="hidden">
-        <SnapshotMainContent
-          selectedItem={singleViewItem}
-          variantIndex={singleViewVariantIndex}
-          imageBaseUrl={imageBaseUrl}
-          listViewRef={listViewRef}
-          diffImageBaseUrl={diffImageBaseUrl}
-          overlayColor={overlayColor}
-          onOverlayColorChange={setOverlayColor}
-          diffMode={effectiveDiffMode}
-          onDiffModeChange={setDiffMode}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          listItems={listItems}
-          hasDiffComparison={hasDiffComparison}
-          isSoloView={isSoloView}
-          onToggleSoloView={handleToggleView}
-          comparisonType={comparisonType}
-          headBranch={data?.vcs_info?.head_ref}
-          selectedSnapshotKey={selectedSnapshotKey}
-          onSelectSnapshot={setSelectedSnapshotKey}
-          onVisibleGroupChange={setVisibleItemKey}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          onNavigateSingleView={navigateSingleView}
-          canNavigatePrev={singleViewNav.canPrev}
-          canNavigateNext={singleViewNav.canNext}
-          navButtonRefs={navButtonRefs}
-        />
-      </Flex>
-    </Flex>
+    </TagFilterProvider>
   );
 
   if (isPending) {
@@ -826,6 +926,11 @@ function imageSearchKey(image: SnapshotImage): string {
   }
   if (image.group) {
     parts.push(image.group);
+  }
+  if (image.tags) {
+    for (const [k, v] of Object.entries(image.tags)) {
+      parts.push(`${k}=${v}`);
+    }
   }
   return parts.join('\n').toLowerCase();
 }
