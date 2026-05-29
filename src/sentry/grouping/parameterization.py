@@ -114,15 +114,36 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="hostname",
         raw_pattern=r"""
-            # Top 100 TLDs. The complete list is 1000s long.
+            # The overall pattern here expresses "2 to 127 dot-separated segments, each segment
+            # consisting of up to 63 letters/numbers/dashes (as long as all segments include a
+            # letter and no segment starts or ends with a dash), followed by a known top-level
+            # domain." (The spec now actually allows practically anything to be a TLD, but matching
+            # on that here would lead us to match things we shouldn't like module paths and
+            # filenames with extensions, so we restrict it to the top 100 TLDs.) Individual parts
+            # labeled below. There's also a total length restriction, but that's handled by the
+            # replacement callback.
             \b
-            ([a-zA-Z0-9\-]{1,63}\.)+?
+            # All segments but the final one, each followed by a dot
+            (
+                (?= [a-zA-Z0-9\-]* [a-zA-Z]) # Lookahead guaranteeing at least one letter
+                (
+                    [a-zA-Z0-9]{1,63} | # All letters/numbers, no dashes
+                    [a-zA-Z0-9] [a-zA-Z0-9\-]{1,61} [a-zA-Z0-9] # Dashes allowed, but not first/last
+                )
+                \.
+            ){1,127}
+            # Final segment (top-level domain)
             (
                 (COM|NET|ORG|JP|DE|UK|FR|BR|IT|RU|ES|ME|GOV|PL|CA|AU|CN|CO|IN|NL|EDU|INFO|EU|CH|ID|AT|KR|CZ|MX|BE|TV|SE|TR|TW|AL|UA|IR|VN|CL|SK|LY|CC|TO|NO|FI|US|PT|DK|AR|HU|TK|GR|IL|NEWS|RO|MY|BIZ|IE|ZA|NZ|SG|EE|TH|IO|XYZ|PE|BG|HK|RS|LT|LINK|PH|CLUB|SI|SITE|MOBI|BY|CAT|WIKI|LA|GA|XXX|CF|HR|NG|JOBS|ONLINE|KZ|UG|GQ|AE|IS|LV|PRO|FM|TIPS|MS|SA|APP)|
                 (com|net|org|jp|de|uk|fr|br|it|ru|es|me|gov|pl|ca|au|cn|co|in|nl|edu|info|eu|ch|id|at|kr|cz|mx|be|tv|se|tr|tw|al|ua|ir|vn|cl|sk|ly|cc|to|no|fi|us|pt|dk|ar|hu|tk|gr|il|news|ro|my|biz|ie|za|nz|sg|ee|th|io|xyz|pe|bg|hk|rs|lt|link|ph|club|si|site|mobi|by|cat|wiki|la|ga|xxx|cf|hr|ng|jobs|online|kz|ug|gq|ae|is|lv|pro|fm|tips|ms|sa|app)
             )
             \b
         """,
+        # Validate that the overall string follows the length restriction before replacing it. If
+        # not, leave it alone.
+        replacement_callback=lambda orig_value: "<hostname>"
+        if len(orig_value) < 256
+        else orig_value,
     ),
     ParameterizationRegex(
         name="traceparent",
