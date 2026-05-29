@@ -3,7 +3,7 @@ import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -687,7 +687,7 @@ function getEventTarget({
   isTransactionsDataset,
   location,
   organization,
-}: EventTargetOptions): LocationDescriptorObject {
+}: EventTargetOptions): LocationDescriptor {
   if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
     if (isIssueEventDataRow(dataRow)) {
       return getIssueEventTarget(dataRow, organization);
@@ -726,7 +726,7 @@ function isTraceEventDataRow(dataRow: TableDataRow): dataRow is TraceEventDataRo
 function getIssueEventTarget(
   dataRow: IssueEventDataRow,
   organization: Organization
-): LocationDescriptorObject {
+): LocationDescriptor {
   return normalizeUrl({
     pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/`,
     query: {
@@ -739,7 +739,7 @@ function getProjectEventRedirectTarget(
   dataRow: TableDataRow,
   organization: Organization,
   location: Location
-): LocationDescriptorObject {
+): LocationDescriptor {
   const project = dataRow.project || dataRow['project.name'];
 
   return {
