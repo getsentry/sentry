@@ -10,6 +10,7 @@ import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/na
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
+  useStackTraceViewState,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import {t} from 'sentry/locale';
@@ -72,6 +73,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
     toggleExpansion,
   } = useStackTraceFrameContext();
   const {meta} = useStackTraceContext();
+  const {view} = useStackTraceViewState();
   const {absoluteFilePaths, hasAnyStatusIcons, verboseFunctionNames} =
     useNativeStackTraceContext();
   const [isHovering, setIsHovering] = useState(false);
@@ -81,6 +83,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
   const functionLabel = getFunctionLabel({frame, frameMeta, verboseFunctionNames});
   const packageLabel = frame.package ? trimPackage(frame.package) : null;
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
+  const showLeadHint = view === 'app' && !isExpanded && leadsToApp;
 
   const resolvedActions =
     typeof actions === 'function'
@@ -112,7 +115,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
         ) : null}
 
         <PackageCell>
-          {leadsToApp ? (
+          {showLeadHint ? (
             <LeadHint>
               <Text as="span" size="xs" variant="muted">
                 {getLeadHint({event, hasNextFrame: defined(nextFrame)})}

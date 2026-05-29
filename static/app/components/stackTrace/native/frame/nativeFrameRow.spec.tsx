@@ -438,6 +438,27 @@ describe('NativeFrameRow', () => {
     expect(screen.getByText('hidden_three')).toBeInTheDocument();
   });
 
+  it('shows native lead hints only in app-only view', () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: true,
+      registers: null,
+      frames: [
+        makeFrame({function: 'system_entry', inApp: false}),
+        makeFrame({function: 'app_main', inApp: true}),
+      ],
+    };
+    const event = makeEvent(stacktrace);
+    const {unmount} = renderFrames(stacktrace, event);
+
+    expect(screen.getByText('Called from')).toBeInTheDocument();
+
+    unmount();
+    renderFrames(stacktrace, event, {defaultView: 'full'});
+
+    expect(screen.queryByText('Called from')).not.toBeInTheDocument();
+  });
+
   it('expands and filters images loaded when a frame address is clicked', async () => {
     const scrollIntoView = jest.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
