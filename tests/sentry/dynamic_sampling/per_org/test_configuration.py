@@ -8,14 +8,14 @@ from unittest.mock import patch
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
 
-from sentry.dynamic_sampling.per_org.tasks.configuration import (
+from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
     CustomDynamicSamplingOrganizationConfiguration,
     CustomDynamicSamplingProjectConfiguration,
     NoDynamicSamplingConfiguration,
     get_configuration,
 )
-from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
@@ -55,7 +55,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
             return_value=0.5,
         ) as get_blended_sample_rate:
             configuration = get_configuration(org.id)
@@ -78,15 +78,15 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=0.5,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
                 return_value=sliding_window_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.compute_sliding_window_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
                 return_value=0.25,
             ) as compute_sample_rate,
         ):
@@ -113,15 +113,15 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 return_value=0.5,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
                 return_value=None,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.compute_sliding_window_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
             ) as compute_sample_rate,
         ):
             configuration = get_configuration(org.id)
@@ -134,7 +134,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
             return_value=None,
         ):
             configuration = get_configuration(org.id)
@@ -151,7 +151,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         with (
             patch(
-                "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                 side_effect=ObjectDoesNotExist,
             ),
             pytest.raises(DynamicSamplingException) as exc_info,
@@ -165,7 +165,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
 
         with patch(
-            "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
             return_value=0.5,
         ):
             configuration = get_configuration(org.id)
@@ -190,7 +190,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         }
                     ),
                     patch(
-                        "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate"
+                        "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
                     ) as get_blended_sample_rate,
                 ):
                     configuration = get_configuration(org.id)
@@ -228,7 +228,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         }
                     ),
                     patch(
-                        "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate"
+                        "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
                     ) as get_blended_sample_rate,
                 ):
                     configuration = get_configuration(org.id)
@@ -315,7 +315,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                         }
                     ),
                     patch(
-                        "sentry.dynamic_sampling.per_org.tasks.configuration.quotas.backend.get_blended_sample_rate",
+                        "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
                         return_value=1.0,
                     ),
                 ):

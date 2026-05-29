@@ -8,8 +8,8 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
-from sentry.dynamic_sampling.per_org.tasks.queries import get_eap_organization_volume
-from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
