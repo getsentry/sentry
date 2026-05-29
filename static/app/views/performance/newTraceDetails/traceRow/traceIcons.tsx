@@ -7,6 +7,12 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
+const TRACE_ICON_GROUP_GLYPH_WIDTH = 12;
+const TRACE_ICON_GROUP_GAP = 2;
+const TRACE_ICON_GROUP_HORIZONTAL_PADDING = 10;
+const TRACE_ICON_GROUP_COUNT_MIN_WIDTH = 8;
+const TRACE_ICON_GROUP_COUNT_APPROXIMATE_CHARACTER_WIDTH = 7;
+
 interface TraceIssueIconsProps {
   errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
@@ -27,22 +33,32 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
   return (
     <Fragment>
       {issues.map(({issue, childIssueCount}, i) => {
-        const left = props.manager.computeRelativeLeftPositionFromOrigin(
-          clamp(
-            getTraceIssueTimestamp(issue, props.node_space!),
-            props.node_space![0],
-            props.node_space![0] + props.node_space![1]
-          ),
-          props.node_space!
-        );
+        const timestamp = getTraceIssueTimestamp(issue, props.node_space!);
         const className = getTraceIssueSeverityClassName(issue);
 
         if (childIssueCount) {
+          const edge = getTraceIconGroupEdge(
+            timestamp,
+            props.node_space!,
+            props.manager.computeConfigSpaceForPixels(
+              getTraceIconGroupApproximateWidth(childIssueCount)
+            )
+          );
+          const clampedTimestamp = getTraceIconGroupAnchorTimestamp(
+            timestamp,
+            props.node_space!,
+            edge
+          );
+          const left = props.manager.computeRelativeLeftPositionFromOrigin(
+            clampedTimestamp,
+            props.node_space!
+          );
+
           return (
             <div
               key={i}
               data-test-id="trace-issue-icon"
-              className={`TraceIconGroup ${className}`}
+              className={`TraceIconGroup ${className} ${getTraceIconGroupEdgeClassName(edge)}`}
               style={{left: left * 100 + '%'}}
             >
               <span className="TraceIconGlyph">
@@ -54,6 +70,16 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
             </div>
           );
         }
+
+        const clampedTimestamp = clamp(
+          timestamp,
+          props.node_space![0],
+          props.node_space![0] + props.node_space![1]
+        );
+        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+          clampedTimestamp,
+          props.node_space!
+        );
 
         return (
           <div
@@ -198,4 +224,65 @@ function getTraceIssueTimestamp(
   }
 
   return typeof startTimestamp === 'number' ? startTimestamp * 1e3 : nodeSpace[0];
+}
+
+function getTraceIconGroupEdge(
+  timestamp: number,
+  nodeSpace: [number, number],
+  iconWidthConfigSpace: number
+): 'start' | 'end' | null {
+  const clampedTimestamp = clamp(timestamp, nodeSpace[0], nodeSpace[0] + nodeSpace[1]);
+  const halfIconWidthConfigSpace = iconWidthConfigSpace / 2;
+
+  if (clampedTimestamp - halfIconWidthConfigSpace <= nodeSpace[0]) {
+    return 'start';
+  }
+
+  if (clampedTimestamp + halfIconWidthConfigSpace >= nodeSpace[0] + nodeSpace[1]) {
+    return 'end';
+  }
+
+  return null;
+}
+
+function getTraceIconGroupAnchorTimestamp(
+  timestamp: number,
+  nodeSpace: [number, number],
+  edge: 'start' | 'end' | null
+): number {
+  if (edge === 'start') {
+    return nodeSpace[0];
+  }
+
+  if (edge === 'end') {
+    return nodeSpace[0] + nodeSpace[1];
+  }
+
+  return clamp(timestamp, nodeSpace[0], nodeSpace[0] + nodeSpace[1]);
+}
+
+function getTraceIconGroupEdgeClassName(edge: 'start' | 'end' | null): string {
+  if (edge === 'start') {
+    return 'TraceIconGroupStart';
+  }
+
+  if (edge === 'end') {
+    return 'TraceIconGroupEnd';
+  }
+
+  return '';
+}
+
+function getTraceIconGroupApproximateWidth(childIssueCount: number): number {
+  const countWidth = Math.max(
+    TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
+    String(childIssueCount).length * TRACE_ICON_GROUP_COUNT_APPROXIMATE_CHARACTER_WIDTH
+  );
+
+  return (
+    TRACE_ICON_GROUP_HORIZONTAL_PADDING +
+    TRACE_ICON_GROUP_GLYPH_WIDTH +
+    TRACE_ICON_GROUP_GAP +
+    countWidth
+  );
 }

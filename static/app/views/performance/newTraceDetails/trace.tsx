@@ -1272,6 +1272,14 @@ export const TraceStylingWrapper = styled('div')`
       }
     }
 
+    .TraceIconGroupStart {
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconGroupEnd {
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
     .TraceIconCount {
       min-width: 8px;
       font-size: ${p => p.theme.font.size.xs};

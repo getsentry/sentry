@@ -1145,6 +1145,10 @@ export class VirtualizedViewManager {
     return (timestamp - entire_space[0]) / entire_space[1];
   }
 
+  computeConfigSpaceForPixels(px: number): number {
+    return px * this.span_to_px[0];
+  }
+
   recomputeTimelineIntervals() {
     if (this.view.trace_view.width === 0) {
       this.intervals[0] = 0;
@@ -1753,24 +1757,21 @@ function getIconTimestamps(
     node.errors,
     node.occurrences
   )) {
-    const icon_width = childIssueCount
+    const icon_width_px = childIssueCount
       ? getTraceIconGroupWidth(childIssueCount, measureText)
       : TRACE_ICON_WIDTH;
-    const icon_width_config_space = (icon_width * px_to_config_space) / 2;
+    const icon_width_config_space = icon_width_px * px_to_config_space;
     const timestamp = getTraceIssueTimestamp(issue, span_space);
+    const [icon_left, icon_right] = childIssueCount
+      ? getTraceIconGroupBounds(timestamp, span_space, icon_width_config_space)
+      : getTraceIconBounds(timestamp, span_space, icon_width_config_space);
 
-    min_icon_timestamp = Math.min(
-      min_icon_timestamp,
-      timestamp - icon_width_config_space
-    );
-    max_icon_timestamp = Math.max(
-      max_icon_timestamp,
-      timestamp + icon_width_config_space
-    );
-    max_icon_width = Math.max(max_icon_width, icon_width);
+    min_icon_timestamp = Math.min(min_icon_timestamp, icon_left);
+    max_icon_timestamp = Math.max(max_icon_timestamp, icon_right);
+    max_icon_width = Math.max(max_icon_width, icon_width_px);
   }
 
-  const max_icon_width_config_space = (max_icon_width * px_to_config_space) / 2;
+  const max_icon_width_config_space = max_icon_width * px_to_config_space;
 
   min_icon_timestamp = clamp(
     min_icon_timestamp,
@@ -1784,6 +1785,47 @@ function getIconTimestamps(
   );
 
   return [min_icon_timestamp, max_icon_timestamp];
+}
+
+function getTraceIconBounds(
+  timestamp: number,
+  span_space: [number, number],
+  icon_width_config_space: number
+): [number, number] {
+  const clamped_timestamp = clamp(
+    timestamp,
+    span_space[0],
+    span_space[0] + span_space[1]
+  );
+  const half_icon_width_config_space = icon_width_config_space / 2;
+
+  return [
+    clamped_timestamp - half_icon_width_config_space,
+    clamped_timestamp + half_icon_width_config_space,
+  ];
+}
+
+function getTraceIconGroupBounds(
+  timestamp: number,
+  span_space: [number, number],
+  icon_width_config_space: number
+): [number, number] {
+  const span_start = span_space[0];
+  const span_end = span_space[0] + span_space[1];
+  const half_icon_width_config_space = icon_width_config_space / 2;
+
+  if (timestamp - half_icon_width_config_space <= span_start) {
+    return [span_start, span_start + icon_width_config_space];
+  }
+
+  if (timestamp + half_icon_width_config_space >= span_end) {
+    return [span_end - icon_width_config_space, span_end];
+  }
+
+  return [
+    timestamp - half_icon_width_config_space,
+    timestamp + half_icon_width_config_space,
+  ];
 }
 
 interface RenderableTraceIssue {
