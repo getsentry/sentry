@@ -18,6 +18,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -130,7 +131,7 @@ def _project_transactions(
     org_id: int,
     project_id: int,
     transaction_counts: list[tuple[str, float]],
-) -> dict:
+) -> ProjectTransactions:
     return {
         "org_id": org_id,
         "project_id": project_id,
@@ -233,7 +234,7 @@ class TransactionBalancingCalculationsTest(TestCase):
                 0.5,
             ),
         }
-        cached_sample_rates = {
+        cached_sample_rates: dict[int, tuple[dict[str, float], float] | None] = {
             project.id: ({"checkout": 0.2, "cart": 1.0}, 0.45),
         }
 
