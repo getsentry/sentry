@@ -40,9 +40,10 @@ Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
 FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count", "http_error_count_percent"}
 
-# Per-display-type maximum limit values enforced by the Sentry API.
+# Per-display-type limit
+# in src/sentry/api/serializers/rest_framework/dashboard.py.
 _LIMIT_MAX_BY_DISPLAY_TYPE: dict[str, int] = {
-    "bar": 25,
+    "categorical_bar": 25,
     "table": 20,
 }
 _DEFAULT_LIMIT_MAX = 10
