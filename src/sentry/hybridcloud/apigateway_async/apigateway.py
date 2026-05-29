@@ -44,7 +44,7 @@ def _get_view_cell_resolver(
     if silo_limit and (
         isinstance(silo_limit, CellSiloView) or isinstance(silo_limit, CellSiloEndpoint)
     ):
-        return silo_limit.control_silo_resolver
+        return silo_limit.cell_resolver
     return None
 
 

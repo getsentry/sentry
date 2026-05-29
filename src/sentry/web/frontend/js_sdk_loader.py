@@ -79,7 +79,7 @@ class SdkPublicKeyResolver(CellRequestResolver):
         return get_cell_by_name(project_mapping.cell_name)
 
 
-@cell_silo_view(control_silo_resolver=SdkPublicKeyResolver())
+@cell_silo_view(cell_resolver=SdkPublicKeyResolver())
 class JavaScriptSdkLoader(View):
     def _get_loader_config(
         self, key: ProjectKey | None, sdk_version: Version | None

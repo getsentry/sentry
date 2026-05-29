@@ -118,7 +118,7 @@ class ErrorEmbedResolver(CellRequestResolver):
             return None
 
 
-@cell_silo_view(control_silo_resolver=ErrorEmbedResolver())
+@cell_silo_view(cell_resolver=ErrorEmbedResolver())
 class ErrorPageEmbedView(View):
     """
     View for the crash report modal.

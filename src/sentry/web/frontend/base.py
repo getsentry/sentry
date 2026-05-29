@@ -130,10 +130,10 @@ class ViewSiloLimit(SiloLimit):
 
 class CellSiloView(ViewSiloLimit):
     def __init__(
-        self, control_silo_resolver: CellRequestResolver | None = None, *args, **kwargs: Any
+        self, cell_resolver: CellRequestResolver | None = None, *args, **kwargs: Any
     ) -> None:
         super().__init__([SiloMode.CELL], *args, **kwargs)
-        self.control_silo_resolver = control_silo_resolver
+        self.cell_resolver = cell_resolver
 
 
 control_silo_view = ViewSiloLimit([SiloMode.CONTROL])
@@ -147,7 +147,7 @@ mode a 404 will be returned.
 def cell_silo_view(
     decorated_obj: Any = None,
     *,
-    control_silo_resolver: CellRequestResolver | None = None,
+    cell_resolver: CellRequestResolver | None = None,
 ) -> Any:
     """
     Apply to frontend views that exist in Cell silo that are publicly accesible.
@@ -158,7 +158,7 @@ def cell_silo_view(
     Optionally, a resolver class can be specified to allow Control Silo to
     dispatch a request to the correct cell, if possible.
     """
-    limiter = CellSiloView(internal=False, control_silo_resolver=control_silo_resolver)
+    limiter = CellSiloView(internal=False, cell_resolver=cell_resolver)
     if decorated_obj is not None:
         return limiter(decorated_obj)
     return limiter
@@ -171,7 +171,7 @@ Apply to frontend views that respond in both CONTROL and CELL mode.
 
 
 def internal_cell_silo_view(
-    decorated_obj: Any = None, *, control_silo_resolver: CellRequestResolver | None = None
+    decorated_obj: Any = None, *, cell_resolver: CellRequestResolver | None = None
 ) -> Any:
     """
     Apply to frontend views that exist in CELL Silo
@@ -181,7 +181,7 @@ def internal_cell_silo_view(
     Optionally, a resolver class can be specified to allow Control Silo to
     dispatch a request to the correct cell, if possible.
     """
-    limiter = CellSiloView(internal=True, control_silo_resolver=control_silo_resolver)
+    limiter = CellSiloView(internal=True, cell_resolver=cell_resolver)
     if decorated_obj is not None:
         return limiter(decorated_obj)
     return limiter

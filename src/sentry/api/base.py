@@ -724,10 +724,10 @@ class EndpointSiloLimit(SiloLimit):
 
 class CellSiloEndpoint(EndpointSiloLimit):
     def __init__(
-        self, internal: bool = False, control_silo_resolver: CellRequestResolver | None = None
+        self, internal: bool = False, cell_resolver: CellRequestResolver | None = None
     ) -> None:
         super().__init__(SiloMode.CELL, internal=internal)
-        self.control_silo_resolver = control_silo_resolver
+        self.cell_resolver = cell_resolver
 
 
 control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
@@ -747,7 +747,7 @@ should not be included in the frontend URL mapping
 def cell_silo_endpoint(
     decorated_obj: Any = None,
     *,
-    control_silo_resolver: CellRequestResolver | None = None,
+    cell_resolver: CellRequestResolver | None = None,
 ) -> Any:
     """
     Apply to endpoints that exist in Cell silo that are publicly accesible.
@@ -758,7 +758,7 @@ def cell_silo_endpoint(
     Optionally, a resolver class can be specified to allow Control Silo to
     dispatch a request to the correct cell, if possible.
     """
-    limiter = CellSiloEndpoint(internal=False, control_silo_resolver=control_silo_resolver)
+    limiter = CellSiloEndpoint(internal=False, cell_resolver=cell_resolver)
     if decorated_obj is not None:
         return limiter(decorated_obj)
     return limiter
@@ -767,7 +767,7 @@ def cell_silo_endpoint(
 def internal_cell_silo_endpoint(
     decorated_obj: Any = None,
     *,
-    control_silo_resolver: CellRequestResolver | None = None,
+    cell_resolver: CellRequestResolver | None = None,
 ) -> Any:
     """
     Apply to endpoints that exist in CELL silo that are internal only.
@@ -777,7 +777,7 @@ def internal_cell_silo_endpoint(
     Optionally, a resolver class can be specified to allow Control Silo to
     dispatch a request to the correct cell, if possible.
     """
-    limiter = CellSiloEndpoint(internal=True, control_silo_resolver=control_silo_resolver)
+    limiter = CellSiloEndpoint(internal=True, cell_resolver=cell_resolver)
     if decorated_obj is not None:
         return limiter(decorated_obj)
     return limiter
