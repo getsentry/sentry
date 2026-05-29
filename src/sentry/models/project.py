@@ -716,15 +716,14 @@ class Project(Model):
         # FK), but Workflows and their DataConditionGroups are organization-scoped, so they need to
         # be moved into the new org explicitly.
         #
-        # Workflows can be shared across multiple projects in the same org (e.g. via DetectorWorkflow
-        # links created by the cron / issue-stream backfills). To keep every workflow in the same org
-        # as the detectors and legacy Rule/AlertRule it fires for, we handle two cases:
+        # Workflows can be shared across multiple projects in the same org if connected to detectors in multiple projects.
+        # To keep every workflow in the same org as the detectors and legacy Rule/AlertRule it fires for, we handle two cases:
         # * A workflow used ONLY by detectors in this project is moved into the new org as-is.
         # * A workflow shared with detectors in other projects is cloned into the new org; we then
-        #   re-point just this project's DetectorWorkflow / AlertRuleWorkflow links onto the clone
+        #   re-point just this project's DetectorWorkflow and AlertRuleWorkflow links onto the clone
         #   and leave the original behind for the projects that remain.
         #
-        # The whole block runs in a transaction so a crash can't leave a half-cloned workflow graph.
+        # The whole block runs in a transaction so a crash can't leave a half-cloned workflow
         detector_ids = list(
             Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
         )
