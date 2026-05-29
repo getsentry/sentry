@@ -371,6 +371,8 @@ def _extract_exception(
     frame_linenos = []
     frame_stack_levels = []
     for stack_level, stack in enumerate(exceptions):
+        if stack is None:
+            continue
         stack_types.append(stack.get("type"))
         stack_values.append(stack.get("value"))
         stack_mechanism_types.append(get_path(stack, "mechanism", "type"))
