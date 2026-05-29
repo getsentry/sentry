@@ -154,11 +154,11 @@ def get_cached_rebalanced_transaction_sample_rates(
         cache_key = generate_boost_low_volume_transactions_cache_key(
             org_id=org_id, proj_id=project_id
         )
-        serialised = redis_client.get(cache_key)
-        if serialised is None:
+        serialized = redis_client.get(cache_key)
+        if serialized is None:
             result[project_id] = None
             continue
-        named_rates, implicit_rate = orjson.loads(serialised)
+        named_rates, implicit_rate = orjson.loads(serialized)
         result[project_id] = (named_rates, float(implicit_rate))
     return result
 
