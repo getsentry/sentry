@@ -129,7 +129,7 @@ function useHandleOpenSeerAgent({
 
   return useMemo(() => {
     if (!defined(runId)) {
-      return undefined;
+      return;
     }
     return () => openSeerExplorerDrawer({runId});
   }, [openSeerExplorerDrawer, runId]);
