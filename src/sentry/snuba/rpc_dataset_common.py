@@ -54,6 +54,7 @@ from sentry.search.eap.attribute_validation import _check_attributes_exist, seri
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     ColumnDefinitions,
+    FunctionDefinition,
     ResolvedAttribute,
     ResolvedColumn,
     ValueArgumentDefinition,
@@ -85,7 +86,9 @@ from sentry.utils.snuba import SnubaTSResult, process_value
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
-def _get_function_definition(function_name: str, definitions: ColumnDefinitions):
+def _get_function_definition(
+    function_name: str, definitions: ColumnDefinitions
+) -> FunctionDefinition:
     if function_name in definitions.aggregates:
         return definitions.aggregates[function_name]
     if function_name in definitions.formulas:
