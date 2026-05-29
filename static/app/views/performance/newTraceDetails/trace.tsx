@@ -1458,6 +1458,22 @@ const TraceStylingWrapper = styled('div')`
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
+    z-index: 2;
+
+    &.WithIssueMarkers[data-inside-bar='true'] {
+      --trace-bar-duration-shadow-color: color-mix(
+        in srgb,
+        var(--trace-bar-duration-shadow) 70%,
+        black
+      );
+
+      text-shadow:
+        0 1px 2px var(--trace-bar-duration-shadow-color),
+        0 0 2px var(--trace-bar-duration-shadow-color),
+        1px 0 1px var(--trace-bar-duration-shadow-color),
+        -1px 0 1px var(--trace-bar-duration-shadow-color),
+        0 -1px 1px var(--trace-bar-duration-shadow-color);
+    }
   }
 
   .TraceChildrenCount {

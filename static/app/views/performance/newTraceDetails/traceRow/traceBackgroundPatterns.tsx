@@ -8,6 +8,7 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {limitTraceIssueMarkers} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 
 const TRACE_ISSUE_SEVERITY_RANK: Record<TraceIssueSeverityClassName, number> = {
   fatal: 0,
@@ -41,7 +42,7 @@ interface BackgroundPatternsProps {
 }
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
-  const occurrences = useMemo(() => {
+  const allOccurrences = useMemo(() => {
     if (!props.occurrences.size) {
       return [];
     }
@@ -49,16 +50,24 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
     return [...props.occurrences];
   }, [props.occurrences]);
 
-  const errors = useMemo(() => {
+  const allErrors = useMemo(() => {
     if (!props.errors.size) {
       return [];
     }
     return [...props.errors];
   }, [props.errors]);
 
+  const occurrences = useMemo(() => {
+    return limitTraceIssueMarkers(allOccurrences);
+  }, [allOccurrences]);
+
+  const errors = useMemo(() => {
+    return limitTraceIssueMarkers(allErrors);
+  }, [allErrors]);
+
   const severity = useMemo(() => {
-    return getMaxIssueSeverity(errors, occurrences);
-  }, [errors, occurrences]);
+    return getMaxIssueSeverity(allErrors, allOccurrences);
+  }, [allErrors, allOccurrences]);
 
   if (!props.occurrences.size && !props.errors.size) {
     return null;
@@ -73,6 +82,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
       {errors.length > 0 ? (
         <div
           className="TracePatternContainer"
+          data-test-id="trace-issue-pattern"
           style={{
             left: 0,
             width: '100%',
@@ -101,6 +111,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
               <div
                 key={i}
                 className="TracePatternContainer"
+                data-test-id="trace-issue-pattern"
                 style={{
                   left: left * 100 + '%',
                   width: (1 - left) * 100 + '%',

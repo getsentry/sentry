@@ -1506,6 +1506,7 @@ export class VirtualizedViewManager {
 
     // We don't color the text white for missing instrumentation nodes
     // as the text will be invisible on the light background.
+    span_text.ref.dataset.insideBar = inside ? 'true' : 'false';
     span_text.ref.style.color = node.makeBarTextColor(!!inside, this.theme);
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
@@ -1705,6 +1706,7 @@ export class VirtualizedViewManager {
           return;
         }
 
+        text.ref.dataset.insideBar = inside ? 'true' : 'false';
         text.ref.style.color = inside ? 'white' : '';
         text.ref.style.transform = `translateX(${text_transform}px)`;
       }

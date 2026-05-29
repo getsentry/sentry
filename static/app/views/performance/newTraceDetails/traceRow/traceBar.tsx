@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, type CSSProperties} from 'react';
 
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -110,6 +110,10 @@ interface TraceBarProps {
 
 export function TraceBar(props: TraceBarProps) {
   let duration: string | null = null;
+  const hasIssueMarkers = props.occurrences.size > 0 || props.errors.size > 0;
+  const durationStyle = hasIssueMarkers
+    ? ({'--trace-bar-duration-shadow': props.color} as CSSProperties)
+    : undefined;
 
   if (props.node_space) {
     const precision = props.durationPrecision ?? 2;
@@ -170,7 +174,13 @@ export function TraceBar(props: TraceBarProps) {
           />
         ) : null}
       </div>
-      <div ref={registerSpanBarTextRef} className="TraceBarDuration">
+      <div
+        ref={registerSpanBarTextRef}
+        style={durationStyle}
+        className={
+          hasIssueMarkers ? 'TraceBarDuration WithIssueMarkers' : 'TraceBarDuration'
+        }
+      >
         {duration}
       </div>
     </Fragment>
@@ -190,6 +200,10 @@ interface AutogroupedTraceBarProps {
 
 export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   const duration = props.entire_space ? formatTraceDuration(props.entire_space[1]) : null;
+  const hasIssueMarkers = props.occurrences.size > 0 || props.errors.size > 0;
+  const durationStyle = hasIssueMarkers
+    ? ({'--trace-bar-duration-shadow': props.color} as CSSProperties)
+    : undefined;
 
   const registerInvisibleBarRef = useCallback(
     (ref: HTMLDivElement | null) => {
@@ -270,7 +284,13 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
           />
         ) : null}
       </div>
-      <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
+      <div
+        ref={registerAutogroupedSpanBarTextRef}
+        style={durationStyle}
+        className={
+          hasIssueMarkers ? 'TraceBarDuration WithIssueMarkers' : 'TraceBarDuration'
+        }
+      >
         {duration}
       </div>
     </Fragment>

@@ -680,4 +680,33 @@ describe('VirtualizedViewManger', () => {
       expect(textTransform).toBe(manager.transformXFromTimestamp(100.1) + 3);
     });
   });
+
+  describe('drawSpanText', () => {
+    it('marks labels placed inside the span', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 100, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 100, 1], [0, 0, 100, 1]);
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(10);
+
+      const ref = document.createElement('div');
+      const node = {
+        errors: new Set(),
+        occurrences: new Set(),
+        makeBarTextColor: () => 'white',
+      } as any;
+
+      manager.drawSpanText({ref, text: '10ms', space: [0, 100]}, node);
+
+      expect(ref.dataset.insideBar).toBe('true');
+    });
+  });
 });

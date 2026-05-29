@@ -6,6 +6,31 @@ import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
+export const MAX_TRACE_ISSUE_MARKERS_PER_ROW = 50;
+
+export function limitTraceIssueMarkers<T>(
+  markers: T[],
+  limit = MAX_TRACE_ISSUE_MARKERS_PER_ROW
+): T[] {
+  if (markers.length <= limit) {
+    return markers;
+  }
+
+  if (limit <= 0) {
+    return [];
+  }
+
+  if (limit === 1) {
+    return [markers[0]!];
+  }
+
+  const step = (markers.length - 1) / (limit - 1);
+
+  return Array.from({length: limit}, (_value, index) => {
+    return markers[Math.round(index * step)]!;
+  });
+}
+
 interface ErrorIconsProps {
   errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
@@ -14,7 +39,7 @@ interface ErrorIconsProps {
 
 export function TraceErrorIcons(props: ErrorIconsProps) {
   const errors = useMemo(() => {
-    return [...props.errors];
+    return limitTraceIssueMarkers([...props.errors]);
   }, [props.errors]);
 
   if (!props.errors.size) {
@@ -40,6 +65,7 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
           <div
             key={i}
             className={`TraceIcon ${getTraceIssueSeverityClassName(error)}`}
+            data-test-id="trace-issue-icon"
             style={{left: left * 100 + '%'}}
           >
             <TraceIcons.Icon event={error} />
@@ -58,7 +84,7 @@ interface TraceOccurenceIconsProps {
 
 export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
   const occurrences = useMemo(() => {
-    return [...props.occurrences];
+    return limitTraceIssueMarkers([...props.occurrences]);
   }, [props.occurrences]);
 
   if (!props.occurrences.size) {
@@ -90,6 +116,7 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
           <div
             key={i}
             className={`TraceIcon ${getTraceIssueSeverityClassName(occurrence)}`}
+            data-test-id="trace-issue-icon"
             style={{left: left * 100 + '%'}}
           >
             <TraceIcons.Icon event={occurrence} />
