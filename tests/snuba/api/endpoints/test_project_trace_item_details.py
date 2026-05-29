@@ -574,6 +574,48 @@ class ProjectTraceItemDetailsEndpointTest(
             "timestamp": mock.ANY,
         }
 
+    def test_debug_param_as_superuser(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(user=superuser, organization=self.organization)
+        self.login_as(user=superuser, superuser=True)
+
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id, extra_data={"debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "debug_info" in response.data["meta"]
+        assert "raw_response" in response.data["meta"]["debug_info"]
+        assert "raw_request" in response.data["meta"]["debug_info"]
+        assert "itemId" in response.data
+        assert "attributes" in response.data
+
+        raw_attrs = {
+            a["name"]: a["value"]
+            for a in response.data["meta"]["debug_info"]["raw_response"]["attributes"]
+        }
+        assert raw_attrs["sentry.body"] == {"valStr": "debug test"}
+
+    def test_debug_param_as_regular_user(self) -> None:
+        regular_user = self.create_user(is_superuser=False)
+        self.create_member(user=regular_user, organization=self.organization)
+        self.login_as(user=regular_user)
+
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id, extra_data={"debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "debug_info" not in response.data.get("meta", {})
+
     def test_with_timestamp(self) -> None:
         log = self.create_ourlog(
             {

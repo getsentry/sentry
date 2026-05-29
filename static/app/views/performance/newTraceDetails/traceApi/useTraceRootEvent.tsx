@@ -1,3 +1,5 @@
+import type {UseQueryResult} from '@tanstack/react-query';
+
 import type {EventTransaction} from 'sentry/types/event';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -23,7 +25,7 @@ type Params = {
 
 export type TraceRootEventQueryResults =
   | UseApiQueryResult<EventTransaction, RequestError>
-  | UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
+  | UseQueryResult<TraceItemDetailsResponse>;
 
 export function useTraceRootEvent({
   tree,

@@ -802,9 +802,9 @@ urlpatterns += [
         ),
     ),
     re_path(
-        r"^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$",
+        r"^extensions/(?P<integration_slug>[^/]+)/link/$",
         react_page_view,
-        name="integration-installation",
+        name="sentry-integration-installation-link",
     ),
     re_path(
         r"^unsubscribe/(?P<organization_slug>[^/]+)/project/(?P<project_id>\d+)/$",

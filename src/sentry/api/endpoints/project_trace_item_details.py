@@ -373,6 +373,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 end = example_end
 
         serialized = serializer.validated_data
+        debug = request.user.is_superuser and request.GET.get("debug", False)
         trace_id = serialized.get("trace_id")
         item_type = serialized.get("item_type")
         sentry_sdk.set_tag("trace_item_details.item_type", item_type)
@@ -416,7 +417,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             trace_id=trace_id,
         )
 
-        resp = MessageToDict(trace_item_details_rpc(req))
+        resp = MessageToDict(trace_item_details_rpc(req, debug=debug))
 
         include_arrays = features.has(
             "organizations:trace-item-details-array-fields",
@@ -438,5 +439,11 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),
         }
+
+        if debug:
+            resp_dict["meta"]["debug_info"] = {
+                "raw_response": resp,
+                "raw_request": MessageToDict(req),
+            }
 
         return Response(resp_dict)
