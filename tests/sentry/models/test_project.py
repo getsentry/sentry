@@ -34,7 +34,15 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.workflow_engine.models import Detector, DetectorWorkflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -534,7 +542,7 @@ class ProjectTest(APITestCase, TestCase):
         assert wdcg is not None
         assert wdcg.workflow_id == workflow.id
 
-    def test_transfer_to_organization_does_not_transfer_shared_workflows(self) -> None:
+    def test_transfer_to_organization_clones_shared_workflows(self) -> None:
         from_org = self.create_organization()
         team = self.create_team(organization=from_org)
         to_org = self.create_organization()
@@ -545,6 +553,7 @@ class ProjectTest(APITestCase, TestCase):
         detector_a = self.create_detector(project=project_a)
         detector_b = self.create_detector(project=project_b)
 
+        # Shared across both projects' detectors, so it must be cloned (not moved) on transfer.
         shared_workflow = self.create_workflow(organization=from_org, name="Shared Workflow")
         self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
         self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
@@ -577,18 +586,83 @@ class ProjectTest(APITestCase, TestCase):
         assert project_b.organization_id == from_org.id
         assert detector_a.project_id == project_a.id
         assert detector_b.project_id == project_b.id
-        assert shared_workflow.organization_id == from_org.id
+
+        # The exclusive workflow is moved as-is.
         assert exclusive_workflow.organization_id == to_org.id
-        assert shared_dcg.organization_id == from_org.id
         assert exclusive_dcg.organization_id == to_org.id
         assert DetectorWorkflow.objects.filter(
-            detector=detector_a, workflow=shared_workflow
+            detector=detector_a, workflow=exclusive_workflow
         ).exists()
+
+        # The original shared workflow stays behind for project_b, no longer linked to detector_a.
+        assert shared_workflow.organization_id == from_org.id
+        assert shared_dcg.organization_id == from_org.id
         assert DetectorWorkflow.objects.filter(
             detector=detector_b, workflow=shared_workflow
         ).exists()
-        assert DetectorWorkflow.objects.filter(
-            detector=detector_a, workflow=exclusive_workflow
+        assert not DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=shared_workflow
+        ).exists()
+
+        # detector_a is re-pointed onto a clone of the shared workflow that lives in the new org.
+        clone = Workflow.objects.get(organization=to_org, name="Shared Workflow")
+        assert clone.id != shared_workflow.id
+        assert DetectorWorkflow.objects.filter(detector=detector_a, workflow=clone).exists()
+
+        # The clone has its own condition group in the new org; the original is untouched.
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        assert shared_dcg.id not in clone_condition_group_ids
+        assert (
+            DataConditionGroup.objects.filter(
+                id__in=clone_condition_group_ids, organization=to_org
+            ).count()
+            == 1
+        )
+
+    def test_transfer_to_organization_clones_shared_workflow_actions(self) -> None:
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        project_a = self.create_project(teams=[team], name="Project A")
+        project_b = self.create_project(teams=[team], organization=from_org, name="Project B")
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action()
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=to_org)
+
+        # The clone gets its own Action copy; the original Action is untouched and still attached
+        # to the workflow that stays behind.
+        clone = Workflow.objects.get(organization=to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_actions.count() == 1
+        clone_action = clone_actions.get()
+        assert clone_action.id != action.id
+        assert clone_action.type == action.type
+        assert clone_action.data == action.data
+        assert clone_action.config == action.config
+
+        assert DataConditionGroupAction.objects.filter(
+            condition_group=shared_dcg, action=action
         ).exists()
 
     def test_transfer_to_organization_with_detector_workflow_condition_group(self) -> None:
