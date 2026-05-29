@@ -1,28 +1,25 @@
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
 
-const CSS_TAG_RE = /\bcss\s*`/;
+import {isCssTaggedTemplate, isStyledOrCssTemplate} from './utils/styled';
 
-function tagInvolvesName(node: TSESTree.Node, name: string): boolean {
-  if (node.type === AST_NODE_TYPES.Identifier) {
-    return node.name === name;
+function isCssInterpolationExpression(node: TSESTree.Node): boolean {
+  if (isCssTaggedTemplate(node)) {
+    return true;
   }
-  if (node.type === AST_NODE_TYPES.MemberExpression) {
-    return tagInvolvesName(node.object, name);
-  }
-  if (node.type === AST_NODE_TYPES.CallExpression) {
-    return tagInvolvesName(node.callee, name);
-  }
-  return false;
-}
 
-function isStyledOrCssTemplate(
-  node: TSESTree.Node | undefined
-): node is TSESTree.TaggedTemplateExpression {
-  if (node?.type !== AST_NODE_TYPES.TaggedTemplateExpression) {
-    return false;
+  switch (node.type) {
+    case AST_NODE_TYPES.ArrowFunctionExpression:
+      return isCssInterpolationExpression(node.body);
+    case AST_NODE_TYPES.ConditionalExpression:
+      return (
+        isCssInterpolationExpression(node.consequent) &&
+        isCssInterpolationExpression(node.alternate)
+      );
+    case AST_NODE_TYPES.LogicalExpression:
+      return node.operator === '&&' && isCssInterpolationExpression(node.right);
+    default:
+      return false;
   }
-  const {tag} = node;
-  return tagInvolvesName(tag, 'styled') || tagInvolvesName(tag, 'css');
 }
 
 export const noUselessCssInterpolationSemicolon = ESLintUtils.RuleCreator.withoutDocs({
@@ -51,7 +48,7 @@ export const noUselessCssInterpolationSemicolon = ESLintUtils.RuleCreator.withou
         node.expressions.forEach((expression, index) => {
           if (
             !node.quasis[index + 1]?.value.raw.startsWith(';') ||
-            !CSS_TAG_RE.test(sourceCode.getText(expression))
+            !isCssInterpolationExpression(expression)
           ) {
             return;
           }

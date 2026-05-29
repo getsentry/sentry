@@ -36,6 +36,32 @@ ruleTester.run(
       },
       {
         code: `
+        const Foo = styled('div')\`
+          \${p =>
+            p.active
+              ? css\`
+                  color: red;
+                \`
+              : \`color: \${p.color}\`};
+        \`;
+      `,
+      },
+      {
+        code: `
+        const Foo = styled('div')\`
+          \${p => p.active ? css\`color: red;\` : p.color};
+        \`;
+      `,
+      },
+      {
+        code: `
+        const Foo = styled('div')\`
+          \${p => p.color || css\`color: red;\`};
+        \`;
+      `,
+      },
+      {
+        code: `
         const styles = css\`
           color: red;
         \`;
