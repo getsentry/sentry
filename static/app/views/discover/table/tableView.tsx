@@ -3,7 +3,7 @@ import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -184,37 +184,17 @@ export function TableView(props: TableViewProps) {
         value = fieldRenderer(dataRow, {navigate, organization, location, theme});
       }
 
-      let target: any;
-
-      if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
-        const project = dataRow.project || dataRow['project.name'];
-        target = {
-          // Redirects to the issue group event page via ProjectEventRedirect
-          pathname: normalizeUrl(
-            `/${organization.slug}/${project}/events/${dataRow.id}/`
-          ),
-          query: {...location.query, referrer: 'discover-events-table'},
-        };
-      } else {
-        if (!dataRow.trace) {
-          throw new Error(
-            'Transaction event should always have a trace associated with it.'
-          );
-        }
-
-        target = generateLinkToEventInTraceView({
-          traceSlug: dataRow.trace,
-          eventId: dataRow.id,
-          timestamp: dataRow.timestamp,
-          organization,
-          location,
-          eventView,
-          source: TraceViewSources.DISCOVER,
-        });
-      }
-
       const eventIdLink = (
-        <StyledLink data-test-id="view-event" to={target}>
+        <StyledLink
+          data-test-id="view-event"
+          to={getEventTarget({
+            dataRow,
+            eventView,
+            isTransactionsDataset,
+            location,
+            organization,
+          })}
+        >
           {value}
         </StyledLink>
       );
@@ -319,38 +299,17 @@ export function TableView(props: TableViewProps) {
       queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
     if (columnKey === 'id') {
-      let target: any;
-
-      if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
-        const project = dataRow.project || dataRow['project.name'];
-
-        target = {
-          // Redirects to the issue group event page via ProjectEventRedirect
-          pathname: normalizeUrl(
-            `/${organization.slug}/${project}/events/${dataRow.id}/`
-          ),
-          query: {...location.query, referrer: 'discover-events-table'},
-        };
-      } else {
-        if (!dataRow.trace) {
-          throw new Error(
-            'Transaction event should always have a trace associated with it.'
-          );
-        }
-
-        target = generateLinkToEventInTraceView({
-          traceSlug: dataRow.trace?.toString(),
-          eventId: dataRow.id,
-          timestamp: dataRow.timestamp!,
-          organization,
-          location,
-          eventView,
-          source: TraceViewSources.DISCOVER,
-        });
-      }
-
       const idLink = (
-        <StyledLink data-test-id="view-event" to={target}>
+        <StyledLink
+          data-test-id="view-event"
+          to={getEventTarget({
+            dataRow,
+            eventView,
+            isTransactionsDataset,
+            location,
+            organization,
+          })}
+        >
           {cell}
         </StyledLink>
       );
@@ -386,10 +345,11 @@ export function TableView(props: TableViewProps) {
         dataRow['max(timestamp)'] ?? dataRow.timestamp
       );
       const dateSelection = eventView.normalizeDateSelection(location);
-      if (dataRow.trace) {
+      const traceSlug = dataRow.trace;
+      if (typeof traceSlug === 'string' && traceSlug) {
         const target = getTraceDetailsUrl({
           organization,
-          traceSlug: String(dataRow.trace),
+          traceSlug,
           dateSelection,
           timestamp,
           location,
@@ -702,6 +662,93 @@ export function TableView(props: TableViewProps) {
       headerButtons={renderHeaderButtons}
     />
   );
+}
+
+type EventTargetOptions = {
+  dataRow: TableDataRow;
+  eventView: EventView;
+  isTransactionsDataset: boolean;
+  location: Location;
+  organization: Organization;
+};
+
+type TraceEventDataRow = TableDataRow & {
+  timestamp: string | number;
+  trace: string;
+};
+
+type IssueEventDataRow = TableDataRow & {
+  'issue.id': string | number;
+};
+
+function getEventTarget({
+  dataRow,
+  eventView,
+  isTransactionsDataset,
+  location,
+  organization,
+}: EventTargetOptions): LocationDescriptor {
+  if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
+    if (isIssueEventDataRow(dataRow)) {
+      return getIssueEventTarget(dataRow, organization);
+    }
+
+    return getProjectEventRedirectTarget(dataRow, organization, location);
+  }
+
+  if (!isTraceEventDataRow(dataRow)) {
+    return getProjectEventRedirectTarget(dataRow, organization, location);
+  }
+
+  return generateLinkToEventInTraceView({
+    traceSlug: dataRow.trace,
+    eventId: dataRow.id,
+    timestamp: dataRow.timestamp,
+    organization,
+    location,
+    eventView,
+    source: TraceViewSources.DISCOVER,
+  });
+}
+
+function isIssueEventDataRow(dataRow: TableDataRow): dataRow is IssueEventDataRow {
+  const issueId = dataRow['issue.id'];
+  // Discover coalesces missing issue IDs to 0, so treat 0 as no issue.
+  return issueId !== undefined && issueId !== null && issueId !== 0 && issueId !== '0';
+}
+
+function isTraceEventDataRow(dataRow: TableDataRow): dataRow is TraceEventDataRow {
+  return (
+    typeof dataRow.trace === 'string' &&
+    dataRow.trace !== '' &&
+    dataRow.timestamp !== undefined
+  );
+}
+
+function getIssueEventTarget(
+  dataRow: IssueEventDataRow,
+  organization: Organization
+): LocationDescriptor {
+  return normalizeUrl({
+    pathname: `/organizations/${organization.slug}/issues/${dataRow['issue.id']}/events/${dataRow.id}/`,
+    query: {
+      referrer: 'discover-events-table',
+    },
+  });
+}
+
+function getProjectEventRedirectTarget(
+  dataRow: TableDataRow,
+  organization: Organization,
+  location: Location
+): LocationDescriptor {
+  const project = dataRow.project || dataRow['project.name'];
+
+  return {
+    // Redirects to the issue group event page via ProjectEventRedirect
+    pathname: normalizeUrl(`/${organization.slug}/${project}/events/${dataRow.id}/`),
+    query: {...location.query, referrer: 'discover-events-table'},
+  };
 }
 
 const PrependHeader = styled('span')`
