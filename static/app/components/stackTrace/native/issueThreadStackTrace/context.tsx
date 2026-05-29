@@ -1,6 +1,14 @@
-import {createContext, useContext, useEffect, useMemo, useSyncExternalStore} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type {ReactNode} from 'react';
 
+import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {
   getNativeDisplayOptionDefaults,
   useNativeDisplayOptionsStorage,
@@ -14,21 +22,23 @@ import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+import {setActiveThreadId as setCopyIssueDetailsActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
 import {
   getActiveThreadStackTraceModel,
   type ActiveThreadStackTraceModel,
 } from './activeThreadModel';
-import type {IssueThreadStackTraceStore} from './threadStore';
 
 interface IssueThreadStackTraceContextValue {
+  activeThread: Thread | undefined;
+  changeThread: (direction: 'previous' | 'next') => void;
   event: Event;
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   hasMoreThanOneThread: boolean;
   hasScmSourceContext: boolean;
   projectSlug: Project['slug'];
+  setActiveThread: (thread: Thread | undefined) => void;
   storageKey: string;
   threads: Thread[];
 }
@@ -50,8 +60,6 @@ interface IssueThreadStackTraceProvidersProps {
 
 const IssueThreadStackTraceContext =
   createContext<IssueThreadStackTraceContextValue | null>(null);
-const IssueThreadStackTraceStoreContext =
-  createContext<IssueThreadStackTraceStore | null>(null);
 const ActiveThreadContext = createContext<ActiveThreadContextValue | null>(null);
 
 export function useIssueThreadStackTraceContext() {
@@ -64,19 +72,8 @@ export function useIssueThreadStackTraceContext() {
   return context;
 }
 
-export function useIssueThreadStackTraceStore() {
-  const store = useContext(IssueThreadStackTraceStoreContext);
-  if (!store) {
-    throw new Error(
-      'useIssueThreadStackTraceStore must be used within IssueThreadStackTrace'
-    );
-  }
-  return store;
-}
-
 export function useActiveThread() {
-  const store = useIssueThreadStackTraceStore();
-  return useSyncExternalStore(store.subscribe, store.getActiveThread);
+  return useIssueThreadStackTraceContext().activeThread;
 }
 
 export function useActiveThreadContext() {
@@ -85,20 +82,6 @@ export function useActiveThreadContext() {
     throw new Error('useActiveThreadContext must be used within ActiveThreadProviders');
   }
   return context;
-}
-
-export function IssueThreadStackTraceStoreProvider({
-  children,
-  store,
-}: {
-  children: ReactNode;
-  store: IssueThreadStackTraceStore;
-}) {
-  return (
-    <IssueThreadStackTraceStoreContext.Provider value={store}>
-      {children}
-    </IssueThreadStackTraceStoreContext.Provider>
-  );
 }
 
 export function IssueThreadStackTraceProviders({
@@ -117,25 +100,72 @@ export function IssueThreadStackTraceProviders({
     {enabled: defined(projectSlug)}
   );
   const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
+  const [activeThreadId, setActiveThreadId] = useState(() => findBestThread(threads)?.id);
+  const activeThread = useMemo(
+    () => threads.find(thread => thread.id === activeThreadId) ?? findBestThread(threads),
+    [activeThreadId, threads]
+  );
+
+  useEffect(() => {
+    setActiveThreadId(currentId =>
+      threads.some(thread => thread.id === currentId)
+        ? currentId
+        : findBestThread(threads)?.id
+    );
+  }, [threads]);
+
+  const setActiveThread = useCallback((thread: Thread | undefined) => {
+    setActiveThreadId(thread?.id);
+  }, []);
+
+  const changeThread = useCallback(
+    (direction: 'previous' | 'next') => {
+      setActiveThreadId(currentId => {
+        if (!threads.length) {
+          return;
+        }
+
+        const currentIndex = threads.findIndex(thread => thread.id === currentId);
+        let nextIndex =
+          direction === 'previous'
+            ? (currentIndex === -1 ? 0 : currentIndex) - 1
+            : (currentIndex === -1 ? 0 : currentIndex) + 1;
+        if (nextIndex < 0) {
+          nextIndex = threads.length - 1;
+        } else if (nextIndex >= threads.length) {
+          nextIndex = 0;
+        }
+
+        return threads[nextIndex]?.id;
+      });
+    },
+    [threads]
+  );
 
   const contextValue = useMemo<IssueThreadStackTraceContextValue>(
     () => ({
+      activeThread,
+      changeThread,
       event,
       group,
       groupingCurrentLevel,
       hasMoreThanOneThread,
       hasScmSourceContext,
       projectSlug,
+      setActiveThread,
       storageKey,
       threads,
     }),
     [
+      activeThread,
+      changeThread,
       event,
       group,
       groupingCurrentLevel,
       hasMoreThanOneThread,
       hasScmSourceContext,
       projectSlug,
+      setActiveThread,
       storageKey,
       threads,
     ]
@@ -149,8 +179,7 @@ export function IssueThreadStackTraceProviders({
 }
 
 function ActiveThreadProviders({children}: {children: ReactNode}) {
-  const activeThread = useActiveThread();
-  const {event, groupingCurrentLevel, hasScmSourceContext, storageKey} =
+  const {activeThread, event, groupingCurrentLevel, hasScmSourceContext, storageKey} =
     useIssueThreadStackTraceContext();
   const [persistedOptions] = useNativeDisplayOptionsStorage(storageKey);
   const model = useMemo(
@@ -177,7 +206,7 @@ function ActiveThreadProviders({children}: {children: ReactNode}) {
   );
 
   useEffect(() => {
-    setActiveThreadId(model.activeThread?.id);
+    setCopyIssueDetailsActiveThreadId(model.activeThread?.id);
   }, [model.activeThread?.id]);
 
   return (

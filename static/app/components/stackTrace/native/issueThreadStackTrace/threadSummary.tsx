@@ -30,7 +30,6 @@ import {
   useActiveThread,
   useActiveThreadContext,
   useIssueThreadStackTraceContext,
-  useIssueThreadStackTraceStore,
 } from './context';
 
 function ThreadStateIcon({state}: {state: ThreadStates | undefined}) {
@@ -75,9 +74,9 @@ export function ThreadSummary() {
 
 function ThreadControls() {
   const activeThread = useActiveThread();
-  const {event, threads} = useIssueThreadStackTraceContext();
+  const {changeThread, event, setActiveThread, threads} =
+    useIssueThreadStackTraceContext();
   const {exception} = useActiveThreadContext();
-  const store = useIssueThreadStackTraceStore();
 
   if (!activeThread) {
     return null;
@@ -91,21 +90,21 @@ function ThreadControls() {
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous Thread')}
           size="xs"
-          onClick={() => store.changeThread('previous')}
+          onClick={() => changeThread('previous')}
         />
         <Button
           tooltipProps={{title: t('Next Thread'), delay: 1000}}
           icon={<IconChevron direction="right" />}
           aria-label={t('Next Thread')}
           size="xs"
-          onClick={() => store.changeThread('next')}
+          onClick={() => changeThread('next')}
         />
       </ButtonBar>
       <ThreadSelector
         threads={threads}
         activeThread={activeThread}
         event={event}
-        onChange={store.setActiveThread}
+        onChange={setActiveThread}
         exception={exception}
       />
     </Flex>

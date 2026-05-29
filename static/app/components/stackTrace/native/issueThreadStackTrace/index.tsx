@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -14,14 +14,7 @@ import {
   ActiveThreadStackTrace,
   IssueThreadStackTraceSuspectCommits,
 } from './activeThreadStackTrace';
-import {
-  IssueThreadStackTraceProviders,
-  IssueThreadStackTraceStoreProvider,
-} from './context';
-import {
-  createIssueThreadStackTraceStore,
-  type IssueThreadStackTraceStore,
-} from './threadStore';
+import {IssueThreadStackTraceProviders} from './context';
 import {ThreadSummary} from './threadSummary';
 
 type Props = {
@@ -43,51 +36,34 @@ export function IssueThreadStackTrace({
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
     [data.values]
   );
-  const storeRef = useRef<{
-    eventId: Event['id'];
-    store: IssueThreadStackTraceStore;
-  }>(null);
-  if (storeRef.current?.eventId !== event.id) {
-    storeRef.current = {
-      eventId: event.id,
-      store: createIssueThreadStackTraceStore(event, threads),
-    };
-  }
-  const store = storeRef.current.store;
-
-  useEffect(() => {
-    store.sync(event, threads);
-  }, [event, store, threads]);
-
   const hasMoreThanOneThread = threads.length > 1;
 
   return (
-    <IssueThreadStackTraceStoreProvider store={store}>
-      <IssueThreadStackTraceProviders
-        event={event}
-        group={group}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hasMoreThanOneThread={hasMoreThanOneThread}
-        projectSlug={projectSlug}
-        threads={threads}
+    <IssueThreadStackTraceProviders
+      key={event.id}
+      event={event}
+      group={group}
+      groupingCurrentLevel={groupingCurrentLevel}
+      hasMoreThanOneThread={hasMoreThanOneThread}
+      projectSlug={projectSlug}
+      threads={threads}
+    >
+      <FoldSection
+        sectionKey={hasMoreThanOneThread ? SectionKey.THREADS : SectionKey.STACKTRACE}
+        title={
+          hasMoreThanOneThread
+            ? tn('Stack Trace', 'Stack Traces', threads.length)
+            : t('Stack Trace')
+        }
+        actions={<IssueThreadStackTraceActions />}
+        disableCollapsePersistence={hasMoreThanOneThread}
       >
-        <FoldSection
-          sectionKey={hasMoreThanOneThread ? SectionKey.THREADS : SectionKey.STACKTRACE}
-          title={
-            hasMoreThanOneThread
-              ? tn('Stack Trace', 'Stack Traces', threads.length)
-              : t('Stack Trace')
-          }
-          actions={<IssueThreadStackTraceActions />}
-          disableCollapsePersistence={hasMoreThanOneThread}
-        >
-          <Flex direction="column" gap="lg">
-            <ThreadSummary />
-            <ActiveThreadStackTrace />
-            <IssueThreadStackTraceSuspectCommits />
-          </Flex>
-        </FoldSection>
-      </IssueThreadStackTraceProviders>
-    </IssueThreadStackTraceStoreProvider>
+        <Flex direction="column" gap="lg">
+          <ThreadSummary />
+          <ActiveThreadStackTrace />
+          <IssueThreadStackTraceSuspectCommits />
+        </Flex>
+      </FoldSection>
+    </IssueThreadStackTraceProviders>
   );
 }
