@@ -117,9 +117,10 @@ def compare_rebalanced_projects_with_cache(
 def run_transaction_balancing(
     config: BaseDynamicSamplingConfiguration,
     transaction_volumes: list[ProjectTransactions],
+    rebalanced_projects: list[RebalancedItem] | None,
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
-    sample_rates = _project_sample_rates(config)
+    sample_rates = _project_sample_rates(config, rebalanced_projects)
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     for project_data in transaction_volumes:
         project_id = project_data["project_id"]
@@ -147,9 +148,12 @@ def run_transaction_balancing(
 
 def _project_sample_rates(
     config: BaseDynamicSamplingConfiguration,
+    rebalanced_projects: list[RebalancedItem] | None,
 ) -> dict[int, float | None]:
     if isinstance(config, CustomDynamicSamplingProjectConfiguration):
         return dict(config.project_target_sample_rates)
+    if rebalanced_projects is not None:
+        return {int(item.id): item.new_sample_rate for item in rebalanced_projects}
     org_sample_rate = config.get_sample_rate()
     return {project.id: org_sample_rate for project in config.projects}
 

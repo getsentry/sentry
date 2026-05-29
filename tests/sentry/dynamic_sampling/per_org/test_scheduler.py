@@ -222,7 +222,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, get_transaction_volumes.return_value, rebalanced_projects
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -357,7 +357,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         get_project_volumes.assert_not_called()
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, get_transaction_volumes.return_value, None
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -424,7 +424,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, get_transaction_volumes.return_value, rebalanced_projects
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -515,7 +515,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, get_transaction_volumes.return_value, rebalanced_projects
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})

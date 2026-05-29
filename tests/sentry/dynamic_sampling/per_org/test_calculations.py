@@ -149,7 +149,36 @@ class TransactionBalancingCalculationsTest(TestCase):
         super().setUp()
         self.redis = get_redis_client_for_ds()
 
-    def test_run_transaction_balancing_uses_org_sample_rate(self) -> None:
+    def test_run_transaction_balancing_uses_rebalanced_project_rates(self) -> None:
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.projects = [project_a, project_b]
+        config.get_sample_rate.return_value = 0.5
+        rebalanced_projects = [
+            RebalancedItem(id=project_a.id, count=100, new_sample_rate=0.2),
+            RebalancedItem(id=project_b.id, count=50, new_sample_rate=0.8),
+        ]
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+            side_effect=lambda model_input: ([], model_input.sample_rate),
+        ) as model_run:
+            run_transaction_balancing(
+                config,
+                [
+                    _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
+                    _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
+                ],
+                rebalanced_projects,
+            )
+
+        sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
+        assert sample_rates == [0.2, 0.8]
+
+    def test_run_transaction_balancing_falls_back_to_org_sample_rate(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         config = Mock()
@@ -168,6 +197,7 @@ class TransactionBalancingCalculationsTest(TestCase):
             result = run_transaction_balancing(
                 config,
                 [_project_transactions(org.id, project.id, [("checkout", 10.0)])],
+                None,
             )
 
         model_run.assert_called_once()
@@ -198,6 +228,7 @@ class TransactionBalancingCalculationsTest(TestCase):
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
                 ],
+                None,
             )
 
         sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
