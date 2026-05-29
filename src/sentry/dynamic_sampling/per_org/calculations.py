@@ -10,7 +10,6 @@ from sentry.dynamic_sampling.models.projects_rebalancing import (
 )
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.diagnostics import should_log
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float
@@ -52,14 +51,13 @@ def calculate_recalibration_factor(
         effective_sample_rate,
         config.sample_rate,
     )
-    if should_log(RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION):
-        logger.info(
-            RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION,
-            extra={
-                "org_id": config.organization.id,
-                "discrepancy": new_pipeline_factor - old_pipeline_factor,
-            },
-        )
+    logger.info(
+        RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION,
+        extra={
+            "org_id": config.organization.id,
+            "discrepancy": new_pipeline_factor - old_pipeline_factor,
+        },
+    )
     return adjusted_factor
 
 

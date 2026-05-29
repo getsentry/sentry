@@ -17,9 +17,11 @@ from sentry.dynamic_sampling.per_org.calculations import (
 from sentry.dynamic_sampling.per_org.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import (
+    OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL,
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
@@ -28,7 +30,6 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.common import ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -130,8 +131,8 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 
     if config.needs_recalibration:
-        org_volume_5_minutes = get_eap_organization_volume(
-            config, time_interval=ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
+        org_volume_5_minutes = get_outcomes_organization_volume(
+            config.organization.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
         )
         calculate_recalibration_factor(config, org_volume_5_minutes)
 

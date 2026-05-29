@@ -7,12 +7,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.diagnostics import (
-    LOGGING_LOCATIONS_OPTION,
-    LOGGING_SAMPLE_RATE_OPTION,
-    should_log,
+from sentry.dynamic_sampling.per_org.queries import (
+    OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL,
+    ProjectVolume,
 )
-from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.per_org.scheduler import (
     BUCKET_COUNT,
     BUCKET_CURSOR_KEY,
@@ -31,14 +29,6 @@ from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
-
-
-def _assert_called_with_config(mock, organization_id: int, count: int) -> None:
-    assert mock.call_count == count
-    for call_args in mock.call_args_list:
-        config = call_args.args[0]
-        assert isinstance(config, BaseDynamicSamplingConfiguration)
-        assert config.organization.id == organization_id
 
 
 def _assert_called_once_with_config(
@@ -81,39 +71,6 @@ class PerOrgRecalibrationCacheTest(TestCase):
         redis.set(per_org_key, 3.5)
         assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 3.5
         assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
-
-
-class PerOrgDiagnosticsTest(TestCase):
-    location = "dynamic_sampling.per_org.recalibration_factor_discrepancy"
-
-    @override_options({LOGGING_LOCATIONS_OPTION: [], LOGGING_SAMPLE_RATE_OPTION: 1.0})
-    def test_does_not_log_when_location_is_not_enabled(self) -> None:
-        assert should_log(self.location) is False
-
-    @override_options({LOGGING_LOCATIONS_OPTION: [location], LOGGING_SAMPLE_RATE_OPTION: 0.0})
-    def test_does_not_log_when_sample_rate_is_zero(self) -> None:
-        assert should_log(self.location) is False
-
-    @override_options({LOGGING_LOCATIONS_OPTION: [location], LOGGING_SAMPLE_RATE_OPTION: 1.0})
-    def test_logs_when_location_enabled_and_sample_rate_is_one(self) -> None:
-        with patch("sentry.dynamic_sampling.per_org.diagnostics.random.random") as random:
-            assert should_log(self.location) is True
-
-        random.assert_not_called()
-
-    @override_options({LOGGING_LOCATIONS_OPTION: [location], LOGGING_SAMPLE_RATE_OPTION: 0.5})
-    def test_uses_random_sample_rate_for_enabled_location(self) -> None:
-        with patch(
-            "sentry.dynamic_sampling.per_org.diagnostics.random.random",
-            return_value=0.49,
-        ):
-            assert should_log(self.location) is True
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.diagnostics.random.random",
-            return_value=0.5,
-        ):
-            assert should_log(self.location) is False
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
@@ -255,8 +212,12 @@ class SchedulePerOrgCalculationsTest(TestCase):
             ) as get_blended_sample_rate,
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                side_effect=[org_volume_1_hour, org_volume_5_minutes],
+                return_value=org_volume_1_hour,
             ) as get_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_outcomes_organization_volume",
+                return_value=org_volume_5_minutes,
+            ) as get_outcome_volume,
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=project_volumes,
@@ -291,7 +252,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
-        _assert_called_with_config(get_volume, org.id, 2)
+        _assert_called_once_with_config(get_volume, org.id)
+        get_outcome_volume.assert_called_once_with(
+            org.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
+        )
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         project_config = _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_called_once_with(project_config, project_volumes)
@@ -320,8 +284,12 @@ class SchedulePerOrgCalculationsTest(TestCase):
             ) as get_blended_sample_rate,
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                side_effect=[org_volume_1_hour, None],
+                return_value=org_volume_1_hour,
             ) as get_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_outcomes_organization_volume",
+                return_value=None,
+            ) as get_outcome_volume,
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=project_volumes,
@@ -359,7 +327,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
-        _assert_called_with_config(get_volume, org.id, 2)
+        _assert_called_once_with_config(get_volume, org.id)
+        get_outcome_volume.assert_called_once_with(
+            org.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
+        )
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         project_config = _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_called_once_with(project_config, project_volumes)
@@ -519,6 +490,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=org_volume,
             ) as get_volume,
             patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_outcomes_organization_volume",
+                return_value=org_volume,
+            ) as get_outcome_volume,
+            patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=project_volumes,
             ) as get_project_volumes,
@@ -553,7 +528,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         assert result is None
         get_blended_sample_rate.assert_not_called()
-        _assert_called_with_config(get_volume, org.id, 2)
+        _assert_called_once_with_config(get_volume, org.id)
+        get_outcome_volume.assert_called_once_with(
+            org.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
+        )
         project_config = _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
@@ -607,6 +585,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=org_volume,
             ) as get_volume,
             patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_outcomes_organization_volume",
+                return_value=org_volume,
+            ) as get_outcome_volume,
+            patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
                 return_value=project_volumes,
             ) as get_project_volumes,
@@ -641,7 +623,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         assert result is None
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
-        _assert_called_with_config(get_volume, org.id, 2)
+        _assert_called_once_with_config(get_volume, org.id)
+        get_outcome_volume.assert_called_once_with(
+            org.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
+        )
         project_config = _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
