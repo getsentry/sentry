@@ -56,6 +56,7 @@ from ..metrics import (
 )
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
+from .task import process_github_webhook_event
 
 logger = logging.getLogger(__name__)
 
@@ -356,8 +357,6 @@ def _schedule_task(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.INVALID_PAYLOAD
         )
         return
-
-    from .task import process_github_webhook_event
 
     process_github_webhook_event.delay(
         seer_path=seer_path,
