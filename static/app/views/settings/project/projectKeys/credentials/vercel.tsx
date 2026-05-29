@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -6,6 +5,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
 interface VercelTabProps {
   integrationEndpoint: string;
@@ -114,14 +114,3 @@ export function VercelTab({
     </form.AppForm>
   );
 }
-
-const FieldList = styled('div')`
-  > * {
-    padding: ${p => p.theme.space.xl};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-`;

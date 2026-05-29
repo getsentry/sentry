@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
@@ -15,6 +14,7 @@ import type {ProjectKey} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
 import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
+import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
 type Props = {
   data: ProjectKey;
@@ -429,14 +429,3 @@ export function ProjectKeyCredentials({
     </Fragment>
   );
 }
-
-const FieldList = styled('div')`
-  > * {
-    padding: ${p => p.theme.space.xl};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-`;

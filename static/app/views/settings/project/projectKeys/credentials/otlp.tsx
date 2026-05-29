@@ -7,6 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
 interface OtlpTabProps {
   integrationEndpoint: string;
@@ -161,17 +162,6 @@ export function OtlpTab({
     </form.AppForm>
   );
 }
-
-const FieldList = styled('div')`
-  > * {
-    padding: ${p => p.theme.space.xl};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-`;
 
 const UnsetHeightCodeBlock = styled(CodeBlock)`
   pre {

@@ -15,6 +15,8 @@ import {
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
@@ -169,13 +171,8 @@ export function KeySettings({
               />
             </FieldGroup>
 
-            <FieldGroup title={t('Credentials')}>
-              <Alert variant="info" system>
-                {t(
-                  'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
-                )}
-              </Alert>
-
+            <Panel>
+              <PanelHeader>{t('Credentials')}</PanelHeader>
               <ProjectKeyCredentials
                 projectId={`${data.projectId}`}
                 data={data}
@@ -183,7 +180,7 @@ export function KeySettings({
                 showSecretKey
                 showProjectId
               />
-            </FieldGroup>
+            </Panel>
           </Fragment>
         )}
       </Access>
