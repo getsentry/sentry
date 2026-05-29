@@ -359,7 +359,7 @@ class ProjectOwnership(Model):
             ):
                 return
 
-            with action_context_scope(source=ActionSource.SYSTEM):
+            with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
                 assignment = GroupAssignee.objects.assign(
                     group,
                     owner,

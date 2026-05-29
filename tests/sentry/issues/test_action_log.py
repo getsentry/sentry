@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sentry.issues.action_log import (
     ActionContext,
     ActionType,
@@ -39,9 +41,6 @@ def _make_request(
 
 
 class TestResolveActionSource(TestCase):
-    def test_no_request_returns_system(self) -> None:
-        assert resolve_action_source(None) == "system"
-
     @patch("sentry.issues.action_log._get_mcp_application_id", return_value=42)
     def test_mcp_known_client(self, mock_get_id: MagicMock) -> None:
         request = _make_request(
@@ -101,6 +100,13 @@ class TestActionContext(TestCase):
             assert ctx.actor_id == 42
         assert get_action_context() is None
 
+    def test_scope_without_actor(self) -> None:
+        with action_context_scope(source="system", actor_id=None):
+            ctx = get_action_context()
+            assert ctx is not None
+            assert ctx.source == "system"
+            assert ctx.actor_id is None
+
     def test_nested_scopes(self) -> None:
         with action_context_scope(source="web", actor_id=1):
             with action_context_scope(source="api", actor_id=2):
@@ -150,6 +156,19 @@ class TestPublishAction(TestCase):
                 project_id=3,
             )
         assert logs.records[0].__dict__["actor_type"] == "system"
+
+
+class TestPublishActionFromContext(TestCase):
+    def test_raises_in_test_environment_without_context(self) -> None:
+        with pytest.raises(RuntimeError, match="publish_action_from_context called without"):
+            from sentry.issues.action_log import publish_action_from_context
+
+            publish_action_from_context(
+                action=ActionType.RESOLVE,
+                group_id=1,
+                organization_id=2,
+                project_id=3,
+            )
 
 
 PUBLISH_UPDATE = "sentry.api.helpers.group_index.update.publish_action"

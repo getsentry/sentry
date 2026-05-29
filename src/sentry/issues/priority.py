@@ -180,7 +180,7 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
         new_priority = get_priority_for_ongoing_group(group)
 
     if new_priority is not None and new_priority != group.priority:
-        with action_context_scope(source=ActionSource.SYSTEM):
+        with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
             update_priority(
                 group=group,
                 priority=new_priority,

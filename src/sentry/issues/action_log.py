@@ -11,6 +11,7 @@ from typing import Any
 from rest_framework.request import Request
 
 from sentry.middleware import is_frontend_request
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +76,7 @@ def _get_mcp_application_id() -> int | None:
     return app_id if app_id > 0 else None
 
 
-def resolve_action_source(request: Request | None) -> str:
-    if request is None:
-        return ActionSource.SYSTEM
-
+def resolve_action_source(request: Request) -> str:
     application_id = getattr(request.auth, "application_id", None)
     mcp_app_id = _get_mcp_application_id() if application_id is not None else None
     if mcp_app_id and application_id == mcp_app_id:
@@ -148,7 +146,7 @@ _action_context: ContextVar[ActionContext | None] = ContextVar("action_context",
 
 
 @contextmanager
-def action_context_scope(source: str, actor_id: int | None = None) -> Generator[None]:
+def action_context_scope(source: str, actor_id: int | None) -> Generator[None]:
     token = _action_context.set(ActionContext(source=source, actor_id=actor_id))
     try:
         yield
@@ -172,6 +170,7 @@ def publish_action(
     idempotency_key: str | None = None,
 ) -> None:
     actor_type = ActorType.USER if actor_id is not None else ActorType.SYSTEM
+    metrics.incr("issue.action_log", tags={"action": action, "source": source})
     logger.info(
         "issue.action_log",
         extra={
@@ -198,6 +197,12 @@ def publish_action_from_context(
 ) -> None:
     ctx = get_action_context()
     if ctx is None:
+        from sentry.utils.env import in_test_environment
+
+        if in_test_environment():
+            raise RuntimeError(
+                f"publish_action_from_context called without ActionContext for {action}"
+            )
         logger.error(
             "publish_action_from_context called without ActionContext",
             extra={"action": action, "group_id": group_id},

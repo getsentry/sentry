@@ -298,7 +298,7 @@ def save_issue_from_occurrence(
             try:
                 # Since this calls hybrid cloud it has to be run outside the transaction
                 assignee = occurrence.assignee.resolve()
-                with action_context_scope(source=ActionSource.SYSTEM):
+                with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
                     GroupAssignee.objects.assign(group, assignee, create_only=True)
             except Exception:
                 logger.exception("Failed process assignment for occurrence")
