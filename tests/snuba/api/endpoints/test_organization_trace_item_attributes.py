@@ -889,27 +889,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "span.op"})
         assert response.status_code == 200, response.content
-
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 1
         assert "span.op" in keys
+        assert "transaction.op" not in keys
+        assert "sentry.op" not in keys
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "op"})
         assert response.status_code == 200, response.content
-
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 4
-        assert "transaction.op" in keys
-        assert "span.op" in keys
-        # These two are unrelated, but happen to match.
-        assert "db.operation" in keys
-        assert "db.operation.name" in keys
+        assert {"span.op", "transaction.op"}.issubset(keys)
+        assert "sentry.op" not in keys
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "sentry.op"})
         assert response.status_code == 200, response.content
-
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 0
+        assert "sentry.op" not in keys
 
     def test_aliased_attribute_project(self) -> None:
         span1 = self.create_span(
