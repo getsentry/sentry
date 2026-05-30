@@ -374,6 +374,8 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         assert not Action.objects.all().exists()
 
     def test_delete_issue_alert__rule_deletion_task(self) -> None:
+        # RuleDeletionTask no longer cascades to Workflow — Workflow is
+        # org-scoped and deleted by the API or OrganizationDeletionTask.
         self.issue_alert.update(status=ObjectStatus.PENDING_DELETION)
         CellScheduledDeletion.schedule(self.issue_alert, days=0)
 
@@ -383,6 +385,8 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         self.assert_rule_deleted_workflow_survives(self.workflow)
 
     def test_delete_issue_alert__project_deletion_task(self) -> None:
+        # Project deletion cleans up project-scoped Rules but not
+        # org-scoped Workflows. Workflows are deleted by OrganizationDeletionTask.
         self.project.update(status=ObjectStatus.PENDING_DELETION)
         CellScheduledDeletion.schedule(self.project, days=0)
 
