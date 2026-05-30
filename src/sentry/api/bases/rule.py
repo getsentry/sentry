@@ -18,9 +18,6 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_lega
 
 class SharedWorkflowError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = (
-        "This rule's workflow is shared with other rules. Use the workflow API to manage it."
-    )
 
     def __init__(self, workflow_id: int) -> None:
         detail = (

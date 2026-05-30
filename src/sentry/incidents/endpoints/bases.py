@@ -19,15 +19,24 @@ from sentry.workflow_engine.models.detector import Detector
 
 class SharedDetectorError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = (
-        "This alert rule's detector is shared with other rules. Use the detector API to manage it."
-    )
 
     def __init__(self, detector_id: int) -> None:
         detail = (
             f"Detector {detector_id} is shared with other rules. Use the detector API to manage it."
         )
         super().__init__(detail=detail)
+
+
+def _check_shared_detector(request: Request, ard: AlertRuleDetector) -> None:
+    """Reject PUT/DELETE on a Detector that is shared with other rules."""
+    if request.method in ("PUT", "DELETE"):
+        has_other_links = (
+            AlertRuleDetector.objects.filter(detector_id=ard.detector_id)
+            .exclude(id=ard.id)
+            .exists()
+        )
+        if has_other_links:
+            raise SharedDetectorError(ard.detector_id)
 
 
 class OrganizationAlertRuleBaseEndpoint(OrganizationEndpoint):
@@ -145,14 +154,7 @@ class WorkflowEngineProjectAlertRuleEndpoint(ProjectAlertRuleEndpoint):
                     alert_rule_id=validated_alert_rule_id,
                     detector__project=project,
                 )
-                if request.method in ("PUT", "DELETE"):
-                    has_other_links = (
-                        AlertRuleDetector.objects.filter(detector_id=ard.detector_id)
-                        .exclude(id=ard.id)
-                        .exists()
-                    )
-                    if has_other_links:
-                        raise SharedDetectorError(ard.detector_id)
+                _check_shared_detector(request, ard)
                 kwargs["alert_rule"] = ard.detector
             except AlertRuleDetector.DoesNotExist:
                 # XXX: this means the detector was single written and has no ARD or related AlertRule object
@@ -201,14 +203,7 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
                     alert_rule_id=validated_alert_rule_id,
                     detector__project__organization=organization,
                 )
-                if request.method in ("PUT", "DELETE"):
-                    has_other_links = (
-                        AlertRuleDetector.objects.filter(detector_id=ard.detector_id)
-                        .exclude(id=ard.id)
-                        .exists()
-                    )
-                    if has_other_links:
-                        raise SharedDetectorError(ard.detector_id)
+                _check_shared_detector(request, ard)
                 kwargs["alert_rule"] = ard.detector
             except AlertRuleDetector.DoesNotExist:
                 # XXX: this means the detector was single written and has no ARD or related AlertRule object
