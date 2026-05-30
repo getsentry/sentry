@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import Any, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -17,7 +18,9 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.api.event_search import AggregateFilter, SearchFilter
 from sentry.issues.issue_search import convert_query_values, convert_status_value
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import (
     DiscoverQueryBuilder,
     TimeseriesQueryBuilder,
@@ -30,25 +33,28 @@ from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, get_entity_key
 value_converters = {"status": convert_status_value}
 
 
-class ErrorsQueryBuilderMixin:
-    def __init__(self, *args, **kwargs):
-        self.match = None
-        self.entities = set()
+class ErrorsQueryBuilderMixin(BaseQueryBuilder):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.match: Entity | Join | None = None
+        self.entities: set[Entity] = set()
         super().__init__(*args, **kwargs)
 
     def parse_query(self, query: str | None) -> ParsedTerms:
         parsed_terms = super().parse_query(query)
-        parsed_terms = convert_query_values(
-            parsed_terms,
-            self.params.projects,
-            self.params.user,
-            list(filter(None, self.params.environments)),
-            value_converters=value_converters,
-            allow_aggregate_filters=True,
+        parsed_terms = cast(
+            ParsedTerms,
+            convert_query_values(
+                cast("list[SearchFilter | AggregateFilter]", parsed_terms),
+                self.params.projects,
+                self.params.user,
+                list(filter(None, self.params.environments)),
+                value_converters=value_converters,
+                allow_aggregate_filters=True,
+            ),
         )
         return parsed_terms
 
-    def resolve_match(self):
+    def resolve_match(self) -> None:
         error_entity = Entity(self.dataset.value, alias=self.dataset.value, sample=self.sample_rate)
         if len(self.entities) == 1:
             self.match = error_entity
@@ -88,7 +94,7 @@ class ErrorsQueryBuilderMixin:
                 aliased_col, exp=self._apply_column_entity(aliased_col.exp.name)
             )
         elif isinstance(aliased_col, Column):
-            if self.config.use_entity_prefix_for_fields:
+            if bool(getattr(self.config, "use_entity_prefix_for_fields", False)):
                 return self._apply_column_entity(aliased_col.name)
 
             # Map the column with the entity name back to the original resolved name
