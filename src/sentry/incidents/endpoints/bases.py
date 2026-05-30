@@ -1,6 +1,7 @@
 from typing import Any
 
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import status
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
@@ -14,6 +15,28 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.detector import Detector
+
+
+class SharedDetectorError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+
+    def __init__(self, detector_id: int) -> None:
+        detail = (
+            f"Detector {detector_id} is shared with other rules. Use the detector API to manage it."
+        )
+        super().__init__(detail=detail)
+
+
+def _check_shared_detector(request: Request, ard: AlertRuleDetector) -> None:
+    """Reject PUT/DELETE on a Detector that is shared with other rules."""
+    if request.method in ("PUT", "DELETE"):
+        has_other_links = (
+            AlertRuleDetector.objects.filter(detector_id=ard.detector_id)
+            .exclude(id=ard.id)
+            .exists()
+        )
+        if has_other_links:
+            raise SharedDetectorError(ard.detector_id)
 
 
 class OrganizationAlertRuleBaseEndpoint(OrganizationEndpoint):
@@ -131,6 +154,7 @@ class WorkflowEngineProjectAlertRuleEndpoint(ProjectAlertRuleEndpoint):
                     alert_rule_id=validated_alert_rule_id,
                     detector__project=project,
                 )
+                _check_shared_detector(request, ard)
                 kwargs["alert_rule"] = ard.detector
             except AlertRuleDetector.DoesNotExist:
                 # XXX: this means the detector was single written and has no ARD or related AlertRule object
@@ -179,6 +203,7 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
                     alert_rule_id=validated_alert_rule_id,
                     detector__project__organization=organization,
                 )
+                _check_shared_detector(request, ard)
                 kwargs["alert_rule"] = ard.detector
             except AlertRuleDetector.DoesNotExist:
                 # XXX: this means the detector was single written and has no ARD or related AlertRule object
