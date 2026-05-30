@@ -284,8 +284,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Allow root_cause as a valid automated run stopping point and org-level default
     manager.add("organizations:root-cause-stopping-point", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the Seer Wizard and related prompts/links/banners
-    manager.add("organizations:seer-wizard", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Workflows in Slack (released, kept until overrides are removed)
