@@ -2757,24 +2757,3 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
         assert not Detector.objects.filter(id=ard.detector_id).exists()
-
-    @with_feature("organizations:workflow-engine-rule-serializers")
-    def test_delete_shared_detector_returns_400(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
-        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
-        # Create another Rule linked to the same Detector.
-        AlertRuleDetector.objects.create(rule_id=999999, detector_id=ard.detector_id)
-
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, self.alert_rule.id, status_code=400
-            )
-
-        assert "Detector" in resp.data["detail"]
-        assert str(ard.detector_id) in resp.data["detail"]
-        # AlertRule was not deleted.
-        assert AlertRule.objects.filter(id=self.alert_rule.id).exists()

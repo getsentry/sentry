@@ -1473,27 +1473,6 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         other_rule.refresh_from_db()
         assert other_rule.status == ObjectStatus.ACTIVE
 
-    def test_delete_shared_workflow_returns_400(self) -> None:
-        rule = self.create_project_rule(self.project)
-        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        workflow = arw.workflow
-
-        # Create another Rule linked to the same Workflow.
-        other_rule = self.create_project_rule(self.project)
-        other_arw = AlertRuleWorkflow.objects.get(rule_id=other_rule.id)
-        other_arw.update(workflow_id=workflow.id)
-
-        response = self.get_error_response(
-            self.organization.slug, self.project.slug, rule.id, status_code=400
-        )
-        assert "Workflow" in response.data["detail"]
-        assert str(workflow.id) in response.data["detail"]
-
-        # Neither rule nor workflow were deleted.
-        rule.refresh_from_db()
-        assert rule.status == ObjectStatus.ACTIVE
-        assert Workflow.objects.filter(id=workflow.id).exists()
-
 
 class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
     def test_dual_written_rule_parity(self) -> None:

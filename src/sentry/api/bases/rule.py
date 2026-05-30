@@ -1,7 +1,5 @@
 from typing import Any
 
-from rest_framework import status
-from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 
 from sentry import features
@@ -14,16 +12,6 @@ from sentry.models.rule import Rule
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
-
-
-class SharedWorkflowError(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-
-    def __init__(self, workflow_id: int) -> None:
-        detail = (
-            f"Workflow {workflow_id} is shared with other rules. Use the workflow API to manage it."
-        )
-        super().__init__(detail=detail)
 
 
 class RuleEndpoint(ProjectEndpoint):
@@ -78,16 +66,6 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
                     workflow__organization=project.organization,
                     workflow__status=ObjectStatus.ACTIVE,
                 )
-                # For mutating requests via a legacy Rule ID, reject if the
-                # Workflow is shared with other Rules or AlertRules.
-                if request.method in ("PUT", "DELETE"):
-                    has_other_links = (
-                        AlertRuleWorkflow.objects.filter(workflow_id=arw.workflow_id)
-                        .exclude(id=arw.id)
-                        .exists()
-                    )
-                    if has_other_links:
-                        raise SharedWorkflowError(arw.workflow_id)
                 kwargs["rule"] = arw.workflow
             except AlertRuleWorkflow.DoesNotExist:
                 # XXX: this means the workflow was single written and has no ARW or related Rule object
