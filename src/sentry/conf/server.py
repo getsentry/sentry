@@ -837,7 +837,7 @@ BGTASKS: dict[str, BgTaskConfig] = {
 
 # Settings for encrypted database fields.
 DATABASE_ENCRYPTION_SETTINGS: EncryptedFieldSettings = {
-    "method": "plaintext",
+    "method": "fernet",
     "fernet_primary_key_id": os.getenv("DATABASE_ENCRYPTION_FERNET_PRIMARY_KEY_ID"),
     "fernet_keys_location": os.getenv("DATABASE_ENCRYPTION_FERNET_KEYS_LOCATION"),
 }

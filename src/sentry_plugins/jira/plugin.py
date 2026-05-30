@@ -2,11 +2,11 @@ import logging
 import re
 from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode, urlsplit, urlunsplit
 
-from django.conf import settings
 from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.db.models.fields.encryption import EncryptedTextField
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.groupmeta import GroupMeta
@@ -44,6 +44,30 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         )
     ]
+    _password_field = EncryptedTextField()
+
+    def set_option(self, key, value, project=None, user=None) -> None:
+        if key == "password" and isinstance(value, str) and value:
+            # Avoid re-encrypting already-encrypted values.
+            if not value.startswith("enc:"):
+                value = self._password_field.get_prep_value(value)
+        super().set_option(key, value, project=project, user=user)
+
+    def get_option(self, key, project=None, user=None):
+        value = super().get_option(key, project=project, user=user)
+        if key != "password" or not isinstance(value, str) or not value:
+            return value
+
+        try:
+            decrypted = self._password_field.to_python(value)
+            if isinstance(decrypted, bytes):
+                return decrypted.decode("utf-8")
+            return decrypted
+        except Exception:
+            logger.warning(
+                "jira.password.decrypt.failed", extra={"project_id": getattr(project, "id", None)}
+            )
+            return None
 
     def get_group_urls(self):
         _patterns = super().get_group_urls()

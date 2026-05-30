@@ -9,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from django.urls import reverse
 
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.jira.plugin import JiraPlugin
@@ -301,6 +302,20 @@ class JiraPluginTest(TestCase):
         assert password_config.get("value") is None
         assert password_config.get("hasSavedValue") is True
         assert password_config.get("prefix") == ""
+
+    def test_password_is_encrypted_in_project_option_storage(self) -> None:
+        self.plugin.set_option("password", "abcdef", self.project)
+
+        stored = ProjectOption.objects.get(project=self.project, key="jira:password").value
+        assert isinstance(stored, str)
+        assert stored.startswith("enc:")
+        assert stored != "abcdef"
+        assert self.plugin.get_option("password", self.project) == "abcdef"
+
+    def test_plaintext_password_is_still_readable(self) -> None:
+        ProjectOption.objects.set_value(self.project, "jira:password", "legacy-plaintext")
+
+        assert self.plugin.get_option("password", self.project) == "legacy-plaintext"
 
     def test_get_formatted_user(self) -> None:
         assert self.plugin._get_formatted_user(
