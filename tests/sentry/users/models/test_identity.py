@@ -1,11 +1,16 @@
 from sentry.identity import register
 from sentry.identity.providers.dummy import DummyProvider
+from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.users.models.identity import Identity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
 class IdentityTestCase(TestCase):
+    def test_data_field_is_encrypted_json(self) -> None:
+        assert isinstance(Identity._meta.get_field("data"), EncryptedJSONField)
+
     def test_get_provider(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="dummy", external_id="tester_id"
