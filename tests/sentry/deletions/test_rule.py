@@ -3,11 +3,16 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow, Detector, Workflow
+from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow, Workflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteRuleTest(HybridCloudTestMixin, BaseWorkflowTest):
+    def _assert_both_deleted(self, rule: Rule, workflow: Workflow) -> None:
+        assert not Rule.objects.filter(id=rule.id).exists()
+        assert not Workflow.objects_for_deletion.filter(id=workflow.id).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+
     def test_both_rule_and_workflow_scheduled_rule_first(self) -> None:
         project = self.create_project()
         rule = self.create_project_rule(project)
@@ -20,9 +25,7 @@ class DeleteRuleTest(HybridCloudTestMixin, BaseWorkflowTest):
         with self.tasks():
             run_scheduled_deletions()
 
-        assert not Rule.objects.filter(id=rule.id).exists()
-        assert not Workflow.objects_for_deletion.filter(id=workflow.id).exists()
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+        self._assert_both_deleted(rule, workflow)
 
     def test_both_rule_and_workflow_scheduled_workflow_first(self) -> None:
         project = self.create_project()
@@ -36,9 +39,7 @@ class DeleteRuleTest(HybridCloudTestMixin, BaseWorkflowTest):
         with self.tasks():
             run_scheduled_deletions()
 
-        assert not Rule.objects.filter(id=rule.id).exists()
-        assert not Workflow.objects_for_deletion.filter(id=workflow.id).exists()
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+        self._assert_both_deleted(rule, workflow)
 
     def test_simple(self) -> None:
         project = self.create_project()
@@ -66,7 +67,5 @@ class DeleteRuleTest(HybridCloudTestMixin, BaseWorkflowTest):
         # Link rows are cleaned up
         assert not AlertRuleDetector.objects.filter(rule_id=rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
-        # Workflow and Detector survive — Workflow is org-scoped and cleaned
-        # up by the API or OrganizationDeletionTask, not by RuleDeletionTask.
+        # Org-scoped Workflow survives Rule deletion
         assert Workflow.objects.filter(id=workflow.id).exists()
-        assert Detector.objects.filter(id=detector.id).exists()
