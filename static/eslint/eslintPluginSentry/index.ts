@@ -10,6 +10,7 @@ import {noStyledShortcut} from './no-styled-shortcut';
 import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
 import {noUnnecessaryTypeNarrowing} from './no-unnecessary-type-narrowing';
 import {noUnnecessaryUseCallback} from './no-unnecessary-use-callback';
+import {noUselessCssInterpolationSemicolon} from './no-useless-css-interpolation-semicolon';
 
 export const rules = {
   'no-calling-components-as-functions': noCallingComponentsAsFunctions,
@@ -21,6 +22,7 @@ export const rules = {
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
+  'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-unnecessary-type-annotation': noUnnecessaryTypeAnnotation,
   'no-unnecessary-type-narrowing': noUnnecessaryTypeNarrowing,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
