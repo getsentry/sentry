@@ -23,7 +23,6 @@ def get_type_choices() -> OrderedDict[str, str]:
     return type_choices
 
 
-TYPE_CHOICES = get_type_choices()
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
 
 
@@ -31,7 +30,7 @@ class IssueTypeForm(forms.Form):
     include = forms.ChoiceField(
         choices=list(INCLUDE_CHOICES.items()), required=False, initial="true"
     )
-    value = forms.ChoiceField(choices=list(TYPE_CHOICES.items()))
+    value = forms.ChoiceField(choices=list(get_type_choices().items()))
 
 
 class IssueTypeFilter(EventFilter):
@@ -42,7 +41,7 @@ class IssueTypeFilter(EventFilter):
             "choices": list(INCLUDE_CHOICES.items()),
             "initial": "true",
         },
-        "value": {"type": "choice", "choices": list(TYPE_CHOICES.items())},
+        "value": {"type": "choice", "choices": list(get_type_choices().items())},
     }
     rule_type = "filter/event"
     label = "The issue's type is {include} {value}"
@@ -82,8 +81,10 @@ class IssueTypeFilter(EventFilter):
 
     def render_label(self) -> str:
         value = self.data["value"]
-        title = TYPE_CHOICES.get(value)
-        issue_type_name = title if title else ""
+        # Look up the GroupType at call time so the registry is fully populated;
+        # GroupType.description is the human-readable display name (e.g. "Error").
+        group_type = grouptype.registry.get_by_slug(value)
+        issue_type_name = (getattr(group_type, "description", None) or value) if group_type else ""
         include_label = INCLUDE_CHOICES.get(self.data.get("include", "true"), "equal to")
         return self.label.format(include=include_label, value=issue_type_name)
 
