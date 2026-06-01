@@ -31,7 +31,7 @@ function DetailRow({label, value}: {label: string; value: ReactNode}) {
 export function ProblemSection({evidenceData}: ProblemSectionProps) {
   const hasEstimatedCost =
     evidenceData.estimatedCostUsd !== null && evidenceData.estimatedCostUsd > 0;
-  const spanCount = evidenceData.extrapolatedCount ?? evidenceData.spanCount;
+  const spanCount = evidenceData.extrapolatedCount ?? evidenceData.count;
 
   return (
     <Stack gap="lg" padding="lg">
