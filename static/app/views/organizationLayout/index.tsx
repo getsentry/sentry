@@ -33,6 +33,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerPipProvider} from 'sentry/views/seerExplorer/seerExplorerPipContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
@@ -56,11 +57,13 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <SeerExplorerSessionsProvider>
           <SeerExplorerChatStateProvider>
-            <GlobalDrawer>
-              <SeerExplorerContextProvider>
-                <AppLayout organization={organization} />
-              </SeerExplorerContextProvider>
-            </GlobalDrawer>
+            <SeerExplorerPipProvider>
+              <GlobalDrawer>
+                <SeerExplorerContextProvider>
+                  <AppLayout organization={organization} />
+                </SeerExplorerContextProvider>
+              </GlobalDrawer>
+            </SeerExplorerPipProvider>
           </SeerExplorerChatStateProvider>
         </SeerExplorerSessionsProvider>
       </OrganizationContainer>

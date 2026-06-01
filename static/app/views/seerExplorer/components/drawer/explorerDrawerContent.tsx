@@ -23,6 +23,7 @@ import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {useSeerExplorerPip} from 'sentry/views/seerExplorer/seerExplorerPipContext';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
@@ -45,6 +46,26 @@ export function ExplorerDrawerContent({
   const {projects} = useProjects();
   const user = useUser();
   const {onClose: closeDrawer = () => {}} = useDrawerContentContext();
+  const {
+    pipWindow,
+    isSupported: isPipSupported,
+    requestPipWindow,
+    closePipWindow,
+  } = useSeerExplorerPip();
+  const isPoppedOut = pipWindow !== null;
+
+  const handleTogglePictureInPicture = () => {
+    if (isPoppedOut) {
+      // Re-dock back into the drawer.
+      closePipWindow();
+      return;
+    }
+    requestPipWindow({width: 480, height: Math.round(window.innerHeight * 0.9)})
+      .then(() => closeDrawer())
+      .catch(() => {
+        // Failed to open the PiP window — keep the drawer open.
+      });
+  };
 
   const [showThinking, setShowThinking] = useState(false);
 
@@ -276,10 +297,14 @@ export function ExplorerDrawerContent({
         handleSend();
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        closeDrawer();
+        if (isPoppedOut) {
+          closePipWindow();
+        } else {
+          closeDrawer();
+        }
       }
     },
-    [handleSend, closeDrawer]
+    [handleSend, closeDrawer, isPoppedOut, closePipWindow]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -390,6 +415,9 @@ export function ExplorerDrawerContent({
         showThinkingToggle={
           !!organization?.features.includes('seer-explorer-thinking-blocks')
         }
+        isPipSupported={isPipSupported}
+        isPoppedOut={isPoppedOut}
+        onTogglePictureInPicture={handleTogglePictureInPicture}
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>

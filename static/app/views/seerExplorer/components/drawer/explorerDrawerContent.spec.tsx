@@ -7,6 +7,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {INPUT_STORAGE_KEY_PREFIX} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {SeerExplorerPipProvider} from 'sentry/views/seerExplorer/seerExplorerPipContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
@@ -716,6 +717,59 @@ describe('ExplorerDrawerContent', () => {
       expect(
         await screen.findByRole('checkbox', {name: 'Toggle context engine'})
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('Picture-in-Picture', () => {
+    afterEach(() => {
+      // @ts-expect-error - cleaning up the stub
+      delete window.documentPictureInPicture;
+    });
+
+    it('does not show the pop-out button when PiP is unsupported', async () => {
+      render(
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
+        {organization}
+      );
+      await screen.findByTestId('seer-explorer-input');
+      expect(
+        screen.queryByRole('button', {name: 'Open in a separate window'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the pop-out button and requests a window on click', async () => {
+      const requestWindow = jest.fn().mockResolvedValue({
+        document: document.implementation.createHTMLDocument('pip'),
+        close: jest.fn(),
+        focus: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        closed: false,
+      });
+      Object.defineProperty(window, 'documentPictureInPicture', {
+        configurable: true,
+        writable: true,
+        value: {requestWindow, window: null},
+      });
+
+      render(
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
+        {organization}
+      );
+
+      const button = await screen.findByRole('button', {
+        name: 'Open in a separate window',
+      });
+      await userEvent.click(button);
+      await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     });
   });
 });
