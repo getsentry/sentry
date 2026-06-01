@@ -333,11 +333,15 @@ function Root({
       const decreaseKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
       const increaseKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
 
+      // Step from the visible size, not the raw stored size, so decreases
+      // still move the pane when the container has shrunk below it.
+      const current = Math.min(containerSize, max);
+
       let newSize: number | null = null;
       if (event.key === decreaseKey) {
-        newSize = Math.max(min, containerSize - step);
+        newSize = Math.max(min, current - step);
       } else if (event.key === increaseKey) {
-        newSize = Math.min(max, containerSize + step);
+        newSize = Math.min(max, current + step);
       } else if (event.key === 'Home') {
         newSize = min;
       } else if (event.key === 'End' && Number.isFinite(max)) {
