@@ -11,6 +11,8 @@ from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.webhooks.merge_request import (
+    GITLAB_EMOJI_EYES,
+    GITLAB_EMOJI_TADA,
     WEBHOOK_SEEN_KEY_PREFIX,
     handle_merge_request_event,
 )
@@ -776,3 +778,232 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             self._call_handler(second)
 
         assert self.mock_seer.call_count == 2
+
+
+class MergeRequestAwardEmojiTest(GitLabTestCase):
+    """Tests for the award-emoji behaviour added to the GitLab merge-request handler.
+
+    The handler should add :eyes: to the MR description for every non-close action
+    that passes all filter checks (mirrors the GitHub pull_request reaction path).
+    It must also attempt to delete any stale :tada: awards left from a previous run.
+    """
+
+    CODE_REVIEW_FEATURES = {
+        "organizations:gen-ai-features",
+        "organizations:code-review-beta",
+        "organizations:seer-code-review-gitlab",
+    }
+
+    @pytest.fixture(autouse=True)
+    def mock_seer_request(self) -> Generator[None]:
+        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
+            self.mock_seer = mock_seer
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_gitlab_client(self) -> Generator[None]:
+        with (
+            patch(
+                "sentry.integrations.gitlab.client.GitLabApiClient.get_user"
+            ) as mock_get_user,
+            patch(
+                "sentry.integrations.gitlab.client.GitLabApiClient.get_merge_request_awards"
+            ) as mock_get_awards,
+            patch(
+                "sentry.integrations.gitlab.client.GitLabApiClient.create_merge_request_award"
+            ) as mock_create_award,
+            patch(
+                "sentry.integrations.gitlab.client.GitLabApiClient.delete_merge_request_award"
+            ) as mock_delete_award,
+        ):
+            mock_get_user.return_value = {"id": 42, "username": "sentry-bot"}
+            mock_get_awards.return_value = []
+            self.mock_get_user = mock_get_user
+            self.mock_get_awards = mock_get_awards
+            self.mock_create_award = mock_create_award
+            self.mock_delete_award = mock_delete_award
+            yield
+
+    def _setup_code_review(self, triggers: list[CodeReviewTrigger] | None = None) -> None:
+        if triggers is None:
+            triggers = [
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ]
+        repo = self.create_gitlab_repo(name="Cool Group / Sentry")
+        repo.config["path"] = "cool-group/sentry"
+        repo.save()
+        trigger_values = [t.value for t in triggers]
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=trigger_values,
+        )
+        OrganizationContributors.objects.get_or_create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+            defaults={"alias": "root"},
+        )
+        self.repo = repo
+
+    def _call_handler(self, event: dict[str, Any]) -> None:
+        handle_merge_request_event(
+            event=event,
+            organization=RpcOrganization(
+                id=self.organization.id,
+                slug=self.organization.slug,
+                name=self.organization.name,
+            ),
+            repo=self.repo,
+            integration=self.integration,
+        )
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_eyes_award_added_for_open_action(self) -> None:
+        """An :eyes: award must be created on the MR when action=open."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_create_award.assert_called_once_with(
+            "15",
+            str(event["object_attributes"]["iid"]),
+            GITLAB_EMOJI_EYES,
+        )
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_stale_tada_award_deleted_before_eyes_added(self) -> None:
+        """A stale :tada: award by our bot must be deleted before :eyes: is added."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        mr_iid = str(event["object_attributes"]["iid"])
+
+        # Seed an existing :tada: award by our bot (user id 42).
+        self.mock_get_awards.return_value = [
+            {"id": 7, "name": GITLAB_EMOJI_TADA, "user": {"id": 42}},
+        ]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_delete_award.assert_called_once_with("15", mr_iid, "7")
+        self.mock_create_award.assert_called_once_with("15", mr_iid, GITLAB_EMOJI_EYES)
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_other_users_tada_award_not_deleted(self) -> None:
+        """Awards by other users must not be touched."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+
+        # A :tada: award from a different user (id 99).
+        self.mock_get_awards.return_value = [
+            {"id": 8, "name": GITLAB_EMOJI_TADA, "user": {"id": 99}},
+        ]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_delete_award.assert_not_called()
+        self.mock_create_award.assert_called_once()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_no_eyes_award_for_close_action(self) -> None:
+        """Close actions must not trigger any award emoji changes."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        event["object_attributes"]["action"] = "close"
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_create_award.assert_not_called()
+        self.mock_delete_award.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_no_eyes_award_for_merge_action(self) -> None:
+        """Merge actions must not trigger any award emoji changes."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        event["object_attributes"]["action"] = "merge"
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_create_award.assert_not_called()
+        self.mock_delete_award.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_award_failure_does_not_block_seer_task(self) -> None:
+        """A failing award-emoji API call must not prevent the Seer task from being scheduled."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+
+        self.mock_create_award.side_effect = Exception("gitlab api down")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        # Seer task must still be called even though the emoji failed.
+        self.mock_seer.assert_called_once()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_eyes_award_added_for_update_with_new_commit(self) -> None:
+        """An :eyes: award must also be added for update+commit (ON_NEW_COMMIT trigger)."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        event["object_attributes"]["action"] = "update"
+        event["object_attributes"]["oldrev"] = "0" * 40
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_create_award.assert_called_once_with(
+            "15",
+            str(event["object_attributes"]["iid"]),
+            GITLAB_EMOJI_EYES,
+        )
