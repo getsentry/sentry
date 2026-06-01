@@ -49,10 +49,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  CopyLLMPromptButton,
-  LLM_ONBOARDING_COPY_MARKDOWN,
-} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
@@ -370,11 +367,6 @@ export function Onboarding() {
 
 function CopyInstructionsButton() {
   const organization = useOrganization();
-  const copySetupInstructionsEnabled = useCopySetupInstructionsEnabled();
-
-  if (!copySetupInstructionsEnabled) {
-    return <CopyLLMPromptButton />;
-  }
 
   return (
     <CopyMarkdownButton
@@ -397,8 +389,6 @@ export function UnsupportedPlatformOnboarding({
   platformName: string;
   project: Project;
 }) {
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -411,24 +401,15 @@ export function UnsupportedPlatformOnboarding({
           )}
         </p>
         <p>
-          {copyEnabled
-            ? tct(
-                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-                  ),
-                  bold: <strong />,
-                }
-              )
-            : tct(
-                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-                  ),
-                }
-              )}
+          {tct(
+            'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              ),
+              bold: <strong />,
+            }
+          )}
         </p>
         <CopyInstructionsButton />
       </DescriptionWrapper>
@@ -437,8 +418,6 @@ export function UnsupportedPlatformOnboarding({
 }
 
 export function NoDocsOnboarding({project}: {project: Project}) {
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -449,24 +428,15 @@ export function NoDocsOnboarding({project}: {project: Project}) {
           )}
         </p>
         <p>
-          {copyEnabled
-            ? tct(
-                'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-                  ),
-                  bold: <strong />,
-                }
-              )
-            : tct(
-                'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-                  ),
-                }
-              )}
+          {tct(
+            'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+              ),
+              bold: <strong />,
+            }
+          )}
         </p>
         <CopyInstructionsButton />
       </DescriptionWrapper>

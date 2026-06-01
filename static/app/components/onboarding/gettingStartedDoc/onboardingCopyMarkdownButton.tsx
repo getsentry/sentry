@@ -121,8 +121,8 @@ export function OnboardingCopyMarkdownButton({
 
 type CopySetupInstructionsType = 'onboarding' | 'project_creation';
 
-const FEATURE_FLAGS: Record<CopySetupInstructionsType, string> = {
-  onboarding: 'onboarding-copy-setup-instructions',
+const FEATURE_FLAGS: Record<CopySetupInstructionsType, string | null> = {
+  onboarding: null,
   project_creation: 'onboarding-copy-setup-instructions-project-creation',
 };
 
@@ -134,7 +134,11 @@ export function useCopySetupInstructionsEnabled(
   type: CopySetupInstructionsType = 'onboarding'
 ): boolean {
   const organization = useOrganization();
-  return organization.features.includes(FEATURE_FLAGS[type]);
+  const flag = FEATURE_FLAGS[type];
+  if (flag === null) {
+    return true;
+  }
+  return organization.features.includes(flag);
 }
 
 export function CopySetupInstructionsGate({
