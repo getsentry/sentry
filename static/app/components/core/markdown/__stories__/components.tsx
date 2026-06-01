@@ -122,7 +122,7 @@ export function TagDemo() {
     <Markdown
       raw={TAG_DEMO_MD}
       components={{
-        Tag: ({name, level, attrs, data}) => {
+        Tag: ({level, attrs, data}) => {
           if (level === 'inline') {
             return (
               <InlineCode variant="neutral">
@@ -132,14 +132,13 @@ export function TagDemo() {
           }
           const typedData = data as Record<string, string> | undefined;
           return (
-            <Surface variant="primary" radius="md" padding="lg">
+            <Surface variant="overlay" elevation="medium" padding="lg">
               <Flex direction="column" gap="lg">
                 <Flex gap="sm" align="center">
-                  <Text bold>{name}</Text>
-                  <Text>{attrs.type}</Text>
+                  <Text monospace>{attrs.type}</Text>
                   <Flex flexGrow={1} />
-                  <Text bold>severity</Text>
-                  <Text>{typedData?.severity}</Text>
+                  <Text>severity</Text>
+                  <Text variant="danger">{typedData?.severity}</Text>
                 </Flex>
                 {typedData?.description ? (
                   <Flex direction="column" borderTop="primary" paddingTop="lg" gap="md">
