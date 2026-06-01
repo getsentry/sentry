@@ -7,7 +7,6 @@ interface TransparentLoadingMaskProps extends LoadingMaskProps {
   visible: boolean;
   children?: React.ReactNode;
   className?: string;
-  inactive?: boolean;
 }
 
 export const TransparentLoadingMask = styled(
@@ -21,6 +20,6 @@ export const TransparentLoadingMask = styled(
   }
 )<TransparentLoadingMaskProps>`
   ${p => !p.visible && 'display: none;'};
-  opacity: ${p => (p.inactive ? 1 : 0.4)};
+  opacity: ${p => (p.loaded ? 1 : 0.4)};
   z-index: 1;
 `;
