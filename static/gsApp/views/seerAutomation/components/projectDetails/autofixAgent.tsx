@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
@@ -121,18 +121,16 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
             ) : agentOptions.isError ? (
               <LoadingError />
             ) : (
-              <Stack gap="md">
-                <field.Select
-                  disabled={Boolean(disabledReason)}
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={agentOptions.data}
-                  isValueEqual={(a, b) =>
-                    a === b ||
-                    (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
-                  }
-                />
-              </Stack>
+              <field.Select
+                disabled={Boolean(disabledReason)}
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={agentOptions.data}
+                isValueEqual={(a, b) =>
+                  a === b ||
+                  (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                }
+              />
             )}
           </field.Layout.Row>
         )}
