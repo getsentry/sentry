@@ -351,7 +351,7 @@ function Root({
       if (newSize !== null) {
         event.preventDefault();
         setSize(newSize, true);
-        handleResizeEnd(containerSize, newSize);
+        handleResizeEnd(current, newSize);
       }
     },
     [orientation, containerSize, min, max, setSize, handleResizeEnd]
