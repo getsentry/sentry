@@ -15,6 +15,16 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+# Issue Action Log — experimental module for tracking who did what to an issue and how.
+# Storage backend not yet wired up; actions are emitted as structured logs and metrics only.
+#
+# Most mutation sites should use publish_action_from_context(), which reads attribution
+# from a ContextVar set at the request boundary via action_context_scope().
+# Use publish_action() directly only for shallow endpoint-level actions (VIEW, COMMENT, etc.).
+#
+# If you're adding a new caller to an instrumented function (e.g. GroupAssignee.objects.assign),
+# wrap it with action_context_scope() so the action gets proper source attribution.
+
 MCP_CLIENT_NAME_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_NAME"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
@@ -77,6 +87,9 @@ def _get_mcp_application_id() -> int | None:
 
 
 def resolve_action_source(request: Request) -> str:
+    """
+    Determine the ActionSource from a request. Priority: MCP > Seer > frontend > CLI > API.
+    """
     application_id = getattr(request.auth, "application_id", None)
     mcp_app_id = _get_mcp_application_id() if application_id is not None else None
     if mcp_app_id and application_id == mcp_app_id:
@@ -147,6 +160,10 @@ _action_context: ContextVar[ActionContext | None] = ContextVar("action_context",
 
 @contextmanager
 def action_context_scope(source: str, actor_id: int | None) -> Generator[None]:
+    """
+    Set action attribution context for the duration of a block. Must be set before
+    any code path that calls publish_action_from_context().
+    """
     token = _action_context.set(ActionContext(source=source, actor_id=actor_id))
     try:
         yield
@@ -169,6 +186,11 @@ def publish_action(
     metadata: dict[str, Any] | None = None,
     idempotency_key: str | None = None,
 ) -> None:
+    """
+    Record an issue action directly. Use this for shallow endpoint-level actions
+    where the request is in scope (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation
+    sites deeper in the stack, prefer publish_action_from_context().
+    """
     actor_type = ActorType.USER if actor_id is not None else ActorType.SYSTEM
     metrics.incr("issue.action_log", tags={"action": action, "source": source})
     logger.info(
@@ -195,6 +217,12 @@ def publish_action_from_context(
     project_id: int,
     metadata: dict[str, Any] | None = None,
 ) -> None:
+    """
+    Record an issue action using the current ActionContext. This is the primary API
+    for mutation sites (assign, resolve, etc.) where the request is not in scope.
+    Requires action_context_scope() to have been set upstream. If context is missing,
+    logs an error to Sentry and records the action with source=UNKNOWN.
+    """
     ctx = get_action_context()
     if ctx is None:
         logger.error(
