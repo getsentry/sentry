@@ -47,6 +47,7 @@ def get_repo_name_candidates(repo_name: str) -> list[str]:
 def auto_link_repos_by_name(
     organization: Organization | RpcOrganization,
     repo_ids: Sequence[int],
+    project_ids: Sequence[int] | None = None,
 ) -> int:
     """
     Auto-link repositories to projects by matching repo name suffix to project slug.
@@ -57,6 +58,7 @@ def auto_link_repos_by_name(
     Constraints:
     - The repo must not already be linked to any project.
     - The project must not already have any ProjectRepository link.
+    - If project_ids is provided, only consider those projects.
 
     Returns the number of links created
     """
@@ -74,15 +76,15 @@ def auto_link_repos_by_name(
         status=ObjectStatus.ACTIVE,
     ).exclude(Exists(ProjectRepository.objects.filter(repository_id=OuterRef("id"))))
 
+    project_qs = Project.objects.filter(
+        organization_id=organization.id,
+        status=ObjectStatus.ACTIVE,
+    ).exclude(Exists(ProjectRepository.objects.filter(project_id=OuterRef("id"))))
+    if project_ids is not None:
+        project_qs = project_qs.filter(id__in=project_ids)
+
     unlinked_projects_by_slug: dict[str, tuple[int, str]] = {}
-    for p_id, slug in (
-        Project.objects.filter(
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-        )
-        .exclude(Exists(ProjectRepository.objects.filter(project_id=OuterRef("id"))))
-        .values_list("id", "slug")
-    ):
+    for p_id, slug in project_qs.values_list("id", "slug"):
         unlinked_projects_by_slug[slug] = (p_id, slug)
 
     if not unlinked_projects_by_slug:
@@ -132,3 +134,21 @@ def auto_link_repos_by_name(
                 created += 1
 
     return created
+
+
+def auto_link_repos_on_project_create(project: Project, **kwargs: object) -> None:
+    """
+    Signal receiver for project_created. Finds all unlinked repos in the
+    org and tries to match them to the newly created project by name.
+    """
+    organization = project.organization
+    repo_ids = list(
+        Repository.objects.filter(
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        .exclude(Exists(ProjectRepository.objects.filter(repository_id=OuterRef("id"))))
+        .values_list("id", flat=True)
+    )
+    if repo_ids:
+        auto_link_repos_by_name(organization, repo_ids, project_ids=[project.id])

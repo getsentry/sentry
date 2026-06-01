@@ -299,9 +299,10 @@ class DatabaseBackedRepositoryService(RepositoryService):
         *,
         organization_id: int,
         repo_ids: list[int],
+        project_ids: list[int] | None = None,
     ) -> int:
         try:
             organization = Organization.objects.get(id=organization_id)
         except Organization.DoesNotExist:
             return 0
-        return auto_link_repos_by_name(organization, repo_ids)
+        return auto_link_repos_by_name(organization, repo_ids, project_ids=project_ids)
