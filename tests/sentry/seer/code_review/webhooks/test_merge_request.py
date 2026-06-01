@@ -5,14 +5,20 @@ from unittest.mock import patch
 import orjson
 import pytest
 
-from fixtures.gitlab import MERGE_REQUEST_OPENED_EVENT, GitLabTestCase
+from fixtures.gitlab import (
+    MERGE_REQUEST_NOTE_EVENT,
+    MERGE_REQUEST_OPENED_EVENT,
+    GitLabTestCase,
+)
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.webhooks.merge_request import (
+    WEBHOOK_NOTE_SEEN_KEY_PREFIX,
     WEBHOOK_SEEN_KEY_PREFIX,
     handle_merge_request_event,
+    handle_merge_request_note_event,
 )
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.redis import redis_clusters
@@ -47,7 +53,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
 
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:
-        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
+        with patch(
+            "sentry.seer.code_review.webhooks.task.make_seer_request"
+        ) as mock_seer:
             self.mock_seer = mock_seer
             yield
 
@@ -205,7 +213,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         # An "update" that only edits metadata (no new commit, no un-draft) must not
         # trigger a review.
         self._setup_code_review()
-        event = _make_event("update", changes={"title": {"previous": "a", "current": "b"}})
+        event = _make_event(
+            "update", changes={"title": {"previous": "a", "current": "b"}}
+        )
 
         with self.tasks():
             self._call_handler(event)
@@ -223,7 +233,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         # GitLab has no "ready_for_review" action; un-drafting arrives as an "update"
         # whose changes flip draft -> false, and must be treated as ready-for-review.
         self._setup_code_review()
-        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+        event = _make_event(
+            "update", changes={"draft": {"previous": True, "current": False}}
+        )
         assert "oldrev" not in event["object_attributes"]
         # GitLab delivers "changes" at the top level, not under object_attributes.
         assert "changes" in event and "changes" not in event["object_attributes"]
@@ -232,7 +244,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert (
+            self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        )
 
     @with_feature(
         {
@@ -241,7 +255,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(self) -> None:
+    def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(
+        self,
+    ) -> None:
         self._setup_code_review()
         event = _make_event(
             "update", changes={"work_in_progress": {"previous": True, "current": False}}
@@ -251,7 +267,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert (
+            self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        )
 
     @with_feature(
         {
@@ -262,7 +280,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
     )
     def test_undraft_update_trigger_is_ready_for_review(self) -> None:
         self._setup_code_review()
-        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+        event = _make_event(
+            "update", changes={"draft": {"previous": True, "current": False}}
+        )
 
         with self.tasks():
             self._call_handler(event)
@@ -282,7 +302,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         # An un-draft maps to ON_READY_FOR_REVIEW, so a repo that only enabled
         # ON_NEW_COMMIT must not get a review for it.
         self._setup_code_review(triggers=[CodeReviewTrigger.ON_NEW_COMMIT])
-        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+        event = _make_event(
+            "update", changes={"draft": {"previous": True, "current": False}}
+        )
 
         with self.tasks():
             self._call_handler(event)
@@ -564,7 +586,9 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         }
     )
     def test_payload_owner_and_name_handle_subgroups(self) -> None:
-        self._setup_code_review(name="Group / Subgroup / Project", path="group/subgroup/project")
+        self._setup_code_review(
+            name="Group / Subgroup / Project", path="group/subgroup/project"
+        )
         event = _make_event("open")
 
         with self.tasks():
@@ -775,4 +799,338 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             self._call_handler(first)
             self._call_handler(second)
 
+        assert self.mock_seer.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# Note event (@sentry review) tests
+# ---------------------------------------------------------------------------
+
+
+def _make_note_event(**overrides: object) -> dict[str, Any]:
+    """Build a mutable copy of MERGE_REQUEST_NOTE_EVENT with optional overrides."""
+    event = orjson.loads(MERGE_REQUEST_NOTE_EVENT)
+    for key, value in overrides.items():
+        event["object_attributes"][key] = value
+    return event
+
+
+class MergeRequestNoteEventTest(GitLabTestCase):
+    """Tests for the @sentry review note handler.
+
+    GitLab fires a ``Note Hook`` when a user posts a comment on an MR. When the
+    comment contains ``@sentry review`` the handler should enqueue a Seer review
+    request with ``trigger: on_command_phrase``.
+    """
+
+    @pytest.fixture(autouse=True)
+    def mock_seer_request(self) -> Generator[None]:
+        with patch(
+            "sentry.seer.code_review.webhooks.task.make_seer_request"
+        ) as mock_seer:
+            self.mock_seer = mock_seer
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_scm(self) -> Generator[None]:
+        from unittest.mock import MagicMock
+
+        mock_scm_instance = MagicMock()
+        with patch(
+            "sentry.seer.code_review.webhooks.merge_request.scm_factory.new",
+            return_value=mock_scm_instance,
+        ):
+            self.mock_scm = mock_scm_instance
+            yield
+
+    def _setup_code_review(self) -> None:
+        repo = self.create_gitlab_repo(name="Cool Group / Sentry")
+        repo.config["path"] = "cool-group/sentry"
+        repo.save()
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT.value,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+            ],
+        )
+        OrganizationContributors.objects.get_or_create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+            defaults={"alias": "root"},
+        )
+        self.repo = repo
+
+    def _call_handler(self, event: dict[str, Any]) -> None:
+        handle_merge_request_note_event(
+            event=event,
+            organization=RpcOrganization(
+                id=self.organization.id,
+                slug=self.organization.slug,
+                name=self.organization.name,
+            ),
+            repo=self.repo,
+            integration=self.integration,
+        )
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_sentry_review_comment_schedules_seer_task(self) -> None:
+        """@sentry review note must enqueue a Seer review-request task."""
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_trigger_is_on_command_phrase(self) -> None:
+        """The Seer payload must carry trigger=on_command_phrase."""
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            self._call_handler(event)
+
+        payload = self.mock_seer.call_args[1]["payload"]
+        assert payload["data"]["config"]["trigger"] == "on_command_phrase"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_contains_trigger_comment_id_and_type(self) -> None:
+        """trigger_comment_id must be the note id; trigger_comment_type must be issue_comment."""
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            self._call_handler(event)
+
+        config = self.mock_seer.call_args[1]["payload"]["data"]["config"]
+        assert config["trigger_comment_id"] == 1243
+        assert config["trigger_comment_type"] == "issue_comment"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_trigger_user_is_commenter(self) -> None:
+        """trigger_user must be the note author, not the MR author."""
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            self._call_handler(event)
+
+        config = self.mock_seer.call_args[1]["payload"]["data"]["config"]
+        assert config["trigger_user"] == "root"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_eyes_reaction_added_to_note(self) -> None:
+        """:eyes: must be added to the note (not to the MR description)."""
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.create_pull_request_comment_reaction.assert_called_once_with(
+            str(event["merge_request"]["iid"]),
+            str(event["object_attributes"]["id"]),
+            "eyes",
+        )
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_non_review_command_is_ignored(self) -> None:
+        """Notes without @sentry review must be silently dropped."""
+        self._setup_code_review()
+        event = _make_note_event(note="just a regular comment")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_issue_note_is_ignored(self) -> None:
+        """Notes on issues (not MRs) must be silently dropped."""
+        self._setup_code_review()
+        event = _make_note_event(noteable_type="Issue")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_non_create_action_is_ignored(self) -> None:
+        """Edited notes must not re-trigger a review."""
+        self._setup_code_review()
+        event = _make_note_event(action="update")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_sentry_review_case_insensitive(self) -> None:
+        """@Sentry Review (any case) must also trigger a review."""
+        self._setup_code_review()
+        event = _make_note_event(note="Hey @Sentry Review please check this")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_duplicate_note_skipped(self) -> None:
+        """A redelivered note (same note_id) within the TTL window must be skipped."""
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            self._call_handler(event)
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    def test_skips_when_feature_flag_disabled(self) -> None:
+        """Handler must no-op when organizations:seer-code-review-gitlab is off."""
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_when_integration_is_none(self) -> None:
+        self._setup_code_review()
+        event = _make_note_event()
+
+        with self.tasks():
+            handle_merge_request_note_event(
+                event=event,
+                organization=RpcOrganization(
+                    id=self.organization.id,
+                    slug=self.organization.slug,
+                    name=self.organization.name,
+                ),
+                repo=self.repo,
+                integration=None,
+            )
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_reaction_failure_does_not_block_seer_task(self) -> None:
+        """A failing note reaction must not prevent the Seer task from being scheduled."""
+        self._setup_code_review()
+        event = _make_note_event()
+        self.mock_scm.create_pull_request_comment_reaction.side_effect = Exception(
+            "scm down"
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_duplicate_note_after_ttl_processes_again(self) -> None:
+        """After Redis TTL expires the same note may be processed again."""
+        self._setup_code_review()
+        event = _make_note_event()
+        note_id = event["object_attributes"]["id"]
+
+        with self.tasks():
+            self._call_handler(event)
+        assert self.mock_seer.call_count == 1
+
+        seen_key = f"{WEBHOOK_NOTE_SEEN_KEY_PREFIX}{self.organization.id}:{self.repo.id}:{note_id}"
+        redis_clusters.get("default").delete(seen_key)
+
+        with self.tasks():
+            self._call_handler(event)
         assert self.mock_seer.call_count == 2
