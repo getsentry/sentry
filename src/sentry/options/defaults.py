@@ -886,11 +886,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "snuba.search.recommended.user-impact-weight",
-    default=0.05,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "snuba.search.recommended.event-volume-weight",
     default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

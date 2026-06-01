@@ -794,10 +794,6 @@ def _recommended_aggregation(
         "0.0))"
     )
 
-    # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
-    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
-    user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
-
     # Event volume: ln(count() + 1)/ln(10001) - maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
     event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
     event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
@@ -815,11 +811,10 @@ def _recommended_aggregation(
 
     return [
         (
-            f"plus(plus(plus(plus(plus("
+            f"plus(plus(plus(plus("
             f"multiply({recency_weight}, {recency}), "
             f"multiply({spike_weight}, {spike})), "
             f"multiply({severity_weight}, {severity})), "
-            f"multiply({user_impact_weight}, {user_impact})), "
             f"multiply({event_volume_weight}, {event_volume})), "
             f"{type_boost})"
         ),
@@ -851,7 +846,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {
         "trends": ["last_seen", "times_seen"],
-        "recommended": ["last_seen", "times_seen", "user_count"],
+        "recommended": ["last_seen", "times_seen"],
     }
     postgres_only_fields = {*SKIP_SNUBA_FIELDS, "regressed_in_release"}
     # add specific fields here on top of skip_snuba_fields from the serializer

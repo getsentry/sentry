@@ -3952,59 +3952,6 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         # Fatal event should score higher despite being slightly older
         assert scores[fatal_group.id] > scores[info_group.id]
 
-    def test_recommended_user_impact(self) -> None:
-        base_datetime = before_now(hours=1)
-
-        # Issue affecting many users
-        for i in range(10):
-            self.store_event(
-                data={
-                    "fingerprint": ["many-users-group"],
-                    "event_id": f"a{i:031d}",
-                    "message": "many users",
-                    "timestamp": base_datetime.isoformat(),
-                    "level": "error",
-                    "tags": {"sentry:user": f"user{i}@example.com"},
-                },
-                project_id=self.project.id,
-            )
-        many_users_group = Group.objects.get(
-            project=self.project,
-            message="many users",
-        )
-
-        # Issue affecting one user
-        self.store_event(
-            data={
-                "fingerprint": ["one-user-group"],
-                "event_id": "b" * 32,
-                "message": "one user",
-                "timestamp": base_datetime.isoformat(),
-                "level": "error",
-                "tags": {"sentry:user": "solo@example.com"},
-            },
-            project_id=self.project.id,
-        )
-        one_user_group = Group.objects.get(
-            project=self.project,
-            message="one user",
-        )
-
-        query_executor = self.backend._get_query_executor()
-        results = query_executor.snuba_search(
-            start=None,
-            end=None,
-            project_ids=[self.project.id],
-            environment_ids=[],
-            sort_field="recommended",
-            organization=self.organization,
-            group_ids=[many_users_group.id, one_user_group.id],
-            limit=150,
-            referrer=Referrer.TESTING_TEST,
-        )[0]
-        scores = {gid: score for gid, score in results}
-        assert scores[many_users_group.id] > scores[one_user_group.id]
-
     def test_recommended_issue_platform(self) -> None:
         base_datetime = before_now(hours=1)
 
