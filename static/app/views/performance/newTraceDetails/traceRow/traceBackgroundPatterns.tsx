@@ -5,13 +5,13 @@ import {
   getTraceIssueSeverityClassName,
   type TraceIssueSeverityClassName,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {
   getDirectErrors,
   getDirectOccurrences,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+} from 'sentry/views/performance/newTraceDetails/traceIssueUtils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 const TRACE_ISSUE_SEVERITY_RANK: Record<TraceIssueSeverityClassName, number> = {
   fatal: 0,

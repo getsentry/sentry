@@ -1,0 +1,143 @@
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+
+export const TRACE_ICON_WIDTH = 18;
+export const TRACE_ICON_GROUP_GLYPH_WIDTH = 12;
+export const TRACE_ICON_GROUP_GAP = 2;
+export const TRACE_ICON_GROUP_HORIZONTAL_PADDING = 10;
+export const TRACE_ICON_GROUP_COUNT_MIN_WIDTH = 8;
+
+export interface RenderableTraceIssue {
+  issue: TraceTree.TraceIssue;
+  additionalIssueCount?: number;
+}
+
+export function getRenderableTraceIssues(
+  node: BaseNode,
+  errors: BaseNode['errors'],
+  occurrences: BaseNode['occurrences']
+): RenderableTraceIssue[] {
+  const directErrors = getDirectErrors(node);
+  const directOccurrences = getDirectOccurrences(node);
+  const childIssues: TraceTree.TraceIssue[] = [];
+  const issues: RenderableTraceIssue[] = [];
+
+  for (const error of errors) {
+    if (directErrors.has(error)) {
+      issues.push({issue: error});
+    } else {
+      childIssues.push(error);
+    }
+  }
+
+  for (const occurrence of occurrences) {
+    if (directOccurrences.has(occurrence)) {
+      issues.push({issue: occurrence});
+    } else {
+      childIssues.push(occurrence);
+    }
+  }
+
+  const childRepresentative = getMostSevereTraceIssue(childIssues);
+  if (childRepresentative) {
+    const additionalIssueCount = childIssues.length - 1;
+    issues.push(
+      additionalIssueCount > 0
+        ? {issue: childRepresentative, additionalIssueCount}
+        : {issue: childRepresentative}
+    );
+  }
+
+  return issues;
+}
+
+export function getDirectErrors(node: BaseNode): Set<TraceTree.TraceErrorIssue> {
+  const errors = new Set<TraceTree.TraceErrorIssue>();
+
+  if (node.value && 'errors' in node.value && Array.isArray(node.value.errors)) {
+    node.value.errors.forEach(error => errors.add(error));
+  }
+
+  return errors;
+}
+
+export function getDirectOccurrences(node: BaseNode): Set<TraceTree.TraceOccurrence> {
+  const occurrences = new Set<TraceTree.TraceOccurrence>();
+
+  if (
+    node.value &&
+    'occurrences' in node.value &&
+    Array.isArray(node.value.occurrences)
+  ) {
+    node.value.occurrences.forEach(occurrence => occurrences.add(occurrence));
+  }
+
+  if (
+    node.value &&
+    'performance_issues' in node.value &&
+    Array.isArray(node.value.performance_issues)
+  ) {
+    node.value.performance_issues.forEach(occurrence => occurrences.add(occurrence));
+  }
+
+  return occurrences;
+}
+
+export function getMostSevereTraceIssue(
+  issues: TraceTree.TraceIssue[]
+): TraceTree.TraceIssue | null {
+  return issues.reduce<TraceTree.TraceIssue | null>((mostSevere, issue) => {
+    if (!mostSevere) {
+      return issue;
+    }
+
+    const severityDiff =
+      getTraceIssueSeverityRank(issue) - getTraceIssueSeverityRank(mostSevere);
+
+    if (severityDiff > 0) {
+      return issue;
+    }
+
+    if (
+      severityDiff === 0 &&
+      getTraceIssueTimestamp(issue, [0, 0]) < getTraceIssueTimestamp(mostSevere, [0, 0])
+    ) {
+      return issue;
+    }
+
+    return mostSevere;
+  }, null);
+}
+
+export function getTraceIssueSeverityRank(issue: TraceTree.TraceIssue): number {
+  switch (issue.level) {
+    case 'fatal':
+      return 5;
+    case 'error':
+      return 4;
+    case 'warning':
+      return 3;
+    case 'info':
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+export function getTraceIssueTimestamp(
+  issue: TraceTree.TraceIssue,
+  nodeSpace: [number, number]
+): number {
+  if ('timestamp' in issue && typeof issue.timestamp === 'number') {
+    return issue.timestamp * 1e3;
+  }
+
+  let startTimestamp: number | undefined;
+  if ('start_timestamp' in issue) {
+    startTimestamp = issue.start_timestamp;
+  } else if ('start' in issue) {
+    startTimestamp = issue.start;
+  }
+
+  return typeof startTimestamp === 'number' ? startTimestamp * 1e3 : nodeSpace[0];
+}
