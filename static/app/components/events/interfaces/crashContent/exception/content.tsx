@@ -10,7 +10,7 @@ import {StacktraceBanners} from 'sentry/components/events/interfaces/crashConten
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebugQuery,
-  type SourceMapDebugBlueThunderResponse,
+  type SourceMapDebugResponse,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
@@ -160,7 +160,7 @@ function InnerContent({
   hasChainedExceptions: boolean;
   hiddenExceptions: ExceptionRenderStateMap;
   isSampleError: boolean;
-  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse | undefined;
+  sourceMapDebuggerData: SourceMapDebugResponse | undefined;
   toggleRelatedExceptions: (exceptionId: number) => void;
   values: ExceptionValue[];
   project?: Project;

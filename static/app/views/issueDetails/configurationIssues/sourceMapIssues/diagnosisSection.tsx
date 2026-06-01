@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {
-  SourceMapDebugBlueThunderResponse,
+  SourceMapDebugResponse,
   SourceMapDebugQueryResult,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -15,7 +15,7 @@ import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
 function getDiagnosisMessage(
-  data: SourceMapDebugBlueThunderResponse | undefined
+  data: SourceMapDebugResponse | undefined
 ): ReactNode | null {
   if (!data) {
     return (
