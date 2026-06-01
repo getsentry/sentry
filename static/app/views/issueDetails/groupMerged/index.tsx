@@ -11,6 +11,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MergedList} from './mergedList';
@@ -34,6 +35,7 @@ interface GroupMergedContentProps {
   fingerprints: Fingerprint[];
   groupId: Group['id'];
   loading: boolean;
+  location: Location;
   organization: Organization;
   project: Project;
   refetch: () => void;
@@ -55,6 +57,7 @@ export function GroupMergedView({project, groupId, location}: Props) {
       error={error}
       fingerprints={fingerprints}
       groupId={groupId}
+      location={location}
       loading={loading}
       organization={organization}
       pageLinks={pageLinks}
@@ -68,6 +71,7 @@ function GroupMergedContent({
   error,
   fingerprints,
   groupId,
+  location,
   loading,
   organization,
   pageLinks,
@@ -133,6 +137,7 @@ function GroupMergedContent({
       {isLoadedSuccessfully && (
         <MergedList
           project={project}
+          cursor={decodeScalar(location.query.cursor)}
           fingerprints={fingerprints}
           pageLinks={pageLinks}
           groupId={groupId}

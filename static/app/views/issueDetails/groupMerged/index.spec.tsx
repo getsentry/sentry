@@ -72,6 +72,31 @@ describe('Issues -> Merged View', () => {
     expect(screen.getByTestId('pagination')).toHaveTextContent('2 of 2');
   });
 
+  it('uses the absolute offset cursor for the pagination caption', async () => {
+    const {organization, project} = initializeOrg({
+      router: {
+        params: {groupId: 'groupId'},
+      },
+    });
+
+    render(
+      <GroupMergedView
+        project={project}
+        groupId={group.id}
+        location={LocationFixture({
+          query: {
+            cursor: '0:50:0',
+          },
+        })}
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByTestId('pagination')).toHaveTextContent('52 of 52');
+  });
+
   it('renders fingerprints collapsed below their latest event row', async () => {
     const {organization, project} = initializeOrg({
       router: {

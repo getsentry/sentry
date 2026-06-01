@@ -10,19 +10,13 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {parseCursor} from 'sentry/utils/cursor';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
-import {
-  hasLatestEvent,
-  MERGED_HASH_LIMIT,
-  type Fingerprint,
-  type GroupMergedState,
-} from './useGroupMerged';
+import {hasLatestEvent, type Fingerprint, type GroupMergedState} from './useGroupMerged';
 
 type Props = {
+  cursor: string | undefined;
   enableFingerprintCompare: boolean;
   groupId: Group['id'];
   onToggleCollapse: () => void;
@@ -37,6 +31,7 @@ type Props = {
 };
 
 export function MergedList({
+  cursor,
   fingerprints = [],
   pageLinks,
   onToggleCollapse,
@@ -49,11 +44,10 @@ export function MergedList({
   toggleSelected,
   unmergeDisabled,
 }: Props) {
-  const location = useLocation();
   const fingerprintsWithLatestEvent = fingerprints.filter(hasLatestEvent);
   const hasResults = fingerprintsWithLatestEvent.length > 0;
   const paginationCaption = getMergedHashesPaginationCaption({
-    cursor: decodeScalar(location.query.cursor),
+    cursor,
     pageLength: fingerprintsWithLatestEvent.length,
     pageLinks,
   });
@@ -114,7 +108,7 @@ function getMergedHashesPaginationCaption({
   }
 
   const offset = parseCursor(cursor)?.offset ?? 0;
-  const end = offset * MERGED_HASH_LIMIT + pageLength;
+  const end = offset + pageLength;
   const links = parseLinkHeader(pageLinks);
 
   if (links.next?.results === false) {
