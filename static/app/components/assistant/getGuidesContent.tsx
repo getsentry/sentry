@@ -11,67 +11,6 @@ export function getGuidesContent(): GuidesContent {
   }
   return [
     {
-      guide: 'issue',
-      requiredTargets: ['issue_header_stats', 'breadcrumbs', 'issue_sidebar_owners'],
-      steps: [
-        {
-          title: t('How bad is it?'),
-          target: 'issue_header_stats',
-          description: t(
-            `You have Issues and that's fine.
-              Understand impact at a glance by viewing total issue frequency and affected users.`
-          ),
-        },
-        {
-          title: t('Find problematic releases'),
-          target: 'issue_sidebar_releases',
-          description: t(
-            'See which release introduced the issue and which release it last appeared in.'
-          ),
-        },
-        {
-          title: t('Not your typical stack trace'),
-          target: 'stacktrace',
-          description: t(
-            `Sentry can show your source code in the stack trace.
-              See the exact sequence of function calls leading to the error in question.`
-          ),
-        },
-        {
-          // TODO(streamline-ui): Remove from guides on GA, tag sidebar is gone
-          title: t('Pinpoint hotspots'),
-          target: 'issue_sidebar_tags',
-          description: t(
-            'Tags are key/value string pairs that are automatically indexed and searchable in Sentry.'
-          ),
-        },
-        {
-          title: t('Retrace Your Steps'),
-          target: 'breadcrumbs',
-          description: t(
-            `Not sure how you got here? Sentry automatically captures breadcrumbs for
-              events your user and app took that led to the error.`
-          ),
-        },
-        {
-          title: t('Annoy the Right People'),
-          target: 'issue_sidebar_owners',
-          description: t(
-            `Automatically assign issues to the person who introduced the commit,
-              notify them over notification tools like Slack,
-              and triage through issue management tools like Jira. `
-          ),
-        },
-        {
-          title: t('Onboarding'),
-          target: 'onboarding_sidebar',
-          description: t(
-            'Walk through this guide to get the most out of Sentry right away.'
-          ),
-        },
-      ],
-    },
-    {
       guide: 'issue_stream',
       requiredTargets: ['issue_stream'],
       steps: [

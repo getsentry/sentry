@@ -66,7 +66,6 @@ const AM1_FREE_FEATURES = [
 
 const AM1_TEAM_FEATURES = [
   ...AM1_FREE_FEATURES,
-  'codecov-integration',
   'crash-rate-alerts',
   'discover-basic',
   'incidents',

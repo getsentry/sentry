@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
+from sentry.users.api.serializers.user import UserSerializerResponse
+
 
 class VersionInfoOptional(TypedDict, total=False):
     description: str
@@ -24,28 +26,12 @@ class LastDeploy(LastDeployOptional):
     name: str
 
 
-class AuthorOptional(TypedDict, total=False):
-    lastLogin: str
-    has2fa: bool
-    lastActive: str
-    isSuperuser: bool
-    isStaff: bool
-    experiments: dict[str, str | int | float | bool | None]
-    emails: list[dict[str, int | str | bool]]
-    avatar: dict[str, str | None]
-
-
-class Author(AuthorOptional):
-    id: int
-    name: str
-    username: str
+class NonMappableUser(TypedDict):
+    name: str | None
     email: str
-    avatarUrl: str
-    isActive: bool
-    isSuspended: bool
-    hasPasswordAuth: bool
-    isManaged: bool
-    dateJoined: str
+
+
+Author = UserSerializerResponse | NonMappableUser
 
 
 class HealthDataOptional(TypedDict, total=False):
