@@ -101,5 +101,19 @@ describe('useLogsPinning', () => {
 
       expect(result.current?.getPinnedRowIds()).toEqual([]);
     });
+
+    it('removes the id from pinnedRows when removePinnedRow is called for a pinned id', () => {
+      const {result} = renderHookWithProviders(() => useLogsPinning(), {
+        initialRouterConfig: {
+          location: {pathname: '/', query: {logsPinned: 'log-1'}},
+        },
+      });
+
+      act(() => {
+        result.current?.removePinnedRow('log-1');
+      });
+
+      expect(result.current?.getPinnedRowIds()).toEqual([]);
+    });
   });
 });

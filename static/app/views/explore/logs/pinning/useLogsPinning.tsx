@@ -9,6 +9,7 @@ export interface LogsPinning {
   clearPinnedRows: () => void;
   getPinnedRowIds: () => string[];
   hasPinnedRow: (id: string) => boolean;
+  removePinnedRow: (id: string) => void;
   togglePinnedRow: (id: string) => void;
 }
 
@@ -39,13 +40,26 @@ export function useLogsPinning(): LogsPinning | undefined {
     [setPinnedRowsList]
   );
 
+  const removePinnedRow = useCallback(
+    (id: string) => {
+      setPinnedRowsList(pinnedRowsList.filter(previousId => previousId !== id));
+    },
+    [pinnedRowsList, setPinnedRowsList]
+  );
+
   const clearPinnedRows = useCallback(() => {
     setPinnedRowsList([]);
   }, [setPinnedRowsList]);
 
   const value = useMemo(
-    () => ({clearPinnedRows, getPinnedRowIds, hasPinnedRow, togglePinnedRow}),
-    [clearPinnedRows, getPinnedRowIds, hasPinnedRow, togglePinnedRow]
+    () => ({
+      clearPinnedRows,
+      getPinnedRowIds,
+      hasPinnedRow,
+      removePinnedRow,
+      togglePinnedRow,
+    }),
+    [clearPinnedRows, getPinnedRowIds, hasPinnedRow, removePinnedRow, togglePinnedRow]
   );
 
   return logsPinningEnabled ? value : undefined;
