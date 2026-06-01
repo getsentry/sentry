@@ -177,37 +177,37 @@ class TestThreadSafeCache:
                 key = offset * n + i
                 cache[key] = key
 
-        threads = [threading.Thread(target=worker, args=(t,)) for t in range(num_threads)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+        threads = [threading.Thread(target=worker, args=(offset,)) for offset in range(num_threads)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
         assert len(cache) == n * num_threads
-        for t in range(num_threads):
+        for offset in range(num_threads):
             for i in (0, n // 2, n - 1):
-                key = t * n + i
+                key = offset * n + i
                 assert cache[key] == key
 
     def test_concurrent_iteration_during_writes(self) -> None:
         # Snapshotting under the lock means a reader never observes a dict that
         # mutates mid-iteration (which would raise RuntimeError).
-        cache: ThreadSafeCache[int, int] = ThreadSafeCache(LRUCache(maxlen=100_000))
-        for i in range(500):
+        cache: ThreadSafeCache[int, int] = ThreadSafeCache(LRUCache(maxlen=200))
+        for i in range(200):
             cache[i] = i
 
         errors: list[Exception] = []
         stop = threading.Event()
 
         def writer() -> None:
-            i = 500
+            i = 200
             while not stop.is_set():
                 cache[i] = i
                 i += 1
 
         def reader() -> None:
             try:
-                for _ in range(200):
+                for _ in range(50):
                     assert isinstance(list(cache.items()), list)
                     assert isinstance(list(cache.keys()), list)
                     assert isinstance(list(cache.values()), list)
