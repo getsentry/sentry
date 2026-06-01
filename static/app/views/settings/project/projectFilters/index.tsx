@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,6 +15,8 @@ import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/
 import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {CustomFilters} from './customFilters';
 
 export default function ProjectFilters() {
   const routes = useRoutes();
@@ -84,7 +85,7 @@ export default function ProjectFilters() {
         {filterType === 'discarded-groups' ? (
           <GroupTombstones project={project} />
         ) : hasInboundFiltersV2 && filterType === 'inbound-filters' ? (
-          <InboundFiltersV2 />
+          <CustomFilters />
         ) : (
           <ProjectFiltersSettings project={project} params={params} />
         )}
@@ -93,28 +94,6 @@ export default function ProjectFilters() {
   );
 }
 
-function InboundFiltersV2() {
-  return (
-    <InboundFiltersV2Table>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell divider={false}>{t('Conditions')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell divider={false}>{t('Created')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
-      <SimpleTable.Empty>{t('No inbound filters found')}</SimpleTable.Empty>
-    </InboundFiltersV2Table>
-  );
-}
-
 const TabsContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const InboundFiltersV2Table = styled(SimpleTable)`
-  grid-template-columns:
-    max-content minmax(0, 1fr) minmax(0, 2fr) max-content max-content
-    max-content;
 `;
