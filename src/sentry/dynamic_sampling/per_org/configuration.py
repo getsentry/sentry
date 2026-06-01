@@ -134,9 +134,6 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
             return
         self.projects = self._get_projects()
         self.sliding_window_sample_rate = self._get_sliding_window_sample_rate()
-        self.project_sample_rates = {
-            project.id: self.get_sample_rate() for project in self.projects
-        }
 
     @property
     def is_enabled(self) -> bool:
