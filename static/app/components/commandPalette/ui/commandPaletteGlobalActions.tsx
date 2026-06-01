@@ -528,12 +528,10 @@ export function GlobalCommandPaletteActions() {
                 to={`${prefix}/monitors/uptime/`}
               />
             )}
-            {organization.features.includes('preprod-size-monitors-frontend') && (
-              <CMDKAction
-                display={{label: t('Mobile Build')}}
-                to={`${prefix}/monitors/mobile-builds/`}
-              />
-            )}
+            <CMDKAction
+              display={{label: t('Mobile Build')}}
+              to={`${prefix}/monitors/mobile-builds/`}
+            />
             <CMDKAction
               display={{label: t('Alerts')}}
               keywords={[t('alert rules'), t('issue alert')]}

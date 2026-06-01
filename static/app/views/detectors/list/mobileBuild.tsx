@@ -1,4 +1,3 @@
-import Feature from 'sentry/components/acl/feature';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
@@ -19,26 +18,21 @@ export default function MobileBuildDetectorsList() {
   });
 
   return (
-    <Feature features="organizations:preprod-size-monitors-frontend">
-      <SentryDocumentTitle title={TITLE}>
-        <WorkflowEngineListLayout
-          actions={<DetectorListActions detectorType="preprod_size_analysis" />}
-          title={TITLE}
-          description={DESCRIPTION}
-          docsUrl={DOCS_URL}
-        >
-          <DetectorListHeader
-            detectorType="preprod_size_analysis"
-            showTypeFilter={false}
-          />
-          <DetectorListContent
-            isError={detectorListQuery.isError}
-            isLoading={detectorListQuery.isLoading}
-            isSuccess={detectorListQuery.isSuccess}
-            data={detectorListQuery.data}
-          />
-        </WorkflowEngineListLayout>
-      </SentryDocumentTitle>
-    </Feature>
+    <SentryDocumentTitle title={TITLE}>
+      <WorkflowEngineListLayout
+        actions={<DetectorListActions detectorType="preprod_size_analysis" />}
+        title={TITLE}
+        description={DESCRIPTION}
+        docsUrl={DOCS_URL}
+      >
+        <DetectorListHeader detectorType="preprod_size_analysis" showTypeFilter={false} />
+        <DetectorListContent
+          isError={detectorListQuery.isError}
+          isLoading={detectorListQuery.isLoading}
+          isSuccess={detectorListQuery.isSuccess}
+          data={detectorListQuery.data}
+        />
+      </WorkflowEngineListLayout>
+    </SentryDocumentTitle>
   );
 }

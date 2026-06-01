@@ -69,11 +69,9 @@ interface DetectorTypeOption {
   visualization: React.ReactNode;
   disabled?: boolean;
   infoBanner?: React.ReactNode;
-  show?: boolean;
 }
 
 function MonitorTypeField() {
-  const organization = useOrganization();
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
@@ -103,7 +101,6 @@ function MonitorTypeField() {
       name: getDetectorTypeLabel('preprod_size_analysis'),
       description: t('Monitor mobile app build sizes and detect regressions.'),
       visualization: <MobileBuildVisualization />,
-      show: !!organization?.features?.includes('preprod-size-monitors-frontend'),
     },
     {
       id: 'monitor_check_in_failure',
@@ -131,38 +128,34 @@ function MonitorTypeField() {
 
   return (
     <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
-      {options
-        .filter(({show}) => show === undefined || show)
-        .map(({id, name, description, visualization, infoBanner, disabled}) => {
-          const checked = selectedDetectorType === id;
-          return (
-            <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
-              <OptionBody>
-                <Flex direction="column" gap="sm">
-                  <Radio
-                    name="detectorType"
-                    checked={checked}
-                    onChange={() => handleChange(id)}
-                    aria-label={name}
-                    disabled={disabled}
-                  />
-                  <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
-                    {name}
+      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
+        const checked = selectedDetectorType === id;
+        return (
+          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
+            <OptionBody>
+              <Flex direction="column" gap="sm">
+                <Radio
+                  name="detectorType"
+                  checked={checked}
+                  onChange={() => handleChange(id)}
+                  aria-label={name}
+                  disabled={disabled}
+                />
+                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                  {name}
+                </Text>
+                {description && (
+                  <Text size="md" variant="muted">
+                    {description}
                   </Text>
-                  {description && (
-                    <Text size="md" variant="muted">
-                      {description}
-                    </Text>
-                  )}
-                </Flex>
-                {visualization && <Visualization>{visualization}</Visualization>}
-              </OptionBody>
-              {infoBanner && (checked || disabled) && (
-                <OptionInfo>{infoBanner}</OptionInfo>
-              )}
-            </OptionLabel>
-          );
-        })}
+                )}
+              </Flex>
+              {visualization && <Visualization>{visualization}</Visualization>}
+            </OptionBody>
+            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
+          </OptionLabel>
+        );
+      })}
     </Stack>
   );
 }

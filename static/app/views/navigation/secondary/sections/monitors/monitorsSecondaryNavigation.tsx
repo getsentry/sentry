@@ -74,16 +74,14 @@ export function MonitorsSecondaryNavigation() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            <Feature features={['organizations:preprod-size-monitors-frontend']}>
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/mobile-builds/`}
-                  analyticsItemName="monitors_mobile_builds"
-                >
-                  {t('Mobile Build')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            </Feature>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/mobile-builds/`}
+                analyticsItemName="monitors_mobile_builds"
+              >
+                {t('Mobile Build')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
