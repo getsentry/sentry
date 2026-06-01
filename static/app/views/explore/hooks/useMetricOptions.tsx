@@ -9,7 +9,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResult,
@@ -30,18 +29,14 @@ function metricOptionsQueryKey({
   datetime,
   search,
   environments,
-  hasMetricUnitsUI,
-}: UseMetricOptionsProps & {hasMetricUnitsUI?: boolean} = {}) {
+}: UseMetricOptionsProps = {}) {
   const queryFields = [
     TraceMetricKnownFieldKey.METRIC_NAME,
     TraceMetricKnownFieldKey.METRIC_TYPE,
     `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
     `max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`,
+    TraceMetricKnownFieldKey.METRIC_UNIT,
   ];
-
-  if (hasMetricUnitsUI) {
-    queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);
-  }
 
   let searchValue: MutableSearch | undefined;
   if (search) {
@@ -90,8 +85,6 @@ export function useMetricOptions({
 }: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const hasMetricUnitsUI = useHasMetricUnitsUI();
-
   const {
     data: result,
     isFetching,
@@ -103,7 +96,6 @@ export function useMetricOptions({
       projectIds: projectIds ?? selection.projects,
       datetime: datetime ?? selection.datetime,
       environments: environments ?? selection.environments,
-      hasMetricUnitsUI,
     }),
 
     refetchOnWindowFocus: false,

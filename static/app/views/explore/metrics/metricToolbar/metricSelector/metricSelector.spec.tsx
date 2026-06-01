@@ -511,24 +511,9 @@ describe('MetricSelector', () => {
       });
     });
 
-    it('does not show unit badges without tracemetrics-units-ui feature', async () => {
+    it('shows unit badges', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: 'bar'});
-
-      expect(screen.queryByText('millisecond')).not.toBeInTheDocument();
-      expect(screen.queryByText('megabyte')).not.toBeInTheDocument();
-    });
-
-    it('shows unit badges when tracemetrics-units-ui feature is enabled', async () => {
-      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features, 'tracemetrics-units-ui'],
-        },
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -539,10 +524,7 @@ describe('MetricSelector', () => {
 
     it('does not show a unit badge when the metric unit is none', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features, 'tracemetrics-units-ui'],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
