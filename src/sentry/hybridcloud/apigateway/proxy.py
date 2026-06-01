@@ -5,7 +5,10 @@ Utilities related to proxying a request to a cell
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from http.cookiejar import Cookie
+from threading import local
+from typing import Any
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
@@ -13,12 +16,15 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
+from requests import Session
 from requests import request as external_request
+from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
@@ -49,10 +55,29 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-project-preprod-artifact-download": 90.0,
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-download": 90.0,
 }
 
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
+
+_connection = local()
+
+
+class _StatelessCookieJar(RequestsCookieJar):
+    def set_cookie(self, cookie: Cookie, *args: Any, **kwargs: Any) -> None:
+        return None
+
+    def extract_cookies(self, response: Any, request: Any) -> None:
+        return None
+
+
+def _get_connection() -> Session:
+    if not hasattr(_connection, "session"):
+        session = Session()
+        session.cookies = _StatelessCookieJar()
+        _connection.session = session
+    return _connection.session
 
 
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
@@ -61,7 +86,10 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     """
 
     def stream_response() -> Generator[bytes]:
-        yield from response.iter_content(PROXY_CHUNK_SIZE)
+        try:
+            yield from response.iter_content(PROXY_CHUNK_SIZE)
+        finally:
+            response.close()
 
     streamed_response = StreamingHttpResponse(
         streaming_content=stream_response(),
@@ -123,8 +151,10 @@ def proxy_error_embed_request(
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
-    metric_tags = {"region": cell.name, "url_name": url_name}
+    metric_tags = {"destination_cell": cell.name, "url_name": url_name}
     circuit_breaker: CircuitBreaker | None = None
+    use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
+
     # TODO(mark) remove rollout options
     if options.get("apigateway.proxy.circuit-breaker.enabled"):
         try:
@@ -150,11 +180,13 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
     target_url = urljoin(cell.address, request.path)
 
+    if settings.APIGW_WARN_REQS:
+        logger.warning("apigateway.legacy-sync-request", extra={"endpoint": target_url})
+
     content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
-    # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
     query_params = request.GET
 
@@ -176,9 +208,15 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     else:
         data = BodyWithLength(request)
 
+    # When pooling is enabled, reuse the thread-local session to keep connections
+    # alive across requests; otherwise issue a one-off request.
+    requester: Callable[..., ExternalResponse] = (
+        _get_connection().request if use_pooling else external_request
+    )
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
-            resp = external_request(
+            resp = requester(
                 request.method,
                 url=target_url,
                 headers=header_dict,
@@ -186,9 +224,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 data=data,
                 stream=True,
                 timeout=timeout,
-                # By default, external_request will resolve any redirects for any verb except for HEAD.
-                # We explicitly disable this behavior to avoid misrepresenting the original sentry.io request with the
-                # body response of the redirect.
+                # By default, requests resolves redirects for every verb except HEAD.
+                # Disable that to avoid misrepresenting the original sentry.io request.
                 allow_redirects=False,
             )
     except Timeout:

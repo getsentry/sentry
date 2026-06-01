@@ -14,13 +14,11 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineDetailedIncidentSerializer,
 )
-from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
@@ -139,21 +137,3 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
                 incident, request.user, WorkflowEngineDetailedIncidentSerializer(expand=expand)
             )
         )
-
-    @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-incident-details")
-    def put(self, request: Request, organization: Organization, incident) -> Response:
-        serializer = IncidentSerializer(data=request.data)
-        if serializer.is_valid():
-            result = serializer.validated_data
-            if result["status"] == IncidentStatus.CLOSED:
-                incident = update_incident_status(
-                    incident=incident,
-                    status=result["status"],
-                    status_method=IncidentStatusMethod.MANUAL,
-                )
-                return Response(
-                    serialize(incident, request.user, DetailedIncidentSerializer()), status=200
-                )
-            else:
-                return Response("Status cannot be changed.", status=400)
-        return Response(serializer.errors, status=400)

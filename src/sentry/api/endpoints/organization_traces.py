@@ -369,7 +369,7 @@ class TracesExecutor:
                 traces_errors,
                 eap_traces_errors,
                 errors_callsite,
-                is_experimental_data_a_null_result=len(eap_traces_errors) == 0,
+                is_experimental_data_nullish=len(eap_traces_errors) == 0,
                 reasonable_match_comparator=_reasonable_trace_count_map_match,
                 debug_context=debug_context,
             )
@@ -386,7 +386,7 @@ class TracesExecutor:
                 traces_occurrences,
                 eap_traces_occurrences,
                 occurrences_callsite,
-                is_experimental_data_a_null_result=len(eap_traces_occurrences) == 0,
+                is_experimental_data_nullish=len(eap_traces_occurrences) == 0,
                 reasonable_match_comparator=_reasonable_trace_count_map_match,
                 debug_context=debug_context,
             )

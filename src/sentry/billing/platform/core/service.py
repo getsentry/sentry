@@ -88,6 +88,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             "service": service_name,
             "method": method_name,
             "request_type": type(request).__name__,
+            "request": MessageToDict(request),
         }
         if organization_id := getattr(request, "organization_id", None):
             extras["organization_id"] = organization_id

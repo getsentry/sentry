@@ -20,14 +20,16 @@ from sentry.seer.autofix.constants import (
     SeerAutomationSource,
 )
 from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    AutomationCodingAgent,
+    SeerProjectSettingsUpdate,
     bulk_read_preferences_from_sentry_db,
-    bulk_write_preferences_to_sentry_db,
     get_autofix_state,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
     get_valid_automated_run_stopping_points,
+    update_seer_project_settings,
 )
-from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.utils import metrics
@@ -246,16 +248,13 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
 
     # Determine which projects need updates
-    preferences_to_set: list[SeerProjectPreference] = []
-    for project_id in project_ids:
+    preferences_set = 0
+    for project in projects:
         stopping_point = default_stopping_point
         handoff = default_handoff
-        repositories: list[SeerRepoDefinition] = []
 
-        existing_pref = preferences.get(project_id)
+        existing_pref = preferences.get(project.id)
         if existing_pref:
-            repositories = existing_pref.repositories
-
             existing_stopping_point = existing_pref.automated_run_stopping_point
             existing_handoff = existing_pref.automation_handoff
 
@@ -271,18 +270,17 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             if existing_handoff:
                 handoff = existing_handoff
 
-        preferences_to_set.append(
-            SeerProjectPreference(
-                organization_id=organization_id,
-                project_id=project_id,
-                repositories=repositories,
-                automated_run_stopping_point=stopping_point,
-                automation_handoff=handoff,
-            )
-        )
+        update = SeerProjectSettingsUpdate(stopping_point=stopping_point)
+        if handoff is not None:
+            update["agent"] = AutomationCodingAgent(handoff.target)
+            update["integration_id"] = handoff.integration_id
+            update["auto_create_pr"] = handoff.auto_create_pr
+        else:
+            update["agent"] = AutomationCodingAgent.SEER
+            update["auto_create_pr"] = stopping_point == AutofixStoppingPoint.OPEN_PR
 
-    if len(preferences_to_set) > 0:
-        bulk_write_preferences_to_sentry_db(projects, preferences_to_set)
+        update_seer_project_settings([project.id], update)
+        preferences_set += 1
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated
@@ -294,6 +292,6 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             "org_id": organization.id,
             "org_slug": organization.slug,
             "projects_configured": len(project_ids),
-            "preferences_set": len(preferences_to_set),
+            "preferences_set": preferences_set,
         },
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection
 from typing import Any
 
 import jsonschema
@@ -9,6 +10,7 @@ import pydantic
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,6 +23,10 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.preprod_examples import PreprodExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -32,6 +38,10 @@ from sentry.preprod.analytics import (
 )
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
+)
+from sentry.preprod.api.models.public.snapshots import (
+    SnapshotCreateResponseDict,
+    SnapshotDetailsResponseDict,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotApprover,
@@ -53,8 +63,10 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
+    InvalidImageNamePattern,
     SnapshotManifest,
     image_metadata_extras,
+    make_image_name_matcher,
 )
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -66,10 +78,7 @@ from sentry.preprod.snapshots.utils import (
     find_head_snapshot_artifacts_awaiting_base,
 )
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
-from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    create_preprod_snapshot_status_check_task,
-)
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -93,6 +102,13 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
             "maxItems": 50000,
         },
+        # Sanity bounds for client-supplied patterns; ReDoS-safety comes from RE2's
+        # linear-time matching (see make_image_name_matcher in manifest.py).
+        "all_image_file_names_as_regex": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": 500},
+            "maxItems": 100,
+        },
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
@@ -104,6 +120,7 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "images": "The images field is required and must be an object mapping image names to image metadata.",
     "selective": "The selective field must be a boolean.",
     "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 50000 entries.",
+    "all_image_file_names_as_regex": "The all_image_file_names_as_regex field must be an array of regex pattern strings (each at most 500 characters) with at most 100 entries.",
     **VCS_ERROR_MESSAGES,
 }
 
@@ -168,6 +185,35 @@ def _format_validation_error(e: jsonschema.ValidationError) -> str:
     return e.message
 
 
+def _validate_image_name_coverage(
+    image_names: Collection[str],
+    all_image_file_names: list[str] | None,
+    all_image_file_names_as_regex: list[str] | None,
+) -> str | None:
+    """
+    Ensure every uploaded image name is covered by the head build's declared set
+    of image names (a literal name list or a list of regex patterns). Returns an
+    error detail string, or None when valid.
+    """
+    if all_image_file_names is not None:
+        if not all_image_file_names:
+            return "all_image_file_names must not be empty."
+        if set(image_names) - set(all_image_file_names):
+            return "Every image name must appear in all_image_file_names."
+
+    if all_image_file_names_as_regex is not None:
+        if not all_image_file_names_as_regex:
+            return "all_image_file_names_as_regex must not be empty."
+        try:
+            matches = make_image_name_matcher(all_image_file_names_as_regex)
+        except InvalidImageNamePattern as e:
+            return f"all_image_file_names_as_regex contains an invalid regex pattern: {e.pattern}"
+        if any(not matches(name) for name in image_names):
+            return "Every image name must match a pattern in all_image_file_names_as_regex."
+
+    return None
+
+
 def _format_pydantic_error(e: pydantic.ValidationError) -> str:
     err = e.errors()[0]
     loc = err.get("loc", ())
@@ -183,16 +229,40 @@ def _format_pydantic_error(e: pydantic.ValidationError) -> str:
     return f"Invalid image metadata: {msg}"
 
 
+@extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
 class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationReleasePermission,)
 
+    @extend_schema(
+        operation_id="Delete a Snapshot",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="snapshot_id",
+                type=str,
+                location="path",
+                required=True,
+                description="The ID of the snapshot to delete.",
+            ),
+        ],
+        request=None,
+        responses={204: None, 403: RESPONSE_FORBIDDEN, 404: RESPONSE_NOT_FOUND},
+    )
     def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+        """
+        Delete a snapshot and all associated data (images, comparisons, metrics).
+
+        This is a permanent, irreversible operation. The snapshot and its images
+        will no longer be accessible after deletion.
+
+        This endpoint requires a bearer token with `project:write` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", organization, actor=request.user
         ):
@@ -249,7 +319,49 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         return Response(status=204)
 
+    @extend_schema(
+        operation_id="Retrieve Snapshot details",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="snapshot_id",
+                type=str,
+                location="path",
+                required=True,
+                description="The ID of the snapshot.",
+            ),
+            OpenApiParameter(
+                name="compact_metadata",
+                type=str,
+                location="query",
+                required=False,
+                description="Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, and description only.",
+            ),
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SnapshotDetailsResponse", SnapshotDetailsResponseDict
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=PreprodExamples.GET_SNAPSHOT_DETAILS,
+    )
     def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+        """
+        Retrieve full details for a snapshot, including categorized image lists
+        and comparison status.
+
+        When a comparison exists, images are categorized into `changed`, `added`,
+        `removed`, `renamed`, `unchanged`, `errored`, and `skipped` lists with
+        counts. Without a comparison, only the `images` list is populated.
+
+        Use `compact_metadata=1` to strip image objects down to `display_name`,
+        `image_file_name`, `group`, and `description` only.
+
+        This endpoint requires a bearer token with `project:read` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", organization, actor=request.user
         ):
@@ -497,6 +609,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             state=artifact.state,
             vcs_info=vcs_info,
             app_id=artifact.app_id,
+            is_selective=snapshot_metrics.is_selective,
             images=image_list,
             image_count=snapshot_metrics.image_count,
             changed=categorized.changed,
@@ -531,11 +644,12 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         return Response(response_data)
 
 
+@extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
 class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -547,7 +661,33 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         }
     )
 
+    @extend_schema(
+        operation_id="Upload a Snapshot",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SnapshotCreateResponse", SnapshotCreateResponseDict
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=PreprodExamples.CREATE_SNAPSHOT,
+    )
     def post(self, request: Request, project: Project) -> Response:
+        """
+        Upload a new snapshot with image metadata.
+
+        The request body is a JSON object containing `app_id` (required),
+        `images` (required, a mapping of filenames to image metadata objects),
+        and optional VCS fields (`head_sha`, `base_sha`, `provider`,
+        `head_repo_name`, `head_ref`, `base_repo_name`, `base_ref`, `pr_number`).
+
+        When VCS info with a `base_sha` is provided and a matching base snapshot
+        exists, a comparison is automatically triggered.
+
+        This endpoint requires a bearer token with `project:write` access.
+        """
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-snapshots", project.organization, actor=request.user
         ):
@@ -573,10 +713,23 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         selective = data.get("selective", False)
         all_image_file_names = data.get("all_image_file_names")
+        all_image_file_names_as_regex = data.get("all_image_file_names_as_regex")
 
-        if all_image_file_names is not None and not selective:
+        if all_image_file_names is not None and all_image_file_names_as_regex is not None:
             return Response(
-                {"detail": "all_image_file_names requires selective to be true."},
+                {
+                    "detail": "all_image_file_names and all_image_file_names_as_regex are mutually exclusive."
+                },
+                status=400,
+            )
+
+        if (
+            all_image_file_names is not None or all_image_file_names_as_regex is not None
+        ) and not selective:
+            return Response(
+                {
+                    "detail": "all_image_file_names and all_image_file_names_as_regex require selective to be true."
+                },
                 status=400,
             )
 
@@ -586,19 +739,11 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        if all_image_file_names is not None:
-            if not all_image_file_names:
-                return Response(
-                    {"detail": "all_image_file_names must not be empty."},
-                    status=400,
-                )
-            all_image_file_names_set = set(all_image_file_names)
-            missing = set(images.keys()) - all_image_file_names_set
-            if missing:
-                return Response(
-                    {"detail": "Every image name must appear in all_image_file_names."},
-                    status=400,
-                )
+        coverage_error = _validate_image_name_coverage(
+            images.keys(), all_image_file_names, all_image_file_names_as_regex
+        )
+        if coverage_error:
+            return Response({"detail": coverage_error}, status=400)
 
         # Validate before entering the transaction so invalid data never creates
         # orphaned DB records.
@@ -608,6 +753,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 diff_threshold=diff_threshold,
                 selective=selective,
                 all_image_file_names=all_image_file_names,
+                all_image_file_names_as_regex=all_image_file_names_as_regex,
             )
         except pydantic.ValidationError as e:
             return Response(
@@ -711,19 +857,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             except Exception:
                 logger.exception("Failed to record bundles_per_commit metric")
 
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "upload_completion",
-            },
-        )
-        create_preprod_snapshot_pr_comment_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "upload_completion",
-            },
-        )
-
+        comparison_starting = False
         if base_sha and base_repo_name:
             try:
                 base_artifact = find_base_snapshot_artifact(
@@ -766,6 +900,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                             "base_artifact_id": base_artifact.id,
                         },
                     )
+                    comparison_starting = True
 
                 else:
                     logger.info(
@@ -785,6 +920,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         "base_sha": base_sha,
                     },
                 )
+
+        # When a comparison starts, compare_snapshots owns the status-check
+        # lifecycle; posting one here too would race with it.
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=artifact.id,
+            caller="upload_completion",
+            update_status_check=not comparison_starting,
+        )
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.

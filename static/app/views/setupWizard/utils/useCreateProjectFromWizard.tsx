@@ -16,7 +16,7 @@ export function useCreateProjectFromWizard() {
       return api.requestPromise(
         params.team
           ? `/teams/${params.organization.slug}/${params.team}/projects/`
-          : `/organizations/${params.organization.slug}/experimental/projects/`,
+          : `/organizations/${params.organization.slug}/projects/`,
         {
           method: 'POST',
           host: params.organization.region.url,

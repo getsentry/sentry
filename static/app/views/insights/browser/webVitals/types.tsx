@@ -1,13 +1,21 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SpanFields} from 'sentry/views/insights/types';
 
+export const WEB_VITAL_TO_FIELD = {
+  lcp: SpanFields.BROWSER_WEB_VITAL_LCP_VALUE,
+  fcp: SpanFields.BROWSER_WEB_VITAL_FCP_VALUE,
+  cls: SpanFields.BROWSER_WEB_VITAL_CLS_VALUE,
+  ttfb: SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE,
+  inp: SpanFields.BROWSER_WEB_VITAL_INP_VALUE,
+} as const;
+
 export type Row = {
   'count()': number;
-  'p75(measurements.cls)': number;
-  'p75(measurements.fcp)': number;
-  'p75(measurements.inp)': number;
-  'p75(measurements.lcp)': number;
-  'p75(measurements.ttfb)': number;
+  'p75(browser.web_vital.cls.value)': number;
+  'p75(browser.web_vital.fcp.value)': number;
+  'p75(browser.web_vital.inp.value)': number;
+  'p75(browser.web_vital.lcp.value)': number;
+  'p75(browser.web_vital.ttfb.value)': number;
   project: string;
   'project.id': number;
   transaction: string;
@@ -22,10 +30,10 @@ type TransactionSampleRow = {
   trace: string;
   transaction: string;
   'user.display': string;
-  'measurements.cls'?: number;
-  'measurements.fcp'?: number;
-  'measurements.lcp'?: number;
-  'measurements.ttfb'?: number;
+  [SpanFields.BROWSER_WEB_VITAL_CLS_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_FCP_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_LCP_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE]?: number;
   'transaction.duration'?: number;
 };
 
@@ -50,14 +58,14 @@ type SpanSampleRow = {
   [SpanFields.TIMESTAMP]: string;
   [SpanFields.TRACE]: string;
   'user.display'?: string;
-  [SpanFields.INP]?: number;
-  [SpanFields.CLS]?: number;
-  [SpanFields.LCP]?: number;
-  [SpanFields.FCP]?: number;
-  [SpanFields.TTFB]?: number;
-  [SpanFields.LCP_ELEMENT]?: string;
+  [SpanFields.BROWSER_WEB_VITAL_INP_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_CLS_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_LCP_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_FCP_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE]?: number;
+  [SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT]?: string;
   [SpanFields.SPAN_OP]?: string;
-  [SpanFields.CLS_SOURCE]?: string;
+  [SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1]?: string;
 };
 
 export type SpanSampleRowWithScore = SpanSampleRow & Score;
@@ -84,11 +92,11 @@ const SORTABLE_SCORE_FIELDS = [
 
 export const SORTABLE_FIELDS = [
   'count()',
-  'p75(measurements.cls)',
-  'p75(measurements.fcp)',
-  'p75(measurements.inp)',
-  'p75(measurements.lcp)',
-  'p75(measurements.ttfb)',
+  `p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`,
+  `p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`,
+  `p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`,
+  `p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`,
+  `p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`,
   ...SORTABLE_SCORE_FIELDS,
 ] as const;
 
@@ -100,11 +108,11 @@ const SORTABLE_INDEXED_SCORE_FIELDS = [
 ];
 
 export const SORTABLE_INDEXED_FIELDS = [
-  'measurements.lcp',
-  'measurements.fcp',
-  'measurements.cls',
-  'measurements.ttfb',
-  'measurements.inp',
+  SpanFields.BROWSER_WEB_VITAL_LCP_VALUE,
+  SpanFields.BROWSER_WEB_VITAL_FCP_VALUE,
+  SpanFields.BROWSER_WEB_VITAL_CLS_VALUE,
+  SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE,
+  SpanFields.BROWSER_WEB_VITAL_INP_VALUE,
   ...SORTABLE_INDEXED_SCORE_FIELDS,
 ] as const;
 
@@ -114,7 +122,7 @@ export const DEFAULT_SORT: Sort = {
 };
 
 export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
-  SpanFields.INP,
+  SpanFields.BROWSER_WEB_VITAL_INP_VALUE,
   SpanFields.INP_SCORE,
   SpanFields.INP_SCORE_WEIGHT,
   SpanFields.TOTAL_SCORE,

@@ -914,7 +914,13 @@ mutationOptions={{
 
 Type the `mutationFn` with the API's data type, **not** the zod schema type. The schema is for client-side field validation — the mutation should accept whatever the API endpoint accepts. Don't use generic types like `Record<string, unknown>` either, as that breaks TanStack Form's ability to narrow field types.
 
+**NEVER pass call-site generics to `mutationOptions`, `useMutation`, or any TanStack Query function.** Types must be inferred, not asserted. See the full rules in `static/AGENTS.md` under "TanStack Query Type Inference."
+
 ```tsx
+// ❌ NEVER pass generics to mutationOptions/useMutation
+mutationOptions<unknown, RequestError, Variables, Context>({...})
+useMutation<Response, RequestError, Variables>({...})
+
 // ❌ Don't use generic types - breaks field type narrowing
 const opts = mutationOptions({
   mutationFn: (data: Record<string, unknown>) => fetchMutation({...}),
@@ -925,9 +931,15 @@ const opts = mutationOptions({
   mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => fetchMutation({...}),
 });
 
-// ✅ Use the API's data type
+// ❌ Don't explicitly type context — it's inferred from onMutate return
+type MyContext = {previousData: UserDetails};
+
+// ❌ Don't use RequestError as the error generic — use runtime narrowing instead
+
+// ✅ Use the API's data type on mutationFn, let everything else be inferred
 const opts = mutationOptions({
-  mutationFn: (data: Partial<UserDetails>) => fetchMutation({...}),
+  mutationFn: (data: Partial<UserDetails>) =>
+    fetchMutation<UserDetails>({...}),
 });
 ```
 

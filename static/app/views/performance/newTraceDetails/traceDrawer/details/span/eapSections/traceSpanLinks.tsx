@@ -17,8 +17,8 @@ import {
   type TraceItemResponseAttribute,
   type TraceItemResponseLink,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -73,6 +73,7 @@ export function TraceSpanLinks({
   const renderBaggage = {
     organization,
     location,
+    navigate,
     theme,
   };
 
@@ -178,6 +179,7 @@ export function TraceSpanLinks({
         rendererExtra={{
           theme,
           location,
+          navigate,
           organization,
         }}
         renderers={customRenderers}

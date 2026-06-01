@@ -22,12 +22,6 @@ describe('Subscription > PaymentHistory', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: '/customers/dogz-rule/plan-migrations/',
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/customers/dogz-rule/recurring-credits/',
       method: 'GET',
       body: [],
@@ -54,7 +48,6 @@ describe('Subscription > PaymentHistory', () => {
 
     render(<PaymentHistory />, {organization});
 
-    await screen.findByText('Receipts');
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
   });
 

@@ -19,6 +19,7 @@ from sentry.processing_errors.grouptype import (
 from sentry.processing_errors.provisioning import ensure_detector
 from sentry.tasks.post_process import PostProcessJob
 from sentry.utils import metrics
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors.detector import process_detectors
 
@@ -151,16 +152,20 @@ def _detect_for_config(
     matching_error_types = sorted(
         config.handler_cls.error_types.intersection(filter(None, (e.get("type") for e in errors)))
     )
+    # testing internal sampling on high volume metrics, not yet public api
     sentry_sdk.metrics.count(
         f"processing_errors.{config.slug}.event_with_errors",
         1,
         attributes={
             "org_slug": event.project.organization.slug,
-            "project_id": str(event.project.id),
-            "project_slug": event.project.slug,
-            "platform": event.project.platform or "unknown",
+            "event_project_id": str(event.project.id),
+            "event_project_slug": event.project.slug,
+            "project_platform": event.project.platform or "unknown",
+            "event_platform": event.data.get("platform") or "unknown",
+            "event_sdk": normalized_sdk_tag_from_event(event.data),
             "error_type": ",".join(matching_error_types),
             "project_age_bucket": _project_age_bucket(event.project),
+            "sentry.client_sample_rate": 0.01,
         },
     )
 

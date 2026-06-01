@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
@@ -43,6 +44,7 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofi
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
@@ -500,6 +502,7 @@ def trigger_coding_agent_handoff(
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
+    auto_create_pr: bool | None = None,
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing agent-based autofix run.
@@ -513,6 +516,7 @@ def trigger_coding_agent_handoff(
         integration_id: The coding agent integration ID (e.g., Cursor)
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+        auto_create_pr: Optional override for whether the coding agent should create a PR
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -522,11 +526,12 @@ def trigger_coding_agent_handoff(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    auto_create_pr = False
     preference = read_preference_from_sentry_db(group.project)
     repo_definitions: list[SeerRepoDefinition] = preference.repositories
-    if preference.automation_handoff:
-        auto_create_pr = preference.automation_handoff.auto_create_pr
+    if auto_create_pr is None:
+        auto_create_pr = False
+        if preference.automation_handoff:
+            auto_create_pr = preference.automation_handoff.auto_create_pr
 
     if not repo_definitions:
         return {
@@ -573,6 +578,7 @@ def trigger_coding_agent_handoff(
         repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
+        issue_short_id=short_id,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
@@ -630,9 +636,7 @@ def trigger_push_changes(
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=(
-            f"Fixes {group.qualified_short_id}" if group.qualified_short_id else None
-        ),
+        pr_description_suffix=build_pr_description_suffix(group),
         blocking=False,
     )
 
@@ -640,3 +644,31 @@ def trigger_push_changes(
         "autofix.explorer.trigger",
         tags={"step": "open_pr", "referrer": referrer.value},
     )
+
+
+def build_pr_description_suffix(group: Group) -> str | None:
+    lines = []
+
+    if group.qualified_short_id:
+        lines.append(f"Fixes {group.qualified_short_id}")
+
+    for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
+        if external_issue.service_type == "linear":
+            is_valid = bool(re.match(r"^[A-Z0-9]+#\d+$", external_issue.display_name))
+            if not is_valid:
+                logger.warning(
+                    "autofix.linear.unknown-id",
+                    extra={
+                        "group": group.id,
+                        "project": group.project_id,
+                        "linear_id": external_issue.display_name,
+                    },
+                )
+                continue
+            linear_id = external_issue.display_name.replace("#", "-")
+            lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+
+    if lines:
+        return "\n".join(lines)
+
+    return None

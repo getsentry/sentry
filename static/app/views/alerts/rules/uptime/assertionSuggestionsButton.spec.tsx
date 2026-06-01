@@ -17,7 +17,7 @@ jest.mock('@sentry/scraps/drawer', () => {
   };
 });
 
-const mockedUseDrawer = useDrawer as unknown as jest.Mock;
+const mockedUseDrawer = jest.mocked(useDrawer);
 
 describe('AssertionSuggestionsButton', () => {
   const organization = OrganizationFixture();

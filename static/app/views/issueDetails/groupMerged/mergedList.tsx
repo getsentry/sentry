@@ -6,24 +6,23 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import type {Fingerprint} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
 import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
+import {hasLatestEvent, type Fingerprint, type GroupMergedState} from './useGroupMerged';
 
 type Props = {
+  enableFingerprintCompare: boolean;
   groupId: Group['id'];
-  /**
-   * From GroupingStore.onToggleCollapseFingerprints
-   */
   onToggleCollapse: () => void;
-  /**
-   * From GroupMergedView -> handleUnmerge
-   */
   onUnmerge: () => void;
   project: Project;
+  state: GroupMergedState;
+  toggleCollapsed: (fingerprintId: string) => void;
+  toggleSelected: (fingerprintId: string, eventId: string) => void;
+  unmergeDisabled: boolean;
   fingerprints?: Fingerprint[];
   pageLinks?: string;
 };
@@ -35,10 +34,13 @@ export function MergedList({
   onUnmerge,
   groupId,
   project,
+  enableFingerprintCompare,
+  state,
+  toggleCollapsed,
+  toggleSelected,
+  unmergeDisabled,
 }: Props) {
-  const fingerprintsWithLatestEvent = fingerprints.filter(
-    ({latestEvent}) => !!latestEvent
-  );
+  const fingerprintsWithLatestEvent = fingerprints.filter(hasLatestEvent);
   const hasResults = fingerprintsWithLatestEvent.length > 0;
   if (!hasResults) {
     return (
@@ -54,10 +56,14 @@ export function MergedList({
     <Fragment>
       <Panel>
         <MergedToolbar
+          enableFingerprintCompare={enableFingerprintCompare}
+          fingerprints={fingerprints}
           onToggleCollapse={onToggleCollapse}
           onUnmerge={onUnmerge}
           project={project}
           groupId={groupId}
+          state={state}
+          unmergeDisabled={unmergeDisabled}
         />
 
         <PanelBody>
@@ -65,6 +71,9 @@ export function MergedList({
             <MergedItem
               key={fingerprint.id}
               fingerprint={fingerprint}
+              state={state}
+              toggleCollapsed={toggleCollapsed}
+              toggleSelected={toggleSelected}
               totalFingerprint={fingerprintsWithLatestEvent.length}
             />
           ))}

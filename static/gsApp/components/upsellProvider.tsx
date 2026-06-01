@@ -6,11 +6,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {Confirm} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
@@ -39,7 +38,6 @@ type ChildRenderProps = {
 type Props = {
   api: Client;
   children: (opts: ChildRenderProps) => React.ReactNode;
-  organization: Organization;
   source: string;
   subscription: Subscription;
   extraAnalyticsParams?: Record<string, any>;
@@ -79,7 +77,6 @@ function LoadingButton(props: {
 function UpsellProvider({
   api,
   onTrialStarted,
-  organization,
   subscription,
   source,
   extraAnalyticsParams,
@@ -88,6 +85,7 @@ function UpsellProvider({
   children,
 }: Props) {
   const navigate = useNavigate();
+  const organization = useOrganization({allowNull: true});
   // if the org or subscription isn't loaded yet, don't render anything
   if (!organization || !subscription) {
     return null;
@@ -235,6 +233,4 @@ function UpsellProvider({
   );
 }
 
-export default withApi(
-  withOrganization(withSubscription(UpsellProvider, {noLoader: true}))
-);
+export default withApi(withSubscription(UpsellProvider, {noLoader: true}));

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -26,19 +27,19 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   });
   const initialData = initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {
-          transaction: '/performance',
-          project: '1',
-          transactionCursor: '1:0:0',
-        },
-      },
-    },
     projects: [],
   });
+  const router = RouterFixture({
+    location: {
+      query: {
+        transaction: '/performance',
+        project: '1',
+        transactionCursor: '1:0:0',
+      },
+    },
+  });
   ProjectsStore.loadInitialData(initialData.projects);
-  return initialData;
+  return {...initialData, router};
 }
 
 describe('Performance GridEditable Table', () => {

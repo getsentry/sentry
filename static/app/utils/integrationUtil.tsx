@@ -3,7 +3,6 @@ import * as qs from 'query-string';
 import {
   IconAsana,
   IconBitbucket,
-  IconCodecov,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -14,8 +13,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
-import type {Hooks} from 'sentry/types/hooks';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {
   AppOrProviderOrPlugin,
   CodeOwner,
@@ -32,6 +30,7 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {Overrides} from 'sentry/types/overrides';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
@@ -63,14 +62,15 @@ const generateIntegrationFeatures = (p: any) =>
     gatedFeatureGroups: [],
   });
 
-const defaultFeatureGateComponents: ReturnType<Hooks['integrations:feature-gates']> = {
-  IntegrationFeatures: generateIntegrationFeatures,
-  FeatureList: generateFeaturesList,
-};
+const defaultFeatureGateComponents: ReturnType<Overrides['integrations:feature-gates']> =
+  {
+    IntegrationFeatures: generateIntegrationFeatures,
+    FeatureList: generateFeaturesList,
+  };
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
-  const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
+  const featureHook = getOverride('integrations:feature-gates') || defaultHook;
   return featureHook();
 };
 
@@ -229,8 +229,6 @@ export const getIntegrationIcon = (
       return <IconPerforce size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
-    case 'codecov':
-      return <IconCodecov size={iconSize} />;
     default:
       return <IconGeneric size={iconSize} />;
   }
@@ -256,8 +254,6 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
       return 'Perforce';
     case 'vsts':
       return 'Azure DevOps';
-    case 'codecov':
-      return 'Codeov';
     default:
       return '';
   }

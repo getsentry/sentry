@@ -30,6 +30,11 @@ export function ProjectField() {
       placeholder={t('Project')}
       aria-label={t('Select Project')}
       disabled={fetching || isEditing}
+      disabledReason={
+        isEditing
+          ? t("A monitor's project can't be changed after it's been created.")
+          : undefined
+      }
       size="sm"
       required
       validate={() => {

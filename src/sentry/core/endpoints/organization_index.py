@@ -6,10 +6,11 @@ from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features, options, roles
 from sentry import ratelimits as ratelimiter
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -52,6 +53,7 @@ from sentry.types.cell import (
 )
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.pagination_factory import PaginatorLike
 
 logger = logging.getLogger(__name__)
@@ -137,7 +139,7 @@ class OrganizationIndexEndpoint(Endpoint):
         },
         examples=UserExamples.LIST_ORGANIZATIONS,
     )
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response[list[OrganizationSummarySerializerResponse]]:
         """
         Return a list of organizations available to the authenticated session in a region.
         This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
@@ -148,6 +150,8 @@ class OrganizationIndexEndpoint(Endpoint):
         return self._get_from_cell(request)
 
     def _get_from_cell(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
         queryset = Organization.objects.distinct()
@@ -246,13 +250,18 @@ class OrganizationIndexEndpoint(Endpoint):
         )
 
     def _get_from_control(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
+        # owner=1 (used by the account-close flow) means "orgs I own", which is
+        # defined by the user's membership. A userless token (org auth token or
+        # DSN) passes the permission check but has no membership to resolve, so
+        # reject it rather than falling through to the general token-scoped listing.
         if owner_only:
-            return Response(
-                {"detail": "The control-silo organizations endpoint does not support owner=1."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if not request.user.is_authenticated:
+                raise PermissionDenied
+            return self._get_owned_from_control(request)
 
         queryset = OrganizationMapping.objects.distinct()
 
@@ -354,6 +363,50 @@ class OrganizationIndexEndpoint(Endpoint):
             paginator_cls=paginator_cls,
         )
 
+    def _get_owned_from_control(self, request: Request) -> Response:
+        assert request.user.id is not None
+        owner_role = roles.get_top_dog().id
+
+        owner_org_ids = OrganizationMemberMapping.objects.filter(
+            user_id=request.user.id,
+            role=owner_role,
+        ).values_list("organization_id", flat=True)
+
+        org_mappings = list(
+            OrganizationMapping.objects.filter(
+                organization_id__in=owner_org_ids,
+                status=OrganizationStatus.ACTIVE,
+            ).order_by("name")
+        )
+
+        owner_counts = (
+            OrganizationMemberMapping.objects.filter(
+                organization_id__in=[m.organization_id for m in org_mappings],
+                role=owner_role,
+                user_id__isnull=False,
+                user__is_active=True,
+            )
+            .values("organization_id")
+            .annotate(count=Count("id"))
+        )
+        single_owner_org_ids = {row["organization_id"] for row in owner_counts if row["count"] == 1}
+
+        serialized = serialize(
+            org_mappings,
+            request.user,
+            serializer=ControlSiloOrganizationMappingSerializer(),
+        )
+
+        return Response(
+            [
+                {
+                    "organization": data,
+                    "singleOwner": mapping.organization_id in single_owner_org_ids,
+                }
+                for mapping, data in zip(org_mappings, serialized)
+            ]
+        )
+
     def post(self, request: Request) -> Response:
         """
         Create a New Organization
@@ -391,6 +444,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 {"detail": "You are attempting to create too many organizations too quickly."},
                 status=429,
             )
+
+        metrics.incr(
+            "api.organization_index.post",
+            tags={"silo": SiloMode.get_current_mode().name.lower()},
+            sample_rate=1.0,
+        )
 
         serializer = OrganizationPostSerializer(data=request.data, context={"request": request})
 

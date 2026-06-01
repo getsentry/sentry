@@ -2,7 +2,7 @@ from datetime import datetime
 
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.issues.endpoints.project_event_details import GroupEventDetailsResponse
+from sentry.api.serializers.models.event import GroupEventDetailsResponse
 
 SIMPLE_EVENT = {
     "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",

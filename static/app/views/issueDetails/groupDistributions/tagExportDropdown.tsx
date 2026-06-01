@@ -41,7 +41,7 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
           // TODO(issues): Dropdown menu doesn't support hrefs yet
           onAction: () => {
             window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+              `/organizations/${organization.slug}/projects/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
               '_blank'
             );
           },

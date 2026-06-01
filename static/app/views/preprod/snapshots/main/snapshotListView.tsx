@@ -64,7 +64,7 @@ type GroupCard =
       type: 'pair-card';
     }
   | {
-      cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
+      cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
       estimatedHeight: number;
       id: string;
       image: SnapshotImage;

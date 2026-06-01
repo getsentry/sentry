@@ -28,7 +28,10 @@ from sentry.apidocs.parameters import (
     VisibilityParams,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
+from sentry.explore.endpoints.bases import (
+    ExploreSavedQueryPermission,
+    filter_to_accessible_explore_queries,
+)
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import (
     ExploreSavedQuery,
@@ -342,7 +345,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERIES_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ExploreSavedQueryResponse]]:
         """
         Retrieve a list of saved queries that are associated with the given organization.
         """
@@ -377,6 +382,10 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             .prefetch_related("projects")
             .extra(select={"lower_name": "lower(name)"})
         )
+        # Hide saved queries whose project scope the caller cannot access. The detail endpoint
+        # enforces this via `check_object_permissions`; without this filter the list endpoint
+        # would leak the body of queries belonging to projects the caller has no access to.
+        queryset = filter_to_accessible_explore_queries(request, queryset)
 
         if not features.has(
             "organizations:expose-migrated-discover-queries", organization, actor=request.user

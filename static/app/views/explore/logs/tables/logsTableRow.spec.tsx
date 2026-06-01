@@ -17,11 +17,15 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_FIELDS_KEY,
+  LOGS_GROUP_BY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -58,6 +62,8 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
     [OurLogKnownFieldKey.SEVERITY]: 'info',
   });
+  const rowDataTimestamp =
+    Number(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000_000;
 
   // These are the detailed attributes of the row - only displayed when you click the row.
   const rowDetails = [
@@ -217,6 +223,10 @@ describe('logsTableRow', () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('hovering the row causes prefetching of the row details', async () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
@@ -246,6 +256,12 @@ describe('logsTableRow', () => {
       // Prefetching is triggered after the hover timeout
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
+    // Flush the .then() callback that reads cached data after prefetch
+    await act(async () => {});
+    expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      timestamp: Math.trunc(rowDataTimestamp),
+    });
+    expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
     jest.useRealTimers();
   });
 
@@ -304,6 +320,10 @@ describe('logsTableRow', () => {
     await waitFor(() => {
       expect(rowDetailsMock).toHaveBeenCalledTimes(1);
     });
+    expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
+      timestamp: Math.trunc(rowDataTimestamp),
+    });
+    expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
 
     // Even after clicking, useStacktraceLink should be called with enabled: true since the details have disableLazyLoad: true
     expect(stacktraceLinkMock).toHaveBeenCalledWith(
@@ -432,10 +452,6 @@ describe('logsTableRow', () => {
       expect.anything(),
       expect.objectContaining({enabled: true})
     );
-
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    expect(stacktraceLinkMock).toHaveBeenCalledTimes(0);
-    expect(releaseMock).toHaveBeenCalledTimes(0);
 
     // Find the hoverable code path element
     const codePathElement = await screen.findByTestId('hoverable-code-path');
@@ -577,6 +593,113 @@ describe('logsTableRow', () => {
     expect(copiedUrl).toContain('logsQuery=id%3A1');
   });
 
+  it('adds a grouping and opens the sidebar when the attributes menu group by is clicked', async () => {
+    const setSidebarOpen = jest.fn();
+
+    function SidebarWrapper({children}: {children?: React.ReactNode}) {
+      return (
+        <LogsSidebarProvider value={setSidebarOpen}>
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
+            <table>
+              <tbody>{children}</tbody>
+            </table>
+          </LogsQueryParamsProvider>
+        </LogsSidebarProvider>
+      );
+    }
+
+    const {router} = render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: SidebarWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    const severityRow = await screen.findByTestId('tree-key-severity');
+    const attributeTreeRow = severityRow.closest('[data-test-id="attribute-tree-row"]')!;
+    await userEvent.hover(attributeTreeRow);
+    await userEvent.click(
+      within(attributeTreeRow as HTMLElement).getByRole('button', {
+        name: 'Attribute Actions Menu',
+      })
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Group by attribute'})
+    );
+
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
+        mode: 'aggregate',
+        aggregateField: expect.arrayContaining(['{"groupBy":"severity"}']),
+      })
+    );
+    expect(setSidebarOpen).toHaveBeenCalledWith(true);
+  });
+
+  it('disables the group by menu item when the attribute is already grouped by', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              mode: 'aggregate',
+              [LOGS_GROUP_BY_KEY]: 'severity',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    const severityRow = await screen.findByTestId('tree-key-severity');
+    const attributeTreeRow = severityRow.closest('[data-test-id="attribute-tree-row"]')!;
+    await userEvent.hover(attributeTreeRow);
+    await userEvent.click(
+      within(attributeTreeRow as HTMLElement).getByRole('button', {
+        name: 'Attribute Actions Menu',
+      })
+    );
+
+    const groupByItem = await screen.findByRole('menuitemradio', {
+      name: 'Group by attribute',
+    });
+    expect(groupByItem).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('does not toggle row when clicking cell action menu items', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
@@ -682,20 +805,18 @@ describe('logsTableRow', () => {
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
 
+    const passwordCell = screen.getByTestId('log-table-cell-password');
+    const customRuleCell = screen.getByTestId('log-table-cell-not_zzz_not_exact_match');
+
+    expect(passwordCell).toHaveTextContent('[Filtered]');
+    expect(customRuleCell).toHaveTextContent('redacted2');
+
     expect(traceItemMock).toHaveBeenCalledTimes(0);
     await userEvent.hover(logTableRow);
 
     await waitFor(() => {
       expect(traceItemMock).toHaveBeenCalledTimes(1);
     });
-
-    const passwordCell = screen.getByTestId('log-table-cell-password');
-    const customRuleCell = screen.getByTestId('log-table-cell-not_zzz_not_exact_match');
-
-    expect(passwordCell).toBeInTheDocument();
-    expect(passwordCell).toHaveTextContent('[Filtered]');
-    expect(customRuleCell).toBeInTheDocument();
-    expect(customRuleCell).toHaveTextContent('redacted2');
 
     const filteredText = screen.getByText(/Filtered/);
     await userEvent.hover(filteredText);
