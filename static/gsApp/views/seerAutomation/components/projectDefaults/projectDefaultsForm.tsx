@@ -10,12 +10,20 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {
+  AUTOFIX_STOPPING_POINT_TO_USER_FACING,
+  PROJECT_STOPPING_POINT_OPTIONS,
+  USER_FACING_TO_AUTOFIX_STOPPING_POINT,
+  type UserFacingStoppingPoint,
+} from 'sentry/utils/seer/stoppingPoint';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const schema = z.object({
   defaultAutofixAutomationTuning: z.boolean(),
   autoOpenPrs: z.boolean(),
+  defaultCodingAgent: z.string().nullable(),
+  defaultCodingAgentIntegrationId: z.number().nullable(),
 });
 
 interface Props {
@@ -25,12 +33,11 @@ interface Props {
 export function ProjectDefaultsForm({organization}: Props) {
   const canWrite = useCanWriteSettings();
 
+  const stoppingPointValue = organization.defaultAutomatedRunStoppingPoint
+    ? AUTOFIX_STOPPING_POINT_TO_USER_FACING[organization.defaultAutomatedRunStoppingPoint]
+    : 'off';
+
   const orgEndpoint = `/organizations/${organization.slug}/`;
-  const orgMutationOpts = mutationOptions({
-    mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
-    onSuccess: updateOrganization,
-  });
   const autofixTuningMutationOpts = mutationOptions({
     mutationFn: (data: {defaultAutofixAutomationTuning: boolean}) =>
       fetchMutation<Organization>({
@@ -66,12 +73,20 @@ export function ProjectDefaultsForm({organization}: Props) {
         >
           {field => (
             <field.Layout.Row
-              label={t('Auto-Trigger Fixes by Default')}
+              label={t('Default Handoff Agent')}
               hintText={tct(
-                'For all new projects, Seer will automatically create a root cause analysis for [docs:highly actionable] issues and propose a solution without a user needing to prompt it.',
+                'Select the default agent to create a plan, and code up an issue fix. Seer Agent will always be used to triage and perform the Root Cause Analysis step, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR. [agents:Manage Coding Agents]',
                 {
                   docs: (
                     <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                  ),
+                  agents: (
+                    <Link
+                      to={{
+                        pathname: `/settings/${organization.slug}/integrations/`,
+                        query: {category: 'coding agent'},
+                      }}
+                    />
                   ),
                 }
               )}
@@ -85,19 +100,41 @@ export function ProjectDefaultsForm({organization}: Props) {
           )}
         </AutoSaveForm>
         <AutoSaveForm
-          name="autoOpenPrs"
-          schema={schema}
-          initialValue={organization.autoOpenPrs ?? false}
-          mutationOptions={orgMutationOpts}
+          name="defaultAutomatedRunStoppingPoint"
+          schema={z.object({
+            defaultAutomatedRunStoppingPoint: z.enum([
+              'off',
+              'root_cause',
+              'plan',
+              'create_pr',
+            ]),
+          })}
+          initialValue={stoppingPointValue}
+          mutationOptions={mutationOptions({
+            mutationFn: (data: {
+              defaultAutomatedRunStoppingPoint: UserFacingStoppingPoint;
+            }) =>
+              fetchMutation<Organization>({
+                method: 'PUT',
+                url: orgEndpoint,
+                data: {
+                  defaultAutomatedRunStoppingPoint:
+                    USER_FACING_TO_AUTOFIX_STOPPING_POINT[
+                      data.defaultAutomatedRunStoppingPoint
+                    ] ?? null,
+                },
+              }),
+            onSuccess: updateOrganization,
+          })}
         >
           {field => (
             <field.Layout.Row
-              label={t('Allow Autofix to create PRs by Default')}
+              label={t('Default Automation Steps')}
               hintText={
                 <Stack gap="sm">
                   <span>
                     {tct(
-                      'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
+                      'Choose which steps Seer should run automatically on issues. Depending on how [docs:actionable] the issue is, Seer may stop at an earlier step.',
                       {
                         docs: (
                           <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
@@ -122,16 +159,11 @@ export function ProjectDefaultsForm({organization}: Props) {
                 </Stack>
               }
             >
-              <field.Switch
-                checked={
-                  organization.enableSeerCoding === false ? false : field.state.value
-                }
+              <field.Select
+                disabled={!canWrite}
+                value={field.state.value}
                 onChange={field.handleChange}
-                disabled={
-                  organization.enableSeerCoding === false
-                    ? t('Enable Code Generation to allow Autofix to create PRs.')
-                    : !canWrite
-                }
+                options={PROJECT_STOPPING_POINT_OPTIONS}
               />
             </field.Layout.Row>
           )}

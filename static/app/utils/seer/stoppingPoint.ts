@@ -15,6 +15,12 @@ import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProje
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+// export enum AutofixStoppingPoint {
+//   ROOT_CAUSE = 'root_cause',
+//   SOLUTION = 'solution',
+//   CODE_CHANGES = 'code_changes',
+//   OPEN_PR = 'open_pr',
+// }
 export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
 export const PROJECT_STOPPING_POINT_OPTIONS = [
@@ -23,6 +29,20 @@ export const PROJECT_STOPPING_POINT_OPTIONS = [
   {value: 'plan' as const, label: t('Stop after Plan')},
   {value: 'create_pr' as const, label: t('Stop after PR drafted')},
 ];
+
+export const USER_FACING_TO_AUTOFIX_STOPPING_POINT = {
+  off: null,
+  root_cause: AutofixStoppingPoint.ROOT_CAUSE,
+  plan: AutofixStoppingPoint.SOLUTION,
+  create_pr: AutofixStoppingPoint.OPEN_PR,
+};
+
+export const AUTOFIX_STOPPING_POINT_TO_USER_FACING = {
+  [AutofixStoppingPoint.ROOT_CAUSE]: 'root_cause' as const,
+  [AutofixStoppingPoint.SOLUTION]: 'plan' as const,
+  [AutofixStoppingPoint.OPEN_PR]: 'create_pr' as const,
+  [AutofixStoppingPoint.CODE_CHANGES]: 'plan' as const,
+};
 
 export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, number> =
   {
@@ -44,6 +64,8 @@ export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {
       return 'plan';
     case AutofixStoppingPoint.CODE_CHANGES:
       return 'create_pr';
+    default:
+      return 'off';
   }
 }
 

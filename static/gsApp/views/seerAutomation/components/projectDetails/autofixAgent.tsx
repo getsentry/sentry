@@ -25,6 +25,7 @@ import {
   PROJECT_STOPPING_POINT_OPTIONS,
   getProjectStoppingPointMutationOptions,
   getProjectStoppingPointValue,
+  type UserFacingStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -154,7 +155,12 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
       <AutoSaveForm
         name="stoppingPoint"
         schema={z.object({
-          stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+          stoppingPoint: z.enum([
+            'off',
+            'root_cause',
+            'plan',
+            'create_pr',
+          ] as UserFacingStoppingPoint[]),
         })}
         initialValue={stoppingPointValue}
         mutationOptions={{
