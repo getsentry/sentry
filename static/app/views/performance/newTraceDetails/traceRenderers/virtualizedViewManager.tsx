@@ -1792,9 +1792,10 @@ function getIconTimestamps(
     node.errors,
     node.occurrences
   )) {
-    const icon_width_px = additionalIssueCount
-      ? getTraceIconGroupWidth(additionalIssueCount, measureText)
-      : TRACE_ICON_WIDTH;
+    const icon_width_px =
+      additionalIssueCount === undefined
+        ? TRACE_ICON_WIDTH
+        : getTraceIconGroupWidth(additionalIssueCount, measureText);
     const icon_width_config_space = icon_width_px * px_to_config_space;
     const timestamp = getTraceIssueTimestamp(issue, span_space);
     const [icon_left, icon_right] = getTraceIconBounds(
