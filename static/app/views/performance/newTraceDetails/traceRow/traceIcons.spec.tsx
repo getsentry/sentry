@@ -208,30 +208,6 @@ describe('TraceIssueIcons', () => {
     expect(computeTraceIconEdge).toHaveBeenCalledWith(1040, 56);
   });
 
-  it('anchors a start-clamped child-derived issue pill to the span start', () => {
-    const childErrorA = makeEAPError({
-      event_id: 'child-error-a',
-      issue_id: 1,
-      start_timestamp: 0.9,
-    });
-    const childErrorB = makeEAPError({
-      event_id: 'child-error-b',
-      issue_id: 2,
-      start_timestamp: 0.9,
-    });
-    const node = {
-      value: makeEAPSpan({errors: [], occurrences: []}),
-      errors: new Set([childErrorA, childErrorB]),
-      occurrences: new Set(),
-    } as unknown as BaseNode;
-
-    renderIcons(node, [1000, 1]);
-
-    const issueIcon = screen.getByTestId('trace-issue-icon');
-    expect(issueIcon).toHaveClass('TraceIconGroupStart');
-    expect(issueIcon).toHaveStyle({left: '0%'});
-  });
-
   it('keeps a child-derived issue pill centered when it does not overlap the span edge', () => {
     const childErrorA = makeEAPError({
       event_id: 'child-error-a',

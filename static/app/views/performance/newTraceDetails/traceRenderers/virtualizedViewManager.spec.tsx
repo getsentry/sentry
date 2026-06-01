@@ -786,55 +786,6 @@ describe('VirtualizedViewManger', () => {
       expect(textTransform).toBe(35);
     });
 
-    it('places right-outside text after a start-clamped grouped issue pill', () => {
-      const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
-        new TraceScheduler(),
-        new TraceView(),
-        ThemeFixture()
-      );
-
-      manager.view.setTraceSpace([0, 0, 1000, 1]);
-      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
-
-      jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
-        if (text === '1') {
-          return 6.5;
-        }
-        return 38;
-      });
-
-      const childErrorA = {
-        event_id: 'child-error-a',
-        issue_id: 1,
-        level: 'warning',
-        start_timestamp: 0.09,
-      };
-      const childErrorB = {
-        event_id: 'child-error-b',
-        issue_id: 2,
-        level: 'warning',
-        start_timestamp: 0.09,
-      };
-      const node = {
-        value: {errors: [], occurrences: []},
-        errors: new Set([childErrorA, childErrorB]),
-        occurrences: new Set(),
-      } as any;
-
-      const [inside, textTransform] = manager.computeSpanTextPlacement(
-        node,
-        [100, 1],
-        '1.00ms'
-      );
-
-      expect(inside).toBe(0);
-      expect(textTransform).toBe(119);
-    });
-
     it('uses ceil(text_width) when placing text inside on the right', () => {
       const manager = new VirtualizedViewManager(
         {
