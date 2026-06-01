@@ -3730,3 +3730,11 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enables cell resolver in APIGateway, should be removed after rollout
+register(
+    "apigateway.cell_resolver.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

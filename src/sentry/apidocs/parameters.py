@@ -231,6 +231,13 @@ class ReleaseParams:
         type=str,
         description="The version identifier of the release",
     )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        description="Case-insensitive substring match against the release version.",
+    )
     PROJECT_ID = OpenApiParameter(
         name="project_id",
         location="query",
