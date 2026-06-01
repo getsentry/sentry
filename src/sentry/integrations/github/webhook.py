@@ -379,8 +379,6 @@ class GitHubWebhook(SCMWebhook, ABC):
                     "source": ExternalActorSource.COMMIT_AUTHOR.value,
                 },
             )
-        except IntegrityError:
-            return
         except Exception as e:
             # Never let external actor creation disrupt the main webhook flow.
             logger.warning(
