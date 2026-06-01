@@ -41,26 +41,29 @@ interface UsePictureInPictureResult {
 }
 
 /**
- * Copies every stylesheet from the main document into the picture-in-picture
- * window so its content renders with the same styles. Same-origin sheets are
- * inlined as `<style>` tags; cross-origin sheets (which throw on `cssRules`
- * access) fall back to cloning their `<link>` element.
+ * Copies the document's static stylesheets into the picture-in-picture window so
+ * its content renders with the same styles.
+ *
+ * Nodes are cloned directly rather than serialized rule-by-rule via `cssRules`:
+ * cloning a `<link>` is a cheap reference to the (already cached) file, and
+ * cloning a `<style>` copies its text as-is — both far faster than reading every
+ * rule's `cssText`, and they avoid cross-origin access errors.
+ *
+ * Emotion's own style tags are skipped because `PictureInPicturePortal`
+ * re-injects them via a PiP-scoped cache. Copying them here would duplicate a
+ * large amount of CSS and is the main cause of slow pop-out (especially in dev
+ * builds, where every styled component emits its own tag).
  */
 function copyStyles(source: Document, target: Window) {
-  for (const styleSheet of Array.from(source.styleSheets)) {
-    try {
-      const cssText = Array.from(styleSheet.cssRules)
-        .map(rule => rule.cssText)
-        .join('');
-      const style = target.document.createElement('style');
-      style.textContent = cssText;
-      target.document.head.appendChild(style);
-    } catch {
-      // Cross-origin (or not-yet-loaded) stylesheet — clone the source node.
-      if (styleSheet.ownerNode) {
-        target.document.head.appendChild(styleSheet.ownerNode.cloneNode(true));
-      }
+  const nodes = source.querySelectorAll<HTMLLinkElement | HTMLStyleElement>(
+    'link[rel="stylesheet"], style'
+  );
+  for (const node of nodes) {
+    // Emotion styles are re-injected via the PiP-scoped emotion cache.
+    if (node instanceof HTMLStyleElement && node.dataset.emotion) {
+      continue;
     }
+    target.document.head.appendChild(node.cloneNode(true));
   }
 }
 
