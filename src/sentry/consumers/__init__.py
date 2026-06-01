@@ -588,6 +588,7 @@ def get_stream_processor(
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
                 cluster,
+                topic=consumer_topic,
             ),
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,

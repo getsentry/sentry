@@ -2640,6 +2640,12 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 
+# Per-topic Kafka consumer client config, keyed by Topic enum value (region-stable,
+# unlike cluster names). Merged onto the consumer config after the cluster config and
+# before any explicit override_params, so explicit params still win. Consumers only.
+KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
+
+
 # Mapping of default Kafka topic name to cluster name
 # as per KAFKA_CLUSTERS.
 # This must be the default name that matches the topic
