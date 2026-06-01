@@ -29,25 +29,30 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         assert response.data["urls"] == []
         assert response.data["enabled"] is False
 
-    def test_put_enables_webhooks(self) -> None:
+    def test_post_stores_urls_and_enabled(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
-            method="put",
+            method="post",
+            urls=["http://example.com/hook", "https://other.com/hook"],
             enabled=True,
             status_code=200,
         )
 
+        assert response.data["urls"] == ["http://example.com/hook", "https://other.com/hook"]
         assert response.data["enabled"] is True
+        stored = ProjectOption.objects.get_value(self.project, "webhooks:urls", default="")
+        assert stored == "http://example.com/hook\nhttps://other.com/hook"
         assert ProjectOption.objects.get_value(self.project, "webhooks:enabled") is True
 
-    def test_put_disables_webhooks(self) -> None:
+    def test_post_can_disable_webhooks(self) -> None:
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
-            method="put",
+            method="post",
+            urls=["http://example.com/hook"],
             enabled=False,
             status_code=200,
         )
@@ -55,18 +60,27 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         assert response.data["enabled"] is False
         assert ProjectOption.objects.get_value(self.project, "webhooks:enabled") is False
 
-    def test_post_stores_valid_urls(self) -> None:
-        response = self.get_success_response(
+    def test_post_requires_urls(self) -> None:
+        response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            urls=["http://example.com/hook", "https://other.com/hook"],
-            status_code=200,
+            enabled=True,
+            status_code=400,
         )
 
-        assert response.data["urls"] == ["http://example.com/hook", "https://other.com/hook"]
-        stored = ProjectOption.objects.get_value(self.project, "webhooks:urls", default="")
-        assert stored == "http://example.com/hook\nhttps://other.com/hook"
+        assert "urls" in response.data
+
+    def test_post_requires_enabled(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            urls=["http://example.com/hook"],
+            status_code=400,
+        )
+
+        assert "enabled" in response.data
 
     def test_post_rejects_invalid_urls(self) -> None:
         response = self.get_error_response(
@@ -74,6 +88,7 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
             self.project.slug,
             method="post",
             urls=["ftp://bad.com"],
+            enabled=True,
             status_code=400,
         )
 
@@ -85,6 +100,7 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
             self.project.slug,
             method="post",
             urls="http://example.com",
+            enabled=True,
             status_code=400,
         )
 
