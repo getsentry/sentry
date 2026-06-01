@@ -36,33 +36,38 @@ describe('SearchBar', () => {
     });
   });
 
-  it.isKnownFlake('Sends user input as a transaction search and shows the results', async () => {
-    eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
-      },
-    });
+  it.isKnownFlake(
+    'Sends user input as a transaction search and shows the results',
+    async () => {
+      eventsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
+        },
+      });
 
-    render(<SearchBar {...testProps} />);
+      render(<SearchBar {...testProps} />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.paste('proje');
-    expect(screen.getByRole('textbox')).toHaveValue('proje');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('proje');
+      expect(screen.getByRole('textbox')).toHaveValue('proje');
 
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'transaction:*proje* event.type:transaction',
-        }),
-      })
-    );
+      expect(eventsMock).toHaveBeenCalledTimes(1);
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'transaction:*proje* event.type:transaction',
+          }),
+        })
+      );
 
-    expect(screen.getByText(textWithMarkupMatcher('clients.call'))).toBeInTheDocument();
-    expect(screen.getByText(textWithMarkupMatcher('clients.fetch'))).toBeInTheDocument();
-  });
+      expect(screen.getByText(textWithMarkupMatcher('clients.call'))).toBeInTheDocument();
+      expect(
+        screen.getByText(textWithMarkupMatcher('clients.fetch'))
+      ).toBeInTheDocument();
+    }
+  );
 
   it.isKnownFlake('Responds to keyboard navigation', async () => {
     const onSearch = jest.fn();
