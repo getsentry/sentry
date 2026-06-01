@@ -33,6 +33,7 @@ from sentry.integrations.github.webhook_types import (
     GithubWebhookType,
     InstallationRepositoriesEvent,
 )
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -41,7 +42,11 @@ from sentry.integrations.services.integration.model import (
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.webhook import SCMWebhook
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import (
+    ExternalActorSource,
+    ExternalProviders,
+    IntegrationProviderSlug,
+)
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
@@ -324,6 +329,67 @@ class GitHubWebhook(SCMWebhook, ABC):
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return options.get("github-app.id")
 
+    def maybe_create_external_actor(
+        self,
+        *,
+        integration: RpcIntegration,
+        organization: Organization,
+        commit_author: CommitAuthor,
+        gh_username: str | None,
+        gh_user_id: str | int | None = None,
+    ) -> None:
+        """
+        For a newly created CommitAuthor, create the matching GitHub ExternalActor
+        mapping when we can confidently tie the author to a single Sentry user.
+
+        We only create a mapping when:
+        - the commit author has a GitHub username,
+        - the email is not an anonymous GitHub noreply address, and
+        - the email resolves to exactly one verified member of the organization.
+        """
+        try:
+            if not gh_username:
+                return
+
+            if self.is_anonymous_email(commit_author.email):
+                return
+
+            users = commit_author.find_users()
+            # Only create a mapping when the email unambiguously resolves to a
+            # single Sentry user, otherwise we risk linking the wrong account.
+            if len(users) != 1:
+                return
+            user = users[0]
+
+            if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
+                provider = ExternalProviders.GITHUB_ENTERPRISE.value
+            else:
+                provider = ExternalProviders.GITHUB.value
+
+            external_name = f"@{gh_username.lstrip('@')}"
+
+            with transaction.atomic(router.db_for_write(ExternalActor)):
+                _, created = ExternalActor.objects.get_or_create(
+                    organization_id=organization.id,
+                    provider=provider,
+                    external_name=external_name,
+                    user_id=user.id,
+                    defaults={
+                        "integration_id": integration.id,
+                        "external_id": str(gh_user_id) if gh_user_id else None,
+                        "source": ExternalActorSource.COMMIT_AUTHOR.value,
+                    },
+                )
+        except IntegrityError:
+            return
+        except Exception as e:
+            # Never let external actor creation disrupt the main webhook flow.
+            logger.warning(
+                "github.webhook.external_actor.error",
+                extra={"organization_id": organization.id, "error": str(e)},
+            )
+            return
+
 
 class InstallationEventWebhook(GitHubWebhook):
     """
@@ -570,11 +636,12 @@ class PushEventWebhook(GitHubWebhook):
             if len(author_email) > 75:
                 author = None
             elif author_email not in authors:
-                authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                author, author_created = CommitAuthor.objects.get_or_create(
                     organization_id=organization.id,
                     email=author_email,
                     defaults={"name": commit["author"]["name"][:128]},
-                )[0]
+                )
+                authors[author_email] = author
 
                 update_kwargs = {}
 
@@ -595,6 +662,14 @@ class PushEventWebhook(GitHubWebhook):
                             author.update(**update_kwargs)
                     except IntegrityError:
                         pass
+
+                if author_created:
+                    self.maybe_create_external_actor(
+                        integration=integration,
+                        organization=organization,
+                        commit_author=author,
+                        gh_username=gh_username,
+                    )
             else:
                 author = authors[author_email]
 
@@ -912,7 +987,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                 organization_id=organization.id, external_id=self.get_external_id(user["login"])
             )
         except CommitAuthor.DoesNotExist:
-            author, _created = CommitAuthor.objects.get_or_create(
+            author, author_created = CommitAuthor.objects.get_or_create(
                 organization_id=organization.id,
                 email=author_email,
                 defaults={
@@ -920,6 +995,14 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "external_id": self.get_external_id(user["login"]),
                 },
             )
+            if author_created:
+                self.maybe_create_external_actor(
+                    integration=integration,
+                    organization=organization,
+                    commit_author=author,
+                    gh_username=user["login"],
+                    gh_user_id=user.get("id"),
+                )
 
         author.preload_users()
         try:

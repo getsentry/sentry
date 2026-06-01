@@ -25,9 +25,11 @@ from sentry.integrations.github.webhook import (
     InstallationRepositoriesEventWebhook,
 )
 from sentry.integrations.github.webhook_types import InstallationRepositoriesEvent
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -687,6 +689,137 @@ class PushEventWebhookTest(APITestCase):
         )
 
         assert response.status_code == 204
+
+    def _send_push_event(self, body: str):
+        sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", body.encode("utf-8"), self.secret
+        )
+        sig256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode("utf-8"), self.secret
+        )
+        return self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE=f"sha1={sig1}",
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+    def _setup_github_integration_and_repo(self):
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.organization.id, self.user)
+        return integration
+
+    def _push_event_body(self, *, name: str, email: str, username: str | None) -> str:
+        author = {"name": name, "email": email}
+        if username is not None:
+            author["username"] = username
+        return json.dumps(
+            {
+                "ref": "refs/heads/main",
+                "installation": {"id": 12345},
+                "commits": [
+                    {
+                        "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
+                        "distinct": True,
+                        "message": "Update hello.py",
+                        "timestamp": "2015-05-05T19:45:15-04:00",
+                        "author": author,
+                        "added": [],
+                        "removed": [],
+                        "modified": ["hello.py"],
+                    }
+                ],
+                "repository": {
+                    "id": 35129377,
+                    "full_name": "baxterthehacker/public-repo",
+                    "html_url": "https://github.com/baxterthehacker/public-repo",
+                },
+            }
+        )
+
+    @responses.activate
+    def test_creates_external_actor_for_new_commit_author(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        integration = self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            self._push_event_body(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        external_actor = external_actors[0]
+        assert external_actor.user_id == member.id
+        assert external_actor.external_name == "@newdev"
+        assert external_actor.provider == ExternalProviders.GITHUB.value
+        assert external_actor.integration_id == integration.id
+        assert external_actor.source == ExternalActorSource.COMMIT_AUTHOR.value
+
+    @responses.activate
+    def test_skips_external_actor_for_noreply_email(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            self._push_event_body(
+                name="New Dev",
+                email="newdev@users.noreply.github.com",
+                username="newdev",
+            )
+        )
+        assert response.status_code == 204
+
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+    @responses.activate
+    def test_skips_external_actor_when_email_does_not_match_user(self) -> None:
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            self._push_event_body(
+                name="Stranger", email="stranger@example.com", username="stranger"
+            )
+        )
+        assert response.status_code == 204
+
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+    @responses.activate
+    def test_external_actor_creation_is_idempotent(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        body = self._push_event_body(name="New Dev", email="newdev@example.com", username="newdev")
+        assert self._send_push_event(body).status_code == 204
+        # Re-sending creates a new CommitAuthor lookup but must not duplicate the mapping.
+        assert self._send_push_event(body).status_code == 204
+
+        assert (
+            ExternalActor.objects.filter(
+                organization_id=self.organization.id, user_id=member.id
+            ).count()
+            == 1
+        )
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
