@@ -344,7 +344,6 @@ class SlackIntegrationProvider(IntegrationProvider):
             "chat:write.customize",
             "commands",
             SlackScope.APP_MENTIONS_READ,
-            SlackScope.ASSISTANT_WRITE,
         ]
     )
     # Stage new scopes here to test them via SlackStagingIntegrationProvider
