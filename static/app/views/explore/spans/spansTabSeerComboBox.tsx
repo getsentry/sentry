@@ -7,11 +7,11 @@ import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCom
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {
+  AskSeerSearchQuery,
   SeerRawResponse,
-  SeerRawResponseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  buildSeerDateTimeSelection,
+  mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -23,25 +23,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {getSeerExploreQuery} from 'sentry/views/explore/seerQuery';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
-
-interface Visualization {
-  chartType: ChartType;
-  yAxes: string[];
-}
-
-interface AskSeerSearchQuery {
-  end: string | null;
-  groupBys: string[];
-  mode: string;
-  query: string;
-  sort: string;
-  start: string | null;
-  statsPeriod: string;
-  visualizations: Visualization[];
-}
 
 interface TraceAskSeerSearchResponse {
   queries: Array<{
@@ -51,29 +34,12 @@ interface TraceAskSeerSearchResponse {
     sort: string;
     stats_period: string;
     visualization: Array<{
-      chart_type: number;
-      y_axes: string[];
+      chart_type?: number;
+      y_axes?: string[];
     }>;
   }>;
   status: string;
   unsupported_reason: string | null;
-}
-
-function mapResponseItemWithVisualizations(r: SeerRawResponseItem): AskSeerSearchQuery {
-  return {
-    visualizations:
-      r?.visualization?.map(v => ({
-        chartType: v?.chart_type as ChartType,
-        yAxes: v?.y_axes ?? [],
-      })) ?? [],
-    query: r?.query ?? '',
-    sort: r?.sort ?? '',
-    groupBys: r?.group_by ?? [],
-    statsPeriod: r?.stats_period ?? '',
-    start: r?.start ?? null,
-    end: r?.end ?? null,
-    mode: r?.mode ?? 'spans',
-  };
 }
 
 export function SpansTabSeerComboBox() {
@@ -107,7 +73,7 @@ export function SpansTabSeerComboBox() {
         return {
           status: 'ok',
           unsupported_reason: data.unsupported_reason,
-          queries: data.responses.map(mapResponseItemWithVisualizations),
+          queries: data.responses.map(response => mapSeerResponseItem(response, 'spans')),
         };
       }
 
@@ -124,20 +90,21 @@ export function SpansTabSeerComboBox() {
 
       return {
         ...data,
-        queries: data.queries.map(q => ({
-          visualizations:
-            q?.visualization?.map((v: any) => ({
-              chartType: v?.chart_type,
-              yAxes: v?.y_axes ?? [],
-            })) ?? [],
-          query: q?.query,
-          sort: q?.sort ?? '',
-          groupBys: q?.group_by ?? [],
-          statsPeriod: q?.stats_period ?? '',
-          start: null,
-          end: null,
-          mode: q?.mode ?? 'spans',
-        })),
+        queries: data.queries.map(q =>
+          mapSeerResponseItem(
+            {
+              query: q.query,
+              sort: q.sort ?? '',
+              group_by: q.group_by ?? [],
+              stats_period: q.stats_period ?? '',
+              start: null,
+              end: null,
+              mode: q.mode ?? 'spans',
+              visualization: q.visualization,
+            },
+            'spans'
+          )
+        ),
       };
     },
   });
@@ -147,67 +114,40 @@ export function SpansTabSeerComboBox() {
       if (!result) {
         return;
       }
-      const {
-        query: queryToUse,
-        visualizations,
-        groupBys,
-        sort,
-        statsPeriod,
-        start: resultStart,
-        end: resultEnd,
-      } = result;
-
-      const dt = buildSeerDateTimeSelection(
-        resultStart,
-        resultEnd,
-        statsPeriod,
-        pageFilters.selection.datetime
-      );
-
-      const start = dt.start;
-      const end = dt.end;
+      const seerQuery = getSeerExploreQuery({
+        result,
+        pageDatetime: pageFilters.selection.datetime,
+      });
 
       const selection = {
         ...pageFilters.selection,
-        datetime: {start, end, utc: dt.utc, period: dt.period},
+        datetime: seerQuery.datetime,
       };
-
-      const mode =
-        groupBys.length > 0
-          ? Mode.AGGREGATE
-          : result.mode === 'aggregates'
-            ? Mode.AGGREGATE
-            : Mode.SAMPLES;
-      const visualize =
-        visualizations?.map((v: Visualization) => ({
-          chartType: v.chartType,
-          yAxes: v.yAxes,
-        })) ?? [];
 
       const url = getExploreUrl({
         organization,
         selection,
-        query: queryToUse,
-        visualize,
-        groupBy: groupBys,
-        sort,
-        mode,
+        query: seerQuery.query,
+        visualize: seerQuery.visualizes,
+        groupBy: seerQuery.groupBys,
+        sort: seerQuery.sort,
+        mode: seerQuery.mode,
       });
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
-        query: queryToUse,
-        visualize,
-        groupBy: groupBys,
-        sort,
-        mode,
+        query: seerQuery.query,
+        visualize: seerQuery.visualizes,
+        groupBy: seerQuery.groupBys,
+        sort: seerQuery.sort,
+        mode: seerQuery.mode,
       });
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
-        query: queryToUse,
-        group_by_count: groupBys.length,
-        visualize_count: visualizations.length,
+        query: seerQuery.query,
+        group_by_count: seerQuery.groupBys.length,
+        visualize_count: seerQuery.visualizes.length,
       });
       if (runId !== undefined) {
         setRunId(runId);
@@ -230,7 +170,9 @@ export function SpansTabSeerComboBox() {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, mapResponseItemWithVisualizations),
+      transformSeerResponse(response, responseItem =>
+        mapSeerResponseItem(responseItem, 'spans')
+      ),
     []
   );
 

@@ -6,9 +6,11 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
   buildSeerDateTimeSelection,
+  mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -126,6 +128,59 @@ describe('transformSeerResponse', () => {
         visualizations: [{chartType: 1, yAxes: ['count()']}],
       },
     ]);
+  });
+});
+
+describe('mapSeerResponseItem', () => {
+  it('maps Seer response fields into the shared query shape', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '-timestamp',
+        group_by: ['project'],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'aggregates',
+        visualization: [{chart_type: ChartType.BAR, y_axes: ['count()']}],
+      })
+    ).toEqual({
+      query: 'span.op:db',
+      sort: '-timestamp',
+      groupBys: ['project'],
+      statsPeriod: '24h',
+      start: null,
+      end: null,
+      mode: 'aggregates',
+      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+    });
+  });
+
+  it('leaves missing or invalid chart types undefined', () => {
+    expect(
+      mapSeerResponseItem(
+        {
+          query: 'is:unresolved',
+          sort: '',
+          group_by: [],
+          stats_period: '',
+          start: null,
+          end: null,
+          mode: '',
+          visualization: [{y_axes: []}, {chart_type: 999, y_axes: ['count()']}],
+        },
+        'issues'
+      )
+    ).toEqual({
+      query: 'is:unresolved',
+      sort: '',
+      groupBys: [],
+      statsPeriod: '',
+      start: null,
+      end: null,
+      mode: 'issues',
+      visualizations: [{yAxes: ['count()']}],
+    });
   });
 });
 

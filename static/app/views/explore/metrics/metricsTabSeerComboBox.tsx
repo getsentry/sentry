@@ -7,11 +7,11 @@ import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCom
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {
+  AskSeerSearchQuery,
   SeerRawResponse,
-  SeerRawResponseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  buildSeerDateTimeSelection,
+  mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -21,7 +21,6 @@ import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/cont
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -44,43 +43,10 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
 
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
-}
-
-interface Visualization {
-  chartType: ChartType;
-  yAxes: string[];
-}
-
-interface AskSeerSearchQuery {
-  end: string | null;
-  groupBys: string[];
-  mode: string;
-  query: string;
-  sort: string;
-  start: string | null;
-  statsPeriod: string;
-  visualizations: Visualization[];
-}
-
-function mapResponseItem(r: SeerRawResponseItem): AskSeerSearchQuery {
-  return {
-    visualizations:
-      r.visualization?.map(v => ({
-        chartType: v.chart_type as ChartType,
-        yAxes: v.y_axes ?? [],
-      })) ?? [],
-    query: r.query,
-    sort: r.sort,
-    groupBys: r.group_by ?? [],
-    statsPeriod: r.stats_period,
-    start: r.start,
-    end: r.end,
-    mode: r.mode,
-  };
 }
 
 export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProps) {
@@ -124,7 +90,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(mapResponseItem),
+        queries: data.responses.map(response => mapSeerResponseItem(response)),
       };
     },
   });
@@ -134,33 +100,13 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       if (!result) {
         return;
       }
-      const {
-        query: queryToUse,
-        groupBys,
-        statsPeriod,
-        start: resultStart,
-        end: resultEnd,
-        visualizations,
-      } = result;
 
-      const dt = buildSeerDateTimeSelection(
-        resultStart,
-        resultEnd,
-        statsPeriod,
-        pageFilters.selection.datetime
-      );
+      const seerQuery = getSeerExploreQuery({
+        result,
+        pageDatetime: pageFilters.selection.datetime,
+      });
 
-      const start = dt.start;
-      const end = dt.end;
-
-      const mode =
-        groupBys.length > 0
-          ? Mode.AGGREGATE
-          : result.mode === 'aggregates'
-            ? Mode.AGGREGATE
-            : Mode.SAMPLES;
-
-      const seerVisualizes = visualizations.flatMap(viz =>
+      const seerVisualizes = (result.visualizations ?? []).flatMap(viz =>
         viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
 
@@ -169,9 +115,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // p75(value, metric.name, distribution, millisecond)); if it's not there
       // we read metric.name/type/unit filters from the query (typically only
       // present in samples mode).
-      const search = new MutableSearch(queryToUse);
+      const search = new MutableSearch(seerQuery.query);
 
-      const visualizationTraceMetric = visualizations
+      const visualizationTraceMetric = (result.visualizations ?? [])
         .flatMap(viz => viz.yAxes)
         .map(yAxis => parseMetricAggregate(yAxis).traceMetric)
         .find(
@@ -219,7 +165,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // metric (it's then tracked on the panel, not the query). If we couldn't
       // resolve one, leave the query untouched so it stays consistent with the
       // unchanged panel metric.
-      let cleanedQuery = queryToUse;
+      let cleanedQuery = seerQuery.query;
       if (resolvedMetric) {
         search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
         search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
@@ -229,7 +175,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       const aggregateFields: AggregateField[] = [];
 
-      for (const groupBy of groupBys) {
+      for (const groupBy of seerQuery.groupBys) {
         aggregateFields.push({groupBy});
       }
 
@@ -284,27 +230,20 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         }
       }
 
-      const parseSeerSort = (sortStr: string): Sort => {
-        if (sortStr.startsWith('-')) {
-          return {field: sortStr.slice(1), kind: 'desc'};
-        }
-        return {field: sortStr, kind: 'asc'};
-      };
-
-      const seerSort = result.sort ? parseSeerSort(result.sort) : undefined;
+      const seerSort = getSeerSort(seerQuery.sort);
       const aggregateSortBys =
-        mode === Mode.AGGREGATE && seerSort
+        seerQuery.mode === Mode.AGGREGATE && seerSort
           ? [seerSort]
           : defaultAggregateSortBys(aggregateFields);
       const sortBys =
-        mode === Mode.SAMPLES && seerSort ? [seerSort] : queryParams.sortBys;
+        seerQuery.mode === Mode.SAMPLES && seerSort ? [seerSort] : queryParams.sortBys;
 
       const newQueryParams = queryParams.replace({
         query: cleanedQuery,
         aggregateFields,
         aggregateSortBys,
         sortBys,
-        mode,
+        mode: seerQuery.mode,
       });
 
       // Build encoded metric queries, updating the current metric's query params
@@ -325,22 +264,22 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       const selection = {
         ...pageFilters.selection,
-        datetime: {start, end, utc: dt.utc, period: dt.period},
+        datetime: seerQuery.datetime,
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
         query: cleanedQuery,
-        groupBys,
-        mode,
+        groupBys: seerQuery.groupBys,
+        mode: seerQuery.mode,
       });
 
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
         query: cleanedQuery,
-        group_by_count: groupBys.length,
-        visualize_count: visualizations?.length ?? 0,
+        group_by_count: seerQuery.groupBys.length,
+        visualize_count: seerQuery.visualizes.length,
       });
 
       if (runId !== undefined) {
@@ -353,10 +292,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           query: {
             ...location.query,
             metric: newEncodedMetrics,
-            start: selection.datetime.start,
-            end: selection.datetime.end,
-            statsPeriod: selection.datetime.period,
-            utc: selection.datetime.utc,
+            start: seerQuery.datetime.start,
+            end: seerQuery.datetime.end,
+            statsPeriod: seerQuery.datetime.period,
+            utc: seerQuery.datetime.utc,
           },
         },
         {replace: true, preventScrollReset: true}
@@ -382,7 +321,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, mapResponseItem),
+      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
     []
   );
 

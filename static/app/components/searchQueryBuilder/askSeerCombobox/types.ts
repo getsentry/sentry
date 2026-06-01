@@ -8,7 +8,7 @@ export interface SeerRawResponseItem {
   sort: string;
   start: string | null;
   stats_period: string;
-  visualization?: Array<{chart_type: number; y_axes: string[]}>;
+  visualization?: Array<{chart_type?: number; y_axes?: string[]}>;
 }
 
 export interface SeerRawResponse {
@@ -34,7 +34,7 @@ export interface QueryTokensProps {
   sort?: string;
   start?: string | null;
   statsPeriod?: string;
-  visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
+  visualizations?: Array<{yAxes: string[]; chartType?: ChartType}>;
 }
 
 export interface AskSeerSearchQuery extends QueryTokensProps {
@@ -45,7 +45,7 @@ export interface AskSeerSearchQuery extends QueryTokensProps {
   sort: string;
   start: string | null;
   statsPeriod: string;
-  visualizations: Array<{chartType: ChartType; yAxes: string[]}>;
+  visualizations: Array<{yAxes: string[]; chartType?: ChartType}>;
 }
 
 /**

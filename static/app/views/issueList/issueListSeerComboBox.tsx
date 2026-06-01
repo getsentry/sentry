@@ -5,8 +5,12 @@ import omit from 'lodash/omit';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {
+  AskSeerSearchQuery,
+  SeerRawResponse,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -18,15 +22,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-interface IssueAskSeerSearchQuery {
-  query: string;
-  end?: string | null;
-  groupBys?: string[];
-  sort?: string;
-  start?: string | null;
-  statsPeriod?: string;
-}
 
 export function IssueListSeerComboBox() {
   const organization = useOrganization();
@@ -41,15 +36,8 @@ export function IssueListSeerComboBox() {
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
   const transformResponse = useCallback(
-    (response: IssueAskSeerSearchQuery): IssueAskSeerSearchQuery[] =>
-      transformSeerResponse(response, r => ({
-        query: r?.query ?? '',
-        sort: r?.sort ?? '',
-        groupBys: r?.group_by ?? [],
-        statsPeriod: r?.stats_period ?? '',
-        start: r?.start ?? null,
-        end: r?.end ?? null,
-      })),
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
     []
   );
 
@@ -68,20 +56,13 @@ export function IssueListSeerComboBox() {
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-        })),
+        queries: data.responses.map(response => mapSeerResponseItem(response)),
       };
     },
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: IssueAskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) {
         return;
       }
@@ -164,7 +145,7 @@ export function IssueListSeerComboBox() {
   }
 
   return (
-    <AskSeerPollingComboBox<IssueAskSeerSearchQuery>
+    <AskSeerPollingComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
       projectIds={selectedProjectIds}
       strategy="Issues"

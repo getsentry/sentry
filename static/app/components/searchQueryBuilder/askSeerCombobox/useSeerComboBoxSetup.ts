@@ -10,8 +10,9 @@ import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
 import {useProjects} from 'sentry/utils/useProjects';
+import {isChartType} from 'sentry/views/insights/common/components/chart';
 
-import type {SeerRawResponseItem} from './types';
+import type {AskSeerSearchQuery, SeerRawResponseItem} from './types';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
@@ -95,7 +96,31 @@ export function transformSeerResponse<T>(
   return [response];
 }
 
-interface SeerDateTimeSelection {
+export function mapSeerResponseItem(
+  item: SeerRawResponseItem,
+  defaultMode = 'samples'
+): AskSeerSearchQuery {
+  return {
+    visualizations:
+      item.visualization
+        ?.map(visualization => ({
+          ...(isChartType(visualization.chart_type)
+            ? {chartType: visualization.chart_type}
+            : {}),
+          yAxes: visualization.y_axes ?? [],
+        }))
+        .filter(visualization => visualization.yAxes.length > 0) ?? [],
+    query: item.query ?? '',
+    sort: item.sort ?? '',
+    groupBys: item.group_by ?? [],
+    statsPeriod: item.stats_period ?? '',
+    start: item.start ?? null,
+    end: item.end ?? null,
+    mode: item.mode || defaultMode,
+  };
+}
+
+export interface SeerDateTimeSelection {
   end: DateString;
   period: string | null;
   start: DateString;
