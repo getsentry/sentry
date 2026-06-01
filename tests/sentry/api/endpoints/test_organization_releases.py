@@ -304,8 +304,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         release_13 = self.create_release(version="test@10.0-abc")
         release_14 = self.create_release(version="test@10.0+999")
 
-        with self.feature("organizations:semver-ordering-with-build-code"):
-            response = self.get_success_response(self.organization.slug, sort="semver")
+        response = self.get_success_response(self.organization.slug, sort="semver")
 
         expected_order = [
             release_10,  # test@10.0+x22
