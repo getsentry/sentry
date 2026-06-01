@@ -202,11 +202,6 @@ const CommentsLink = styled(Link)`
 
 const Annotation = styled('span')`
   a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 20px;
-    margin: -2px;
-    padding: 2px;
     color: ${p => p.theme.tokens.content.secondary};
   }
 
