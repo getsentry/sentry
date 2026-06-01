@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -16,7 +16,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -58,6 +58,7 @@ import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwit
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
@@ -102,7 +103,6 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
-  tableExpando: boolean;
 };
 
 interface LogsSearchBarProps {
@@ -110,7 +110,7 @@ interface LogsSearchBarProps {
 }
 
 function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <LogsTabSeerComboBox />;
@@ -246,7 +246,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   );
 });
 
-function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) {
+function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const {openModal} = useModal();
 
   const pageFilters = usePageFilters();
@@ -445,15 +445,12 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <Fragment>
+    <LogsSidebarProvider value={setSidebarOpen}>
       <LogsSearchSection
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedPage
-        constrained={tableExpando && mode === Mode.SAMPLES}
-        hideFooter={tableExpando}
-      >
+      <ViewportConstrainedPage constrained={mode === Mode.SAMPLES} hideFooter>
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>
             {sidebarOpen ? <LogsToolbar /> : null}
@@ -542,7 +539,6 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  expanded={tableExpando}
                   booleanAttributes={booleanAttributes}
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
@@ -554,7 +550,7 @@ function LogsTabContentInner({datePageFilterProps, tableExpando}: LogsTabProps) 
           </ExploreContentSection>
         </ViewportConstrainedBody>
       </ViewportConstrainedPage>
-    </Fragment>
+    </LogsSidebarProvider>
   );
 }
 

@@ -8,6 +8,7 @@ from objectstore_client import (
     Client,
     MetricsBackend,
     Session,
+    TimeToIdle,
     TimeToLive,
     TokenGenerator,
     Usecase,
@@ -62,7 +63,7 @@ class SentryMetricsBackend(MetricsBackend):
 
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
-_PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToLive(timedelta(days=30)))
+_PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
 
 
 def create_client() -> Client:
@@ -87,8 +88,8 @@ def create_client() -> Client:
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(
             "connection_kwargs",
-            # Workaround for 0.0.14's default read timeout. Can be removed with 0.0.15
-            {"timeout": urllib3.Timeout(connect=0.1)},
+            # timeout is a workaround for 0.0.14's default read timeout, can be removed with 0.0.15
+            {"timeout": urllib3.Timeout(connect=0.1), "maxsize": 32},
         ),
         token=token_generator,
     )

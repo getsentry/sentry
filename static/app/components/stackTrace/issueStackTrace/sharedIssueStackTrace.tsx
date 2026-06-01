@@ -30,8 +30,8 @@ import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {
   formatExceptionsAsText,
@@ -67,7 +67,7 @@ type SharedIssueStackTraceProps =
  * The shared issue page is viewed by unauthenticated users, so this component
  * intentionally avoids the following from {@link IssueStackTrace}:
  * - {@link IssueFrameActions}: calls stacktrace-link and source-map-debug APIs
- * - {@link IssueStackTraceFrameContext}: calls stacktrace-coverage API (Codecov)
+ * - {@link IssueStackTraceFrameContext}: fetches SCM source context when expanded (authenticated)
  * - {@link StacktraceBanners}: depends on authenticated project context
  * - {@link SuspectCommits}: requires group and project data
  *

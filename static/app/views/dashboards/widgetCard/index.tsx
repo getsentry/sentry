@@ -1,7 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 import omit from 'lodash/omit';
 import qs from 'query-string';
 
@@ -18,11 +17,10 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -33,14 +31,12 @@ import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnha
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
@@ -90,11 +86,9 @@ export const SESSION_DURATION_ALERT = (
   <PanelAlert variant="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
-type Props = WithRouterProps & {
+type Props = {
   api: Client;
   isEditingDashboard: boolean;
-  location: Location;
-  organization: Organization;
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -147,9 +141,11 @@ type Data = {
 };
 
 function WidgetCard(props: Props) {
+  const organization = useOrganization();
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -194,7 +190,6 @@ function WidgetCard(props: Props) {
 
   const {
     api,
-    organization,
     selection,
     widget,
     isMobile,
@@ -202,7 +197,6 @@ function WidgetCard(props: Props) {
     windowWidth,
     dashboardFilters,
     isWidgetInvalid,
-    location,
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
@@ -494,10 +488,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default registerLLMContext(
-  'widget',
-  withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))))
-);
+export default registerLLMContext('widget', withApi(withPageFilters(WidgetCard)));
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();
@@ -540,7 +531,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     selection: {datetime},
   } = usePageFilters();
   const useRetentionLimit =
-    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ?? (() => null);
+    getOverride('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
@@ -584,7 +575,9 @@ function useConflictingFilterWarning({
   widget: TWidget;
 }) {
   const conflictingFilterKeys = useMemo(() => {
-    if (!dashboardFilters) return [];
+    if (!dashboardFilters) {
+      return [];
+    }
 
     const widgetFilterKeys = widget.queries.flatMap(query => {
       const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);

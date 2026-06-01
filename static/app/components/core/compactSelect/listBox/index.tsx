@@ -12,7 +12,8 @@ import {
   ListWrap,
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect';
-import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -21,11 +22,7 @@ import type {FormSize} from 'sentry/utils/theme';
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
 
-// explicitly using object here because Record<PropertyKey, unknown> requires an index signature
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type ObjectLike = object;
-
-interface ListBoxProps<T extends ObjectLike>
+interface ListBoxProps<T extends ListItemBase>
   extends
     Omit<
       React.HTMLAttributes<HTMLUListElement>,
@@ -68,15 +65,6 @@ interface ListBoxProps<T extends ObjectLike>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  /**
-   * To be called when the user toggle-selects a whole section (applicable when sections
-   * have `showToggleAllButton` set to true.) Note: this will be called in addition to
-   * and before `onChange`.
-   */
-  onSectionToggle?: (
-    section: SelectSection<SelectKey>,
-    type: 'select' | 'unselect'
-  ) => void;
   /**
    * Used to determine whether to render the list box items or not
    */
@@ -131,17 +119,17 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-export function ListBox<T extends ObjectLike>({
+export function ListBox<T extends ListItemBase>({
   ref,
   listState,
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
-  onSectionToggle,
   sizeLimitMessage,
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
+  hasSearch,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
@@ -252,7 +240,9 @@ export function ListBox<T extends ObjectLike>({
             {overlayIsOpen &&
               virtualizer.items.map(row => {
                 const item = listItems[row.index];
-                if (!item) return null;
+                if (!item) {
+                  return null;
+                }
                 if (item.type === 'section') {
                   return (
                     <ListBoxSection
@@ -261,7 +251,6 @@ export function ListBox<T extends ObjectLike>({
                       item={item}
                       listState={listState}
                       hiddenOptions={hiddenOptions}
-                      onToggle={onSectionToggle}
                       size={size}
                       showSectionHeaders={showSectionHeaders}
                       showDetails={showDetails}
@@ -281,7 +270,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!searchable && hiddenOptions.size > 0 && (
+            {!searchable && !hasSearch && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>
@@ -306,7 +295,7 @@ const heightEstimations = {
  */
 const listPaddingVertical = 4;
 
-function useVirtualizedItems<T extends ObjectLike>({
+function useVirtualizedItems<T extends ListItemBase>({
   listItems,
   virtualized = false,
   size,
@@ -325,6 +314,7 @@ function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (item?.props?.details) {
         return heightEstimation.large;
       }

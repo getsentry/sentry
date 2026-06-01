@@ -1,7 +1,6 @@
 import {memo, useMemo} from 'react';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {t} from 'sentry/locale';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -18,6 +17,7 @@ import {
   useQueryParamsMode,
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
+import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface SpansTabCrossEventSearchBarProps {
@@ -50,11 +50,15 @@ export const SpansTabCrossEventSearchBar = memo(
       () => ({
         initialQuery: query,
         onSearch: (newQuery: string) => {
-          if (!crossEvents) return;
+          if (!crossEvents) {
+            return;
+          }
 
           setCrossEvents?.(
             crossEvents.map((c, i) => {
-              if (i === index) return {query: newQuery, type};
+              if (i === index) {
+                return {query: newQuery, type};
+              }
               return c;
             })
           );
@@ -66,9 +70,7 @@ export const SpansTabCrossEventSearchBar = memo(
                 if (
                   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
                 ) {
-                  return t(
-                    "This key won't affect the results because samples mode does not support aggregate functions"
-                  );
+                  return <SamplesModeAggregateFilterWarning />;
                 }
                 return;
               }

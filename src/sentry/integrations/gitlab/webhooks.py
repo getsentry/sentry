@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
-from typing import Any
+from typing import Any, Protocol
 
 import orjson
+import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpRequest, HttpResponse
@@ -36,11 +38,25 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:gitlab"
-GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
+GITLAB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
+
+
+class WebhookProcessor(Protocol):
+    def __call__(
+        self,
+        *,
+        event: Mapping[str, Any],
+        organization: RpcOrganization,
+        repo: Repository,
+        integration: RpcIntegration | None = None,
+        **kwargs: Any,
+    ) -> None: ...
 
 
 def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
@@ -69,9 +85,47 @@ def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
 
 
 class GitlabWebhook(SCMWebhook, ABC):
+    EVENT_TYPE: IntegrationWebhookEventType
+    WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
+            raise TypeError(f"{cls.__name__} must define EVENT_TYPE class attribute")
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return self.EVENT_TYPE
+
     @property
     def provider(self) -> str:
         return IntegrationProviderSlug.GITLAB.value
+
+    def _handle(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: RpcOrganization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
+        for processor in self.WEBHOOK_EVENT_PROCESSORS:
+            try:
+                processor(
+                    event=event,
+                    integration=integration,
+                    organization=organization,
+                    repo=repo,
+                    **kwargs,
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                metrics.incr(
+                    "gitlab.webhook.processor.error",
+                    tags={"event_type": self.event_type.value},
+                    sample_rate=1.0,
+                )
+                continue
 
     def get_repo(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
@@ -125,9 +179,7 @@ class IssuesEventWebhook(GitlabWebhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#issue-events
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.INBOUND_SYNC
+    EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (integration := kwargs.get("integration")):
@@ -292,9 +344,8 @@ class MergeEventWebhook(GitlabWebhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.MERGE_REQUEST
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
+    WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_event,)
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
@@ -326,9 +377,11 @@ class MergeEventWebhook(GitlabWebhook):
         except KeyError as e:
             logger.warning(
                 "gitlab.webhook.invalid-merge-data",
-                extra={"integration_id": integration.id, "error": str(e)},
+                extra={
+                    "integration_id": integration.id if integration else None,
+                    "error": str(e),
+                },
             )
-            # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
             return
 
         if not author_email:
@@ -352,9 +405,15 @@ class MergeEventWebhook(GitlabWebhook):
                     "date_added": parse_date(created_at).astimezone(timezone.utc),
                 },
             )
-
         except IntegrityError:
             pass
+
+        self._handle(
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+        )
 
 
 class PushEventWebhook(GitlabWebhook):
@@ -364,9 +423,7 @@ class PushEventWebhook(GitlabWebhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PUSH
+    EVENT_TYPE = IntegrationWebhookEventType.PUSH
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
@@ -419,6 +476,13 @@ class PushEventWebhook(GitlabWebhook):
                     )
             except IntegrityError:
                 pass
+
+        self._handle(
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+        )
 
 
 @cell_silo_endpoint
@@ -487,9 +551,9 @@ class GitlabWebhookEndpoint(Endpoint):
         if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
             # Summary and potential workaround mentioned here:
             # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
-            extra["reason"] = GITHUB_WEBHOOK_SECRET_INVALID_ERROR
+            extra["reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR
             logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
-            return HttpResponse(status=409, reason=GITHUB_WEBHOOK_SECRET_INVALID_ERROR)
+            return HttpResponse(status=409, reason=GITLAB_WEBHOOK_SECRET_INVALID_ERROR)
 
         try:
             event = orjson.loads(request.body)

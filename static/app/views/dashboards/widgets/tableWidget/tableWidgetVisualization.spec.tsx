@@ -151,6 +151,7 @@ describe('TableWidgetVisualization', () => {
       function makeBaggage(): RenderFunctionBaggage {
         return {
           location: LocationFixture(),
+          navigate: jest.fn(),
           organization: OrganizationFixture(),
           theme: ThemeFixture(),
           projectSlug: 'sentry',

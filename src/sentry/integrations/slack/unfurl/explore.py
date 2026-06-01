@@ -375,11 +375,10 @@ def _unfurl_explore(
     )
     orgs_by_slug = {org.slug: org for org in organizations}
 
-    # Check if any org has the feature flag enabled before doing any work
     enabled_orgs = {
         slug: org
         for slug, org in orgs_by_slug.items()
-        if features.has("organizations:data-browsing-widget-unfurl", org, actor=user)
+        if features.has("organizations:visibility-explore-view", org, actor=user)
     }
     if not enabled_orgs:
         return {}

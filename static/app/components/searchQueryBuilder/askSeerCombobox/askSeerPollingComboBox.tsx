@@ -28,7 +28,7 @@ import {
   generateQueryTokensString,
   isNoneOfTheseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -139,7 +139,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     autoSubmitSeer,
     setAutoSubmitSeer,
     enableAISearch,
-  } = useSearchQueryBuilder();
+  } = useSearchQueryBuilderAI();
 
   const analyticsArea = useAnalyticsArea();
 
@@ -228,7 +228,9 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     onInputChange: setSearchQuery,
     defaultFilter: () => true,
     onSelectionChange(key) {
-      if (typeof key !== 'string') return;
+      if (typeof key !== 'string') {
+        return;
+      }
 
       if (key === 'none-of-these') {
         trackAnalytics('ai_query.rejected', {

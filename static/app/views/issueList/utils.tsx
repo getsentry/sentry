@@ -30,6 +30,7 @@ export enum IssueSortOptions {
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
+  RECOMMENDED = 'recommended',
 }
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
@@ -46,6 +47,8 @@ export function getSortLabel(key: string) {
       return t('Users');
     case IssueSortOptions.INBOX:
       return t('Date Added');
+    case IssueSortOptions.RECOMMENDED:
+      return t('Recommended');
     case IssueSortOptions.DATE:
     default:
       return t('Last Seen');

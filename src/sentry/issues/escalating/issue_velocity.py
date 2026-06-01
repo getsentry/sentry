@@ -25,6 +25,7 @@ from snuba_sdk import (
 )
 
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.post_process import locks
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
@@ -37,7 +38,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # for snuba operations
-REFERRER = "sentry.issues.escalating.issue_velocity"
 THRESHOLD_QUANTILE = {"name": "p95", "function": "quantile(0.95)"}
 WEEK_IN_HOURS = 7 * 24
 
@@ -128,13 +128,18 @@ def calculate_threshold(project: Project) -> float | None:
 
     request = Request(
         dataset=Dataset.Events.value,
-        app_id=REFERRER,
+        app_id=Referrer.ISSUES_ESCALATING_ISSUE_VELOCITY.value,
         query=query,
-        tenant_ids={"referrer": REFERRER, "organization_id": project.organization.id},
+        tenant_ids={
+            "referrer": Referrer.ISSUES_ESCALATING_ISSUE_VELOCITY.value,
+            "organization_id": project.organization.id,
+        },
     )
 
     try:
-        result = raw_snql_query(request, referrer=REFERRER)["data"]
+        result = raw_snql_query(request, referrer=Referrer.ISSUES_ESCALATING_ISSUE_VELOCITY.value)[
+            "data"
+        ]
     except Exception:
         logger.exception(
             "sentry.issues.escalating.issue_velocity.calculate_threshold.error",

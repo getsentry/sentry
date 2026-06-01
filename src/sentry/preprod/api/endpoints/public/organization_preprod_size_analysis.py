@@ -120,9 +120,12 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
 
         try:
             head_artifact = PreprodArtifact.objects.select_related(
-                "mobile_app_info", "build_configuration", "commit_comparison"
+                "mobile_app_info", "build_configuration", "commit_comparison", "project"
             ).get(id=int(artifact_id), project__organization_id=organization.id)
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
+
+        if not request.access.has_project_access(head_artifact.project):
             return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
 
         response_data = _base_response(head_artifact)
@@ -282,15 +285,28 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         if base_artifact_id:
             try:
                 base_artifact = PreprodArtifact.objects.select_related(
-                    "mobile_app_info", "build_configuration", "commit_comparison"
+                    "mobile_app_info", "build_configuration", "commit_comparison", "project"
                 ).get(id=int(base_artifact_id), project__organization_id=organization.id)
-                return base_artifact
             except (PreprodArtifact.DoesNotExist, ValueError):
                 raise PreprodArtifactResourceDoesNotExist(
                     detail="The requested base preprod artifact does not exist"
                 )
 
-        base_artifact_qs = head_artifact.get_base_artifact_for_commit().select_related(
-            "mobile_app_info", "build_configuration", "commit_comparison"
+            if base_artifact.project_id != head_artifact.project_id:
+                raise PreprodArtifactResourceDoesNotExist(
+                    detail="The requested base preprod artifact does not exist"
+                )
+
+            if not request.access.has_project_access(base_artifact.project):
+                raise PreprodArtifactResourceDoesNotExist(
+                    detail="The requested base preprod artifact does not exist"
+                )
+
+            return base_artifact
+
+        base_artifact_qs = (
+            head_artifact.get_base_artifact_for_commit()
+            .filter(project_id=head_artifact.project_id)
+            .select_related("mobile_app_info", "build_configuration", "commit_comparison")
         )
         return base_artifact_qs.first()

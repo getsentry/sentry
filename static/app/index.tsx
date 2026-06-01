@@ -83,18 +83,18 @@ async function app() {
   }
 
   // We have split up the imports this way so that locale is initialized as
-  // early as possible, (e.g. before `registerHooks` is imported otherwise the
-  // imports in `registerHooks` will not be in the correct locale.
+  // early as possible, (e.g. before `registerOverrides` is imported otherwise the
+  // imports in `registerOverrides` will not be in the correct locale.
   // eslint-disable-next-line boundaries/dependencies -- getsentry entrypoint
-  const registerHooksImport = import('getsentry/registerHooks');
+  const registerOverridesImport = import('getsentry/registerOverrides');
   // eslint-disable-next-line boundaries/dependencies -- getsentry entrypoint
   const initalizeBundleMetricsImport = import('getsentry/initializeBundleMetrics');
 
   // getsentry augments Sentry's application through a 'hook' mechanism. Sentry
   // provides various hooks into parts of its application. Thus all getsentry
   // functionality is initialized by registering its hook functions.
-  const {registerHooks} = await registerHooksImport;
-  registerHooks();
+  const {registerGsAppOverrides} = await registerOverridesImport;
+  registerGsAppOverrides();
 
   const {initializeMain} = await initalizeMainImport;
   initializeMain(config);

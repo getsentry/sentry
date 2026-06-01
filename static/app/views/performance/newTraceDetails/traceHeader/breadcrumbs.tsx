@@ -75,7 +75,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   traces: 'explore/traces',
   metrics: 'metrics',
   discover: 'explore/discover',
-  profiling_flamegraph: 'explore/profiling',
+  profiling_flamegraph: 'explore/profiles',
   performance_transaction_summary: 'insights/summary',
   issue_details: 'issues',
   feedback_details: 'issues/feedback',

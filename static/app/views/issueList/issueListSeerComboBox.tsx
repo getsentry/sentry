@@ -6,7 +6,11 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,14 +54,9 @@ export function IssueListSeerComboBox() {
   const navigate = useNavigate();
   const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
-  const {
-    currentInputValueRef,
-    query,
-    committedQuery,
-    enableAISearch,
-    askSeerSuggestedQueryRef,
-    parseQuery,
-  } = useSearchQueryBuilder();
+  const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {enableAISearch, askSeerSuggestedQueryRef} = useSearchQueryBuilderAI();
 
   let initialSeerQuery = '';
   const queryDetails = useMemo(() => {

@@ -44,11 +44,7 @@ class ActivityManager(BaseManager["Activity"]):
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
 
-        # Check if 'initial_priority' is available
-        initial_priority_value = group.get_event_metadata().get(
-            "initial_priority", None
-        ) or group.get_event_metadata().get("initial_priority", None)
-
+        initial_priority_value = group.get_event_metadata().get("initial_priority")
         initial_priority = (
             PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
         )
@@ -129,7 +125,10 @@ class Activity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_activity"
-        indexes = (models.Index(fields=("project", "datetime")),)
+        indexes = (
+            models.Index(fields=("project", "datetime")),
+            models.Index(fields=("project", "type")),
+        )
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 

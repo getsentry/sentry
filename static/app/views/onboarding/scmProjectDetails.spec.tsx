@@ -5,26 +5,35 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  OnboardingContextProvider,
-  type OnboardingSessionState,
-} from 'sentry/components/onboarding/onboardingContext';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {MetricValues, RuleAction} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmProjectDetails} from './scmProjectDetails';
 
-function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
-  return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
-    return (
-      <OnboardingContextProvider initialValue={initialState}>
-        {children}
-      </OnboardingContextProvider>
-    );
+interface StateOverrides {
+  createdProjectSlug?: string;
+  projectDetailsForm?: ProjectDetailsFormState;
+  selectedFeatures?: ProductSolution[];
+  selectedPlatform?: OnboardingSelectedSDK;
+  selectedRepository?: Repository;
+}
+
+function defaultProps(state: StateOverrides = {}) {
+  return {
+    selectedPlatform: state.selectedPlatform,
+    selectedFeatures: state.selectedFeatures,
+    selectedRepository: state.selectedRepository,
+    createdProjectSlug: state.createdProjectSlug,
+    projectDetailsForm: state.projectDetailsForm,
+    onProjectCreated: jest.fn(),
+    onProjectDetailsFormChange: jest.fn(),
+    onComplete: jest.fn(),
   };
 }
 
@@ -44,7 +53,6 @@ describe('ScmProjectDetails', () => {
   const teamWithAccess = TeamFixture({slug: 'my-team', access: ['team:admin']});
 
   beforeEach(() => {
-    sessionStorageWrapper.clear();
     TeamStore.loadInitialData([teamWithAccess]);
     ProjectsStore.loadInitialData([]);
 
@@ -67,37 +75,17 @@ describe('ScmProjectDetails', () => {
   });
 
   it('renders step header with heading', async () => {
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Project details')).toBeInTheDocument();
   });
 
   it('renders section headers with icons', async () => {
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Give your project a name')).toBeInTheDocument();
     expect(screen.getByText('Assign a team')).toBeInTheDocument();
@@ -106,83 +94,31 @@ describe('ScmProjectDetails', () => {
   });
 
   it('renders project name defaulted from platform key', async () => {
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
-
-    const input = await screen.findByPlaceholderText('project-name');
-    expect(input).toHaveValue('javascript-nextjs');
-  });
-
-  it('uses platform key as default name even when repository is in context', async () => {
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-          selectedRepository: mockRepository,
-        }),
-      }
-    );
+    render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
+      organization,
+    });
 
     const input = await screen.findByPlaceholderText('project-name');
     expect(input).toHaveValue('javascript-nextjs');
   });
 
   it('renders card-style alert frequency options', async () => {
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
+      organization,
+    });
 
     expect(await screen.findByText('High priority issues')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     expect(screen.getByText("I'll create my own alerts later")).toBeInTheDocument();
   });
 
-  it('create project button is disabled without platform in context', async () => {
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper(),
-      }
-    );
+  it('create project button is disabled without platform', async () => {
+    render(<ScmProjectDetails {...defaultProps()} />, {organization});
 
     expect(await screen.findByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
   it('create project button calls API and completes on success', async () => {
-    const onComplete = jest.fn();
-
     const projectCreationRequest = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
       method: 'POST',
@@ -203,19 +139,8 @@ describe('ScmProjectDetails', () => {
       body: [teamWithAccess],
     });
 
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    const props = defaultProps({selectedPlatform: mockPlatform});
+    render(<ScmProjectDetails {...props} />, {organization});
 
     const createButton = await screen.findByRole('button', {name: 'Create project'});
     await userEvent.click(createButton);
@@ -225,30 +150,77 @@ describe('ScmProjectDetails', () => {
     });
 
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
   });
 
-  it('defaults team selector to first admin team', async () => {
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
+  it('links selected repository to project after creation', async () => {
+    const createdProject = ProjectFixture({
+      slug: 'javascript-nextjs',
+      name: 'javascript-nextjs',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: createdProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+      method: 'POST',
+      body: {
+        id: '1',
+        projectId: createdProject.id,
+        repositoryId: mockRepository.id,
+        source: 'scm_onboarding',
+        created: true,
+      },
+    });
+
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      selectedRepository: mockRepository,
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(props.onComplete).toHaveBeenCalled();
+    });
+
+    expect(repoLinkRequest).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${createdProject.slug}/repo/`,
+      expect.objectContaining({
+        method: 'POST',
+        data: {repositoryId: mockRepository.id},
+      })
     );
+  });
+
+  it('defaults team selector to first admin team', async () => {
+    render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
+      organization,
+    });
 
     // TeamSelector renders the team slug as the selected value
     expect(await screen.findByText(`#${teamWithAccess.slug}`)).toBeInTheDocument();
   });
 
-  it('updates context with project slug after creation', async () => {
+  it('stores project slug via onProjectCreated after creation', async () => {
     const createdProject = ProjectFixture({
       slug: 'my-custom-project',
       name: 'my-custom-project',
@@ -272,60 +244,37 @@ describe('ScmProjectDetails', () => {
       body: [teamWithAccess],
     });
 
-    const onComplete = jest.fn();
-
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    const props = defaultProps({selectedPlatform: mockPlatform});
+    render(<ScmProjectDetails {...props} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
 
-    // Verify the project slug was stored separately in context (not overwriting
-    // selectedPlatform.key) so onboarding.tsx can find the project via
-    // useRecentCreatedProject while preserving the original platform selection.
-    const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
-    expect(stored.createdProjectSlug).toBe('my-custom-project');
-    expect(stored.selectedPlatform?.key).toBe('javascript-nextjs');
+    expect(props.onProjectCreated).toHaveBeenCalledWith('my-custom-project');
   });
 
-  it('restores form inputs from persisted projectDetailsForm', async () => {
+  it('restores form inputs from projectDetailsForm prop', async () => {
     render(
       <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
+        {...defaultProps({
           selectedPlatform: mockPlatform,
           projectDetailsForm: {
             projectName: 'my-saved-name',
             teamSlug: teamWithAccess.slug,
           },
-        }),
-      }
+        })}
+      />,
+      {organization}
     );
 
     const input = await screen.findByPlaceholderText('project-name');
     expect(input).toHaveValue('my-saved-name');
   });
 
-  it('persists form state to context on successful creation', async () => {
+  it('persists form state on successful creation', async () => {
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
       method: 'POST',
@@ -344,36 +293,21 @@ describe('ScmProjectDetails', () => {
       body: [teamWithAccess],
     });
 
-    const onComplete = jest.fn();
-
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    const props = defaultProps({selectedPlatform: mockPlatform});
+    render(<ScmProjectDetails {...props} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
 
-    const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
-    expect(stored.projectDetailsForm).toEqual(
+    expect(props.onProjectDetailsFormChange).toHaveBeenCalledWith(
       expect.objectContaining({
         projectName: 'javascript-nextjs',
         teamSlug: teamWithAccess.slug,
       })
     );
-    expect(stored.projectDetailsForm.alertRuleConfig).toBeDefined();
   });
 
   it('reuses existing project when nothing changed on back-nav', async () => {
@@ -391,37 +325,26 @@ describe('ScmProjectDetails', () => {
       body: existingProject,
     });
 
-    const onComplete = jest.fn();
-
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-          createdProjectSlug: existingProject.slug,
-          projectDetailsForm: {
-            projectName: 'javascript-nextjs',
-            teamSlug: teamWithAccess.slug,
-            alertRuleConfig: {
-              alertSetting: RuleAction.DEFAULT_ALERT,
-              interval: '1m',
-              metric: MetricValues.ERRORS,
-              threshold: '10',
-            },
-          },
-        }),
-      }
-    );
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      createdProjectSlug: existingProject.slug,
+      projectDetailsForm: {
+        projectName: 'javascript-nextjs',
+        teamSlug: teamWithAccess.slug,
+        alertRuleConfig: {
+          alertSetting: RuleAction.DEFAULT_ALERT,
+          interval: '1m',
+          metric: MetricValues.ERRORS,
+          threshold: '10',
+        },
+      },
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
     expect(createRequest).not.toHaveBeenCalled();
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
@@ -455,32 +378,21 @@ describe('ScmProjectDetails', () => {
       body: [teamWithAccess],
     });
 
-    const onComplete = jest.fn();
-
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-          createdProjectSlug: existingProject.slug,
-          projectDetailsForm: {
-            projectName: 'javascript-nextjs',
-            teamSlug: teamWithAccess.slug,
-            alertRuleConfig: {
-              alertSetting: RuleAction.DEFAULT_ALERT,
-              interval: '1m',
-              metric: MetricValues.ERRORS,
-              threshold: '10',
-            },
-          },
-        }),
-      }
-    );
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      createdProjectSlug: existingProject.slug,
+      projectDetailsForm: {
+        projectName: 'javascript-nextjs',
+        teamSlug: teamWithAccess.slug,
+        alertRuleConfig: {
+          alertSetting: RuleAction.DEFAULT_ALERT,
+          interval: '1m',
+          metric: MetricValues.ERRORS,
+          threshold: '10',
+        },
+      },
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
 
     const input = await screen.findByPlaceholderText('project-name');
     await userEvent.clear(input);
@@ -492,7 +404,7 @@ describe('ScmProjectDetails', () => {
       expect(createRequest).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
   });
 
@@ -526,32 +438,21 @@ describe('ScmProjectDetails', () => {
       body: [teamWithAccess],
     });
 
-    const onComplete = jest.fn();
-
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-          createdProjectSlug: stalePythonProject.slug,
-          projectDetailsForm: {
-            projectName: 'javascript-nextjs',
-            teamSlug: teamWithAccess.slug,
-            alertRuleConfig: {
-              alertSetting: RuleAction.DEFAULT_ALERT,
-              interval: '1m',
-              metric: MetricValues.ERRORS,
-              threshold: '10',
-            },
-          },
-        }),
-      }
-    );
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      createdProjectSlug: stalePythonProject.slug,
+      projectDetailsForm: {
+        projectName: 'javascript-nextjs',
+        teamSlug: teamWithAccess.slug,
+        alertRuleConfig: {
+          alertSetting: RuleAction.DEFAULT_ALERT,
+          interval: '1m',
+          metric: MetricValues.ERRORS,
+          threshold: '10',
+        },
+      },
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
@@ -559,7 +460,7 @@ describe('ScmProjectDetails', () => {
       expect(createRequest).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
   });
 
@@ -584,32 +485,21 @@ describe('ScmProjectDetails', () => {
       body: [teamWithAccess],
     });
 
-    const onComplete = jest.fn();
-
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-          createdProjectSlug: 'javascript-nextjs',
-          projectDetailsForm: {
-            projectName: 'javascript-nextjs',
-            teamSlug: teamWithAccess.slug,
-            alertRuleConfig: {
-              alertSetting: RuleAction.DEFAULT_ALERT,
-              interval: '1m',
-              metric: MetricValues.ERRORS,
-              threshold: '10',
-            },
-          },
-        }),
-      }
-    );
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      createdProjectSlug: 'javascript-nextjs',
+      projectDetailsForm: {
+        projectName: 'javascript-nextjs',
+        teamSlug: teamWithAccess.slug,
+        alertRuleConfig: {
+          alertSetting: RuleAction.DEFAULT_ALERT,
+          interval: '1m',
+          metric: MetricValues.ERRORS,
+          threshold: '10',
+        },
+      },
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
@@ -617,13 +507,11 @@ describe('ScmProjectDetails', () => {
       expect(createRequest).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
   });
 
   it('shows error message on project creation failure', async () => {
-    const onComplete = jest.fn();
-
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
       method: 'POST',
@@ -631,44 +519,23 @@ describe('ScmProjectDetails', () => {
       body: {detail: 'Internal Error'},
     });
 
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    const props = defaultProps({selectedPlatform: mockPlatform});
+    render(<ScmProjectDetails {...props} />, {organization});
 
     const createButton = await screen.findByRole('button', {name: 'Create project'});
     await userEvent.click(createButton);
 
     await waitFor(() => {
-      expect(onComplete).not.toHaveBeenCalled();
+      expect(props.onComplete).not.toHaveBeenCalled();
     });
   });
 
   it('fires step viewed analytics on mount', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-    render(
-      <ScmProjectDetails
-        onComplete={jest.fn()}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
+      organization,
+    });
 
     await screen.findByText('Project details');
 
@@ -699,26 +566,13 @@ describe('ScmProjectDetails', () => {
       body: [teamWithAccess],
     });
 
-    const onComplete = jest.fn();
-
-    render(
-      <ScmProjectDetails
-        onComplete={onComplete}
-        stepIndex={3}
-        genSkipOnboardingLink={() => null}
-      />,
-      {
-        organization,
-        additionalWrapper: makeOnboardingWrapper({
-          selectedPlatform: mockPlatform,
-        }),
-      }
-    );
+    const props = defaultProps({selectedPlatform: mockPlatform});
+    render(<ScmProjectDetails {...props} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalled();
     });
 
     const eventKeys = trackAnalyticsSpy.mock.calls.map(call => call[0]);

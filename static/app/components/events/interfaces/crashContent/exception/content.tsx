@@ -22,11 +22,8 @@ import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {
-  FoldSection,
-  SectionDivider,
-} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection, SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';

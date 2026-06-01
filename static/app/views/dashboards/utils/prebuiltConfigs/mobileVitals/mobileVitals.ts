@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   APP_START_TABLE_CONDITION,
@@ -18,7 +18,7 @@ import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mob
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const COLD_START_BIG_NUMBER_WIDGET: Widget = {
+const COLD_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'cold-start-big-number',
   title: t('Average Cold App Start'),
   description: 'Average cold app start duration',
@@ -51,7 +51,7 @@ const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const WARM_START_BIG_NUMBER_WIDGET: Widget = {
+const WARM_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'warm-start-big-number',
   title: t('Average Warm App Start'),
   description: 'Average warm app start duration',
@@ -84,7 +84,7 @@ const WARM_START_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
+const AVG_TTID_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-ttid-big-number',
   title: t('Average TTID'),
   description: 'Average time to initial display',
@@ -111,7 +111,7 @@ const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
+const AVG_TTFD_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-ttfd-big-number',
   title: t('Average TTFD'),
   description: 'Average time to full display',
@@ -140,7 +140,7 @@ const AVG_TTFD_BIG_NUMBER_WIDGET: Widget = {
 
 // Uses the Sessions (Release) dataset, so most dashboard global filters (which target Spans)
 // don't apply. Still valuable as a top-level health signal alongside the span-based vitals.
-const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: Widget = {
+const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'crash-free-session-rate-big-number',
   title: t('Crash Free Session Rate'),
   description:
@@ -168,7 +168,7 @@ const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const SLOW_FRAME_RATE_WIDGET: Widget = {
+const SLOW_FRAME_RATE_WIDGET: PrebuiltWidget = {
   id: 'slow-frame-rate-big-number',
   title: t('Slow Frame Rate'),
   description:
@@ -205,7 +205,7 @@ const SLOW_FRAME_RATE_WIDGET: Widget = {
   },
 };
 
-const FROZEN_FRAME_RATE_WIDGET: Widget = {
+const FROZEN_FRAME_RATE_WIDGET: PrebuiltWidget = {
   id: 'frozen-frame-rate-big-number',
   title: t('Frozen Frame Rate'),
   description:
@@ -242,7 +242,7 @@ const FROZEN_FRAME_RATE_WIDGET: Widget = {
   },
 };
 
-const AVG_FRAME_DELAY_WIDGET: Widget = {
+const AVG_FRAME_DELAY_WIDGET: PrebuiltWidget = {
   id: 'avg-frame-delay-big-number',
   title: t('Average Frame Delay'),
   description: 'Average frame delay',
@@ -269,7 +269,7 @@ const AVG_FRAME_DELAY_WIDGET: Widget = {
   },
 };
 
-const APP_START_TABLE: Widget = {
+const APP_START_TABLE: PrebuiltWidget = {
   id: 'app-start-table',
   title: t('App Starts'),
   description: t(
@@ -320,7 +320,7 @@ const APP_START_TABLE: Widget = {
   },
 };
 
-const SCREEN_RENDERING_TABLE: Widget = {
+const SCREEN_RENDERING_TABLE: PrebuiltWidget = {
   id: 'screen-rendering-table',
   title: t('Screen Rendering'),
   description:
@@ -370,7 +370,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
   },
 };
 
-const SCREEN_LOAD_TABLE: Widget = {
+const SCREEN_LOAD_TABLE: PrebuiltWidget = {
   id: 'screen-load-table',
   title: t('Screen Loads'),
   description: '',
@@ -414,14 +414,14 @@ const SCREEN_LOAD_TABLE: Widget = {
   },
 };
 
-const FIRST_ROW_WIDGETS: Widget[] = [
+const FIRST_ROW_WIDGETS: PrebuiltWidget[] = [
   COLD_START_BIG_NUMBER_WIDGET,
   WARM_START_BIG_NUMBER_WIDGET,
   AVG_TTID_BIG_NUMBER_WIDGET,
   AVG_TTFD_BIG_NUMBER_WIDGET,
 ];
 
-const SECOND_ROW_WIDGETS: Widget[] = [
+const SECOND_ROW_WIDGETS: PrebuiltWidget[] = [
   SLOW_FRAME_RATE_WIDGET,
   FROZEN_FRAME_RATE_WIDGET,
   AVG_FRAME_DELAY_WIDGET,

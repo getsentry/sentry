@@ -1,13 +1,16 @@
-import {memo, useEffect, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconSearch} from 'sentry/icons';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
+import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 interface SidebarGroup {
@@ -27,6 +30,7 @@ export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.ADDED]: 2,
   [DiffStatus.RENAMED]: 3,
   [DiffStatus.UNCHANGED]: 4,
+  [DiffStatus.SKIPPED]: 5,
 };
 
 type StatusCounts = Record<DiffStatus, number>;
@@ -43,6 +47,7 @@ const STATUS_PILLS: ReadonlyArray<{
   {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
   {status: DiffStatus.UNCHANGED, color: 'muted', label: t('unchanged')},
+  {status: DiffStatus.SKIPPED, color: 'muted', label: t('skipped')},
 ];
 
 const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
@@ -51,10 +56,19 @@ const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
   [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
   [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
   [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+  [DiffStatus.SKIPPED]: {color: 'muted', label: t('Skipped')},
 };
+
+type VirtualRow =
+  | {meta: {color: PillColor; label: string}; sectionType: DiffStatus; type: 'header'}
+  | {group: SidebarGroup; indented: boolean; type: 'item'};
+
+const ITEM_HEIGHT = 36;
+const SECTION_HEADER_HEIGHT = 28;
 
 interface SnapshotSidebarContentProps {
   activeStatuses: Set<DiffStatus>;
+  availableTags: Map<string, Map<string, number>>;
   onSearchChange: (query: string) => void;
   onSelectItem: (itemKey: string) => void;
   onToggleStatus: (status: DiffStatus) => void;
@@ -73,46 +87,82 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   statusCounts,
   activeStatuses,
   onToggleStatus,
+  availableTags,
 }: SnapshotSidebarContentProps) {
   const hasActiveFilter = activeStatuses.size > 0;
   const isStatusActive = (status: DiffStatus) =>
     !hasActiveFilter || activeStatuses.has(status);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = listRef.current;
-    if (!container || !activeItemKey) {
-      return;
-    }
-    const el = container.querySelector<HTMLElement>(
-      `[data-item-key="${CSS.escape(activeItemKey)}"]`
-    );
-    if (!el) {
-      return;
-    }
-    const cRect = container.getBoundingClientRect();
-    const eRect = el.getBoundingClientRect();
-    if (eRect.top < cRect.top) {
-      container.scrollTop -= cRect.top - eRect.top;
-    } else if (eRect.bottom > cRect.bottom) {
-      container.scrollTop += eRect.bottom - cRect.bottom;
-    }
-  }, [activeItemKey]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [collapsed, setCollapsed] = useState<Set<DiffStatus>>(() => new Set());
-  const toggleSection = (type: DiffStatus, expanded: boolean) => {
+  const toggleSection = useCallback((type: DiffStatus) => {
     setCollapsed(prev => {
       const next = new Set(prev);
-      if (expanded) {
+      if (next.has(type)) {
         next.delete(type);
       } else {
         next.add(type);
       }
       return next;
     });
-  };
+  }, []);
+
+  const showSectionHeaders = useMemo(
+    () => sections.filter(s => s.groups.length > 0).length > 1,
+    [sections]
+  );
+
+  const virtualRows = useMemo(() => {
+    const rows: VirtualRow[] = [];
+    for (const section of sections) {
+      if (section.groups.length === 0) {
+        continue;
+      }
+      const sectionType = section.type;
+      const meta = sectionType ? STATUS_META[sectionType] : null;
+      const showHeader = !!sectionType && !!meta && showSectionHeaders;
+      if (showHeader) {
+        rows.push({type: 'header', sectionType, meta});
+        if (!collapsed.has(sectionType)) {
+          for (const group of section.groups) {
+            rows.push({type: 'item', group, indented: true});
+          }
+        }
+      } else {
+        for (const group of section.groups) {
+          rows.push({type: 'item', group, indented: false});
+        }
+      }
+    }
+    return rows;
+  }, [sections, collapsed, showSectionHeaders]);
+
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: i =>
+      virtualRows[i]!.type === 'header' ? SECTION_HEADER_HEIGHT : ITEM_HEIGHT,
+    overscan: 25,
+    initialRect: {width: 0, height: 500},
+  });
+
+  const prevActiveItemKeyRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!activeItemKey || activeItemKey === prevActiveItemKeyRef.current) {
+      prevActiveItemKeyRef.current = activeItemKey;
+      return;
+    }
+    prevActiveItemKeyRef.current = activeItemKey;
+    const idx = virtualRows.findIndex(
+      r => r.type === 'item' && r.group.key === activeItemKey
+    );
+    if (idx !== -1) {
+      virtualizer.scrollToIndex(idx, {align: 'auto'});
+    }
+  }, [activeItemKey, virtualRows, virtualizer]);
 
   const hasGroups = sections.some(s => s.groups.length > 0);
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <Stack height="100%" width="100%">
@@ -154,70 +204,44 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
           </Flex>
         )}
       </Stack>
-      <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
-        {sections.map(section => {
-          if (section.groups.length === 0) {
-            return null;
-          }
-          const sectionType = section.type;
-          const meta = sectionType ? STATUS_META[sectionType] : null;
-          const isCollapsed = !!sectionType && collapsed.has(sectionType);
-          const showHeader = !!meta && !!sectionType && sections.length > 1;
-          const items = section.groups.map(group => {
-            const isActive = group.key === activeItemKey;
-            return (
-              <SidebarItemRow
-                key={group.key}
-                data-item-key={group.key}
-                isSelected={isActive}
-                indented={showHeader}
-                onClick={e => {
-                  e.stopPropagation();
-                  onSelectItem(group.key);
-                }}
-              >
-                <Flex align="center" gap="sm" flex="1" minWidth="0">
-                  <Text
-                    size="md"
-                    variant={isActive ? 'accent' : 'muted'}
-                    bold={isActive}
-                    ellipsis
-                    onPointerEnter={setTitleOnOverflow}
-                  >
-                    {group.displayName}
-                  </Text>
-                </Flex>
-                <CountBadge>
-                  <Text variant="muted" size="xs">
-                    {group.count}
-                  </Text>
-                </CountBadge>
-              </SidebarItemRow>
-            );
-          });
-          if (!showHeader) {
-            return <Stack key={sectionType ?? 'solo'}>{items}</Stack>;
-          }
-          return (
-            <SectionDisclosure
-              key={sectionType}
-              size="xs"
-              expanded={!isCollapsed}
-              onExpandedChange={expanded => toggleSection(sectionType, expanded)}
-            >
-              <Disclosure.Title>
-                <Flex align="center" gap="sm">
-                  <Dot pillColor={meta.color} active />
-                  <Text size="sm" bold>
-                    {meta.label}
-                  </Text>
-                </Flex>
-              </Disclosure.Title>
-              {!isCollapsed && items}
-            </SectionDisclosure>
-          );
-        })}
-        {!hasGroups && (
+      {availableTags.size > 0 && <TagFilterSection availableTags={availableTags} />}
+      <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
+        {hasGroups ? (
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              position: 'relative',
+              width: '100%',
+            }}
+          >
+            {virtualItems.map(vi => {
+              const row = virtualRows[vi.index]!;
+              return (
+                <VirtualRowPositioner
+                  key={vi.key}
+                  ref={virtualizer.measureElement}
+                  data-index={vi.index}
+                  style={{transform: `translateY(${vi.start}px)`}}
+                >
+                  {row.type === 'header' ? (
+                    <SectionHeaderRow
+                      row={row}
+                      expanded={!collapsed.has(row.sectionType)}
+                      onToggle={toggleSection}
+                    />
+                  ) : (
+                    <SidebarItem
+                      group={row.group}
+                      indented={row.indented}
+                      isActive={row.group.key === activeItemKey}
+                      onSelect={onSelectItem}
+                    />
+                  )}
+                </VirtualRowPositioner>
+              );
+            })}
+          </div>
+        ) : (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">
               {t('No components found.')}
@@ -226,6 +250,74 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
         )}
       </Stack>
     </Stack>
+  );
+});
+
+const SectionHeaderRow = memo(function SectionHeaderRow({
+  row,
+  expanded,
+  onToggle,
+}: {
+  expanded: boolean;
+  onToggle: (type: DiffStatus) => void;
+  row: Extract<VirtualRow, {type: 'header'}>;
+}) {
+  return (
+    <SectionDisclosure
+      size="xs"
+      expanded={expanded}
+      onExpandedChange={() => onToggle(row.sectionType)}
+    >
+      <Disclosure.Title>
+        <Flex align="center" gap="sm">
+          <Dot pillColor={row.meta.color} active />
+          <Text size="sm" bold>
+            {row.meta.label}
+          </Text>
+        </Flex>
+      </Disclosure.Title>
+    </SectionDisclosure>
+  );
+});
+
+const SidebarItem = memo(function SidebarItem({
+  group,
+  indented,
+  isActive,
+  onSelect,
+}: {
+  group: SidebarGroup;
+  indented: boolean;
+  isActive: boolean;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <SidebarItemRow
+      data-item-key={group.key}
+      isSelected={isActive}
+      indented={indented}
+      onClick={e => {
+        e.stopPropagation();
+        onSelect(group.key);
+      }}
+    >
+      <Flex align="center" gap="sm" flex="1" minWidth="0">
+        <Text
+          size="md"
+          variant={isActive ? 'accent' : 'muted'}
+          bold={isActive}
+          ellipsis
+          onPointerEnter={setTitleOnOverflow}
+        >
+          {group.displayName}
+        </Text>
+      </Flex>
+      <CountBadge>
+        <Text variant="muted" size="xs">
+          {group.count}
+        </Text>
+      </CountBadge>
+    </SidebarItemRow>
   );
 });
 
@@ -251,6 +343,89 @@ function StatusPill({
     </PillButton>
   );
 }
+
+const TagFilterSection = memo(function TagFilterSection({
+  availableTags,
+}: {
+  availableTags: Map<string, Map<string, number>>;
+}) {
+  const tagFilters = useTagFilters();
+  const sortedKeys = useMemo(() => [...availableTags.keys()].sort(), [availableTags]);
+
+  if (!tagFilters) {
+    return null;
+  }
+  const {activeTagFilters, onToggleTagFilter} = tagFilters;
+  const hasActiveFilter = Object.keys(activeTagFilters).length > 0;
+
+  return (
+    <Stack borderBottom="primary" onClick={e => e.stopPropagation()}>
+      <TagDisclosure size="xs">
+        <Disclosure.Title>
+          <Text size="sm" bold>
+            {t('Tags')}
+          </Text>
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <Stack gap="lg" paddingBottom="lg" style={{maxHeight: 200, overflowY: 'auto'}}>
+            {sortedKeys.map(tagKey => {
+              const values = availableTags.get(tagKey)!;
+              const activeValue = activeTagFilters[tagKey];
+              return (
+                <Stack key={tagKey} gap="xs">
+                  <Text size="xs" variant="muted" bold>
+                    {tagKey}
+                  </Text>
+                  <Flex gap="xs" wrap="wrap">
+                    {[...values.entries()]
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([value, count]) => {
+                        const isActive = activeValue === value;
+                        const isDisabled = count === 0 && !isActive;
+                        return (
+                          <TagChip
+                            key={value}
+                            type="button"
+                            isActive={isActive}
+                            disabled={isDisabled}
+                            onClick={() => onToggleTagFilter(tagKey, value)}
+                          >
+                            <Text size="xs" variant={isActive ? 'accent' : 'muted'}>
+                              {value}
+                            </Text>
+                            <Text size="xs" variant="muted">
+                              {count}
+                            </Text>
+                          </TagChip>
+                        );
+                      })}
+                  </Flex>
+                </Stack>
+              );
+            })}
+          </Stack>
+        </Disclosure.Content>
+      </TagDisclosure>
+      {hasActiveFilter && (
+        <Flex gap="xs" wrap="wrap" padding="sm lg">
+          {Object.entries(activeTagFilters).map(([key, value]) => (
+            <TagChip
+              isActive
+              key={`${key}:${value}`}
+              type="button"
+              onClick={() => onToggleTagFilter(key, value)}
+            >
+              <Text size="xs">
+                {key}={value}
+              </Text>
+              <IconClose size="xs" />
+            </TagChip>
+          ))}
+        </Flex>
+      )}
+    </Stack>
+  );
+});
 
 function setTitleOnOverflow(e: React.PointerEvent<HTMLElement>) {
   const el = e.currentTarget;
@@ -307,20 +482,6 @@ const CountBadge = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
-const SectionDisclosure = styled(Disclosure)`
-  width: 100%;
-  align-items: stretch;
-
-  > :first-child {
-    padding-right: 0;
-    border-radius: 0;
-
-    > button {
-      border-radius: 0;
-    }
-  }
-`;
-
 const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   display: flex;
   align-items: center;
@@ -339,4 +500,37 @@ const SidebarItemRow = styled('div')<{indented: boolean; isSelected: boolean}>`
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
+
+const SectionDisclosure = styled(Disclosure)`
+  width: 100%;
+  align-items: stretch;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
+  }
+`;
+
+const TagDisclosure = styled(Disclosure)`
+  width: 100%;
+
+  > :first-child {
+    padding-right: 0;
+    border-radius: 0;
+
+    > button {
+      border-radius: 0;
+    }
+  }
+`;
+const VirtualRowPositioner = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
 `;

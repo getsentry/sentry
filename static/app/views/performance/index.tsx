@@ -29,7 +29,7 @@ function PerformanceContainer() {
 
   return (
     <Feature
-      hookName="feature-disabled:performance-page"
+      overrideName="feature-disabled:performance-page"
       features="performance-view"
       organization={organization}
       renderDisabled={renderNoAccess}

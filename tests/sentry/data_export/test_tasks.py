@@ -633,7 +633,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
-        self.project = self.create_project()
+        self.project = self.create_project(organization=self.org)
         self.data = load_data("transaction")
 
     @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 200)
