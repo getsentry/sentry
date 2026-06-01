@@ -96,7 +96,7 @@ dependencies = [
   "sentry-protos>=0.21.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.27",
-  "sentry-scm==0.20.0",
+  "sentry-scm==0.22.0",
   "sentry-sdk[http2]>=2.59.0",
   "sentry-usage-accountant>=0.0.10",
   # remove once there are no unmarked transitive dependencies on setuptools
@@ -390,7 +390,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.endpoints.organization_releases",
-    "sentry.release_health.metrics_sessions_v2",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
@@ -1274,7 +1273,6 @@ module = [
     "sentry.release_health.base",
     "sentry.release_health.eap_sessions_rollout",
     "sentry.release_health.metrics",
-    "sentry.release_health.metrics_sessions_v2",
     "sentry.release_health.tasks",
     "sentry.releases",
     "sentry.releases.endpoints.*",
