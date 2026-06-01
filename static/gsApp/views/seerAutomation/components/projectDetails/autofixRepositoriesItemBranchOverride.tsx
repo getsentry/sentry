@@ -5,7 +5,7 @@ import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {BranchOverride} from 'sentry/components/events/autofix/types';
+import type {SeerProjectRepoBranchOverrideInput} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerRepos';
 import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
 import {overrideHasAnyValue} from 'sentry/components/events/autofix/utils/overrideHasAnyValue';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
@@ -16,8 +16,8 @@ import {t} from 'sentry/locale';
 interface Props {
   canWrite: boolean;
   onRemoveOverride: () => void;
-  onUpdateOverride: (updatedOverride: BranchOverride) => void;
-  override: BranchOverride;
+  onUpdateOverride: (updatedOverride: SeerProjectRepoBranchOverrideInput) => void;
+  override: SeerProjectRepoBranchOverrideInput;
 }
 
 export function AutofixRepositoriesItemBranchOverride({
@@ -43,38 +43,38 @@ export function AutofixRepositoriesItemBranchOverride({
       <Text wrap="nowrap">{t('When')}</Text>
       <Input
         disabled={!canWrite}
-        onChange={e => onUpdateOverride({...override, tag_name: e.target.value})}
+        onChange={e => onUpdateOverride({...override, tagName: e.target.value})}
         placeholder={t('Tag name (e.g. environment)')}
         size="sm"
         style={{
-          ...getErrorStyle(override.tag_name),
+          ...getErrorStyle(override.tagName),
           width: '170px',
         }}
-        value={override.tag_name}
+        value={override.tagName}
       />
       <Text wrap="nowrap">{t('is')}</Text>
       <Input
         disabled={!canWrite}
-        onChange={e => onUpdateOverride({...override, tag_value: e.target.value})}
+        onChange={e => onUpdateOverride({...override, tagValue: e.target.value})}
         placeholder={t('Tag value (e.g. staging)')}
         size="sm"
         style={{
-          ...getErrorStyle(override.tag_value),
+          ...getErrorStyle(override.tagValue),
           width: '170px',
         }}
-        value={override.tag_value}
+        value={override.tagValue}
       />
       <Text wrap="nowrap">{t('look at')}</Text>
       <Input
         disabled={!canWrite}
-        onChange={e => onUpdateOverride({...override, branch_name: e.target.value})}
+        onChange={e => onUpdateOverride({...override, branchName: e.target.value})}
         placeholder={t('Branch name (e.g. dev)')}
         size="sm"
         style={{
-          ...getErrorStyle(override.branch_name),
+          ...getErrorStyle(override.branchName),
           width: '170px',
         }}
-        value={override.branch_name}
+        value={override.branchName}
       />
       <Button
         aria-label={t('Remove override')}

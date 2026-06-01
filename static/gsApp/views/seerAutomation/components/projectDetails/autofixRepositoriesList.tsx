@@ -10,11 +10,13 @@ import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import type {
-  ProjectSeerPreferences,
-  SeerRepoDefinition,
-} from 'sentry/components/events/autofix/types';
+import type {SeerProjectRepoInput} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerRepos';
+import {
+  useAddProjectSeerRepos,
+  useDeleteProjectSeerRepo,
+  useProjectSeerRepos,
+  useUpdateProjectSeerRepo,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerRepos';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -34,12 +36,7 @@ import {AutofixRepositoriesItem} from 'getsentry/views/seerAutomation/components
 
 interface Props {
   canWrite: boolean;
-  preference: ProjectSeerPreferences;
   project: Project;
-
-  // TODO(ryan953): We can use code-mapping-repos to pre-populate the repo list,
-  // maybe we offer it as an import button that pulls them in.
-  codeMappingRepos?: undefined | SeerRepoDefinition[];
 }
 
 const getTableHeaders = (organization: Organization): React.ReactNode[] => [
@@ -60,84 +57,77 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   null,
 ];
 
-export function AutofixRepositories({canWrite, preference, project}: Props) {
+export function AutofixRepositories({canWrite, project}: Props) {
   const {openModal} = useModal();
 
   const organization = useOrganization();
 
+  const {data: repos, isPending} = useProjectSeerRepos(project);
+  const connectedRepos = useMemo(() => repos ?? [], [repos]);
+
+  // Org repos are only needed to power the "Add" modal and to translate the
+  // externalId selections it returns into the repositoryId (Repository PK) the
+  // seer/repos endpoints expect.
   const repositoriesQuery = useInfiniteQuery({
     ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
     select: selectUniqueRepos,
   });
   useFetchAllPages({result: repositoriesQuery});
-  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
+  const {data: orgRepositories} = repositoriesQuery;
 
-  const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
-
-  const tableHeaders = getTableHeaders(organization);
-
-  const repoMap = useMemo(
-    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo])),
-    [preference]
+  const orgRepoIdByExternalId = useMemo(
+    () => new Map((orgRepositories ?? []).map(repo => [repo.externalId, repo.id])),
+    [orgRepositories]
   );
 
-  const handleSaveRepoList = (updatedRepositories: SeerRepoDefinition[]) => {
-    updateProjectSeerPreferences(
-      {
-        repositories: updatedRepositories,
-        automated_run_stopping_point: preference?.automated_run_stopping_point,
-        automation_handoff: preference?.automation_handoff,
-      },
-      {
-        onError: () => addErrorMessage(t('Failed to connect repositories')),
-        onSuccess: () =>
-          addSuccessMessage(
-            t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
-          ),
-      }
-    );
-  };
+  const {mutate: addRepos} = useAddProjectSeerRepos(project);
+  const {mutate: deleteRepo} = useDeleteProjectSeerRepo(project);
+  const {mutate: updateRepo} = useUpdateProjectSeerRepo(project);
+
+  const tableHeaders = getTableHeaders(organization);
 
   const handleAddRepoClick = () => {
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
-        selectedRepoIds={repoMap.keys().toArray()}
-        onSave={(repoIds: string[]) => {
-          const updatedRepositories: SeerRepoDefinition[] = repoIds.map(repoId => {
-            // Keep existing repo settings if already configured
-            const existing = repoMap.get(repoId);
-            if (existing) {
-              return existing;
+        selectedRepoIds={connectedRepos.map(repo => repo.externalId)}
+        onSave={(selectedExternalIds: string[]) => {
+          const connectedExternalIds = new Set(
+            connectedRepos.map(repo => repo.externalId)
+          );
+          const newRepos: SeerProjectRepoInput[] = [];
+          for (const externalId of selectedExternalIds) {
+            if (connectedExternalIds.has(externalId)) {
+              continue;
             }
+            const repositoryId = orgRepoIdByExternalId.get(externalId);
+            if (repositoryId === undefined) {
+              continue;
+            }
+            newRepos.push({repositoryId: Number(repositoryId)});
+          }
 
-            // Create new entry with defaults for newly added repos
-            const orgRepo = repositories?.find(r => r.externalId === repoId);
-            const [owner, name] = (orgRepo?.name || '/').split('/');
-            return {
-              organization_id: organization.id,
-              external_id: repoId,
-              name: name ?? orgRepo?.name ?? '',
-              owner: owner ?? '',
-              provider: orgRepo?.provider?.name?.toLowerCase() ?? '',
-              integration_id: orgRepo?.integrationId,
-              branch_name: '',
-              instructions: '',
-              branch_overrides: [],
-            };
+          if (newRepos.length === 0) {
+            return;
+          }
+
+          addRepos(newRepos, {
+            onError: () => addErrorMessage(t('Failed to connect repositories')),
+            onSuccess: () =>
+              addSuccessMessage(
+                t('%s repo(s) connected to %s', newRepos.length, project.slug)
+              ),
           });
-
-          handleSaveRepoList(updatedRepositories);
         }}
       />
     ));
   };
 
-  if (isFetchingRepositories) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
-  if (!repoMap.size) {
+  if (connectedRepos.length === 0) {
     return (
       <PanelTable headers={tableHeaders.slice(0, 1)}>
         <Flex padding="2xl" align="center" justify="center" gap="xl">
@@ -175,35 +165,27 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
         </Button>
       </Flex>
       <StyledPanelTable headers={tableHeaders}>
-        {repoMap
-          .values()
-          .toArray()
-          .map(repository => (
-            <AutofixRepositoriesItem
-              key={repository.external_id}
-              canWrite={canWrite}
-              repositories={repoMap.values().toArray()}
-              repository={repository}
-              onRemoveRepo={() => {
-                handleSaveRepoList(
-                  repoMap
-                    .values()
-                    .toArray()
-                    .filter(repo => repo.external_id !== repository.external_id)
-                );
-              }}
-              onUpdateRepo={(updatedRepo: SeerRepoDefinition) => {
-                handleSaveRepoList(
-                  repoMap
-                    .values()
-                    .toArray()
-                    .map(repo =>
-                      repo.external_id === updatedRepo.external_id ? updatedRepo : repo
-                    )
-                );
-              }}
-            />
-          ))}
+        {connectedRepos.map(repository => (
+          <AutofixRepositoriesItem
+            key={repository.repositoryId}
+            canWrite={canWrite}
+            repositoryCount={connectedRepos.length}
+            repository={repository}
+            onRemoveRepo={() => {
+              deleteRepo(repository.repositoryId, {
+                onError: () => addErrorMessage(t('Failed to disconnect repository')),
+              });
+            }}
+            onUpdateRepo={update => {
+              updateRepo(
+                {repositoryId: repository.repositoryId, data: update},
+                {
+                  onError: () => addErrorMessage(t('Failed to update repository')),
+                }
+              );
+            }}
+          />
+        ))}
       </StyledPanelTable>
     </Stack>
   );

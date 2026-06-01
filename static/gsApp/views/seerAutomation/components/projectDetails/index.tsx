@@ -28,7 +28,7 @@ const DEFAULT_PREFERENCE: ProjectSeerPreferences = {
 export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();
   const {data, isPending, isError} = useProjectSeerPreferences(project);
-  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
+  const {preference} = data ?? {};
 
   const canWrite = hasEveryAccess(['project:write'], {organization, project});
 
@@ -61,12 +61,7 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
         <LoadingError message={t('Failed to load Seer settings')} />
       ) : (
         <Stack gap="2xl">
-          <AutofixRepositories
-            canWrite={canWrite}
-            codeMappingRepos={codeMappingRepos}
-            preference={preference ?? DEFAULT_PREFERENCE}
-            project={project}
-          />
+          <AutofixRepositories canWrite={canWrite} project={project} />
           <AutofixAgent
             canWrite={canWrite}
             preference={preference ?? DEFAULT_PREFERENCE}
