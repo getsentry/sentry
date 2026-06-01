@@ -313,17 +313,18 @@ function Root({
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      onMouseDown?.(containerSize);
+      onMouseDown?.(Math.min(containerSize, max));
       onDragStart(event);
     },
-    [onDragStart, containerSize, onMouseDown]
+    [onDragStart, containerSize, max, onMouseDown]
   );
 
   const handleDoubleClick = useCallback(() => {
-    const startSize = containerSize;
-    setSize(resetSize, true);
-    handleResizeEnd(startSize, resetSize);
-  }, [containerSize, resetSize, setSize, handleResizeEnd]);
+    const startSize = Math.min(containerSize, max);
+    const target = Math.min(resetSize, max);
+    setSize(target, true);
+    handleResizeEnd(startSize, target);
+  }, [containerSize, max, resetSize, setSize, handleResizeEnd]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
