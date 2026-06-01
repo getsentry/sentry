@@ -50,7 +50,7 @@ const {
       id: '9f1886bb41ddab96415ecb5c85ac43b1',
       'issue.id': 22,
       issue: 'JAVASCRIPT-UNDEF',
-      title: 'Maximum update depth exceeded',
+      title: 'Maximum update depth exceeded!',
       level: 'error',
       'project.name': 'javascript',
     }),
