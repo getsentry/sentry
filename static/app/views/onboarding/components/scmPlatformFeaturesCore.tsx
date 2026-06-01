@@ -100,6 +100,15 @@ export function ScmPlatformFeaturesCore({
 
   const [showManualPicker, setShowManualPicker] = useState(false);
 
+  // Reset the manual-picker toggle when the user changes repositories so
+  // the freshly-detected platforms for the new repo are surfaced instead
+  // of leaving the manual picker visible from the prior repo. Keyed on
+  // externalId since it is stable across the optimistic -> resolved
+  // transition for a given selection.
+  useEffect(() => {
+    setShowManualPicker(false);
+  }, [selectedRepository?.externalId]);
+
   useEffect(() => {
     trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
   }, [organization, analyticsFlow]);
