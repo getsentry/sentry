@@ -1,7 +1,11 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
@@ -29,7 +33,9 @@ export function SelectionKeyHandler({
   undo,
   gridRef,
 }: SelectionKeyHandlerProps) {
-  const {dispatch, disabled, currentInputValueRef} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
+  const {disabled} = useSearchQueryBuilderConfig();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {selectInDirection} = useKeyboardSelection();
 
   const selectedTokens = [...state.collection.getKeys()]

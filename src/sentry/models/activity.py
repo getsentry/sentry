@@ -125,7 +125,10 @@ class Activity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_activity"
-        indexes = (models.Index(fields=("project", "datetime")),)
+        indexes = (
+            models.Index(fields=("project", "datetime")),
+            models.Index(fields=("project", "type")),
+        )
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 

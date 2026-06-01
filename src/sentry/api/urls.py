@@ -106,9 +106,7 @@ from sentry.core.endpoints.organization_member_team_details import (
 from sentry.core.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
-)
-from sentry.core.endpoints.organization_projects_experiment import (
-    OrganizationProjectsExperimentEndpoint,
+    OrganizationProjectsExperimentalCompatEndpoint,
 )
 from sentry.core.endpoints.organization_request_project_creation import (
     OrganizationRequestProjectCreation,
@@ -759,7 +757,6 @@ from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
-    OrganizationEventsTraceLightEndpoint,
     OrganizationEventsTraceMetaEndpoint,
 )
 from .endpoints.organization_events_trends import (
@@ -1903,11 +1900,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-trends-statsv2",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationEventsTraceLightEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trace-light",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventsTraceEndpoint.as_view(),
         name="sentry-api-0-organization-events-trace",
@@ -2216,10 +2208,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
     ),
+    # TODO: remove once frontend PR lands (ref/onboarding-project-creation-url)
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/experimental/projects/$",
-        OrganizationProjectsExperimentEndpoint.as_view(),
-        name="sentry-api-0-organization-projects-experiment",
+        OrganizationProjectsExperimentalCompatEndpoint.as_view(),
+        name="sentry-api-0-organization-projects-experimental-compat",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/projects-count/$",
@@ -2825,7 +2818,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/reprocessable/$",
         EventReprocessableEndpoint.as_view(),
-        name="sentry-api-0-event-attachments",
+        name="sentry-api-0-event-reprocessable",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/attachments/(?P<attachment_id>[^/]+)/$",

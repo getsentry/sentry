@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection
 from typing import Any
 
 import jsonschema
@@ -62,8 +63,10 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
+    InvalidImageNamePattern,
     SnapshotManifest,
     image_metadata_extras,
+    make_image_name_matcher,
 )
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -99,6 +102,13 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
             "maxItems": 50000,
         },
+        # Sanity bounds for client-supplied patterns; ReDoS-safety comes from RE2's
+        # linear-time matching (see make_image_name_matcher in manifest.py).
+        "all_image_file_names_as_regex": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": 500},
+            "maxItems": 100,
+        },
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
@@ -110,6 +120,7 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "images": "The images field is required and must be an object mapping image names to image metadata.",
     "selective": "The selective field must be a boolean.",
     "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 50000 entries.",
+    "all_image_file_names_as_regex": "The all_image_file_names_as_regex field must be an array of regex pattern strings (each at most 500 characters) with at most 100 entries.",
     **VCS_ERROR_MESSAGES,
 }
 
@@ -172,6 +183,35 @@ def _format_validation_error(e: jsonschema.ValidationError) -> str:
             return friendly
 
     return e.message
+
+
+def _validate_image_name_coverage(
+    image_names: Collection[str],
+    all_image_file_names: list[str] | None,
+    all_image_file_names_as_regex: list[str] | None,
+) -> str | None:
+    """
+    Ensure every uploaded image name is covered by the head build's declared set
+    of image names (a literal name list or a list of regex patterns). Returns an
+    error detail string, or None when valid.
+    """
+    if all_image_file_names is not None:
+        if not all_image_file_names:
+            return "all_image_file_names must not be empty."
+        if set(image_names) - set(all_image_file_names):
+            return "Every image name must appear in all_image_file_names."
+
+    if all_image_file_names_as_regex is not None:
+        if not all_image_file_names_as_regex:
+            return "all_image_file_names_as_regex must not be empty."
+        try:
+            matches = make_image_name_matcher(all_image_file_names_as_regex)
+        except InvalidImageNamePattern as e:
+            return f"all_image_file_names_as_regex contains an invalid regex pattern: {e.pattern}"
+        if any(not matches(name) for name in image_names):
+            return "Every image name must match a pattern in all_image_file_names_as_regex."
+
+    return None
 
 
 def _format_pydantic_error(e: pydantic.ValidationError) -> str:
@@ -673,10 +713,23 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         selective = data.get("selective", False)
         all_image_file_names = data.get("all_image_file_names")
+        all_image_file_names_as_regex = data.get("all_image_file_names_as_regex")
 
-        if all_image_file_names is not None and not selective:
+        if all_image_file_names is not None and all_image_file_names_as_regex is not None:
             return Response(
-                {"detail": "all_image_file_names requires selective to be true."},
+                {
+                    "detail": "all_image_file_names and all_image_file_names_as_regex are mutually exclusive."
+                },
+                status=400,
+            )
+
+        if (
+            all_image_file_names is not None or all_image_file_names_as_regex is not None
+        ) and not selective:
+            return Response(
+                {
+                    "detail": "all_image_file_names and all_image_file_names_as_regex require selective to be true."
+                },
                 status=400,
             )
 
@@ -686,19 +739,11 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        if all_image_file_names is not None:
-            if not all_image_file_names:
-                return Response(
-                    {"detail": "all_image_file_names must not be empty."},
-                    status=400,
-                )
-            all_image_file_names_set = set(all_image_file_names)
-            missing = set(images.keys()) - all_image_file_names_set
-            if missing:
-                return Response(
-                    {"detail": "Every image name must appear in all_image_file_names."},
-                    status=400,
-                )
+        coverage_error = _validate_image_name_coverage(
+            images.keys(), all_image_file_names, all_image_file_names_as_regex
+        )
+        if coverage_error:
+            return Response({"detail": coverage_error}, status=400)
 
         # Validate before entering the transaction so invalid data never creates
         # orphaned DB records.
@@ -708,6 +753,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 diff_threshold=diff_threshold,
                 selective=selective,
                 all_image_file_names=all_image_file_names,
+                all_image_file_names_as_regex=all_image_file_names_as_regex,
             )
         except pydantic.ValidationError as e:
             return Response(

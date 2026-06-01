@@ -150,7 +150,7 @@ async def proxy_cell_request(
     url_name: str,
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
-    metric_tags = {"region": cell.name, "url_name": url_name}
+    metric_tags = {"destination_cell": cell.name, "url_name": url_name}
     target_url = urljoin(cell.address, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")

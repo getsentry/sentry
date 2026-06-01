@@ -97,9 +97,6 @@
     "/api/0/organizations/{organization_id_or_slug}/repos/": {
       "$ref": "paths/organizations/repos.json"
     },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/files/dsyms/": {
-      "$ref": "paths/projects/dsyms.json"
-    },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/users/": {
       "$ref": "paths/projects/users.json"
     },
@@ -126,9 +123,6 @@
     },
     "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/hashes/": {
       "$ref": "paths/events/issue-hashes.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/": {
-      "$ref": "paths/events/issue-details.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/releases/": {
       "$ref": "paths/releases/organization-releases.json"

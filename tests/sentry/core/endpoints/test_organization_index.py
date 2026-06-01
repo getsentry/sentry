@@ -176,15 +176,28 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org1.id)
 
-    def test_owner_not_supported(self) -> None:
-        self.create_organization(cell="us", owner=self.user)
+    def test_ownership_across_cells(self) -> None:
+        org_a = self.create_organization(cell="us", name="A", owner=self.user)
+        org_b = self.create_organization(cell="de", name="B", owner=self.user)
 
-        response = self.get_error_response(status_code=400, owner="1")
+        user2 = self.create_user(email="user2@example.com")
+        org_c = self.create_organization(cell="us", name="C", owner=user2)
+        self.create_organization(cell="de", name="D", owner=user2)
+        org_e = self.create_organization(cell="us", name="E", owner=user2)
 
-        assert (
-            response.data["detail"]
-            == "The control-silo organizations endpoint does not support owner=1."
-        )
+        self.create_member(user=user2, organization=org_b, role="owner")
+        self.create_member(user=self.user, organization=org_c, role="owner")
+        self.create_member(user=self.user, organization=org_e, role="member")
+
+        response = self.get_success_response(qs_params={"owner": 1})
+
+        assert len(response.data) == 3
+        assert response.data[0]["organization"]["id"] == str(org_a.id)
+        assert response.data[0]["singleOwner"] is True
+        assert response.data[1]["organization"]["id"] == str(org_b.id)
+        assert response.data[1]["singleOwner"] is False
+        assert response.data[2]["organization"]["id"] == str(org_c.id)
+        assert response.data[2]["singleOwner"] is False
 
     def test_sort_by_members(self) -> None:
         smaller_org = self.create_organization(

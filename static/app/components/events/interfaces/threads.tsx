@@ -36,9 +36,9 @@ import type {Group} from 'sentry/types/group';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
