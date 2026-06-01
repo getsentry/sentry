@@ -104,9 +104,9 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
           <field.Layout.Row
             label={t('Handoff to Agent')}
             hintText={
-              <Text>
+              <Text variant="muted">
                 {tct(
-                  'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step.',
+                  'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
                   {
                     manageLink: (
                       <Link
@@ -137,14 +137,6 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
                     (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
                   }
                 />
-                <Link
-                  to={{
-                    pathname: `/settings/${organization.slug}/integrations/`,
-                    query: {category: 'coding agent'},
-                  }}
-                >
-                  {t('Manage Coding Agents')}
-                </Link>
               </Stack>
             )}
           </field.Layout.Row>
