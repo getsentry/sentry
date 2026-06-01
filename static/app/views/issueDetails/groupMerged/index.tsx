@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -12,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MergedList} from './mergedList';
@@ -23,7 +22,6 @@ import {
 
 type Props = {
   groupId: Group['id'];
-  location: Location;
   project: Project;
 };
 
@@ -35,14 +33,14 @@ interface GroupMergedContentProps {
   fingerprints: Fingerprint[];
   groupId: Group['id'];
   loading: boolean;
-  location: Location;
   organization: Organization;
   project: Project;
   refetch: () => void;
   pageLinks?: string;
 }
 
-export function GroupMergedView({project, groupId, location}: Props) {
+export function GroupMergedView({project, groupId}: Props) {
+  const location = useLocation();
   const organization = useOrganization();
   const {dataUpdatedAt, error, fingerprints, loading, pageLinks, refetch} =
     useGroupMergedHashes({
@@ -57,7 +55,6 @@ export function GroupMergedView({project, groupId, location}: Props) {
       error={error}
       fingerprints={fingerprints}
       groupId={groupId}
-      location={location}
       loading={loading}
       organization={organization}
       pageLinks={pageLinks}
@@ -71,13 +68,13 @@ function GroupMergedContent({
   error,
   fingerprints,
   groupId,
-  location,
   loading,
   organization,
   pageLinks,
   project,
   refetch,
 }: GroupMergedContentProps) {
+  const location = useLocation();
   const {
     enableFingerprintCompare,
     selectedEventIds,

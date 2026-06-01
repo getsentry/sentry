@@ -111,14 +111,14 @@ function getMergedHashesPaginationCaption({
   const end = offset + pageLength;
   const links = parseLinkHeader(pageLinks);
 
-  if (links.next?.results === false) {
-    return tct('[count] of [total]', {
-      count: end.toLocaleString(),
-      total: end.toLocaleString(),
-    });
+  if (links.next?.results !== false) {
+    return;
   }
 
-  return tct('[count] shown', {count: end.toLocaleString()});
+  return tct('[count] of [total]', {
+    count: end.toLocaleString(),
+    total: end.toLocaleString(),
+  });
 }
 
 const MergedPanel = styled(Panel)`
