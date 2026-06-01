@@ -42,6 +42,16 @@ export function PictureInPicturePortal({
     return pipCache;
   }, [pipWindow]);
 
+  // Make the PiP document fill the window so content with `height: 100%`
+  // stretches the full height (the main app gets this from its base stylesheet,
+  // which isn't guaranteed in the PiP document).
+  useEffect(() => {
+    const {documentElement, body} = pipWindow.document;
+    documentElement.style.height = '100%';
+    body.style.height = '100%';
+    body.style.margin = '0';
+  }, [pipWindow]);
+
   // Keep the PiP body's theme class in sync so global body selectors
   // (e.g. `body.theme-dark`) apply after a theme toggle.
   useEffect(() => {
