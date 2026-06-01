@@ -7,10 +7,12 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model
 from sentry.db.models.base import control_silo_model, sane_repr
 from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import CELL_NAME_LENGTH
 
 
@@ -25,8 +27,12 @@ class OrganizationSlugReservationType(IntEnum):
 
 
 @control_silo_model
-class OrganizationSlugReservation(Model):
+class OrganizationSlugReservation(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.Excluded
+
+    # TODO(cells) can this model not flush by default?
+    # If flushes can become async that removes more blocking work from provisioning paths.
+    category = OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE
 
     slug = models.SlugField(unique=True, null=False)
     organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="CASCADE")
@@ -61,3 +67,14 @@ class OrganizationSlugReservation(Model):
 
         kwds.pop("unsafe_write")
         return super().update(*args, **kwds)
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
+        """
+        Called by ControlOutboxProducingBase to create an outbox message when this record changes.
+        """
+        return self.category.as_control_outboxes(
+            cell_names=[self.cell_name],
+            model=self,
+            payload=None,
+            shard_identifier=shard_identifier,
+        )
