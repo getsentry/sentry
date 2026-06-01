@@ -84,8 +84,12 @@ function ConversationsOverviewPage() {
         unsetCursor();
       },
       searchSource: 'conversations',
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.name'] : undefined,
+      replaceRawSearchKeys: hasRawSearchReplacement
+        ? ['gen_ai.input.messages']
+        : undefined,
       matchKeySuggestions: [
+        {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},
+        {key: 'gen_ai.conversation.id', valuePattern: /^resp_/},
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],

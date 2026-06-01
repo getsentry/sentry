@@ -96,7 +96,9 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         },
         examples=TeamExamples.LIST_ORG_TEAMS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[TeamSerializerResponse]]:
         """
         Returns a list of teams bound to a organization.
         """

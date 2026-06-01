@@ -311,6 +311,10 @@ class RPCBase:
                 raise InvalidSearchQuery("orderby must also be in the selected columns or groupby")
             else:
                 resolved_column = resolver.resolve_column(stripped_orderby)[0]
+                if resolver.should_hide_api_column(stripped_orderby, resolved_column):
+                    raise InvalidSearchQuery(
+                        "orderby must also be in the selected columns or groupby"
+                    )
 
             # Virtual context columns transform values (e.g. "1" -> "low") which
             # can produce an undesirable alphabetical sort order. When a sort_column
@@ -324,6 +328,10 @@ class RPCBase:
                     internal_name=context_def.sort_column,
                     search_type="string",
                 )
+                if resolver.should_hide_api_column(stripped_orderby, sort_col):
+                    raise InvalidSearchQuery(
+                        "orderby must also be in the selected columns or groupby"
+                    )
                 orderby_resolved = sort_col
                 all_columns.append(sort_col)
                 sort_column_aliases.add(sort_alias)

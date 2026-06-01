@@ -16,10 +16,11 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -110,7 +111,7 @@ interface LogsSearchBarProps {
 }
 
 function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <LogsTabSeerComboBox />;
@@ -248,6 +249,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
 
 function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const {openModal} = useModal();
+  const organization = useOrganization();
 
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
@@ -393,6 +395,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = (tab: 'aggregates' | 'logs') => {
+    trackAnalytics('logs.explorer.table_tab_changed', {organization, tab});
     if (tab === 'aggregates') {
       setSidebarOpen(true);
       setMode(Mode.AGGREGATE);

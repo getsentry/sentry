@@ -1,6 +1,7 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import type {UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
@@ -23,8 +24,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,7 +48,7 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {usePrefetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
@@ -64,7 +63,6 @@ import {
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   DetailsBody,
   DetailsContent,
@@ -120,6 +118,7 @@ type LogsRowProps = {
   };
   expansionKey?: string;
   isExpanded?: boolean;
+  isPinned?: boolean;
   logEnd?: string;
   logStart?: string;
   onCollapse?: (logItemId: string) => void;
@@ -128,6 +127,7 @@ type LogsRowProps = {
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
+  togglePinnedRow?: (logItemId: string) => void;
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
@@ -214,6 +214,8 @@ export const LogRowContent = memo(function LogRowContent({
   onEmbeddedRowClick,
   logStart,
   logEnd,
+  isPinned,
+  togglePinnedRow,
   showCellActions,
   showExploreSimilarSpansLink,
 }: LogsRowProps) {
@@ -230,8 +232,6 @@ export const LogRowContent = memo(function LogRowContent({
 
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
   const expansionKey = expansionKeyProp ?? rowId;
-  const logsPinning = useLogsPinning();
-  const isPinned = logsPinning?.pinnedRows.has(rowId);
 
   const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(isPinned);
 
@@ -316,12 +316,16 @@ export const LogRowContent = memo(function LogRowContent({
   const prefetchTimeout = autorefreshEnabled
     ? DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH
     : DEFAULT_TRACE_ITEM_HOVER_TIMEOUT;
-  const {hoverProps, traceItemsResult} = useFetchTraceItemDetailsOnHover({
+  const logTimestampSeconds = isRegularLogResponseItem(dataRow)
+    ? getLogRowTimestampMillis(dataRow) / 1000
+    : null;
+  const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
     traceItemId: rowId,
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
+    timestamp: logTimestampSeconds,
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
@@ -341,7 +345,7 @@ export const LogRowContent = memo(function LogRowContent({
     projectSlug,
     meta,
     project,
-    traceItemMeta: traceItemsResult?.data?.meta,
+    traceItemMeta,
     timestampRelativeTo: embeddedOptions?.replay?.timestampRelativeTo,
     onReplayTimeClick: embeddedOptions?.replay?.onReplayTimeClick,
     logStart,
@@ -441,7 +445,7 @@ export const LogRowContent = memo(function LogRowContent({
         </LogsTableBodyFirstCell>
         {fields?.map((field, index) => {
           const pin =
-            logsPinning && index === fields.length - 1 ? (
+            togglePinnedRow && index === fields.length - 1 ? (
               <LogPinButton
                 aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
                 icon={
@@ -450,7 +454,7 @@ export const LogRowContent = memo(function LogRowContent({
                 isPinned={isPinned}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
-                  logsPinning.togglePinnedRow(rowId);
+                  togglePinnedRow(dataRow[OurLogKnownFieldKey.ID]);
                 }}
                 size="xs"
                 variant="transparent"
@@ -615,6 +619,9 @@ function LogRowDetails({
     logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
+    timestamp: isRegularLogResponseItem(dataRow)
+      ? getLogRowTimestampMillis(dataRow) / 1000
+      : null,
     enabled: !missingLogId && !isPseudoRow,
   });
 
@@ -652,7 +659,9 @@ function LogRowDetails({
   }
 
   const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
-  const message = String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '');
+  const message = String(
+    attributes[OurLogKnownFieldKey.MESSAGE] ?? dataRow[OurLogKnownFieldKey.MESSAGE] ?? ''
+  );
 
   return (
     <DetailsWrapper ref={isPending ? undefined : ref}>
@@ -664,7 +673,10 @@ function LogRowDetails({
               <DetailsBody>
                 {isRegularLogResponseItem(dataRow) ? (
                   <LogBodyRenderer
-                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                    item={{
+                      ...getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                      value: message,
+                    }}
                     extra={{
                       highlightTerms,
                       logColors,
@@ -734,7 +746,7 @@ function LogRowDetails({
   );
 }
 
-function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
+function LogRowDetailsFilterActions({message}: {message: string}) {
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
@@ -745,7 +757,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
-            value: tableDataRow[OurLogKnownFieldKey.MESSAGE],
+            value: message,
           });
         }}
       >
@@ -758,7 +770,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
-            value: tableDataRow[OurLogKnownFieldKey.MESSAGE],
+            value: message,
             negated: true,
           });
         }}
@@ -773,13 +785,18 @@ function LogRowDetailsActions({
   fullLogDataResult,
   tableDataRow,
 }: {
-  fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
+  fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
   tableDataRow: LogTableRowItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
   const showFilterButtons = !isFrozen;
+  const message = String(
+    data?.attributes?.find(attr => attr.name === OurLogKnownFieldKey.MESSAGE)?.value ??
+      tableDataRow[OurLogKnownFieldKey.MESSAGE] ??
+      ''
+  );
 
   const {copy} = useCopyToClipboard();
 
@@ -803,11 +820,7 @@ function LogRowDetailsActions({
 
   return (
     <Fragment>
-      {showFilterButtons ? (
-        <LogRowDetailsFilterActions tableDataRow={tableDataRow} />
-      ) : (
-        <span />
-      )}
+      {showFilterButtons ? <LogRowDetailsFilterActions message={message} /> : <span />}
       <LogDetailTableActionsButtonBar>
         <Button
           variant="transparent"

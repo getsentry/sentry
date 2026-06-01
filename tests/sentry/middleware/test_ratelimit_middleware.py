@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time
 from unittest.mock import MagicMock, patch, sentinel
@@ -20,6 +19,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
 @all_silo_test
@@ -608,7 +608,7 @@ class TestConcurrentRateLimiter(APITestCase):
 
     def test_concurrent_request_rate_limiting(self) -> None:
         """test the concurrent rate limiter end to-end"""
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=4) as executor:
             futures = []
             # dispatch more simultaneous requests to the endpoint than the concurrent limit
             for _ in range(CONCURRENT_RATE_LIMIT + 1):

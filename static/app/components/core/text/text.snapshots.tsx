@@ -19,7 +19,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      size => ({theme: themeName, size})
+      size => ({tags: {size, area: 'core'}})
     );
 
     it.snapshot.each([
@@ -39,7 +39,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      variant => ({theme: themeName, variant})
+      variant => ({tags: {variant, area: 'core'}})
     );
 
     it.snapshot(
@@ -51,7 +51,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -63,7 +63,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -75,7 +75,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -87,7 +87,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -99,7 +99,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -111,7 +111,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -123,7 +123,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -135,7 +135,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -147,7 +147,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot.each(['left', 'center', 'right', 'justify'] as const)(
@@ -161,7 +161,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      align => ({theme: themeName, align})
+      align => ({tags: {align, area: 'core'}})
     );
 
     it.snapshot.each(['compressed', 'comfortable'] as const)(
@@ -176,7 +176,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      density => ({theme: themeName, density})
+      density => ({tags: {density, area: 'core'}})
     );
 
     it.snapshot(
@@ -190,7 +190,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -204,7 +204,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot.each(['balance', 'pretty', 'nowrap', 'stable'] as const)(
@@ -218,7 +218,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      textWrap => ({theme: themeName, textWrap})
+      textWrap => ({tags: {textWrap, area: 'core'}})
     );
 
     it.snapshot.each(['nowrap', 'pre', 'pre-line', 'pre-wrap'] as const)(
@@ -230,7 +230,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      wrap => ({theme: themeName, wrap})
+      wrap => ({tags: {wrap, area: 'core'}})
     );
 
     // === Combined props ===
@@ -245,7 +245,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -259,7 +259,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -273,7 +273,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -287,7 +287,7 @@ describe('Text', () => {
           </div>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
 
     it.snapshot(
@@ -302,7 +302,7 @@ describe('Text', () => {
           </Container>
         </ThemeProvider>
       ),
-      {theme: themeName}
+      {tags: {area: 'core'}}
     );
   });
 });

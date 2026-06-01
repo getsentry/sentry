@@ -12,17 +12,21 @@ import {
   getLogoImage,
   type ContextIconProps,
 } from 'sentry/components/events/contexts/contextIcon';
+import {getAccessibilityContextData} from 'sentry/components/events/contexts/knownContext/accessibility';
 import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
 import {getARTContextData} from 'sentry/components/events/contexts/knownContext/art';
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
 import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
+import {getDartContextData} from 'sentry/components/events/contexts/knownContext/dartContext';
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
+import {getFlutterContextData} from 'sentry/components/events/contexts/knownContext/flutterContext';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
+import {getReactNativeContextData} from 'sentry/components/events/contexts/knownContext/reactNativeContext';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
 import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
 import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
@@ -296,6 +300,12 @@ export function getContextTitle({
       return t('OTA Updates');
     case 'react_native_context':
       return t('React Native');
+    case 'accessibility':
+      return t('Accessibility');
+    case 'flutter_context':
+      return t('Flutter');
+    case 'dart_context':
+      return t('Dart');
     default:
       return contextType;
   }
@@ -440,6 +450,14 @@ export function getFormattedContextData({
       return getCultureContextData({data: contextValue, meta});
     case 'missing_instrumentation':
       return getMissingInstrumentationContextData({data: contextValue, meta});
+    case 'accessibility':
+      return getAccessibilityContextData({data: contextValue, meta});
+    case 'react_native_context':
+      return getReactNativeContextData({data: contextValue, meta});
+    case 'flutter_context':
+      return getFlutterContextData({data: contextValue, meta});
+    case 'dart_context':
+      return getDartContextData({data: contextValue, meta});
     default:
       return getContextKeys({data: contextValue}).map(ctxKey => ({
         key: ctxKey,

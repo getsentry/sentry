@@ -1,10 +1,11 @@
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 
 import {ProblemSection} from './problemSection';
 import {TroubleshootingSection} from './troubleshootingSection';
+import {getLowValueSpanEvidenceData} from './types';
 
 interface LowValueSpanIssueDetailsProps {
   event: Event;
@@ -12,12 +13,14 @@ interface LowValueSpanIssueDetailsProps {
   project: Project;
 }
 
-export function LowValueSpanIssueDetails(_props: LowValueSpanIssueDetailsProps) {
+export function LowValueSpanIssueDetails({event}: LowValueSpanIssueDetailsProps) {
+  const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
+
   return (
     <div>
-      <ProblemSection />
+      <ProblemSection evidenceData={evidenceData} />
       <SectionDivider orientation="horizontal" />
-      <TroubleshootingSection />
+      <TroubleshootingSection evidenceData={evidenceData} />
     </div>
   );
 }

@@ -359,7 +359,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARDS_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DashboardListResponse]]:
         """
         Retrieve a list of custom dashboards that are associated with the given organization.
         """
