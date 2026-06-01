@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.api.endpoints.organization_trace_item_attributes import (
+from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery

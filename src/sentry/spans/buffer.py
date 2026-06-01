@@ -100,7 +100,7 @@ from __future__ import annotations
 import itertools
 import logging
 import math
-from collections.abc import Generator, MutableMapping, Sequence
+from collections.abc import Generator, Sequence
 from hashlib import blake2b
 from typing import Any, cast
 
@@ -117,7 +117,6 @@ from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.spans.buffer_logger import (
     BufferLogger,
-    DeadlineUpdateLog,
     FlusherLogger,
     FlushSegmentLog,
     InsertSpansMetrics,
@@ -350,53 +349,15 @@ class SpansBuffer:
         timeout: int,
         root_timeout: int,
     ) -> None:
-        with metrics.timer("spans.buffer.process_spans.update_queue"):
-            queue_deletes: dict[bytes, set[bytes]] = {}
-            queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
-
-            for inserted_subsegment in inserted_subsegments:
-                subsegment = inserted_subsegment.subsegment
-                result = inserted_subsegment.result
-
-                queue_key = self.store.get_queue_key(inserted_subsegment.queue_shard)
-
-                # If the currently processed span is a root span, OR the buffer
-                # already had a root span inside, use a different timeout than usual.
-                offset = root_timeout if result.has_root_span else timeout
-
-                zadd_items = queue_adds.setdefault(queue_key, {})
-
-                new_deadline = now + offset
-                zadd_items[result.segment_key] = new_deadline
-
-                DeadlineUpdateLog(
-                    segment_key=result.segment_key,
-                    project_and_trace=inserted_subsegment.project_and_trace,
-                    queue_key=queue_key,
-                    new_deadline=new_deadline,
-                    message_timestamp=now,
-                    has_root_span=result.has_root_span,
-                ).emit(self.client, self._get_debug_trace_logger)
-
-                delete_set = queue_deletes.setdefault(queue_key, set())
-                if not inserted_subsegment.is_detached_segment:
-                    delete_set.update(
-                        self.store.get_span_key(subsegment.project_and_trace, span.span_id)
-                        for span in trees[subsegment.key]
-                    )
-                delete_set.discard(result.segment_key)
-
-            with self.client.pipeline(transaction=False) as p:
-                for queue_key, adds in queue_adds.items():
-                    if adds:
-                        p.zadd(queue_key, adds)
-                        p.expire(queue_key, redis_ttl)
-
-                for queue_key, deletes in queue_deletes.items():
-                    if deletes:
-                        p.zrem(queue_key, *deletes)
-
-                p.execute()
+        self.store.update_queue(
+            trees,
+            inserted_subsegments,
+            now=now,
+            redis_ttl=redis_ttl,
+            timeout=timeout,
+            root_timeout=root_timeout,
+            get_debug_trace_logger=self._get_debug_trace_logger,
+        )
 
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
