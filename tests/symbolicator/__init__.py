@@ -38,6 +38,7 @@ def strip_stacktrace(stacktrace):
 
 
 STRIP_TRAILING_ADDR_RE = re.compile(" ?/ 0x[0-9a-fA-F]+$")
+SNAPSHOT_CONTEXTS_TO_STRIP = frozenset(("reprocessing", "trace"))
 
 
 def strip_trailing_addr(value):
@@ -82,7 +83,9 @@ def insta_snapshot_native_stacktrace_data(self, event: NodeData, **kwargs: Any):
             },
             "debug_meta": event.get("debug_meta"),
             "contexts": {
-                k: v for k, v in (event.get("contexts") or {}).items() if k != "reprocessing"
+                k: v
+                for k, v in (event.get("contexts") or {}).items()
+                if k not in SNAPSHOT_CONTEXTS_TO_STRIP
             }
             or None,
             "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],

@@ -3,6 +3,7 @@ import re
 from datetime import timedelta
 from functools import reduce
 from string import Template
+from typing import Any
 from uuid import uuid4
 
 from django.db import router
@@ -86,7 +87,7 @@ def should_throttle_relocation(relocation_bucket_size: str) -> bool:
     return True
 
 
-class RelocationsPostSerializer(serializers.Serializer):
+class RelocationsPostSerializer(serializers.Serializer[dict[str, Any]]):
     file = serializers.FileField(required=True)
     orgs = serializers.CharField(required=True, allow_blank=False, allow_null=False)
     owner = serializers.CharField(

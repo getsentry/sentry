@@ -6,6 +6,7 @@ from unittest.mock import call
 from sentry.spans.buffer_logger import (
     BufferLogger,
     DeadlineUpdateLog,
+    FlusherAggregate,
     FlusherLogEntry,
     FlusherLogger,
     FlushSegmentLog,
@@ -13,7 +14,14 @@ from sentry.spans.buffer_logger import (
     SubsegmentDebugLog,
     emit_observability_metrics,
 )
-from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
+from sentry.spans.buffer_types import (
+    EvalshaResult,
+    FlushCandidate,
+    InsertedSubsegment,
+    LoadedSegment,
+    Span,
+    Subsegment,
+)
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -301,7 +309,7 @@ def test_flusher_logger_accumulates_segments_and_spans(mock_time):
 
         flusher_logger = FlusherLogger()
 
-        flusher_logger.log(
+        flusher_logger._log_entries(
             [
                 FlusherLogEntry("project1:trace1", 10, 500),
                 FlusherLogEntry("project1:trace1", 20, 800),
@@ -324,7 +332,7 @@ def test_flusher_logger_accumulates_segments_and_spans(mock_time):
         assert flusher_logger._cumulative_load_data_latency_ms == 10
         assert flusher_logger._cumulative_decompress_latency_ms == 3
 
-        flusher_logger.log(
+        flusher_logger._log_entries(
             [FlusherLogEntry("project1:trace1", 15, 600)],
             load_ids_latency_ms=3,
             load_data_latency_ms=7,
@@ -341,6 +349,48 @@ def test_flusher_logger_accumulates_segments_and_spans(mock_time):
 
 
 @mock.patch("sentry.spans.buffer_logger.time")
+def test_flusher_logger_records_loaded_segments(mock_time):
+    with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
+        flusher_logger = FlusherLogger()
+        first_segment_key = _segment_id(1, "a" * 32, "b" * 16)
+        second_segment_key = _segment_id(2, "c" * 32, "d" * 16)
+        empty_segment_key = _segment_id(3, "e" * 32, "f" * 16)
+
+        flusher_logger.log_loaded_segments(
+            [
+                LoadedSegment(
+                    FlushCandidate(0, b"queue", first_segment_key, 5),
+                    [b"first", b"second"],
+                    [],
+                ),
+                LoadedSegment(
+                    FlushCandidate(0, b"queue", empty_segment_key, 5),
+                    [],
+                    [],
+                ),
+                LoadedSegment(
+                    FlushCandidate(0, b"queue", second_segment_key, 5),
+                    [b"third"],
+                    [],
+                ),
+            ],
+            load_ids_latency_ms=5,
+            load_data_latency_ms=10,
+            decompress_latency_ms=3,
+        )
+
+        first_trace = flusher_logger._metrics_per_trace[f"1:{'a' * 32}"]
+        second_trace = flusher_logger._metrics_per_trace[f"2:{'c' * 32}"]
+        assert first_trace == FlusherAggregate(1, 2, len(b"first") + len(b"second"))
+        assert second_trace == FlusherAggregate(1, 1, len(b"third"))
+        assert f"3:{'e' * 32}" not in flusher_logger._metrics_per_trace
+        assert flusher_logger._cumulative_load_ids_latency_ms == 5
+        assert flusher_logger._cumulative_load_data_latency_ms == 10
+        assert flusher_logger._cumulative_decompress_latency_ms == 3
+
+
+@mock.patch("sentry.spans.buffer_logger.time")
 def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time):
     """
     Test that FlusherLogger prunes to top 50 entries by cumulative bytes
@@ -352,7 +402,7 @@ def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time):
         flusher_logger = FlusherLogger()
 
         entries = [FlusherLogEntry(f"project{i}:trace{i}", 10, 1000 - i) for i in range(500)]
-        flusher_logger.log(
+        flusher_logger._log_entries(
             entries, load_ids_latency_ms=20, load_data_latency_ms=30, decompress_latency_ms=10
         )
 
@@ -379,7 +429,7 @@ def test_flusher_logger_logs_and_resets_after_interval(mock_time, mock_logger):
 
         flusher_logger = FlusherLogger()
 
-        flusher_logger.log(
+        flusher_logger._log_entries(
             [
                 FlusherLogEntry("project1:trace1", 10, 500),
                 FlusherLogEntry("project2:trace2", 5, 200),
@@ -391,7 +441,7 @@ def test_flusher_logger_logs_and_resets_after_interval(mock_time, mock_logger):
 
         assert mock_logger.info.call_count == 0
 
-        flusher_logger.log(
+        flusher_logger._log_entries(
             [FlusherLogEntry("project1:trace1", 8, 400)],
             load_ids_latency_ms=10,
             load_data_latency_ms=20,

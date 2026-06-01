@@ -13,7 +13,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
@@ -47,6 +47,7 @@ import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEven
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {useExploreSchemaHintsRemoval} from 'sentry/views/explore/useExploreSchemaHintsRemoval';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 function SpansSearchBar({
@@ -54,7 +55,7 @@ function SpansSearchBar({
 }: {
   spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
 }) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <SpansTabSeerComboBox />;
@@ -153,6 +154,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
+  const schemaHintsRemoval = useExploreSchemaHintsRemoval();
+
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
@@ -197,7 +200,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   <SpansTabCrossEventSearchBars hasIndependentDateColumn />
                 ) : null}
               </Grid>
-              {hasCrossEvents ? null : (
+              {hasCrossEvents || schemaHintsRemoval ? null : (
                 <ExploreSchemaHintsSection>
                   <SchemaHintsList
                     supportedAggregates={

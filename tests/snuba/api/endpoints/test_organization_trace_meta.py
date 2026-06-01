@@ -3,7 +3,10 @@ from uuid import uuid4
 import pytest
 from django.urls import NoReverseMatch, reverse
 
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import (
+    EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION,
+    EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION,
+)
 from sentry.testutils.cases import OccurrenceTestCase, TraceMetricsTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events_trace import (
@@ -66,7 +69,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["spansCount"] == 0
         assert data["spansCountMap"] == {}
         assert data["metricsCount"] == 0
-        assert "uptime_checks" not in data  # Should not be present without include_uptime param
+        assert "uptimeCount" not in data  # Should not be present without include_uptime param
 
         # Invalid trace id
         with pytest.raises(NoReverseMatch):
@@ -115,8 +118,8 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [
                     "api.trace.count_performance_issues"
                 ],
             }
@@ -180,8 +183,8 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [],
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [],
             }
         ):
             with self.feature(self.FEATURES):
@@ -212,10 +215,8 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
         with self.options(
             {
-                EAPOccurrencesComparator._should_eval_option_name(): True,
-                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
-                    "api.trace.count_errors"
-                ],
+                EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True,
+                EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: ["api.trace.count_errors"],
             }
         ):
             with self.feature(self.FEATURES):
@@ -308,7 +309,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         return self.create_eap_uptime_result(**defaults)
 
     def test_trace_meta_without_uptime_param(self) -> None:
-        """Test that uptime_checks field is NOT present when include_uptime is not set"""
+        """Test that uptimeCount field is NOT present when include_uptime is not set"""
         self.load_trace()
         uptime_result = self.create_uptime_check()
         self.store_eap_items([uptime_result])
@@ -321,13 +322,13 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
         assert response.status_code == 200
         data = response.data
-        assert "uptime_checks" not in data
-        assert data["errors"] == 0
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
+        assert "uptimeCount" not in data
+        assert data["errorsCount"] == 0
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
 
     def test_trace_meta_with_uptime_param(self) -> None:
-        """Test that uptime_checks shows correct count when include_uptime=1"""
+        """Test that uptimeCount shows correct count when include_uptime=1"""
         self.load_trace()
 
         uptime_results = [
@@ -346,14 +347,14 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
         assert response.status_code == 200
         data = response.data
-        assert "uptime_checks" in data
-        assert data["uptime_checks"] == 3
-        assert data["errors"] == 0
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
+        assert "uptimeCount" in data
+        assert data["uptimeCount"] == 3
+        assert data["errorsCount"] == 0
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
 
     def test_trace_meta_no_uptime_results(self) -> None:
-        """Test that uptime_checks is 0 when there are no uptime results"""
+        """Test that uptimeCount is 0 when there are no uptime results"""
         self.load_trace()
 
         with self.feature(self.FEATURES):
@@ -365,11 +366,11 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
         assert response.status_code == 200
         data = response.data
-        assert "uptime_checks" in data
-        assert data["uptime_checks"] == 0
-        assert data["errors"] == 0
-        assert data["performance_issues"] == 2
-        assert data["span_count"] == 19
+        assert "uptimeCount" in data
+        assert data["uptimeCount"] == 0
+        assert data["errorsCount"] == 0
+        assert data["performanceIssuesCount"] == 2
+        assert data["spansCount"] == 19
 
     def test_trace_meta_different_trace_id(self) -> None:
         """Test that uptime results from different traces are not counted"""
@@ -386,5 +387,5 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
             )
         assert response.status_code == 200
         data = response.data
-        assert "uptime_checks" in data
-        assert data["uptime_checks"] == 0
+        assert "uptimeCount" in data
+        assert data["uptimeCount"] == 0

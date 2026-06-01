@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -343,7 +344,11 @@ const TableBodyCell = styled(GridBodyCell)`
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  ${p => p.align && `justify-content: ${p.align};`}
+  ${p =>
+    p.align &&
+    css`
+      justify-content: ${p.align};
+    `}
   font-size: ${p => p.theme.font.size.sm};
   height: 33px;
 `;

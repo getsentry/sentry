@@ -340,10 +340,14 @@ function GroupBySelector({
   // synchronously while the user types. Merge in any server-only matches once
   // the debounced search returns.
   const options = useMemo(() => {
-    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    if (!hasSearch || searchedOptions.length === 0) {
+      return baseOptions;
+    }
     const baseValues = new Set(baseOptions.map(o => o.value));
     const additions = searchedOptions.filter(o => !baseValues.has(o.value));
-    if (additions.length === 0) return baseOptions;
+    if (additions.length === 0) {
+      return baseOptions;
+    }
     return [...baseOptions, ...additions];
   }, [hasSearch, baseOptions, searchedOptions]);
 
@@ -583,10 +587,14 @@ function AttributeArgumentSelect({
   // synchronously while the user types. Merge in any server-only matches once
   // the debounced search returns.
   const options = useMemo(() => {
-    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    if (!hasSearch || searchedOptions.length === 0) {
+      return baseOptions;
+    }
     const baseValues = new Set(baseOptions.map(o => o.value));
     const additions = searchedOptions.filter(o => !baseValues.has(o.value));
-    if (additions.length === 0) return baseOptions;
+    if (additions.length === 0) {
+      return baseOptions;
+    }
     return [...baseOptions, ...additions];
   }, [hasSearch, baseOptions, searchedOptions]);
 
@@ -644,12 +652,19 @@ type AttributeKind = 'string' | 'number' | 'boolean';
 function getSupportedAttributeKinds(
   functionName: string | undefined
 ): readonly AttributeKind[] {
-  if (!functionName) return ['number'];
+  if (!functionName) {
+    return ['number'];
+  }
   // COUNT renders a fixed SPAN_DURATION option and ignores tag collections.
-  if (functionName === AggregationKey.COUNT) return [];
-  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) return [];
-  if (functionName === AggregationKey.COUNT_UNIQUE)
+  if (functionName === AggregationKey.COUNT) {
+    return [];
+  }
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) {
+    return [];
+  }
+  if (functionName === AggregationKey.COUNT_UNIQUE) {
     return ['string', 'number', 'boolean'];
+  }
   return ['number'];
 }
 

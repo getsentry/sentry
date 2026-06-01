@@ -83,16 +83,6 @@ export function ToolbarVisualize({
     setVisualizes(newVisualizes);
   };
 
-  const handleOnDelete = useCallback(
-    (group: number) => {
-      const newVisualizes = visualizes
-        .toSpliced(group, 1)
-        .map(visualize => visualize.serialize());
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
-
   const setVisualizesWithOp = useCallback(
     (columns: Visualize[]) => {
       setVisualizes(columns.map(v => v.serialize()));
@@ -102,7 +92,7 @@ export function ToolbarVisualize({
 
   return (
     <DragNDropContext columns={[...visualizes]} setColumns={setVisualizesWithOp}>
-      {({editableColumns}) => (
+      {({editableColumns, deleteColumnAtIndex}) => (
         <ToolbarSection data-test-id="section-visualizes">
           <ToolbarVisualizeHeader />
           {editableColumns.map((column, i) => {
@@ -116,12 +106,12 @@ export function ToolbarVisualize({
               />
             );
             const onDelete =
-              editableColumns.length > 1 ? () => handleOnDelete(i) : undefined;
+              editableColumns.length > 1 ? () => deleteColumnAtIndex(i) : undefined;
 
             if (isVisualizeEquation(visualize)) {
               return (
                 <VisualizeEquationInput
-                  key={column.id}
+                  key={column.uniqueId}
                   dragColumnId={dragColumnId}
                   onDelete={onDelete}
                   onReplace={newVisualize => replaceOverlay(i, newVisualize)}
@@ -133,7 +123,7 @@ export function ToolbarVisualize({
 
             return (
               <ToolbarVisualizeItem
-                key={column.id}
+                key={column.uniqueId}
                 dragColumnId={dragColumnId}
                 onDelete={onDelete}
                 onReplace={newVisualize => replaceOverlay(i, newVisualize)}

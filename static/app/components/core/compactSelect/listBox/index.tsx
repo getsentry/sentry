@@ -13,6 +13,7 @@ import {
   SizeLimitMessage,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey} from '@sentry/scraps/compactSelect';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -21,11 +22,7 @@ import type {FormSize} from 'sentry/utils/theme';
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
 
-// explicitly using object here because Record<PropertyKey, unknown> requires an index signature
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type ObjectLike = object;
-
-interface ListBoxProps<T extends ObjectLike>
+interface ListBoxProps<T extends ListItemBase>
   extends
     Omit<
       React.HTMLAttributes<HTMLUListElement>,
@@ -122,7 +119,7 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-export function ListBox<T extends ObjectLike>({
+export function ListBox<T extends ListItemBase>({
   ref,
   listState,
   size = 'md',
@@ -243,7 +240,9 @@ export function ListBox<T extends ObjectLike>({
             {overlayIsOpen &&
               virtualizer.items.map(row => {
                 const item = listItems[row.index];
-                if (!item) return null;
+                if (!item) {
+                  return null;
+                }
                 if (item.type === 'section') {
                   return (
                     <ListBoxSection
@@ -296,7 +295,7 @@ const heightEstimations = {
  */
 const listPaddingVertical = 4;
 
-function useVirtualizedItems<T extends ObjectLike>({
+function useVirtualizedItems<T extends ListItemBase>({
   listItems,
   virtualized = false,
   size,
@@ -315,6 +314,7 @@ function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (item?.props?.details) {
         return heightEstimation.large;
       }
