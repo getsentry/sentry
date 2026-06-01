@@ -24,7 +24,7 @@ type Props = {
   project: Project;
 };
 
-export const MERGED_ISSUES_DOCS_LINK =
+const MERGED_ISSUES_DOCS_LINK =
   'https://docs.sentry.io/product/issues/grouping-and-fingerprints/#merging-similar-issues';
 
 interface GroupMergedContentProps {

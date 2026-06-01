@@ -25,7 +25,7 @@ export interface FingerprintWithLatestEvent extends Fingerprint {
   latestEvent: Event;
 }
 
-export const MERGED_HASH_LIMIT = 50;
+const MERGED_HASH_LIMIT = 50;
 
 interface FingerprintState {
   busy?: boolean;
@@ -61,7 +61,7 @@ export function createInitialGroupMergedState(): GroupMergedState {
   };
 }
 
-export function hasLatestEvent(
+function hasLatestEvent(
   fingerprint: Fingerprint
 ): fingerprint is FingerprintWithLatestEvent {
   return Boolean(fingerprint.latestEvent);
