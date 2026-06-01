@@ -227,6 +227,23 @@ describe('getLogsSeerLocationQuery', () => {
     expect(query.logsSortBys).toBeUndefined();
   });
 
+  it('preserves the existing samples sort when Seer omits one', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        logsSortBys: ['-severity'],
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({
+        query: 'severity:error',
+        mode: 'logs',
+      }),
+    });
+
+    expect(query.mode).toBe(Mode.SAMPLES);
+    expect(query.logsSortBys).toEqual(['-severity']);
+  });
+
   it('uses nullable query updates for datetime params', () => {
     const relativeQuery = getLogsSeerLocationQuery({
       currentLocation: locationWithQuery({

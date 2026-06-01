@@ -110,8 +110,6 @@ export function getLogsSeerLocationQuery({
   } else {
     if (seerQuery.sort) {
       targetLocation.query[LOGS_SORT_BYS_KEY] = [seerQuery.sort];
-    } else {
-      delete targetLocation.query[LOGS_SORT_BYS_KEY];
     }
     delete targetLocation.query[LOGS_AGGREGATE_SORT_BYS_KEY];
     delete targetLocation.query[LOGS_AGGREGATE_FIELD_KEY];
