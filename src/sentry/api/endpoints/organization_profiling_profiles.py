@@ -129,9 +129,6 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             FLAMEGRAPH_EXPAND_PARAM,
         ],
         responses={
-            # The flamegraph payload is proxied verbatim from the profiling
-            # service; its shape is owned there, so it is documented as a generic
-            # object rather than mirrored in a TypedDict here.
             200: inline_sentry_response_serializer(
                 "OrganizationProfilingFlamegraphResponse", dict[str, Any]
             ),
@@ -146,11 +143,9 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         Retrieve an aggregated flamegraph for the organization, built from the
         requested data source (transactions, profiles, functions, or spans).
 
-        The response is forwarded from Sentry's internal profiling service and includes
-        per-profile shared frame tables, sample counts, platform metadata, and
-        optionally flamegraph metrics when `expand=metrics` is passed.
+        Pass `expand=metrics` to include aggregated function metrics in the response.
 
-        Requires the `profiling` organization feature.
+        Requires profiling to be enabled for the organization.
         """
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
