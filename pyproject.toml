@@ -1962,7 +1962,6 @@ module = [
     "tests.sentry.integrations.jira",
     "tests.sentry.integrations.jira.test_client",
     "tests.sentry.integrations.jira.test_csp",
-    "tests.sentry.integrations.jira.test_extension_configuration",
     "tests.sentry.integrations.jira.test_installed",
     "tests.sentry.integrations.jira.test_integration",
     "tests.sentry.integrations.jira.test_notify_action",
