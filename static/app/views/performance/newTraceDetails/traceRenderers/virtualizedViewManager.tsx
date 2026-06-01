@@ -1157,7 +1157,7 @@ export class VirtualizedViewManager {
       return 'start';
     }
 
-    if (x + halfIconWidthPx >= this.view.trace_view.width) {
+    if (x + halfIconWidthPx >= this.view.trace_physical_space.width) {
       return 'end';
     }
 
@@ -1173,11 +1173,7 @@ export class VirtualizedViewManager {
     }
 
     if (edge === 'end') {
-      return (
-        this.view.to_origin +
-        this.view.trace_view.x +
-        this.view.trace_view.width * this.span_to_px[0]
-      );
+      return this.view.to_origin + this.view.trace_view.x + this.view.trace_view.width;
     }
 
     return timestamp;
@@ -1229,9 +1225,7 @@ export class VirtualizedViewManager {
       value => this.text_measurer.measure(value),
       [
         this.view.to_origin + this.view.trace_view.x,
-        this.view.to_origin +
-          this.view.trace_view.x +
-          this.view.trace_view.width * this.span_to_px[0],
+        this.view.to_origin + this.view.trace_view.x + this.view.trace_view.width,
       ]
     );
     const text_left = Math.min(span_space[0], timestamps[0]!);

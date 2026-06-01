@@ -255,6 +255,46 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
+  describe('trace issue icon placement', () => {
+    it('does not treat icons away from the physical right edge as end-clamped in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+
+      expect(manager.computeTraceIconEdge(109.5, 18)).toBeNull();
+    });
+
+    it('anchors end-clamped icons to the visible trace end in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+
+      expect(manager.computeTraceIconAnchorTimestamp(199.5, 'end')).toBe(200);
+    });
+  });
+
   describe('horizontal scrolling', () => {
     describe('onWheel (timeline/span durations)', () => {
       it('scrolls horizontally with shift + vertical wheel', () => {
@@ -619,6 +659,45 @@ describe('VirtualizedViewManger', () => {
 
       expect(inside).toBe(0);
       expect(textTransform).toBe(112.5);
+    });
+
+    it('uses the physical viewport edge for issue icon bounds in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(38);
+
+      const directError = {
+        event_id: 'direct-error',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.1095,
+      };
+      const node = {
+        value: {errors: [directError], occurrences: []},
+        errors: new Set([directError]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [109, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBeCloseTo(107);
     });
 
     it('places right-outside text after a view-edge anchored direct issue icon', () => {
