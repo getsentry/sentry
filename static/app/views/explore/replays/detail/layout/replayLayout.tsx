@@ -28,7 +28,7 @@ const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;
 
-// SplitPanel.Divider is a 1px border (it used to be a 16px grabbable handle).
+// SplitPanel.Divider is a 1px border.
 const DIVIDER_SIZE = 1;
 
 interface ReplayLayoutProps {
