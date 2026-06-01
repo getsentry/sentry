@@ -204,13 +204,20 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     currentMouseVectorRaf.current = null;
 
     setIsHeld(false);
-    if (dragStartSizeRef.current !== null) {
+    // Only report a resize if the size actually changed. A plain click on the
+    // divider (mousedown + mouseup with no movement) leaves start === end, and
+    // firing onResizeEnd there would log a bogus resize with a meaningless
+    // direction.
+    if (
+      dragStartSizeRef.current !== null &&
+      dragStartSizeRef.current !== sizeRef.current
+    ) {
       options.onResizeEnd?.({
         startSize: dragStartSizeRef.current,
         endSize: sizeRef.current,
       });
-      dragStartSizeRef.current = null;
     }
+    dragStartSizeRef.current = null;
   }, [onMouseMove, options]);
 
   const onMouseDown = useCallback(

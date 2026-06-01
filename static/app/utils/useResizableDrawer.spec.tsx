@@ -85,9 +85,9 @@ describe('useResizableDrawer', () => {
     });
     expect(onResize).not.toHaveBeenCalled();
 
-    // onResizeEnd reports the size at release, consistent with the final size.
-    expect(onResizeEnd).toHaveBeenCalledTimes(1);
-    expect(onResizeEnd).toHaveBeenCalledWith({startSize: 200, endSize: 200});
+    // The only scheduled frame was cancelled, so the size never actually
+    // changed and no resize is reported.
+    expect(onResizeEnd).not.toHaveBeenCalled();
   });
 
   it('detaches listeners and restores document styles when unmounted mid-drag', () => {
@@ -126,6 +126,33 @@ describe('useResizableDrawer', () => {
     expect(document.documentElement).not.toHaveStyle({cursor: 'ew-resize'});
     expect(removeListener).toHaveBeenCalledWith('mousemove', expect.any(Function));
     expect(removeListener).toHaveBeenCalledWith('mouseup', expect.any(Function));
+  });
+
+  it('does not fire onResizeEnd for a click with no movement', () => {
+    const onResizeEnd = jest.fn();
+    const {result} = renderHook(() =>
+      useResizableDrawer({
+        direction: 'left',
+        initialSize: 200,
+        min: 0,
+        max: 1000,
+        onResize: jest.fn(),
+        onResizeEnd,
+      })
+    );
+
+    // mousedown then mouseup with no mousemove in between — a plain click.
+    act(() => {
+      result.current.onMouseDown({
+        clientX: 500,
+        clientY: 0,
+      } as React.MouseEvent<HTMLElement>);
+    });
+    act(() => {
+      document.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    expect(onResizeEnd).not.toHaveBeenCalled();
   });
 
   it('fires onResizeEnd when the size is reset via double-click', () => {
