@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -15,11 +15,18 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   getProjectAgentMutationOptions,
   getCodingAgentSelectQueryOptions,
   getSelectedAgentForProject,
 } from 'sentry/utils/seer/preferredAgent';
+import {
+  getMutateSeerProjectSettingsOptions,
+  getSeerProjectSettingsQueryOptions,
+  mutateSeerProjectSettingsOptions,
+  seerProjectSettingsSchema,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
   getProjectStoppingPointMutationOptions,
@@ -59,31 +66,37 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
 
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
 
-  // Derive the integration objects from the options data for the agent selector
-  const integrations = useMemo(
-    () =>
-      (agentOptions.data ?? [])
-        .filter(
-          (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
-        )
-        .map(o => o.value),
-    [agentOptions.data]
-  );
+  // // Derive the integration objects from the options data for the agent selector
+  // const integrations = useMemo(
+  //   () =>
+  //     (agentOptions.data ?? [])
+  //       .filter(
+  //         (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
+  //       )
+  //       .map(o => o.value)[agentOptions.data]
+  // );
 
-  const selectedAgent = getSelectedAgentForProject({integrations, preference});
+  // const selectedAgent = getSelectedAgentForProject({integrations, preference});
 
-  const agentMutationOptions = getProjectAgentMutationOptions({
-    organization,
-    project,
-    queryClient,
-  });
+  // const agentMutationOptions = getProjectAgentMutationOptions({
+  //   organization,
+  //   project,
+  //   queryClient,
+  // });
 
   const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
     organization,
     queryClient,
   });
 
-  const stoppingPointValue = getProjectStoppingPointValue(project, preference);
+  // const stoppingPointValue = getProjectStoppingPointValue(project, preference);
+
+  const {
+    data: projectSettings,
+    isError,
+    isPending,
+  } = useQuery(getSeerProjectSettingsQueryOptions({organization, project}));
+  console.log(projectSettings, isError, isPending);
 
   const disabledReason = canWrite
     ? null
@@ -92,12 +105,21 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
   return (
     <FieldGroup>
       <AutoSaveForm
-        name="agent"
-        schema={z.object({
-          agent: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
+        name="handoff"
+        schema={seerProjectSettingsSchema}
+        initialValue={{
+          handoff: {
+            auto_create_pr: false,
+            handoff_point: 'root_cause',
+            integration_id: 0,
+            target: 'cursor_background_agent' as const,
+          },
+        }}
+        mutationOptions={getMutateSeerProjectSettingsOptions({
+          organization,
+          project,
+          queryClient,
         })}
-        initialValue={selectedAgent}
-        mutationOptions={agentMutationOptions}
       >
         {field => (
           <field.Layout.Row
@@ -137,32 +159,35 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
       </AutoSaveForm>
 
       <AutoSaveForm
-        name="stoppingPoint"
-        schema={z.object({
-          stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+        name="stopping_point"
+        schema={seerProjectSettingsSchema}
+        initialValue="create_pr"
+        mutationOptions={getMutateSeerProjectSettingsOptions({
+          organization,
+          project,
+          queryClient,
         })}
-        initialValue={stoppingPointValue}
-        mutationOptions={{
-          mutationFn: (vars, fnCtx) =>
-            stoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
-          onMutate: (vars, fnCtx) =>
-            stoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
-          onError: (error, vars, mutateResult, fnCtx) =>
-            stoppingPointMutationOptions.onError?.(
-              error,
-              {...vars, project},
-              mutateResult,
-              fnCtx
-            ),
-          onSettled: (data, error, vars, mutateResult, fnCtx) =>
-            stoppingPointMutationOptions.onSettled?.(
-              data,
-              error,
-              {...vars, project},
-              mutateResult,
-              fnCtx
-            ),
-        }}
+        // mutationOptions={{
+        //   mutationFn: (vars, fnCtx) =>
+        //     stoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
+        //   onMutate: (vars, fnCtx) =>
+        //     stoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
+        //   onError: (error, vars, mutateResult, fnCtx) =>
+        //     stoppingPointMutationOptions.onError?.(
+        //       error,
+        //       {...vars, project},
+        //       mutateResult,
+        //       fnCtx
+        //     ),
+        //   onSettled: (data, error, vars, mutateResult, fnCtx) =>
+        //     stoppingPointMutationOptions.onSettled?.(
+        //       data,
+        //       error,
+        //       {...vars, project},
+        //       mutateResult,
+        //       fnCtx
+        //     ),
+        // }}
       >
         {field => (
           <field.Layout.Row
