@@ -369,6 +369,14 @@ export class SourceField extends Component<Props, State> {
     this.toggleSuggestions(true);
   };
 
+  scrollActiveSuggestionIntoView = (node: HTMLLIElement | null) => {
+    node?.scrollIntoView?.({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'start',
+    });
+  };
+
   render() {
     const {value, fieldProps} = this.props;
     const {showSuggestions, suggestions, activeSuggestion, help} = this.state;
@@ -400,12 +408,7 @@ export class SourceField extends Component<Props, State> {
                   key={suggestion.value}
                   ref={
                     index === activeSuggestion
-                      ? node =>
-                          node?.scrollIntoView?.({
-                            behavior: 'smooth',
-                            block: 'nearest',
-                            inline: 'start',
-                          })
+                      ? this.scrollActiveSuggestionIntoView
                       : undefined
                   }
                   onClick={event => {
