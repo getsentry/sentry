@@ -148,15 +148,21 @@ function isPanelElement(
   return isValidElement(child) && child.type === Panel;
 }
 
+function isFragmentElement(
+  child: React.ReactNode
+): child is React.ReactElement<{children?: React.ReactNode}, typeof Fragment> {
+  return isValidElement(child) && child.type === Fragment;
+}
+
 // React.Children doesn't descend into Fragments, so flatten them ourselves.
 // This lets consumers group a <SplitPanel.Divider> with its trailing
 // <SplitPanel.Panel> inside a Fragment without breaking panel counting or
 // sized-pane detection.
 function flattenChildren(children: React.ReactNode): React.ReactNode[] {
   const out: React.ReactNode[] = [];
-  Children.forEach(children, child => {
-    if (isValidElement(child) && child.type === Fragment) {
-      out.push(...flattenChildren((child.props as {children: React.ReactNode}).children));
+  Children.forEach(children, (child: React.ReactNode) => {
+    if (isFragmentElement(child)) {
+      out.push(...flattenChildren(child.props.children));
     } else {
       out.push(child);
     }
