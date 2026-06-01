@@ -1,118 +1,221 @@
+import {Fragment} from 'react';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
 
-const defaultLeftSide = {
-  content: <div data-test-id="left-content">left</div>,
-  default: 200,
-  min: 100,
-  max: 600,
-};
-const defaultTopSide = {
-  content: <div data-test-id="top-content">top</div>,
-  default: 200,
-  min: 100,
-  max: 600,
-};
-
 describe('SplitPanel', () => {
-  describe('left/right', () => {
-    it('renders left, divider, and right when right is provided', () => {
+  describe('horizontal orientation', () => {
+    it('renders both panels and a divider', () => {
       render(
-        <SplitPanel
-          availableSize={1000}
-          left={defaultLeftSide}
-          right={<div data-test-id="right-content">right</div>}
-        />
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
       );
 
-      expect(screen.getByTestId('left-content')).toBeInTheDocument();
-      expect(screen.getByTestId('right-content')).toBeInTheDocument();
+      expect(screen.getByText('left')).toBeInTheDocument();
+      expect(screen.getByText('right')).toBeInTheDocument();
+      expect(screen.getByRole('separator')).toBeInTheDocument();
     });
 
-    it('omits the divider and right pane when right is null', () => {
-      render(<SplitPanel availableSize={1000} left={defaultLeftSide} right={null} />);
+    it('renders only the first panel when the second is omitted', () => {
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
 
-      expect(screen.getByTestId('left-content')).toBeInTheDocument();
-      expect(screen.queryByTestId('right-content')).not.toBeInTheDocument();
+      expect(screen.getByText('left')).toBeInTheDocument();
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
     });
 
-    it('preserves DOM identity of left.content when toggling right between content and null', () => {
+    it('preserves DOM identity of the sized panel when toggling the fill panel', () => {
       const {rerender} = render(
-        <SplitPanel
-          availableSize={1000}
-          left={defaultLeftSide}
-          right={<div data-test-id="right-content">right</div>}
-        />
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
       );
 
-      const leftBefore = screen.getByTestId('left-content');
-
-      rerender(<SplitPanel availableSize={1000} left={defaultLeftSide} right={null} />);
-
-      const leftAfterCollapse = screen.getByTestId('left-content');
-      expect(leftAfterCollapse).toBe(leftBefore);
+      const leftBefore = screen.getByText('left');
 
       rerender(
-        <SplitPanel
-          availableSize={1000}
-          left={defaultLeftSide}
-          right={<div data-test-id="right-content">right</div>}
-        />
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
       );
 
-      const leftAfterExpand = screen.getByTestId('left-content');
-      expect(leftAfterExpand).toBe(leftBefore);
+      expect(screen.getByText('left')).toBe(leftBefore);
+
+      rerender(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+
+      expect(screen.getByText('left')).toBe(leftBefore);
     });
   });
 
-  describe('top/bottom', () => {
-    it('renders top, divider, and bottom when bottom is provided', () => {
+  describe('vertical orientation', () => {
+    it('renders both panels and a divider', () => {
       render(
-        <SplitPanel
-          availableSize={1000}
-          top={defaultTopSide}
-          bottom={<div data-test-id="bottom-content">bottom</div>}
-        />
+        <SplitPanel.Root orientation="vertical">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>top</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>bottom</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
       );
 
-      expect(screen.getByTestId('top-content')).toBeInTheDocument();
-      expect(screen.getByTestId('bottom-content')).toBeInTheDocument();
+      expect(screen.getByText('top')).toBeInTheDocument();
+      expect(screen.getByText('bottom')).toBeInTheDocument();
+      expect(screen.getByRole('separator')).toBeInTheDocument();
     });
 
-    it('omits the divider and bottom pane when bottom is null', () => {
-      render(<SplitPanel availableSize={1000} top={defaultTopSide} bottom={null} />);
+    it('renders only the first panel when the second is omitted', () => {
+      render(
+        <SplitPanel.Root orientation="vertical">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>top</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
 
-      expect(screen.getByTestId('top-content')).toBeInTheDocument();
-      expect(screen.queryByTestId('bottom-content')).not.toBeInTheDocument();
+      expect(screen.getByText('top')).toBeInTheDocument();
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('divider accessibility', () => {
+    it('exposes separator role with orientation and value attributes', () => {
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+
+      const separator = screen.getByRole('separator');
+      expect(separator).toHaveAttribute('aria-orientation', 'vertical');
+      expect(separator).toHaveAttribute('aria-valuemin', '100');
+      expect(separator).toHaveAttribute('aria-valuemax', '600');
+      expect(separator).toHaveAttribute('tabindex', '0');
+    });
+  });
+
+  describe('fragments', () => {
+    it('flattens a Fragment wrapping the divider and second panel', () => {
+      const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <Fragment>
+            <SplitPanel.Divider />
+            <SplitPanel.Panel>
+              <div>right</div>
+            </SplitPanel.Panel>
+          </Fragment>
+        </SplitPanel.Root>
+      );
+
+      expect(screen.getByText('left')).toBeInTheDocument();
+      expect(screen.getByText('right')).toBeInTheDocument();
+      // The sized pane is still detected through the Fragment.
+      expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
+      // Panels inside the Fragment are counted, so no "at most two" warning.
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
     });
 
-    it('preserves DOM identity of top.content when toggling bottom between content and null', () => {
-      const {rerender} = render(
-        <SplitPanel
-          availableSize={1000}
-          top={defaultTopSide}
-          bottom={<div data-test-id="bottom-content">bottom</div>}
-        />
+    it('detects a sized panel nested inside a Fragment', () => {
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <Fragment>
+            <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+              <div>left</div>
+            </SplitPanel.Panel>
+          </Fragment>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
       );
 
-      const topBefore = screen.getByTestId('top-content');
+      expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
+    });
+  });
 
-      rerender(<SplitPanel availableSize={1000} top={defaultTopSide} bottom={null} />);
-
-      const topAfterCollapse = screen.getByTestId('top-content');
-      expect(topAfterCollapse).toBe(topBefore);
-
-      rerender(
-        <SplitPanel
-          availableSize={1000}
-          top={defaultTopSide}
-          bottom={<div data-test-id="bottom-content">bottom</div>}
-        />
+  describe('dev warnings', () => {
+    it('warns when more than two <SplitPanel.Panel> children are rendered', () => {
+      const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={100}>
+            <div>a</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>b</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Panel>
+            <div>c</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
       );
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('at most two'));
+      spy.mockRestore();
+    });
 
-      const topAfterExpand = screen.getByTestId('top-content');
-      expect(topAfterExpand).toBe(topBefore);
+    it('warns when multiple panels declare defaultSize', () => {
+      const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={100}>
+            <div>a</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel defaultSize={200}>
+            <div>b</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('only one <SplitPanel.Panel> may declare')
+      );
+      spy.mockRestore();
     });
   });
 });
