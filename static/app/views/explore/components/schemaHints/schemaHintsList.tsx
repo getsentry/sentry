@@ -232,14 +232,6 @@ export function SchemaHintsList({
     tagsRect: DOMRect[];
   } | null>(null);
 
-  const getHintText = (hint: Tag) => {
-    if (hint.key === seeFullListTag.key) {
-      return hint.name;
-    }
-
-    return `${formatHintName(hint)} ${formatHintOperator(hint)} ...`;
-  };
-
   useEffect(() => {
     // debounce calculation to prevent 'flickering' when resizing
     const calculateVisibleHints = debounce(() => {
@@ -440,6 +432,14 @@ export function SchemaHintsList({
       source: 'list',
       organization,
     });
+  };
+
+  const getHintText = (hint: Tag) => {
+    if (hint.key === seeFullListTag.key) {
+      return hint.name;
+    }
+
+    return `${formatHintName(hint)} ${formatHintOperator(hint)} ...`;
   };
 
   const getHintElement = (hint: Tag) => {
