@@ -4,8 +4,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillAutoLinkReposByNameTest(TestMigrations):
-    migrate_from = "1101_remove_email_model_pending"
-    migrate_to = "1102_backfill_auto_link_repos_by_name"
+    migrate_from = "1102_activity_project_type_index"
+    migrate_to = "1103_backfill_auto_link_repos_by_name"
 
     def setup_before_migration(self, apps: object) -> None:
         Option = apps.get_model("sentry", "Option")  # type: ignore[union-attr]

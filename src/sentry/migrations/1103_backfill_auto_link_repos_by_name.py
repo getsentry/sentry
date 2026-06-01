@@ -148,7 +148,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1101_remove_email_model_pending"),
+        ("sentry", "1102_activity_project_type_index"),
     ]
 
     operations = [
