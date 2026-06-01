@@ -127,4 +127,31 @@ describe('useResizableDrawer', () => {
     expect(removeListener).toHaveBeenCalledWith('mousemove', expect.any(Function));
     expect(removeListener).toHaveBeenCalledWith('mouseup', expect.any(Function));
   });
+
+  it('fires onResizeEnd when the size is reset via double-click', () => {
+    const onResizeEnd = jest.fn();
+    const {result} = renderHook(() =>
+      useResizableDrawer({
+        direction: 'left',
+        initialSize: 200,
+        min: 0,
+        max: 1000,
+        onResize: jest.fn(),
+        onResizeEnd,
+      })
+    );
+
+    // Drag to a new size first so the reset has something to revert from.
+    act(() => {
+      result.current.setSize(350, true);
+    });
+
+    act(() => {
+      result.current.onDoubleClick({} as React.MouseEvent<HTMLElement>);
+    });
+
+    // Consumers that only persist on resize end (e.g. saving the split width)
+    // must see the reset back to the initial size.
+    expect(onResizeEnd).toHaveBeenCalledWith({startSize: 350, endSize: 200});
+  });
 });

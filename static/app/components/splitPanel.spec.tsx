@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
 
@@ -210,6 +210,94 @@ describe('SplitPanel', () => {
       );
 
       expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
+    });
+  });
+
+  describe('resize behavior', () => {
+    it('gives a sized pane its default size when it appears after a single panel', () => {
+      // Start as a single (fill) panel — e.g. replay VIDEO_ONLY.
+      const {rerender} = render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>video</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+
+      // Expand to two panels on the same mount. The sized pane must adopt its
+      // defaultSize instead of staying stuck at 0.
+      rerender(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>video</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>focus</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+
+      expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
+    });
+
+    it('clamps a sized pane to max so it cannot overflow the fill pane', () => {
+      // defaultSize (500) exceeds maxSize (300): the rendered basis must clamp
+      // to 300, so it ends up styled identically to a pane that declares 300.
+      const {unmount} = render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={500} minSize={100} maxSize={300}>
+            <div>over</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>fill</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+      const clampedClass = screen.getByText('over').parentElement!.className;
+      unmount();
+
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={300} minSize={100} maxSize={100000}>
+            <div>exact</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>fill</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+      const exactClass = screen.getByText('exact').parentElement!.className;
+
+      expect(clampedClass).toEqual(exactClass);
+    });
+
+    it('fires onResizeEnd on keyboard resize so the size can be persisted', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel.Root orientation="horizontal" onResizeEnd={onResizeEnd}>
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+
+      const separator = screen.getByRole('separator');
+      separator.focus();
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(onResizeEnd).toHaveBeenCalledWith({
+        startSize: 200,
+        endSize: 210,
+        direction: 'increase',
+      });
     });
   });
 

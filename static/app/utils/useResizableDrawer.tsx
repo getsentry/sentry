@@ -71,6 +71,11 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 } {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
+  // Once the user actively resizes (drag, keyboard, double-click), we stop
+  // following `initialSize` so their choice sticks. Until then, `size` tracks
+  // `initialSize` so the pane picks up a meaningful default — e.g. when a sized
+  // pane first appears after the layout started as a single panel.
+  const hasUserResizedRef = useRef(false);
   const [size, setSize] = useState<number>(() => {
     const storedSize = options.sizeStorageKey
       ? parseInt(localStorage.getItem(options.sizeStorageKey) ?? '', 10)
@@ -82,6 +87,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const updateSize = useCallback(
     (newSize: number, userEvent = false) => {
+      if (userEvent) {
+        hasUserResizedRef.current = true;
+      }
       sizeRef.current = newSize;
       setSize(newSize);
       options.onResize(newSize, undefined, userEvent);
@@ -95,7 +103,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
+  // A direction change means the layout fundamentally changed, so reset back to
+  // the default size and let it follow `initialSize` again.
   useLayoutEffect(() => {
+    hasUserResizedRef.current = false;
     options.onResize(options.initialSize ?? 0, size, false);
     setSize(options.initialSize ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,6 +114,20 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const sizeRef = useRef(size);
   sizeRef.current = size;
+
+  // Follow `initialSize` when it changes, as long as the user hasn't taken over
+  // by resizing manually. This is what makes a sized pane adopt its default
+  // size when it appears mid-mount (e.g. the replay focus pane after leaving
+  // VIDEO_ONLY); without it the pane would stay stuck at its previous size
+  // (often 0px) until the user dragged the divider.
+  useLayoutEffect(() => {
+    if (hasUserResizedRef.current || sizeRef.current === (options.initialSize ?? 0)) {
+      return;
+    }
+    options.onResize(options.initialSize ?? 0, sizeRef.current, false);
+    setSize(options.initialSize ?? 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.initialSize]);
 
   const onMouseMove = useCallback(
     (event: MouseEvent) => {
@@ -202,8 +227,12 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const onDoubleClick = useCallback(() => {
+    const startSize = sizeRef.current;
     updateSize(options.initialSize, true);
-  }, [updateSize, options.initialSize]);
+    // Mirror drag end so consumers that only persist/track on resize end (e.g.
+    // saving the split width) capture the double-click reset too.
+    options.onResizeEnd?.({startSize, endSize: options.initialSize});
+  }, [updateSize, options]);
 
   // Unmount-only cleanup. If we unmount mid-drag, tear down everything an
   // in-flight drag left behind: the global listeners and the document styles it

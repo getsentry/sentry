@@ -94,9 +94,12 @@ type SplitPanelPanelProps = {
 };
 
 function Panel({children}: SplitPanelPanelProps) {
-  const {size} = useSplitPanelContext('SplitPanel.Panel');
+  const {size, max} = useSplitPanelContext('SplitPanel.Panel');
   const isSized = useIsSizedPanel();
 
+  // Clamp the rendered basis to `max` (capped at the container size) so the
+  // sized pane can never overflow or squeeze out the fill pane when the
+  // container shrinks without a drag, e.g. the window narrows.
   return (
     <Flex
       direction="column"
@@ -104,7 +107,7 @@ function Panel({children}: SplitPanelPanelProps) {
       minWidth="0"
       flexGrow={isSized ? 0 : 1}
       flexShrink={isSized ? 0 : 1}
-      flexBasis={isSized ? `${size}px` : 0}
+      flexBasis={isSized ? `${Math.min(size, max)}px` : 0}
     >
       {children}
     </Flex>
@@ -303,9 +306,16 @@ function Root({
       if (newSize !== null) {
         event.preventDefault();
         setSize(newSize, true);
+        // Drag end is the only signal some consumers use to persist or track
+        // the size; emit it for keyboard resizes too so they aren't lost.
+        onResizeEnd?.({
+          startSize: containerSize,
+          endSize: newSize,
+          direction: newSize > containerSize ? 'increase' : 'decrease',
+        });
       }
     },
-    [orientation, containerSize, min, max, setSize]
+    [orientation, containerSize, min, max, setSize, onResizeEnd]
   );
 
   const contextValue = useMemo<SplitPanelContextValue>(
