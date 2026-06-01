@@ -268,7 +268,10 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
                                 branch_name=override["branch_name"],
                             )
                             for override in data["branch_overrides"]
-                        ]
+                        ],
+                        update_conflicts=True,
+                        update_fields=["branch_name"],
+                        unique_fields=["seer_project_repository", "tag_name", "tag_value"],
                     )
 
         return Response(_serialize_project_repo(project_repo))
