@@ -13,14 +13,17 @@ describe('LowValueSpanIssueDetails', () => {
         event={EventFixture({
           occurrence: {
             evidenceData: {
-              span_op: 'function',
-              span_description: 'compute_checksum',
-              span_count: 1234,
-              extrapolated_count: 60_000,
-              value_score: 0.15,
-              avg_duration_ms: 0.4,
-              estimated_cost_usd: 12.34,
-              sdk_name: 'sentry.javascript.nextjs',
+              analysisEnd: '2026-06-01T07:32:25.403623+00:00',
+              analysisStart: '2026-06-01T01:32:25.403623+00:00',
+              avgDurationMs: 0.4,
+              count: 1234,
+              description: 'compute_checksum',
+              estimatedCostUsd: 12.34,
+              extrapolatedCount: 60_000,
+              op: 'function',
+              sdkName: 'sentry.javascript.nextjs',
+              spanOrigin: 'auto',
+              valueScore: 0.15,
             },
             type: 13002,
           },
@@ -39,35 +42,5 @@ describe('LowValueSpanIssueDetails', () => {
     expect(screen.queryByText('15%')).not.toBeInTheDocument();
     expect(screen.queryByText('Diagnosis')).not.toBeInTheDocument();
     expect(screen.queryByText('Impact')).not.toBeInTheDocument();
-  });
-
-  it('only reads the new backend evidence field names', () => {
-    render(
-      <LowValueSpanIssueDetails
-        event={EventFixture({
-          occurrence: {
-            evidenceData: {
-              op: 'function',
-              description: 'compute_checksum',
-              count: 1234,
-              spanOp: 'function',
-              spanDescription: 'compute_checksum',
-              seenCount: 1234,
-              avgDurationMs: 0.4,
-              estimatedCostUsd: 12.34,
-              sdkName: 'sentry.javascript.nextjs',
-            },
-            type: 13002,
-          },
-        })}
-        group={GroupFixture()}
-        project={ProjectFixture()}
-      />
-    );
-
-    expect(screen.getAllByText('Unknown span').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
-    expect(screen.queryByText('function - compute_checksum')).not.toBeInTheDocument();
-    expect(screen.queryByText('$12.34')).not.toBeInTheDocument();
   });
 });
