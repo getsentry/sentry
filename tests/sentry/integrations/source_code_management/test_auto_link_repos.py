@@ -36,6 +36,21 @@ class GetRepoNameCandidatesTest(TestCase):
     def test_empty_string(self) -> None:
         assert get_repo_name_candidates("") == []
 
+    def test_dots_in_name(self) -> None:
+        assert get_repo_name_candidates("my-org/my.repo.name") == [
+            "myreponame",
+            "my-org-myreponame",
+        ]
+
+    def test_underscores(self) -> None:
+        assert get_repo_name_candidates("org/my_repo") == ["my_repo", "org-my_repo"]
+
+    def test_trailing_slash(self) -> None:
+        assert get_repo_name_candidates("org/repo/") == ["repo", "org-repo"]
+
+    def test_only_slashes(self) -> None:
+        assert get_repo_name_candidates("///") == []
+
 
 class AutoLinkReposByNameTest(TestCase):
     def setUp(self) -> None:

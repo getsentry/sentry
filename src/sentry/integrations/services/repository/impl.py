@@ -300,7 +300,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
         organization_id: int,
         repo_ids: list[int],
     ) -> int:
-        organization = Organization.objects.filter(id=organization_id).first()
-        if organization is None:
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
             return 0
         return auto_link_repos_by_name(organization, repo_ids)
