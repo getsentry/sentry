@@ -5,13 +5,13 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import type {
+  AskSeerSearchQuery,
   SeerRawResponse,
-  SeerRawResponseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   buildSeerDateTimeSelection,
+  mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -25,27 +25,9 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface IssueListSeerComboBoxProps {
   onSearch: (query: string) => void;
-}
-
-function mapResponseItem(r: SeerRawResponseItem): AskSeerSearchQuery {
-  return {
-    query: r?.query ?? '',
-    sort: r?.sort ?? '',
-    groupBys: r?.group_by ?? [],
-    statsPeriod: r?.stats_period ?? '',
-    start: r?.start ?? null,
-    end: r?.end ?? null,
-    mode: r?.mode ?? 'samples',
-    visualizations:
-      r?.visualization?.map(v => ({
-        chartType: v.chart_type as ChartType,
-        yAxes: v.y_axes ?? [],
-      })) ?? [],
-  };
 }
 
 export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
@@ -63,7 +45,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, mapResponseItem),
+      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
     []
   );
 
@@ -86,7 +68,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(mapResponseItem),
+        queries: data.responses.map(response => mapSeerResponseItem(response)),
       };
     },
   });
