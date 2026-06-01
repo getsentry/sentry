@@ -7,9 +7,10 @@ Award emoji parity with the GitHub webhook forwarder
 
 The GitHub pull_request handler adds :eyes: to the PR description (and removes
 any stale :tada:) to signal that a Seer review run is in progress. This handler
-replicates that behaviour for GitLab merge requests using the GitLab award emoji
-API (``/projects/:id/merge_requests/:mr_iid/award_emoji``). The call is skipped
-for close/merge actions since those are cleanup events, not new review triggers.
+replicates that behaviour for GitLab merge requests via the SCM library's
+provider-agnostic reaction actions (``scm.actions.create_pull_request_reaction``
+and friends). The call is skipped for close/merge actions since those are cleanup
+events, not new review triggers.
 
 Known limitations
 -----------------
@@ -45,11 +46,14 @@ from typing import Any
 from pydantic import ValidationError
 
 from sentry import features
+from scm import actions as scm_actions
+
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.scm import factory as scm_factory
 from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrClosed,
     SeerCodeReviewTaskRequestForPrReview,
@@ -67,12 +71,6 @@ from ..metrics import (
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
 from .task import process_github_webhook_event
-
-# GitLab award emoji names used by the Seer code-review flow.
-# "tada" is the GitLab equivalent of GitHub's "hooray" (:tada: 🎉).
-# "eyes" is the same on both platforms (:eyes: 👀).
-GITLAB_EMOJI_TADA = "tada"
-GITLAB_EMOJI_EYES = "eyes"
 
 logger = logging.getLogger(__name__)
 
@@ -182,56 +180,56 @@ def _resolve_review_trigger(
     return None
 
 
-def _delete_existing_awards_and_add_award(
+def _delete_existing_reactions_and_add_reaction(
     *,
-    integration: RpcIntegration,
     organization_id: int,
     repo: Repository,
     mr_iid: str,
-    emojis_to_delete: list[str],
-    emoji_to_add: str | None,
+    reactions_to_delete: list[str],
+    reaction_to_add: str | None,
 ) -> None:
     """
-    Delete stale award emojis on the MR description and add a fresh one.
+    Delete stale reactions on the MR description and add a fresh one.
 
     Mirrors ``delete_existing_reactions_and_add_reaction`` from the GitHub webhook
-    path, adapted for the GitLab award emoji API. Errors are logged and swallowed
-    so that a failing emoji call never blocks the Seer review task.
+    path. Uses the SCM library's provider-agnostic reaction actions so the logic
+    is identical for every supported SCM provider. Errors are logged and swallowed
+    so that a failing reaction call never blocks the Seer review task.
+
+    ``reactions_to_delete`` and ``reaction_to_add`` use the SCM ``Reaction`` type
+    values (e.g. ``"hooray"`` for :tada:, ``"eyes"`` for :eyes:); the provider
+    translates them to platform-specific names (GitLab award emoji, etc.).
     """
     try:
-        client = integration.get_installation(organization_id=organization_id).get_client()
+        scm = scm_factory.new(organization_id, repo.id, "code-review-webhook")
     except Exception:
-        logger.warning("gitlab.webhook.merge_request.award.missing_installation")
+        logger.warning("gitlab.webhook.merge_request.reaction.scm_init_failed")
         return
 
-    project_id = str(repo.config.get("project_id", ""))
-    if not project_id:
-        logger.warning("gitlab.webhook.merge_request.award.missing_project_id")
-        return
-
-    if emojis_to_delete:
+    if reactions_to_delete:
         try:
-            # Identify awards placed by the current OAuth user (our integration bot)
-            # so we only delete our own awards, not those from other users.
-            current_user = client.get_user() or {}
-            current_user_id = current_user.get("id")
-            existing_awards = client.get_merge_request_awards(project_id, mr_iid) or []
-            if current_user_id is not None:
-                for award in existing_awards:
-                    if (
-                        award.get("user", {}).get("id") == current_user_id
-                        and award.get("id")
-                        and award.get("name") in emojis_to_delete
-                    ):
-                        client.delete_merge_request_award(project_id, mr_iid, str(award["id"]))
+            # Identify reactions placed by the current OAuth user (our integration bot)
+            # so we only remove our own reactions, not those from other users.
+            current_actor = scm_actions.get_authenticated_actor(scm)["data"]
+            current_actor_id = current_actor["id"]
+            existing = scm_actions.get_pull_request_reactions(scm, mr_iid)["data"]
+            for reaction in existing:
+                author = reaction.get("author")
+                if (
+                    author is not None
+                    and author.get("id") == current_actor_id
+                    and reaction.get("content") in reactions_to_delete
+                    and reaction.get("id")
+                ):
+                    scm_actions.delete_pull_request_reaction(scm, mr_iid, str(reaction["id"]))
         except Exception:
-            logger.warning("gitlab.webhook.merge_request.award.delete_failed", exc_info=True)
+            logger.warning("gitlab.webhook.merge_request.reaction.delete_failed", exc_info=True)
 
-    if emoji_to_add:
+    if reaction_to_add:
         try:
-            client.create_merge_request_award(project_id, mr_iid, emoji_to_add)
+            scm_actions.create_pull_request_reaction(scm, mr_iid, reaction_to_add)
         except Exception:
-            logger.warning("gitlab.webhook.merge_request.award.add_failed", exc_info=True)
+            logger.warning("gitlab.webhook.merge_request.reaction.add_failed", exc_info=True)
 
 
 def handle_merge_request_event(
@@ -341,16 +339,16 @@ def handle_merge_request_event(
     # Mirror the GitHub pull_request handler: add :eyes: to the MR description to
     # signal a Seer review run is in progress, and remove any stale :tada: left
     # over from a previous run. Skip for close/merge since those are not new runs.
+    # Uses SCM Reaction type values: "hooray" = :tada:, "eyes" = :eyes:.
     if action not in CLOSE_ACTIONS:
         mr_iid = object_attributes.get("iid")
         if mr_iid is not None:
-            _delete_existing_awards_and_add_award(
-                integration=integration,
+            _delete_existing_reactions_and_add_reaction(
                 organization_id=org.id,
                 repo=repo,
                 mr_iid=str(mr_iid),
-                emojis_to_delete=[GITLAB_EMOJI_TADA],
-                emoji_to_add=GITLAB_EMOJI_EYES,
+                reactions_to_delete=["hooray"],
+                reaction_to_add="eyes",
             )
 
     _schedule_task(
