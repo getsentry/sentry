@@ -32,6 +32,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import snuba
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
@@ -1072,6 +1073,32 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             environments=[self.environments["staging"]], search_filter_query="is:linked"
         )
         assert set(results) == {linked_group2}
+
+    def test_issue_agent(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
+
+        results = self.make_query(search_filter_query="issue.agent:has_root_cause")
+        assert set(results) == {self.group1}
+
+        results = self.make_query(search_filter_query="issue.agent:pr_created")
+        assert set(results) == {self.group2}
+
+        results = self.make_query(search_filter_query="issue.agent:has_plan")
+        assert set(results) == set()
+
+    def test_issue_agent_multiple_values(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
+
+        results = self.make_query(search_filter_query="issue.agent:[has_root_cause, pr_created]")
+        assert set(results) == {self.group1, self.group2}
+
+    def test_issue_agent_negation(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
+
+        results = self.make_query(search_filter_query="!issue.agent:has_root_cause")
+        assert set(results) == {self.group2}
 
     def test_unassigned(self) -> None:
         results = self.make_query(search_filter_query="is:unassigned")

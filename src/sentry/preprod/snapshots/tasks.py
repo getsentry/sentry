@@ -85,15 +85,15 @@ def categorize_image_diff(
     head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
     base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
 
-    matches_head_image = head_manifest.head_image_name_matcher()
+    all_image_file_names = head_manifest.all_image_file_names
 
     matched = head_by_name.keys() & base_by_name.keys()
     added = head_by_name.keys() - base_by_name.keys()
 
-    if matches_head_image is not None:
-        base_in_head = {name for name in base_by_name.keys() if matches_head_image(name)}
-        removed = base_by_name.keys() - base_in_head
-        skipped = base_in_head - head_by_name.keys()
+    if all_image_file_names is not None:
+        all_names_set = set(all_image_file_names)
+        removed = base_by_name.keys() - all_names_set
+        skipped = (all_names_set - head_by_name.keys()) & base_by_name.keys()
     elif head_manifest.selective:
         removed = set()
         skipped = base_by_name.keys() - head_by_name.keys()
