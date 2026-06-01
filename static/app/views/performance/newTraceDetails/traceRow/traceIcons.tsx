@@ -5,17 +5,12 @@ import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceD
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import {
   getRenderableTraceIssues,
+  getTraceIconGroupWidth,
   getTraceIssueTimestamp,
-  TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
-  TRACE_ICON_GROUP_GAP,
-  TRACE_ICON_GROUP_GLYPH_WIDTH,
-  TRACE_ICON_GROUP_HORIZONTAL_PADDING,
   TRACE_ICON_WIDTH,
 } from 'sentry/views/performance/newTraceDetails/traceIssueUtils';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-
-const TRACE_ICON_GROUP_COUNT_APPROXIMATE_CHARACTER_WIDTH = 7;
 
 interface TraceIssueIconsProps {
   errors: BaseNode['errors'];
@@ -48,7 +43,9 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
             node_space[0],
             node_space[0] + node_space[1]
           );
-          const width = getTraceIconGroupApproximateWidth(additionalIssueCount);
+          const width = getTraceIconGroupWidth(additionalIssueCount, text =>
+            props.manager.text_measurer.measure(text)
+          );
           const edge = props.manager.computeTraceIconEdge(clampedTimestamp, width);
           // The anchor timestamp may snap to the visible viewport edge, which can
           // fall outside the span when the viewport extends past it. Clamp it back
@@ -133,19 +130,4 @@ function getTraceIconEdgeClassName(
   }
 
   return '';
-}
-
-function getTraceIconGroupApproximateWidth(additionalIssueCount: number): number {
-  const countWidth = Math.max(
-    TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
-    String(additionalIssueCount).length *
-      TRACE_ICON_GROUP_COUNT_APPROXIMATE_CHARACTER_WIDTH
-  );
-
-  return (
-    TRACE_ICON_GROUP_HORIZONTAL_PADDING +
-    TRACE_ICON_GROUP_GLYPH_WIDTH +
-    TRACE_ICON_GROUP_GAP +
-    countWidth
-  );
 }

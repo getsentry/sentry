@@ -51,6 +51,23 @@ export function getRenderableTraceIssues(
   return issues;
 }
 
+export function getTraceIconGroupWidth(
+  additionalIssueCount: number,
+  measureText: (text: string) => number
+) {
+  const countWidth = Math.max(
+    TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
+    Math.ceil(measureText(String(additionalIssueCount)))
+  );
+
+  return (
+    TRACE_ICON_GROUP_HORIZONTAL_PADDING +
+    TRACE_ICON_GROUP_GLYPH_WIDTH +
+    TRACE_ICON_GROUP_GAP +
+    countWidth
+  );
+}
+
 export function getDirectErrors(node: BaseNode): Set<TraceTree.TraceErrorIssue> {
   const errors = new Set<TraceTree.TraceErrorIssue>();
 

@@ -11,11 +11,8 @@ import {
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
   getRenderableTraceIssues,
+  getTraceIconGroupWidth,
   getTraceIssueTimestamp,
-  TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
-  TRACE_ICON_GROUP_GAP,
-  TRACE_ICON_GROUP_GLYPH_WIDTH,
-  TRACE_ICON_GROUP_HORIZONTAL_PADDING,
   TRACE_ICON_WIDTH,
 } from 'sentry/views/performance/newTraceDetails/traceIssueUtils';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -1852,23 +1849,6 @@ function getTraceIconBounds(
   }
 
   return [centered_icon_left, centered_icon_right];
-}
-
-function getTraceIconGroupWidth(
-  additionalIssueCount: number,
-  measureText: (text: string) => number
-) {
-  const count_width = Math.max(
-    TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
-    Math.ceil(measureText(String(additionalIssueCount)))
-  );
-
-  return (
-    TRACE_ICON_GROUP_HORIZONTAL_PADDING +
-    TRACE_ICON_GROUP_GLYPH_WIDTH +
-    TRACE_ICON_GROUP_GAP +
-    count_width
-  );
 }
 
 /**

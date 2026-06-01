@@ -29,6 +29,9 @@ const manager = {
     timestamp: number,
     nodeSpace: [number, number]
   ) => (timestamp - nodeSpace[0]) / nodeSpace[1],
+  text_measurer: {
+    measure: jest.fn((text: string) => text.length * 7),
+  },
 } as unknown as VirtualizedViewManager;
 
 function renderIcons(node: BaseNode, nodeSpace: [number, number] = [0, 10_000]) {
@@ -44,6 +47,10 @@ function renderIcons(node: BaseNode, nodeSpace: [number, number] = [0, 10_000]) 
 }
 
 describe('TraceIssueIcons', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('summarizes child-derived issues into one icon with an additional issue count', () => {
     const childErrorA = makeEAPError({event_id: 'child-error-a', issue_id: 1});
     const childErrorB = makeEAPError({event_id: 'child-error-b', issue_id: 2});
@@ -160,6 +167,45 @@ describe('TraceIssueIcons', () => {
     expect(issueIcon).toHaveClass('TraceIconGroupStart');
     expect(issueIcon).toHaveStyle({left: '0%'});
     expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('1');
+  });
+
+  it('uses measured issue count text width for child-derived issue pill edge clamping', () => {
+    const computeTraceIconEdge = jest.fn(() => null);
+    const measuredManager = {
+      ...manager,
+      computeTraceIconEdge,
+      text_measurer: {
+        measure: jest.fn(() => 32),
+      },
+    } as unknown as VirtualizedViewManager;
+    const childErrorA = makeEAPError({
+      event_id: 'child-error-a',
+      issue_id: 1,
+      start_timestamp: 1.04,
+    });
+    const childErrorB = makeEAPError({
+      event_id: 'child-error-b',
+      issue_id: 2,
+      start_timestamp: 1.04,
+    });
+    const node = {
+      value: makeEAPSpan({errors: [], occurrences: []}),
+      errors: new Set([childErrorA, childErrorB]),
+      occurrences: new Set(),
+    } as unknown as BaseNode;
+
+    render(
+      <TraceIssueIcons
+        node={node}
+        node_space={[1000, 100]}
+        errors={node.errors}
+        occurrences={node.occurrences}
+        manager={measuredManager}
+      />
+    );
+
+    expect(measuredManager.text_measurer.measure).toHaveBeenCalledWith('1');
+    expect(computeTraceIconEdge).toHaveBeenCalledWith(1040, 56);
   });
 
   it('anchors a start-clamped child-derived issue pill to the span start', () => {
