@@ -68,17 +68,32 @@ export function getTraceIconGroupWidth(
   );
 }
 
+const directErrorsCache = new WeakMap<BaseNode, Set<TraceTree.TraceErrorIssue>>();
+
 export function getDirectErrors(node: BaseNode): Set<TraceTree.TraceErrorIssue> {
+  const cached = directErrorsCache.get(node);
+  if (cached) {
+    return cached;
+  }
+
   const errors = new Set<TraceTree.TraceErrorIssue>();
 
   if (node.value && 'errors' in node.value && Array.isArray(node.value.errors)) {
     node.value.errors.forEach(error => errors.add(error));
   }
 
+  directErrorsCache.set(node, errors);
   return errors;
 }
 
+const directOccurrencesCache = new WeakMap<BaseNode, Set<TraceTree.TraceOccurrence>>();
+
 export function getDirectOccurrences(node: BaseNode): Set<TraceTree.TraceOccurrence> {
+  const cached = directOccurrencesCache.get(node);
+  if (cached) {
+    return cached;
+  }
+
   const occurrences = new Set<TraceTree.TraceOccurrence>();
 
   if (
@@ -97,6 +112,7 @@ export function getDirectOccurrences(node: BaseNode): Set<TraceTree.TraceOccurre
     node.value.performance_issues.forEach(occurrence => occurrences.add(occurrence));
   }
 
+  directOccurrencesCache.set(node, occurrences);
   return occurrences;
 }
 
