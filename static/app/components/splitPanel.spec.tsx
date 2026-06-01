@@ -37,6 +37,41 @@ describe('SplitPanel', () => {
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
     });
 
+    it('makes a lone panel fill the container even when it declares defaultSize', () => {
+      // A sized pane and a fill pane render with different flex styling, so
+      // emotion gives them different class names. Capture both from a
+      // two-panel split: the panel with `defaultSize` is sized, the other
+      // fills.
+      const {unmount} = render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>sized</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>fill</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+      const sizedClass = screen.getByText('sized').parentElement!.className;
+      const fillClass = screen.getByText('fill').parentElement!.className;
+      expect(sizedClass).not.toEqual(fillClass);
+      unmount();
+
+      // A lone panel must fill the container even though it declares
+      // `defaultSize` — it should adopt the fill styling, not the sized one.
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>only</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+      const loneClass = screen.getByText('only').parentElement!.className;
+      expect(loneClass).toEqual(fillClass);
+      expect(loneClass).not.toEqual(sizedClass);
+    });
+
     it('preserves DOM identity of the sized panel when toggling the fill panel', () => {
       const {rerender} = render(
         <SplitPanel.Root orientation="horizontal">

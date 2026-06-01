@@ -164,26 +164,39 @@ function flattenChildren(children: React.ReactNode): React.ReactNode[] {
   return out;
 }
 
-// Single pass: find the sized pane's sizing props AND wrap each Panel child
-// with IsSizedPanelContext so it knows whether to render sized or fill.
+// Find the sized pane's sizing props AND wrap each Panel child with
+// IsSizedPanelContext so it knows whether to render sized or fill.
 function buildSplitPanelTree(children: React.ReactNode): {
   panelCount: number;
   sizedCount: number;
   sizedProps: SplitPanelPanelProps | null;
   wrappedChildren: React.ReactNode[] | null | undefined;
 } {
-  let sized: SplitPanelPanelProps | null = null;
+  const flatChildren = flattenChildren(children);
+
+  // Count panels up front. A panel is only treated as sized when there's a
+  // second pane to absorb the remaining space; with a single panel it always
+  // fills the container regardless of its `defaultSize` (e.g. replay
+  // VIDEO_ONLY renders just one panel that still declares a default size).
   let panelCount = 0;
   let sizedCount = 0;
-  const wrappedChildren = Children.map(flattenChildren(children), child => {
+  for (const child of flatChildren) {
+    if (isPanelElement(child)) {
+      panelCount++;
+      if (child.props.defaultSize !== undefined) {
+        sizedCount++;
+      }
+    }
+  }
+  const canSize = panelCount >= 2;
+
+  let sized: SplitPanelPanelProps | null = null;
+  const wrappedChildren = Children.map(flatChildren, child => {
     if (!isPanelElement(child)) {
       return child;
     }
-    panelCount++;
-    if (child.props.defaultSize !== undefined) {
-      sizedCount++;
-    }
-    const isThisPanelSized = sized === null && child.props.defaultSize !== undefined;
+    const isThisPanelSized =
+      canSize && sized === null && child.props.defaultSize !== undefined;
     if (isThisPanelSized) {
       sized = child.props;
     }
