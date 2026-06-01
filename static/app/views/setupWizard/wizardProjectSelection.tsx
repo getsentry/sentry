@@ -18,12 +18,12 @@ import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
-import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
+import type {OrganizationSummaryWithRegion} from 'sentry/views/setupWizard/types';
 import {useCreateProjectFromWizard} from 'sentry/views/setupWizard/utils/useCreateProjectFromWizard';
 import {useOrganizationDetails} from 'sentry/views/setupWizard/utils/useOrganizationDetails';
 import {useOrganizationProjects} from 'sentry/views/setupWizard/utils/useOrganizationProjects';
@@ -37,11 +37,11 @@ const urlParams = new URLSearchParams(location.search);
 const platformParam = urlParams.get('project_platform');
 const orgSlugParam = urlParams.get('org_slug');
 
-function getOrgDisplayName(organization: Organization) {
+function getOrgDisplayName(organization: OrganizationSummary) {
   return organization.name || organization.slug;
 }
 
-function getInitialOrgId(organizations: Organization[]) {
+function getInitialOrgId(organizations: OrganizationSummary[]) {
   if (organizations.length === 1) {
     return organizations[0]!.id;
   }
@@ -76,7 +76,7 @@ export function WizardProjectSelection({
   organizations,
 }: {
   hash: string;
-  organizations: OrganizationWithRegion[];
+  organizations: OrganizationSummaryWithRegion[];
 }) {
   const [search, setSearch] = useState('');
 
