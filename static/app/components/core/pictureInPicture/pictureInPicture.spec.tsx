@@ -1,6 +1,9 @@
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePictureInPicture} from 'sentry/utils/usePictureInPicture';
+import {
+  PictureInPictureProvider,
+  usePictureInPicture,
+} from '@sentry/scraps/pictureInPicture';
 
 type FakePipWindow = Window & {
   __listeners: Record<string, Array<() => void>>;
@@ -46,8 +49,19 @@ describe('usePictureInPicture', () => {
     delete window.documentPictureInPicture;
   });
 
+  it('throws when used outside of a provider', () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => renderHook(() => usePictureInPicture())).toThrow(
+      'usePictureInPicture must be used within a PictureInPictureProvider'
+    );
+    // eslint-disable-next-line no-console
+    jest.mocked(console.error).mockRestore();
+  });
+
   it('reports unsupported when the API is unavailable', () => {
-    const {result} = renderHook(() => usePictureInPicture());
+    const {result} = renderHook(() => usePictureInPicture(), {
+      wrapper: PictureInPictureProvider,
+    });
     expect(result.current.isSupported).toBe(false);
     expect(result.current.pipWindow).toBeNull();
   });
@@ -60,14 +74,18 @@ describe('usePictureInPicture', () => {
     const pip = createFakePipWindow();
     const requestWindow = stubDocumentPictureInPicture(pip);
 
-    const {result} = renderHook(() => usePictureInPicture());
+    const {result} = renderHook(() => usePictureInPicture(), {
+      wrapper: PictureInPictureProvider,
+    });
     expect(result.current.isSupported).toBe(true);
 
     await act(async () => {
-      await result.current.openPipWindow({width: 400, height: 600});
+      await result.current.requestPipWindow({width: 400, height: 600});
     });
 
-    expect(requestWindow).toHaveBeenCalledWith({width: 400, height: 600});
+    expect(requestWindow).toHaveBeenCalledWith(
+      expect.objectContaining({width: 400, height: 600})
+    );
     await waitFor(() => expect(result.current.pipWindow).toBe(pip));
     const copiedStyles = Array.from(pip.document.head.querySelectorAll('style'));
     expect(copiedStyles.some(tag => tag.innerHTML.includes('.pip-test'))).toBe(true);
@@ -75,15 +93,40 @@ describe('usePictureInPicture', () => {
     document.head.removeChild(style);
   });
 
-  it('resets state and calls onClose when the window is closed by the user', async () => {
-    const onClose = jest.fn();
+  it('does not copy emotion style tags (they are re-injected by the portal)', async () => {
+    const emotionStyle = document.createElement('style');
+    emotionStyle.setAttribute('data-emotion', 'app');
+    emotionStyle.textContent = '.emotion-skip{color:blue;}';
+    document.head.appendChild(emotionStyle);
+
     const pip = createFakePipWindow();
     stubDocumentPictureInPicture(pip);
 
-    const {result} = renderHook(() => usePictureInPicture({onClose}));
+    const {result} = renderHook(() => usePictureInPicture(), {
+      wrapper: PictureInPictureProvider,
+    });
 
     await act(async () => {
-      await result.current.openPipWindow();
+      await result.current.requestPipWindow();
+    });
+    await waitFor(() => expect(result.current.pipWindow).toBe(pip));
+
+    const copiedStyles = Array.from(pip.document.head.querySelectorAll('style'));
+    expect(copiedStyles.some(tag => tag.innerHTML.includes('.emotion-skip'))).toBe(false);
+
+    document.head.removeChild(emotionStyle);
+  });
+
+  it('resets state when the window is closed by the user', async () => {
+    const pip = createFakePipWindow();
+    stubDocumentPictureInPicture(pip);
+
+    const {result} = renderHook(() => usePictureInPicture(), {
+      wrapper: PictureInPictureProvider,
+    });
+
+    await act(async () => {
+      await result.current.requestPipWindow();
     });
     await waitFor(() => expect(result.current.pipWindow).toBe(pip));
 
@@ -93,17 +136,18 @@ describe('usePictureInPicture', () => {
     });
 
     expect(result.current.pipWindow).toBeNull();
-    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('closePipWindow closes the window and is idempotent', async () => {
     const pip = createFakePipWindow();
     stubDocumentPictureInPicture(pip);
 
-    const {result} = renderHook(() => usePictureInPicture());
+    const {result} = renderHook(() => usePictureInPicture(), {
+      wrapper: PictureInPictureProvider,
+    });
 
     await act(async () => {
-      await result.current.openPipWindow();
+      await result.current.requestPipWindow();
     });
     await waitFor(() => expect(result.current.pipWindow).toBe(pip));
 

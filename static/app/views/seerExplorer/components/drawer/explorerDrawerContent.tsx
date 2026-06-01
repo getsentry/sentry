@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
+import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
@@ -23,7 +24,6 @@ import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import {useSeerExplorerPip} from 'sentry/views/seerExplorer/seerExplorerPipContext';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
@@ -51,7 +51,7 @@ export function ExplorerDrawerContent({
     isSupported: isPipSupported,
     requestPipWindow,
     closePipWindow,
-  } = useSeerExplorerPip();
+  } = usePictureInPicture();
   const isPoppedOut = pipWindow !== null;
 
   const rootRef = useRef<HTMLDivElement>(null);

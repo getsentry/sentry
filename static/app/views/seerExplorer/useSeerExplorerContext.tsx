@@ -11,8 +11,11 @@ import {
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useModal} from '@sentry/scraps/modal';
+import {
+  PictureInPicturePortal,
+  usePictureInPicture,
+} from '@sentry/scraps/pictureInPicture';
 
-import {PictureInPicturePortal} from 'sentry/components/pictureInPicturePortal';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
@@ -21,7 +24,6 @@ import {
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import {useSeerExplorerPip} from 'sentry/views/seerExplorer/seerExplorerPipContext';
 import {usePageReferrer, useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -59,7 +61,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   const {getPageReferrer} = usePageReferrer();
 
-  const {pipWindow, closePipWindow} = useSeerExplorerPip();
+  const {pipWindow, closePipWindow} = usePictureInPicture();
   const isPoppedOut = pipWindow !== null;
 
   // Re-dock into the drawer whenever the PiP window closes (native controls,

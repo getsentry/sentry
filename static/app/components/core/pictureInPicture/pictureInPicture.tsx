@@ -1,15 +1,15 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
-interface UsePictureInPictureOptions {
-  /**
-   * Called whenever the picture-in-picture window is closed — whether by the
-   * user (native window controls), programmatically via `closePipWindow`, or by
-   * the browser. NOT called when the owning component unmounts.
-   */
-  onClose?: () => void;
-}
-
-interface OpenPipWindowOptions {
+interface RequestPipWindowOptions {
   height?: number;
   /**
    * Opens at the browser's default placement instead of remembering where the
@@ -20,7 +20,7 @@ interface OpenPipWindowOptions {
   width?: number;
 }
 
-interface UsePictureInPictureResult {
+interface PictureInPictureContextValue {
   /**
    * Closes the picture-in-picture window if one is open. Idempotent.
    */
@@ -30,15 +30,18 @@ interface UsePictureInPictureResult {
    */
   isSupported: boolean;
   /**
+   * The currently open picture-in-picture window, or null. Watch this value to
+   * react to the window being closed (by the user or programmatically).
+   */
+  pipWindow: Window | null;
+  /**
    * Opens a picture-in-picture window. Must be called from a user gesture (e.g.
    * a click handler) — the API requires transient activation.
    */
-  openPipWindow: (options?: OpenPipWindowOptions) => Promise<void>;
-  /**
-   * The currently open picture-in-picture window, or null.
-   */
-  pipWindow: Window | null;
+  requestPipWindow: (options?: RequestPipWindowOptions) => Promise<void>;
 }
+
+const PictureInPictureContext = createContext<PictureInPictureContextValue | null>(null);
 
 /**
  * Copies the document's static stylesheets into the picture-in-picture window so
@@ -68,23 +71,19 @@ function copyStyles(source: Document, target: Window) {
 }
 
 /**
- * Manages the lifecycle of a Document Picture-in-Picture window. Pair with
- * `PictureInPicturePortal` to render React content into the returned window.
+ * Owns the single Document Picture-in-Picture window for the tab (the API allows
+ * only one PiP window per browser tab). Provides it through context so any
+ * component can open, close, or render into it via `usePictureInPicture`.
+ *
+ * Pair with `PictureInPicturePortal` to render React content into the window.
  */
-export function usePictureInPicture({
-  onClose,
-}: UsePictureInPictureOptions = {}): UsePictureInPictureResult {
+export function PictureInPictureProvider({children}: {children: ReactNode}) {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
 
   const documentPictureInPicture =
     typeof window !== 'undefined' && 'documentPictureInPicture' in window
       ? window.documentPictureInPicture
       : null;
-
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
 
   // Tracks the live window outside of React state so cleanup logic always sees
   // the current value without re-running effects.
@@ -93,15 +92,18 @@ export function usePictureInPicture({
   const handleClose = useCallback(() => {
     pipWindowRef.current = null;
     setPipWindow(null);
-    onCloseRef.current?.();
   }, []);
 
-  const openPipWindow = useCallback(
-    async ({width, height, preferInitialWindowPlacement}: OpenPipWindowOptions = {}) => {
+  const requestPipWindow = useCallback(
+    async ({
+      width,
+      height,
+      preferInitialWindowPlacement,
+    }: RequestPipWindowOptions = {}) => {
       if (!documentPictureInPicture) {
         return;
       }
-      // Only one PiP window may exist per document — reuse the existing one.
+      // Only one PiP window may exist per tab — reuse the existing one.
       if (pipWindowRef.current && !pipWindowRef.current.closed) {
         return;
       }
@@ -133,8 +135,7 @@ export function usePictureInPicture({
     }
   }, []);
 
-  // On unmount, tear down the window WITHOUT invoking `onClose` (there is
-  // nothing left to re-dock into).
+  // On unmount, tear down the window.
   useEffect(() => {
     return () => {
       const pip = pipWindowRef.current;
@@ -146,6 +147,29 @@ export function usePictureInPicture({
     };
   }, [handleClose]);
 
-  const isSupported = !!documentPictureInPicture;
-  return {pipWindow, isSupported, openPipWindow, closePipWindow};
+  const value = useMemo<PictureInPictureContextValue>(
+    () => ({
+      pipWindow,
+      isSupported: !!documentPictureInPicture,
+      requestPipWindow,
+      closePipWindow,
+    }),
+    [pipWindow, documentPictureInPicture, requestPipWindow, closePipWindow]
+  );
+
+  return (
+    <PictureInPictureContext.Provider value={value}>
+      {children}
+    </PictureInPictureContext.Provider>
+  );
+}
+
+export function usePictureInPicture(): PictureInPictureContextValue {
+  const context = useContext(PictureInPictureContext);
+
+  if (!context) {
+    throw new Error('usePictureInPicture must be used within a PictureInPictureProvider');
+  }
+
+  return context;
 }

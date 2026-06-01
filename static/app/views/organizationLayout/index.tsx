@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
@@ -33,7 +34,6 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import {SeerExplorerPipProvider} from 'sentry/views/seerExplorer/seerExplorerPipContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
@@ -57,13 +57,13 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <SeerExplorerSessionsProvider>
           <SeerExplorerChatStateProvider>
-            <SeerExplorerPipProvider>
+            <PictureInPictureProvider>
               <GlobalDrawer>
                 <SeerExplorerContextProvider>
                   <AppLayout organization={organization} />
                 </SeerExplorerContextProvider>
               </GlobalDrawer>
-            </SeerExplorerPipProvider>
+            </PictureInPictureProvider>
           </SeerExplorerChatStateProvider>
         </SeerExplorerSessionsProvider>
       </OrganizationContainer>
