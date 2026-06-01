@@ -112,11 +112,12 @@ class ThreadSafeCache[K, V]:
 
 class SizedKeyCache[V]:
     """
-    Keys are hashed to a known size bounding the memory usage of the cache given
-    a known value size.
+    Keys are hashed to a known size bounding their memory usage. If values are
+    also bounded and the cache has a maximum size, maximum memory usage is
+    knowable.
 
     An example use case is debouncing requests over some interval. Given a UNIX
-    timestamp as V the total size of the cache is size N times 104 bytes.
+    timestamp as V the total size of the cache is N times 104 bytes.
     """
 
     def __init__(self, cache: Cache[int, V]):
@@ -158,7 +159,8 @@ class SizedKeyCache[V]:
 
         Cache keys are strings and unbounded, though its likely some bounds on string length
         exist upstream. Nevertheless strings consume more memory than we should be reasonably
-        willing to a debounce cache.
+        willing to allocate for some use cases. Hashing the string to a fixed-size integer
+        caps memory usage of the keys to a known amount with no loss in lookup capability.
 
         This method outputs a 40-byte integer.
         """
