@@ -165,8 +165,14 @@ class GitlabWebhook(SCMWebhook, ABC):
         url_from_event = project["web_url"]
         path_from_event = project["path_with_namespace"]
 
-        if repo.url != url_from_event or repo.config.get("path") != path_from_event:
+        if (
+            repo.url != url_from_event
+            or repo.config.get("path") != path_from_event
+            or repo.name != path_from_event
+        ):
+            # Keep name == path_with_namespace so generic owner/repo parsing works.
             repo.update(
+                name=path_from_event,
                 url=url_from_event,
                 config=dict(repo.config, path=path_from_event),
             )

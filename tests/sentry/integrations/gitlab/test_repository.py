@@ -87,7 +87,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             provider=self.provider_name,
             external_id=external_id,
         )
-        assert repo.name == repository_config["name_with_namespace"]
+        assert repo.name == repository_config["path_with_namespace"]
         assert repo.url == repository_config["web_url"]
         assert repo.integration_id == self.integration.id
         assert repo.config == {

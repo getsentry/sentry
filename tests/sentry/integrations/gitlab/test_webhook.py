@@ -376,7 +376,7 @@ class WebhookTest(GitLabTestCase):
         # merge_request event is dispatched into it with the expected context.
         assert handle_merge_request_event in MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS
 
-        self.create_gitlab_repo("getsentry/sentry")
+        self.create_gitlab_repo("cool-group/sentry")
 
         # wraps the real handler so it still runs while we record the invocation
         spy = MagicMock(wraps=handle_merge_request_event)
@@ -395,7 +395,7 @@ class WebhookTest(GitLabTestCase):
         assert call_kwargs["event"]["object_attributes"]["action"] == "open"
         assert call_kwargs["integration"].id == self.integration.id
         assert call_kwargs["organization"].id == self.organization.id
-        assert call_kwargs["repo"].name == "getsentry/sentry"
+        assert call_kwargs["repo"].name == "cool-group/sentry"
 
     def test_merge_event_create_pull_request(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
@@ -465,9 +465,10 @@ class WebhookTest(GitLabTestCase):
 
         assert response.status_code == 204
 
-        # path has been updated
+        # path (and name, kept in sync) have been updated
         repo_out_of_date_path.refresh_from_db()
         assert repo_out_of_date_path.config["path"] == "cool-group/sentry"
+        assert repo_out_of_date_path.name == "cool-group/sentry"
 
     def test_update_repo_url(self) -> None:
         repo_out_of_date_url = self.create_gitlab_repo(

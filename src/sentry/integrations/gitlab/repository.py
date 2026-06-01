@@ -46,7 +46,11 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         return {
-            "name": data["name"],
+            # Store the path_with_namespace (e.g. "group/project") as the repo
+            # name, matching GitHub's "owner/repo" convention. Generic code splits
+            # name on "/" to derive owner/repo; the display name_with_namespace
+            # contains spaces and breaks that. The slug also lives in config["path"].
+            "name": data["path"],
             "external_id": data["external_id"],
             "url": data["url"],
             "config": {
