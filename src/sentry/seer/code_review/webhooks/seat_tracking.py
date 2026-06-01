@@ -26,6 +26,7 @@ from typing import Any
 
 from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.contributor_seats import track_contributor_seat
@@ -60,8 +61,13 @@ def track_gitlab_contributor_seat_processor(
         )
         return
 
+    try:
+        org = Organization.objects.get_from_cache(id=organization.id)
+    except Organization.DoesNotExist:
+        return
+
     track_contributor_seat(
-        organization=organization,
+        organization=org,
         repo=repo,
         integration_id=integration.id,
         user_id=user_id,
