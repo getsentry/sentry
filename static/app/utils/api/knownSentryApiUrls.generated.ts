@@ -626,7 +626,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/owners/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/reprocessable/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug-blue-thunder-edition/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/difs/assemble/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/'
