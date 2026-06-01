@@ -153,10 +153,6 @@ class TransactionBalancingCalculationsTest(TestCase):
         config = Mock()
         config.organization = org
         config.get_project_sample_rates.return_value = {project_a.id: 0.2, project_b.id: 0.8}
-        rebalanced_projects = [
-            RebalancedItem(id=project_a.id, count=100, new_sample_rate=0.2),
-            RebalancedItem(id=project_b.id, count=50, new_sample_rate=0.8),
-        ]
 
         with patch(
             "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
@@ -168,10 +164,9 @@ class TransactionBalancingCalculationsTest(TestCase):
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
                 ],
-                rebalanced_projects,
             )
 
-        config.get_project_sample_rates.assert_called_once_with(rebalanced_projects)
+        config.get_project_sample_rates.assert_called_once_with()
         sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
         assert sample_rates == [0.2, 0.8]
 
@@ -193,7 +188,6 @@ class TransactionBalancingCalculationsTest(TestCase):
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
                 ],
-                None,
             )
 
         sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]

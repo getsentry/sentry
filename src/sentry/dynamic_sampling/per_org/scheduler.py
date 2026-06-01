@@ -8,7 +8,6 @@ from django.db.models import F
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
-from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import (
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
@@ -121,12 +120,12 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
-    rebalanced_projects: list[RebalancedItem] | None = None
     if config.should_balance_projects:
         project_volumes = get_eap_project_volumes(config)
         if not project_volumes:
             return DynamicSamplingStatus.NO_PROJECT_VOLUMES
         rebalanced_projects = run_project_balancing(config, project_volumes)
+        config.set_rebalanced_project_sample_rates(rebalanced_projects)
         cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
         compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
 
@@ -134,9 +133,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 
-    rebalanced_transactions = run_transaction_balancing(
-        config, transaction_volumes, rebalanced_projects
-    )
+    rebalanced_transactions = run_transaction_balancing(config, transaction_volumes)
     cached_transaction_sample_rates = get_cached_rebalanced_transaction_sample_rates(
         org_id=config.organization.id, project_ids=rebalanced_transactions.keys()
     )

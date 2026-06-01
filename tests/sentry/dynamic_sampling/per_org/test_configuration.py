@@ -66,8 +66,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert configuration.is_segment_based
         assert not configuration.is_span_based
         assert configuration.sample_rate == 0.5
-        with pytest.raises(AttributeError):
-            getattr(configuration, "project_target_sample_rates")
+        assert configuration.project_sample_rates == {}
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         assert configuration.get_sample_rate() == 0.5
 
@@ -179,8 +178,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.sample_rate == 0.5
-        with pytest.raises(AttributeError):
-            getattr(configuration, "project_target_sample_rates")
+        assert configuration.project_sample_rates == {}
 
     def test_org_mode_custom_dynamic_sampling_uses_org_target_sample_rate(self) -> None:
         for measure_case in MEASURE_OPTION_CASES:
@@ -213,8 +211,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 )
                 assert configuration.sample_rate == 0.3
                 assert configuration.get_sample_rate() == 0.3
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "project_target_sample_rates")
+                assert configuration.project_sample_rates == {}
                 get_blended_sample_rate.assert_not_called()
 
     def test_project_mode_custom_dynamic_sampling_stores_project_sample_rates(self) -> None:
@@ -249,7 +246,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert configuration.is_segment_based == (
                     measure_case.expected_measure == SamplingMeasure.SEGMENTS
                 )
-                assert configuration.project_target_sample_rates == {
+                assert configuration.project_sample_rates == {
                     project.id: 0.2,
                     project_without_rate.id: None,
                 }
@@ -281,7 +278,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert not configuration.is_enabled
                 assert configuration.measure == measure_case.expected_measure
-                assert configuration.project_target_sample_rates == {project.id: None}
+                assert configuration.project_sample_rates == {project.id: None}
                 with pytest.raises(AttributeError):
                     getattr(configuration, "sample_rate")
 
@@ -305,7 +302,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert not configuration.is_enabled
                 assert configuration.measure == measure_case.expected_measure
-                assert configuration.project_target_sample_rates == {}
+                assert configuration.project_sample_rates == {}
                 with pytest.raises(AttributeError):
                     getattr(configuration, "sample_rate")
 
@@ -344,7 +341,7 @@ class GetProjectSampleRatesTest(TestCase):
     def test_no_dynamic_sampling_returns_empty(self) -> None:
         configuration = NoDynamicSamplingConfiguration()
 
-        assert configuration.get_project_sample_rates(None) == {}
+        assert configuration.get_project_sample_rates() == {}
 
     def test_project_mode_returns_target_sample_rates(self) -> None:
         org = self.create_organization()
@@ -357,7 +354,7 @@ class GetProjectSampleRatesTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
-        assert configuration.get_project_sample_rates(None) == {
+        assert configuration.get_project_sample_rates() == {
             project_a.id: 0.2,
             project_b.id: None,
         }
@@ -375,11 +372,13 @@ class GetProjectSampleRatesTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
-        rebalanced = [
-            RebalancedItem(id=project_a.id, count=100, new_sample_rate=0.3),
-            RebalancedItem(id=project_b.id, count=20, new_sample_rate=0.9),
-        ]
-        assert configuration.get_project_sample_rates(rebalanced) == {
+        configuration.set_rebalanced_project_sample_rates(
+            [
+                RebalancedItem(id=project_a.id, count=100, new_sample_rate=0.3),
+                RebalancedItem(id=project_b.id, count=20, new_sample_rate=0.9),
+            ]
+        )
+        assert configuration.get_project_sample_rates() == {
             project_a.id: 0.3,
             project_b.id: 0.9,
         }
@@ -395,7 +394,7 @@ class GetProjectSampleRatesTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
-        assert configuration.get_project_sample_rates(None) == {
+        assert configuration.get_project_sample_rates() == {
             project_a.id: 0.5,
             project_b.id: 0.5,
         }
@@ -413,5 +412,7 @@ class GetProjectSampleRatesTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        rebalanced = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.4)]
-        assert configuration.get_project_sample_rates(rebalanced) == {project.id: 0.4}
+        configuration.set_rebalanced_project_sample_rates(
+            [RebalancedItem(id=project.id, count=100, new_sample_rate=0.4)]
+        )
+        assert configuration.get_project_sample_rates() == {project.id: 0.4}
