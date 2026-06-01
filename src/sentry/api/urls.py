@@ -319,7 +319,6 @@ from sentry.issues.endpoints import (
     RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
-    SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
@@ -2767,11 +2766,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/owners/$",
         EventOwnersEndpoint.as_view(),
         name="sentry-api-0-event-owners",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/source-map-debug/$",
-        SourceMapDebugEndpoint.as_view(),
-        name="sentry-api-0-event-source-map-debug",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/source-map-debug-blue-thunder-edition/$",
