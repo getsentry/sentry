@@ -817,7 +817,7 @@ def _recommended_aggregation(
     # Only applies to Events dataset — issue-platform occurrences don't have exception_stacks
     if type_column is None:
         message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
-        has_exception_ratio = "divide(countIf(notEmpty(exception_stacks.type)), plus(count(), 1))"
+        has_exception_ratio = "divide(countIf(notEmpty(exception_stacks.type)), count())"
         message_penalty = f"multiply({message_penalty_weight}, minus(1.0, {has_exception_ratio}))"
     else:
         message_penalty = "0.0"
