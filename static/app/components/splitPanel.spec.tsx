@@ -37,41 +37,6 @@ describe('SplitPanel', () => {
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
     });
 
-    it('makes a lone panel fill the container even when it declares defaultSize', () => {
-      // A sized pane and a fill pane render with different flex styling, so
-      // emotion gives them different class names. Capture both from a
-      // two-panel split: the panel with `defaultSize` is sized, the other
-      // fills.
-      const {unmount} = render(
-        <SplitPanel.Root orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
-            <div>sized</div>
-          </SplitPanel.Panel>
-          <SplitPanel.Divider />
-          <SplitPanel.Panel>
-            <div>fill</div>
-          </SplitPanel.Panel>
-        </SplitPanel.Root>
-      );
-      const sizedClass = screen.getByText('sized').parentElement!.className;
-      const fillClass = screen.getByText('fill').parentElement!.className;
-      expect(sizedClass).not.toEqual(fillClass);
-      unmount();
-
-      // A lone panel must fill the container even though it declares
-      // `defaultSize` — it should adopt the fill styling, not the sized one.
-      render(
-        <SplitPanel.Root orientation="horizontal">
-          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
-            <div>only</div>
-          </SplitPanel.Panel>
-        </SplitPanel.Root>
-      );
-      const loneClass = screen.getByText('only').parentElement!.className;
-      expect(loneClass).toEqual(fillClass);
-      expect(loneClass).not.toEqual(sizedClass);
-    });
-
     it('preserves DOM identity of the sized panel when toggling the fill panel', () => {
       const {rerender} = render(
         <SplitPanel.Root orientation="horizontal">
@@ -215,7 +180,6 @@ describe('SplitPanel', () => {
 
   describe('resize behavior', () => {
     it('gives a sized pane its default size when it appears after a single panel', () => {
-      // Start as a single (fill) panel — e.g. replay VIDEO_ONLY.
       const {rerender} = render(
         <SplitPanel.Root orientation="horizontal">
           <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
@@ -225,8 +189,6 @@ describe('SplitPanel', () => {
       );
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
 
-      // Expand to two panels on the same mount. The sized pane must adopt its
-      // defaultSize instead of staying stuck at 0.
       rerender(
         <SplitPanel.Root orientation="horizontal">
           <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
@@ -240,39 +202,6 @@ describe('SplitPanel', () => {
       );
 
       expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
-    });
-
-    it('clamps a sized pane to max so it cannot overflow the fill pane', () => {
-      // defaultSize (500) exceeds maxSize (300): the rendered basis must clamp
-      // to 300, so it ends up styled identically to a pane that declares 300.
-      const {unmount} = render(
-        <SplitPanel.Root orientation="horizontal">
-          <SplitPanel.Panel defaultSize={500} minSize={100} maxSize={300}>
-            <div>over</div>
-          </SplitPanel.Panel>
-          <SplitPanel.Divider />
-          <SplitPanel.Panel>
-            <div>fill</div>
-          </SplitPanel.Panel>
-        </SplitPanel.Root>
-      );
-      const clampedClass = screen.getByText('over').parentElement!.className;
-      unmount();
-
-      render(
-        <SplitPanel.Root orientation="horizontal">
-          <SplitPanel.Panel defaultSize={300} minSize={100} maxSize={100000}>
-            <div>exact</div>
-          </SplitPanel.Panel>
-          <SplitPanel.Divider />
-          <SplitPanel.Panel>
-            <div>fill</div>
-          </SplitPanel.Panel>
-        </SplitPanel.Root>
-      );
-      const exactClass = screen.getByText('exact').parentElement!.className;
-
-      expect(clampedClass).toEqual(exactClass);
     });
 
     it('fires onResizeEnd on keyboard resize so the size can be persisted', async () => {

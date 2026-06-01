@@ -71,8 +71,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 } {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
-  // Once the user resizes manually, stop following `initialSize`.
-  const hasUserResizedRef = useRef(false);
   const [size, setSize] = useState<number>(() => {
     const storedSize = options.sizeStorageKey
       ? parseInt(localStorage.getItem(options.sizeStorageKey) ?? '', 10)
@@ -84,9 +82,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const updateSize = useCallback(
     (newSize: number, userEvent = false) => {
-      if (userEvent) {
-        hasUserResizedRef.current = true;
-      }
       sizeRef.current = newSize;
       setSize(newSize);
       options.onResize(newSize, undefined, userEvent);
@@ -100,9 +95,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
-  // A direction change is a layout change, so reset to the default size.
   useLayoutEffect(() => {
-    hasUserResizedRef.current = false;
     options.onResize(options.initialSize ?? 0, size, false);
     setSize(options.initialSize ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,18 +103,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const sizeRef = useRef(size);
   sizeRef.current = size;
-
-  // Follow `initialSize` until the user resizes, so a sized pane adopts its
-  // default when it first appears mid-mount instead of staying stuck at its
-  // previous size.
-  useLayoutEffect(() => {
-    if (hasUserResizedRef.current || sizeRef.current === (options.initialSize ?? 0)) {
-      return;
-    }
-    options.onResize(options.initialSize ?? 0, sizeRef.current, false);
-    setSize(options.initialSize ?? 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.initialSize]);
 
   const onMouseMove = useCallback(
     (event: MouseEvent) => {
@@ -171,12 +152,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const dragStartSizeRef = useRef<number | null>(null);
-  // Remember the listeners attached on mousedown so the unmount cleanup can
-  // detach the exact instances (their identities change across renders).
-  const attachedListenersRef = useRef<{
-    onMouseMove: (event: MouseEvent) => void;
-    onMouseUp: () => void;
-  } | null>(null);
 
   const onMouseUp = useCallback(() => {
     document.body.style.pointerEvents = '';
@@ -184,27 +159,14 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     document.documentElement.style.cursor = '';
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
-    attachedListenersRef.current = null;
-
-    // Cancel any frame still scheduled so it can't change size after onResizeEnd.
-    if (rafIdRef.current !== null) {
-      window.cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    currentMouseVectorRaf.current = null;
-
     setIsHeld(false);
-    // No movement means no resize — don't report a plain click as one.
-    if (
-      dragStartSizeRef.current !== null &&
-      dragStartSizeRef.current !== sizeRef.current
-    ) {
+    if (dragStartSizeRef.current !== null) {
       options.onResizeEnd?.({
         startSize: dragStartSizeRef.current,
         endSize: sizeRef.current,
       });
+      dragStartSizeRef.current = null;
     }
-    dragStartSizeRef.current = null;
   }, [onMouseMove, options]);
 
   const onMouseDown = useCallback(
@@ -213,7 +175,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       dragStartSizeRef.current = sizeRef.current;
       currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
 
-      attachedListenersRef.current = {onMouseMove, onMouseUp};
       document.addEventListener('mousemove', onMouseMove, {passive: true});
       document.addEventListener('mouseup', onMouseUp);
     },
@@ -221,33 +182,16 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const onDoubleClick = useCallback(() => {
-    const startSize = sizeRef.current;
     updateSize(options.initialSize, true);
-    // Mirror drag end so consumers that persist on resize end capture the reset.
-    options.onResizeEnd?.({startSize, endSize: options.initialSize});
-  }, [updateSize, options]);
+  }, [updateSize, options.initialSize]);
 
-  // On unmount mid-drag, detach the listeners and restore the document styles
-  // the drag set (pointer-events/cursor/user-select), plus cancel any pending
-  // frame — otherwise the app is left non-interactive.
   useLayoutEffect(() => {
     return () => {
-      if (attachedListenersRef.current) {
-        document.removeEventListener(
-          'mousemove',
-          attachedListenersRef.current.onMouseMove
-        );
-        document.removeEventListener('mouseup', attachedListenersRef.current.onMouseUp);
-        attachedListenersRef.current = null;
-        document.body.style.pointerEvents = '';
-        document.body.style.userSelect = '';
-        document.documentElement.style.cursor = '';
-      }
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, []);
+  });
 
   return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
 }

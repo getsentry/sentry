@@ -5,6 +5,7 @@ import {
   isValidElement,
   useCallback,
   useContext,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -97,9 +98,7 @@ function Panel({children}: SplitPanelPanelProps) {
   const {size, max} = useSplitPanelContext('SplitPanel.Panel');
   const isSized = useIsSizedPanel();
 
-  // Clamp the rendered basis to `max` (capped at the container size) so the
-  // sized pane can never overflow or squeeze out the fill pane when the
-  // container shrinks without a drag, e.g. the window narrows.
+  // Clamp to `max` so the sized pane can't overflow when the container shrinks.
   return (
     <Flex
       direction="column"
@@ -256,6 +255,23 @@ function Root({
   const max = availableSize > 0 ? Math.min(explicitMax, availableSize) : explicitMax;
   const initialSize = sizedProps?.defaultSize ?? 0;
 
+  const hasUserResizedRef = useRef(false);
+  const hadSizedPaneRef = useRef(sizedProps !== null);
+
+  const handleResizeEnd = useCallback(
+    (startSize: number, endSize: number) => {
+      if (startSize === endSize) {
+        return;
+      }
+      onResizeEnd?.({
+        startSize,
+        endSize,
+        direction: endSize > startSize ? 'increase' : 'decrease',
+      });
+    },
+    [onResizeEnd]
+  );
+
   const {
     isHeld,
     onDoubleClick,
@@ -267,14 +283,22 @@ function Root({
     initialSize,
     min,
     max,
-    onResize: newSize => onResize?.(newSize),
-    onResizeEnd: ({startSize, endSize}) =>
-      onResizeEnd?.({
-        startSize,
-        endSize,
-        direction: endSize > startSize ? 'increase' : 'decrease',
-      }),
+    onResize: (newSize, _maybeOldSize, userEvent) => {
+      if (userEvent) {
+        hasUserResizedRef.current = true;
+      }
+      onResize?.(newSize);
+    },
+    onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
   });
+
+  useLayoutEffect(() => {
+    const hasSizedPane = sizedProps !== null;
+    if (hasSizedPane && !hadSizedPaneRef.current && !hasUserResizedRef.current) {
+      setSize(initialSize);
+    }
+    hadSizedPaneRef.current = hasSizedPane;
+  }, [sizedProps, initialSize, setSize]);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -282,6 +306,15 @@ function Root({
       onDragStart(event);
     },
     [onDragStart, containerSize, onMouseDown]
+  );
+
+  const handleDoubleClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const startSize = containerSize;
+      onDoubleClick(event);
+      handleResizeEnd(startSize, initialSize);
+    },
+    [onDoubleClick, containerSize, initialSize, handleResizeEnd]
   );
 
   const handleKeyDown = useCallback(
@@ -305,16 +338,10 @@ function Root({
       if (newSize !== null) {
         event.preventDefault();
         setSize(newSize, true);
-        // Drag end is the only signal some consumers use to persist or track
-        // the size; emit it for keyboard resizes too so they aren't lost.
-        onResizeEnd?.({
-          startSize: containerSize,
-          endSize: newSize,
-          direction: newSize > containerSize ? 'increase' : 'decrease',
-        });
+        handleResizeEnd(containerSize, newSize);
       }
     },
-    [orientation, containerSize, min, max, setSize, onResizeEnd]
+    [orientation, containerSize, min, max, setSize, handleResizeEnd]
   );
 
   const contextValue = useMemo<SplitPanelContextValue>(
@@ -322,7 +349,7 @@ function Root({
       isHeld,
       max,
       min,
-      onDoubleClick,
+      onDoubleClick: handleDoubleClick,
       onKeyDown: handleKeyDown,
       onMouseDown: handleMouseDown,
       orientation,
@@ -330,12 +357,12 @@ function Root({
     }),
     [
       containerSize,
+      handleDoubleClick,
       handleKeyDown,
       handleMouseDown,
       isHeld,
       max,
       min,
-      onDoubleClick,
       orientation,
     ]
   );
