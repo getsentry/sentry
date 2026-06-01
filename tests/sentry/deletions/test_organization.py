@@ -382,19 +382,34 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         # Environment deletion. Without the explicit GroupEnvironment child relation in
         # OrganizationDeletionTask, Django's ORM cascade from environment.delete() fires a
         # post_delete signal per GroupEnvironment row, which causes timeouts at scale.
+        # Uses multiple environments to exercise the environment_id__in query.
         from django.db import connection
 
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
-        env = Environment.objects.create(organization_id=org.id, name="production")
-        group = Group.objects.create(project=project)
-        group_env = GroupEnvironment.objects.create(group=group, environment=env)
+        env_prod = Environment.objects.create(organization_id=org.id, name="production")
+        env_staging = Environment.objects.create(organization_id=org.id, name="staging")
+        env_dev = Environment.objects.create(organization_id=org.id, name="development")
+        group1 = Group.objects.create(project=project)
+        group2 = Group.objects.create(project=project)
+        group_env1 = GroupEnvironment.objects.create(group=group1, environment=env_prod)
+        group_env2 = GroupEnvironment.objects.create(group=group1, environment=env_staging)
+        group_env3 = GroupEnvironment.objects.create(group=group2, environment=env_prod)
+        group_env4 = GroupEnvironment.objects.create(group=group2, environment=env_dev)
 
-        # Delete the group via raw SQL to bypass Django's ORM cascade, leaving the
-        # GroupEnvironment row orphaned (no parent group) — this is the production scenario.
+        # Delete the groups via raw SQL to bypass Django's ORM cascade, leaving the
+        # GroupEnvironment rows orphaned (no parent group) — this is the production scenario.
         with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM sentry_groupedmessage WHERE id = %s", [group.id])
-        assert GroupEnvironment.objects.filter(id=group_env.id).exists()
+            cursor.execute(
+                "DELETE FROM sentry_groupedmessage WHERE id IN (%s, %s)",
+                [group1.id, group2.id],
+            )
+        assert (
+            GroupEnvironment.objects.filter(
+                id__in=[group_env1.id, group_env2.id, group_env3.id, group_env4.id]
+            ).count()
+            == 4
+        )
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
         self.ScheduledDeletion.schedule(instance=org, days=0)
@@ -403,8 +418,10 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             run_scheduled_deletions()
 
         assert not Organization.objects.filter(id=org.id).exists()
-        assert not Environment.objects.filter(id=env.id).exists()
-        assert not GroupEnvironment.objects.filter(id=group_env.id).exists()
+        assert not Environment.objects.filter(organization_id=org.id).exists()
+        assert not GroupEnvironment.objects.filter(
+            id__in=[group_env1.id, group_env2.id, group_env3.id, group_env4.id]
+        ).exists()
 
     def test_workflow_engine_cleanup(self) -> None:
         org = self.create_organization(name="test")

@@ -63,13 +63,18 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         # via the ORM, Django cascades to GroupEnvironment (on_delete=CASCADE, db_constraint=False)
         # and fires a post_delete signal per row. For large orgs this causes the deletion task
         # to time out. Bulk-deleting GroupEnvironment first avoids that cascade entirely.
-        relations.append(
-            ModelRelation(
-                GroupEnvironment,
-                {"environment__organization_id": instance.id},
-                task=BulkModelDeletionTask,
-            )
+        # Resolve env IDs upfront to avoid a cross-table JOIN that times out for large orgs.
+        env_ids = list(
+            Environment.objects.filter(organization_id=instance.id).values_list("id", flat=True)
         )
+        if env_ids:
+            relations.append(
+                ModelRelation(
+                    GroupEnvironment,
+                    {"environment_id__in": env_ids},
+                    task=BulkModelDeletionTask,
+                )
+            )
 
         post_environment_models = (
             Environment,
