@@ -866,6 +866,10 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
                     )
                 )
 
+        SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository__in=seer_project_repos
+        ).delete()
+
         if branch_overrides_to_create:
             SeerProjectRepositoryBranchOverride.objects.bulk_create(
                 branch_overrides_to_create,
