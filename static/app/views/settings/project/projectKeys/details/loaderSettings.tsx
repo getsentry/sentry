@@ -183,9 +183,11 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    !hasAccess || !supportsPerformance
-                      ? t('You do not have permission to edit this setting')
-                      : undefined
+                    hasAccess
+                      ? supportsPerformance
+                        ? undefined
+                        : t('Only available in SDK version 7.x and above')
+                      : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
@@ -239,9 +241,11 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    !hasAccess || !supportsPerformance
-                      ? t('You do not have permission to edit this setting')
-                      : undefined
+                    hasAccess
+                      ? supportsPerformance
+                        ? undefined
+                        : t('Only available in SDK version 7.x and above')
+                      : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
@@ -287,9 +291,11 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    !hasAccess || !supportsLogs
-                      ? t('You do not have permission to edit this setting')
-                      : undefined
+                    hasAccess
+                      ? supportsLogs
+                        ? undefined
+                        : t('Only available in SDK version 10.x and above')
+                      : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
@@ -342,9 +348,11 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   checked={field.state.value}
                   onChange={field.handleChange}
                   disabled={
-                    !hasAccess || !supportsPerformance
-                      ? t('You do not have permission to edit this setting')
-                      : undefined
+                    hasAccess
+                      ? supportsPerformance
+                        ? undefined
+                        : t('Only available in SDK version 7.x and above')
+                      : t('You do not have permission to edit this setting')
                   }
                 />
               </field.Layout.Row>
