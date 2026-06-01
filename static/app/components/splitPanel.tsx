@@ -77,21 +77,20 @@ type SplitPanelProps = {
 type SplitPanelPanelProps = {
   children: React.ReactNode;
   /**
-   * Initial size of this pane in pixels. The pane that declares `defaultSize`
-   * is the sized pane; the other fills the remaining space. Only one pane may
-   * be sized.
+   * The pane's canonical default size in pixels, and the size restored on
+   * double-click. The pane that declares `defaultSize` is the sized pane; the
+   * other fills the remaining space. Only one pane may be sized.
    */
   defaultSize?: number;
-  /**
-   * Maximum size in pixels the user may drag this pane to. Only meaningful on
-   * the sized pane.
-   */
+  /** Maximum size in pixels the user may drag the sized pane to. */
   maxSize?: number;
-  /**
-   * Minimum size in pixels the user may drag this pane to. Only meaningful on
-   * the sized pane.
-   */
+  /** Minimum size in pixels the user may drag the sized pane to. */
   minSize?: number;
+  /**
+   * Controlled current size in pixels. Pair with a persistence layer to
+   * restore a saved size; `defaultSize` stays the double-click reset target.
+   */
+  size?: number;
 };
 
 function Panel({children}: SplitPanelPanelProps) {
@@ -253,7 +252,11 @@ function Root({
   // Infinity) so the hook can accept the initial size without clamping it
   // to zero.
   const max = availableSize > 0 ? Math.min(explicitMax, availableSize) : explicitMax;
-  const initialSize = sizedProps?.defaultSize ?? 0;
+  // `defaultSize` is the canonical default and the double-click reset target;
+  // a controlled `size` only seeds the initial value and is synced below.
+  const resetSize = sizedProps?.defaultSize ?? 0;
+  const controlledSize = sizedProps?.size;
+  const initialSize = controlledSize ?? resetSize;
 
   const hasUserResizedRef = useRef(false);
   const hadSizedPaneRef = useRef(sizedProps !== null);
@@ -274,7 +277,6 @@ function Root({
 
   const {
     isHeld,
-    onDoubleClick,
     onMouseDown: onDragStart,
     setSize,
     size: containerSize,
@@ -300,6 +302,16 @@ function Root({
     hadSizedPaneRef.current = hasSizedPane;
   }, [sizedProps, initialSize, setSize]);
 
+  // Keep the controlled `size` in sync. Guard against the value we just
+  // reported back, and depend only on `controlledSize` so drag updates (which
+  // own `containerSize`) aren't clobbered mid-drag.
+  useLayoutEffect(() => {
+    if (controlledSize !== undefined && controlledSize !== containerSize) {
+      setSize(controlledSize);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlledSize]);
+
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       onMouseDown?.(containerSize);
@@ -308,14 +320,11 @@ function Root({
     [onDragStart, containerSize, onMouseDown]
   );
 
-  const handleDoubleClick = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      const startSize = containerSize;
-      onDoubleClick(event);
-      handleResizeEnd(startSize, initialSize);
-    },
-    [onDoubleClick, containerSize, initialSize, handleResizeEnd]
-  );
+  const handleDoubleClick = useCallback(() => {
+    const startSize = containerSize;
+    setSize(resetSize, true);
+    handleResizeEnd(startSize, resetSize);
+  }, [containerSize, resetSize, setSize, handleResizeEnd]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {

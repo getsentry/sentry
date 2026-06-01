@@ -204,6 +204,35 @@ describe('SplitPanel', () => {
       expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
     });
 
+    it('double-click resets to defaultSize, not the controlled size', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel.Root orientation="horizontal" onResizeEnd={onResizeEnd}>
+          <SplitPanel.Panel defaultSize={200} size={400} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+
+      const separator = screen.getByRole('separator');
+      // Controlled `size` seeds the current value.
+      expect(separator).toHaveAttribute('aria-valuenow', '400');
+
+      await userEvent.dblClick(separator);
+
+      // Resets to the canonical default and reports it so consumers can persist.
+      expect(separator).toHaveAttribute('aria-valuenow', '200');
+      expect(onResizeEnd).toHaveBeenCalledWith({
+        startSize: 400,
+        endSize: 200,
+        direction: 'decrease',
+      });
+    });
+
     it('fires onResizeEnd on keyboard resize so the size can be persisted', async () => {
       const onResizeEnd = jest.fn();
       render(

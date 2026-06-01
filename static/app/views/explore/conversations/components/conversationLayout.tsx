@@ -69,7 +69,8 @@ function MeasuredSplitPanel({
       onResizeEnd={({endSize}) => setStoredSize(endSize)}
     >
       <SplitPanel.Panel
-        defaultSize={storedSize}
+        defaultSize={defaultLeft}
+        size={storedSize}
         minSize={LEFT_PANEL_MIN}
         maxSize={maxLeft}
       >
