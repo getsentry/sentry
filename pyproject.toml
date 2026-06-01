@@ -974,7 +974,6 @@ module = [
     "sentry.issues.endpoints.group_attachments",
     "sentry.issues.endpoints.group_current_release",
     "sentry.issues.endpoints.group_first_last_release",
-    "sentry.issues.endpoints.group_integration_details",
     "sentry.issues.endpoints.group_integrations",
     "sentry.issues.endpoints.group_reprocessing",
     "sentry.issues.endpoints.group_stats",
