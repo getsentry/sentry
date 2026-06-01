@@ -72,10 +72,6 @@ function ConversationsOverviewPage() {
     'boolean'
   );
 
-  const hasRawSearchReplacement = organization.features.includes(
-    'search-query-builder-raw-search-replacement'
-  );
-
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
@@ -84,9 +80,7 @@ function ConversationsOverviewPage() {
         unsetCursor();
       },
       searchSource: 'conversations',
-      replaceRawSearchKeys: hasRawSearchReplacement
-        ? ['gen_ai.conversation.id', 'gen_ai.input.messages']
-        : undefined,
+      replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
       matchKeySuggestions: [
         {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},
         {key: 'gen_ai.conversation.id', valuePattern: /^resp_/},
@@ -94,7 +88,7 @@ function ConversationsOverviewPage() {
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],
     }),
-    [hasRawSearchReplacement, searchQuery, setSearchQuery, unsetCursor]
+    [searchQuery, setSearchQuery, unsetCursor]
   );
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
