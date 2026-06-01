@@ -1213,7 +1213,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 ]
             )
 
-            if not pg_strategy.snuba_aggregations and not has_snuba_filters:
+            if (
+                not pg_strategy.snuba_aggregations
+                and not has_snuba_filters
+                and len(pg_strategy.postgres_fields) == 1
+            ):
                 organization = projects[0].organization
                 resolved = self._resolve_pg_sort_fields(pg_strategy, organization, actor)
                 first_field = next(iter(resolved.values()))
@@ -1235,7 +1239,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 )
                 return result
 
-            result = self._execute_postgres_sort(
+            pg_result = self._execute_postgres_sort(
                 strategy=pg_strategy,
                 sort_by=sort_by,
                 group_queryset=group_queryset,
@@ -1252,13 +1256,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 referrer=referrer,
             )
-            if result is not None:
+            if pg_result is not None:
                 metrics.timing(
                     "snuba.search.query",
                     (timezone.now() - now).total_seconds(),
                     tags={"postgres_only": False, "sort": sort_by},
                 )
-                return result
+                return pg_result
             # Fall through to Snuba path with fallback sort
             sort_by = pg_strategy.snuba_fallback or sort_by
 

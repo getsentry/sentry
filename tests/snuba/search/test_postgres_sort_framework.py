@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -30,8 +31,8 @@ def _patch_pg_strategies(strategies: dict[str, PostgresSortStrategy]):
     )
 
 
-def _ts_strategy(**overrides):
-    defaults = dict(
+def _ts_strategy(**overrides: Any) -> PostgresSortStrategy:
+    defaults: dict[str, Any] = dict(
         postgres_fields={"ts": "seer_autofix_last_triggered"},
         score_fn=lambda data: _datetime_to_ms(data["ts"]),
     )
@@ -140,10 +141,10 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             self.groups.append(group)
 
     def make_query(self, sort_by, query=None, limit=None, cursor=None):
-        search_filters = []
+        search_filters: list[Any] = []
         if query:
-            search_filters = convert_query_values(
-                parse_search_query(query), [self.project], self.user, None
+            search_filters = list(
+                convert_query_values(parse_search_query(query), [self.project], self.user, None)
             )
         kwargs = {}
         if limit is not None:
