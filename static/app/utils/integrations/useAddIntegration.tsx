@@ -53,6 +53,7 @@ const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'github',
   'github_enterprise',
   'gitlab',
+  'msteams',
   'opsgenie',
   'pagerduty',
   'perforce',

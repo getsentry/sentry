@@ -97,6 +97,10 @@ class InsertedSubsegment(NamedTuple):
     subsegment: Subsegment
     result: EvalshaResult
 
+    @classmethod
+    def from_redis_result(cls, subsegment: Subsegment, result: Sequence[Any]) -> InsertedSubsegment:
+        return cls(subsegment, EvalshaResult.from_redis_result(result))
+
     @property
     def project_and_trace(self) -> str:
         return self.subsegment.project_and_trace
@@ -133,6 +137,16 @@ class FlushCandidate(NamedTuple):
     segment_key: SegmentKey
     score: float
 
+    @classmethod
+    def from_redis_result(
+        cls,
+        shard: int,
+        queue_key: QueueKey,
+        result: Sequence[Any],
+    ) -> FlushCandidate:
+        segment_key, score = result
+        return cls(shard, queue_key, segment_key, score)
+
 
 class SegmentIngestMetadata(NamedTuple):
     """
@@ -146,7 +160,7 @@ class SegmentIngestMetadata(NamedTuple):
     ingested_byte_count: int | None = None
 
     @classmethod
-    def from_redis_results(
+    def from_redis_result(
         cls,
         ingested_count: bytes | int | None,
         ingested_byte_count: bytes | int | None,

@@ -20,6 +20,11 @@ from sentry.users.services.user.service import user_service
 logger = logging.getLogger("sentry.integrations.gitlab.issue_sync")
 
 
+def _add_lifecycle_extras(lifecycle: Any, extras: Mapping[str, Any]) -> None:
+    if lifecycle is not None and hasattr(lifecycle, "add_extras"):
+        lifecycle.add_extras(extras)
+
+
 class GitlabIssueSyncSpec(IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_assignee_key = "sync_forward_assignment"
@@ -70,19 +75,23 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         If assign=True, we're assigning the issue. Otherwise, deassign.
         """
         client = self.get_client()
+        lifecycle = kwargs.get("lifecycle")
 
         project_id, issue_id = self.split_external_issue_key(external_issue.key)
+        log_context: dict[str, Any] = {
+            "provider": self.model.provider,
+            "integration_id": external_issue.integration_id,
+            "external_issue_key": external_issue.key,
+            "external_issue_id": external_issue.id,
+            "project_path": project_id,
+            "issue_iid": issue_id,
+            "assign": assign,
+            "user_id": user.id if user else None,
+        }
+        _add_lifecycle_extras(lifecycle, log_context)
 
         if not project_id or not issue_id:
-            logger.error(
-                "assignee-outbound.invalid-key",
-                extra={
-                    "provider": self.model.provider,
-                    "integration_id": external_issue.integration_id,
-                    "external_issue_key": external_issue.key,
-                    "external_issue_id": external_issue.id,
-                },
-            )
+            logger.warning("assignee-outbound.invalid-key", extra=log_context)
             return
 
         gitlab_user_id = None
@@ -98,57 +107,52 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
                 organization=external_issue.organization,
             ).first()
             if not external_actor:
-                logger.info(
-                    "assignee-outbound.external-actor-not-found",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "user_id": user.id,
-                    },
-                )
+                logger.info("assignee-outbound.external-actor-not-found", extra=log_context)
                 return
+
+            log_context.update(
+                {
+                    "external_actor_id": external_actor.id,
+                    "external_actor_name": external_actor.external_name,
+                    "external_actor_external_id": external_actor.external_id,
+                }
+            )
+            _add_lifecycle_extras(lifecycle, log_context)
 
             # Strip the @ from the username stored in external_name
             gitlab_username = external_actor.external_name.lstrip("@")
 
             # Search for the GitLab user by username to get their user ID
             try:
-                users = client.search_users(gitlab_username)
-                if not users or len(users) == 0:
-                    logger.warning(
-                        "assignee-outbound.gitlab-user-not-found",
-                        extra={
-                            "provider": self.model.provider,
-                            "integration_id": external_issue.integration_id,
-                            "gitlab_username": gitlab_username,
-                        },
-                    )
-                    return
-
-                # Take the first matching user (exact username match)
-                gitlab_user = users[0]
-                gitlab_user_id = gitlab_user["id"]
-
-                logger.info(
-                    "assignee-outbound.gitlab-user-found",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "gitlab_username": gitlab_username,
-                        "gitlab_user_id": gitlab_user_id,
-                    },
-                )
+                users = client.search_users(gitlab_username) or []
             except ApiError as e:
-                logger.warning(
-                    "assignee-outbound.gitlab-user-search-failed",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "gitlab_username": gitlab_username,
-                        "error": str(e),
-                    },
-                )
+                log_context["error"] = str(e)
+                logger.warning("assignee-outbound.gitlab-user-search-failed", extra=log_context)
+                _add_lifecycle_extras(lifecycle, log_context)
                 return
+
+            usernames = [
+                found_user.get("username") for found_user in users[:5] if found_user.get("username")
+            ]
+            log_context.update(
+                {
+                    "assignee_resolution_method": "username_search",
+                    "gitlab_search_result_count": len(users),
+                    "gitlab_search_usernames": usernames,
+                }
+            )
+
+            if not users:
+                logger.warning("assignee-outbound.gitlab-user-not-found", extra=log_context)
+                _add_lifecycle_extras(lifecycle, log_context)
+                return
+
+            gitlab_user = users[0]
+            gitlab_user_id = gitlab_user["id"]
+            log_context["resolved_gitlab_user_id"] = gitlab_user_id
+
+            logger.info("assignee-outbound.gitlab-user-found", extra=log_context)
+            _add_lifecycle_extras(lifecycle, log_context)
 
         # Update GitLab issue assignees
         try:

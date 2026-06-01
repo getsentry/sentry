@@ -24,7 +24,6 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializerResponse,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
-from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.api.utils import generate_locality_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -86,6 +85,7 @@ from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.types.cell import get_locality_name_for_cell
+from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -668,7 +668,6 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     relayPiiConfig: str | None
     trustedRelays: list[TrustedRelaySerializerResponse]
     pendingAccessRequests: int
-    codecovAccess: bool
     hideAiFeatures: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
@@ -824,7 +823,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
             ),
             "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
-            "codecovAccess": bool(obj.flags.codecov_access),
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
