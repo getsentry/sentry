@@ -6,7 +6,7 @@ interface SeerExplorerPipContextValue {
   closePipWindow: () => void;
   isSupported: boolean;
   pipWindow: Window | null;
-  requestPipWindow: (options?: {height?: number; width?: number}) => Promise<void>;
+  requestPipWindow: ReturnType<typeof usePictureInPicture>['openPipWindow'];
 }
 
 const SeerExplorerPipContext = createContext<SeerExplorerPipContextValue | null>(null);

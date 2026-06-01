@@ -67,6 +67,9 @@ export function ExplorerDrawerContent({
     requestPipWindow({
       width: drawerWidth ? Math.round(drawerWidth) : 480,
       height: Math.round(window.innerHeight * 0.9),
+      // Open at the browser's default placement rather than wherever the window
+      // happened to be left last time.
+      preferInitialWindowPlacement: true,
     })
       .then(() => closeDrawer())
       .catch(() => {

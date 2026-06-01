@@ -11,6 +11,12 @@ interface UsePictureInPictureOptions {
 
 interface OpenPipWindowOptions {
   height?: number;
+  /**
+   * Opens at the browser's default placement instead of remembering where the
+   * window was last positioned. Useful to avoid the window reappearing far from
+   * where it was triggered.
+   */
+  preferInitialWindowPlacement?: boolean;
   width?: number;
 }
 
@@ -67,8 +73,10 @@ export function usePictureInPicture({
 }: UsePictureInPictureOptions = {}): UsePictureInPictureResult {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
 
-  const isSupported =
-    typeof window !== 'undefined' && 'documentPictureInPicture' in window;
+  const documentPictureInPicture =
+    typeof window !== 'undefined' && 'documentPictureInPicture' in window
+      ? window.documentPictureInPicture
+      : null;
 
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -86,8 +94,8 @@ export function usePictureInPicture({
   }, []);
 
   const openPipWindow = useCallback(
-    async ({width, height}: OpenPipWindowOptions = {}) => {
-      if (!isSupported) {
+    async ({width, height, preferInitialWindowPlacement}: OpenPipWindowOptions = {}) => {
+      if (!documentPictureInPicture) {
         return;
       }
       // Only one PiP window may exist per document — reuse the existing one.
@@ -95,15 +103,11 @@ export function usePictureInPicture({
         return;
       }
 
-      const requestOptions: DocumentPictureInPictureOptions = {};
-      if (width !== undefined) {
-        requestOptions.width = width;
-      }
-      if (height !== undefined) {
-        requestOptions.height = height;
-      }
-
-      const pip = await window.documentPictureInPicture!.requestWindow(requestOptions);
+      const pip = await documentPictureInPicture.requestWindow({
+        width,
+        height,
+        preferInitialWindowPlacement,
+      });
 
       copyStyles(document, pip);
       // Mirror the theme class (e.g. `theme-dark`) onto the PiP body so global
@@ -115,7 +119,7 @@ export function usePictureInPicture({
       pipWindowRef.current = pip;
       setPipWindow(pip);
     },
-    [isSupported, handleClose]
+    [documentPictureInPicture, handleClose]
   );
 
   const closePipWindow = useCallback(() => {
@@ -139,5 +143,6 @@ export function usePictureInPicture({
     };
   }, [handleClose]);
 
+  const isSupported = !!documentPictureInPicture;
   return {pipWindow, isSupported, openPipWindow, closePipWindow};
 }
