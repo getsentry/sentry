@@ -62,7 +62,7 @@ describe('Onboarding', () => {
 
   it('renders the new welcome UI when feature flag is enabled', () => {
     const organization = OrganizationFixture({
-      features: ['onboarding-new-welcome-ui'],
+      features: [],
     });
 
     render(
@@ -183,7 +183,7 @@ describe('Onboarding', () => {
   describe('new welcome screen analytics', () => {
     it('calls trackAnalytics on mount', () => {
       const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
+        features: [],
       });
 
       render(
@@ -211,7 +211,7 @@ describe('Onboarding', () => {
 
     it('calls trackAnalytics and onComplete on next button click', async () => {
       const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
+        features: [],
       });
 
       const {router} = render(
@@ -250,7 +250,7 @@ describe('Onboarding', () => {
       const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
 
       const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
+        features: [],
       });
 
       try {

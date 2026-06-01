@@ -32,7 +32,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
-import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
@@ -44,7 +43,6 @@ import {ScmPlatformFeatures} from './scmPlatformFeatures';
 import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
-import {TargetedOnboardingWelcome} from './welcome';
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -186,26 +184,17 @@ const scmOnboardingSteps: StepDescriptor[] = [
 ];
 
 function WelcomeVariable(props: StepProps) {
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
-
-  if (hasNewWelcomeUI) {
-    return <NewWelcomeUI {...props} />;
-  }
-
-  return <TargetedOnboardingWelcome {...props} />;
+  return <NewWelcomeUI {...props} />;
 }
 
 interface ContainerVariableProps {
   hasFooter: boolean;
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
-  const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
-
-  if (newWelcomeUIStep && !props.hasScmOnboarding) {
+  if (props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding) {
     return (
       <OnboardingContainerNewWelcomeUI hasFooter>
         {props.children}
@@ -224,16 +213,13 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 }
 
 interface OnboardingStepVariableProps {
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
   const Component =
-    props.hasNewWelcomeUI &&
-    props.id === OnboardingStepId.WELCOME &&
-    !props.hasScmOnboarding
+    props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding
       ? OnboardingStepNewUi
       : OnboardingStep;
 
@@ -262,7 +248,6 @@ export function OnboardingWithoutContext() {
   const selectedProjectSlug =
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
     reportExposure: true,
@@ -484,7 +469,6 @@ export function OnboardingWithoutContext() {
       <ContainerVariable
         hasFooter={containerHasFooter}
         id={stepObj.id}
-        hasNewWelcomeUI={hasNewWelcomeUI}
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
@@ -521,7 +505,6 @@ export function OnboardingWithoutContext() {
           <OnboardingStepVariable
             key={stepObj.id}
             id={stepObj.id}
-            hasNewWelcomeUI={hasNewWelcomeUI}
             hasScmOnboarding={hasScmOnboarding}
           >
             {stepObj.Component && (
