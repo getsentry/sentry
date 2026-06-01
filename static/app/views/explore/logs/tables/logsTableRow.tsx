@@ -659,7 +659,9 @@ function LogRowDetails({
   }
 
   const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
-  const message = String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '');
+  const message = String(
+    attributes[OurLogKnownFieldKey.MESSAGE] ?? dataRow[OurLogKnownFieldKey.MESSAGE] ?? ''
+  );
 
   return (
     <DetailsWrapper ref={isPending ? undefined : ref}>
@@ -671,7 +673,10 @@ function LogRowDetails({
               <DetailsBody>
                 {isRegularLogResponseItem(dataRow) ? (
                   <LogBodyRenderer
-                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                    item={{
+                      ...getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                      value: message,
+                    }}
                     extra={{
                       highlightTerms,
                       logColors,
@@ -741,7 +746,7 @@ function LogRowDetails({
   );
 }
 
-function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowItem}) {
+function LogRowDetailsFilterActions({message}: {message: string}) {
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
@@ -752,7 +757,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
-            value: tableDataRow[OurLogKnownFieldKey.MESSAGE],
+            value: message,
           });
         }}
       >
@@ -765,7 +770,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
-            value: tableDataRow[OurLogKnownFieldKey.MESSAGE],
+            value: message,
             negated: true,
           });
         }}
@@ -787,6 +792,11 @@ function LogRowDetailsActions({
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
   const showFilterButtons = !isFrozen;
+  const message = String(
+    data?.attributes?.find(attr => attr.name === OurLogKnownFieldKey.MESSAGE)?.value ??
+      tableDataRow[OurLogKnownFieldKey.MESSAGE] ??
+      ''
+  );
 
   const {copy} = useCopyToClipboard();
 
@@ -810,11 +820,7 @@ function LogRowDetailsActions({
 
   return (
     <Fragment>
-      {showFilterButtons ? (
-        <LogRowDetailsFilterActions tableDataRow={tableDataRow} />
-      ) : (
-        <span />
-      )}
+      {showFilterButtons ? <LogRowDetailsFilterActions message={message} /> : <span />}
       <LogDetailTableActionsButtonBar>
         <Button
           variant="transparent"
