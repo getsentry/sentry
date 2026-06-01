@@ -1,9 +1,9 @@
-import type {BranchOverride} from 'sentry/components/events/autofix/types';
+import type {SeerProjectRepoBranchOverrideInput} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerRepos';
 
-export function isOverrideValid(override: BranchOverride) {
+export function isOverrideValid(override: SeerProjectRepoBranchOverrideInput) {
   return (
-    override.branch_name.trim() !== '' &&
-    override.tag_name.trim() !== '' &&
-    override.tag_value.trim() !== ''
+    override.branchName.trim() !== '' &&
+    override.tagName.trim() !== '' &&
+    override.tagValue.trim() !== ''
   );
 }

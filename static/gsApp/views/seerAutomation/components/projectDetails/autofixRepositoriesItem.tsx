@@ -8,9 +8,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
 import type {
-  BranchOverride,
-  SeerRepoDefinition,
-} from 'sentry/components/events/autofix/types';
+  SeerProjectRepo,
+  SeerProjectRepoBranchOverrideInput,
+  UpdateSeerProjectRepoInput,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerRepos';
 import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -23,23 +24,40 @@ import {AutofixRepositoriesItemBranchOverride} from 'getsentry/views/seerAutomat
 interface Props {
   canWrite: boolean;
   onRemoveRepo: () => void;
-  onUpdateRepo: (updatedRepo: SeerRepoDefinition) => void;
-  repositories: SeerRepoDefinition[];
-  repository: SeerRepoDefinition;
+  onUpdateRepo: (update: UpdateSeerProjectRepoInput) => void;
+  repository: SeerProjectRepo;
+  repositoryCount: number;
 }
 
-const DEFAULT_OVERRIDE: BranchOverride = {tag_name: '', tag_value: '', branch_name: ''};
+const DEFAULT_OVERRIDE: SeerProjectRepoBranchOverrideInput = {
+  tagName: '',
+  tagValue: '',
+  branchName: '',
+};
 
-function areOverridesEqual(a: BranchOverride[], b: BranchOverride[]) {
+function toOverrideInput(
+  override: SeerProjectRepoBranchOverrideInput
+): SeerProjectRepoBranchOverrideInput {
+  return {
+    tagName: override.tagName,
+    tagValue: override.tagValue,
+    branchName: override.branchName,
+  };
+}
+
+function areOverridesEqual(
+  a: SeerProjectRepoBranchOverrideInput[],
+  b: SeerProjectRepoBranchOverrideInput[]
+) {
   if (a.length !== b.length) {
     return false;
   }
   return a.every((override, idx) => {
     const other = b[idx];
     return (
-      override.branch_name === other?.branch_name &&
-      override.tag_name === other.tag_name &&
-      override.tag_value === other.tag_value
+      override.branchName === other?.branchName &&
+      override.tagName === other.tagName &&
+      override.tagValue === other.tagValue
     );
   });
 }
@@ -47,28 +65,34 @@ function areOverridesEqual(a: BranchOverride[], b: BranchOverride[]) {
 export function AutofixRepositoriesItem({
   canWrite,
   repository,
-  repositories,
+  repositoryCount,
   onRemoveRepo,
   onUpdateRepo,
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Local input state so typing isn't tied to a server round-trip; the branch
+  // is persisted on blur (only when it actually changed).
+  const [branchName, setBranchName] = useState(repository.branchName ?? '');
+
+  const savedOverrides = repository.branchOverrides.map(toOverrideInput);
+
   // We keep state with local overrides so the user can edit things without
   // sending incomplete changes to the server. All fields are required before
   // an override can be saved.
-  const [localOverrides, setLocalOverrides] = useState(repository.branch_overrides || []);
+  const [localOverrides, setLocalOverrides] = useState(savedOverrides);
 
-  const handleUpdateOverride = (idx: number, updatedOverride: BranchOverride) => {
+  const handleUpdateOverride = (
+    idx: number,
+    updatedOverride: SeerProjectRepoBranchOverrideInput
+  ) => {
     const newLocalOverrides = localOverrides.toSpliced(idx, 1, updatedOverride);
     setLocalOverrides(newLocalOverrides);
 
     // Only sync valid overrides to the server if they changed
     const branchOverrides = newLocalOverrides.filter(isOverrideValid);
-    if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
-      onUpdateRepo({
-        ...repository,
-        branch_overrides: branchOverrides,
-      });
+    if (!areOverridesEqual(branchOverrides, savedOverrides)) {
+      onUpdateRepo({branchOverrides});
     }
   };
 
@@ -78,11 +102,8 @@ export function AutofixRepositoriesItem({
 
     // Sync valid overrides to the server if they changed
     const branchOverrides = newLocalOverrides.filter(isOverrideValid);
-    if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
-      onUpdateRepo({
-        ...repository,
-        branch_overrides: branchOverrides,
-      });
+    if (!areOverridesEqual(branchOverrides, savedOverrides)) {
+      onUpdateRepo({branchOverrides});
     }
   };
 
@@ -134,11 +155,11 @@ export function AutofixRepositoriesItem({
             </Heading>
           }
           message={
-            repositories.length > 1
+            repositoryCount > 1
               ? tn(
                   'There will still be %s other repository connected to this project for Autofix to use.',
                   'There will still be %s other repositories connected to this project for Autofix to use.',
-                  repositories.length - 1
+                  repositoryCount - 1
                 )
               : t('Autofix will be disabled for issues in this project.')
           }
@@ -180,11 +201,16 @@ export function AutofixRepositoriesItem({
               <Input
                 disabled={!canWrite}
                 nativeSize={10}
-                onChange={e => onUpdateRepo({...repository, branch_name: e.target.value})}
+                onChange={e => setBranchName(e.target.value)}
+                onBlur={() => {
+                  if (branchName !== (repository.branchName ?? '')) {
+                    onUpdateRepo({branchName: branchName || null});
+                  }
+                }}
                 placeholder={t('Default branch')}
                 size="sm"
                 style={{width: '200px'}}
-                value={repository.branch_name}
+                value={branchName}
               />
             </Flex>
             {localOverrides.map((override, idx) => (
