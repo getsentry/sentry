@@ -922,3 +922,34 @@ class TestBuildRepoDefinition:
             event_payload={"repository": {"private": False}},
         )
         assert result["provider"] == "github_enterprise"
+
+    def test_gitlab_uses_config_path_not_display_name(self) -> None:
+        from sentry.seer.code_review.utils import _build_repo_definition
+
+        repo = self._make_repo("integrations:gitlab")
+        # Repository.name is the display "name_with_namespace"; it must not be used.
+        repo.name = "Cool Group / Sentry"
+        repo.config = {"path": "cool-group/sentry"}
+
+        result = _build_repo_definition(
+            repo=repo,
+            target_commit_sha="abc123",
+            event_payload={"project": {"visibility_level": 0}},
+        )
+        assert result["provider"] == "gitlab"
+        assert result["owner"] == "cool-group"
+        assert result["name"] == "sentry"
+
+    def test_gitlab_missing_config_path_raises_rather_than_using_display_name(self) -> None:
+        from sentry.seer.code_review.utils import _build_repo_definition
+
+        repo = self._make_repo("integrations:gitlab")
+        repo.name = "Cool Group / Sentry"
+        repo.config = {}
+
+        with pytest.raises(ValueError):
+            _build_repo_definition(
+                repo=repo,
+                target_commit_sha="abc123",
+                event_payload={"project": {}},
+            )

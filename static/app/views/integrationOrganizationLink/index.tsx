@@ -77,14 +77,19 @@ function trackExternalAnalytics({
  * Provider-initiated entry points handled here:
  *
  *  - GitHub
- *    `/extensions/github/link/?installationId=…` (redirected from
+ *    `/extensions/github/link/?installationId=...` (redirected from
  *    `/extensions/external-install/github/:installationId`). Drives the
  *    pipeline with `gitHubAppListingParams`.
  *
  *  - Discord
- *    `/extensions/discord/link/?code=…&guild_id=…` (redirected from
+ *    `/extensions/discord/link/?code=...&guild_id=...` (redirected from
  *    `/extensions/discord/configure/`). Drives the pipeline with
  *    `discordAppDirectoryParams`.
+ *
+ *  - Microsoft Teams
+ *    `/extensions/msteams/link/?signed_params=...` (redirected from
+ *    `/extensions/msteams/configure/`). Drives the pipeline with
+ *    `msTeamsParams`.
  *
  *  - Anything else
  *    falls through to {@link finishLegacyInstallation}, which bounces to the
@@ -218,6 +223,20 @@ export default function IntegrationOrganizationLink() {
     return {code, guild_id: guildId, use_configure: '1'};
   }, [integrationSlug, location.query]);
 
+  // Microsoft Teams installs arrive here with `signed_params` in the URL query
+  // (forwarded from `/extensions/msteams/configure/`). The install button uses
+  // it as `initialData` for the pipeline modal.
+  const msTeamsParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'msteams') {
+      return null;
+    }
+    const signedParams = location.query.signed_params;
+    if (typeof signedParams !== 'string') {
+      return null;
+    }
+    return {signedParams};
+  }, [integrationSlug, location.query]);
+
   // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
   // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
   // the install server-side via the legacy pipeline. Used by every provider
@@ -246,7 +265,8 @@ export default function IntegrationOrganizationLink() {
     // Each provider-initiated entry point contributes its own params bag.
     // Whichever one is non-null routes through the API pipeline modal;
     // otherwise we fall back to the legacy server-driven install flow.
-    const urlParams = gitHubAppListingParams ?? discordAppDirectoryParams;
+    const urlParams =
+      gitHubAppListingParams ?? discordAppDirectoryParams ?? msTeamsParams;
     if (urlParams) {
       startFlow({provider, organization, onInstall, urlParams});
       return;
@@ -258,6 +278,7 @@ export default function IntegrationOrganizationLink() {
     organization,
     gitHubAppListingParams,
     discordAppDirectoryParams,
+    msTeamsParams,
     startFlow,
     onInstall,
     finishLegacyInstallation,

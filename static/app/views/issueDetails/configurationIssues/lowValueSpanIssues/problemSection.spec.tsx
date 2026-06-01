@@ -6,7 +6,7 @@ import type {LowValueSpanEvidenceData} from './types';
 const evidenceData: LowValueSpanEvidenceData = {
   op: 'function',
   description: 'compute_checksum',
-  spanCount: 1234,
+  count: 1234,
   extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
   estimatedCostUsd: 12.34,
