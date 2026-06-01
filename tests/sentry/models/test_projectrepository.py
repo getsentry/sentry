@@ -51,7 +51,6 @@ class ProjectRepositoryManagerTest(TestCase):
             source=ProjectRepositorySource.MANUAL,
         )
         assert not created
-        pr.refresh_from_db()
         assert pr.source == ProjectRepositorySource.MANUAL
 
     def test_upgrades_auto_name_match_to_seer_preference(self) -> None:

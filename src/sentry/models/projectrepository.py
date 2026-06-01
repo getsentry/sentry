@@ -20,7 +20,7 @@ class ProjectRepositorySource(models.IntegerChoices):
 
 # Indicates how strong of a signal each source is. A higher number indicates
 # more confidence that the project-repo linking is correct.
-SOURCE_PRIORITY: dict[int, int] = {
+SOURCE_PRIORITY: dict[ProjectRepositorySource, int] = {
     ProjectRepositorySource.AUTO_NAME_MATCH: 100,
     ProjectRepositorySource.AUTO_EVENT: 200,
     ProjectRepositorySource.SCM_ONBOARDING: 500,
@@ -46,7 +46,7 @@ class ProjectRepositoryManager(BaseManager["ProjectRepository"]):
             defaults={"source": source},
         )
         new_priority = SOURCE_PRIORITY.get(source, 0)
-        current_priority = SOURCE_PRIORITY.get(project_repo.source, 0)
+        current_priority = SOURCE_PRIORITY.get(ProjectRepositorySource(project_repo.source), 0)
         if not created and new_priority > current_priority:
             with transaction.atomic(router.db_for_write(type(project_repo))):
                 project_repo.source = source
