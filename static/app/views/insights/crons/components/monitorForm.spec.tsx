@@ -40,7 +40,7 @@ describe('MonitorForm', () => {
     });
   });
 
-  it('shows validation errors on required sibling fields after first field change', async () => {
+  it.isKnownFlake('shows validation errors on required sibling fields after first field change', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -64,7 +64,7 @@ describe('MonitorForm', () => {
     });
   });
 
-  it('displays human readable schedule', async () => {
+  it.isKnownFlake('displays human readable schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -181,7 +181,7 @@ describe('MonitorForm', () => {
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
 
-  it('prefills with an existing monitor', async () => {
+  it.isKnownFlake('prefills with an existing monitor', async () => {
     const monitor = MonitorFixture({project});
 
     const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;

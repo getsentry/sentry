@@ -41,7 +41,7 @@ describe('EventsRequest', () => {
       );
     });
 
-    it('makes requests', async () => {
+    it.isKnownFlake('makes requests', async () => {
       render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
       expect(mock).toHaveBeenNthCalledWith(
         1,

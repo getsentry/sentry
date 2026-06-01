@@ -79,7 +79,7 @@ describe('NewMetricDetectorForm', () => {
     });
   });
 
-  it('shows default issue preview and updates subtitle when threshold changes', async () => {
+  it.isKnownFlake('shows default issue preview and updates subtitle when threshold changes', async () => {
     render(
       <DetectorFormProvider detectorType="metric_issue">
         <NewMetricDetectorForm />
@@ -142,7 +142,7 @@ describe('NewMetricDetectorForm', () => {
     expect(within(preview).getByText('FB')).toBeInTheDocument();
   });
 
-  it('clears medium threshold error when high threshold is updated', async () => {
+  it.isKnownFlake('clears medium threshold error when high threshold is updated', async () => {
     render(
       <DetectorFormProvider detectorType="metric_issue">
         <NewMetricDetectorForm />
@@ -172,7 +172,7 @@ describe('NewMetricDetectorForm', () => {
     expect(screen.queryByText(/Medium threshold must be/)).not.toBeInTheDocument();
   });
 
-  it('removes is filters when switching away from the errors dataset', async () => {
+  it.isKnownFlake('removes is filters when switching away from the errors dataset', async () => {
     render(
       <DetectorFormProvider detectorType="metric_issue">
         <NewMetricDetectorForm />

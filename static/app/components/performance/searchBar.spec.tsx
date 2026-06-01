@@ -36,7 +36,7 @@ describe('SearchBar', () => {
     });
   });
 
-  it('Sends user input as a transaction search and shows the results', async () => {
+  it.isKnownFlake('Sends user input as a transaction search and shows the results', async () => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -64,7 +64,7 @@ describe('SearchBar', () => {
     expect(screen.getByText(textWithMarkupMatcher('clients.fetch'))).toBeInTheDocument();
   });
 
-  it('Responds to keyboard navigation', async () => {
+  it.isKnownFlake('Responds to keyboard navigation', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

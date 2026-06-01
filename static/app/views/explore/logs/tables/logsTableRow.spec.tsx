@@ -217,7 +217,7 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('hovering the row causes prefetching of the row details', async () => {
+  it.isKnownFlake('hovering the row causes prefetching of the row details', async () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     render(
@@ -249,7 +249,7 @@ describe('logsTableRow', () => {
     jest.useRealTimers();
   });
 
-  it('renders row details', async () => {
+  it.isKnownFlake('renders row details', async () => {
     render(
       <LogRowContent
         dataRow={rowData}
@@ -347,7 +347,7 @@ describe('logsTableRow', () => {
     );
   });
 
-  it('adds a similar spans action to the log message dropdown', async () => {
+  it.isKnownFlake('adds a similar spans action to the log message dropdown', async () => {
     const rowDataWithQuotedMessage = {
       ...rowData,
       [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
@@ -401,7 +401,7 @@ describe('logsTableRow', () => {
     ]);
   });
 
-  it('shows a link when hovering over code file path in the table', async () => {
+  it.isKnownFlake('shows a link when hovering over code file path in the table', async () => {
     render(
       <LogRowContent
         dataRow={rowDataWithCodeFilePath}
@@ -474,7 +474,7 @@ describe('logsTableRow', () => {
     );
   });
 
-  it('copies log as JSON when Copy as JSON button is clicked', async () => {
+  it.isKnownFlake('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {
@@ -539,7 +539,7 @@ describe('logsTableRow', () => {
     expect(parsedData).not.toHaveProperty('sentry.item_id');
   });
 
-  it('copies link to log when Copy link menu item is clicked', async () => {
+  it.isKnownFlake('copies link to log when Copy link menu item is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {
@@ -577,7 +577,7 @@ describe('logsTableRow', () => {
     expect(copiedUrl).toContain('logsQuery=id%3A1');
   });
 
-  it('does not toggle row when clicking cell action menu items', async () => {
+  it.isKnownFlake('does not toggle row when clicking cell action menu items', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {

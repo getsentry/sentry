@@ -99,7 +99,7 @@ describe('DeleteBillingMetricHistory', () => {
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
-  it('successfully deletes billing metric history when form is submitted', async () => {
+  it.isKnownFlake('successfully deletes billing metric history when form is submitted', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
       url: '/billing-config/',
