@@ -27,21 +27,23 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
     return getRenderableTraceIssues(props.node, props.errors, props.occurrences);
   }, [props.node, props.errors, props.occurrences]);
 
-  if (!issues.length) {
+  if (!issues.length || !props.node_space) {
     return null;
   }
+
+  const node_space = props.node_space;
 
   return (
     <Fragment>
       {issues.map(({issue, additionalIssueCount}, i) => {
-        const timestamp = getTraceIssueTimestamp(issue, props.node_space!);
+        const timestamp = getTraceIssueTimestamp(issue, node_space);
         const className = getTraceIssueSeverityClassName(issue);
 
         if (additionalIssueCount) {
           const clampedTimestamp = clamp(
             timestamp,
-            props.node_space![0],
-            props.node_space![0] + props.node_space![1]
+            node_space[0],
+            node_space[0] + node_space[1]
           );
           const width = getTraceIconGroupApproximateWidth(additionalIssueCount);
           const edge = props.manager.computeTraceIconEdge(clampedTimestamp, width);
@@ -50,12 +52,12 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
           // into the span so the pill stays flush within the bar (0%-100%).
           const anchorTimestamp = clamp(
             props.manager.computeTraceIconAnchorTimestamp(clampedTimestamp, edge),
-            props.node_space![0],
-            props.node_space![0] + props.node_space![1]
+            node_space[0],
+            node_space[0] + node_space[1]
           );
           const left = props.manager.computeRelativeLeftPositionFromOrigin(
             anchorTimestamp,
-            props.node_space!
+            node_space
           );
 
           return (
@@ -80,8 +82,8 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
 
         const clampedTimestamp = clamp(
           timestamp,
-          props.node_space![0],
-          props.node_space![0] + props.node_space![1]
+          node_space[0],
+          node_space[0] + node_space[1]
         );
         const edge = props.manager.computeTraceIconEdge(
           clampedTimestamp,
@@ -89,12 +91,12 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
         );
         const anchorTimestamp = clamp(
           props.manager.computeTraceIconAnchorTimestamp(clampedTimestamp, edge),
-          props.node_space![0],
-          props.node_space![0] + props.node_space![1]
+          node_space[0],
+          node_space[0] + node_space[1]
         );
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           anchorTimestamp,
-          props.node_space!
+          node_space
         );
 
         return (
