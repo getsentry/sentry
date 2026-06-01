@@ -38,7 +38,34 @@ def _rpc_org(org: Organization) -> RpcOrganization:
     )
 
 
-class MergeRequestEventWebhookTest(GitLabTestCase):
+class _FakeScmClient:
+    """Spec for the SCM reaction methods the handler invokes.
+
+    Used as a ``MagicMock(spec=...)`` so the mock satisfies the runtime-checkable
+    SCM capability protocols the handler guards on. A bare ``MagicMock`` does not:
+    Python's protocol ``isinstance`` check uses ``inspect.getattr_static``, which
+    bypasses ``MagicMock.__getattr__``. The real provider-backed facade exposes
+    these as concrete class attributes, so it passes the same guard in production.
+    """
+
+    def get_authenticated_actor(self) -> Any: ...
+
+    def get_pull_request_reactions(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def create_pull_request_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def delete_pull_request_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
+class _MergeRequestHandlerTestBase(GitLabTestCase):
+    """Shared setup for the GitLab merge-request handler tests.
+
+    ``mock_scm`` is autouse so that *every* handler test is isolated from the SCM
+    library: the handler now calls ``scm_factory.new`` for every non-close action
+    that schedules a review, and without this patch those tests would build a real
+    provider and issue (swallowed) HTTP requests to the integration's base URL.
+    """
+
     CODE_REVIEW_FEATURES = {
         "organizations:gen-ai-features",
         "organizations:code-review-beta",
@@ -49,6 +76,35 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
     def mock_seer_request(self) -> Generator[None]:
         with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
             self.mock_seer = mock_seer
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_scm(self) -> Generator[None]:
+        """Patch scm_factory.new to return a mock SCM and expose the action spies.
+
+        Ids are strings to match the real provider contract (``ResourceId = str``);
+        ``map_author`` / ``map_reaction_result`` coerce GitLab's numeric ids to str.
+        """
+        mock_scm_instance = MagicMock(spec=_FakeScmClient)
+        # get_authenticated_actor → ActionResult[Author]
+        mock_scm_instance.get_authenticated_actor.return_value = {
+            "data": {"id": "42", "username": "sentry-bot"},
+            "type": "gitlab",
+            "raw": {},
+            "meta": {},
+        }
+        # get_pull_request_reactions → PaginatedActionResult[list[ReactionResult]]
+        mock_scm_instance.get_pull_request_reactions.return_value = {
+            "data": [],
+            "type": "gitlab",
+            "raw": {},
+            "meta": {"page_info": {}},
+        }
+        with patch(
+            "sentry.seer.code_review.webhooks.merge_request.scm_factory.new",
+            return_value=mock_scm_instance,
+        ):
+            self.mock_scm = mock_scm_instance
             yield
 
     def _setup_code_review(
@@ -93,6 +149,8 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             integration=self.integration,
         )
 
+
+class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
     @with_feature(
         {
             "organizations:gen-ai-features",
@@ -778,89 +836,27 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         assert self.mock_seer.call_count == 2
 
 
-def _make_scm_reaction(reaction_id: int, content: str, author_id: int) -> dict:
-    """Build a minimal ReactionResult-shaped dict for test fixtures."""
+def _make_scm_reaction(reaction_id: int, content: str, author_id: int) -> dict[str, Any]:
+    """Build a minimal ReactionResult-shaped dict for test fixtures.
+
+    The real SCM provider stringifies ids (``ResourceId = str``), so the fixture
+    coerces them too; the handler compares author ids by equality.
+    """
     return {
-        "id": reaction_id,
+        "id": str(reaction_id),
         "content": content,
-        "author": {"id": author_id, "username": "sentry-bot"},
+        "author": {"id": str(author_id), "username": "sentry-bot"},
     }
 
 
-class MergeRequestReactionTest(GitLabTestCase):
+class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
     """Tests for the reaction-emoji behaviour added to the GitLab merge-request handler.
 
-    The handler should add :eyes: (reaction "eyes") to the MR description for every
-    non-close action that passes all filter checks, and remove stale :tada: (reaction
-    "hooray") awards left from a previous run.  Mirrors the GitHub pull_request path.
-    Reactions are called via the SCM library's provider-agnostic actions module.
+    The handler should add :eyes: (reaction "eyes") to the MR for every non-close
+    action that passes all filter checks, and remove stale :tada: (reaction "hooray")
+    awards left from a previous run.  Mirrors the GitHub pull_request path. Reactions
+    are called via the SCM library's provider-agnostic actions module.
     """
-
-    @pytest.fixture(autouse=True)
-    def mock_seer_request(self) -> Generator[None]:
-        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
-            self.mock_seer = mock_seer
-            yield
-
-    @pytest.fixture(autouse=True)
-    def mock_scm(self) -> Generator[None]:
-        """Patch scm_factory.new to return a mock SCM and expose the action spies."""
-        mock_scm_instance = MagicMock()
-        # get_authenticated_actor → ActionResult[Author]
-        mock_scm_instance.get_authenticated_actor.return_value = {
-            "data": {"id": 42, "username": "sentry-bot"},
-            "type": "gitlab",
-            "raw": {},
-            "meta": {},
-        }
-        # get_pull_request_reactions → PaginatedActionResult[list[ReactionResult]]
-        mock_scm_instance.get_pull_request_reactions.return_value = {
-            "data": [],
-            "type": "gitlab",
-            "raw": {},
-            "meta": {"page_info": {}},
-        }
-        with patch(
-            "sentry.seer.code_review.webhooks.merge_request.scm_factory.new",
-            return_value=mock_scm_instance,
-        ):
-            self.mock_scm = mock_scm_instance
-            yield
-
-    def _setup_code_review(self, triggers: list[CodeReviewTrigger] | None = None) -> None:
-        if triggers is None:
-            triggers = [
-                CodeReviewTrigger.ON_NEW_COMMIT,
-                CodeReviewTrigger.ON_READY_FOR_REVIEW,
-            ]
-        repo = self.create_gitlab_repo(name="Cool Group / Sentry")
-        repo.config["path"] = "cool-group/sentry"
-        repo.save()
-        trigger_values = [t.value for t in triggers]
-        self.create_repository_settings(
-            repository=repo,
-            enabled_code_review=True,
-            code_review_triggers=trigger_values,
-        )
-        OrganizationContributors.objects.get_or_create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            external_identifier="51",
-            defaults={"alias": "root"},
-        )
-        self.repo = repo
-
-    def _call_handler(self, event: dict[str, Any]) -> None:
-        handle_merge_request_event(
-            event=event,
-            organization=RpcOrganization(
-                id=self.organization.id,
-                slug=self.organization.slug,
-                name=self.organization.name,
-            ),
-            repo=self.repo,
-            integration=self.integration,
-        )
 
     @with_feature(
         {
@@ -1010,3 +1006,143 @@ class MergeRequestReactionTest(GitLabTestCase):
             self._call_handler(event)
 
         self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
+        # The reaction is best-effort decoration; the review must still be scheduled.
+        self.mock_seer.assert_called_once()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_eyes_not_readded_when_already_present(self) -> None:
+        """An :eyes: our user already placed must not be re-added (GitLab rejects duplicates)."""
+        self._setup_code_review()
+        event = _make_event("open")
+        self.mock_scm.get_pull_request_reactions.return_value = {
+            "data": [_make_scm_reaction(5, "eyes", 42)],
+            "type": "gitlab",
+            "raw": {},
+            "meta": {"page_info": {}},
+        }
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.create_pull_request_reaction.assert_not_called()
+        self.mock_seer.assert_called_once()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_delete_happens_before_add(self) -> None:
+        """Stale reactions are removed before the fresh :eyes: is added."""
+        self._setup_code_review()
+        event = _make_event("open")
+        self.mock_scm.get_pull_request_reactions.return_value = {
+            "data": [_make_scm_reaction(7, "hooray", 42)],
+            "type": "gitlab",
+            "raw": {},
+            "meta": {"page_info": {}},
+        }
+
+        with self.tasks():
+            self._call_handler(event)
+
+        called = [c[0] for c in self.mock_scm.method_calls]
+        assert called.index("delete_pull_request_reaction") < called.index(
+            "create_pull_request_reaction"
+        )
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_delete_failure_does_not_block_add(self) -> None:
+        """A failed delete must not prevent the :eyes: add or the Seer task."""
+        self._setup_code_review()
+        event = _make_event("open")
+        mr_iid = str(event["object_attributes"]["iid"])
+        self.mock_scm.get_pull_request_reactions.return_value = {
+            "data": [_make_scm_reaction(7, "hooray", 42)],
+            "type": "gitlab",
+            "raw": {},
+            "meta": {"page_info": {}},
+        }
+        self.mock_scm.delete_pull_request_reaction.side_effect = Exception("scm api down")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
+        self.mock_seer.assert_called_once()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_fetch_failure_does_not_block_add_or_seer(self) -> None:
+        """A failed reaction lookup must not prevent the :eyes: add or the Seer task."""
+        self._setup_code_review()
+        event = _make_event("open")
+        mr_iid = str(event["object_attributes"]["iid"])
+        self.mock_scm.get_pull_request_reactions.side_effect = Exception("scm api down")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
+        self.mock_seer.assert_called_once()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_scm_init_failure_does_not_block_seer_task(self) -> None:
+        """If the SCM client cannot be built, the Seer task must still be scheduled."""
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with patch(
+            "sentry.seer.code_review.webhooks.merge_request.scm_factory.new",
+            side_effect=Exception("scm init down"),
+        ):
+            with self.tasks():
+                self._call_handler(event)
+
+        self.mock_scm.create_pull_request_reaction.assert_not_called()
+        self.mock_seer.assert_called_once()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_no_reaction_for_draft_open(self) -> None:
+        """A draft MR is filtered before scheduling, so no reaction is placed."""
+        self._setup_code_review()
+        event = _make_event("open", draft=True)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.create_pull_request_reaction.assert_not_called()
+        self.mock_scm.delete_pull_request_reaction.assert_not_called()
+        self.mock_seer.assert_not_called()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_no_reaction_when_trigger_disabled(self) -> None:
+        """open maps to ON_READY_FOR_REVIEW; with only ON_NEW_COMMIT enabled, nothing reacts."""
+        self._setup_code_review(triggers=[CodeReviewTrigger.ON_NEW_COMMIT])
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.create_pull_request_reaction.assert_not_called()
+        self.mock_seer.assert_not_called()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_no_reaction_for_update_without_oldrev(self) -> None:
+        """An update with no new commit / un-draft is filtered before any reaction."""
+        self._setup_code_review()
+        event = _make_event("update")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.create_pull_request_reaction.assert_not_called()
+        self.mock_seer.assert_not_called()
+
+    @with_feature(_MergeRequestHandlerTestBase.CODE_REVIEW_FEATURES)
+    def test_no_reaction_for_duplicate_delivery(self) -> None:
+        """A duplicate delivery is deduped before the reaction code, so :eyes: is added once."""
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+            self._call_handler(event)
+
+        assert self.mock_scm.create_pull_request_reaction.call_count == 1
+        assert self.mock_seer.call_count == 1
