@@ -252,8 +252,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-code-review-github-enterprise", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer MR code review for GitLab organizations
     manager.add("organizations:seer-code-review-gitlab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the Seer Config Reminder in the primary nav
-    manager.add("organizations:seer-config-reminder", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Agent Index job
