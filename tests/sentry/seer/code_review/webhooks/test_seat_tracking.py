@@ -4,12 +4,28 @@ from unittest.mock import patch
 import orjson
 
 from fixtures.gitlab import MERGE_REQUEST_OPENED_EVENT, GitLabTestCase
+from sentry.integrations.gitlab.webhooks import MergeEventWebhook
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.seer.code_review.webhooks.seat_tracking import (
+    SEAT_SEEN_KEY_PREFIX,
     track_gitlab_contributor_seat_processor,
 )
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils.redis import redis_clusters
+
+
+def test_processor_runs_before_code_review_handler() -> None:
+    # Order matters: the seat processor must run before
+    # handle_merge_request_event, otherwise preflight billing finds no
+    # contributor row and denies the first MR open from a new author.
+    processors = MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS
+    assert track_gitlab_contributor_seat_processor in processors
+    assert handle_merge_request_event in processors
+    assert processors.index(track_gitlab_contributor_seat_processor) < processors.index(
+        handle_merge_request_event
+    )
 
 
 def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
@@ -95,3 +111,31 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         del event["user"]["username"]
         self._call(event=event)
         mock_track.assert_not_called()
+
+    @with_feature("organizations:seer-code-review-gitlab")
+    @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
+    def test_duplicate_delivery_within_window_skipped(self, mock_track: Any) -> None:
+        # GitLab redelivers webhooks on response timeout, and the endpoint
+        # dispatches each payload once per installed organization. Both can
+        # otherwise cause num_actions to be incremented multiple times for a
+        # single MR-open. The Redis TTL key per (org, repo, MR iid) deduplicates.
+        event = _make_event()
+        self._call(event=event)
+        self._call(event=event)
+
+        mock_track.assert_called_once()
+
+    @with_feature("organizations:seer-code-review-gitlab")
+    @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
+    def test_duplicate_delivery_after_ttl_processes_again(self, mock_track: Any) -> None:
+        event = _make_event()
+        self._call(event=event)
+        assert mock_track.call_count == 1
+
+        # Simulate TTL expiry so the same delivery can be processed again.
+        iid = event["object_attributes"]["iid"]
+        seen_key = f"{SEAT_SEEN_KEY_PREFIX}{self.organization.id}:{self.repo.id}:{iid}"
+        redis_clusters.get("default").delete(seen_key)
+
+        self._call(event=event)
+        assert mock_track.call_count == 2

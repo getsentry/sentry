@@ -348,9 +348,12 @@ class MergeEventWebhook(GitlabWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
+    # Order matters: seed OrganizationContributors before the code-review
+    # handler runs preflight, otherwise the first MR open from a new
+    # contributor would be denied with ORG_CONTRIBUTOR_NOT_FOUND.
     WEBHOOK_EVENT_PROCESSORS = (
-        handle_merge_request_event,
         track_gitlab_contributor_seat_processor,
+        handle_merge_request_event,
     )
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
