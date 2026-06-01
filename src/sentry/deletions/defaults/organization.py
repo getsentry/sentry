@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 
+from django.db import router
+
 from sentry.deletions.base import (
     BaseRelation,
     BulkModelDeletionTask,
@@ -10,6 +12,8 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
+from sentry.silo.safety import unguarded_write
+from sentry.utils.query import bulk_delete_objects
 
 
 class OrganizationDeletionTask(ModelDeletionTask[Organization]):
@@ -63,18 +67,13 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         # via the ORM, Django cascades to GroupEnvironment (on_delete=CASCADE, db_constraint=False)
         # and fires a post_delete signal per row. For large orgs this causes the deletion task
         # to time out. Bulk-deleting GroupEnvironment first avoids that cascade entirely.
-        # Resolve env IDs upfront to avoid a cross-table JOIN that times out for large orgs.
-        env_ids = list(
-            Environment.objects.filter(organization_id=instance.id).values_list("id", flat=True)
-        )
-        if env_ids:
-            relations.append(
-                ModelRelation(
-                    GroupEnvironment,
-                    {"environment_id__in": env_ids},
-                    task=BulkModelDeletionTask,
-                )
+        relations.append(
+            ModelRelation(
+                GroupEnvironment,
+                {"environment__organization_id": instance.id},
+                task=GroupEnvironmentBulkDeletionTask,
             )
+        )
 
         post_environment_models = (
             Environment,
@@ -108,3 +107,39 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
                     org_id=instance.id,
                     update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
                 )
+
+
+class GroupEnvironmentBulkDeletionTask(BulkModelDeletionTask):
+    """
+    Deletes GroupEnvironment rows by resolving environment IDs first to avoid
+    a cross-table JOIN that times out for large orgs.
+    """
+
+    def _delete_instance_bulk(self) -> bool:
+        from sentry.models.environment import Environment
+
+        org_id = self.query["environment__organization_id"]
+        env_ids = list(
+            Environment.objects.filter(organization_id=org_id).values_list("id", flat=True)
+        )
+        if not env_ids:
+            return False
+        try:
+            with unguarded_write(using=router.db_for_write(self.model)):
+                return bulk_delete_objects(
+                    model=self.model,
+                    limit=self.chunk_size,
+                    transaction_id=self.transaction_id,
+                    environment_id__in=env_ids,
+                )
+        finally:
+            model_name = self.model.__name__
+            self.logger.info(
+                f"object.delete.bulk_executed ({model_name})",
+                extra={
+                    "transaction_id": self.transaction_id,
+                    "app_label": self.model._meta.app_label,
+                    "model": model_name,
+                    **self.query,
+                },
+            )
