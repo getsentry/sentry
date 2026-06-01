@@ -152,6 +152,13 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const dragStartSizeRef = useRef<number | null>(null);
+  // Track the exact listener instances attached on mousedown so the unmount
+  // cleanup can detach them — their identities change across renders, so the
+  // cleanup can't recreate them.
+  const attachedListenersRef = useRef<{
+    onMouseMove: (event: MouseEvent) => void;
+    onMouseUp: () => void;
+  } | null>(null);
 
   const onMouseUp = useCallback(() => {
     document.body.style.pointerEvents = '';
@@ -159,6 +166,18 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     document.documentElement.style.cursor = '';
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
+    attachedListenersRef.current = null;
+
+    // A mousemove can leave a frame scheduled that hasn't run yet. Cancel it so
+    // it can't mutate size after we report the final size — otherwise onResize
+    // would fire after onResizeEnd and the persisted/reported endSize would lag
+    // the actual pane width by a frame.
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    currentMouseVectorRaf.current = null;
+
     setIsHeld(false);
     if (dragStartSizeRef.current !== null) {
       options.onResizeEnd?.({
@@ -175,6 +194,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       dragStartSizeRef.current = sizeRef.current;
       currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
 
+      attachedListenersRef.current = {onMouseMove, onMouseUp};
       document.addEventListener('mousemove', onMouseMove, {passive: true});
       document.addEventListener('mouseup', onMouseUp);
     },
@@ -185,13 +205,29 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     updateSize(options.initialSize, true);
   }, [updateSize, options.initialSize]);
 
+  // Unmount-only cleanup. If we unmount mid-drag, tear down everything an
+  // in-flight drag left behind: the global listeners and the document styles it
+  // mutated (pointer-events/cursor/user-select), plus any pending frame.
+  // Without this, navigating away while holding the divider leaves the whole
+  // app non-interactive because body pointer-events stay disabled.
   useLayoutEffect(() => {
     return () => {
+      if (attachedListenersRef.current) {
+        document.removeEventListener(
+          'mousemove',
+          attachedListenersRef.current.onMouseMove
+        );
+        document.removeEventListener('mouseup', attachedListenersRef.current.onMouseUp);
+        attachedListenersRef.current = null;
+        document.body.style.pointerEvents = '';
+        document.body.style.userSelect = '';
+        document.documentElement.style.cursor = '';
+      }
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
       }
     };
-  });
+  }, []);
 
   return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
 }
