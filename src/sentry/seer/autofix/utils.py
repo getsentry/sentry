@@ -905,11 +905,7 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
             unique_fields=["project_repository"],
         )
 
-        # Replace branch overrides using the upserted SeerProjectRepository rows.
-        SeerProjectRepositoryBranchOverride.objects.filter(
-            seer_project_repository__in=seer_project_repos
-        ).delete()
-
+        # Upsert branch overrides using the upserted SeerProjectRepository rows.
         branch_overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
         for seer_project_repo in seer_project_repos:
             project_repo = seer_project_repo.project_repository
@@ -926,7 +922,12 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
                 )
 
         if branch_overrides_to_create:
-            SeerProjectRepositoryBranchOverride.objects.bulk_create(branch_overrides_to_create)
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                branch_overrides_to_create,
+                update_conflicts=True,
+                update_fields=["branch_name"],
+                unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+            )
 
     return [sr.id for sr in seer_project_repos]
 
