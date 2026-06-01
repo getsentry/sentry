@@ -7,7 +7,7 @@ export const TRACE_ICON_GROUP_GAP = 2;
 export const TRACE_ICON_GROUP_HORIZONTAL_PADDING = 10;
 export const TRACE_ICON_GROUP_COUNT_MIN_WIDTH = 8;
 
-export interface RenderableTraceIssue {
+interface RenderableTraceIssue {
   issue: TraceTree.TraceIssue;
   additionalIssueCount?: number;
 }
@@ -83,7 +83,7 @@ export function getDirectOccurrences(node: BaseNode): Set<TraceTree.TraceOccurre
   return occurrences;
 }
 
-export function getMostSevereTraceIssue(
+function getMostSevereTraceIssue(
   issues: TraceTree.TraceIssue[]
 ): TraceTree.TraceIssue | null {
   return issues.reduce<TraceTree.TraceIssue | null>((mostSevere, issue) => {
@@ -109,7 +109,7 @@ export function getMostSevereTraceIssue(
   }, null);
 }
 
-export function getTraceIssueSeverityRank(issue: TraceTree.TraceIssue): number {
+function getTraceIssueSeverityRank(issue: TraceTree.TraceIssue): number {
   switch (issue.level) {
     case 'fatal':
       return 5;
