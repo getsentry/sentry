@@ -38,7 +38,7 @@ from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.last_seen import LAST_SEEN_INTERVAL_SECONDS
-from sentry.utils.local_cache import DebouncedDedeuplicatedCache
+from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
 
@@ -408,11 +408,11 @@ def _to_string(s: Any) -> str:
     return s if isinstance(s, str) else ""
 
 
-def _get_cache() -> DebouncedDedeuplicatedCache:
+def _get_cache() -> SizedKeyCache[int]:
     global cache
     if cache is None:
-        cache = DebouncedDedeuplicatedCache(max_size=100_000)
+        cache = SizedKeyCache[int](ThreadSafeCache(LRUCache(maxlen=100_000)))
     return cache
 
 
-cache: DebouncedDedeuplicatedCache | None = None
+cache: SizedKeyCache[int] | None = None

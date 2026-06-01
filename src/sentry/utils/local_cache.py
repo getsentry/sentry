@@ -1,13 +1,70 @@
 import hashlib
+import threading
 from collections import OrderedDict
-from threading import Lock
+from collections.abc import Iterator
+from typing import Protocol
 
 
-class BoundedLRUCache[K, V]:
+class Cache[K, V](Protocol):
+    def __contains__(self, key: K) -> bool: ...
+    def __len__(self) -> int: ...
+    def __delitem__(self, key: K) -> None: ...
+    def __getitem__(self, key: K) -> V: ...
+    def __setitem__(self, key: K, value: V) -> None: ...
+    def get(self, key: K) -> V | None: ...
+    def pop(self, key: K) -> V | None: ...
+    def keys(self) -> Iterator[K]: ...
+    def values(self) -> Iterator[V]: ...
+    def items(self) -> Iterator[tuple[K, V]]: ...
+
+
+class LRUCache[K, V]:
     def __init__(self, maxlen: int) -> None:
         self.cache: OrderedDict[K, V] = OrderedDict()
-        self.lock = Lock()
         self.maxlen = maxlen
+
+    def __contains__(self, key: K) -> bool:
+        return key in self.cache
+
+    def __len__(self) -> int:
+        return len(self.cache)
+
+    def __delitem__(self, key: K) -> None:
+        del self.cache[key]
+
+    def __getitem__(self, key: K) -> V:
+        self.cache.move_to_end(key)
+        return self.cache[key]
+
+    def __setitem__(self, key: K, value: V) -> None:
+        self.cache[key] = value
+        self.cache.move_to_end(key)
+        if len(self.cache) > self.maxlen:
+            self.cache.popitem(last=False)
+
+    def get(self, key: K) -> V | None:
+        try:
+            return self[key]
+        except KeyError:
+            return None
+
+    def pop(self, key: K) -> V | None:
+        return self.cache.pop(key, None)
+
+    def keys(self) -> Iterator[K]:
+        yield from self.cache.keys()
+
+    def values(self) -> Iterator[V]:
+        yield from self.cache.values()
+
+    def items(self) -> Iterator[tuple[K, V]]:
+        yield from self.cache.items()
+
+
+class ThreadSafeCache[K, V]:
+    def __init__(self, cache: Cache[K, V]) -> None:
+        self.cache = cache
+        self.lock = threading.Lock()
 
     def __contains__(self, key: K) -> bool:
         with self.lock:
@@ -23,28 +80,47 @@ class BoundedLRUCache[K, V]:
 
     def __getitem__(self, key: K) -> V:
         with self.lock:
-            self.cache.move_to_end(key)
             return self.cache[key]
 
     def __setitem__(self, key: K, value: V) -> None:
         with self.lock:
             self.cache[key] = value
-            self.cache.move_to_end(key)
-            if len(self.cache) > self.maxlen:
-                self.cache.popitem(last=False)
+
+    def get(self, key: K) -> V | None:
+        with self.lock:
+            return self.cache.get(key)
+
+    def pop(self, key: K) -> V | None:
+        with self.lock:
+            return self.cache.pop(key)
+
+    def keys(self) -> Iterator[K]:
+        with self.lock:
+            items = list(self.cache.keys())
+        yield from items
+
+    def values(self) -> Iterator[V]:
+        with self.lock:
+            items = list(self.cache.values())
+        yield from items
+
+    def items(self) -> Iterator[tuple[K, V]]:
+        with self.lock:
+            items = list(self.cache.items())
+        yield from items
 
 
-class DebouncedDedeuplicatedCache:
+class SizedKeyCache[V]:
     """
-    Specialized cache for deduplicating operations which also have timed refresh
-    intervals.
+    Keys are hashed to a known size bounding the memory usage of the cache given
+    a known value size.
 
-    This cache's size is bounded to ~100-bytes per entry. Multiplying `max_size`
-    by 100 gives the maximum memory consumption of the class.
+    An example use case is debouncing requests over some interval. Given a UNIX
+    timestamp as V the total size of the cache is size N times 104 bytes.
     """
 
-    def __init__(self, max_size: int):
-        self.cache: BoundedLRUCache[int, int] = BoundedLRUCache(max_size)
+    def __init__(self, cache: Cache[int, V]):
+        self.cache = cache
 
     def __contains__(self, key: str) -> bool:
         return self._hash_key(key) in self.cache
@@ -55,17 +131,26 @@ class DebouncedDedeuplicatedCache:
     def __delitem__(self, key: str) -> None:
         del self.cache[self._hash_key(key)]
 
-    def __getitem__(self, key: str) -> int | None:
+    def __getitem__(self, key: str) -> V:
         return self.cache[self._hash_key(key)]
 
-    def __setitem__(self, key: str, timestamp: int) -> None:
-        self.cache[self._hash_key(key)] = timestamp
+    def __setitem__(self, key: str, value: V) -> None:
+        self.cache[self._hash_key(key)] = value
 
-    def get(self, key: str) -> int | None:
-        try:
-            return self[key]
-        except KeyError:
-            return None
+    def get(self, key: str) -> V | None:
+        return self.cache.get(self._hash_key(key))
+
+    def pop(self, key: str) -> V | None:
+        return self.cache.pop(self._hash_key(key))
+
+    def keys(self) -> Iterator[int]:
+        yield from self.cache.keys()
+
+    def values(self) -> Iterator[V]:
+        yield from self.cache.values()
+
+    def items(self) -> Iterator[tuple[int, V]]:
+        yield from self.cache.items()
 
     def _hash_key(self, key: str) -> int:
         """
