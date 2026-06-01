@@ -383,10 +383,10 @@ class GetProjectSampleRatesTest(TestCase):
             project_b.id: 0.9,
         }
 
-    def test_org_mode_falls_back_to_org_sample_rate(self) -> None:
+    def test_org_mode_does_not_fall_back_to_org_sample_rate(self) -> None:
         org = self.create_organization()
-        project_a = self.create_project(organization=org)
-        project_b = self.create_project(organization=org)
+        self.create_project(organization=org)
+        self.create_project(organization=org)
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org.update_option("sentry:target_sample_rate", 0.5)
 
@@ -394,10 +394,10 @@ class GetProjectSampleRatesTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
-        assert configuration.get_project_sample_rates() == {
-            project_a.id: 0.5,
-            project_b.id: 0.5,
-        }
+        assert configuration.get_sample_rate() == 0.5
+        # Without rebalancing, project sample rates must stay empty rather than
+        # falling back to the org-wide sample rate.
+        assert configuration.get_project_sample_rates() == {}
 
     def test_automatic_mode_uses_rebalanced_project_rates(self) -> None:
         from sentry.dynamic_sampling.models.common import RebalancedItem
@@ -416,3 +416,20 @@ class GetProjectSampleRatesTest(TestCase):
             [RebalancedItem(id=project.id, count=100, new_sample_rate=0.4)]
         )
         assert configuration.get_project_sample_rates() == {project.id: 0.4}
+
+    def test_automatic_mode_does_not_fall_back_to_org_sample_rate(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+        self.create_project(organization=org)
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+            return_value=0.5,
+        ):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.get_sample_rate() == 0.5
+        # Without rebalancing, project sample rates must stay empty rather than
+        # falling back to the org-wide sample rate.
+        assert configuration.get_project_sample_rates() == {}
