@@ -2,16 +2,6 @@
 Handler for GitLab merge_request webhook events.
 https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
 
-Award emoji parity with the GitHub webhook forwarder
------------------------------------------------------
-
-The GitHub pull_request handler adds :eyes: to the PR description (and removes
-any stale :tada:) to signal that a Seer review run is in progress. This handler
-replicates that behaviour for GitLab merge requests via the SCM library's
-provider-agnostic reaction actions (``scm.actions.create_pull_request_reaction``
-and friends). The call is skipped for close/merge actions since those are cleanup
-events, not new review triggers.
-
 Known limitations
 -----------------
 
