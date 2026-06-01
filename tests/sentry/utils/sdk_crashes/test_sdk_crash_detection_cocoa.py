@@ -905,6 +905,7 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class CocoaSDKCoreDataTrackerTestMixin(BaseSDKCrashDetectionMixin):
     """Tests for SentryCoreDataTracker/SentryCoreDataSwizzlingHelper conditional SDK crash detection.
 
