@@ -9,15 +9,17 @@ import sentry.models.groupassignee
 import sentry.models.groupinbox
 from sentry.issues.action_log import (
     ActionContext,
+    ActionSource,
     ActionType,
     action_context_scope,
     get_action_context,
     publish_action,
     resolve_action_source,
 )
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
@@ -351,3 +353,37 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         ]
         assert len(merge_from) == 1
         assert len(merge_into) == 1
+
+
+class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
+    def test_resolve_emits_action_with_context_source(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(source=ActionSource.SLACK, actor_id=self.user.id):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.RESOLVED,
+                    substatus=None,
+                    activity_type=ActivityType.SET_RESOLVED,
+                )
+        records = [r for r in logs.records if r.message == "issue.action_log"]
+        assert len(records) == 1
+        assert records[0].__dict__["action"] == ActionType.RESOLVE
+        assert records[0].__dict__["source"] == ActionSource.SLACK
+        assert records[0].__dict__["group_id"] == group.id
+        assert records[0].__dict__["actor_id"] == self.user.id
+
+    def test_ignore_emits_archive_action(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.IGNORED,
+                    substatus=GroupSubStatus.UNTIL_ESCALATING,
+                    activity_type=ActivityType.SET_IGNORED,
+                )
+        records = [r for r in logs.records if r.message == "issue.action_log"]
+        assert len(records) == 1
+        assert records[0].__dict__["action"] == ActionType.ARCHIVE
+        assert records[0].__dict__["source"] == ActionSource.SYSTEM

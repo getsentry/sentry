@@ -37,6 +37,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.action_log import ActionType, publish_action_from_context
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -546,6 +547,19 @@ class GroupManager(BaseManager["Group"]):
                 datetime=update_date,
             )
             record_group_history_from_activity_type(group, activity_type.value)
+
+            if status == GroupStatus.RESOLVED:
+                action = ActionType.RESOLVE
+            elif status == GroupStatus.IGNORED:
+                action = ActionType.ARCHIVE
+            else:
+                action = ActionType.UNRESOLVE
+            publish_action_from_context(
+                action=action,
+                group_id=group.id,
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+            )
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
