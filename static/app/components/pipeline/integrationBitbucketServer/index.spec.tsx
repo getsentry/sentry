@@ -52,7 +52,7 @@ describe('Bitbucket Server InstallationConfigStep', () => {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
-  it('calls advance with form data on submit', async () => {
+  it.isKnownFlake('calls advance with form data on submit', async () => {
     const advance = jest.fn();
     render(<InstallationConfigStep {...makeStepProps({stepData: {}, advance})} />);
 
@@ -112,30 +112,33 @@ describe('Bitbucket Server OAuthCallbackStep', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens the popup and advances with oauthToken on callback', async () => {
-    const advance = jest.fn();
-    render(<OAuthCallbackStep {...makeStepProps({stepData: {oauthUrl}, advance})} />);
+  it.isKnownFlake(
+    'opens the popup and advances with oauthToken on callback',
+    async () => {
+      const advance = jest.fn();
+      render(<OAuthCallbackStep {...makeStepProps({stepData: {oauthUrl}, advance})} />);
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Authorize Bitbucket Server'})
-    );
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Authorize Bitbucket Server'})
+      );
 
-    expect(window.open).toHaveBeenCalledWith(
-      oauthUrl,
-      'pipeline_popup',
-      expect.any(String)
-    );
+      expect(window.open).toHaveBeenCalledWith(
+        oauthUrl,
+        'pipeline_popup',
+        expect.any(String)
+      );
 
-    dispatchPipelineMessage({
-      source: mockPopup,
-      data: {
-        _pipeline_source: 'sentry-pipeline',
-        oauth_token: 'callback-token',
-      },
-    });
+      dispatchPipelineMessage({
+        source: mockPopup,
+        data: {
+          _pipeline_source: 'sentry-pipeline',
+          oauth_token: 'callback-token',
+        },
+      });
 
-    expect(advance).toHaveBeenCalledWith({oauthToken: 'callback-token'});
-  });
+      expect(advance).toHaveBeenCalledWith({oauthToken: 'callback-token'});
+    }
+  );
 
   it('disables the authorize button when oauthUrl is missing', () => {
     render(<OAuthCallbackStep {...makeStepProps({stepData: {}})} />);

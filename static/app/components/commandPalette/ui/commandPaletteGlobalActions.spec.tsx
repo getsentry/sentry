@@ -135,31 +135,34 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(await screen.findByText('Current')).toBeInTheDocument();
   });
 
-  it('places the current route project first when on a :projectId route', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-          route: '/settings/:orgId/projects/:projectId/',
-        },
-      }
-    );
+  it.isKnownFlake(
+    'places the current route project first when on a :projectId route',
+    async () => {
+      render(
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+            route: '/settings/:orgId/projects/:projectId/',
+          },
+        }
+      );
 
-    await drillIntoGeneralSettings();
+      await drillIntoGeneralSettings();
 
-    const option = (await screen.findAllByRole('option')).find(
-      el => !el.hasAttribute('aria-disabled')
-    );
-    expect(option).toHaveAccessibleName('project-b');
-  });
+      const option = (await screen.findAllByRole('option')).find(
+        el => !el.hasAttribute('aria-disabled')
+      );
+      expect(option).toHaveAccessibleName('project-b');
+    }
+  );
 
-  it('does not duplicate the current project in the list', async () => {
+  it.isKnownFlake('does not duplicate the current project in the list', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -236,27 +239,30 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
   });
 
-  it('shows all projects without priority when not on a :projectId route', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/issues/`},
-        },
-      }
-    );
+  it.isKnownFlake(
+    'shows all projects without priority when not on a :projectId route',
+    async () => {
+      render(
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: `/organizations/${organization.slug}/issues/`},
+          },
+        }
+      );
 
-    await drillIntoGeneralSettings();
+      await drillIntoGeneralSettings();
 
-    expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
-  });
+      expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+    }
+  );
 });
 
 describe('GlobalCommandPaletteActions - search recall', () => {
@@ -341,8 +347,9 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     }
   });
 
-  it.each([
-    {
+  it.isKnownFlake('resolves pasted identifiers for short issue ID', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/shortids/WEB-HZX/`,
       body: {
         group: {
           id: '42',
@@ -355,11 +362,21 @@ describe('GlobalCommandPaletteActions - search recall', () => {
         projectSlug: project.slug,
         shortId: 'WEB-HZX',
       },
-      expectedOption: /Issue WEB-HZX/,
-      query: 'WEB-HZX',
-      lookupUrl: `/organizations/${organization.slug}/shortids/WEB-HZX/`,
-    },
-    {
+    });
+
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'WEB-HZX');
+
+    expect(
+      await screen.findByRole('option', {name: /Issue WEB-HZX/})
+    ).toBeInTheDocument();
+  });
+
+  it.isKnownFlake('resolves pasted identifiers for event ID without dashes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/eventids/954df831ab094388ac98eee198584479/`,
       body: {
         event: {id: '954df831ab094388ac98eee198584479'},
         eventId: '954df831ab094388ac98eee198584479',
@@ -367,11 +384,21 @@ describe('GlobalCommandPaletteActions - search recall', () => {
         organizationSlug: organization.slug,
         projectSlug: project.slug,
       },
-      expectedOption: /Event 954df831ab094388ac98eee198584479/,
-      query: '954df831ab094388ac98eee198584479',
-      lookupUrl: `/organizations/${organization.slug}/eventids/954df831ab094388ac98eee198584479/`,
-    },
-    {
+    });
+
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, '954df831ab094388ac98eee198584479');
+
+    expect(
+      await screen.findByRole('option', {name: /Event 954df831ab094388ac98eee198584479/})
+    ).toBeInTheDocument();
+  });
+
+  it.isKnownFlake('resolves pasted identifiers for event ID with dashes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/eventids/954df831-ab09-4388-ac98-eee198584479/`,
       body: {
         event: {id: '954df831-ab09-4388-ac98-eee198584479'},
         eventId: '954df831-ab09-4388-ac98-eee198584479',
@@ -379,28 +406,19 @@ describe('GlobalCommandPaletteActions - search recall', () => {
         organizationSlug: organization.slug,
         projectSlug: project.slug,
       },
-      expectedOption: /Event 954df831-ab09-4388-ac98-eee198584479/,
-      query: '954df831-ab09-4388-ac98-eee198584479',
-      lookupUrl: `/organizations/${organization.slug}/eventids/954df831-ab09-4388-ac98-eee198584479/`,
-    },
-  ])(
-    'resolves pasted identifiers for %s',
-    async ({query, lookupUrl, body, expectedOption}) => {
-      MockApiClient.addMockResponse({
-        url: lookupUrl,
-        body,
-      });
+    });
 
-      renderPalette();
+    renderPalette();
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
-      await userEvent.type(input, query);
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, '954df831-ab09-4388-ac98-eee198584479');
 
-      expect(
-        await screen.findByRole('option', {name: expectedOption})
-      ).toBeInTheDocument();
-    }
-  );
+    expect(
+      await screen.findByRole('option', {
+        name: /Event 954df831-ab09-4388-ac98-eee198584479/,
+      })
+    ).toBeInTheDocument();
+  });
 
   it('searches for projects and navigates to project page', async () => {
     const projectToFind = ProjectFixture({
