@@ -72,9 +72,7 @@ function supportsStructuredContext(
 ): boolean {
   if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
     return (
-      organization?.features.includes('seat-based-seer-enabled') === true ||
-      organization?.features.includes('seer-added') === true ||
-      organization?.features.includes('seer-explorer-context-engine') === true
+      organization?.features.includes('seer-explorer-structured-context-rollout') === true
     );
   }
   if (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
