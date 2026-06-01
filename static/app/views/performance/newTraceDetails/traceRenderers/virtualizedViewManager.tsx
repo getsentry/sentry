@@ -1842,11 +1842,13 @@ function getTraceIconBounds(
   const centered_icon_right = clamped_timestamp + half_icon_width_config_space;
 
   if (centered_icon_left <= visible_space[0]) {
-    return [visible_space[0], visible_space[0] + icon_width_config_space];
+    const anchor = Math.max(visible_space[0], span_space[0]);
+    return [anchor, anchor + icon_width_config_space];
   }
 
   if (centered_icon_right >= visible_space[1]) {
-    return [visible_space[1] - icon_width_config_space, visible_space[1]];
+    const anchor = Math.min(visible_space[1], span_space[0] + span_space[1]);
+    return [anchor - icon_width_config_space, anchor];
   }
 
   return [centered_icon_left, centered_icon_right];
