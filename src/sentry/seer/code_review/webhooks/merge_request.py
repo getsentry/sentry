@@ -223,21 +223,15 @@ def _delete_existing_awards_and_add_award(
                         and award.get("id")
                         and award.get("name") in emojis_to_delete
                     ):
-                        client.delete_merge_request_award(
-                            project_id, mr_iid, str(award["id"])
-                        )
+                        client.delete_merge_request_award(project_id, mr_iid, str(award["id"]))
         except Exception:
-            logger.warning(
-                "gitlab.webhook.merge_request.award.delete_failed", exc_info=True
-            )
+            logger.warning("gitlab.webhook.merge_request.award.delete_failed", exc_info=True)
 
     if emoji_to_add:
         try:
             client.create_merge_request_award(project_id, mr_iid, emoji_to_add)
         except Exception:
-            logger.warning(
-                "gitlab.webhook.merge_request.award.add_failed", exc_info=True
-            )
+            logger.warning("gitlab.webhook.merge_request.award.add_failed", exc_info=True)
 
 
 def handle_merge_request_event(
