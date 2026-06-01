@@ -517,7 +517,7 @@ def uploading_complete(uuid: str) -> None:
             .get()
         )
         relocation_storage = get_relocation_storage()
-        if not relocation_storage.exists(raw_relocation_file.bucket_path):
+        if not relocation_storage.exists(str(raw_relocation_file.bucket_path)):
             retry_task()
 
         logger.info(
@@ -577,7 +577,7 @@ def preprocessing_scan(uuid: str) -> None:
             .get()
         )
         relocation_storage = get_relocation_storage()
-        fp = relocation_storage.open(raw_relocation_file.bucket_path)
+        fp = relocation_storage.open(str(raw_relocation_file.bucket_path))
 
         with fp:
             try:
@@ -1414,7 +1414,7 @@ def importing(uuid: str) -> None:
             .get()
         )
         relocation_storage = get_relocation_storage()
-        relocation_data_fp = relocation_storage.open(raw_relocation_file.bucket_path)
+        relocation_data_fp = relocation_storage.open(str(raw_relocation_file.bucket_path))
 
         log_gcp_credentials_details(logger)
         kms_config_fp = BytesIO(json.dumps(get_default_crypto_key_version()).encode("utf-8"))

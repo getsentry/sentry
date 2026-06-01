@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry_sdk import capture_exception
 
 from sentry.models.files.file import File
+from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.models.relocationtransfer import (
     RETRY_BACKOFF,
@@ -25,7 +26,6 @@ from sentry.relocation.services.relocation_export.service import (
 )
 from sentry.relocation.utils import (
     RELOCATION_FILE_TYPE,
-    get_relocation_storage,
     relocation_raw_data_path,
 )
 from sentry.utils.db import atomic_transaction
