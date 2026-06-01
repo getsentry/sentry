@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -112,16 +112,12 @@ function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
 export function addFilterToQuery(
   filterQuery: MutableSearch,
   tag: Tag,
-  fieldDefinition: FieldDefinition | null,
-  source?: SchemaHintsSources
+  fieldDefinition: FieldDefinition | null
 ) {
   if (tag.kind === FieldKind.FUNCTION) {
     const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue ?? '';
     filterQuery.addFilterValue(`${tag.key}(${defaultFunctionParam})`, '>0');
-  } else if (
-    source === SchemaHintsSources.CONVERSATIONS &&
-    CONVERSATIONS_INCLUDES_KEYS.has(tag.key)
-  ) {
+  } else if (CONVERSATIONS_INCLUDES_KEYS.has(tag.key)) {
     filterQuery.addContainsFilterValue(tag.key, '');
   } else {
     const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
@@ -160,14 +156,11 @@ export function formatHintName(hint: Tag) {
   return prettifyTagKey(hint.name);
 }
 
-function formatHintOperator(hint: Tag, source?: SchemaHintsSources) {
+function formatHintOperator(hint: Tag) {
   if (hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION) {
     return '>';
   }
-  if (
-    source === SchemaHintsSources.CONVERSATIONS &&
-    CONVERSATIONS_INCLUDES_KEYS.has(hint.key)
-  ) {
+  if (CONVERSATIONS_INCLUDES_KEYS.has(hint.key)) {
     return 'includes';
   }
   return 'is';
@@ -239,16 +232,13 @@ export function SchemaHintsList({
     tagsRect: DOMRect[];
   } | null>(null);
 
-  const getHintText = useCallback(
-    (hint: Tag) => {
-      if (hint.key === seeFullListTag.key) {
-        return hint.name;
-      }
+  const getHintText = (hint: Tag) => {
+    if (hint.key === seeFullListTag.key) {
+      return hint.name;
+    }
 
-      return `${formatHintName(hint)} ${formatHintOperator(hint, source)} ...`;
-    },
-    [source]
-  );
+    return `${formatHintName(hint)} ${formatHintOperator(hint)} ...`;
+  };
 
   useEffect(() => {
     // debounce calculation to prevent 'flickering' when resizing
@@ -339,7 +329,7 @@ export function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [filterTagsSorted, isDrawerOpen, isLoading, tagListState, getHintText]);
+  }, [filterTagsSorted, isDrawerOpen, isLoading, tagListState]);
 
   // ensures the search bar is the correct width when the drawer is open
   useEffect(() => {
@@ -427,7 +417,7 @@ export function SchemaHintsList({
 
     const newSearchQuery = new MutableSearch(query);
     const fieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
-    addFilterToQuery(newSearchQuery, hint, fieldDefinition, source);
+    addFilterToQuery(newSearchQuery, hint, fieldDefinition);
 
     const newQuery = newSearchQuery.formatString();
 
@@ -461,7 +451,7 @@ export function SchemaHintsList({
       <Flex gap="xs">
         <Text bold={false}>{formatHintName(hint)}</Text>
         <Text bold={false} variant="muted">
-          {formatHintOperator(hint, source)}
+          {formatHintOperator(hint)}
         </Text>
         <Text bold={false} variant="accent">
           ...
