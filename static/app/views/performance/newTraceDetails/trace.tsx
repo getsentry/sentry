@@ -688,7 +688,7 @@ function VerticalTimestampIndicators({
  * emotion's css parsing logic as it is very slow and will cause
  * the scrolling to flicker.
  */
-export const TraceStylingWrapper = styled('div')`
+const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
