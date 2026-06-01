@@ -8,6 +8,7 @@ import {discordIntegrationPipeline} from './integrationDiscord';
 import {githubIntegrationPipeline} from './integrationGitHub';
 import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './integrationGitLab';
+import {jiraIntegrationPipeline} from './integrationJira';
 import {msTeamsIntegrationPipeline} from './integrationMsTeams';
 import {opsgenieIntegrationPipeline} from './integrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './integrationPagerDuty';
@@ -33,6 +34,7 @@ export const PIPELINE_REGISTRY = [
   githubIntegrationPipeline,
   githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
+  jiraIntegrationPipeline,
   msTeamsIntegrationPipeline,
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,

@@ -78,7 +78,7 @@ def generate_title_from_query(
 @cell_silo_endpoint
 class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (IssueViewTitleGeneratePermission,)
