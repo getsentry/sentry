@@ -1792,13 +1792,13 @@ function getIconTimestamps(
 
   let max_icon_width = TRACE_ICON_WIDTH;
 
-  for (const {issue, childIssueCount} of getRenderableTraceIssues(
+  for (const {issue, additionalIssueCount} of getRenderableTraceIssues(
     node,
     node.errors,
     node.occurrences
   )) {
-    const icon_width_px = childIssueCount
-      ? getTraceIconGroupWidth(childIssueCount, measureText)
+    const icon_width_px = additionalIssueCount
+      ? getTraceIconGroupWidth(additionalIssueCount, measureText)
       : TRACE_ICON_WIDTH;
     const icon_width_config_space = icon_width_px * px_to_config_space;
     const timestamp = getTraceIssueTimestamp(issue, span_space);
@@ -1858,7 +1858,7 @@ function getTraceIconBounds(
 
 interface RenderableTraceIssue {
   issue: TraceTree.TraceIssue;
-  childIssueCount?: number;
+  additionalIssueCount?: number;
 }
 
 function getRenderableTraceIssues(
@@ -1889,7 +1889,12 @@ function getRenderableTraceIssues(
 
   const childRepresentative = getMostSevereTraceIssue(childIssues);
   if (childRepresentative) {
-    issues.push({issue: childRepresentative, childIssueCount: childIssues.length});
+    const additionalIssueCount = childIssues.length - 1;
+    issues.push(
+      additionalIssueCount > 0
+        ? {issue: childRepresentative, additionalIssueCount}
+        : {issue: childRepresentative}
+    );
   }
 
   return issues;
@@ -1987,12 +1992,12 @@ function getTraceIssueTimestamp(
 }
 
 function getTraceIconGroupWidth(
-  childIssueCount: number,
+  additionalIssueCount: number,
   measureText: (text: string) => number
 ) {
   const count_width = Math.max(
     TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
-    Math.ceil(measureText(String(childIssueCount)))
+    Math.ceil(measureText(String(additionalIssueCount)))
   );
 
   return (

@@ -33,17 +33,17 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
 
   return (
     <Fragment>
-      {issues.map(({issue, childIssueCount}, i) => {
+      {issues.map(({issue, additionalIssueCount}, i) => {
         const timestamp = getTraceIssueTimestamp(issue, props.node_space!);
         const className = getTraceIssueSeverityClassName(issue);
 
-        if (childIssueCount) {
+        if (additionalIssueCount) {
           const clampedTimestamp = clamp(
             timestamp,
             props.node_space![0],
             props.node_space![0] + props.node_space![1]
           );
-          const width = getTraceIconGroupApproximateWidth(childIssueCount);
+          const width = getTraceIconGroupApproximateWidth(additionalIssueCount);
           const edge = props.manager.computeTraceIconEdge(clampedTimestamp, width);
           const anchorTimestamp = props.manager.computeTraceIconAnchorTimestamp(
             clampedTimestamp,
@@ -68,7 +68,7 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
                 <TraceIcons.Icon event={issue} />
               </span>
               <span data-test-id="trace-issue-count" className="TraceIconCount">
-                {childIssueCount}
+                {additionalIssueCount}
               </span>
             </div>
           );
@@ -112,7 +112,7 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
 
 interface RenderableTraceIssue {
   issue: TraceTree.TraceIssue;
-  childIssueCount?: number;
+  additionalIssueCount?: number;
 }
 
 function getRenderableTraceIssues(
@@ -143,7 +143,12 @@ function getRenderableTraceIssues(
 
   const childRepresentative = getMostSevereTraceIssue(childIssues);
   if (childRepresentative) {
-    issues.push({issue: childRepresentative, childIssueCount: childIssues.length});
+    const additionalIssueCount = childIssues.length - 1;
+    issues.push(
+      additionalIssueCount > 0
+        ? {issue: childRepresentative, additionalIssueCount}
+        : {issue: childRepresentative}
+    );
   }
 
   return issues;
@@ -255,10 +260,11 @@ function getTraceIconEdgeClassName(
   return '';
 }
 
-function getTraceIconGroupApproximateWidth(childIssueCount: number): number {
+function getTraceIconGroupApproximateWidth(additionalIssueCount: number): number {
   const countWidth = Math.max(
     TRACE_ICON_GROUP_COUNT_MIN_WIDTH,
-    String(childIssueCount).length * TRACE_ICON_GROUP_COUNT_APPROXIMATE_CHARACTER_WIDTH
+    String(additionalIssueCount).length *
+      TRACE_ICON_GROUP_COUNT_APPROXIMATE_CHARACTER_WIDTH
   );
 
   return (

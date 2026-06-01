@@ -544,7 +544,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
-        if (text === '3') {
+        if (text === '2') {
           return 6.5;
         }
         return 38;
@@ -673,7 +673,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
-        if (text === '2') {
+        if (text === '1') {
           return 6.5;
         }
         return 38;
@@ -722,7 +722,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
-        if (text === '2') {
+        if (text === '1') {
           return 6.5;
         }
         return 38;

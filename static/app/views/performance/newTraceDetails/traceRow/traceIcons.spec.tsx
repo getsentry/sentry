@@ -44,7 +44,7 @@ function renderIcons(node: BaseNode, nodeSpace: [number, number] = [0, 10_000]) 
 }
 
 describe('TraceIssueIcons', () => {
-  it('summarizes child-derived issues into one icon', () => {
+  it('summarizes child-derived issues into one icon with an additional issue count', () => {
     const childErrorA = makeEAPError({event_id: 'child-error-a', issue_id: 1});
     const childErrorB = makeEAPError({event_id: 'child-error-b', issue_id: 2});
     const childOccurrence = makeEAPOccurrence({
@@ -60,10 +60,10 @@ describe('TraceIssueIcons', () => {
     renderIcons(node);
 
     expect(screen.getAllByTestId('trace-issue-icon')).toHaveLength(1);
-    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('3');
+    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('2');
   });
 
-  it('preserves direct issue icons and adds one child-derived issue icon', () => {
+  it('preserves direct issue icons and adds one child-derived issue count', () => {
     const directErrorA = makeEAPError({event_id: 'direct-error-a', issue_id: 1});
     const directErrorB = makeEAPError({event_id: 'direct-error-b', issue_id: 2});
     const childErrorA = makeEAPError({event_id: 'child-error-a', issue_id: 3});
@@ -77,7 +77,23 @@ describe('TraceIssueIcons', () => {
     renderIcons(node);
 
     expect(screen.getAllByTestId('trace-issue-icon')).toHaveLength(3);
-    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('1');
+  });
+
+  it('renders a single child-derived issue without an extra count', () => {
+    const childError = makeEAPError({event_id: 'child-error', issue_id: 1});
+    const node = {
+      value: makeEAPSpan({errors: [], occurrences: []}),
+      errors: new Set([childError]),
+      occurrences: new Set(),
+    } as unknown as BaseNode;
+
+    renderIcons(node);
+
+    const issueIcon = screen.getByTestId('trace-issue-icon');
+    expect(issueIcon).toHaveClass('TraceIcon');
+    expect(issueIcon).not.toHaveClass('TraceIconGroup');
+    expect(screen.queryByTestId('trace-issue-count')).not.toBeInTheDocument();
   });
 
   it('anchors a start-edge direct issue icon to the span start', () => {
@@ -143,7 +159,7 @@ describe('TraceIssueIcons', () => {
     expect(issueIcon).toHaveClass('TraceIconGroup');
     expect(issueIcon).toHaveClass('TraceIconGroupStart');
     expect(issueIcon).toHaveStyle({left: '0%'});
-    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('1');
   });
 
   it('anchors a start-clamped child-derived issue pill to the span start', () => {
