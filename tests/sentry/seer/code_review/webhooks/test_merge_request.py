@@ -803,9 +803,7 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
     @pytest.fixture(autouse=True)
     def mock_gitlab_client(self) -> Generator[None]:
         with (
-            patch(
-                "sentry.integrations.gitlab.client.GitLabApiClient.get_user"
-            ) as mock_get_user,
+            patch("sentry.integrations.gitlab.client.GitLabApiClient.get_user") as mock_get_user,
             patch(
                 "sentry.integrations.gitlab.client.GitLabApiClient.get_merge_request_awards"
             ) as mock_get_awards,
